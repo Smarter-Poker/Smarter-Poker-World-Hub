@@ -23,10 +23,15 @@ const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter
 const { createClient } = require('../../../../src/lib/supabaseServerClient');
 
 // Supabase admin for buy-in auth and chip operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -98,7 +103,7 @@ export default async function handler(req, res) {
 
           // TOS gate — player must accept Club Arena TOS before sitting down
           if (clubId) {
-            const { data: tosProfile } = await supabaseAdmin
+            const { data: tosProfile } = await getSupabase()
               .from('profiles')
               .select('club_arena_tos_accepted_at')
               .eq('id', playerId)
@@ -148,7 +153,7 @@ export default async function handler(req, res) {
           let memberRole = null;
           let memberTier = null;
           if (clubId) {
-            const { data: mem } = await supabaseAdmin
+            const { data: mem } = await getSupabase()
               .from('club_members')
               .select('role, tier')
               .eq('club_id', clubId)
@@ -188,7 +193,7 @@ export default async function handler(req, res) {
           let resolvedName = displayName;
           let resolvedAvatar = avatarUrl;
           if (!resolvedName || resolvedName === 'Player') {
-            const { data: prof } = await supabaseAdmin
+            const { data: prof } = await getSupabase()
               .from('profiles').select('display_name, avatar_url').eq('id', playerId).maybeSingle();
             if (prof) {
               resolvedName = prof.display_name || 'Player';
@@ -357,7 +362,7 @@ export default async function handler(req, res) {
           if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
           // Verify admin role
           if (clubId) {
-            const { data: inviterMember } = await supabaseAdmin
+            const { data: inviterMember } = await getSupabase()
               .from('club_members').select('role')
               .eq('club_id', clubId).eq('user_id', playerId).maybeSingle();
             if (!inviterMember || !['owner', 'admin', 'manager', 'agent'].includes(inviterMember.role)) {
@@ -374,7 +379,7 @@ export default async function handler(req, res) {
           if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
           // Verify admin role
           if (clubId) {
-            const { data: approverMember } = await supabaseAdmin
+            const { data: approverMember } = await getSupabase()
               .from('club_members').select('role')
               .eq('club_id', clubId).eq('user_id', playerId).maybeSingle();
             if (!approverMember || !['owner', 'admin', 'manager'].includes(approverMember.role)) {
@@ -391,7 +396,7 @@ export default async function handler(req, res) {
           if (!targetId) return res.status(400).json({ error: 'targetPlayerId required' });
           // Verify admin role
           if (clubId) {
-            const { data: rejecterMember } = await supabaseAdmin
+            const { data: rejecterMember } = await getSupabase()
               .from('club_members').select('role')
               .eq('club_id', clubId).eq('user_id', playerId).maybeSingle();
             if (!rejecterMember || !['owner', 'admin', 'manager'].includes(rejecterMember.role)) {
@@ -421,7 +426,7 @@ export default async function handler(req, res) {
 
           // Verify admin/manager/owner role from DATABASE, not request body
           if (clubId) {
-            const { data: kickerMember } = await supabaseAdmin
+            const { data: kickerMember } = await getSupabase()
               .from('club_members')
               .select('role')
               .eq('club_id', clubId)

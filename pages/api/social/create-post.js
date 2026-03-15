@@ -8,10 +8,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -26,7 +31,7 @@ export default async function handler(req, res) {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
       if (authError || !user) {
           return res.status(401).json({ success: false, error: 'Invalid or expired token' });
@@ -49,7 +54,7 @@ export default async function handler(req, res) {
 
           // Try RPC first (handles RLS), fallback to direct insert
           let post = null;
-          const { data: rpcResult, error: rpcError } = await supabase
+          const { data: rpcResult, error: rpcError } = await getSupabase()
               .rpc('fn_create_social_post', {
                   p_author_id: user.id,
                   p_content: content.trim(),
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
 
           if (rpcError) {
               // Fallback: direct insert with service role key
-              const { data: directPost, error: directError } = await supabase
+              const { data: directPost, error: directError } = await getSupabase()
                   .from('social_posts')
                   .insert({
                       author_id: user.id,

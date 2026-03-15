@@ -11,10 +11,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const FEDERAL_WITHHOLDING_RATE = 0.24;
 
@@ -50,7 +55,7 @@ async function listTaxEvents(req, res) {
   try {
     const targetYear = year || new Date().getFullYear();
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_tax_events')
       .select(`
         id, venue_id, player_id, event_type, event_date,
@@ -76,7 +81,7 @@ async function listTaxEvents(req, res) {
     const playerIds = [...new Set((events || []).map(e => e.player_id).filter(Boolean))];
     let playerMap = {};
     if (playerIds.length > 0) {
-      const { data: profiles } = await supabase
+      const { data: profiles } = await getSupabase()
         .from('profiles')
         .select('id, display_name, full_name')
         .in('id', playerIds)
@@ -115,7 +120,7 @@ async function generateW2G(req, res) {
 
   try {
     // Get the tax event
-    const { data: event, error: fetchErr } = await supabase
+    const { data: event, error: fetchErr } = await getSupabase()
       .from('commander_tax_events')
       .select('*')
       .eq('id', tax_event_id)
@@ -129,7 +134,7 @@ async function generateW2G(req, res) {
     let playerName = 'Unknown';
     let playerAddress = '';
     if (event.player_id) {
-      const { data: profile } = await supabase
+      const { data: profile } = await getSupabase()
         .from('profiles')
         .select('display_name, full_name')
         .eq('id', event.player_id)
@@ -138,7 +143,7 @@ async function generateW2G(req, res) {
     }
 
     // Get venue info
-    const { data: venue } = await supabase
+    const { data: venue } = await getSupabase()
       .from('poker_venues')
       .select('name, address, city, state, zip')
       .eq('id', event.venue_id)
@@ -185,7 +190,7 @@ async function generateW2G(req, res) {
     };
 
     // Update the tax event
-    const { data: updated, error: updateErr } = await supabase
+    const { data: updated, error: updateErr } = await getSupabase()
       .from('commander_tax_events')
       .update({
         w2g_generated: true,
@@ -230,7 +235,7 @@ async function updateTaxEvent(req, res) {
       updates.acknowledged_at = new Date().toISOString();
     }
 
-    const { data: event, error } = await supabase
+    const { data: event, error } = await getSupabase()
       .from('commander_tax_events')
       .update(updates)
       .eq('id', tax_event_id)

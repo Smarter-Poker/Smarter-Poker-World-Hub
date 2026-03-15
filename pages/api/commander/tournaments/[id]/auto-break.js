@@ -14,10 +14,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
       // Staff is already validated by guardWriteStaff at the handler level
 
       // Get tournament
-      const { data: tournament, error: tErr } = await supabase
+      const { data: tournament, error: tErr } = await getSupabase()
         .from('commander_tournaments')
         .select('*')
         .eq('id', tournamentId)
@@ -58,7 +63,7 @@ export default async function handler(req, res) {
 
 async function getTableData(tournamentId, venueId) {
   // Get tournament tables
-  const { data: tables } = await supabase
+  const { data: tables } = await getSupabase()
     .from('commander_tables')
     .select('id, table_number, max_seats')
     .eq('venue_id', venueId)
@@ -69,7 +74,7 @@ async function getTableData(tournamentId, venueId) {
   if (!tables || tables.length < 2) return { tables: tables || [], entries: [], tableMap: {} };
 
   // Get active entries with their seats
-  const { data: entries } = await supabase
+  const { data: entries } = await getSupabase()
     .from('commander_tournament_entries')
     .select('id, player_name, table_number, seat_number, current_chips, member_id')
     .eq('tournament_id', tournamentId)
@@ -223,8 +228,8 @@ async function handleExecute(req, res, tournament) {
 
   // Fetch real venue data from both tables in parallel
   const [venueRes, settingsRes] = await Promise.all([
-    supabase.from('venues').select('name, city, state').eq('id', tournament.venue_id).maybeSingle(),
-    supabase.from('commander_venue_settings').select('club_logo_url').eq('venue_id', tournament.venue_id).maybeSingle()
+    getSupabase().from('venues').select('name, city, state').eq('id', tournament.venue_id).maybeSingle(),
+    getSupabase().from('commander_venue_settings').select('club_logo_url').eq('venue_id', tournament.venue_id).maybeSingle()
   ]);
   const venueName = venueRes.data?.name || 'Smarter Poker';
   const venueCity = venueRes.data?.city || null;
@@ -243,7 +248,7 @@ async function handleExecute(req, res, tournament) {
 
   // Execute moves
   for (const a of assignments) {
-    const { data: currentEntry } = await supabase
+    const { data: currentEntry } = await getSupabase()
       .from('commander_tournament_entries')
       .select('metadata')
       .eq('id', a.entry_id)
@@ -251,7 +256,7 @@ async function handleExecute(req, res, tournament) {
 
     const existingMetadata = currentEntry?.metadata || {};
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('commander_tournament_entries')
       .update({
         table_number: a.to_table,
@@ -274,7 +279,7 @@ async function handleExecute(req, res, tournament) {
 
   // Release the broken table back to inactive (ONLY if all players successfully moved)
   if (errors.length === 0) {
-    await supabase
+    await getSupabase()
       .from('commander_tables')
       .update({
         mode: 'inactive',

@@ -10,7 +10,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff, verifyStaffSession } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -34,7 +42,7 @@ export default async function handler(req, res) {
       if (!venueId) return res.status(400).json({ success: false, error: 'venue_id required' });
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_club_announcements')
           .select('*')
           .eq('venue_id', venueId)
@@ -85,7 +93,7 @@ export default async function handler(req, res) {
         // (PIN-based staff auth returns commander_staff.id, not profiles.id)
         if (staff.user_id) insertRow.author_id = staff.user_id;
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_club_announcements')
           .insert(insertRow)
           .select()
@@ -117,7 +125,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'No updates provided' });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_club_announcements')
           .update(updates)
           .eq('id', id)
@@ -137,7 +145,7 @@ export default async function handler(req, res) {
       if (!id) return res.status(400).json({ success: false, error: 'id required' });
 
       try {
-        const { error } = await supabase
+        const { error } = await getSupabase()
           .from('commander_club_announcements')
           .delete()
           .eq('id', id);

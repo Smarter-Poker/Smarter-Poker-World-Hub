@@ -10,10 +10,15 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -23,7 +28,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const clubId = req.query.clubId;
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
 
     try {
       // Verify membership
-      const { data: member } = await supabaseAdmin
+      const { data: member } = await getSupabase()
         .from('club_members')
         .select('role')
         .eq('club_id', clubId)
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
       if (!member) return res.status(403).json({ success: false, error: 'Not a club member' });
 
       // Owners/admins see all cashouts, agents see their downline, players see own
-      let query = supabaseAdmin
+      let query = getSupabase()
         .from('cashout_requests')
         .select('*')
         .eq('club_id', clubId)
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
       const playerIds = [...new Set((cashouts || []).map(c => c.player_id))];
       let profiles = {};
       if (playerIds.length > 0) {
-        const { data: profs } = await supabaseAdmin
+        const { data: profs } = await getSupabase()
           .from('profiles')
           .select('id, username, display_name')
           .in('id', playerIds)

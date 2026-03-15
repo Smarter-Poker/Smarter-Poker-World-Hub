@@ -7,10 +7,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -19,7 +24,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'Auth required' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     try {
@@ -27,14 +32,14 @@ export default async function handler(req, res) {
 
       if (notificationId) {
         // Mark single notification
-        await supabaseAdmin
+        await getSupabase()
           .from('notifications')
           .update({ is_read: true, read_at: new Date().toISOString() })
           .eq('id', notificationId)
           .eq('user_id', user.id);
       } else {
         // Mark all unread
-        await supabaseAdmin
+        await getSupabase()
           .from('notifications')
           .update({ is_read: true, read_at: new Date().toISOString() })
           .eq('user_id', user.id)

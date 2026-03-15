@@ -5,7 +5,6 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // Default/bad images to detect (we want to replace these with real images)
@@ -163,11 +162,19 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: 'Missing Supabase credentials' });
       }
 
-      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+      let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
       try {
           // Get articles that have default/placeholder images
-          const { data: articles, error: fetchError } = await supabase
+          const { data: articles, error: fetchError } = await getSupabase()
               .from('poker_news')
               .select('id, title, source_url, image_url, category')
               .order('published_at', { ascending: false })
@@ -191,7 +198,7 @@ export default async function handler(req, res) {
               const newImageUrl = await fetchOgImage(article.source_url);
 
               if (newImageUrl) {
-                  const { error: updateError } = await supabase
+                  const { error: updateError } = await getSupabase()
                       .from('poker_news')
                       .update({ image_url: newImageUrl })
                       .eq('id', article.id);

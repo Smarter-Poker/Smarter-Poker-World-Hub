@@ -9,10 +9,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
 
     try {
       // Get player's session history
-      const { data: sessions, error: sessionsError } = await supabase
+      const { data: sessions, error: sessionsError } = await getSupabase()
         .from('commander_player_sessions')
         .select('venue_id, games_played, total_minutes, check_in_at')
         .eq('player_id', playerId)
@@ -53,7 +58,7 @@ export default async function handler(req, res) {
       }
 
       // Get player's waitlist history
-      const { data: waitlistHistory, error: waitlistError } = await supabase
+      const { data: waitlistHistory, error: waitlistError } = await getSupabase()
         .from('commander_waitlist_history')
         .select('venue_id, game_type, stakes, wait_time_minutes, was_seated')
         .eq('player_id', playerId)
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
       }
 
       // Get player preferences if they exist
-      const { data: preferences } = await supabase
+      const { data: preferences } = await getSupabase()
         .from('commander_player_preferences')
         .select('id')
         .eq('player_id', playerId)

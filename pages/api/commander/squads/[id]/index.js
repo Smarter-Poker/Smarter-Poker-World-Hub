@@ -7,10 +7,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, id) {
   try {
-    const { data: squad, error } = await supabase
+    const { data: squad, error } = await getSupabase()
       .from('commander_waitlist_groups')
       .select(`
         *,
@@ -82,7 +87,7 @@ async function handleDelete(req, res, id) {
 
   try {
     // Check if player is the leader
-    const { data: squad } = await supabase
+    const { data: squad } = await getSupabase()
       .from('commander_waitlist_groups')
       .select('leader_id')
       .eq('id', id)
@@ -103,13 +108,13 @@ async function handleDelete(req, res, id) {
     }
 
     // Delete members first
-    await supabase
+    await getSupabase()
       .from('commander_waitlist_group_members')
       .delete()
       .eq('group_id', id);
 
     // Delete squad
-    await supabase
+    await getSupabase()
       .from('commander_waitlist_groups')
       .delete()
       .eq('id', id);

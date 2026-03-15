@@ -11,10 +11,15 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
     }
 
     try {
-      let query = supabase
+      let query = getSupabase()
         .from('commander_table_sessions')
         .select('*')
         .eq('venue_id', venue_id)
@@ -53,7 +58,7 @@ export default async function handler(req, res) {
       const memberIds = [...new Set((sessions || []).filter(s => s.member_id).map(s => s.member_id))];
       let memberMap = {};
       if (memberIds.length > 0) {
-        const { data: members } = await supabase
+        const { data: members } = await getSupabase()
           .from('commander_members')
           .select('id, time_balance_minutes, membership_tier, membership_status, membership_expires')
           .in('id', memberIds);
@@ -66,7 +71,7 @@ export default async function handler(req, res) {
       const tableNums = [...new Set((sessions || []).map(s => s.table_number))];
       let tournamentTableNums = new Set();
       if (tableNums.length > 0) {
-        let tableQuery = supabase
+        let tableQuery = getSupabase()
           .from('commander_tables')
           .select('table_number, mode, table_purpose')
           .in('table_number', tableNums)

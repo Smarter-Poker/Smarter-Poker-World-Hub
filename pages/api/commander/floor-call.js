@@ -14,10 +14,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
 
           // ── Cancel an active floor call ──
           if (action === 'cancel' && call_id) {
-              const { error } = await supabase
+              const { error } = await getSupabase()
                   .from('commander_floor_calls')
                   .update({
                       status: 'resolved',
@@ -64,7 +69,7 @@ export default async function handler(req, res) {
           }
 
           // Check for existing active call from same table (prevent spam)
-          const { data: existing } = await supabase
+          const { data: existing } = await getSupabase()
               .from('commander_floor_calls')
               .select('id, created_at')
               .eq('venue_id', venue_id)
@@ -81,14 +86,14 @@ export default async function handler(req, res) {
                   });
               }
               // Resolve old call
-              await supabase
+              await getSupabase()
                   .from('commander_floor_calls')
                   .update({ status: 'resolved', responded_at: new Date().toISOString(), resolution: 'auto-expired' })
                   .eq('id', existing[0].id);
           }
 
           // Create new floor call
-          const { data: call, error } = await supabase
+          const { data: call, error } = await getSupabase()
               .from('commander_floor_calls')
               .insert({
                   venue_id,

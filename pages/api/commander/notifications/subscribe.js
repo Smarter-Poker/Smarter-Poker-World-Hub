@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -55,7 +60,7 @@ async function subscribe(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({
@@ -75,7 +80,7 @@ async function subscribe(req, res) {
 
     // Check for existing subscription with this endpoint or OneSignal player ID
     const endpoint = subscription?.endpoint || onesignal_player_id;
-    let query = supabase
+    let query = getSupabase()
       .from('commander_push_subscriptions')
       .select('id');
 
@@ -95,7 +100,7 @@ async function subscribe(req, res) {
 
     if (existing) {
       // Update existing subscription
-      const { data: updated, error } = await supabase
+      const { data: updated, error } = await getSupabase()
         .from('commander_push_subscriptions')
         .update({
           user_id: user.id,
@@ -119,7 +124,7 @@ async function subscribe(req, res) {
     }
 
     // Create new subscription
-    const { data: newSub, error } = await supabase
+    const { data: newSub, error } = await getSupabase()
       .from('commander_push_subscriptions')
       .insert({
         user_id: user.id,
@@ -159,7 +164,7 @@ async function unsubscribe(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({
@@ -177,7 +182,7 @@ async function unsubscribe(req, res) {
       });
     }
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_push_subscriptions')
       .update({ is_active: false })
       .eq('user_id', user.id);

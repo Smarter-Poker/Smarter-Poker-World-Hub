@@ -14,10 +14,15 @@ import rgpsEvents from '../../../data/rgps-2026-events.json';
 import venetianEvents from '../../../data/venetian-2026-events.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Map tour codes to their pre-imported event data
 const TOUR_EVENT_DATA = {
@@ -153,7 +158,7 @@ export default async function handler(req, res) {
         // Try Supabase first for single series
         let singleSeries = null;
         try {
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
             .from('tournament_series')
             .select('*')
             .eq('id', numericId)
@@ -194,7 +199,7 @@ export default async function handler(req, res) {
       // Try Supabase first
       let seriesData = null;
       try {
-        let query = supabase
+        let query = getSupabase()
           .from('tournament_series')
           .select('*')
           .order('start_date', { ascending: true })

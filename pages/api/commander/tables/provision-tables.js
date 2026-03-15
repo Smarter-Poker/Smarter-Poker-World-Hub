@@ -13,10 +13,15 @@ import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { logAction } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
 
       try {
           // 1. Verify venue exists
-          const { data: venue, error: venueErr } = await supabase
+          const { data: venue, error: venueErr } = await getSupabase()
               .from('poker_venues')
               .select('id, name')
               .eq('id', venue_id)
@@ -55,7 +60,7 @@ export default async function handler(req, res) {
           }
 
           // 2. Get existing tables
-          const { data: existingTables } = await supabase
+          const { data: existingTables } = await getSupabase()
               .from('commander_tables')
               .select('table_number')
               .eq('venue_id', venue_id)
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
               });
           }
 
-          const { error: insertErr } = await supabase
+          const { error: insertErr } = await getSupabase()
               .from('commander_tables')
               .insert(tablesToInsert);
 
@@ -95,7 +100,7 @@ export default async function handler(req, res) {
           }
 
           // 4. Update poker_venues.poker_tables count
-          await supabase
+          await getSupabase()
               .from('poker_venues')
               .update({ poker_tables: count })
               .eq('id', venue_id);

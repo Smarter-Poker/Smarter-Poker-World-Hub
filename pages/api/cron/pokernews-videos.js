@@ -15,10 +15,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import Parser from 'rss-parser';
 
 // Initialize clients
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY // Service role required for inserts
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const parser = new Parser({
     headers: {
@@ -40,7 +45,7 @@ async function ingestLatestVideos() {
         results.found = feed.items.length;
 
         // 1. Find Author (PokerNews Bot)
-        let { data: author } = await supabase
+        let { data: author } = await getSupabase()
             .from('content_authors')
             .select('id, profile_id')
             .ilike('name', '%PokerNews%')
@@ -49,7 +54,7 @@ async function ingestLatestVideos() {
 
         // Fallback Author
         if (!author) {
-            const { data: fallback } = await supabase
+            const { data: fallback } = await getSupabase()
                 .from('content_authors')
                 .select('id, profile_id')
                 .not('profile_id', 'is', null)
@@ -69,7 +74,7 @@ async function ingestLatestVideos() {
             const publishedAt = item.isoDate;
 
             // Check duplicate
-            const { data: existing } = await supabase
+            const { data: existing } = await getSupabase()
                 .from('social_reels')
                 .select('id')
                 .eq('video_url', videoUrl)
@@ -81,7 +86,7 @@ async function ingestLatestVideos() {
             }
 
             // Insert
-            const { error } = await supabase
+            const { error } = await getSupabase()
                 .from('social_reels')
                 .insert({
                     video_url: videoUrl,

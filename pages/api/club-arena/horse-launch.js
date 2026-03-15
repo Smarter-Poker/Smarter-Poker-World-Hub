@@ -19,10 +19,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MIDWAY UNION CLUBS
@@ -205,7 +210,7 @@ function rollMultiplier() {
 
 /** Fetch all active horses, split into Shark half and JAQK half */
 async function getHorsesByClub() {
-  const { data: horses, error } = await supabaseAdmin
+  const { data: horses, error } = await getSupabase()
     .from('profiles')
     .select('id, display_name')
     .eq('is_horse', true)
@@ -233,7 +238,7 @@ async function createCashTables(log) {
     const clubId = clubToggle % 2 === 0 ? SHARK_CLUB_ID : JAQK_CLUB_ID;
     clubToggle++;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabase()
       .from('tables')
       .insert({
         club_id: clubId,
@@ -280,7 +285,7 @@ async function createTournament(cfg, clubId) {
     startTime.setTime(Date.now() + 2 * 60 * 1000);
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabase()
     .from('tournaments')
     .insert({
       club_id: clubId,
@@ -310,7 +315,7 @@ async function createTournament(cfg, clubId) {
 async function registerHorses(tournamentId, horses) {
   let registered = 0;
   for (const horse of horses) {
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabase()
       .from('tournament_players')
       .insert({
         tournament_id: tournamentId,
@@ -322,7 +327,7 @@ async function registerHorses(tournamentId, horses) {
     if (!error) registered++;
   }
   // Update player count
-  await supabaseAdmin
+  await getSupabase()
     .from('tournaments')
     .update({ current_players: registered })
     .eq('id', tournamentId);
@@ -332,7 +337,7 @@ async function registerHorses(tournamentId, horses) {
 /** Seat a horse at a cash table */
 async function seatHorseAtTable(tableId, horseId, maxPlayers, bigBlind) {
   // Find next open seat
-  const { data: existingSeats } = await supabaseAdmin
+  const { data: existingSeats } = await getSupabase()
     .from('table_seats')
     .select('seat_number')
     .eq('table_id', tableId)
@@ -345,7 +350,7 @@ async function seatHorseAtTable(tableId, horseId, maxPlayers, bigBlind) {
   const buyIn = (bigBlind || 1) * 100;
   
   // Enforce atomic bankroll deduction
-  const { error } = await supabaseAdmin.rpc('atomic_table_buyin', {
+  const { error } = await getSupabase().rpc('atomic_table_buyin', {
     p_user_id: horseId,
     p_table_id: tableId,
     p_seat_number: seat,
@@ -372,7 +377,7 @@ export default async function handler(req, res) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'No auth token' });
 
-  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+  const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
   if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
   if (user.id !== OWNER_ID) return res.status(403).json({ error: 'Admin only' });
 
@@ -446,7 +451,7 @@ export default async function handler(req, res) {
       for (const cfg of SNG_CONFIGS) {
         const clubId = sClubToggle % 2 === 0 ? SHARK_CLUB_ID : JAQK_CLUB_ID;
         sClubToggle++;
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabase()
           .from('tournaments')
           .insert({
             club_id: clubId,
@@ -489,7 +494,7 @@ export default async function handler(req, res) {
         spClubToggle++;
         const mult = rollMultiplier();
         const prize = cfg.buyIn * cfg.max * mult;
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabase()
           .from('tournaments')
           .insert({
             club_id: clubId,
@@ -526,12 +531,12 @@ export default async function handler(req, res) {
       log.push(`✅ Spins created: ${spinsCreated}, horses registered: ${spinRegistered}`);
 
       // 4.5. Pre-fund all horses to 500,000 chips so they don't bounce off atomic wallet deductions
-      await supabaseAdmin.rpc('mass_fund_horses', { p_amount: 500000 });
+      await getSupabase().rpc('mass_fund_horses', { p_amount: 500000 });
       log.push(`✅ Granted core bankroll to all horses for atomic cash game buy-ins`);
 
       // 5. Seat horses at cash tables (2 per horse, split by club)
       let cashSeats = 0;
-      const allTables = await supabaseAdmin
+      const allTables = await getSupabase()
         .from('tables')
         .select('id, club_id, max_players, current_players, big_blind')
         .eq('status', 'active')
@@ -562,7 +567,7 @@ export default async function handler(req, res) {
       log.push(`✅ Horses seated at cash tables: ${cashSeats}`);
 
       // Update horse statuses to 'seated'
-      await supabaseAdmin
+      await getSupabase()
         .from('profiles')
         .update({ horse_status: 'seated' })
         .eq('is_horse', true)
@@ -592,25 +597,25 @@ export default async function handler(req, res) {
     // STATUS
     // ═══════════════════════════════════════════════════════════
     if (action === 'status') {
-      const { count: totalHorses } = await supabaseAdmin
+      const { count: totalHorses } = await getSupabase()
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('is_horse', true)
         .in('horse_status', ['active', 'seated']);
 
-      const { count: seatedHorses } = await supabaseAdmin
+      const { count: seatedHorses } = await getSupabase()
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('is_horse', true)
         .eq('horse_status', 'seated');
 
-      const { count: activeTables } = await supabaseAdmin
+      const { count: activeTables } = await getSupabase()
         .from('tables')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active')
         .gt('current_players', 0);
 
-      const { count: regTournaments } = await supabaseAdmin
+      const { count: regTournaments } = await getSupabase()
         .from('tournaments')
         .select('*', { count: 'exact', head: true })
         .in('status', ['REGISTERING', 'RUNNING', 'ANNOUNCED']);
@@ -629,7 +634,7 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════
     if (action === 'shutdown') {
       // Remove all horse seats
-      const { data: horseIds } = await supabaseAdmin
+      const { data: horseIds } = await getSupabase()
         .from('profiles')
         .select('id')
         .eq('is_horse', true);
@@ -637,21 +642,21 @@ export default async function handler(req, res) {
 
       if (ids.length > 0) {
         // Leave all cash tables
-        await supabaseAdmin
+        await getSupabase()
           .from('table_seats')
           .update({ left_at: new Date().toISOString() })
           .in('user_id', ids)
           .is('left_at', null);
 
         // Unregister from tournaments
-        await supabaseAdmin
+        await getSupabase()
           .from('tournament_players')
           .update({ status: 'withdrawn' })
           .in('user_id', ids)
           .in('status', ['registered']);
 
         // Reset horse status
-        await supabaseAdmin
+        await getSupabase()
           .from('profiles')
           .update({ horse_status: 'active' })
           .eq('is_horse', true)
@@ -659,17 +664,17 @@ export default async function handler(req, res) {
       }
 
       // Recount all tables
-      const { data: tables } = await supabaseAdmin
+      const { data: tables } = await getSupabase()
         .from('tables')
         .select('id')
         .eq('status', 'active');
       for (const t of (tables || [])) {
-        const { count } = await supabaseAdmin
+        const { count } = await getSupabase()
           .from('table_seats')
           .select('*', { count: 'exact', head: true })
           .eq('table_id', t.id)
           .is('left_at', null);
-        await supabaseAdmin.from('tables').update({ current_players: count ?? 0 }).eq('id', t.id);
+        await getSupabase().from('tables').update({ current_players: count ?? 0 }).eq('id', t.id);
       }
 
       return res.json({ success: true, action: 'shutdown', horsesRemoved: ids.length });

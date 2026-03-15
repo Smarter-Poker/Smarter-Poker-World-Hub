@@ -7,10 +7,15 @@ import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, eventId) {
   try {
-    const { data: reviews, error } = await supabase
+    const { data: reviews, error } = await getSupabase()
       .from('commander_home_game_reviews')
       .select(`
         *,
@@ -95,7 +100,7 @@ async function handleCreate(req, res, eventId) {
 
   try {
     // Check if already reviewed
-    const { data: existing } = await supabase
+    const { data: existing } = await getSupabase()
       .from('commander_home_game_reviews')
       .select('id')
       .eq('game_id', eventId)
@@ -110,7 +115,7 @@ async function handleCreate(req, res, eventId) {
     }
 
     // Check if player attended
-    const { data: rsvp } = await supabase
+    const { data: rsvp } = await getSupabase()
       .from('commander_home_rsvps')
       .select('response, is_confirmed')
       .eq('game_id', eventId)
@@ -124,7 +129,7 @@ async function handleCreate(req, res, eventId) {
       });
     }
 
-    const { data: review, error } = await supabase
+    const { data: review, error } = await getSupabase()
       .from('commander_home_game_reviews')
       .insert({
         game_id: eventId,

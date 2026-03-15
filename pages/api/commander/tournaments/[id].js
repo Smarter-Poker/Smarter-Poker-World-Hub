@@ -10,10 +10,15 @@ import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { logAction } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
 
 async function getTournament(req, res, id) {
   try {
-    const { data: tournament, error } = await supabase
+    const { data: tournament, error } = await getSupabase()
       .from('commander_tournaments')
       .select(`
         *,
@@ -96,7 +101,7 @@ async function updateTournament(req, res, id, staff) {
     }
 
     // Get tournament to verify it exists
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing, error: fetchError } = await getSupabase()
       .from('commander_tournaments')
       .select('venue_id, status')
       .eq('id', id)
@@ -119,7 +124,7 @@ async function updateTournament(req, res, id, staff) {
     delete updates.created_by;
     delete updates.created_at;
 
-    const { data: tournament, error } = await supabase
+    const { data: tournament, error } = await getSupabase()
       .from('commander_tournaments')
       .update(updates)
       .eq('id', id)
@@ -159,7 +164,7 @@ async function cancelTournament(req, res, id, staff) {
     }
 
     // Get tournament
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing, error: fetchError } = await getSupabase()
       .from('commander_tournaments')
       .select('venue_id, status')
       .eq('id', id)
@@ -178,7 +183,7 @@ async function cancelTournament(req, res, id, staff) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Cannot cancel a completed tournament' } });
     }
 
-    const { data: tournament, error } = await supabase
+    const { data: tournament, error } = await getSupabase()
       .from('commander_tournaments')
       .update({
         status: 'cancelled',

@@ -3,10 +3,15 @@ import allVenuesData from '../../../data/all-venues.json';
 import tourSeriesData from '../../../data/poker-tour-series-2026.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Build lookup maps for page names
 function buildNameLookups() {
@@ -98,7 +103,7 @@ export default async function handler(req, res) {
       const limitNum = parseInt(limit, 10);
       const offsetNum = parseInt(offset, 10);
 
-      let query = supabase
+      let query = getSupabase()
         .from('page_activity')
         .select('*')
         .eq('activity_type', 'promotion')
@@ -122,7 +127,7 @@ export default async function handler(req, res) {
       }
 
       // Also fetch page_notifications with type 'promotion'
-      let notifQuery = supabase
+      let notifQuery = getSupabase()
         .from('page_notifications')
         .select('*')
         .eq('notification_type', 'promotion')

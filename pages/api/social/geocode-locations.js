@@ -13,10 +13,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Rate-limit Nominatim: 1 req/sec as per usage policy
 const NOMINATIM_DELAY_MS = 1100;
@@ -117,7 +122,7 @@ export default async function handler(req, res) {
       // (Nominatim/Google) and write to social_pages.metadata without auth.
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { page_id, locations } = req.body;
@@ -135,7 +140,7 @@ export default async function handler(req, res) {
 
       try {
           // Fetch current metadata + verify ownership
-          const { data: page, error: fetchError } = await supabase
+          const { data: page, error: fetchError } = await getSupabase()
               .from('social_pages')
               .select('metadata, user_id, owner_id')
               .eq('id', page_id)
@@ -180,7 +185,7 @@ export default async function handler(req, res) {
           }
 
           // Save updated geocoded_locations to metadata
-          const { error: updateError } = await supabase
+          const { error: updateError } = await getSupabase()
               .from('social_pages')
               .update({
                   metadata: { ...metadata, geocoded_locations: geocoded },

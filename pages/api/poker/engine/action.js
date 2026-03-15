@@ -12,10 +12,15 @@ const { AntiCheat } = require('../../../../src/lib/poker-engine/AntiCheat');
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 const { createClient } = require('../../../../src/lib/supabaseServerClient');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 // Reuse singleton anti-cheat (with supabase for DB persistence)
 if (!globalThis.__ANTI_CHEAT__) globalThis.__ANTI_CHEAT__ = new AntiCheat(supabaseAdmin);
 const antiCheat = globalThis.__ANTI_CHEAT__;
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
       // ── IDEMPOTENCY LOCK ──────────────────────────────────────
       const idempotencyKey = req.headers['x-idempotency-key'];
       if (idempotencyKey) {
-        const { error: lockErr } = await supabaseAdmin
+        const { error: lockErr } = await getSupabase()
           .from('game_action_idempotency_keys')
           .insert({
             idempotency_key: idempotencyKey,

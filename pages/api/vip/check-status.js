@@ -5,10 +5,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -27,14 +32,14 @@ export default async function handler(req, res) {
           if (!token) {
               return res.status(401).json({ isVip: false, error: 'Authentication required' });
           }
-          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) {
               return res.status(401).json({ isVip: false, error: 'Invalid token' });
           }
           const userId = user.id;
 
           // Query profiles for VIP status
-          const { data: profile, error } = await supabase
+          const { data: profile, error } = await getSupabase()
               .from('profiles')
               .select('is_vip, vip_tier, vip_expires_at, diamonds')
               .eq('id', userId)
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
               if (expiresAt < new Date()) {
                   isVip = false;
                   // Auto-cleanup expired VIP
-                  await supabase
+                  await getSupabase()
                       .from('profiles')
                       .update({ is_vip: false, vip_tier: null })
                       .eq('id', userId);

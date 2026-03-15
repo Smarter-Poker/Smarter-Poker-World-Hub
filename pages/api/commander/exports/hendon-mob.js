@@ -12,10 +12,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { withRateLimit } from '../../../../src/lib/commander/rateLimit';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -30,7 +35,7 @@ async function handler(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -43,7 +48,7 @@ async function handler(req, res) {
     }
 
     // Get tournament details
-    const { data: tournament, error: tournamentError } = await supabase
+    const { data: tournament, error: tournamentError } = await getSupabase()
       .from('commander_tournaments')
       .select(`
         *,
@@ -57,7 +62,7 @@ async function handler(req, res) {
     }
 
     // Check if staff
-    const { data: staff } = await supabase
+    const { data: staff } = await getSupabase()
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', tournament.venue_id)
@@ -70,7 +75,7 @@ async function handler(req, res) {
     }
 
     // Get tournament entries with results
-    const { data: entries, error: entriesError } = await supabase
+    const { data: entries, error: entriesError } = await getSupabase()
       .from('commander_tournament_entries')
       .select(`
         *,

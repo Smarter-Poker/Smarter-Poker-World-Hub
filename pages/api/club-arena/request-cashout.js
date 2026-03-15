@@ -27,10 +27,15 @@ const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena
 const { isUUID, validateAmount, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { clubId, amount: rawAmount, note: rawNote } = req.body;
@@ -72,7 +77,7 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       // 1. Get player's membership
       // ═════════════════════════════════════════════════════════════
-      const { data: member, error: memErr } = await supabaseAdmin
+      const { data: member, error: memErr } = await getSupabase()
         .from('club_members')
         .select('user_id, role, chip_balance, agent_id, nickname')
         .eq('club_id', clubId)
@@ -84,7 +89,7 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       // IN-PLAY LOCK — Block cashout while seated at an active table
       // ═════════════════════════════════════════════════════════════
-      const { data: activeSeat } = await supabaseAdmin
+      const { data: activeSeat } = await getSupabase()
         .from('table_sessions')
         .select('id, table_id')
         .eq('club_id', clubId)
@@ -116,7 +121,7 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       // 2. ATOMIC CASHOUT REQUEST (Debit + Escrow Transaction + Request)
       // ═════════════════════════════════════════════════════════════
-      const { data: result, error: rpcErr } = await supabaseAdmin.rpc('fn_request_cashout', {
+      const { data: result, error: rpcErr } = await getSupabase().rpc('fn_request_cashout', {
         p_club_id: clubId,
         p_player_id: user.id,
         p_agent_id: member.agent_id,
@@ -145,7 +150,7 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       // 6. Get player display name for notifications
       // ═════════════════════════════════════════════════════════════
-      const { data: playerProfile } = await supabaseAdmin
+      const { data: playerProfile } = await getSupabase()
         .from('profiles')
         .select('username, display_name, full_name')
         .eq('id', user.id)
@@ -163,12 +168,12 @@ export default async function handler(req, res) {
       // Rate limit
 
       try {
-        const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
+        const { data: convId } = await getSupabase().rpc('fn_get_or_create_conversation', {
           user1_id: user.id,
           user2_id: member.agent_id,
         });
         if (convId) {
-          await supabaseAdmin.rpc('fn_send_message', {
+          await getSupabase().rpc('fn_send_message', {
             p_conversation_id: convId,
             p_sender_id: user.id,
             p_content: `[CASHOUT REQUEST]\n\n${playerName} is requesting to cash out ${amount.toLocaleString()} chips.\n\nGo to your Agent Dashboard to approve or cancel.`,

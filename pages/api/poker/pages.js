@@ -18,10 +18,15 @@ import tourRegistry from '../../../data/tour-source-registry.json';
 import tourSeriesData from '../../../data/poker-tour-series-2026.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // UUID v4 format check — page_followers.user_id is UUID type
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -89,7 +94,7 @@ function buildSeriesPages(includeExpired = false) {
 async function buildSocialPages(pageType) {
     try {
         // Query by column page_type OR metadata->page_type (dashboard writes to both)
-        let query = supabase
+        let query = getSupabase()
             .from('social_pages')
             .select('id, name, description, avatar_url, cover_url, category, page_type, location_city, location_state, follower_count, metadata, is_public, created_at')
             .eq('is_public', true)
@@ -198,7 +203,7 @@ export default async function handler(req, res) {
 
           try {
               // Get follower counts for all page types
-              const { data: countData } = await supabase
+              const { data: countData } = await getSupabase()
                   .from('page_followers')
                   .select('page_type, page_id');
 
@@ -211,7 +216,7 @@ export default async function handler(req, res) {
 
               // Get user's follows if user_id provided (must be valid UUID for Supabase)
               if (user_id && UUID_RE.test(user_id)) {
-                  const { data: follows } = await supabase
+                  const { data: follows } = await getSupabase()
                       .from('page_followers')
                       .select('page_type, page_id')
                       .eq('user_id', user_id)

@@ -8,10 +8,15 @@ import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -52,14 +57,14 @@ async function listAnnouncements(req, res, groupId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
     // Check membership
-    const { data: membership } = await supabase
+    const { data: membership } = await getSupabase()
       .from('commander_home_members')
       .select('role, status')
       .eq('group_id', groupId)
@@ -72,7 +77,7 @@ async function listAnnouncements(req, res, groupId) {
 
     const { limit = 20, before } = req.query;
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_club_announcements')
       .select(`
         *,
@@ -107,14 +112,14 @@ async function createAnnouncement(req, res, groupId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
     // Check if user is admin
-    const { data: membership } = await supabase
+    const { data: membership } = await getSupabase()
       .from('commander_home_members')
       .select('role')
       .eq('group_id', groupId)
@@ -144,7 +149,7 @@ async function createAnnouncement(req, res, groupId) {
 
     const status = send_now ? 'sent' : (scheduled_for ? 'scheduled' : 'draft');
 
-    const { data: announcement, error } = await supabase
+    const { data: announcement, error } = await getSupabase()
       .from('commander_club_announcements')
       .insert({
         group_id: groupId,
@@ -183,7 +188,7 @@ async function createAnnouncement(req, res, groupId) {
 async function sendPushNotifications(groupId, announcement, targetAll, targetMemberIds) {
   try {
     // Get members to notify
-    let memberQuery = supabase
+    let memberQuery = getSupabase()
       .from('commander_home_members')
       .select('user_id, notify_announcements')
       .eq('group_id', groupId)
@@ -208,7 +213,7 @@ async function sendPushNotifications(groupId, announcement, targetAll, targetMem
     if (notifyUserIds.length === 0) return;
 
     // Get push subscriptions for these users
-    const { data: subscriptions } = await supabase
+    const { data: subscriptions } = await getSupabase()
       .from('commander_push_subscriptions')
       .select('user_id, device_token, device_type')
       .in('user_id', notifyUserIds)
@@ -231,12 +236,12 @@ async function sendPushNotifications(groupId, announcement, targetAll, targetMem
       sent_at: new Date().toISOString()
     }));
 
-    await supabase
+    await getSupabase()
       .from('commander_notification_log')
       .insert(notificationLogs);
 
     // Update announcement push count
-    await supabase
+    await getSupabase()
       .from('commander_club_announcements')
       .update({
         push_sent: true,

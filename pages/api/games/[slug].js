@@ -5,10 +5,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -22,7 +27,7 @@ export default async function handler(req, res) {
           console.log(`[API GAMES] Request received for slug: ${slug}`);
           // Try to find game by slug
           console.log(`[API GAMES] Querying Supabase for slug...`);
-          const { data: game, error } = await supabase
+          const { data: game, error } = await getSupabase()
               .from('game_registry')
               .select('*')
               .eq('slug', slug)
@@ -30,7 +35,7 @@ export default async function handler(req, res) {
 
           if (error || !game) {
               // Try by ID as fallback
-              const { data: gameById } = await supabase
+              const { data: gameById } = await getSupabase()
                   .from('game_registry')
                   .select('*')
                   .eq('id', slug)

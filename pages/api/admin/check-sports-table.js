@@ -1,8 +1,14 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -12,7 +18,7 @@ export default async function handler(req, res) {
     }
       try {
           // Try to query the table
-          const { data, error, count } = await supabase
+          const { data, error, count } = await getSupabase()
               .from('sports_clips')
               .select('*', { count: 'exact', head: true });
 

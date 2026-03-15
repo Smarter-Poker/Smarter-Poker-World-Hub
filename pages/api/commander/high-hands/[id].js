@@ -9,10 +9,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
 
 async function getHighHand(req, res, id) {
   try {
-    const { data: highHand, error } = await supabase
+    const { data: highHand, error } = await getSupabase()
       .from('commander_high_hands')
       .select(`
         *,
@@ -85,14 +90,14 @@ async function updateHighHand(req, res, id) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // Get existing high hand
-    const { data: existing, error: getError } = await supabase
+    const { data: existing, error: getError } = await getSupabase()
       .from('commander_high_hands')
       .select('*')
       .eq('id', id)
@@ -103,7 +108,7 @@ async function updateHighHand(req, res, id) {
     }
 
     // Check if user is staff at this venue
-    const { data: staff } = await supabase
+    const { data: staff } = await getSupabase()
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', existing.venue_id)
@@ -150,7 +155,7 @@ async function updateHighHand(req, res, id) {
       if (prize_amount !== undefined) updates.prize_amount = prize_amount;
     }
 
-    const { data: highHand, error } = await supabase
+    const { data: highHand, error } = await getSupabase()
       .from('commander_high_hands')
       .update(updates)
       .eq('id', id)
@@ -184,14 +189,14 @@ async function deleteHighHand(req, res, id) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // Get existing high hand
-    const { data: existing, error: getError } = await supabase
+    const { data: existing, error: getError } = await getSupabase()
       .from('commander_high_hands')
       .select('venue_id, verified_at')
       .eq('id', id)
@@ -202,7 +207,7 @@ async function deleteHighHand(req, res, id) {
     }
 
     // Check if user is manager/owner at this venue
-    const { data: staff } = await supabase
+    const { data: staff } = await getSupabase()
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', existing.venue_id)
@@ -220,7 +225,7 @@ async function deleteHighHand(req, res, id) {
       return res.status(400).json({ success: false, error: 'Cannot delete verified high hands' });
     }
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('commander_high_hands')
       .delete()
       .eq('id', id);

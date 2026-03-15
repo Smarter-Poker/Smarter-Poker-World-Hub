@@ -17,10 +17,15 @@ async function getRawBody(req) {
     });
 }
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Initialize Stripe at module level
 const stripe = process.env.STRIPE_SECRET_KEY
@@ -122,7 +127,7 @@ async function handleCheckoutCompleted(session) {
         // One-time payment (diamonds or merchandise)
         if (metadata.type === 'diamonds' && metadata.purchase_id) {
             // IDEMPOTENCY: Only credit diamonds if purchase was still pending
-            const { data: purchase } = await supabase
+            const { data: purchase } = await getSupabase()
                 .from('diamond_purchases')
                 .update({
                     status: 'completed',
@@ -138,7 +143,7 @@ async function handleCheckoutCompleted(session) {
             if (purchase) {
                 // Add diamonds to user balance
                 const totalDiamonds = purchase.diamonds_amount + (purchase.bonus_diamonds || 0);
-                await supabase.rpc('add_diamonds_to_balance', {
+                await getSupabase().rpc('add_diamonds_to_balance', {
                     p_user_id: metadata.user_id,
                     p_amount: totalDiamonds,
                     p_type: 'purchase',
@@ -149,7 +154,7 @@ async function handleCheckoutCompleted(session) {
             }
         } else if (metadata.type === 'merchandise' && metadata.order_id) {
             // Update merchandise order
-            await supabase
+            await getSupabase()
                 .from('merchandise_orders')
                 .update({
                     status: 'processing',
@@ -167,7 +172,7 @@ async function handleCheckoutCompleted(session) {
 
             // Set VIP on profile and link Stripe customer
             if (metadata.user_id) {
-                await supabase
+                await getSupabase()
                     .from('profiles')
                     .update({
                         stripe_customer_id: customer,
@@ -192,7 +197,7 @@ async function handleSubscriptionUpdate(subscription) {
 
 
     // Get user ID from customer
-    const { data: profile } = await supabase
+    const { data: profile } = await getSupabase()
         .from('profiles')
         .select('id')
         .eq('stripe_customer_id', customer)
@@ -204,7 +209,7 @@ async function handleSubscriptionUpdate(subscription) {
     }
 
     // Upsert subscription record
-    await supabase
+    await getSupabase()
         .from('vip_subscriptions')
         .upsert({
             stripe_subscription_id: id,
@@ -227,7 +232,7 @@ async function handleSubscriptionCanceled(subscription) {
     const { id, customer, canceled_at } = subscription;
 
 
-    await supabase
+    await getSupabase()
         .from('vip_subscriptions')
         .update({
             status: 'canceled',
@@ -238,7 +243,7 @@ async function handleSubscriptionCanceled(subscription) {
 
     // Also clear VIP status on profile
     if (customer) {
-        await supabase
+        await getSupabase()
             .from('profiles')
             .update({
                 is_vip: false,
@@ -264,7 +269,7 @@ async function handleInvoicePaymentFailed(invoice) {
 
 
     if (subscription) {
-        await supabase
+        await getSupabase()
             .from('vip_subscriptions')
             .update({
                 status: 'past_due',
@@ -279,14 +284,14 @@ async function handleRefund(charge) {
 
 
     // Find and update the purchase/order
-    const { data: purchase } = await supabase
+    const { data: purchase } = await getSupabase()
         .from('diamond_purchases')
         .select('*')
         .eq('stripe_payment_intent_id', payment_intent)
         .maybeSingle();
 
     if (purchase) {
-        await supabase
+        await getSupabase()
             .from('diamond_purchases')
             .update({
                 status: 'refunded',
@@ -296,7 +301,7 @@ async function handleRefund(charge) {
 
         // Deduct diamonds from user balance
         const totalDiamonds = purchase.diamonds_amount + (purchase.bonus_diamonds || 0);
-        await supabase.rpc('add_diamonds_to_balance', {
+        await getSupabase().rpc('add_diamonds_to_balance', {
             p_user_id: purchase.user_id,
             p_amount: -totalDiamonds,
             p_type: 'refund',

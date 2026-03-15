@@ -14,10 +14,15 @@ const { isUUID, validateAmount, rejectBadPayload } = require('../../../src/lib/c
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { checkVelocity } = require('../../../src/lib/club-arena/velocityCheck');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { clubId, toUserId, amount: rawAmount, note: rawNote } = req.body;
@@ -63,12 +68,12 @@ export default async function handler(req, res) {
 
     try {
       // Verify both users are active members
-      const { data: sender } = await supabaseAdmin
+      const { data: sender } = await getSupabase()
         .from('club_members').select('chip_balance, role')
         .eq('club_id', clubId).eq('user_id', user.id).eq('status', 'active').maybeSingle();
       if (!sender) return res.status(403).json({ success: false, error: 'You are not a member of this club' });
 
-      const { data: receiver } = await supabaseAdmin
+      const { data: receiver } = await getSupabase()
         .from('club_members').select('chip_balance, role')
         .eq('club_id', clubId).eq('user_id', toUserId).eq('status', 'active').maybeSingle();
       if (!receiver) return res.status(404).json({ success: false, error: 'Recipient not found in this club' });
@@ -83,7 +88,7 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       // IN-PLAY LOCK — Block transfer while seated at an active table
       // ═════════════════════════════════════════════════════════════
-      const { data: activeSeat } = await supabaseAdmin
+      const { data: activeSeat } = await getSupabase()
         .from('table_sessions')
         .select('id, table_id')
         .eq('club_id', clubId)
@@ -101,7 +106,7 @@ export default async function handler(req, res) {
       }
 
       // Atomic transfer via Supabase RPC (SELECT FOR UPDATE + atomic balance changes)
-      const { data: rpcResult, error: rpcErr } = await supabaseAdmin
+      const { data: rpcResult, error: rpcErr } = await getSupabase()
         .rpc('fn_transfer_chips', {
           p_club_id: clubId,
           p_from_user_id: user.id,
@@ -120,7 +125,7 @@ export default async function handler(req, res) {
       }
 
       // Record transactions (fire-and-forget — transfer already atomic)
-      supabaseAdmin.from('chip_transactions').insert([
+      getSupabase().from('chip_transactions').insert([
         {
           club_id: clubId, from_user_id: user.id, to_user_id: toUserId,
           amount: -amount, transaction_type: 'transfer_out',

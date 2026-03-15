@@ -21,10 +21,15 @@ const { runStandardGuards } = require('../../../src/lib/club-arena/redteam-valid
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { cashoutId, action, note } = req.body;
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
       //    BUG FIX: was .select('id') — cashout.club_id, .agent_id, .player_id,
       //    .amount were all undefined, breaking auth, chip transfer, and notifications
       // ═════════════════════════════════════════════════════════════
-      const { data: cashout, error: coErr } = await supabaseAdmin
+      const { data: cashout, error: coErr } = await getSupabase()
         .from('cashout_requests')
         .select('id, club_id, player_id, agent_id, amount, status')
         .eq('id', cashoutId)
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       // 2. Verify caller is the assigned agent or club owner/admin
       // ═════════════════════════════════════════════════════════════
-      const { data: callerMember } = await supabaseAdmin
+      const { data: callerMember } = await getSupabase()
         .from('club_members')
         .select('role')
         .eq('club_id', cashout.club_id)
@@ -91,15 +96,15 @@ export default async function handler(req, res) {
       const isAdmin = ['owner', 'admin'].includes(callerMember?.role);
       if (!isAgent && !isAdmin) {
         // Union admin fallback
-        const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', cashout.club_id).maybeSingle();
+        const { data: clubInfo } = await getSupabase().from('clubs').select('union_id').eq('id', cashout.club_id).maybeSingle();
         let unionAuth = false;
         if (clubInfo?.union_id) {
-          const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
+          const { data: ua } = await getSupabase().from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
           if (ua) {
               unionAuth = true;
           } else {
               // Owner fallback
-              const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
+              const { data: union } = await getSupabase().from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
               if (union) unionAuth = true;
           }
         }
@@ -109,14 +114,14 @@ export default async function handler(req, res) {
       }
 
       // Get player & agent names for notifications
-      const { data: playerProfile } = await supabaseAdmin
+      const { data: playerProfile } = await getSupabase()
         .from('profiles')
         .select('username, display_name')
         .eq('id', cashout.player_id)
         .maybeSingle();
       const playerName = playerProfile?.display_name || playerProfile?.username || 'Player';
 
-      const { data: agentProfile } = await supabaseAdmin
+      const { data: agentProfile } = await getSupabase()
         .from('profiles')
         .select('username, display_name')
         .eq('id', user.id)
@@ -128,7 +133,7 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       if (action === 'approve') {
         // Step 2: Atomic approval (updates request status + credits treasury + logs transaction)
-        const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_approve_cashout_atomic', {
+        const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_approve_cashout_atomic', {
           p_cashout_id: cashoutId,
           p_agent_id: user.id,
           p_agent_note: note || 'Approved'
@@ -161,7 +166,7 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       if (action === 'cancel') {
         // Atomic cancellation (updates status + credits player chips + logs transaction)
-        const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_cancel_cashout_atomic', {
+        const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_cancel_cashout_atomic', {
           p_cashout_id: cashoutId,
           p_user_id: user.id,
           p_is_agent: true,
@@ -212,12 +217,12 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
   // Rate limit
 
   try {
-    const { data: convId } = await supabaseAdmin.rpc('fn_get_or_create_conversation', {
+    const { data: convId } = await getSupabase().rpc('fn_get_or_create_conversation', {
       user1_id: cashout.agent_id,
       user2_id: cashout.player_id,
     });
     if (convId) {
-      await supabaseAdmin.rpc('fn_send_message', {
+      await getSupabase().rpc('fn_send_message', {
         p_conversation_id: convId,
         p_sender_id: cashout.agent_id,
         p_content: messageText,

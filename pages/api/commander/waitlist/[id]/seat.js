@@ -8,10 +8,15 @@ import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { logAction, AuditActions } from '../../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
       }
 
       // Verify entry exists and is waiting/called
-      const { data: entry, error: fetchError } = await supabase
+      const { data: entry, error: fetchError } = await getSupabase()
         .from('commander_waitlist')
         .select('*')
         .eq('id', id)
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
       }
 
       // Verify game exists and is running
-      const { data: game, error: gameError } = await supabase
+      const { data: game, error: gameError } = await getSupabase()
         .from('commander_games')
         .select('id, status, venue_id, current_players')
         .eq('id', game_id)
@@ -107,7 +112,7 @@ export default async function handler(req, res) {
       }
 
       // Verify seat is available
-      const { data: existingSeat, error: seatError } = await supabase
+      const { data: existingSeat, error: seatError } = await getSupabase()
         .from('commander_seats')
         .select('id, status')
         .eq('game_id', game_id)
@@ -131,7 +136,7 @@ export default async function handler(req, res) {
       const now = new Date().toISOString();
 
       // Update seat to occupied
-      const { error: seatUpdateError } = await supabase
+      const { error: seatUpdateError } = await getSupabase()
         .from('commander_seats')
         .update({
           player_id: entry.player_id || null,
@@ -151,7 +156,7 @@ export default async function handler(req, res) {
       }
 
       // Update waitlist entry to seated
-      const { data: updatedEntry, error: entryUpdateError } = await supabase
+      const { data: updatedEntry, error: entryUpdateError } = await getSupabase()
         .from('commander_waitlist')
         .update({
           status: 'seated',
@@ -177,7 +182,7 @@ export default async function handler(req, res) {
         gameUpdates.status = 'running';
         gameUpdates.started_at = now;
       }
-      const { error: gameUpdateError } = await supabase
+      const { error: gameUpdateError } = await getSupabase()
         .from('commander_games')
         .update(gameUpdates)
         .eq('id', game_id);
@@ -195,7 +200,7 @@ export default async function handler(req, res) {
         (new Date(now) - new Date(entry.created_at)) / (1000 * 60)
       );
 
-      await supabase
+      await getSupabase()
         .from('commander_waitlist_history')
         .insert({
           venue_id: entry.venue_id,
@@ -213,7 +218,7 @@ export default async function handler(req, res) {
         const DIAMOND_FOR_SEATED = 1; // Bonus diamond for using Commander
 
         // Create or update player session
-        const { data: existingSession } = await supabase
+        const { data: existingSession } = await getSupabase()
           .from('commander_player_sessions')
           .select('id, metadata')
           .eq('venue_id', entry.venue_id)
@@ -224,7 +229,7 @@ export default async function handler(req, res) {
         if (existingSession) {
           // Update existing session with XP in metadata
           const currentMetadata = existingSession.metadata || {};
-          await supabase
+          await getSupabase()
             .from('commander_player_sessions')
             .update({
               games_played: (existingSession.games_played || 0) + 1,
@@ -237,7 +242,7 @@ export default async function handler(req, res) {
             .eq('id', existingSession.id);
         } else {
           // Create new session with XP in metadata
-          await supabase
+          await getSupabase()
             .from('commander_player_sessions')
             .insert({
               venue_id: entry.venue_id,

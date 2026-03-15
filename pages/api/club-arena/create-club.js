@@ -7,10 +7,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { sanitizeClubName } = require('../../../src/lib/club-arena/sanitize');
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -19,7 +24,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { name } = req.body;
@@ -37,7 +42,7 @@ export default async function handler(req, res) {
           const clubCode = Math.floor(10000 + Math.random() * 90000);
 
           // Create club
-          const { data: club, error: clubErr } = await supabaseAdmin
+          const { data: club, error: clubErr } = await getSupabase()
               .from('clubs')
               .insert({
                   name: cleanName,
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
           if (clubErr) throw clubErr;
 
           // Create owner membership
-          const { error: memErr } = await supabaseAdmin
+          const { error: memErr } = await getSupabase()
               .from('club_members')
               .insert({
                   club_id: club.id,
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
 
           if (memErr) {
               // Rollback club creation
-              await supabaseAdmin.from('clubs').delete().eq('id', club.id);
+              await getSupabase().from('clubs').delete().eq('id', club.id);
               throw memErr;
           }
 

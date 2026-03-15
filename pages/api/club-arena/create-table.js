@@ -13,10 +13,15 @@ const { isUUID } = require('../../../src/lib/club-arena/validate');
 const { sanitizeTableName, clampFloat, sanitizeSettings, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const VALID_VARIANTS = ['nlh', 'flh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_deck', 'flo', 'mixed', 'ofc', 'pineapple'];
 const VALID_GAME_TYPES = ['cash', 'tournament', 'sng'];
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { clubId, name, variant, gameType, smallBlind, bigBlind, maxPlayers, minBuyIn, maxBuyIn, ante, actionTime, settings } = req.body;
@@ -51,14 +56,14 @@ export default async function handler(req, res) {
 
       try {
           // Load club info (needed for BBJ config + union admin fallback)
-          const { data: clubInfo } = await supabaseAdmin
+          const { data: clubInfo } = await getSupabase()
               .from('clubs')
               .select('union_id, bbj_enabled')
               .eq('id', clubId)
               .maybeSingle();
 
           // Verify role — ALWAYS uses JWT user.id, never body userId
-          const { data: member } = await supabaseAdmin
+          const { data: member } = await getSupabase()
               .from('club_members')
               .select('role')
               .eq('club_id', clubId)
@@ -69,12 +74,12 @@ export default async function handler(req, res) {
               // Union admin fallback
               let unionAuth = false;
               if (clubInfo?.union_id) {
-                  const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
+                  const { data: ua } = await getSupabase().from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
                   if (ua) {
                       unionAuth = true;
                   } else {
                       // Owner fallback
-                      const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
+                      const { data: union } = await getSupabase().from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
                       if (union) unionAuth = true;
                   }
               }
@@ -138,7 +143,7 @@ export default async function handler(req, res) {
           // ── E-03: Whitelist settings keys ──────────────────────────────
           const cleanSettings = sanitizeSettings(settings || {});
 
-          const { data: table, error: createErr } = await supabaseAdmin
+          const { data: table, error: createErr } = await getSupabase()
               .from('tables')
               .insert({
                   club_id: clubId,
@@ -233,12 +238,12 @@ export default async function handler(req, res) {
           if (createErr) throw createErr;
 
           // ── C-03: Update table count on club (prioritize atomic RPC) ──
-          await supabaseAdmin.rpc('increment_club_table_count', { p_club_id: clubId }).catch(async () => {
+          await getSupabase().rpc('increment_club_table_count', { p_club_id: clubId }).catch(async () => {
               // Fallback: Optimistic lock table count update if RPC doesn't exist
-              const { data: club } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).maybeSingle();
+              const { data: club } = await getSupabase().from('clubs').select('table_count').eq('id', clubId).maybeSingle();
               if (club) {
                   const oldCount = club.table_count || 0;
-                  const { data: upd } = await supabaseAdmin
+                  const { data: upd } = await getSupabase()
                       .from('clubs')
                       .update({ table_count: oldCount + 1 })
                       .eq('id', clubId)
@@ -247,9 +252,9 @@ export default async function handler(req, res) {
                       .limit(200);
 
                   if (!upd?.length) {
-                      const { data: fresh } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).maybeSingle();
+                      const { data: fresh } = await getSupabase().from('clubs').select('table_count').eq('id', clubId).maybeSingle();
                       if (fresh) {
-                          await supabaseAdmin.from('clubs').update({ table_count: (fresh.table_count || 0) + 1 }).eq('id', clubId);
+                          await getSupabase().from('clubs').update({ table_count: (fresh.table_count || 0) + 1 }).eq('id', clubId);
                       }
                   }
               }

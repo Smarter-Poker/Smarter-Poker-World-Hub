@@ -9,10 +9,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const CATEGORIES = [
     { id: 'poker_history', name: 'Poker History' },
@@ -37,24 +42,24 @@ export default async function handler(req, res) {
         let totalQuestions = 0;
 
         for (const cat of CATEGORIES) {
-            const { count: total } = await supabase
+            const { count: total } = await getSupabase()
                 .from('trivia_questions')
                 .select('*', { count: 'exact', head: true })
                 .eq('category', cat.id);
 
-            const { count: easy } = await supabase
+            const { count: easy } = await getSupabase()
                 .from('trivia_questions')
                 .select('*', { count: 'exact', head: true })
                 .eq('category', cat.id)
                 .eq('difficulty', 'easy');
 
-            const { count: medium } = await supabase
+            const { count: medium } = await getSupabase()
                 .from('trivia_questions')
                 .select('*', { count: 'exact', head: true })
                 .eq('category', cat.id)
                 .eq('difficulty', 'medium');
 
-            const { count: hard } = await supabase
+            const { count: hard } = await getSupabase()
                 .from('trivia_questions')
                 .select('*', { count: 'exact', head: true })
                 .eq('category', cat.id)
@@ -64,7 +69,7 @@ export default async function handler(req, res) {
             const sixtyDaysAgo = new Date();
             sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
-            const { count: available } = await supabase
+            const { count: available } = await getSupabase()
                 .from('trivia_questions')
                 .select('*', { count: 'exact', head: true })
                 .eq('category', cat.id)

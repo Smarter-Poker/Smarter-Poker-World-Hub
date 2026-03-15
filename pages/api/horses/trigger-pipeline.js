@@ -1,8 +1,14 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -12,10 +18,10 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Authorization required' });
 
-      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: userError } = await getSupabase().auth.getUser(token);
       if (userError || !user) return res.status(401).json({ error: 'Invalid token' });
 
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+      const { data: profile } = await getSupabase().from('profiles').select('role').eq('id', user.id).maybeSingle();
       if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
           return res.status(403).json({ error: 'Admin routes are disabled in production' });
       }
@@ -51,7 +57,7 @@ export default async function handler(req, res) {
           };
 
           // Insert and select the created record to return to frontend
-          const { data: insertedRun, error: insertError } = await supabase
+          const { data: insertedRun, error: insertError } = await getSupabase()
               .from('pipeline_runs')
               .insert(runData)
               .select()

@@ -8,10 +8,15 @@ import { captureException } from '../../../../src/lib/commander/errorMonitoring'
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -46,7 +51,7 @@ async function handleGet(req, res) {
   try {
     const { venue_id, player_id, status = 'active', limit = 50 } = req.query;
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_player_sessions')
       .select(`
         *,
@@ -114,7 +119,7 @@ async function handlePost(req, res) {
 
     // Check if player already has an active session at this venue
     if (player_id) {
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from('commander_player_sessions')
         .select('id')
         .eq('venue_id', venue_id)
@@ -130,7 +135,7 @@ async function handlePost(req, res) {
       }
     }
 
-    const { data: session, error } = await supabase
+    const { data: session, error } = await getSupabase()
       .from('commander_player_sessions')
       .insert({
         venue_id,

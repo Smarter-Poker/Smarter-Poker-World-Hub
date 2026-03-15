@@ -12,10 +12,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -24,7 +29,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { tournamentId, clubId } = req.query;
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
 
     try {
       // Verify caller is a member of this club
-      const { data: membership } = await supabaseAdmin
+      const { data: membership } = await getSupabase()
         .from('club_members')
         .select('role')
         .eq('club_id', clubId)
@@ -45,17 +50,17 @@ export default async function handler(req, res) {
 
       if (!membership) {
         // Also allow union admins
-        const { data: clubRow } = await supabaseAdmin
+        const { data: clubRow } = await getSupabase()
           .from('clubs').select('union_id').eq('id', clubId).maybeSingle();
         if (clubRow?.union_id) {
-          const { data: ua } = await supabaseAdmin
+          const { data: ua } = await getSupabase()
             .from('union_admins').select('role')
             .eq('union_id', clubRow.union_id).eq('user_id', user.id).maybeSingle();
           if (ua) {
               // authorized
           } else {
               // Owner fallback
-              const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubRow.union_id).eq('owner_id', user.id).maybeSingle();
+              const { data: union } = await getSupabase().from('unions').select('id').eq('id', clubRow.union_id).eq('owner_id', user.id).maybeSingle();
               if (!union) return res.status(403).json({ success: false, error: 'Club membership required' });
           }
         } else {
@@ -64,7 +69,7 @@ export default async function handler(req, res) {
       }
 
       // Load registrations (all statuses except unregistered/refunded)
-      const { data: registrations, error: regErr } = await supabaseAdmin
+      const { data: registrations, error: regErr } = await getSupabase()
         .from('tournament_registrations')
         .select('user_id, status, registered_at, finish_position, payout_amount, rebuys_used, addon_used, eliminated_at')
         .eq('tournament_id', tournamentId)
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
 
       // Resolve display names for all registered players
       const userIds = [...new Set(registrations.map(r => r.user_id))];
-      const { data: profileRows } = await supabaseAdmin
+      const { data: profileRows } = await getSupabase()
         .from('profiles')
         .select('id, display_name, username, full_name, avatar_url')
         .in('id', userIds);
@@ -102,7 +107,7 @@ export default async function handler(req, res) {
       // ── Bounty State: query engine for live bounty data ──
       let bountyState = null;
       try {
-        const { data: tourn } = await supabaseAdmin
+        const { data: tourn } = await getSupabase()
           .from('club_tournaments')
           .select('status, settings')
           .eq('id', tournamentId)
@@ -134,7 +139,7 @@ export default async function handler(req, res) {
       // If no live bounty state, try persisted bounty results from completed tournaments
       if (!bountyState) {
         try {
-          const { data: tourn2 } = await supabaseAdmin
+          const { data: tourn2 } = await getSupabase()
             .from('club_tournaments')
             .select('status, settings')
             .eq('id', tournamentId)

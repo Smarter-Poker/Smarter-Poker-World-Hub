@@ -8,10 +8,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { validateBatch } from '../../../src/lib/triviaValidator';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const NEW_CATEGORIES = [
     {
@@ -162,7 +167,7 @@ export default async function handler(req, res) {
 
       for (const cat of categories) {
           // Check current count
-          const { count: existing } = await supabase
+          const { count: existing } = await getSupabase()
               .from('trivia_questions')
               .select('*', { count: 'exact', head: true })
               .eq('category', cat.id);
@@ -190,7 +195,7 @@ export default async function handler(req, res) {
                   }
 
                   if (validQuestions.length > 0) {
-                      const { data, error } = await supabase
+                      const { data, error } = await getSupabase()
                           .from('trivia_questions')
                           .insert(validQuestions)
                           .select();

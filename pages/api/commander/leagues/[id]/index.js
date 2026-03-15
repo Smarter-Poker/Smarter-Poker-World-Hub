@@ -6,10 +6,15 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -26,7 +31,7 @@ export default async function handler(req, res) {
 
     try {
       // Get league details
-      const { data: league, error: leagueError } = await supabase
+      const { data: league, error: leagueError } = await getSupabase()
         .from('commander_leagues')
         .select('*')
         .eq('id', id)
@@ -40,7 +45,7 @@ export default async function handler(req, res) {
       }
 
       // Get player count
-      const { count: playerCount } = await supabase
+      const { count: playerCount } = await getSupabase()
         .from('commander_league_standings')
         .select('*', { count: 'exact', head: true })
         .eq('league_id', id)
@@ -51,9 +56,9 @@ export default async function handler(req, res) {
       const authHeader = req.headers.authorization;
       if (authHeader) {
         const token = authHeader.replace('Bearer ', '');
-        const { data: { user } } = await supabase.auth.getUser(token);
+        const { data: { user } } = await getSupabase().auth.getUser(token);
         if (user) {
-          const { data: membership } = await supabase
+          const { data: membership } = await getSupabase()
             .from('commander_league_standings')
             .select('id')
             .eq('league_id', id)

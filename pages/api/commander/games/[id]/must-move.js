@@ -9,10 +9,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { verifyStaffSession } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -68,7 +73,7 @@ async function handlePost(req, res, gameId) {
     }
 
     // Verify this game exists and is active
-    const { data: mustMoveGame, error: mmError } = await supabase
+    const { data: mustMoveGame, error: mmError } = await getSupabase()
       .from('commander_games')
       .select('id, venue_id, game_type, stakes, status, is_must_move, parent_game_id')
       .eq('id', gameId)
@@ -96,7 +101,7 @@ async function handlePost(req, res, gameId) {
     }
 
     // Verify parent game exists, is compatible, and active
-    const { data: mainGame, error: mainError } = await supabase
+    const { data: mainGame, error: mainError } = await getSupabase()
       .from('commander_games')
       .select('id, venue_id, game_type, stakes, status, is_must_move')
       .eq('id', parent_game_id)
@@ -146,7 +151,7 @@ async function handlePost(req, res, gameId) {
           });
         }
         visited.add(currentId);
-        const { data: nextGame } = await supabase
+        const { data: nextGame } = await getSupabase()
           .from('commander_games')
           .select('parent_game_id')
           .eq('id', currentId)
@@ -157,7 +162,7 @@ async function handlePost(req, res, gameId) {
     }
 
     // Set this game as a must-move linked to the parent
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await getSupabase()
       .from('commander_games')
       .update({
         is_must_move: true,
@@ -203,7 +208,7 @@ async function handleDelete(req, res, gameId) {
     }
 
     // Verify game exists
-    const { data: game, error: fetchError } = await supabase
+    const { data: game, error: fetchError } = await getSupabase()
       .from('commander_games')
       .select('id, is_must_move, parent_game_id')
       .eq('id', gameId)
@@ -224,7 +229,7 @@ async function handleDelete(req, res, gameId) {
     }
 
     // Remove the must-move link
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await getSupabase()
       .from('commander_games')
       .update({
         is_must_move: false,

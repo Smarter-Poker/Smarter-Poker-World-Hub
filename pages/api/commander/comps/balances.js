@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -63,7 +68,7 @@ async function awardComp(req, res, staffAuth) {
     let member = null;
 
     // Attempt 1: Direct lookup in commander_members by ID
-    const { data: directMember } = await supabase
+    const { data: directMember } = await getSupabase()
       .from('commander_members')
       .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier, time_balance_minutes')
       .eq('id', member_id)
@@ -73,7 +78,7 @@ async function awardComp(req, res, staffAuth) {
       member = directMember;
     } else {
       // Attempt 2: member_id might be a commander_staff UUID
-      const { data: staffMember } = await supabase
+      const { data: staffMember } = await getSupabase()
         .from('commander_staff')
         .select('id, venue_id, display_name, user_id, role')
         .eq('id', member_id)
@@ -86,7 +91,7 @@ async function awardComp(req, res, staffAuth) {
         const sfLast = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
         if (sfFirst) {
           // Attempt 1: Exact first+last match
-          let matchQuery = supabase
+          let matchQuery = getSupabase()
             .from('commander_members')
             .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier, time_balance_minutes')
             .eq('venue_id', staffRecord.venue_id)
@@ -97,7 +102,7 @@ async function awardComp(req, res, staffAuth) {
             member = existingMember;
           } else {
             // Attempt 2: Broader fuzzy search to catch name format differences
-            const { data: broaderMatch } = await supabase
+            const { data: broaderMatch } = await getSupabase()
               .from('commander_members')
               .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier, time_balance_minutes')
               .eq('venue_id', staffRecord.venue_id)
@@ -167,14 +172,14 @@ async function awardComp(req, res, staffAuth) {
         updateFields.comp_lifetime_earned = (member.comp_lifetime_earned || 0) + compCost;
       }
 
-      const { error: updateErr } = await supabase
+      const { error: updateErr } = await getSupabase()
         .from('commander_members')
         .update(updateFields)
         .eq('id', member.id);
 
       if (updateErr) throw updateErr;
 
-      const { error: logErr1 } = await supabase.from('commander_member_comp_log').insert({
+      const { error: logErr1 } = await getSupabase().from('commander_member_comp_log').insert({
         venue_id: member.venue_id, member_id: member.id, amount: compCost,
         type: type || 'award', reason: reason || `Free Membership — ${days} days`,
         authorized_by: authorized_by || 'Staff', authorized_pin: authorized_pin || false,
@@ -209,7 +214,7 @@ async function awardComp(req, res, staffAuth) {
         updateFields.comp_lifetime_earned = (member.comp_lifetime_earned || 0) + dollarValue;
       }
 
-      const { error: updateErr } = await supabase
+      const { error: updateErr } = await getSupabase()
         .from('commander_members')
         .update(updateFields)
         .eq('id', member.id);
@@ -220,7 +225,7 @@ async function awardComp(req, res, staffAuth) {
       const mins = timeMinutes % 60;
       const timeLabel = hrs > 0 ? `${hrs}h${mins > 0 ? ` ${mins}m` : ''}` : `${mins}m`;
 
-      const { error: logErr2 } = await supabase.from('commander_member_comp_log').insert({
+      const { error: logErr2 } = await getSupabase().from('commander_member_comp_log').insert({
         venue_id: member.venue_id, member_id: member.id, amount: dollarValue,
         type: type || 'award', reason: reason || `Free Time — ${timeLabel}`,
         authorized_by: authorized_by || 'Staff', authorized_pin: authorized_pin || false,
@@ -260,7 +265,7 @@ async function awardComp(req, res, staffAuth) {
     }
 
     // Optimistic locking: ensure balance hasn't changed since we read it
-    const { data: updated, error: updateErr } = await supabase
+    const { data: updated, error: updateErr } = await getSupabase()
       .from('commander_members')
       .update(updateFields)
       .eq('id', member.id)
@@ -273,7 +278,7 @@ async function awardComp(req, res, staffAuth) {
       return res.status(409).json({ success: false, error: 'Balance changed concurrently — please retry' });
     }
 
-    const { error: logErr3 } = await supabase.from('commander_member_comp_log').insert({
+    const { error: logErr3 } = await getSupabase().from('commander_member_comp_log').insert({
       venue_id: member.venue_id, member_id: member.id, amount: parsedAmount,
       type: type || 'award', reason: reason || 'Manual comp award',
       authorized_by: authorized_by || 'Staff', authorized_pin: authorized_pin || false,
@@ -302,7 +307,7 @@ async function getBalances(req, res) {
 
     // If history=true, return comp log for the venue
     if (history && venue_id) {
-      const { data: logs, error } = await supabase
+      const { data: logs, error } = await getSupabase()
         .from('commander_member_comp_log')
         .select('*')
         .eq('venue_id', venue_id)
@@ -313,7 +318,7 @@ async function getBalances(req, res) {
 
       // Enrich with member names
       const memberIds = [...new Set(logs.map(l => l.member_id))];
-      const { data: members } = await supabase
+      const { data: members } = await getSupabase()
         .from('commander_members')
         .select('id, first_name, last_name')
         .in('id', memberIds.length > 0 ? memberIds : ['none'])
@@ -341,7 +346,7 @@ async function getBalances(req, res) {
         if (session.user_id) userId = session.user_id;
         else if (session.id) {
           // PIN-based session — look up user_id from commander_staff
-          const { data: staffRow } = await supabase
+          const { data: staffRow } = await getSupabase()
             .from('commander_staff')
             .select('user_id')
             .eq('id', session.id)
@@ -355,7 +360,7 @@ async function getBalances(req, res) {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
       if (authError || !user) return res.status(401).json({ success: false, error: 'Session expired — please refresh the page' });
       userId = user.id;
     }
@@ -366,7 +371,7 @@ async function getBalances(req, res) {
 
     // If no venue_id, return user's balances across all venues
     if (!venue_id) {
-      const { data: balances, error } = await supabase
+      const { data: balances, error } = await getSupabase()
         .from('commander_comp_balances')
         .select(`
           *,
@@ -382,7 +387,7 @@ async function getBalances(req, res) {
       const totalLifetime = balances?.reduce((sum, b) => sum + parseFloat(b.lifetime_earned || 0), 0) || 0;
 
       // Get total hours from sessions
-      const { data: sessions } = await supabase
+      const { data: sessions } = await getSupabase()
         .from('commander_player_sessions')
         .select('total_time_minutes')
         .eq('player_id', userId);
@@ -402,7 +407,7 @@ async function getBalances(req, res) {
     }
 
     // Check if user is staff at this venue
-    const { data: staff } = await supabase
+    const { data: staff } = await getSupabase()
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', venue_id)
@@ -412,7 +417,7 @@ async function getBalances(req, res) {
 
     // If staff, can view all balances
     if (staff) {
-      let query = supabase
+      let query = getSupabase()
         .from('commander_comp_balances')
         .select(`
           *,
@@ -435,7 +440,7 @@ async function getBalances(req, res) {
       if (error) throw error;
 
       // Calculate totals
-      const { data: totals } = await supabase
+      const { data: totals } = await getSupabase()
         .from('commander_comp_balances')
         .select('current_balance, lifetime_earned, lifetime_redeemed')
         .eq('venue_id', venue_id);
@@ -456,7 +461,7 @@ async function getBalances(req, res) {
     }
 
     // Non-staff can only see their own balance
-    const { data: balance, error } = await supabase
+    const { data: balance, error } = await getSupabase()
       .from('commander_comp_balances')
       .select(`
         *,
@@ -496,7 +501,7 @@ async function voidComp(req, res, staffAuth) {
     }
 
     // 1. Fetch the original comp log entry
-    const { data: logEntry, error: logErr } = await supabase
+    const { data: logEntry, error: logErr } = await getSupabase()
       .from('commander_member_comp_log')
       .select('*')
       .eq('id', comp_log_id)
@@ -508,7 +513,7 @@ async function voidComp(req, res, staffAuth) {
     if (logEntry.type === 'void') return res.status(400).json({ success: false, error: 'This is already a void entry' });
 
     // Check if there's already a void entry referencing this one
-    const { data: existingVoid } = await supabase
+    const { data: existingVoid } = await getSupabase()
       .from('commander_member_comp_log')
       .select('id')
       .eq('venue_id', logEntry.venue_id)
@@ -520,7 +525,7 @@ async function voidComp(req, res, staffAuth) {
     if (existingVoid) return res.status(400).json({ success: false, error: 'This comp has already been voided' });
 
     // 3. Fetch the member
-    const { data: member, error: memberErr } = await supabase
+    const { data: member, error: memberErr } = await getSupabase()
       .from('commander_members')
       .select('id, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, time_balance_minutes, membership_status, membership_expires')
       .eq('id', logEntry.member_id)
@@ -569,7 +574,7 @@ async function voidComp(req, res, staffAuth) {
     // 6. Update the member record
     if (Object.keys(updateFields).length > 0) {
       // Optimistic locking: ensure balance hasn't changed since we read it
-      const { data: updated, error: updateErr } = await supabase
+      const { data: updated, error: updateErr } = await getSupabase()
         .from('commander_members')
         .update(updateFields)
         .eq('id', member.id)
@@ -584,7 +589,7 @@ async function voidComp(req, res, staffAuth) {
     }
 
     // 7. Log the void with full audit trail
-    const { error: voidLogErr } = await supabase.from('commander_member_comp_log').insert({
+    const { error: voidLogErr } = await getSupabase().from('commander_member_comp_log').insert({
       venue_id: logEntry.venue_id,
       member_id: logEntry.member_id,
       amount: -originalAmount, // Negative to indicate reversal

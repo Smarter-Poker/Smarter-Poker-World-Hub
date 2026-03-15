@@ -4,10 +4,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Fallback data when DB unavailable
 const FALLBACK_REELS = [
@@ -29,7 +34,7 @@ export default async function handler(req, res) {
           const { limit = 20, featured, sort = 'recent' } = req.query;
 
           // First fetch reels without join to avoid schema cache issues
-          let query = supabase
+          let query = getSupabase()
               .from('social_reels')
               .select('*')
               .eq('is_public', true)
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
           let profilesMap = {};
 
           if (authorIds.length > 0) {
-              const { data: profiles } = await supabase
+              const { data: profiles } = await getSupabase()
                   .from('profiles')
                   .select('id, username, full_name, avatar_url')
                   .in('id', authorIds)

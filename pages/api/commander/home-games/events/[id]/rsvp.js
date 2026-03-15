@@ -9,10 +9,15 @@ import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -57,14 +62,14 @@ async function getRsvps(req, res, eventId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
     // Get event and check membership
-    const { data: event } = await supabase
+    const { data: event } = await getSupabase()
       .from('commander_home_games')
       .select('group_id, host_id')
       .eq('id', eventId)
@@ -74,7 +79,7 @@ async function getRsvps(req, res, eventId) {
       return res.status(404).json({ error: 'Event not found' });
     }
 
-    const { data: membership } = await supabase
+    const { data: membership } = await getSupabase()
       .from('commander_home_members')
       .select('role')
       .eq('group_id', event.group_id)
@@ -86,7 +91,7 @@ async function getRsvps(req, res, eventId) {
       return res.status(403).json({ error: 'You are not a member of this group' });
     }
 
-    const { data: rsvps, error } = await supabase
+    const { data: rsvps, error } = await getSupabase()
       .from('commander_home_rsvps')
       .select(`
         *,
@@ -128,7 +133,7 @@ async function submitRsvp(req, res, eventId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -141,7 +146,7 @@ async function submitRsvp(req, res, eventId) {
     }
 
     // Get event
-    const { data: event, error: eventError } = await supabase
+    const { data: event, error: eventError } = await getSupabase()
       .from('commander_home_games')
       .select('group_id, host_id, max_players, rsvp_yes, allow_guests, guest_limit, status')
       .eq('id', eventId)
@@ -156,7 +161,7 @@ async function submitRsvp(req, res, eventId) {
     }
 
     // Check membership
-    const { data: membership } = await supabase
+    const { data: membership } = await getSupabase()
       .from('commander_home_members')
       .select('role')
       .eq('group_id', event.group_id)
@@ -192,7 +197,7 @@ async function submitRsvp(req, res, eventId) {
     }
 
     // Check for existing RSVP
-    const { data: existing } = await supabase
+    const { data: existing } = await getSupabase()
       .from('commander_home_rsvps')
       .select('id')
       .eq('game_id', eventId)
@@ -202,7 +207,7 @@ async function submitRsvp(req, res, eventId) {
     let rsvp;
     if (existing) {
       // Update existing
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('commander_home_rsvps')
         .update({
           response: finalResponse,
@@ -222,7 +227,7 @@ async function submitRsvp(req, res, eventId) {
       rsvp = data;
     } else {
       // Create new
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('commander_home_rsvps')
         .insert({
           game_id: eventId,
@@ -263,7 +268,7 @@ async function updateRsvp(req, res, eventId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -276,7 +281,7 @@ async function updateRsvp(req, res, eventId) {
     }
 
     // Get event and RSVP
-    const { data: rsvp } = await supabase
+    const { data: rsvp } = await getSupabase()
       .from('commander_home_rsvps')
       .select('*, commander_home_games(group_id, host_id, max_players, rsvp_yes)')
       .eq('id', rsvp_id)
@@ -292,7 +297,7 @@ async function updateRsvp(req, res, eventId) {
     // Check if user is host
     if (event.host_id !== user.id) {
       // Check if admin
-      const { data: membership } = await supabase
+      const { data: membership } = await getSupabase()
         .from('commander_home_members')
         .select('role')
         .eq('group_id', event.group_id)
@@ -338,7 +343,7 @@ async function updateRsvp(req, res, eventId) {
 
     updates.updated_at = new Date().toISOString();
 
-    const { data: updated, error } = await supabase
+    const { data: updated, error } = await getSupabase()
       .from('commander_home_rsvps')
       .update(updates)
       .eq('id', rsvp_id)

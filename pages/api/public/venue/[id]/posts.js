@@ -4,10 +4,15 @@
  */
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -37,7 +42,7 @@ export default async function handler(req, res) {
       // Note: commander_venue_posts.venue_id may be integer, so UUID strings will cause a type error
       let posts = null;
       let count = null;
-      const { data: cmdPosts, error: cmdError, count: cmdCount } = await supabase
+      const { data: cmdPosts, error: cmdError, count: cmdCount } = await getSupabase()
         .from('commander_venue_posts')
         .select(`
           id,
@@ -78,7 +83,7 @@ export default async function handler(req, res) {
       }
 
       // Fallback: check social_page_posts (social-media ClubPageDashboard posts)
-      const { data: socialPosts, error: spError, count: spCount } = await supabase
+      const { data: socialPosts, error: spError, count: spCount } = await getSupabase()
         .from('social_page_posts')
         .select(`
           id,

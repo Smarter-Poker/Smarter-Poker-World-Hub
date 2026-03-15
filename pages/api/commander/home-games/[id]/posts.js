@@ -7,10 +7,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
       if (authError || !user) {
         return res.status(401).json({
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
       }
 
       // Verify user is a member of this group
-      const { data: membership, error: memberError } = await supabase
+      const { data: membership, error: memberError } = await getSupabase()
         .from('commander_home_members')
         .select('role, status')
         .eq('group_id', id)
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
       if (req.method === 'GET') {
         const { limit = 20, offset = 0 } = req.query;
 
-        const { data, error, count } = await supabase
+        const { data, error, count } = await getSupabase()
           .from('commander_home_posts')
           .select(`
             *,
@@ -103,7 +108,7 @@ export default async function handler(req, res) {
           });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_home_posts')
           .insert({
             group_id: id,

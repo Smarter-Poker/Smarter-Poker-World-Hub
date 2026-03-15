@@ -6,10 +6,15 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -58,7 +63,7 @@ export default async function handler(req, res) {
 
       // Method 1: Look up by staff record ID
       if (sessionData.id) {
-        const { data } = await supabase
+        const { data } = await getSupabase()
           .from('commander_staff')
           .select('id, venue_id, role')
           .eq('id', sessionData.id)
@@ -71,7 +76,7 @@ export default async function handler(req, res) {
 
       // Method 2: Look up by Supabase user_id
       if (!authRole && sessionData.user_id) {
-        const { data } = await supabase
+        const { data } = await getSupabase()
           .from('commander_staff')
           .select('id, venue_id, role')
           .eq('user_id', sessionData.user_id)
@@ -96,7 +101,7 @@ export default async function handler(req, res) {
         });
       }
 
-      const { data: staff, error } = await supabase
+      const { data: staff, error } = await getSupabase()
         .from('commander_staff')
         .select(`
           id,

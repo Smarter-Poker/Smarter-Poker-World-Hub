@@ -8,10 +8,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUser } from '../../../src/lib/serverAuth';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -27,7 +32,7 @@ export default async function handler(req, res) {
     } else {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
       userId = user.id;
     }
@@ -40,7 +45,7 @@ export default async function handler(req, res) {
           // ═══ FULL DATA for friends page ═══
 
           // 1. Friends where I am user_id (I sent the request)
-          const { data: friendshipsAsUser } = await supabase
+          const { data: friendshipsAsUser } = await getSupabase()
             .from('friendships')
             .select('friend_id, friend:profiles!friendships_friend_id_fkey(id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active)')
             .eq('user_id', userId)
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
             .limit(200);
 
           // 2. Friends where I am friend_id (they sent the request)
-          const { data: friendshipsAsFriend } = await supabase
+          const { data: friendshipsAsFriend } = await getSupabase()
             .from('friendships')
             .select('user_id, requester:profiles!friendships_user_id_fkey(id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active)')
             .eq('friend_id', userId)
@@ -76,7 +81,7 @@ export default async function handler(req, res) {
           }
 
           // 3. Pending incoming requests
-          const { data: incomingRequests } = await supabase
+          const { data: incomingRequests } = await getSupabase()
             .from('friendships')
             .select('id, user_id, requester:profiles!friendships_user_id_fkey(id, username, full_name, display_name, avatar_url)')
             .eq('friend_id', userId)
@@ -84,7 +89,7 @@ export default async function handler(req, res) {
             .limit(100);
 
           // 4. Pending outgoing requests
-          const { data: outgoingRequests } = await supabase
+          const { data: outgoingRequests } = await getSupabase()
             .from('friendships')
             .select('friend_id')
             .eq('user_id', userId)
@@ -92,21 +97,21 @@ export default async function handler(req, res) {
             .limit(100);
 
           // 5. Following
-          const { data: myFollowing } = await supabase
+          const { data: myFollowing } = await getSupabase()
             .from('follows')
             .select('following_id, following:profiles!follows_following_id_fkey(id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active)')
             .eq('follower_id', userId)
             .limit(200);
 
           // 6. Followers
-          const { data: myFollowers } = await supabase
+          const { data: myFollowers } = await getSupabase()
             .from('follows')
             .select('follower_id, follower:profiles!follows_follower_id_fkey(id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active)')
             .eq('following_id', userId)
             .limit(200);
 
           // 7. Suggestions (all other users, minus friends)
-          const { data: allUsers } = await supabase
+          const { data: allUsers } = await getSupabase()
             .from('profiles')
             .select('id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active')
             .neq('id', userId)
@@ -130,14 +135,14 @@ export default async function handler(req, res) {
         }
 
         // Default: simple friends list
-        const { data: friendshipsAsUser } = await supabase
+        const { data: friendshipsAsUser } = await getSupabase()
           .from('friendships')
           .select('friend_id, friend:profiles!friendships_friend_id_fkey(id, display_name, username, avatar_url)')
           .eq('user_id', userId)
           .eq('status', 'accepted')
           .limit(100);
 
-        const { data: friendshipsAsFriend } = await supabase
+        const { data: friendshipsAsFriend } = await getSupabase()
           .from('friendships')
           .select('user_id, requester:profiles!friendships_user_id_fkey(id, display_name, username, avatar_url)')
           .eq('friend_id', userId)
@@ -161,7 +166,7 @@ export default async function handler(req, res) {
       if (!friend_id) return res.status(400).json({ success: false, error: 'friend_id is required' });
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('friendships')
           .insert({ user_id: userId, friend_id, status: 'pending' })
           .select()

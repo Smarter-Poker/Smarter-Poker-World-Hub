@@ -9,10 +9,15 @@ import { withRateLimit } from '../../../../src/lib/commander/rateLimit';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 async function handler(req, res) {
   const _g = await guardWriteStaff(req, res); if (!_g) return;
@@ -37,7 +42,7 @@ async function listExports(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -46,7 +51,7 @@ async function listExports(req, res) {
     const { venue_id, status, limit: rawLimit = '20' } = req.query;
     const limit = Math.min(parseInt(rawLimit) || 20, 100);
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_export_jobs')
       .select('*')
       .order('created_at', { ascending: false })
@@ -54,7 +59,7 @@ async function listExports(req, res) {
 
     if (venue_id) {
       // Check if staff
-      const { data: staff } = await supabase
+      const { data: staff } = await getSupabase()
         .from('commander_staff')
         .select('id, role')
         .eq('venue_id', venue_id)
@@ -94,7 +99,7 @@ async function createExport(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -114,7 +119,7 @@ async function createExport(req, res) {
     }
 
     // Check if staff
-    const { data: staff } = await supabase
+    const { data: staff } = await getSupabase()
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', venue_id)
@@ -127,7 +132,7 @@ async function createExport(req, res) {
     }
 
     // Create export job
-    const { data: exportJob, error } = await supabase
+    const { data: exportJob, error } = await getSupabase()
       .from('commander_export_jobs')
       .insert({
         venue_id: venue_id,
@@ -162,7 +167,7 @@ async function createExport(req, res) {
     await processExport(exportJob.id);
 
     // Get updated job
-    const { data: updatedJob } = await supabase
+    const { data: updatedJob } = await getSupabase()
       .from('commander_export_jobs')
       .select('*')
       .eq('id', exportJob.id)
@@ -181,13 +186,13 @@ async function createExport(req, res) {
 async function processExport(exportId) {
   try {
     // Update status to processing
-    await supabase
+    await getSupabase()
       .from('commander_export_jobs')
       .update({ status: 'processing', started_at: new Date().toISOString() })
       .eq('id', exportId);
 
     // Get export job
-    const { data: job } = await supabase
+    const { data: job } = await getSupabase()
       .from('commander_export_jobs')
       .select('*')
       .eq('id', exportId)
@@ -201,14 +206,14 @@ async function processExport(exportId) {
     // Build query based on export type
     switch (job.export_type) {
       case 'players':
-        query = supabase
+        query = getSupabase()
           .from('commander_player_stats')
           .select('*, profiles:player_id(display_name, email)')
           .eq('venue_id', job.venue_id);
         break;
 
       case 'sessions':
-        query = supabase
+        query = getSupabase()
           .from('commander_player_sessions')
           .select('*, profiles:player_id(display_name)')
           .eq('venue_id', job.venue_id)
@@ -218,7 +223,7 @@ async function processExport(exportId) {
         break;
 
       case 'tournaments':
-        query = supabase
+        query = getSupabase()
           .from('commander_tournaments')
           .select('*, commander_tournament_entries(*)')
           .eq('venue_id', job.venue_id);
@@ -227,7 +232,7 @@ async function processExport(exportId) {
         break;
 
       case 'analytics':
-        query = supabase
+        query = getSupabase()
           .from('commander_analytics_daily')
           .select('*')
           .eq('venue_id', job.venue_id);
@@ -236,7 +241,7 @@ async function processExport(exportId) {
         break;
 
       case 'comps':
-        query = supabase
+        query = getSupabase()
           .from('commander_member_comp_log')
           .select('*, commander_members:member_id(first_name, last_name)')
           .eq('venue_id', job.venue_id);
@@ -245,7 +250,7 @@ async function processExport(exportId) {
         break;
 
       case 'audit_logs':
-        query = supabase
+        query = getSupabase()
           .from('commander_audit_logs')
           .select('*')
           .eq('venue_id', job.venue_id);
@@ -278,7 +283,7 @@ async function processExport(exportId) {
     const fileUrl = `data:text/${job.format};base64,${Buffer.from(fileContent).toString('base64')}`;
 
     // Update job as completed
-    await supabase
+    await getSupabase()
       .from('commander_export_jobs')
       .update({
         status: 'completed',
@@ -292,7 +297,7 @@ async function processExport(exportId) {
 
   } catch (error) {
     console.error('Process export error:', error);
-    await supabase
+    await getSupabase()
       .from('commander_export_jobs')
       .update({
         status: 'failed',

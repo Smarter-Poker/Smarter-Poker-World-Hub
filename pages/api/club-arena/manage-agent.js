@@ -20,10 +20,15 @@ const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { notifyUser } from '../../../src/lib/club-arena/notify';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // All fields any action could possibly send
 const ALLOWED_BODY_FIELDS = new Set([
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { clubId, action, targetUserId, ...params } = req.body;
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
 
     try {
       // Verify authorization
-      const { data: club } = await supabaseAdmin
+      const { data: club } = await getSupabase()
         .from('clubs')
         .select('id, owner_id, union_id')
         .eq('id', clubId)
@@ -94,7 +99,7 @@ export default async function handler(req, res) {
 
       let authorized = club.owner_id === user.id;
       if (!authorized && club.union_id) {
-        const { data: ua } = await supabaseAdmin
+        const { data: ua } = await getSupabase()
           .from('union_admins')
           .select('role')
           .eq('union_id', club.union_id)
@@ -104,7 +109,7 @@ export default async function handler(req, res) {
             authorized = true;
         } else {
             // Owner fallback
-            const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
+            const { data: union } = await getSupabase().from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
             if (union) authorized = true;
         }
       }
@@ -113,7 +118,7 @@ export default async function handler(req, res) {
       const agentActions = ['list_sub_agents', 'set_player_rakeback', 'update_commission', 'promote_to_sub_agent'];
       if (!authorized && agentActions.includes(action)) {
         // Check if caller is an active agent in this club
-        const { data: callerAsAgent } = await supabaseAdmin
+        const { data: callerAsAgent } = await getSupabase()
           .from('agents')
           .select('id, status')
           .eq('user_id', user.id)
@@ -169,7 +174,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'parentAgentId is REQUIRED for sub_agent tier' });
           }
 
-          const { data: parentAgent } = await supabaseAdmin
+          const { data: parentAgent } = await getSupabase()
             .from('agents')
             .select('id, user_id, commission_rate, role')
             .eq('user_id', parentAgentId)
@@ -220,7 +225,7 @@ export default async function handler(req, res) {
         }
 
         // Get current membership
-        const { data: member } = await supabaseAdmin
+        const { data: member } = await getSupabase()
           .from('club_members')
           .select('id, role')  // BUG FIX: must include role — previously only 'id', making member.role always undefined
           .eq('club_id', clubId)
@@ -233,7 +238,7 @@ export default async function handler(req, res) {
         }
 
         // Update role in club_members
-        await supabaseAdmin
+        await getSupabase()
           .from('club_members')
           .update({
             role: agentTier,
@@ -244,7 +249,7 @@ export default async function handler(req, res) {
           .eq('user_id', targetUserId);
 
         // Create agent record
-        const { data: agentRecord, error: agentErr } = await supabaseAdmin
+        const { data: agentRecord, error: agentErr } = await getSupabase()
           .from('agents')
           .insert({
             user_id: targetUserId,
@@ -298,7 +303,7 @@ export default async function handler(req, res) {
         const { reassignTo } = params; // optional: another agent to receive the players
 
         // Get agent's players
-        const { data: agentPlayers } = await supabaseAdmin
+        const { data: agentPlayers } = await getSupabase()
           .from('club_members')
           .select('user_id')
           .eq('club_id', clubId)
@@ -309,7 +314,7 @@ export default async function handler(req, res) {
 
         // Reassign players
         if (playerCount > 0) {
-          await supabaseAdmin
+          await getSupabase()
             .from('club_members')
             .update({ agent_id: reassignTo || null })
             .eq('club_id', clubId)
@@ -317,7 +322,7 @@ export default async function handler(req, res) {
 
           // Update reassigned-to agent's player counts
           if (reassignTo) {
-            const { data: newAgent } = await supabaseAdmin
+            const { data: newAgent } = await getSupabase()
               .from('agents')
               .select('id, active_player_count, total_players')
               .eq('user_id', reassignTo)
@@ -326,7 +331,7 @@ export default async function handler(req, res) {
             if (newAgent) {
               const oldActive = newAgent.active_player_count || 0;
               const oldTotal = newAgent.total_players || 0;
-              const { data: upd } = await supabaseAdmin
+              const { data: upd } = await getSupabase()
                 .from('agents')
                 .update({
                   active_player_count: oldActive + playerCount,
@@ -338,9 +343,9 @@ export default async function handler(req, res) {
 
               // Retry once on conflict
               if (!upd?.length) {
-                const { data: freshA } = await supabaseAdmin.from('agents').select('active_player_count, total_players').eq('id', newAgent.id).maybeSingle();
+                const { data: freshA } = await getSupabase().from('agents').select('active_player_count, total_players').eq('id', newAgent.id).maybeSingle();
                 if (freshA) {
-                  await supabaseAdmin.from('agents').update({
+                  await getSupabase().from('agents').update({
                     active_player_count: (freshA.active_player_count || 0) + playerCount,
                     total_players: (freshA.total_players || 0) + playerCount,
                   }).eq('id', newAgent.id);
@@ -351,14 +356,14 @@ export default async function handler(req, res) {
         }
 
         // Demote in club_members
-        await supabaseAdmin
+        await getSupabase()
           .from('club_members')
           .update({ role: 'player', credit_limit: 0 })
           .eq('club_id', clubId)
           .eq('user_id', targetUserId);
 
         // Deactivate agent record
-        await supabaseAdmin
+        await getSupabase()
           .from('agents')
           .update({ status: 'inactive', active_player_count: 0 })
           .eq('user_id', targetUserId)
@@ -402,7 +407,7 @@ export default async function handler(req, res) {
           }
 
           // If this agent has a parent, new rate must be less than parent's
-          const { data: tgtAgent } = await supabaseAdmin
+          const { data: tgtAgent } = await getSupabase()
             .from('agents')
             .select('id, parent_agent_id, rakeback_percentage')
             .eq('user_id', targetUserId)
@@ -410,7 +415,7 @@ export default async function handler(req, res) {
             .maybeSingle();
 
           if (tgtAgent?.parent_agent_id) {
-            const { data: parentAg } = await supabaseAdmin.from('agents').select('commission_rate').eq('id', tgtAgent.parent_agent_id).maybeSingle();
+            const { data: parentAg } = await getSupabase().from('agents').select('commission_rate').eq('id', tgtAgent.parent_agent_id).maybeSingle();
             if (parentAg && commissionRate >= parentAg.commission_rate) {
               return res.status(400).json({ success: false, error: 'Sub-agent rate must be less than parent rate', parent_rate: parentAg.commission_rate });
             }
@@ -418,7 +423,7 @@ export default async function handler(req, res) {
 
           // Check sub-agents below won't be violated
           if (tgtAgent) {
-            const { data: subAgents } = await supabaseAdmin.from('agents').select('user_id, commission_rate').eq('club_id', clubId).eq('parent_agent_id', tgtAgent.id);
+            const { data: subAgents } = await getSupabase().from('agents').select('user_id, commission_rate').eq('club_id', clubId).eq('parent_agent_id', tgtAgent.id);
             for (const sub of (subAgents || [])) {
               if (sub.commission_rate >= commissionRate) {
                 return res.status(400).json({ success: false, error: `Cannot lower below sub-agent ${sub.user_id} at ${(sub.commission_rate * 100).toFixed(1)}%` });
@@ -445,7 +450,7 @@ export default async function handler(req, res) {
         }
 
         if (Object.keys(updates).length > 0) {
-          await supabaseAdmin
+          await getSupabase()
             .from('club_members')
             .update(updates)
             .eq('club_id', clubId)
@@ -453,7 +458,7 @@ export default async function handler(req, res) {
         }
 
         if (Object.keys(agentUpdates).length > 0) {
-          await supabaseAdmin
+          await getSupabase()
             .from('agents')
             .update(agentUpdates)
             .eq('user_id', targetUserId)
@@ -473,7 +478,7 @@ export default async function handler(req, res) {
         }
 
         // toAgentId can be null (un-assign from agent)
-        await supabaseAdmin
+        await getSupabase()
           .from('club_members')
           .update({ agent_id: toAgentId || null })
           .eq('club_id', clubId)
@@ -481,28 +486,28 @@ export default async function handler(req, res) {
 
         // Update agent player counts
         if (fromAgentId) {
-          const { data: fromAgent } = await supabaseAdmin
+          const { data: fromAgent } = await getSupabase()
             .from('agents')
             .select('id, active_player_count')
             .eq('user_id', fromAgentId)
             .eq('club_id', clubId)
             .maybeSingle();
           if (fromAgent) {
-            await supabaseAdmin
+            await getSupabase()
               .from('agents')
               .update({ active_player_count: Math.max(0, (fromAgent.active_player_count || 1) - 1) })
               .eq('id', fromAgent.id);
           }
         }
 
-        const { data: toAgent } = await supabaseAdmin
+        const { data: toAgent } = await getSupabase()
           .from('agents')
           .select('id, active_player_count, total_players')
           .eq('user_id', toAgentId)
           .eq('club_id', clubId)
           .maybeSingle();
         if (toAgent) {
-          await supabaseAdmin
+          await getSupabase()
             .from('agents')
             .update({
               active_player_count: (toAgent.active_player_count || 0) + 1,
@@ -528,13 +533,13 @@ export default async function handler(req, res) {
 
         const newStatus = action === 'suspend' ? 'suspended' : 'active';
 
-        await supabaseAdmin
+        await getSupabase()
           .from('agents')
           .update({ status: newStatus })
           .eq('user_id', targetUserId)
           .eq('club_id', clubId);
 
-        await supabaseAdmin
+        await getSupabase()
           .from('club_members')
           .update({ status: newStatus })
           .eq('club_id', clubId)
@@ -570,7 +575,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'newRole must be admin, agent, or player' });
         }
 
-        const { data: targetMember } = await supabaseAdmin
+        const { data: targetMember } = await getSupabase()
           .from('club_members')
           .select('user_id, role, agent_id')
           .eq('club_id', clubId)
@@ -589,14 +594,14 @@ export default async function handler(req, res) {
 
         // If demoting FROM agent role → clear downline assignments
         if (agentRoles.includes(oldRole) && !agentRoles.includes(newRole)) {
-          await supabaseAdmin
+          await getSupabase()
             .from('club_members')
             .update({ agent_id: null })
             .eq('club_id', clubId)
             .eq('agent_id', targetUserId);
 
           // Deactivate agent record
-          await supabaseAdmin
+          await getSupabase()
             .from('agents')
             .update({ status: 'inactive', active_player_count: 0 })
             .eq('user_id', targetUserId)
@@ -617,7 +622,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)' });
           }
 
-          const { data: existingAgent } = await supabaseAdmin
+          const { data: existingAgent } = await getSupabase()
             .from('agents')
             .select('id')
             .eq('user_id', targetUserId)
@@ -625,12 +630,12 @@ export default async function handler(req, res) {
             .maybeSingle();
 
           if (existingAgent) {
-            await supabaseAdmin
+            await getSupabase()
               .from('agents')
               .update({ status: 'active', role: 'agent', commission_rate: cr })
               .eq('id', existingAgent.id);
           } else {
-            await supabaseAdmin
+            await getSupabase()
               .from('agents')
               .insert({
                 user_id: targetUserId,
@@ -651,7 +656,7 @@ export default async function handler(req, res) {
           updates.agent_id = null;
         }
 
-        await supabaseAdmin
+        await getSupabase()
           .from('club_members')
           .update(updates)
           .eq('club_id', clubId)
@@ -672,7 +677,7 @@ export default async function handler(req, res) {
       if (action === 'remove') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
-        const { data: targetMember } = await supabaseAdmin
+        const { data: targetMember } = await getSupabase()
           .from('club_members')
           .select('user_id, role, chip_balance')
           .eq('club_id', clubId)
@@ -699,16 +704,16 @@ export default async function handler(req, res) {
             });
           }
           // Return chips to club treasury atomically
-          await supabaseAdmin.rpc('fn_debit_chips', {
+          await getSupabase().rpc('fn_debit_chips', {
             p_club_id: clubId,
             p_user_id: targetUserId,
             p_amount: balance,
           });
-          await supabaseAdmin.rpc('fn_credit_treasury', {
+          await getSupabase().rpc('fn_credit_treasury', {
             p_club_id: clubId,
             p_amount: balance,
           });
-          await supabaseAdmin.from('chip_transactions').insert({
+          await getSupabase().from('chip_transactions').insert({
             club_id: clubId,
             from_user_id: targetUserId,
             to_user_id: null,
@@ -720,13 +725,13 @@ export default async function handler(req, res) {
 
         // If removing an agent, clear downline + deactivate agent record
         if (['agent', 'sub_agent', 'super_agent'].includes(targetMember.role)) {
-          await supabaseAdmin
+          await getSupabase()
             .from('club_members')
             .update({ agent_id: null })
             .eq('club_id', clubId)
             .eq('agent_id', targetUserId);
 
-          await supabaseAdmin
+          await getSupabase()
             .from('agents')
             .update({ status: 'inactive', active_player_count: 0 })
             .eq('user_id', targetUserId)
@@ -734,7 +739,7 @@ export default async function handler(req, res) {
         }
 
         // Delete membership
-        const { error: delErr } = await supabaseAdmin
+        const { error: delErr } = await getSupabase()
           .from('club_members')
           .delete()
           .eq('club_id', clubId)
@@ -743,12 +748,12 @@ export default async function handler(req, res) {
         if (delErr) throw delErr;
 
         // Update club member count
-        const { count } = await supabaseAdmin
+        const { count } = await getSupabase()
           .from('club_members')
           .select('*', { count: 'exact', head: true })
           .eq('club_id', clubId)
 
-        await supabaseAdmin
+        await getSupabase()
           .from('clubs')
           .update({ member_count: count || 0 })
           .eq('id', clubId);
@@ -770,7 +775,7 @@ export default async function handler(req, res) {
         const parentAgentId = req.body.parentAgentUserId || req.body.parentAgentId;
 
         // Get target agent record
-        const { data: targetAgent } = await supabaseAdmin
+        const { data: targetAgent } = await getSupabase()
           .from('agents')
           .select('id, user_id, parent_agent_id')
           .eq('user_id', targetUserId)
@@ -782,7 +787,7 @@ export default async function handler(req, res) {
         // Resolve parentAgentId (user_id) to agent RECORD id for storage consistency
         let parentRecordId = null;
         if (parentAgentId) {
-          const { data: parentAgent } = await supabaseAdmin
+          const { data: parentAgent } = await getSupabase()
             .from('agents')
             .select('id, role')
             .eq('user_id', parentAgentId)
@@ -805,14 +810,14 @@ export default async function handler(req, res) {
                 error: 'Circular agent hierarchy detected — this assignment would create an infinite loop',
               });
             }
-            const { data: ancestor } = await supabaseAdmin
+            const { data: ancestor } = await getSupabase()
               .from('agents').select('parent_agent_id').eq('id', walkId).maybeSingle();
             walkId = ancestor?.parent_agent_id || null;
           }
         }
 
         // If parentAgentId is null, remove parent (make standalone)
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabase()
           .from('agents')
           .update({ parent_agent_id: parentRecordId })
           .eq('id', targetAgent.id);
@@ -830,7 +835,7 @@ export default async function handler(req, res) {
         if (!parentAgentUserId) return res.status(400).json({ success: false, error: 'parentAgentUserId required' });
 
         // Get parent agent record
-        const { data: parentAgent } = await supabaseAdmin
+        const { data: parentAgent } = await getSupabase()
           .from('agents')
           .select('id, user_id')
           .eq('user_id', parentAgentUserId)
@@ -840,7 +845,7 @@ export default async function handler(req, res) {
         if (!parentAgent) return res.status(404).json({ success: false, error: 'Parent agent not found' });
 
         // Get sub-agents
-        const { data: subAgents } = await supabaseAdmin
+        const { data: subAgents } = await getSupabase()
           .from('agents')
           .select('id, user_id, commission_rate, status, active_player_count, total_players, lifetime_earnings, weekly_rake_generated, business_balance, credit_limit, credit_used')
           .eq('club_id', clubId)
@@ -850,7 +855,7 @@ export default async function handler(req, res) {
         const subIds = (subAgents || []).map(a => a.user_id);
         let profiles = {};
         if (subIds.length > 0) {
-          const { data: profs } = await supabaseAdmin
+          const { data: profs } = await getSupabase()
             .from('profiles')
             .select('id, username, display_name, avatar_url')
             .in('id', subIds)
@@ -885,7 +890,7 @@ export default async function handler(req, res) {
         }
 
         // Get the calling agent's record
-        const { data: callerAgent } = await supabaseAdmin
+        const { data: callerAgent } = await getSupabase()
           .from('agents')
           .select('id, user_id, commission_rate, auto_rakeback_enabled, rakeback_percentage')
           .eq('user_id', user.id)
@@ -896,7 +901,7 @@ export default async function handler(req, res) {
         if (!callerAgent) return res.status(403).json({ success: false, error: 'You are not an active agent in this club' });
 
         // Verify the target player belongs to this agent
-        const { data: playerMember } = await supabaseAdmin
+        const { data: playerMember } = await getSupabase()
           .from('club_members')
           .select('user_id, role, agent_id')
           .eq('club_id', clubId)
@@ -930,7 +935,7 @@ export default async function handler(req, res) {
 
         // Update the player's rakeback on the agent record
         // Store per-player rakeback in club_members
-        await supabaseAdmin
+        await getSupabase()
           .from('club_members')
           .update({ player_rakeback_pct: rakebackPercentage })
           .eq('club_id', clubId)
@@ -938,7 +943,7 @@ export default async function handler(req, res) {
 
         // Also update the agent-level default if this is their first time setting it
         if (!callerAgent.auto_rakeback_enabled && rakebackPercentage > 0) {
-          await supabaseAdmin
+          await getSupabase()
             .from('agents')
             .update({
               auto_rakeback_enabled: true,
@@ -972,7 +977,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)' });
         }
 
-        const { data: targetAgent } = await supabaseAdmin
+        const { data: targetAgent } = await getSupabase()
           .from('agents')
           .select('id, user_id, commission_rate, parent_agent_id, rakeback_percentage')
           .eq('user_id', targetUserId)
@@ -983,7 +988,7 @@ export default async function handler(req, res) {
 
         // If caller is agent (not owner/union admin), they can only update their own sub-agents
         if (club.owner_id !== user.id) {
-          const { data: callerAgent } = await supabaseAdmin
+          const { data: callerAgent } = await getSupabase()
             .from('agents')
             .select('id')
             .eq('user_id', user.id)
@@ -998,7 +1003,7 @@ export default async function handler(req, res) {
 
         // If sub-agent, new rate must be less than parent
         if (targetAgent.parent_agent_id) {
-          const { data: parentAgent } = await supabaseAdmin
+          const { data: parentAgent } = await getSupabase()
             .from('agents')
             .select('commission_rate')
             .eq('id', targetAgent.parent_agent_id)
@@ -1014,7 +1019,7 @@ export default async function handler(req, res) {
         }
 
         // Check sub-agents below — their rates must still be less than new rate
-        const { data: subAgents } = await supabaseAdmin
+        const { data: subAgents } = await getSupabase()
           .from('agents')
           .select('id, user_id, commission_rate')
           .eq('club_id', clubId)
@@ -1041,7 +1046,7 @@ export default async function handler(req, res) {
           }
         }
 
-        await supabaseAdmin
+        await getSupabase()
           .from('agents')
           .update({ commission_rate: commissionRate })
           .eq('id', targetAgent.id);
@@ -1070,7 +1075,7 @@ export default async function handler(req, res) {
         }
 
         // Verify caller is an active agent
-        const { data: parentAgent } = await supabaseAdmin
+        const { data: parentAgent } = await getSupabase()
           .from('agents')
           .select('id, user_id, commission_rate, status, agent_tier, role')
           .eq('user_id', user.id)
@@ -1094,7 +1099,7 @@ export default async function handler(req, res) {
         }
 
         // Verify target is a player assigned to this agent
-        const { data: targetMember } = await supabaseAdmin
+        const { data: targetMember } = await getSupabase()
           .from('club_members')
           .select('user_id, role, agent_id')
           .eq('club_id', clubId)
@@ -1110,7 +1115,7 @@ export default async function handler(req, res) {
         }
 
         // Promote: update club_members role + create agents record
-        const { error: roleErr } = await supabaseAdmin
+        const { error: roleErr } = await getSupabase()
           .from('club_members')
           .update({ role: 'sub_agent' })
           .eq('club_id', clubId)
@@ -1118,7 +1123,7 @@ export default async function handler(req, res) {
 
         if (roleErr) throw roleErr;
 
-        const { error: agentErr } = await supabaseAdmin
+        const { error: agentErr } = await getSupabase()
           .from('agents')
           .upsert({
             user_id: targetUserId,
@@ -1152,7 +1157,7 @@ export default async function handler(req, res) {
       if (action === 'auto_promote_check') {
         if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
-        const { data: checkAgent } = await supabaseAdmin
+        const { data: checkAgent } = await getSupabase()
           .from('agents')
           .select('id, user_id, role, commission_rate, active_player_count, total_players, weekly_rake_generated, lifetime_earnings, status')
           .eq('user_id', targetUserId)
@@ -1229,7 +1234,7 @@ export default async function handler(req, res) {
         if (!amount || amount <= 0) return res.status(400).json({ success: false, error: 'amount must be positive' });
 
         // Verify caller is an active agent
-        const { data: senderAgent } = await supabaseAdmin
+        const { data: senderAgent } = await getSupabase()
           .from('agents')
           .select('id, user_id, status')
           .eq('user_id', user.id)
@@ -1239,7 +1244,7 @@ export default async function handler(req, res) {
         if (!senderAgent) return res.status(403).json({ success: false, error: 'You are not an active agent in this club' });
 
         // Verify target is also an active agent in same club
-        const { data: receiverAgent } = await supabaseAdmin
+        const { data: receiverAgent } = await getSupabase()
           .from('agents')
           .select('id, user_id, status')
           .eq('user_id', targetUserId)
@@ -1250,7 +1255,7 @@ export default async function handler(req, res) {
         if (receiverAgent.user_id === user.id) return res.status(400).json({ success: false, error: 'Cannot transfer to yourself' });
 
         // Check sender has enough chip balance
-        const { data: senderMember } = await supabaseAdmin
+        const { data: senderMember } = await getSupabase()
           .from('club_members')
           .select('chip_balance')
           .eq('club_id', clubId)
@@ -1261,7 +1266,7 @@ export default async function handler(req, res) {
         }
 
         // Debit sender
-        const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+        const { error: debitErr } = await getSupabase().rpc('fn_debit_chips', {
           p_club_id: clubId, p_user_id: user.id, p_amount: amount,
         });
         if (debitErr) {
@@ -1269,17 +1274,17 @@ export default async function handler(req, res) {
         }
 
         // Credit receiver
-        const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+        const { error: creditErr } = await getSupabase().rpc('fn_credit_chips', {
           p_club_id: clubId, p_user_id: targetUserId, p_amount: amount,
         });
         if (creditErr) {
           // Rollback: re-credit sender
-          await supabaseAdmin.rpc('fn_credit_chips', { p_club_id: clubId, p_user_id: user.id, p_amount: amount }).catch(() => {});
+          await getSupabase().rpc('fn_credit_chips', { p_club_id: clubId, p_user_id: user.id, p_amount: amount }).catch(() => {});
           return res.status(500).json({ success: false, error: 'Credit failed, transfer rolled back' });
         }
 
         // Record transaction
-        await supabaseAdmin.from('chip_transactions').insert({
+        await getSupabase().from('chip_transactions').insert({
           club_id: clubId,
           from_user_id: user.id,
           to_user_id: targetUserId,
@@ -1307,7 +1312,7 @@ export default async function handler(req, res) {
         }
 
         // Verify target is a club member
-        const { data: targetMember } = await supabaseAdmin
+        const { data: targetMember } = await getSupabase()
           .from('club_members')
           .select('user_id, role')
           .eq('club_id', clubId)
@@ -1316,21 +1321,21 @@ export default async function handler(req, res) {
         if (!targetMember) return res.status(404).json({ success: false, error: 'Target user is not a member of this club' });
 
         // Update club owner
-        const { error: ownerErr } = await supabaseAdmin
+        const { error: ownerErr } = await getSupabase()
           .from('clubs')
           .update({ owner_id: targetUserId })
           .eq('id', clubId);
         if (ownerErr) throw ownerErr;
 
         // Promote new owner to 'owner' role
-        await supabaseAdmin
+        await getSupabase()
           .from('club_members')
           .update({ role: 'owner' })
           .eq('club_id', clubId)
           .eq('user_id', targetUserId);
 
         // Demote old owner to 'admin'
-        await supabaseAdmin
+        await getSupabase()
           .from('club_members')
           .update({ role: 'admin' })
           .eq('club_id', clubId)
@@ -1369,7 +1374,7 @@ export default async function handler(req, res) {
 
         for (const uid of targetUserIds) {
           try {
-            const { error: agentErr } = await supabaseAdmin
+            const { error: agentErr } = await getSupabase()
               .from('agents')
               .update({ status: newStatus })
               .eq('club_id', clubId)
@@ -1380,13 +1385,13 @@ export default async function handler(req, res) {
 
             // Sync club_members status
             if (action === 'batch_suspend') {
-              await supabaseAdmin
+              await getSupabase()
                 .from('club_members')
                 .update({ role: 'suspended' })
                 .eq('club_id', clubId)
                 .eq('user_id', uid);
             } else {
-              await supabaseAdmin
+              await getSupabase()
                 .from('club_members')
                 .update({ role: 'agent' })
                 .eq('club_id', clubId)

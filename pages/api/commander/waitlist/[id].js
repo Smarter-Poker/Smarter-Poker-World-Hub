@@ -8,10 +8,15 @@ import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -24,7 +29,7 @@ export default async function handler(req, res) {
     // ── GET: Return a single waitlist entry (public) ──────────────
     if (req.method === 'GET') {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_waitlist')
           .select('*')
           .eq('id', id)
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
     if (req.method === 'DELETE') {
       try {
         // Fetch entry first
-        const { data: entry, error: fetchErr } = await supabase
+        const { data: entry, error: fetchErr } = await getSupabase()
           .from('commander_waitlist')
           .select('*')
           .eq('id', id)
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
           try {
             const sessionData = JSON.parse(staffSession);
             if (sessionData.id) {
-              const { data: staffCheck } = await supabase
+              const { data: staffCheck } = await getSupabase()
                 .from('commander_staff')
                 .select('id')
                 .eq('id', sessionData.id)
@@ -76,7 +81,7 @@ export default async function handler(req, res) {
                 actingStaffId = staffCheck.id;
               }
             } else if (sessionData.user_id && sessionData.venue_id) {
-              const { data: staffCheck } = await supabase
+              const { data: staffCheck } = await getSupabase()
                 .from('commander_staff')
                 .select('id')
                 .eq('user_id', sessionData.user_id)
@@ -89,7 +94,7 @@ export default async function handler(req, res) {
               }
               // Owner fallback
               if (!authorized && sessionData.role === 'owner') {
-                const { data: sub } = await supabase
+                const { data: sub } = await getSupabase()
                   .from('commander_subscriptions')
                   .select('id')
                   .eq('owner_id', sessionData.user_id)
@@ -127,7 +132,7 @@ export default async function handler(req, res) {
 
         // Log to history (non-blocking)
         try {
-          await supabase.from('commander_waitlist_history').insert({
+          await getSupabase().from('commander_waitlist_history').insert({
             venue_id: entry.venue_id,
             player_id: entry.player_id,
             game_type: entry.game_type,
@@ -139,7 +144,7 @@ export default async function handler(req, res) {
         } catch { /* history logging is non-critical */ }
 
         // Delete entry
-        const { error: delErr } = await supabase.from('commander_waitlist').delete().eq('id', id);
+        const { error: delErr } = await getSupabase().from('commander_waitlist').delete().eq('id', id);
         if (delErr) {
           return res.status(500).json({ success: false, error: { code: 'DATABASE_ERROR', message: delErr.message } });
         }
@@ -179,7 +184,7 @@ export default async function handler(req, res) {
         try {
           const sessionData = JSON.parse(staffSession);
           if (sessionData.id) {
-            const { data: staff } = await supabase
+            const { data: staff } = await getSupabase()
               .from('commander_staff')
               .select('id, venue_id, is_active')
               .eq('id', sessionData.id)
@@ -187,7 +192,7 @@ export default async function handler(req, res) {
               .maybeSingle();
             if (staff) isStaff = true;
           } else if (sessionData.user_id && sessionData.venue_id) {
-            const { data: staff } = await supabase
+            const { data: staff } = await getSupabase()
               .from('commander_staff')
               .select('id, venue_id, is_active')
               .eq('user_id', sessionData.user_id)
@@ -197,7 +202,7 @@ export default async function handler(req, res) {
             if (staff) isStaff = true;
             // Owner fallback
             if (!isStaff && sessionData.role === 'owner') {
-              const { data: sub } = await supabase
+              const { data: sub } = await getSupabase()
                 .from('commander_subscriptions')
                 .select('id')
                 .eq('owner_id', sessionData.user_id)
@@ -226,7 +231,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: { code: 'NO_UPDATES', message: 'No valid fields to update' } });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_waitlist')
           .update(updates)
           .eq('id', id)

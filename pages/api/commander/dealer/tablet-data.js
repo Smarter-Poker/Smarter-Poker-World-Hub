@@ -12,10 +12,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
 
       try {
           // 1. Get table details
-          let tableQuery = supabase
+          let tableQuery = getSupabase()
               .from('commander_tables')
               .select('id, venue_id, table_number, table_name, max_seats, status, mode, game_type, stakes')
               .eq('table_number', tableNum);
@@ -55,7 +60,7 @@ export default async function handler(req, res) {
           let venueSettings = null;
           if (resolvedVenueId) {
               try {
-                  const { data: vs } = await supabase
+                  const { data: vs } = await getSupabase()
                       .from('commander_venue_settings')
                       .select('venue_type, time_billing_rate, auto_comp_rate')
                       .eq('venue_id', resolvedVenueId)
@@ -68,7 +73,7 @@ export default async function handler(req, res) {
           // 2. Get active player sessions — try both table names for migration compatibility
           let sessions = [];
           try {
-              let sessionsQuery = supabase
+              let sessionsQuery = getSupabase()
                   .from('commander_table_sessions')
                   .select('*')
                   .eq('table_number', tableNum)
@@ -83,7 +88,7 @@ export default async function handler(req, res) {
               if (error) {
                   // Table doesn't exist — try fallback
                   if (error.message?.includes('schema cache')) {
-                      let fallbackQuery = supabase
+                      let fallbackQuery = getSupabase()
                           .from('commander_table_sessions')
                           .select('*')
                           .eq('table_number', tableNum)
@@ -132,7 +137,7 @@ export default async function handler(req, res) {
           // 3. Get current dealer — handle both old and new schema
           let dealer = null;
           try {
-              let dealerQuery = supabase
+              let dealerQuery = getSupabase()
                   .from('commander_dealer_rotations')
                   .select('id, dealer_id, dealer_name, table_number, started_at')
                   .eq('table_number', tableNum)
@@ -150,7 +155,7 @@ export default async function handler(req, res) {
               if (rotationError && rotationError.message?.includes('does not exist')) {
                   // Old schema: try without dealer_name and table_number in SELECT
                   // Note: table_number may not exist as WHERE column either
-                  const { data: fallbackData } = await supabase
+                  const { data: fallbackData } = await getSupabase()
                       .from('commander_dealer_rotations')
                       .select('id, dealer_id, started_at')
                       .is('ended_at', null)
@@ -165,7 +170,7 @@ export default async function handler(req, res) {
                   // Fetch dealer details from the correct table
                   let dealerDetails = null;
                   if (rotation.dealer_id) {
-                      const { data: dealerRow } = await supabase
+                      const { data: dealerRow } = await getSupabase()
                           .from('commander_dealers')
                           .select('id, name, employee_id, skill_level')
                           .eq('id', rotation.dealer_id)
@@ -192,7 +197,7 @@ export default async function handler(req, res) {
           let venue_name = '';
           if (resolvedVenueId) {
               try {
-                  const { data: venueData } = await supabase
+                  const { data: venueData } = await getSupabase()
                       .from('poker_venues')
                       .select('name')
                       .eq('id', resolvedVenueId)
@@ -205,7 +210,7 @@ export default async function handler(req, res) {
           let promotions = [];
           if (resolvedVenueId) {
               try {
-                  const { data: promoData } = await supabase
+                  const { data: promoData } = await getSupabase()
                       .from('commander_promotions')
                       .select('id, title, name, description, type, status')
                       .eq('venue_id', resolvedVenueId)
@@ -220,7 +225,7 @@ export default async function handler(req, res) {
           let announcements = [];
           if (resolvedVenueId) {
               try {
-                  const { data: annData } = await supabase
+                  const { data: annData } = await getSupabase()
                       .from('commander_club_announcements')
                       .select('id, title, message, type, priority')
                       .eq('venue_id', resolvedVenueId)
@@ -235,7 +240,7 @@ export default async function handler(req, res) {
           if (resolvedVenueId) {
               try {
                   const deviceId = `tablet-${resolvedVenueId}-table-${tableNum}`;
-                  await supabase
+                  await getSupabase()
                       .from('commander_table_displays')
                       .upsert({
                           device_id: deviceId,
@@ -257,7 +262,7 @@ export default async function handler(req, res) {
           let tournamentPlayers = [];
           if (tableData?.mode === 'tournament' && tableData?.tournament_id) {
               try {
-                  const { data: tEntries } = await supabase
+                  const { data: tEntries } = await getSupabase()
                       .from('commander_tournament_entries')
                       .select('id, player_name, player_id, table_number, seat_number, current_chips, status')
                       .eq('tournament_id', tableData.tournament_id)

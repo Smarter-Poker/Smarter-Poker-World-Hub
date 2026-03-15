@@ -1,10 +1,15 @@
 // API endpoint to verify profile page data and schema
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -14,7 +19,7 @@ export default async function handler(req, res) {
     }
       try {
           // 1. Check profiles table schema by fetching a sample profile
-          const { data: profiles, error: profilesError } = await supabase
+          const { data: profiles, error: profilesError } = await getSupabase()
               .from('profiles')
               .select('*')
               .limit(1);
@@ -27,7 +32,7 @@ export default async function handler(req, res) {
           const profileColumns = profiles && profiles[0] ? Object.keys(profiles[0]) : [];
 
           // 2. Find a real profile with data to test
-          const { data: testProfile, error: testError } = await supabase
+          const { data: testProfile, error: testError } = await getSupabase()
               .from('profiles')
               .select('*')
               .not('username', 'is', null)
@@ -48,23 +53,23 @@ export default async function handler(req, res) {
           const existingFields = requiredFields.filter(f => profileColumns.includes(f));
 
           // 4. Check friendships table
-          const { count: friendshipsCount } = await supabase
+          const { count: friendshipsCount } = await getSupabase()
               .from('friendships')
               .select('*', { count: 'exact', head: true });
 
           // 5. Check social_posts table
-          const { count: postsCount } = await supabase
+          const { count: postsCount } = await getSupabase()
               .from('social_posts')
               .select('*', { count: 'exact', head: true });
 
           // 6. Check social_reels table
-          const { count: reelsCount } = await supabase
+          const { count: reelsCount } = await getSupabase()
               .from('social_reels')
               .select('*', { count: 'exact', head: true });
 
           // 7. Test fetching a specific user
           const testUsername = req.query.user || 'KingFish';
-          const { data: userProfile, error: userError } = await supabase
+          const { data: userProfile, error: userError } = await getSupabase()
               .from('profiles')
               .select('*')
               .eq('username', testUsername)
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
           let userFriends = [];
           let userPosts = [];
           if (userProfile) {
-              const { data: friendships } = await supabase
+              const { data: friendships } = await getSupabase()
                   .from('friendships')
                   .select('user_id, friend_id')
                   .eq('status', 'accepted')
@@ -82,7 +87,7 @@ export default async function handler(req, res) {
                   .limit(10);
               userFriends = friendships || [];
 
-              const { data: posts } = await supabase
+              const { data: posts } = await getSupabase()
                   .from('social_posts')
                   .select('id, content, content_type, media_urls, created_at')
                   .eq('author_id', userProfile.id)

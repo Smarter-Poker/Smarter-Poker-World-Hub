@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -27,7 +32,7 @@ export default async function handler(req, res) {
   }
 
   const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
   if (authError || !user) {
     return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
     // Mark notification as read
     const { read_at } = req.body;
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('commander_notifications')
       .update({
         read_at: read_at || new Date().toISOString()
@@ -64,7 +69,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'DELETE') {
     // Delete notification
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('commander_notifications')
       .delete()
       .eq('id', id)

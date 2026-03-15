@@ -9,10 +9,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -54,7 +59,7 @@ async function listEntries(req, res, tournamentId) {
   try {
     const { status } = req.query;
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_tournament_entries')
       .select(`
         *,
@@ -85,7 +90,7 @@ async function registerPlayer(req, res, tournamentId) {
 
     let userId = null;
     if (token) {
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       userId = user?.id;
     }
 
@@ -99,7 +104,7 @@ async function registerPlayer(req, res, tournamentId) {
     } = req.body;
 
     // Get tournament details
-    const { data: tournament, error: tournamentError } = await supabase
+    const { data: tournament, error: tournamentError } = await getSupabase()
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
@@ -123,7 +128,7 @@ async function registerPlayer(req, res, tournamentId) {
 
     // Check physical capacity (only count people taking up a chair)
     if (tournament.max_entries) {
-      const { count } = await supabase
+      const { count } = await getSupabase()
         .from('commander_tournament_entries')
         .select('id', { count: 'exact', head: true })
         .eq('tournament_id', tournamentId)
@@ -137,7 +142,7 @@ async function registerPlayer(req, res, tournamentId) {
     // If registering another player, verify staff access
     const effectivePlayerId = player_id || userId;
     if (effectivePlayerId !== userId && registration_method !== 'app') {
-      const { data: staff, error: staffError } = await supabase
+      const { data: staff, error: staffError } = await getSupabase()
         .from('commander_staff')
         .select('id')
         .eq('venue_id', tournament.venue_id)
@@ -152,7 +157,7 @@ async function registerPlayer(req, res, tournamentId) {
 
     // Check for existing registration
     if (effectivePlayerId) {
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from('commander_tournament_entries')
         .select('id, status')
         .eq('tournament_id', tournamentId)
@@ -165,7 +170,7 @@ async function registerPlayer(req, res, tournamentId) {
       }
     }
 
-    const { data: entry, error } = await supabase
+    const { data: entry, error } = await getSupabase()
       .from('commander_tournament_entries')
       .insert({
         tournament_id: tournamentId,
@@ -206,7 +211,7 @@ async function unregisterPlayer(req, res, tournamentId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -219,7 +224,7 @@ async function unregisterPlayer(req, res, tournamentId) {
     }
 
     // Get entry
-    const { data: entry, error: entryError } = await supabase
+    const { data: entry, error: entryError } = await getSupabase()
       .from('commander_tournament_entries')
       .select('*, commander_tournaments(venue_id, status)')
       .eq('id', entry_id)
@@ -235,7 +240,7 @@ async function unregisterPlayer(req, res, tournamentId) {
     // Only allow unregister before tournament starts
     if (!['scheduled', 'registering'].includes(tournament.status)) {
       // Check if staff
-      const { data: staff } = await supabase
+      const { data: staff } = await getSupabase()
         .from('commander_staff')
         .select('id')
         .eq('venue_id', tournament.venue_id)
@@ -251,7 +256,7 @@ async function unregisterPlayer(req, res, tournamentId) {
     // Check if own entry or staff
     const isOwnEntry = entry.player_id === user.id;
     if (!isOwnEntry) {
-      const { data: staff } = await supabase
+      const { data: staff } = await getSupabase()
         .from('commander_staff')
         .select('id')
         .eq('venue_id', tournament.venue_id)
@@ -264,7 +269,7 @@ async function unregisterPlayer(req, res, tournamentId) {
       }
     }
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('commander_tournament_entries')
       .delete()
       .eq('id', entry_id);

@@ -8,10 +8,15 @@ import { createClient } from '../../../../../../../src/lib/supabaseServerClient'
 import { guardWriteStaff } from '../../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
       // Staff is already validated by guardWriteStaff at the handler level
 
       // Get tournament
-      const { data: tournament } = await supabase
+      const { data: tournament } = await getSupabase()
         .from('commander_tournaments')
         .select('id, venue_id, status, allows_rebuys, rebuy_cost, rebuy_chips, rebuy_levels, max_rebuys, current_level, clock_state')
         .eq('id', tournamentId)
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
       }
 
       // Get entry
-      const { data: entry } = await supabase
+      const { data: entry } = await getSupabase()
         .from('commander_tournament_entries')
         .select('*')
         .eq('id', entryId)
@@ -78,7 +83,7 @@ export default async function handler(req, res) {
       const newChips = (entry.current_chips || 0) + rebuyChips;
       const newRebuyCount = (entry.rebuy_count || 0) + 1;
 
-      const { data: updated, error: uErr } = await supabase
+      const { data: updated, error: uErr } = await getSupabase()
         .from('commander_tournament_entries')
         .update({
           current_chips: newChips,
@@ -99,7 +104,7 @@ export default async function handler(req, res) {
       // --- FINANCIAL FRAUD PROTECTION ---
       // Log the cash collected by the TD into the cashier vault
       if (tournament.rebuy_cost > 0) {
-        await supabase.from('commander_cash_transactions').insert({
+        await getSupabase().from('commander_cash_transactions').insert({
           venue_id: tournament.venue_id,
           player_name: entry.player_name,
           type: 'buy_in',

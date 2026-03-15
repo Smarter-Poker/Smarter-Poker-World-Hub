@@ -5,14 +5,19 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Missing Supabase environment variables');
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.substring(7);
-          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
           if (authError || !user) {
               return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
           }
 
           // Insert analytics event
-          const { error: insertError } = await supabase
+          const { error: insertError } = await getSupabase()
               .from('live_help_analytics')
               .insert({
                   user_id: user.id,

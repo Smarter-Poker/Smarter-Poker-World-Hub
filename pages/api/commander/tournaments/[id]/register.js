@@ -15,10 +15,15 @@ import {
 } from '../../../../../src/lib/commander/pushNotifications';
 import { logAction } from '../../../../../src/lib/commander/audit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -62,7 +67,7 @@ async function handleRegister(req, res, tournamentId, staff) {
 
   try {
     // Get tournament details
-    const { data: tournament, error: tError } = await supabase
+    const { data: tournament, error: tError } = await getSupabase()
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
@@ -85,20 +90,20 @@ async function handleRegister(req, res, tournamentId, staff) {
 
     // Parallel validation: existing registration, capacity, exclusions, and spending limits
     const [existingResult, capacityResult, exclusionResult, limitsResult] = await Promise.all([
-      supabase
+      getSupabase()
         .from('commander_tournament_entries')
         .select('id, status')
         .eq('tournament_id', tournamentId)
         .eq('player_id', player_id)
         .not('status', 'in', '("eliminated","cancelled")')
         .maybeSingle(),
-      supabase
+      getSupabase()
         .from('commander_tournament_entries')
         .select('id', { count: 'exact', head: true })
         .eq('tournament_id', tournamentId)
         .in('status', ['registered', 'seated', 'active'])
         .limit(100),
-      supabase
+      getSupabase()
         .from('commander_self_exclusions')
         .select('id, exclusion_type, expires_at')
         .eq('player_id', player_id)
@@ -107,7 +112,7 @@ async function handleRegister(req, res, tournamentId, staff) {
         .or('expires_at.is.null,expires_at.gt.now()')
         .limit(1)
         .maybeSingle(),
-      supabase
+      getSupabase()
         .from('commander_spending_limits')
         .select('daily_limit')
         .eq('player_id', player_id)
@@ -148,7 +153,7 @@ async function handleRegister(req, res, tournamentId, staff) {
     if (limits?.daily_limit) {
       // Get today's tournament registrations total
       const today = new Date().toISOString().split('T')[0];
-      const { data: todayEntries } = await supabase
+      const { data: todayEntries } = await getSupabase()
         .from('commander_tournament_entries')
         .select('total_invested')
         .eq('player_id', player_id)
@@ -171,7 +176,7 @@ async function handleRegister(req, res, tournamentId, staff) {
     }
 
     // Create entry (total_invested is auto-calculated by DB trigger)
-    const { data: entry, error } = await supabase
+    const { data: entry, error } = await getSupabase()
       .from('commander_tournament_entries')
       .insert({
         tournament_id: tournamentId,
@@ -190,10 +195,10 @@ async function handleRegister(req, res, tournamentId, staff) {
     // but before logging the cash drawer transaction.
     const totalAmount = (tournament.buyin_amount || 0) + (tournament.buyin_fee || 0);
     if (totalAmount > 0) {
-      const { data: profile } = await supabase.from('profiles').select('display_name, first_name, last_name').eq('id', player_id).maybeSingle();
+      const { data: profile } = await getSupabase().from('profiles').select('display_name, first_name, last_name').eq('id', player_id).maybeSingle();
       const pName = req.body.player_name || profile?.display_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'Unknown Player';
 
-      await supabase.from('commander_cash_transactions').insert({
+      await getSupabase().from('commander_cash_transactions').insert({
         venue_id: tournament.venue_id,
         player_name: pName,
         type: 'buy_in',
@@ -224,7 +229,7 @@ async function handleRegister(req, res, tournamentId, staff) {
 
     // --- Auto-Story: Registration ---
     if (player_id) {
-      supabase
+      getSupabase()
         .from('social_stories')
         .insert({
           author_id: player_id,
@@ -272,7 +277,7 @@ async function handleUnregister(req, res, tournamentId, staff) {
 
   try {
     // Check tournament status
-    const { data: tournament } = await supabase
+    const { data: tournament } = await getSupabase()
       .from('commander_tournaments')
       .select('status')
       .eq('id', tournamentId)
@@ -285,7 +290,7 @@ async function handleUnregister(req, res, tournamentId, staff) {
       });
     }
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('commander_tournament_entries')
       .update({
         status: 'cancelled',

@@ -28,10 +28,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { notifyClubAdmins } from '../../../src/lib/club-arena/notify';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -40,7 +45,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       // agentPlayerNumber is the agent's profiles.player_number.
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
 
       try {
           // Find club by 5-digit club_id
-          const { data: club, error: findErr } = await supabaseAdmin
+          const { data: club, error: findErr } = await getSupabase()
               .from('clubs')
               .select('id, member_count, requires_approval, is_public')
               .eq('club_id', codeNum)
@@ -71,7 +76,7 @@ export default async function handler(req, res) {
           }
 
           // Check existing membership
-          const { data: existing } = await supabaseAdmin
+          const { data: existing } = await getSupabase()
               .from('club_members')
               .select('id')
               .eq('club_id', club.id)
@@ -99,7 +104,7 @@ export default async function handler(req, res) {
               const pn = parseInt(agentPlayerNumber);
               if (Number.isFinite(pn) && pn > 0) {
                   // Look up profile by player_number to get their user_id
-                  const { data: agentProfile } = await supabaseAdmin
+                  const { data: agentProfile } = await getSupabase()
                       .from('profiles')
                       .select('id, player_number')
                       .eq('player_number', pn)
@@ -107,7 +112,7 @@ export default async function handler(req, res) {
 
                   if (agentProfile) {
                       // Verify they are an active agent in THIS club
-                      const { data: agentRecord } = await supabaseAdmin
+                      const { data: agentRecord } = await getSupabase()
                           .from('agents')
                           .select('user_id, status')
                           .eq('club_id', club.id)
@@ -125,7 +130,7 @@ export default async function handler(req, res) {
               }
           } else if (explicitAgentUserId) {
               // Admin-side direct assignment — requires caller to be owner/admin
-              const { data: callerMember } = await supabaseAdmin
+              const { data: callerMember } = await getSupabase()
                   .from('club_members')
                   .select('role')
                   .eq('club_id', club.id)
@@ -133,7 +138,7 @@ export default async function handler(req, res) {
                   .maybeSingle();
 
               if (callerMember && ['owner', 'admin'].includes(callerMember.role)) {
-                  const { data: agentCheck } = await supabaseAdmin
+                  const { data: agentCheck } = await getSupabase()
                       .from('agents')
                       .select('user_id')
                       .eq('club_id', club.id)
@@ -146,7 +151,7 @@ export default async function handler(req, res) {
 
           // Insert membership
           const memberStatus = club.requires_approval ? 'pending' : 'active';
-          const { error: joinErr } = await supabaseAdmin
+          const { error: joinErr } = await getSupabase()
               .from('club_members')
               .insert({
                   club_id: club.id,
@@ -165,7 +170,7 @@ export default async function handler(req, res) {
               // Notify club owner
               try {
                   const { notifyClubAdmins } = require('../../../src/lib/club-arena/notify');
-                  const { data: profile } = await supabaseAdmin.from('profiles').select('display_name, username').eq('id', user.id).maybeSingle();
+                  const { data: profile } = await getSupabase().from('profiles').select('display_name, username').eq('id', user.id).maybeSingle();
                   const playerName = profile?.display_name || profile?.username || 'A new player';
                   await notifyClubAdmins(supabaseAdmin, club.id, {
                       type: 'join_request',
@@ -185,22 +190,22 @@ export default async function handler(req, res) {
 
           // Atomically increment agent's player count
           if (resolvedAgentUserId) {
-              await supabaseAdmin.rpc('fn_increment_agent_player_count', {
+              await getSupabase().rpc('fn_increment_agent_player_count', {
                   p_agent_user_id: resolvedAgentUserId,
                   p_club_id: club.id,
               }).catch(() => { /* non-fatal — reconciled at settlement */ });
           }
 
           // Atomically increment club member count
-          await supabaseAdmin.rpc('fn_increment_club_member_count', {
+          await getSupabase().rpc('fn_increment_club_member_count', {
               p_club_id: club.id,
           }).catch(async () => {
               // Fallback if RPC not yet deployed
-              const { count } = await supabaseAdmin
+              const { count } = await getSupabase()
                   .from('club_members')
                   .select('*', { count: 'exact', head: true })
                   .eq('club_id', club.id);
-              await supabaseAdmin
+              await getSupabase()
                   .from('clubs')
                   .update({ member_count: count || 0 })
                   .eq('id', club.id);

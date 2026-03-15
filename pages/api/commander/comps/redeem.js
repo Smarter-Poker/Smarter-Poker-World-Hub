@@ -8,10 +8,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -47,7 +52,7 @@ async function redeemComps(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -68,7 +73,7 @@ async function redeemComps(req, res) {
     }
 
     // Check if user is staff at this venue
-    const { data: staff } = await supabase
+    const { data: staff } = await getSupabase()
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', venue_id)
@@ -81,7 +86,7 @@ async function redeemComps(req, res) {
     }
 
     // Use the database function to redeem
-    const { data, error } = await supabase.rpc('redeem_comps', {
+    const { data, error } = await getSupabase().rpc('redeem_comps', {
       p_venue_id: venue_id,
       p_player_id: player_id,
       p_amount: parseFloat(amount),
@@ -102,7 +107,7 @@ async function redeemComps(req, res) {
     }
 
     // Get the redemption details
-    const { data: redemption } = await supabase
+    const { data: redemption } = await getSupabase()
       .from('commander_comp_redemptions')
       .select(`
         *,
@@ -113,7 +118,7 @@ async function redeemComps(req, res) {
       .maybeSingle();
 
     // Get updated balance
-    const { data: balance } = await supabase
+    const { data: balance } = await getSupabase()
       .from('commander_comp_balances')
       .select('*')
       .eq('venue_id', venue_id)
@@ -139,7 +144,7 @@ async function listRedemptions(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -154,7 +159,7 @@ async function listRedemptions(req, res) {
       offset = 0
     } = req.query;
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_comp_redemptions')
       .select(`
         *,
@@ -166,7 +171,7 @@ async function listRedemptions(req, res) {
 
     if (venue_id) {
       // Check if staff
-      const { data: staff } = await supabase
+      const { data: staff } = await getSupabase()
         .from('commander_staff')
         .select('id, role')
         .eq('venue_id', venue_id)

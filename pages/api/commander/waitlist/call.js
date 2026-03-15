@@ -9,10 +9,15 @@ import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -31,7 +36,7 @@ export default async function handler(req, res) {
       if (!waitlist_id) return res.status(400).json({ success: false, error: 'waitlist_id required' });
 
       // Get current waitlist entry
-      const { data: entry } = await supabase
+      const { data: entry } = await getSupabase()
         .from('commander_waitlist')
         .select('*')
         .eq('id', waitlist_id)
@@ -43,7 +48,7 @@ export default async function handler(req, res) {
       }
 
       // Update status to called
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('commander_waitlist')
         .update({
           status: 'called',
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
       if (entry.player_phone) {
         let venueName = 'Your poker room';
         try {
-          const { data: venue } = await supabase
+          const { data: venue } = await getSupabase()
             .from('poker_venues')
             .select('name')
             .eq('id', entry.venue_id)

@@ -10,10 +10,15 @@ import autoTable from 'jspdf-autotable';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // W2-G thresholds
 const W2G_THRESHOLDS = {
@@ -37,7 +42,7 @@ export default async function handler(req, res) {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
       if (authError || !user) {
           return res.status(401).json({ error: 'Invalid token' });
       }
@@ -55,7 +60,7 @@ export default async function handler(req, res) {
           const startDate = `${year}-01-01`;
           const endDate = `${year}-12-31`;
 
-          const { data: sessions, error: sessionsError } = await supabase
+          const { data: sessions, error: sessionsError } = await getSupabase()
               .from('bankroll_ledger')
               .select('*')
               .eq('user_id', user.id)
@@ -67,7 +72,7 @@ export default async function handler(req, res) {
           if (sessionsError) throw sessionsError;
 
           // Fetch all expenses for the year (from trips)
-          const { data: trips } = await supabase
+          const { data: trips } = await getSupabase()
               .from('trips')
               .select('*')
               .eq('user_id', user.id)
@@ -76,7 +81,7 @@ export default async function handler(req, res) {
               .limit(100);
 
           // Fetch uploaded W-2G forms for the year
-          const { data: uploadedW2g } = await supabase
+          const { data: uploadedW2g } = await getSupabase()
               .from('w2g_forms')
               .select('*')
               .eq('user_id', user.id)

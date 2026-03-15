@@ -19,9 +19,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { CLIP_SOURCES } from '../../../src/content-engine/pipeline/ClipLibrary.js';
 import { SPORTS_CLIP_SOURCES } from '../../../src/content-engine/pipeline/SportsClipLibrary.js';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -34,7 +40,7 @@ export default async function handler(req, res) {
       try {
 
           // Get all active horses
-          const { data: horses, error: horsesError } = await supabase
+          const { data: horses, error: horsesError } = await getSupabase()
               .from('content_authors')
               .select('profile_id, alias')
               .eq('is_active', true)
@@ -94,7 +100,7 @@ export default async function handler(req, res) {
 
 
           // Batch insert all assignments
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
               .from('horse_source_assignments')
               .upsert(assignments, { onConflict: 'horse_profile_id,source_key' })
               .select();
@@ -106,7 +112,7 @@ export default async function handler(req, res) {
 
 
           // Verify assignments
-          const { data: verification, error: verifyError } = await supabase
+          const { data: verification, error: verifyError } = await getSupabase()
               .from('horse_source_assignments')
               .select('horse_profile_id, source_key, source_type')
               .limit(10);

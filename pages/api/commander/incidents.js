@@ -7,10 +7,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -25,10 +30,10 @@ export default async function handler(req, res) {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-      const { data: staff } = await supabase
+      const { data: staff } = await getSupabase()
         .from('commander_staff')
         .select('venue_id')
         .eq('user_id', user.id)
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
       if (req.method === 'GET') {
         const { status = 'open', limit: rawLimit = '50' } = req.query;
         const limit = Math.min(parseInt(rawLimit) || 50, 500);
-        let query = supabase
+        let query = getSupabase()
           .from('commander_incidents')
           .select('*')
           .eq('venue_id', staff.venue_id)
@@ -59,7 +64,7 @@ export default async function handler(req, res) {
       if (req.method === 'POST') {
         const { type, table_number, description, priority = 'normal' } = req.body;
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_incidents')
           .insert({
             venue_id: staff.venue_id,

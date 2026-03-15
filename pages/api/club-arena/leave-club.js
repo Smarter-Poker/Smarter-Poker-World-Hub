@@ -25,10 +25,15 @@ const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/valida
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -43,7 +48,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'No auth token' });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
     const { clubId } = req.body;
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════
       // 1. GET MEMBERSHIP + CLUB INFO
       // ═══════════════════════════════════════════════════════════════
-      const { data: member, error: memErr } = await supabaseAdmin
+      const { data: member, error: memErr } = await getSupabase()
         .from('club_members')
         .select('id, user_id, role, chip_balance, held_chips, credit_used, credit_limit, agent_id, nickname, display_name')
         .eq('club_id', clubId)
@@ -67,7 +72,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'You are not a member of this club' });
       }
 
-      const { data: club } = await supabaseAdmin
+      const { data: club } = await getSupabase()
         .from('clubs')
         .select('id, name, owner_id')
         .eq('id', clubId)
@@ -93,7 +98,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════
       // 3b. BLOCK IF SEATED AT TABLE — Chips locked in escrow would be lost
       // ═══════════════════════════════════════════════════════════════
-      const { data: activeEscrow } = await supabaseAdmin
+      const { data: activeEscrow } = await getSupabase()
         .from('chip_escrow')
         .select('id, table_id, amount')
         .eq('player_id', user.id)
@@ -102,7 +107,7 @@ export default async function handler(req, res) {
 
       // Filter to escrow records belonging to tables in THIS club
       if (activeEscrow && activeEscrow.length > 0) {
-        const { data: clubTables } = await supabaseAdmin
+        const { data: clubTables } = await getSupabase()
           .from('tables')
           .select('id')
           .eq('club_id', clubId)
@@ -127,14 +132,14 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════
       if (['agent', 'sub_agent', 'super_agent'].includes(member.role)) {
         // Unassign all players under this agent
-        await supabaseAdmin
+        await getSupabase()
           .from('club_members')
           .update({ agent_id: null })
           .eq('club_id', clubId)
           .eq('agent_id', user.id);
 
         // Deactivate agent record
-        await supabaseAdmin
+        await getSupabase()
           .from('agents')
           .update({ status: 'inactive', active_player_count: 0 })
           .eq('user_id', user.id)
@@ -144,7 +149,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════
       // 5 & 6 & 7 & 8. ATOMIC SWEEP (Cancel cashouts + Sweep chips + Log credit + Delete membership)
       // ═══════════════════════════════════════════════════════════════
-      const { data: sweepResult, error: sweepErr } = await supabaseAdmin.rpc('fn_leave_club_atomic', {
+      const { data: sweepResult, error: sweepErr } = await getSupabase().rpc('fn_leave_club_atomic', {
         p_club_id: clubId,
         p_user_id: user.id
       });
@@ -161,12 +166,12 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════
       // 9. UPDATE MEMBER COUNT
       // ═══════════════════════════════════════════════════════════════
-      const { count } = await supabaseAdmin
+      const { count } = await getSupabase()
         .from('club_members')
         .select('*', { count: 'exact', head: true })
         .eq('club_id', clubId);
 
-      await supabaseAdmin
+      await getSupabase()
         .from('clubs')
         .update({ member_count: count || 0 })
         .eq('id', clubId);
@@ -200,7 +205,7 @@ export default async function handler(req, res) {
       };
 
       // Notify club owner (in-app)
-      await supabaseAdmin.from('notifications').insert({
+      await getSupabase().from('notifications').insert({
         user_id: club.owner_id,
         type: 'club_member_left',
         title: notifTitle,
@@ -211,7 +216,7 @@ export default async function handler(req, res) {
 
       // Notify assigned agent (in-app) — if different from owner
       if (member.agent_id && member.agent_id !== club.owner_id) {
-        await supabaseAdmin.from('notifications').insert({
+        await getSupabase().from('notifications').insert({
           user_id: member.agent_id,
           type: 'club_member_left',
           title: notifTitle,

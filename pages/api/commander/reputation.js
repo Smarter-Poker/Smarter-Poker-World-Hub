@@ -8,10 +8,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -40,13 +45,13 @@ async function getReputation(req, res) {
   try {
     if (player_id) {
       // Get single player score + recent reviews
-      const { data: score } = await supabase
+      const { data: score } = await getSupabase()
         .from('commander_player_reputation_scores')
         .select('*')
         .eq('player_id', player_id)
         .maybeSingle();
 
-      const { data: reviews } = await supabase
+      const { data: reviews } = await getSupabase()
         .from('commander_player_reputation')
         .select('reliability, sportsmanship, etiquette, communication, comment, context, reviewer_type, created_at')
         .eq('player_id', player_id)
@@ -64,7 +69,7 @@ async function getReputation(req, res) {
 
     if (venue_id) {
       // Get all player scores for venue (players who have been reviewed at this venue)
-      const { data: reviews } = await supabase
+      const { data: reviews } = await getSupabase()
         .from('commander_player_reputation')
         .select('player_id')
         .eq('venue_id', venue_id)
@@ -76,7 +81,7 @@ async function getReputation(req, res) {
         return res.status(200).json({ success: true, data: { scores: [] } });
       }
 
-      const { data: scores } = await supabase
+      const { data: scores } = await getSupabase()
         .from('commander_player_reputation_scores')
         .select('*')
         .in('player_id', playerIds.slice(0, parseInt(limit)))
@@ -84,7 +89,7 @@ async function getReputation(req, res) {
             .limit(100);
 
       // Get names
-      const { data: profiles } = await supabase
+      const { data: profiles } = await getSupabase()
         .from('profiles')
         .select('id, display_name, full_name')
         .in('id', playerIds.slice(0, parseInt(limit)))
@@ -125,7 +130,7 @@ async function submitReview(req, res) {
 
   try {
     // Insert review
-    const { data: review, error: reviewErr } = await supabase
+    const { data: review, error: reviewErr } = await getSupabase()
       .from('commander_player_reputation')
       .insert({
         player_id,
@@ -145,7 +150,7 @@ async function submitReview(req, res) {
     if (reviewErr) throw reviewErr;
 
     // Recalculate aggregate scores
-    const { data: allReviews } = await supabase
+    const { data: allReviews } = await getSupabase()
       .from('commander_player_reputation')
       .select('reliability, sportsmanship, etiquette, communication')
       .eq('player_id', player_id);
@@ -163,7 +168,7 @@ async function submitReview(req, res) {
     const allAvgs = [relAvg, sptAvg, etqAvg, comAvg].filter(v => v > 0);
     const overall = allAvgs.length > 0 ? allAvgs.reduce((a, b) => a + b, 0) / allAvgs.length : 0;
 
-    const { error: upsertErr } = await supabase
+    const { error: upsertErr } = await getSupabase()
       .from('commander_player_reputation_scores')
       .upsert({
         player_id,

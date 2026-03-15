@@ -6,10 +6,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -31,7 +36,7 @@ export default async function handler(req, res) {
           error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
         });
       }
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) {
         return res.status(401).json({
           success: false,
@@ -47,7 +52,7 @@ export default async function handler(req, res) {
       }
 
       // Get user's waitlist entries
-      const { data: entries, error } = await supabase
+      const { data: entries, error } = await getSupabase()
         .from('commander_waitlist')
         .select(`
           *,

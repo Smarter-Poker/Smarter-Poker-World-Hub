@@ -5,10 +5,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -27,7 +32,7 @@ export default async function handler(req, res) {
               return res.status(401).json({ success: false, error: 'Authentication required' });
           }
 
-          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) {
               return res.status(401).json({ success: false, error: 'Invalid session' });
           }
@@ -38,7 +43,7 @@ export default async function handler(req, res) {
           }
 
           // Find the claim token
-          const { data: claim, error: claimErr } = await supabase
+          const { data: claim, error: claimErr } = await getSupabase()
               .from('staff_claim_tokens')
               .select('*')
               .eq('token', code.toUpperCase().trim())
@@ -59,7 +64,7 @@ export default async function handler(req, res) {
           }
 
           // Check if staff is already linked to someone else
-          const { data: staff } = await supabase
+          const { data: staff } = await getSupabase()
               .from('commander_staff')
               .select('id, display_name, role, linked_user_id, venue_id')
               .eq('id', claim.staff_id)
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
           }
 
           // Check if this user is already linked as staff at this venue
-          const { data: existingLink } = await supabase
+          const { data: existingLink } = await getSupabase()
               .from('commander_staff')
               .select('id')
               .eq('venue_id', staff.venue_id)
@@ -87,7 +92,7 @@ export default async function handler(req, res) {
           }
 
           // Link the account
-          const { error: updateErr } = await supabase
+          const { error: updateErr } = await getSupabase()
               .from('commander_staff')
               .update({ linked_user_id: user.id })
               .eq('id', claim.staff_id);
@@ -98,13 +103,13 @@ export default async function handler(req, res) {
           }
 
           // Mark token as claimed
-          await supabase
+          await getSupabase()
               .from('staff_claim_tokens')
               .update({ claimed_by: user.id, claimed_at: new Date().toISOString() })
               .eq('id', claim.id);
 
           // Get venue name
-          const { data: venue } = await supabase
+          const { data: venue } = await getSupabase()
               .from('poker_venues')
               .select('name')
               .eq('id', staff.venue_id)

@@ -19,10 +19,15 @@ const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 import { notifyUser } from '../../../src/lib/club-arena/notify';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -31,7 +36,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     const { action, clubId, ...params } = req.body;
@@ -50,7 +55,7 @@ export default async function handler(req, res) {
     }
 
     // Verify caller is agent (or admin/owner for status/history)
-    const { data: member } = await supabaseAdmin
+    const { data: member } = await getSupabase()
       .from('club_members')
       .select('role')
       .eq('club_id', clubId)
@@ -87,7 +92,7 @@ export default async function handler(req, res) {
           }
 
           // ── Pre-check: get player status for better error messages ──
-          const { data: playerStatus } = await supabaseAdmin.rpc('get_promo_status', {
+          const { data: playerStatus } = await getSupabase().rpc('get_promo_status', {
             p_club_id: clubId,
             p_player_user_id: targetUserId,
           });
@@ -117,7 +122,7 @@ export default async function handler(req, res) {
           }
 
           // ── Execute via atomic RPC (enforces all rules at DB level too) ──
-          const { data: result, error: rpcErr } = await supabaseAdmin.rpc('transfer_promo_agent_to_player', {
+          const { data: result, error: rpcErr } = await getSupabase().rpc('transfer_promo_agent_to_player', {
             p_club_id: clubId,
             p_agent_user_id: user.id,
             p_player_user_id: targetUserId,
@@ -163,7 +168,7 @@ export default async function handler(req, res) {
           const { targetUserId: statusTarget } = params;
           if (!statusTarget) return res.status(400).json({ error: 'targetUserId required' });
 
-          const { data: status, error: statusErr } = await supabaseAdmin.rpc('get_promo_status', {
+          const { data: status, error: statusErr } = await getSupabase().rpc('get_promo_status', {
             p_club_id: clubId,
             p_player_user_id: statusTarget,
           });
@@ -178,7 +183,7 @@ export default async function handler(req, res) {
         // HISTORY — Agent's distribution history
         // ═══════════════════════════════════════════════════════
         case 'history': {
-          const { data: distributions, error: histErr } = await supabaseAdmin
+          const { data: distributions, error: histErr } = await getSupabase()
             .from('promo_distributions')
             .select('id, player_user_id, amount, note, created_at')
             .eq('club_id', clubId)
@@ -192,7 +197,7 @@ export default async function handler(req, res) {
           const playerIds = [...new Set((distributions || []).map(d => d.player_user_id))];
           let profiles = {};
           if (playerIds.length > 0) {
-            const { data: profs } = await supabaseAdmin
+            const { data: profs } = await getSupabase()
               .from('profiles')
               .select('id, display_name, username')
               .in('id', playerIds)

@@ -10,10 +10,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -23,7 +28,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { clubId } = req.query;
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
 
       try {
           // Verify membership and get chip balance
-          const { data: membership } = await supabaseAdmin
+          const { data: membership } = await getSupabase()
               .from('club_members')
               .select('chip_balance, role')
               .eq('club_id', clubId)
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
           if (!membership) return res.status(403).json({ error: 'Not a club member' });
 
           // Fetch active items
-          const { data: items, error: itemsErr } = await supabaseAdmin
+          const { data: items, error: itemsErr } = await getSupabase()
               .from('club_shop_items')
               .select('id, name, description, price, category, image_url, item_type')
               .eq('club_id', clubId)
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
           if (itemsErr) throw itemsErr;
 
           // Fetch user's own purchases
-          const { data: purchases, error: purErr } = await supabaseAdmin
+          const { data: purchases, error: purErr } = await getSupabase()
               .from('club_shop_purchases')
               .select('id, item_id, price_paid, created_at')
               .eq('club_id', clubId)

@@ -9,10 +9,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -31,14 +36,14 @@ export default async function handler(req, res) {
           const userId = _authUser.id; // Trust JWT, not client-supplied query param
 
           // Get user's training profile
-          const { data: profile } = await supabase
+          const { data: profile } = await getSupabase()
               .from('jarvis_user_training_profile')
               .select('*')
               .eq('user_id', userId)
               .maybeSingle();
 
           // Get last session
-          const { data: lastSession } = await supabase
+          const { data: lastSession } = await getSupabase()
               .from('jarvis_training_sessions')
               .select('created_at, category, accuracy')
               .eq('user_id', userId)

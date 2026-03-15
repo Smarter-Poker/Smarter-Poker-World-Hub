@@ -5,10 +5,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -20,7 +25,7 @@ export default async function handler(req, res) {
 
       try {
           // Get all active goals
-          const { data: goals, error: goalsError } = await supabase
+          const { data: goals, error: goalsError } = await getSupabase()
               .from('bankroll_goals')
               .select('id, user_id, goal_type, target_amount, current_amount, stop_loss_amount, notified_complete, notified_stop_loss')
               .eq('is_active', true)
@@ -43,7 +48,7 @@ export default async function handler(req, res) {
                       `You hit your ${goal.goal_type} goal of $${goal.target_amount.toLocaleString()}!`
                   );
 
-                  await supabase
+                  await getSupabase()
                       .from('bankroll_goals')
                       .update({ notified_complete: true })
                       .eq('id', goal.id);
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
                       `Your bankroll dropped to $${goal.current_amount.toLocaleString()}. Consider taking a break.`
                   );
 
-                  await supabase
+                  await getSupabase()
                       .from('bankroll_goals')
                       .update({ notified_stop_loss: true })
                       .eq('id', goal.id);
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
 async function sendPushNotification(userId, title, message) {
     try {
         // Get user's OneSignal player ID
-        const { data: profile } = await supabase
+        const { data: profile } = await getSupabase()
             .from('profiles')
             .select('onesignal_player_id')
             .eq('id', userId)

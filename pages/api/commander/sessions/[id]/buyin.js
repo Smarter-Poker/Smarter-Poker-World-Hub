@@ -7,10 +7,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -50,7 +55,7 @@ export default async function handler(req, res) {
       }
 
       // Get current session
-      const { data: session, error: fetchError } = await supabase
+      const { data: session, error: fetchError } = await getSupabase()
         .from('commander_player_sessions')
         .select('id, status, total_buyin, venue_id, player_id')
         .eq('id', id)
@@ -73,7 +78,7 @@ export default async function handler(req, res) {
       const newTotal = (session.total_buyin || 0) + amount;
 
       // Update session total
-      const { data: updated, error: updateError } = await supabase
+      const { data: updated, error: updateError } = await getSupabase()
         .from('commander_player_sessions')
         .update({ total_buyin: newTotal })
         .eq('id', id)
@@ -90,7 +95,7 @@ export default async function handler(req, res) {
 
       // Log the buy-in transaction (if table exists)
       try {
-        await supabase
+        await getSupabase()
           .from('commander_buyin_transactions')
           .insert({
             session_id: id,

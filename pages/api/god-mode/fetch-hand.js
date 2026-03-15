@@ -10,10 +10,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Suit rotation mappings (cyclic permutations for isomorphism)
 const SUIT_ROTATIONS = {
@@ -155,7 +160,7 @@ export default async function handler(req, res) {
       // Auth: verify JWT
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       try {
@@ -171,7 +176,7 @@ export default async function handler(req, res) {
           let gameConfig = null;
 
           // Try by ID first
-          const { data: gameById } = await supabase
+          const { data: gameById } = await getSupabase()
               .from('game_registry')
               .select('*')
               .eq('id', gameId)
@@ -181,7 +186,7 @@ export default async function handler(req, res) {
               gameConfig = gameById;
           } else {
               // Try by slug
-              const { data: gameBySlug } = await supabase
+              const { data: gameBySlug } = await getSupabase()
                   .from('game_registry')
                   .select('*')
                   .eq('slug', gameId)
@@ -200,7 +205,7 @@ export default async function handler(req, res) {
           const config = gameConfig.config || {};
 
           // 2. Get user's seen scenarios
-          const { data: seenHands } = await supabase
+          const { data: seenHands } = await getSupabase()
               .from('god_mode_hand_history')
               .select('source_file_id, variant_hash')
               .eq('user_id', userId)
@@ -215,7 +220,7 @@ export default async function handler(req, res) {
           if (engineType === 'PIO') {
               // Build query for solved_spots_gold
               // Table columns: id, scenario_hash, game_type, stack_depth, street, strategy_matrix, created_at
-              let query = supabase.from('solved_spots_gold').select('*');
+              let query = getSupabase().from('solved_spots_gold').select('*');
 
               // Filter by game_type (Cash, MTT_ChipEV, hu_cash, etc.)
               if (config.game_type) {

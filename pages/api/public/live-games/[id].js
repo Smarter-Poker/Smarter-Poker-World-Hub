@@ -10,10 +10,15 @@ import { supabase } from '../../../../src/lib/supabase';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -50,7 +55,7 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, id) {
     try {
-        const { data: game, error } = await supabaseAdmin
+        const { data: game, error } = await getSupabase()
             .from('live_games')
             .select(`
                 *,
@@ -84,7 +89,7 @@ async function handlePost(req, res, id) {
         }
 
         const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
         if (authError || !user) {
             return res.status(401).json({ success: false, error: 'Invalid or expired token' });
@@ -102,7 +107,7 @@ async function handlePost(req, res, id) {
         }
 
         // Get current game
-        const { data: game, error: gameError } = await supabaseAdmin
+        const { data: game, error: gameError } = await getSupabase()
             .from('live_games')
             .select('*')
             .eq('id', id)
@@ -113,7 +118,7 @@ async function handlePost(req, res, id) {
         }
 
         // Log the confirmation
-        const { error: confirmError } = await supabaseAdmin
+        const { error: confirmError } = await getSupabase()
             .from('live_game_confirmations')
             .insert({
                 live_game_id: id,
@@ -145,7 +150,7 @@ async function handlePost(req, res, id) {
             if (notes) updateData.notes = notes;
         } else if (action === 'expired' || action === 'incorrect') {
             // If multiple people mark as expired/incorrect, deactivate
-            const { count } = await supabaseAdmin
+            const { count } = await getSupabase()
                 .from('live_game_confirmations')
                 .select('*', { count: 'exact', head: true })
                 .eq('live_game_id', id)
@@ -157,7 +162,7 @@ async function handlePost(req, res, id) {
             }
         }
 
-        const { error: updateError } = await supabaseAdmin
+        const { error: updateError } = await getSupabase()
             .from('live_games')
             .update(updateData)
             .eq('id', id);
@@ -187,14 +192,14 @@ async function handleDelete(req, res, id) {
         }
 
         const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
         if (authError || !user) {
             return res.status(401).json({ success: false, error: 'Invalid or expired token' });
         }
 
         // Check if user is the reporter
-        const { data: game, error: gameError } = await supabaseAdmin
+        const { data: game, error: gameError } = await getSupabase()
             .from('live_games')
             .select('reported_by')
             .eq('id', id)
@@ -209,7 +214,7 @@ async function handleDelete(req, res, id) {
         }
 
         // Mark as inactive instead of deleting
-        const { error: updateError } = await supabaseAdmin
+        const { error: updateError } = await getSupabase()
             .from('live_games')
             .update({ is_active: false })
             .eq('id', id);

@@ -8,10 +8,15 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
@@ -23,14 +28,14 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Not authenticated' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { clubId } = req.query;
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
       // Verify admin
-      const { data: membership } = await supabaseAdmin
+      const { data: membership } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
           // Get active members with their latest activity
           const [membersRes, tablesRes, txRes] = await Promise.allSettled([
               // All active members
-              supabaseAdmin.from('club_members')
+              getSupabase().from('club_members')
                   .select(`
                       user_id, role, joined_at, chip_balance,
                       profiles:user_id ( display_name, avatar_url, last_sign_in_at )
@@ -56,13 +61,13 @@ export default async function handler(req, res) {
                   .limit(100),
 
               // Active tables with player counts
-              supabaseAdmin.from('tables')
+              getSupabase().from('tables')
                   .select('id, name, current_players, max_players, status')
                   .eq('club_id', clubId)
                   .in('status', ['active', 'playing', 'waiting', 'between_hands']),
 
               // Recent transactions (last 24h) to detect who's been active
-              supabaseAdmin.from('chip_transactions')
+              getSupabase().from('chip_transactions')
                   .select('from_user_id, to_user_id, transaction_type, amount, created_at')
                   .eq('club_id', clubId)
                   .gte('created_at', new Date(Date.now() - 86400000).toISOString())

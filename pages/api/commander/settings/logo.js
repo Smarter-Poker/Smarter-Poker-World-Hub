@@ -10,10 +10,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardManager } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Increase body size limit for base64 uploads (5MB file → ~7MB base64)
 export const config = {
@@ -25,10 +30,10 @@ const BUCKET = 'club-logos';
 // Ensure bucket exists (idempotent)
 async function ensureBucket() {
     try {
-        const { data: buckets } = await supabase.storage.listBuckets();
+        const { data: buckets } = await getSupabase().storage.listBuckets();
         const exists = buckets?.some(b => b.name === BUCKET);
         if (!exists) {
-            await supabase.storage.createBucket(BUCKET, { public: true });
+            await getSupabase().storage.createBucket(BUCKET, { public: true });
         }
     } catch (err) {
         console.error('Bucket check error:', err);
@@ -47,7 +52,7 @@ export default async function handler(req, res) {
       try {
           // ── DELETE: Remove logo ──────────────────────────────────────
           if (req.method === 'DELETE') {
-              const { data: settings } = await supabase
+              const { data: settings } = await getSupabase()
                   .from('commander_venue_settings')
                   .select('club_logo_url')
                   .eq('venue_id', staff.venue_id)
@@ -56,11 +61,11 @@ export default async function handler(req, res) {
               if (settings?.club_logo_url) {
                   const urlParts = settings.club_logo_url.split(`/${BUCKET}/`);
                   if (urlParts[1]) {
-                      await supabase.storage.from(BUCKET).remove([urlParts[1]]);
+                      await getSupabase().storage.from(BUCKET).remove([urlParts[1]]);
                   }
               }
 
-              const { error } = await supabase
+              const { error } = await getSupabase()
                   .from('commander_venue_settings')
                   .upsert({
                       venue_id: staff.venue_id,
@@ -102,7 +107,7 @@ export default async function handler(req, res) {
               const storagePath = `${staff.venue_id}/logo-${Date.now()}.${ext}`;
 
               // Delete old logo if exists
-              const { data: existingSettings } = await supabase
+              const { data: existingSettings } = await getSupabase()
                   .from('commander_venue_settings')
                   .select('club_logo_url')
                   .eq('venue_id', staff.venue_id)
@@ -111,12 +116,12 @@ export default async function handler(req, res) {
               if (existingSettings?.club_logo_url) {
                   const urlParts = existingSettings.club_logo_url.split(`/${BUCKET}/`);
                   if (urlParts[1]) {
-                      await supabase.storage.from(BUCKET).remove([urlParts[1]]);
+                      await getSupabase().storage.from(BUCKET).remove([urlParts[1]]);
                   }
               }
 
               // Upload
-              const { error: uploadError } = await supabase.storage
+              const { error: uploadError } = await getSupabase().storage
                   .from(BUCKET)
                   .upload(storagePath, buffer, {
                       contentType,
@@ -130,14 +135,14 @@ export default async function handler(req, res) {
               }
 
               // Get public URL
-              const { data: publicUrlData } = supabase.storage
+              const { data: publicUrlData } = getSupabase().storage
                   .from(BUCKET)
                   .getPublicUrl(storagePath);
 
               const logoUrl = publicUrlData.publicUrl;
 
               // Save URL to settings
-              const { error: saveError } = await supabase
+              const { error: saveError } = await getSupabase()
                   .from('commander_venue_settings')
                   .upsert({
                       venue_id: staff.venue_id,

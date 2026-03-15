@@ -10,10 +10,15 @@ import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -62,7 +67,7 @@ async function listMembers(req, res, groupId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -71,7 +76,7 @@ async function listMembers(req, res, groupId) {
     const { status } = req.query;
 
     // Check if user is a member
-    const { data: myMembership } = await supabase
+    const { data: myMembership } = await getSupabase()
       .from('commander_home_members')
       .select('role, status')
       .eq('group_id', groupId)
@@ -82,7 +87,7 @@ async function listMembers(req, res, groupId) {
       return res.status(403).json({ success: false, error: 'You are not a member of this group' });
     }
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_home_members')
       .select(`
         *,
@@ -123,7 +128,7 @@ async function joinOrInvite(req, res, groupId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -132,7 +137,7 @@ async function joinOrInvite(req, res, groupId) {
     const { user_id, invite_code } = req.body;
 
     // Get group info
-    const { data: group, error: groupError } = await supabase
+    const { data: group, error: groupError } = await getSupabase()
       .from('commander_home_groups')
       .select('id, owner_id, is_private, requires_approval, invite_code')
       .eq('id', groupId)
@@ -144,7 +149,7 @@ async function joinOrInvite(req, res, groupId) {
 
     // If inviting another user, check if requester is admin
     if (user_id && user_id !== user.id) {
-      const { data: myMembership } = await supabase
+      const { data: myMembership } = await getSupabase()
         .from('commander_home_members')
         .select('role')
         .eq('group_id', groupId)
@@ -157,7 +162,7 @@ async function joinOrInvite(req, res, groupId) {
       }
 
       // Check if target user exists
-      const { data: targetUser } = await supabase
+      const { data: targetUser } = await getSupabase()
         .from('profiles')
         .select('id')
         .eq('id', user_id)
@@ -168,7 +173,7 @@ async function joinOrInvite(req, res, groupId) {
       }
 
       // Add invited user
-      const { data: member, error } = await supabase
+      const { data: member, error } = await getSupabase()
         .from('commander_home_members')
         .insert({
           group_id: groupId,
@@ -196,7 +201,7 @@ async function joinOrInvite(req, res, groupId) {
 
     // User joining themselves
     // Check for existing membership
-    const { data: existing } = await supabase
+    const { data: existing } = await getSupabase()
       .from('commander_home_members')
       .select('id, status')
       .eq('group_id', groupId)
@@ -230,7 +235,7 @@ async function joinOrInvite(req, res, groupId) {
     // Determine initial status
     const initialStatus = autoApprove || !group.requires_approval ? 'approved' : 'pending';
 
-    const { data: member, error } = await supabase
+    const { data: member, error } = await getSupabase()
       .from('commander_home_members')
       .insert({
         group_id: groupId,
@@ -267,7 +272,7 @@ async function updateMembership(req, res, groupId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -280,7 +285,7 @@ async function updateMembership(req, res, groupId) {
     }
 
     // Check requester's role
-    const { data: myMembership } = await supabase
+    const { data: myMembership } = await getSupabase()
       .from('commander_home_members')
       .select('role')
       .eq('group_id', groupId)
@@ -293,7 +298,7 @@ async function updateMembership(req, res, groupId) {
     }
 
     // Get target membership
-    const { data: targetMember } = await supabase
+    const { data: targetMember } = await getSupabase()
       .from('commander_home_members')
       .select('*')
       .eq('id', member_id)
@@ -346,7 +351,7 @@ async function updateMembership(req, res, groupId) {
         return res.status(400).json({ success: false, error: 'Invalid action' });
     }
 
-    const { data: updated, error } = await supabase
+    const { data: updated, error } = await getSupabase()
       .from('commander_home_members')
       .update(updates)
       .eq('id', member_id)
@@ -373,7 +378,7 @@ async function leaveOrRemove(req, res, groupId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -383,7 +388,7 @@ async function leaveOrRemove(req, res, groupId) {
 
     // If no member_id, user is leaving themselves
     if (!member_id) {
-      const { data: myMembership } = await supabase
+      const { data: myMembership } = await getSupabase()
         .from('commander_home_members')
         .select('id, role')
         .eq('group_id', groupId)
@@ -398,7 +403,7 @@ async function leaveOrRemove(req, res, groupId) {
         return res.status(400).json({ success: false, error: 'Owner cannot leave. Transfer ownership or delete the group.' });
       }
 
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('commander_home_members')
         .delete()
         .eq('id', myMembership.id);
@@ -409,7 +414,7 @@ async function leaveOrRemove(req, res, groupId) {
     }
 
     // Removing another member - check permissions
-    const { data: myMembership } = await supabase
+    const { data: myMembership } = await getSupabase()
       .from('commander_home_members')
       .select('role')
       .eq('group_id', groupId)
@@ -421,7 +426,7 @@ async function leaveOrRemove(req, res, groupId) {
       return res.status(403).json({ success: false, error: 'Only owners and admins can remove members' });
     }
 
-    const { data: targetMember } = await supabase
+    const { data: targetMember } = await getSupabase()
       .from('commander_home_members')
       .select('role')
       .eq('id', member_id)
@@ -436,7 +441,7 @@ async function leaveOrRemove(req, res, groupId) {
       return res.status(403).json({ success: false, error: 'Cannot remove the owner' });
     }
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('commander_home_members')
       .delete()
       .eq('id', member_id);

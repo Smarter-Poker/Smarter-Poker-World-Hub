@@ -8,10 +8,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -47,7 +52,7 @@ async function getDailyAnalytics(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -60,7 +65,7 @@ async function getDailyAnalytics(req, res) {
     }
 
     // Check if user is manager/owner at this venue
-    const { data: staff } = await supabase
+    const { data: staff } = await getSupabase()
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', venue_id)
@@ -73,7 +78,7 @@ async function getDailyAnalytics(req, res) {
       return res.status(403).json({ error: 'Analytics access requires manager or owner role' });
     }
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_analytics_daily')
       .select('*')
       .eq('venue_id', venue_id)
@@ -134,7 +139,7 @@ async function calculateDailyAnalytics(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -147,7 +152,7 @@ async function calculateDailyAnalytics(req, res) {
     }
 
     // Check if user is manager/owner at this venue
-    const { data: staff } = await supabase
+    const { data: staff } = await getSupabase()
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', venue_id)
@@ -163,21 +168,21 @@ async function calculateDailyAnalytics(req, res) {
     const targetDate = date || new Date().toISOString().split('T')[0];
 
     // Calculate analytics from sessions
-    const { data: sessions } = await supabase
+    const { data: sessions } = await getSupabase()
       .from('commander_player_sessions')
       .select('*')
       .eq('venue_id', venue_id)
       .gte('check_in_at', `${targetDate}T00:00:00`)
       .lt('check_in_at', `${targetDate}T23:59:59`)
 
-    const { data: tournaments } = await supabase
+    const { data: tournaments } = await getSupabase()
       .from('commander_tournaments')
       .select('*')
       .eq('venue_id', venue_id)
       .gte('scheduled_start', `${targetDate}T00:00:00`)
       .lt('scheduled_start', `${targetDate}T23:59:59`)
 
-    const { data: awards } = await supabase
+    const { data: awards } = await getSupabase()
       .from('commander_promotion_awards')
       .select('*')
       .eq('venue_id', venue_id)
@@ -208,7 +213,7 @@ async function calculateDailyAnalytics(req, res) {
       calculated_at: new Date().toISOString()
     };
 
-    const { data: result, error } = await supabase
+    const { data: result, error } = await getSupabase()
       .from('commander_analytics_daily')
       .upsert(analytics, { onConflict: 'venue_id,date' })
       .select()

@@ -6,10 +6,15 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -26,7 +31,7 @@ export default async function handler(req, res) {
 
     try {
       // Get display config
-      const { data: display, error: displayError } = await supabase
+      const { data: display, error: displayError } = await getSupabase()
         .from('commander_table_displays')
         .select('*, commander_tables(id, table_number, table_name)')
         .eq('device_id', deviceId)
@@ -40,7 +45,7 @@ export default async function handler(req, res) {
       }
 
       // Update heartbeat
-      await supabase
+      await getSupabase()
         .from('commander_table_displays')
         .update({
           is_online: true,
@@ -114,7 +119,7 @@ export default async function handler(req, res) {
 
 async function getWaitlistContent(venueId) {
   // Get active games with waitlists
-  const { data: games } = await supabase
+  const { data: games } = await getSupabase()
     .from('commander_games')
     .select('id, game_type, stakes, current_players, max_players, status')
     .eq('venue_id', venueId)
@@ -123,7 +128,7 @@ async function getWaitlistContent(venueId) {
         .limit(100)
 
   // Get waitlist entries grouped by game
-  const { data: waitlist } = await supabase
+  const { data: waitlist } = await getSupabase()
     .from('commander_waitlist')
     .select('id, game_type, stakes, player_name, position, status, estimated_wait_minutes, created_at')
     .eq('venue_id', venueId)
@@ -153,7 +158,7 @@ async function getWaitlistContent(venueId) {
 
 async function getClockContent(venueId) {
   // Get running tournament
-  const { data: tournament } = await supabase
+  const { data: tournament } = await getSupabase()
     .from('commander_tournaments')
     .select('*')
     .eq('venue_id', venueId)
@@ -183,7 +188,7 @@ async function getClockContent(venueId) {
 async function getPromotionsContent(venueId) {
   const now = new Date().toISOString();
 
-  const { data: promotions } = await supabase
+  const { data: promotions } = await getSupabase()
     .from('commander_promotions')
     .select('id, name, description, promotion_type, prize_type, prize_amount, starts_at, ends_at')
     .eq('venue_id', venueId)
@@ -193,7 +198,7 @@ async function getPromotionsContent(venueId) {
     .limit(5);
 
   // Get progressive jackpots
-  const { data: jackpots } = await supabase
+  const { data: jackpots } = await getSupabase()
     .from('commander_progressive_jackpots')
     .select('id, name, current_amount, min_qualifying_hand')
     .eq('venue_id', venueId)
@@ -209,7 +214,7 @@ async function getHighHandContent(venueId) {
   const today = new Date().toISOString().split('T')[0];
 
   // Get today's high hands
-  const { data: highHands } = await supabase
+  const { data: highHands } = await getSupabase()
     .from('commander_high_hands')
     .select('id, player_name, hand_description, hand_cards, prize_amount, verified_at, table_number')
     .eq('venue_id', venueId)
@@ -230,7 +235,7 @@ async function getHighHandContent(venueId) {
 
 async function getLeaderboardContent(venueId) {
   // Get active leaderboard
-  const { data: leaderboard } = await supabase
+  const { data: leaderboard } = await getSupabase()
     .from('commander_leaderboards')
     .select('id, name, period_type, prize_pool')
     .eq('venue_id', venueId)
@@ -243,7 +248,7 @@ async function getLeaderboardContent(venueId) {
   }
 
   // Get top entries
-  const { data: entries } = await supabase
+  const { data: entries } = await getSupabase()
     .from('commander_leaderboard_entries')
     .select(`
       id,

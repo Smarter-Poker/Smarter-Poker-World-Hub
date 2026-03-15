@@ -7,10 +7,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { sanitizeNote, sanitizeClubName, sanitizeTheme, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -23,14 +28,14 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { clubId, name, description, isPublic, requiresApproval, colorTheme } = req.body;
       if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
       try {
-          const { data: member } = await supabaseAdmin
+          const { data: member } = await getSupabase()
               .from('club_members')
               .select('role')
               .eq('club_id', clubId)
@@ -39,15 +44,15 @@ export default async function handler(req, res) {
 
           if (!member || !['owner', 'admin'].includes(member.role)) {
               // Union admin fallback
-              const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).maybeSingle();
+              const { data: clubInfo } = await getSupabase().from('clubs').select('union_id').eq('id', clubId).maybeSingle();
               let unionAuth = false;
               if (clubInfo?.union_id) {
-                  const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
+                  const { data: ua } = await getSupabase().from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
                   if (ua) {
                       unionAuth = true;
                   } else {
                       // Owner fallback
-                      const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
+                      const { data: union } = await getSupabase().from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
                       if (union) unionAuth = true;
                   }
               }
@@ -66,7 +71,7 @@ export default async function handler(req, res) {
               if (cleaned) updates.color_theme = cleaned;
           }
 
-          const { error: updateErr } = await supabaseAdmin
+          const { error: updateErr } = await getSupabase()
               .from('clubs')
               .update(updates)
               .eq('id', clubId);

@@ -9,10 +9,15 @@ import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
 
     try {
       // Get session
-      const { data: session, error: fetchError } = await supabase
+      const { data: session, error: fetchError } = await getSupabase()
         .from('commander_table_sessions')
         .select('*')
         .eq('id', id)
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
       const unusedMinutes = Math.floor(unusedSeconds / 60);
 
       // End the session
-      const { error: endError } = await supabase
+      const { error: endError } = await getSupabase()
         .from('commander_table_sessions')
         .update({
           status: 'ended',
@@ -64,14 +69,14 @@ export default async function handler(req, res) {
 
       // Return unused time to member's balance
       if (session.member_id && unusedMinutes > 0) {
-        const { data: member } = await supabase
+        const { data: member } = await getSupabase()
           .from('commander_members')
           .select('time_balance_minutes')
           .eq('id', session.member_id)
           .maybeSingle();
 
         if (member) {
-          await supabase
+          await getSupabase()
             .from('commander_members')
             .update({
               time_balance_minutes: (member.time_balance_minutes || 0) + unusedMinutes,
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
       let compEarned = 0;
       if (session.member_id && session.venue_id) {
         try {
-          const { data: venueSettings } = await supabase
+          const { data: venueSettings } = await getSupabase()
             .from('commander_venue_settings')
             .select('auto_comp_rate')
             .eq('venue_id', session.venue_id)
@@ -98,14 +103,14 @@ export default async function handler(req, res) {
 
             if (compEarned > 0) {
               // Update member comp balance
-              const { data: member } = await supabase
+              const { data: member } = await getSupabase()
                 .from('commander_members')
                 .select('comp_balance, comp_lifetime_earned')
                 .eq('id', session.member_id)
                 .maybeSingle();
 
               if (member) {
-                await supabase
+                await getSupabase()
                   .from('commander_members')
                   .update({
                     comp_balance: Math.round(((member.comp_balance || 0) + compEarned) * 100) / 100,
@@ -115,7 +120,7 @@ export default async function handler(req, res) {
                   .eq('id', session.member_id);
 
                 // Log the auto-comp transaction
-                await supabase
+                await getSupabase()
                   .from('commander_member_comp_log')
                   .insert({
                     venue_id: session.venue_id,
@@ -134,7 +139,7 @@ export default async function handler(req, res) {
       }
 
       // Clear the seat
-      await supabase
+      await getSupabase()
         .from('commander_table_seats')
         .update({
           status: 'empty',

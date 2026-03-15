@@ -6,10 +6,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardOwnerStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: OWNER — requires owner role
 export default async function handler(req, res) {
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({
@@ -75,7 +80,7 @@ export default async function handler(req, res) {
       }
 
       // Check for existing pending request of same type
-      const { data: existingRequest } = await supabase
+      const { data: existingRequest } = await getSupabase()
         .from('commander_service_requests')
         .select('id')
         .eq('player_id', user.id)
@@ -92,7 +97,7 @@ export default async function handler(req, res) {
       }
 
       // Create the service request
-      const { data: request, error } = await supabase
+      const { data: request, error } = await getSupabase()
         .from('commander_service_requests')
         .insert({
           player_id: user.id,

@@ -2,10 +2,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { logAdminAction, extractClientIP } = require('../../../src/lib/antiAbuse');
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 function generateCode(length = 8) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No I/O/0/1 for readability
@@ -23,14 +28,14 @@ export default async function handler(req, res) {
       if (!authHeader) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
       if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
       // Verify user is owner/manager at a venue OR a platform admin/superadmin
       let isAuthorized = false;
 
       // Check commander_staff first (venue owners/managers)
-      const { data: staff } = await supabaseAdmin
+      const { data: staff } = await getSupabase()
           .from('commander_staff')
           .select('id, role, venue_id')
           .eq('user_id', user.id)
@@ -43,7 +48,7 @@ export default async function handler(req, res) {
           isAuthorized = true;
       } else {
           // Fallback: check profiles table for admin/superadmin role
-          const { data: profile } = await supabaseAdmin
+          const { data: profile } = await getSupabase()
               .from('profiles')
               .select('role')
               .eq('id', user.id)
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
       // GET — List all promo codes
       if (req.method === 'GET') {
           try {
-              const { data, error } = await supabaseAdmin
+              const { data, error } = await getSupabase()
                   .from('promo_codes')
                   .select(`
                       *,
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
           try {
               const promoCode = code?.toUpperCase().trim() || generateCode();
 
-              const { data, error } = await supabaseAdmin
+              const { data, error } = await getSupabase()
                   .from('promo_codes')
                   .insert({
                       code: promoCode,
@@ -129,7 +134,7 @@ export default async function handler(req, res) {
           if (!id) return res.status(400).json({ success: false, error: 'Code ID required' });
 
           try {
-              const { error } = await supabaseAdmin
+              const { error } = await getSupabase()
                   .from('promo_codes')
                   .update({ is_active: false })
                   .eq('id', id);
@@ -171,7 +176,7 @@ export default async function handler(req, res) {
                   return res.status(400).json({ success: false, error: 'No updates provided' });
               }
 
-              const { data, error } = await supabaseAdmin
+              const { data, error } = await getSupabase()
                   .from('promo_codes')
                   .update(updates)
                   .eq('id', id)

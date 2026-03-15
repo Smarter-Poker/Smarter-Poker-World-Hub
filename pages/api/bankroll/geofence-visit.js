@@ -8,10 +8,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -22,7 +27,7 @@ export default async function handler(req, res) {
     // BUG #249 FIX: Require JWT auth — prevent IDOR on bankroll data
     const _token = req.headers.authorization?.replace('Bearer ', '');
     if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+    const { data: { user: _authUser }, error: _authErr } = await getSupabase().auth.getUser(_token);
     if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       if (req.method !== 'POST') {
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
           const sixHoursAgo = new Date();
           sixHoursAgo.setHours(sixHoursAgo.getHours() - 6);
 
-          const { data: recentVisit } = await supabase
+          const { data: recentVisit } = await getSupabase()
               .from('geofence_visits')
               .select('id')
               .eq('user_id', userId)
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
           }
 
           // Record the new geo-fence entry
-          const { data: newVisit, error } = await supabase
+          const { data: newVisit, error } = await getSupabase()
               .from('geofence_visits')
               .insert({
                   user_id: userId,

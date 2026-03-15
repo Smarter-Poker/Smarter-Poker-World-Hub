@@ -18,9 +18,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import Parser from 'rss-parser';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const rssParser = new Parser({
     customFields: {
@@ -1194,7 +1200,7 @@ const NEWS_POSTER_UUID = '2d1cd6c3-5700-4af9-a271-d4863fdab20d';
 // Get the news poster account for posting to social feed
 async function getNewsPosterId() {
     // Verify the account exists
-    const { data: account, error } = await supabase
+    const { data: account, error } = await getSupabase()
         .from('profiles')
         .select('id, username')
         .eq('id', NEWS_POSTER_UUID)
@@ -1213,7 +1219,7 @@ async function postToSocialFeed(article, newsPosterId) {
     if (!newsPosterId) return;
 
     // Check if already posted (by source_url in content)
-    const { data: existing } = await supabase
+    const { data: existing } = await getSupabase()
         .from('social_posts')
         .select('id')
         .like('content', `%${article.url}%`)
@@ -1224,7 +1230,7 @@ async function postToSocialFeed(article, newsPosterId) {
     const sourceIcon = article.source.icon || '📰';
     const postContent = `${sourceIcon} **${article.title}**\n\nvia ${article.source.name}\n🔗 ${article.url}`;
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
         .from('social_posts')
         .insert({
             author_id: newsPosterId,
@@ -1253,7 +1259,7 @@ async function saveArticle(article, newsPosterId) {
         .replace(/(^-|-$)/g, '')
         .slice(0, 100);
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
         .from('poker_news')
         .upsert({
             title: article.title,
@@ -1295,7 +1301,7 @@ async function archiveOldArticles() {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - CONFIG.RETENTION_DAYS);
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
         .from('poker_news')
         .update({ is_archived: true })
         .lt('published_at', cutoffDate.toISOString())

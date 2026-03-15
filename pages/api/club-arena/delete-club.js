@@ -10,10 +10,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -22,7 +27,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { clubId, confirmName } = req.body;
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
 
     try {
       // 1. Verify club exists and caller is owner
-      const { data: club } = await supabaseAdmin
+      const { data: club } = await getSupabase()
         .from('clubs')
         .select('id, name, owner_id')
         .eq('id', clubId)
@@ -80,17 +85,17 @@ export default async function handler(req, res) {
 
       for (const table of tables) {
         try {
-          await supabaseAdmin.from(table).delete().eq('club_id', clubId);
+          await getSupabase().from(table).delete().eq('club_id', clubId);
         } catch (e) {
           // Table may not exist or have no matching rows — continue
         }
       }
 
       // 4. Delete members
-      await supabaseAdmin.from('club_members').delete().eq('club_id', clubId);
+      await getSupabase().from('club_members').delete().eq('club_id', clubId);
 
       // 5. Delete club
-      const { error: deleteErr } = await supabaseAdmin.from('clubs').delete().eq('id', clubId);
+      const { error: deleteErr } = await getSupabase().from('clubs').delete().eq('id', clubId);
       if (deleteErr) throw deleteErr;
 
       return res.status(200).json({

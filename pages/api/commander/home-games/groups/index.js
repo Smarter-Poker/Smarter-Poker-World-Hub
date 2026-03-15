@@ -8,10 +8,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 /** Escape SQL LIKE wildcards */
 function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
@@ -47,13 +52,13 @@ async function listGroups(req, res) {
 
     let userId = null;
     if (token) {
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       userId = user?.id;
     }
 
     const { my_groups, city, state, game_type } = req.query;
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_home_groups')
       .select(`
         *,
@@ -65,7 +70,7 @@ async function listGroups(req, res) {
 
     // Filter to user's groups
     if (my_groups === 'true' && userId) {
-      const { data: memberships } = await supabase
+      const { data: memberships } = await getSupabase()
         .from('commander_home_members')
         .select('group_id')
         .eq('user_id', userId)
@@ -102,7 +107,7 @@ async function listGroups(req, res) {
 
     // Add membership info for logged-in user
     if (userId && data?.length > 0) {
-      const { data: memberships } = await supabase
+      const { data: memberships } = await getSupabase()
         .from('commander_home_members')
         .select('group_id, role, status')
         .eq('user_id', userId)
@@ -144,7 +149,7 @@ async function createGroup(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -175,7 +180,7 @@ async function createGroup(req, res) {
       return res.status(400).json({ error: 'Group name is required' });
     }
 
-    const { data: group, error } = await supabase
+    const { data: group, error } = await getSupabase()
       .from('commander_home_groups')
       .insert({
         name,

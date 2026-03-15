@@ -6,10 +6,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -38,7 +43,7 @@ export default async function handler(req, res) {
 
     try {
       // Get all tables for venue
-      const { data: tables, error: tablesError } = await supabase
+      const { data: tables, error: tablesError } = await getSupabase()
         .from('commander_tables')
         .select('id, table_number, status, max_seats')
         .eq('venue_id', venue_id)
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
 
       let streams = [];
       if (tableIds.length > 0) {
-        const { data: streamData, error: streamError } = await supabase
+        const { data: streamData, error: streamError } = await getSupabase()
           .from('commander_streams')
           .select('*')
           .in('table_id', tableIds);
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
       }
 
       // Get active games for tables
-      const { data: games } = await supabase
+      const { data: games } = await getSupabase()
         .from('commander_games')
         .select('id, table_id, game_type, stakes, current_players')
         .in('table_id', tableIds)

@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const VALID_STATUSES = ['pending', 'acknowledged', 'in_progress', 'completed', 'cancelled'];
 
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, requestId) {
   try {
-    const { data: request, error } = await supabase
+    const { data: request, error } = await getSupabase()
       .from('commander_service_requests')
       .select(`
         *,
@@ -122,7 +127,7 @@ async function handlePatch(req, res, requestId) {
       });
     }
 
-    const { data: staff, error: staffError } = await supabase
+    const { data: staff, error: staffError } = await getSupabase()
       .from('commander_staff')
       .select('id, venue_id, role, is_active')
       .eq('id', sessionData.id)
@@ -139,7 +144,7 @@ async function handlePatch(req, res, requestId) {
     const { status, assigned_to, notes } = req.body;
 
     // Get current request
-    const { data: request, error: fetchError } = await supabase
+    const { data: request, error: fetchError } = await getSupabase()
       .from('commander_service_requests')
       .select('*')
       .eq('id', requestId)
@@ -182,7 +187,7 @@ async function handlePatch(req, res, requestId) {
       });
     }
 
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await getSupabase()
       .from('commander_service_requests')
       .update(updates)
       .eq('id', requestId)

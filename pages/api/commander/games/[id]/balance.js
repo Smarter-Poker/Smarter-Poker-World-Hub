@@ -7,10 +7,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { requireStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
 
     try {
       // Fetch the reference game to get venue, type, stakes
-      const { data: refGame, error: gameError } = await supabase
+      const { data: refGame, error: gameError } = await getSupabase()
         .from('commander_games')
         .select('id, venue_id, game_type, stakes, player_count, max_players, table_id')
         .eq('id', gameId)
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
       if (!staff) return;
 
       // Fetch all running games of the same type and stakes at this venue
-      const { data: games, error: gamesError } = await supabase
+      const { data: games, error: gamesError } = await getSupabase()
         .from('commander_games')
         .select('id, table_id, player_count, max_players, status')
         .eq('venue_id', refGame.venue_id)

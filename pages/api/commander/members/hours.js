@@ -10,10 +10,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
 
       try {
           // ── 1. Try commander_player_sessions first ──
-          let sessionQuery = supabase
+          let sessionQuery = getSupabase()
               .from('commander_player_sessions')
               .select('player_id, total_time_minutes, check_in_time, status')
               .eq('venue_id', venue_id)
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
           }
 
           // ── 2. Enrich with member data ──
-          const { data: members } = await supabase
+          const { data: members } = await getSupabase()
               .from('commander_members')
               .select('id, first_name, last_name, member_number, photo_url, visit_count, last_checkin, membership_tier, created_at')
               .eq('venue_id', venue_id)
@@ -124,7 +129,7 @@ export default async function handler(req, res) {
           console.error('[Hours API] Error:', err);
           // If commander_player_sessions table doesn't exist, fall back to visit_count estimate
           try {
-              const { data: members } = await supabase
+              const { data: members } = await getSupabase()
                   .from('commander_members')
                   .select('id, first_name, last_name, member_number, photo_url, visit_count, last_checkin, membership_tier, created_at')
                   .eq('venue_id', venue_id)

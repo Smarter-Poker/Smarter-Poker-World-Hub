@@ -6,10 +6,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -19,10 +24,10 @@ export default async function handler(req, res) {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-      const { data: staff } = await supabase
+      const { data: staff } = await getSupabase()
         .from('commander_staff')
         .select('venue_id')
         .eq('user_id', user.id)
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
 
       if (req.method === 'GET') {
         // Get table
-        const { data: table } = await supabase
+        const { data: table } = await getSupabase()
           .from('commander_tables')
           .select('*')
           .eq('venue_id', staff.venue_id)
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
         if (!table) return res.status(404).json({ success: false, error: 'Table not found' });
 
         // Get seats
-        const { data: seats } = await supabase
+        const { data: seats } = await getSupabase()
           .from('commander_table_seats')
           .select('*')
           .eq('venue_id', staff.venue_id)
@@ -55,7 +60,7 @@ export default async function handler(req, res) {
         // If tournament mode, fetch tournament info
         let tournament = null;
         if (table.tournament_id) {
-          const { data: t } = await supabase
+          const { data: t } = await getSupabase()
             .from('commander_tournaments')
             .select('id, name, status, game_type, buyin_amount')
             .eq('id', table.tournament_id)
@@ -66,7 +71,7 @@ export default async function handler(req, res) {
         // If cash mode, fetch active game info (must-move status)
         let game = null;
         if (table.mode === 'cash') {
-          const { data: g } = await supabase
+          const { data: g } = await getSupabase()
             .from('commander_games')
             .select('id, game_type, stakes, status, is_must_move, parent_game_id')
             .eq('table_id', table.id)

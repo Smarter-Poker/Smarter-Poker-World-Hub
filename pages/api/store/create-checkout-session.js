@@ -7,10 +7,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Initialize Stripe at module level (not inside handler)
 // This ensures proper bundling in Vercel's serverless runtime
@@ -83,7 +88,7 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
           if (authError || !user) {
               return res.status(401).json({
@@ -105,7 +110,7 @@ export default async function handler(req, res) {
 
           // Get or create Stripe customer
           let customerId;
-          const { data: profile } = await supabase
+          const { data: profile } = await getSupabase()
               .from('profiles')
               .select('stripe_customer_id, email, username')
               .eq('id', user.id)
@@ -125,7 +130,7 @@ export default async function handler(req, res) {
                   customerId = customer.id;
 
                   // Save customer ID to profile
-                  await supabase
+                  await getSupabase()
                       .from('profiles')
                       .update({ stripe_customer_id: customerId })
                       .eq('id', user.id);
@@ -183,7 +188,7 @@ export default async function handler(req, res) {
               }];
 
               // Create pending purchase record with SERVER-SIDE values
-              const { data: purchase } = await supabase
+              const { data: purchase } = await getSupabase()
                   .from('diamond_purchases')
                   .insert({
                       user_id: user.id,
@@ -255,7 +260,7 @@ export default async function handler(req, res) {
               const itemIds = items.map(i => i.id).filter(Boolean);
               let catalogPrices = {};
               if (itemIds.length > 0) {
-                  const { data: catalogItems } = await supabase
+                  const { data: catalogItems } = await getSupabase()
                       .from('merchandise_items')
                       .select('id, name, price_usd, image_url, is_active')
                       .in('id', itemIds)
@@ -308,7 +313,7 @@ export default async function handler(req, res) {
               }));
 
               // Create pending order record (totalUsd already calculated and validated above)
-              const { data: order } = await supabase
+              const { data: order } = await getSupabase()
                   .from('merchandise_orders')
                   .insert({
                       user_id: user.id,

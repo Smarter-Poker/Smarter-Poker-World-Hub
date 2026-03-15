@@ -9,10 +9,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -56,14 +61,14 @@ async function getGroup(req, res, id) {
 
     let userId = null;
     if (token) {
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       userId = user?.id;
     }
 
     // Check if request is via invite code
     const isInviteCode = id.length === 8 && /^[A-Z0-9]+$/.test(id.toUpperCase());
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_home_groups')
       .select(`
         *,
@@ -166,14 +171,14 @@ async function updateGroup(req, res, id) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // Check if user is owner or admin
-    const { data: group } = await supabase
+    const { data: group } = await getSupabase()
       .from('commander_home_groups')
       .select('owner_id')
       .eq('id', id)
@@ -183,7 +188,7 @@ async function updateGroup(req, res, id) {
       return res.status(404).json({ success: false, error: 'Group not found' });
     }
 
-    const { data: membership } = await supabase
+    const { data: membership } = await getSupabase()
       .from('commander_home_members')
       .select('role')
       .eq('group_id', id)
@@ -209,7 +214,7 @@ async function updateGroup(req, res, id) {
     delete updates.games_hosted;
     delete updates.created_at;
 
-    const { data: updated, error } = await supabase
+    const { data: updated, error } = await getSupabase()
       .from('commander_home_groups')
       .update(updates)
       .eq('id', id)
@@ -233,14 +238,14 @@ async function deleteGroup(req, res, id) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // Only owner can delete
-    const { data: group } = await supabase
+    const { data: group } = await getSupabase()
       .from('commander_home_groups')
       .select('owner_id')
       .eq('id', id)
@@ -254,7 +259,7 @@ async function deleteGroup(req, res, id) {
       return res.status(403).json({ success: false, error: 'Only the owner can delete this group' });
     }
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('commander_home_groups')
       .delete()
       .eq('id', id);

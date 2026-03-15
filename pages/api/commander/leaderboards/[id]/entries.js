@@ -8,10 +8,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff, verifyStaffSession } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
 
 async function listEntries(req, res, leaderboardId) {
   try {
-    const { data: entries, error } = await supabase
+    const { data: entries, error } = await getSupabase()
       .from('commander_leaderboard_entries')
       .select(`
         *,
@@ -68,7 +73,7 @@ async function listEntries(req, res, leaderboardId) {
     const playerIds = (entries || []).map(e => e.player_id).filter(Boolean);
     let memberMap = {};
     if (playerIds.length > 0) {
-      const { data: members } = await supabase
+      const { data: members } = await getSupabase()
         .from('commander_members')
         .select('id, first_name, last_name, photo_url, membership_tier')
         .in('id', playerIds)
@@ -105,7 +110,7 @@ async function addOrUpdateEntry(req, res, leaderboardId) {
     const staff = staffResult.staff;
 
     // Get leaderboard
-    const { data: leaderboard } = await supabase
+    const { data: leaderboard } = await getSupabase()
       .from('commander_leaderboards')
       .select('id, venue_id, leaderboard_type, status')
       .eq('id', leaderboardId)
@@ -155,7 +160,7 @@ async function addOrUpdateEntry(req, res, leaderboardId) {
       last_updated: new Date().toISOString()
     };
 
-    const { data: entry, error } = await supabase
+    const { data: entry, error } = await getSupabase()
       .from('commander_leaderboard_entries')
       .upsert(entryData, { onConflict: 'leaderboard_id,player_id' })
       .select(`
@@ -179,7 +184,7 @@ async function addOrUpdateEntry(req, res, leaderboardId) {
 async function calculateAllEntries(req, res, leaderboard) {
   try {
     // Get all player stats for this venue within the leaderboard period
-    const { data: playerStats } = await supabase
+    const { data: playerStats } = await getSupabase()
       .from('commander_player_stats')
       .select('*')
       .eq('venue_id', leaderboard.venue_id)
@@ -193,7 +198,7 @@ async function calculateAllEntries(req, res, leaderboard) {
     }
 
     // Get sessions within the leaderboard period
-    const { data: sessions } = await supabase
+    const { data: sessions } = await getSupabase()
       .from('commander_player_sessions')
       .select('player_id, total_time_minutes, status')
       .eq('venue_id', leaderboard.venue_id)
@@ -241,7 +246,7 @@ async function calculateAllEntries(req, res, leaderboard) {
     });
 
     if (entries.length > 0) {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('commander_leaderboard_entries')
         .upsert(entries, { onConflict: 'leaderboard_id,player_id' });
 
@@ -263,12 +268,12 @@ async function calculateAllEntries(req, res, leaderboard) {
 
 async function updateRankings(leaderboardId) {
   // Try the DB function first (single-query ranking update)
-  const { error: rpcErr } = await supabase.rpc('update_leaderboard_rankings', { lb_id: leaderboardId });
+  const { error: rpcErr } = await getSupabase().rpc('update_leaderboard_rankings', { lb_id: leaderboardId });
 
   if (!rpcErr) return; // RPC succeeded
 
   // Fallback: manual ranking via JS (RPC may not exist or may have failed)
-  const { data: entries } = await supabase
+  const { data: entries } = await getSupabase()
     .from('commander_leaderboard_entries')
     .select('id, score')
     .eq('leaderboard_id', leaderboardId)
@@ -278,7 +283,7 @@ async function updateRankings(leaderboardId) {
   if (!entries || entries.length === 0) return;
 
   for (let i = 0; i < entries.length; i++) {
-    await supabase
+    await getSupabase()
       .from('commander_leaderboard_entries')
       .update({ rank: i + 1 })
       .eq('id', entries[i].id);

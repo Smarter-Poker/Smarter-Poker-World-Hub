@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, sessionId) {
   try {
-    const { data: session, error } = await supabase
+    const { data: session, error } = await getSupabase()
       .from('commander_player_sessions')
       .select(`
         *,
@@ -90,7 +95,7 @@ async function handlePatch(req, res, sessionId) {
     const { action, games_played, total_buyin, comps_earned, notes } = req.body;
 
     // Get current session
-    const { data: session, error: fetchError } = await supabase
+    const { data: session, error: fetchError } = await getSupabase()
       .from('commander_player_sessions')
       .select('*')
       .eq('id', sessionId)
@@ -156,7 +161,7 @@ async function handlePatch(req, res, sessionId) {
       });
     }
 
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated, error: updateError } = await getSupabase()
       .from('commander_player_sessions')
       .update(updates)
       .eq('id', sessionId)

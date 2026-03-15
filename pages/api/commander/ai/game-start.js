@@ -15,10 +15,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
       const hour = now.getHours();
 
       // 1. Current waitlist by game type
-      const { data: waitlistEntries } = await supabase
+      const { data: waitlistEntries } = await getSupabase()
         .from('commander_waitlist')
         .select('game_type, player_name, created_at')
         .eq('venue_id', venue_id)
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
       });
 
       // 2. Current open tables
-      const { data: tables } = await supabase
+      const { data: tables } = await getSupabase()
         .from('commander_tables')
         .select('id, table_number, game_type, status, seats')
         .eq('venue_id', venue_id)
@@ -76,7 +81,7 @@ export default async function handler(req, res) {
       });
 
       // 3. Available dealers
-      const { data: dealers } = await supabase
+      const { data: dealers } = await getSupabase()
         .from('commander_dealers')
         .select('id, status')
         .eq('venue_id', venue_id)
@@ -87,7 +92,7 @@ export default async function handler(req, res) {
 
       // 4. Historical demand (same day-of-week, next 2 hours)
       const twoWeeksAgo = new Date(now - 14 * 86400000).toISOString();
-      const { data: historicalSessions } = await supabase
+      const { data: historicalSessions } = await getSupabase()
         .from('commander_player_sessions')
         .select('check_in_at, game_type')
         .eq('venue_id', venue_id)

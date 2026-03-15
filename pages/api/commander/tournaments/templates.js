@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -38,7 +43,7 @@ async function listTemplates(req, res) {
         const { venue_id } = req.query;
         if (!venue_id) return res.status(400).json({ success: false, error: { message: 'venue_id required' } });
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('commander_tournament_templates')
             .select('*')
             .eq('venue_id', venue_id)
@@ -72,7 +77,7 @@ async function createTemplate(req, res, staff) {
 
         // If saving from existing tournament, fetch its data
         if (from_tournament_id) {
-            const { data: tournament, error: tErr } = await supabase
+            const { data: tournament, error: tErr } = await getSupabase()
                 .from('commander_tournaments')
                 .select('*')
                 .eq('id', from_tournament_id)
@@ -82,7 +87,7 @@ async function createTemplate(req, res, staff) {
                 return res.status(404).json({ success: false, error: { message: 'Tournament not found' } });
             }
 
-            const { data: template, error } = await supabase
+            const { data: template, error } = await getSupabase()
                 .from('commander_tournament_templates')
                 .insert({
                     venue_id: tournament.venue_id,
@@ -119,7 +124,7 @@ async function createTemplate(req, res, staff) {
             return res.status(400).json({ success: false, error: { message: 'venue_id and name required' } });
         }
 
-        const { data: template, error } = await supabase
+        const { data: template, error } = await getSupabase()
             .from('commander_tournament_templates')
             .insert({
                 venue_id, name, tournament_type, buyin_amount, buyin_fee,

@@ -8,10 +8,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'tournament_id, entry_id, and chip_count required' });
           }
           try {
-              const { data: entry, error: eErr } = await supabase
+              const { data: entry, error: eErr } = await getSupabase()
                   .from('commander_tournament_entries')
                   .update({ current_chips: parseInt(chip_count) })
                   .eq('id', entry_id)
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
 
       try {
           // Find the active session
-          const { data: sessions, error: fetchError } = await supabase
+          const { data: sessions, error: fetchError } = await getSupabase()
               .from('commander_table_sessions')
               .select('*')
               .eq('table_number', parseInt(table_number))
@@ -78,7 +83,7 @@ export default async function handler(req, res) {
           // TOURNAMENT GUARD: Block timer-based actions for tournament sessions
           // Move is still allowed — dealers need to move tournament players between tables
           if (['pause', 'resume', 'meal_break', 'missed_blinds'].includes(action)) {
-              const { data: tableRow } = await supabase
+              const { data: tableRow } = await getSupabase()
                   .from('commander_tables')
                   .select('mode')
                   .eq('table_number', parseInt(table_number))
@@ -102,7 +107,7 @@ export default async function handler(req, res) {
                   if (session.status === 'meal_break') {
                       return res.status(400).json({ success: false, error: `${session.player_name} is on meal break — resume first` });
                   }
-                  const { error } = await supabase
+                  const { error } = await getSupabase()
                       .from('commander_table_sessions')
                       .update({ status: 'paused', updated_at: new Date().toISOString() })
                       .eq('id', session.id);
@@ -118,7 +123,7 @@ export default async function handler(req, res) {
                   if (session.status === 'active') {
                       return res.status(200).json({ success: true, data: { action: 'resume', player_name: session.player_name, session_id: session.id, note: 'Already active' } });
                   }
-                  const { error } = await supabase
+                  const { error } = await getSupabase()
                       .from('commander_table_sessions')
                       .update({ status: 'active', updated_at: new Date().toISOString() })
                       .eq('id', session.id);
@@ -134,7 +139,7 @@ export default async function handler(req, res) {
                   if (session.status === 'meal_break') {
                       return res.status(200).json({ success: true, data: { action: 'meal_break', player_name: session.player_name, session_id: session.id, duration_minutes: 30, note: 'Already on meal break' } });
                   }
-                  const { error } = await supabase
+                  const { error } = await getSupabase()
                       .from('commander_table_sessions')
                       .update({ status: 'meal_break', updated_at: new Date().toISOString() })
                       .eq('id', session.id);
@@ -154,7 +159,7 @@ export default async function handler(req, res) {
               case 'missed_blinds': {
                   // Increment missed blinds counter
                   const currentMissed = session.missed_blinds || 0;
-                  const { error } = await supabase
+                  const { error } = await getSupabase()
                       .from('commander_table_sessions')
                       .update({
                           missed_blinds: currentMissed + 1,
@@ -184,7 +189,7 @@ export default async function handler(req, res) {
                   const targetSeatNum = parseInt(target_seat);
 
                   // Check target seat is empty
-                  const { data: occupied } = await supabase
+                  const { data: occupied } = await getSupabase()
                       .from('commander_table_sessions')
                       .select('id, player_name')
                       .eq('table_number', parseInt(table_number))
@@ -200,7 +205,7 @@ export default async function handler(req, res) {
                   }
 
                   // Move: update session seat_number
-                  const { error: moveError } = await supabase
+                  const { error: moveError } = await getSupabase()
                       .from('commander_table_sessions')
                       .update({
                           seat_number: targetSeatNum,
@@ -213,7 +218,7 @@ export default async function handler(req, res) {
                   // Update seat records
                   const venueIdVal = venue_id || session.venue_id;
                   // Clear old seat
-                  await supabase
+                  await getSupabase()
                       .from('commander_table_seats')
                       .update({ status: 'empty', player_name: null, member_id: null, seated_at: null })
                       .eq('venue_id', venueIdVal)
@@ -221,7 +226,7 @@ export default async function handler(req, res) {
                       .eq('seat_number', parseInt(seat_number));
 
                   // Occupy new seat
-                  await supabase
+                  await getSupabase()
                       .from('commander_table_seats')
                       .upsert({
                           venue_id: venueIdVal,
@@ -251,7 +256,7 @@ export default async function handler(req, res) {
                   if (!chipCount && chipCount !== 0) {
                       return res.status(400).json({ success: false, error: 'chip_count required' });
                   }
-                  const { error } = await supabase
+                  const { error } = await getSupabase()
                       .from('commander_table_sessions')
                       .update({
                           chip_count: parseInt(chipCount),

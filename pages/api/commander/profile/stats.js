@@ -5,10 +5,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -30,7 +35,7 @@ export default async function handler(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
 
     try {
       // Get all sessions for this player
-      const { data: sessions, error: sessionsError } = await supabase
+      const { data: sessions, error: sessionsError } = await getSupabase()
         .from('commander_player_sessions')
         .select('*')
         .eq('player_id', user.id)
@@ -64,7 +69,7 @@ export default async function handler(req, res) {
       });
 
       // Get tournament stats
-      const { data: tournamentEntries } = await supabase
+      const { data: tournamentEntries } = await getSupabase()
         .from('commander_tournament_entries')
         .select('finish_position, payout_amount')
         .eq('player_id', user.id)
@@ -78,13 +83,13 @@ export default async function handler(req, res) {
       const totalWinnings = tournamentEntries?.reduce((sum, e) => sum + (e.payout_amount || 0), 0) || 0;
 
       // Get home game stats
-      const { count: homeGamesHosted } = await supabase
+      const { count: homeGamesHosted } = await getSupabase()
         .from('commander_home_games')
         .select('id', { count: 'exact', head: true })
         .eq('host_id', user.id)
             .limit(100);
 
-      const { count: homeGamesAttended } = await supabase
+      const { count: homeGamesAttended } = await getSupabase()
         .from('commander_home_rsvps')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
@@ -92,7 +97,7 @@ export default async function handler(req, res) {
             .limit(100);
 
       // Get waitlist stats
-      const { data: waitlistHistory } = await supabase
+      const { data: waitlistHistory } = await getSupabase()
         .from('commander_waitlist_history')
         .select('wait_time_minutes, was_seated')
         .eq('player_id', user.id)

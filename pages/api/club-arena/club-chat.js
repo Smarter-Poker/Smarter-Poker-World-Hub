@@ -9,17 +9,22 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'Auth required' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     // GET: List messages
@@ -30,13 +35,13 @@ export default async function handler(req, res) {
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
       // Verify membership
-      const { data: member } = await supabaseAdmin
+      const { data: member } = await getSupabase()
         .from('club_members').select('role').eq('club_id', clubId).eq('user_id', user.id).eq('status', 'active').maybeSingle();
       if (!member) return res.status(403).json({ error: 'Not a member of this club' });
 
       try {
         const limit = Math.min(parseInt(req.query.limit) || 50, 100);
-        const { data: messages, error } = await supabaseAdmin
+        const { data: messages, error } = await getSupabase()
           .from('club_chat')
           .select('id, user_id, message, display_name, avatar_url, message_type, created_at')
           .eq('club_id', clubId)
@@ -62,17 +67,17 @@ export default async function handler(req, res) {
       const trimmed = message.trim().slice(0, 500);
 
       // Verify membership
-      const { data: member } = await supabaseAdmin
+      const { data: member } = await getSupabase()
         .from('club_members').select('role')
         .eq('club_id', clubId).eq('user_id', user.id).eq('status', 'active').maybeSingle();
       if (!member) return res.status(403).json({ error: 'Not a member of this club' });
 
       // Get display name
-      const { data: profile } = await supabaseAdmin
+      const { data: profile } = await getSupabase()
         .from('profiles').select('display_name, username, avatar_url').eq('id', user.id).maybeSingle();
 
       try {
-        const { data: msg, error } = await supabaseAdmin.from('club_chat').insert({
+        const { data: msg, error } = await getSupabase().from('club_chat').insert({
           club_id: clubId,
           user_id: user.id,
           message: trimmed,

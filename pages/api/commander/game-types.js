@@ -9,10 +9,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardManager } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -26,11 +31,11 @@ export default async function handler(req, res) {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       let staff = null;
-      const { data: staffRow } = await supabase
+      const { data: staffRow } = await getSupabase()
         .from('commander_staff')
         .select('venue_id, role, name')
         .eq('user_id', user.id)
@@ -40,7 +45,7 @@ export default async function handler(req, res) {
         staff = staffRow;
       } else {
         // Fallback: check if user is a venue owner via subscription
-        const { data: sub } = await supabase
+        const { data: sub } = await getSupabase()
           .from('commander_subscriptions')
           .select('id, venue_id, owner_id')
           .eq('owner_id', user.id)
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
       // GET - List all game types
       if (req.method === 'GET') {
         const showInactive = req.query.include_inactive === 'true';
-        let query = supabase
+        let query = getSupabase()
           .from('commander_game_types')
           .select('*')
           .eq('venue_id', venueId)
@@ -87,7 +92,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Name, short code, and stakes are required' });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_game_types')
           .insert({
             venue_id: venueId,
@@ -110,7 +115,7 @@ export default async function handler(req, res) {
         if (!data) return res.status(500).json({ success: false, error: 'Failed to create game type' });
 
         // Log
-        await supabase.from('commander_system_log').insert({
+        await getSupabase().from('commander_system_log').insert({
           venue_id: venueId,
           action: 'game_type_created',
           details: { game_type_id: data.id, name, stakes },
@@ -141,7 +146,7 @@ export default async function handler(req, res) {
         }
         updates.updated_at = new Date().toISOString();
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_game_types')
           .update(updates)
           .eq('id', id)
@@ -163,7 +168,7 @@ export default async function handler(req, res) {
         const id = req.query.id;
         if (!id) return res.status(400).json({ success: false, error: 'Game type ID required' });
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_game_types')
           .update({ is_active: false, updated_at: new Date().toISOString() })
           .eq('id', id)

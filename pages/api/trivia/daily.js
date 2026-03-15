@@ -10,10 +10,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TIMEZONE HELPER - All trivia dates are in CST
@@ -140,7 +145,7 @@ export default async function handler(req, res) {
           const today = getTodayCST();
 
           // Try to fetch today's questions from database
-          const { data: questions, error } = await supabase
+          const { data: questions, error } = await getSupabase()
               .from('trivia_questions')
               .select('id, category, difficulty, question, options, correct_index, explanation')
               .eq('daily_date', today)
@@ -159,7 +164,7 @@ export default async function handler(req, res) {
           };
 
           // Get today's leaderboard
-          const { data: leaderboard } = await supabase
+          const { data: leaderboard } = await getSupabase()
               .from('trivia_scores')
               .select('username, score')
               .eq('play_date', today)

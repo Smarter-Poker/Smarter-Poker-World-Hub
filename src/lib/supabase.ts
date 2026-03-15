@@ -34,12 +34,15 @@ let _supabase: any = null;
 
 function getSupabase() {
    if (!_supabase) {
-      // During Vercel SSG build, env vars may be omitted. 
-      // Use placeholders to satisfy createClient URL parser, preventing build crash.
-      const safeUrl = supabaseUrl || 'https://build-placeholder.supabase.co';
-      const safeKey = supabaseAnonKey || 'build-placeholder-key';
+      // During Vercel SSG build, env vars may be omitted.
+      // Use production fallback to satisfy createClient URL parser, preventing build crash.
+      const safeUrl = supabaseUrl || 'https://kuklfnapbkmacvwxktbh.supabase.co';
 
-      _supabase = createClient(safeUrl, safeKey, {
+      if (!supabaseAnonKey) {
+         console.error('[Supabase] FATAL: Missing NEXT_PUBLIC_SUPABASE_ANON_KEY — cannot create authenticated client');
+      }
+
+      _supabase = createClient(safeUrl, supabaseAnonKey || '', {
          auth: {
             autoRefreshToken: true,
             persistSession: true,

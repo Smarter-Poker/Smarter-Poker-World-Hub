@@ -7,10 +7,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -48,7 +53,7 @@ async function handleGet(req, res) {
         const end = new Date(targetDate);
         end.setHours(23, 59, 59, 999);
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('commander_time_clock')
             .select('*')
             .eq('venue_id', venue_id)
@@ -63,7 +68,7 @@ async function handleGet(req, res) {
         const staffIds = [...new Set((data || []).map(e => e.staff_id))];
         let staffMap = {};
         if (staffIds.length > 0) {
-            const { data: staffList } = await supabase
+            const { data: staffList } = await getSupabase()
                 .from('commander_staff')
                 .select('id, display_name, role, qr_code')
                 .in('id', staffIds)
@@ -110,7 +115,7 @@ async function handlePost(req, res) {
         }
 
         // Look up staff member by QR code
-        const { data: staffList } = await supabase
+        const { data: staffList } = await getSupabase()
             .from('commander_staff')
             .select('id, display_name, role, venue_id, is_active')
             .eq('qr_code', qr_code)
@@ -121,7 +126,7 @@ async function handlePost(req, res) {
         let staff = staffList?.[0] || null;
         if (!staff) {
             // Also try looking up via commander_members QR code
-            const { data: memberList } = await supabase
+            const { data: memberList } = await getSupabase()
                 .from('commander_members')
                 .select('id, qr_code')
                 .eq('qr_code', qr_code)
@@ -130,7 +135,7 @@ async function handlePost(req, res) {
 
             if (memberList?.[0]) {
                 // Find staff linked to this member
-                const { data: linkedStaff } = await supabase
+                const { data: linkedStaff } = await getSupabase()
                     .from('commander_staff')
                     .select('id, display_name, role, venue_id, is_active')
                     .eq('member_id', memberList[0].id)
@@ -150,7 +155,7 @@ async function handlePost(req, res) {
         const staffName = staff.display_name || 'Unknown';
 
         // Check for open shift (clocked in but not out)
-        const { data: openShift } = await supabase
+        const { data: openShift } = await getSupabase()
             .from('commander_time_clock')
             .select('id, clock_in')
             .eq('staff_id', staffId)
@@ -165,7 +170,7 @@ async function handlePost(req, res) {
             const clockOut = new Date();
             const hoursWorked = Math.round(((clockOut - clockIn) / 3600000) * 100) / 100;
 
-            const { data: updated, error } = await supabase
+            const { data: updated, error } = await getSupabase()
                 .from('commander_time_clock')
                 .update({ clock_out: clockOut.toISOString(), hours_worked: hoursWorked })
                 .eq('id', openShift[0].id)
@@ -188,7 +193,7 @@ async function handlePost(req, res) {
             });
         } else {
             // Clock IN — create new entry
-            const { data: entry, error } = await supabase
+            const { data: entry, error } = await getSupabase()
                 .from('commander_time_clock')
                 .insert({
                     venue_id,

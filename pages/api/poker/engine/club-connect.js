@@ -17,10 +17,15 @@ import { getController } from '../../../../src/lib/poker-engine/GameController';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -70,7 +75,7 @@ export default async function handler(req, res) {
 
           if (!isSeated) {
             // Check if user is club staff
-            const { data: member } = await supabaseAdmin
+            const { data: member } = await getSupabase()
               .from('club_members')
               .select('role')
               .eq('club_id', clubId)
@@ -84,7 +89,7 @@ export default async function handler(req, res) {
               const OBSERVER_LIMIT_MINUTES = 30;
 
               // Check for existing observer session
-              const { data: existingSession } = await supabaseAdmin
+              const { data: existingSession } = await getSupabase()
                 .from('table_sessions')
                 .select('id, seated_at')
                 .eq('table_id', tableId)
@@ -97,7 +102,7 @@ export default async function handler(req, res) {
                 const elapsed = (Date.now() - new Date(existingSession.seated_at).getTime()) / 60000;
                 if (elapsed >= OBSERVER_LIMIT_MINUTES) {
                   // Time's up — close session and boot
-                  await supabaseAdmin
+                  await getSupabase()
                     .from('table_sessions')
                     .update({ is_active: false, left_at: new Date().toISOString(), kick_reason: 'observer_time_limit' })
                     .eq('id', existingSession.id);
@@ -118,7 +123,7 @@ export default async function handler(req, res) {
                 };
               } else {
                 // First connect as observer — create observer session
-                await supabaseAdmin
+                await getSupabase()
                   .from('table_sessions')
                   .insert({
                     table_id: tableId,

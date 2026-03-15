@@ -10,10 +10,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -30,7 +35,7 @@ export default async function handler(req, res) {
       }
 
       try {
-          let query = supabase
+          let query = getSupabase()
               .from('commander_dealer_rotations')
               .select('id, dealer_id, dealer_name, table_number, started_at')
               .eq('table_number', parseInt(table))
@@ -58,7 +63,7 @@ export default async function handler(req, res) {
           // Get dealer member details if available
           let dealerDetails = null;
           if (rotation.dealer_id) {
-              const { data: dealerRow } = await supabase
+              const { data: dealerRow } = await getSupabase()
                   .from('commander_dealers')
                   .select('id, name, employee_id, skill_level')
                   .eq('id', rotation.dealer_id)

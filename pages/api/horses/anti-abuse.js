@@ -5,10 +5,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -17,10 +22,10 @@ export default async function handler(req, res) {
       // ── AUTH: Require valid JWT + admin role ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Authorization required' });
-      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
       if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
-      const { data: profile } = await supabaseAdmin
+      const { data: profile } = await getSupabase()
           .from('profiles').select('role').eq('id', user.id).maybeSingle();
       if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
           return res.status(403).json({ error: 'Admin access required' });
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
 
           // ── ABUSE LOG ──
           if (section === 'all' || section === 'abuse') {
-              const { data: abuseLog } = await supabaseAdmin
+              const { data: abuseLog } = await getSupabase()
                   .from('signup_abuse_log')
                   .select('*')
                   .order('last_signup_at', { ascending: false })
@@ -68,7 +73,7 @@ export default async function handler(req, res) {
 
           // ── ADMIN AUDIT LOG ──
           if (section === 'all' || section === 'audit') {
-              const { data: auditLog } = await supabaseAdmin
+              const { data: auditLog } = await getSupabase()
                   .from('admin_audit_log')
                   .select('*')
                   .order('created_at', { ascending: false })
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
           // ── DIAMOND ECONOMY ──
           if (section === 'all' || section === 'economy') {
               // Diamond source breakdown
-              const { data: transactions } = await supabaseAdmin
+              const { data: transactions } = await getSupabase()
                   .from('diamond_transactions')
                   .select('transaction_type, amount')
                   .limit(5000);
@@ -97,7 +102,7 @@ export default async function handler(req, res) {
               });
 
               // Top diamond holders
-              const { data: topHolders } = await supabaseAdmin
+              const { data: topHolders } = await getSupabase()
                   .from('profiles')
                   .select('id, username, email, diamonds, is_vip, vip_tier, phone_verified')
                   .order('diamonds', { ascending: false })
@@ -121,7 +126,7 @@ export default async function handler(req, res) {
 
               if (sourceData.length === 0) {
                   // Only query DB if abuse section wasn't already fetched
-                  const { data: recentAbuse } = await supabaseAdmin
+                  const { data: recentAbuse } = await getSupabase()
                       .from('signup_abuse_log')
                       .select('*')
                       .gt('last_signup_at', new Date(twentyFourHoursAgo).toISOString())

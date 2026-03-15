@@ -6,10 +6,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { captureError, addBreadcrumb } from '../../../../src/lib/sentry';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
       }
 
       // Fetch venue with public fields only
-      const { data: venue, error: venueError } = await supabase
+      const { data: venue, error: venueError } = await getSupabase()
         .from('poker_venues')
         .select(`
           id,
@@ -77,7 +82,7 @@ export default async function handler(req, res) {
       if (venueError || !venue) {
         // Fallback: check social_pages by UUID (clubs, charities, home games)
         let socialPage = null;
-        const { data: spById, error: spError } = await supabase
+        const { data: spById, error: spError } = await getSupabase()
           .from('social_pages')
           .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
           .eq('id', id)
@@ -87,7 +92,7 @@ export default async function handler(req, res) {
           socialPage = spById;
         } else {
           // Second fallback: check if id is a linked_venue_id (integer venue ID → social page)
-          const { data: spByLinked, error: linkedError } = await supabase
+          const { data: spByLinked, error: linkedError } = await getSupabase()
             .from('social_pages')
             .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
             .eq('linked_venue_id', id)
@@ -98,7 +103,7 @@ export default async function handler(req, res) {
             socialPage = spByLinked;
           } else {
             // Final fallback: try slug-based lookup
-            const { data: spBySlug, error: slugError } = await supabase
+            const { data: spBySlug, error: slugError } = await getSupabase()
               .from('social_pages')
               .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
               .eq('slug', id)
@@ -130,7 +135,7 @@ export default async function handler(req, res) {
 
         // Try metadata.linked_venue_id first, then name match
         if (linkedVenueId) {
-          const { data: lv } = await supabase
+          const { data: lv } = await getSupabase()
             .from('poker_venues')
             .select('id, commander_enabled, games_offered, stakes_cash, poker_tables, hours_weekday, hours_weekend, trust_score, is_featured, cover_photo_url, profile_photo_url, tagline, about, follower_count, social_links, slug, has_tournaments')
             .eq('id', linkedVenueId)
@@ -141,7 +146,7 @@ export default async function handler(req, res) {
 
         if (!linkedVenue) {
           // Fallback: find poker_venue by name match
-          const { data: lv } = await supabase
+          const { data: lv } = await getSupabase()
             .from('poker_venues')
             .select('id, commander_enabled, games_offered, stakes_cash, poker_tables, hours_weekday, hours_weekend, trust_score, is_featured, cover_photo_url, profile_photo_url, tagline, about, follower_count, social_links, slug, has_tournaments')
             .ilike('name', socialPage.name)
@@ -161,7 +166,7 @@ export default async function handler(req, res) {
         let liveGames = [];
         if (commanderEnabled && venueIdForCommander) {
           try {
-            const { data: games } = await supabase
+            const { data: games } = await getSupabase()
               .from('commander_games')
               .select('id, game_type, stakes, current_players, max_players, status, started_at')
               .eq('venue_id', venueIdForCommander)
@@ -179,7 +184,7 @@ export default async function handler(req, res) {
         let upcomingTournaments = [];
         if (commanderEnabled && venueIdForCommander) {
           try {
-            const { data: tourneys } = await supabase
+            const { data: tourneys } = await getSupabase()
               .from('commander_tournaments')
               .select('id, name, tournament_type, buyin_amount, scheduled_start, status, current_entries, max_entries, guaranteed_pool, players_remaining')
               .eq('venue_id', venueIdForCommander)
@@ -196,7 +201,7 @@ export default async function handler(req, res) {
         // Fallback: look up Club Arena tournaments via owner_id
         if (upcomingTournaments.length === 0 && socialPage.owner_id) {
           try {
-            let { data: club } = await supabase
+            let { data: club } = await getSupabase()
               .from('clubs')
               .select('id')
               .eq('owner_id', socialPage.owner_id)
@@ -205,7 +210,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
             if (!club) {
-              const { data: fallbackClub } = await supabase
+              const { data: fallbackClub } = await getSupabase()
                 .from('clubs')
                 .select('id')
                 .eq('owner_id', socialPage.owner_id)
@@ -215,7 +220,7 @@ export default async function handler(req, res) {
             }
 
             if (club) {
-              const { data: tourneys } = await supabase
+              const { data: tourneys } = await getSupabase()
                 .from('tournaments')
                 .select('id, name, game_type, buy_in_amount, buy_in_fee, guaranteed_prize, start_time, status, max_players, current_players')
                 .eq('club_id', club.id)
@@ -247,7 +252,7 @@ export default async function handler(req, res) {
         let waitlistStats = null;
         if (commanderEnabled && venueIdForCommander) {
           try {
-            const { count: waitingCount } = await supabase
+            const { count: waitingCount } = await getSupabase()
               .from('commander_waitlist')
               .select('*', { count: 'exact', head: true })
               .eq('venue_id', venueIdForCommander)
@@ -333,7 +338,7 @@ export default async function handler(req, res) {
       let liveGames = [];
       if (venue.commander_enabled) {
         try {
-          const { data: games } = await supabase
+          const { data: games } = await getSupabase()
             .from('commander_games')
             .select(`
               id,
@@ -359,7 +364,7 @@ export default async function handler(req, res) {
       // Fetch upcoming + live tournaments
       let tournaments = [];
       try {
-        const { data: tourneysData } = await supabase
+        const { data: tourneysData } = await getSupabase()
           .from('commander_tournaments')
           .select(`
             id,
@@ -386,7 +391,7 @@ export default async function handler(req, res) {
       // Fetch daily tournament schedule
       let dailyTournaments = [];
       try {
-        const { data: dtData } = await supabase
+        const { data: dtData } = await getSupabase()
           .from('venue_daily_tournaments')
           .select('*')
           .eq('venue_id', id)
@@ -402,7 +407,7 @@ export default async function handler(req, res) {
       // Fetch active promotions
       let promotions = [];
       try {
-        const { data: promosData } = await supabase
+        const { data: promosData } = await getSupabase()
           .from('commander_promotions')
           .select(`
             id,
@@ -426,7 +431,7 @@ export default async function handler(req, res) {
       let waitlistStats = null;
       if (venue.commander_enabled) {
         try {
-          const { count: waitingCount } = await supabase
+          const { count: waitingCount } = await getSupabase()
             .from('commander_waitlist')
             .select('*', { count: 'exact', head: true })
             .eq('venue_id', id)

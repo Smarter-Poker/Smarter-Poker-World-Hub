@@ -15,10 +15,15 @@ import { guardStaff } from '../../../../src/lib/commander/auth';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
       const ninetyDaysAgo = new Date(now - 90 * 86400000).toISOString();
 
       // Get all sessions in last 90 days
-      const { data: sessions, error } = await supabase
+      const { data: sessions, error } = await getSupabase()
         .from('commander_player_sessions')
         .select('player_id, check_in_at, total_time_minutes, total_buyin')
         .eq('venue_id', venue_id)
@@ -73,7 +78,7 @@ export default async function handler(req, res) {
       const playerIds = Object.keys(playerMap);
       let nameMap = {};
       if (playerIds.length > 0) {
-        const { data: profiles } = await supabase
+        const { data: profiles } = await getSupabase()
           .from('profiles')
           .select('id, display_name, full_name')
           .limit(100)

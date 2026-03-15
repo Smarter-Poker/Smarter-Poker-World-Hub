@@ -7,10 +7,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { requireStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -65,41 +70,41 @@ export default async function handler(req, res) {
         analyticsResult
       ] = await Promise.all([
         // Active tables
-        supabase
+        getSupabase()
           .from('commander_tables')
           .select('id, status')
           .eq('venue_id', venueId),
 
         // Running games
-        supabase
+        getSupabase()
           .from('commander_games')
           .select('id, game_type, stakes, status, player_count, max_players')
           .eq('venue_id', venueId)
           .in('status', ['waiting', 'running']),
 
         // Current waitlist
-        supabase
+        getSupabase()
           .from('commander_waitlist')
           .select('id, game_type, stakes, status')
           .eq('venue_id', venueId)
           .eq('status', 'waiting'),
 
         // Sessions in period
-        supabase
+        getSupabase()
           .from('commander_player_sessions')
           .select('id, status, check_in_at, total_time_minutes')
           .eq('venue_id', venueId)
           .gte('check_in_at', dateFrom),
 
         // Tournaments in period
-        supabase
+        getSupabase()
           .from('commander_tournaments')
           .select('id, status, current_entries, buyin_amount')
           .eq('venue_id', venueId)
           .gte('scheduled_start', dateFrom),
 
         // Daily analytics records
-        supabase
+        getSupabase()
           .from('commander_analytics_daily')
           .select('*')
           .eq('venue_id', venueId)

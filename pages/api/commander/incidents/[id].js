@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { requireStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -46,7 +51,7 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, id) {
   try {
-    const { data: incident, error } = await supabase
+    const { data: incident, error } = await getSupabase()
       .from('commander_incidents')
       .select('*')
       .eq('id', id)
@@ -79,7 +84,7 @@ async function handleGet(req, res, id) {
 async function handlePatch(req, res, id) {
   try {
     // Fetch existing incident to get venue_id
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing, error: fetchError } = await getSupabase()
       .from('commander_incidents')
       .select('id, venue_id, incident_status')
       .eq('id', id)
@@ -132,7 +137,7 @@ async function handlePatch(req, res, id) {
       });
     }
 
-    const { data: incident, error: updateError } = await supabase
+    const { data: incident, error: updateError } = await getSupabase()
       .from('commander_incidents')
       .update(updates)
       .eq('id', id)

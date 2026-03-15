@@ -10,10 +10,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardManager } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -31,7 +36,7 @@ export default async function handler(req, res) {
         if (staffSession.venue_id) {
           venueId = staffSession.venue_id;
         } else if (staffSession.id) {
-          const { data: staffData } = await supabase
+          const { data: staffData } = await getSupabase()
             .from('commander_staff')
             .select('venue_id')
             .eq('id', staffSession.id)
@@ -50,9 +55,9 @@ export default async function handler(req, res) {
           const authHeader = req.headers.authorization;
           if (authHeader) {
             const token = authHeader.replace('Bearer ', '');
-            const { data: { user } } = await supabase.auth.getUser(token);
+            const { data: { user } } = await getSupabase().auth.getUser(token);
             if (user) {
-              const { data: staff } = await supabase
+              const { data: staff } = await getSupabase()
                 .from('commander_staff')
                 .select('venue_id')
                 .eq('user_id', user.id)
@@ -94,7 +99,7 @@ export default async function handler(req, res) {
 
       // GET - List all presets
       if (req.method === 'GET') {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_room_presets')
           .select('*')
           .eq('venue_id', venueId)
@@ -111,7 +116,7 @@ export default async function handler(req, res) {
         // APPLY PRESET — Opens tables, activates promotions, creates tournaments
         // ═══════════════════════════════════════════════════════════════
         if (req.query.action === 'apply' && req.query.id) {
-          const { data: rawPreset, error: fetchErr } = await supabase
+          const { data: rawPreset, error: fetchErr } = await getSupabase()
             .from('commander_room_presets')
             .select('*')
             .eq('id', req.query.id)
@@ -128,7 +133,7 @@ export default async function handler(req, res) {
           // ── 1. OPEN TABLES ──
           const tables = preset.tables || [];
           if (tables.length > 0) {
-            const { data: availableTables } = await supabase
+            const { data: availableTables } = await getSupabase()
               .from('commander_tables')
               .select('id, table_number, status')
               .eq('venue_id', venueId)
@@ -143,7 +148,7 @@ export default async function handler(req, res) {
                 const table = availableTables[tableIdx];
                 tableIdx++;
 
-                await supabase.from('commander_games').insert({
+                await getSupabase().from('commander_games').insert({
                   venue_id: venueId,
                   table_id: table.id,
                   game_type: config.short_code || config.game_type_name || 'NLH',
@@ -155,7 +160,7 @@ export default async function handler(req, res) {
                   started_at: new Date().toISOString()
                 });
 
-                await supabase.from('commander_tables')
+                await getSupabase().from('commander_tables')
                   .update({
                     status: 'in_use',
                     game_type: config.short_code || config.game_type_name || 'NLH',
@@ -171,7 +176,7 @@ export default async function handler(req, res) {
           // ── 2. ACTIVATE PROMOTIONS ──
           const promotionIds = preset.promotions || [];
           if (promotionIds.length > 0) {
-            const { error: promoErr } = await supabase
+            const { error: promoErr } = await getSupabase()
               .from('commander_promotions')
               .update({ is_active: true, status: 'active' })
               .in('id', promotionIds)
@@ -199,7 +204,7 @@ export default async function handler(req, res) {
                 scheduledStart = new Date(today.getTime() + 3600000); // default: 1 hour from now
               }
 
-              const { error: tErr } = await supabase.from('commander_tournaments').insert({
+              const { error: tErr } = await getSupabase().from('commander_tournaments').insert({
                 venue_id: venueId,
                 name: tmpl.name || 'Daily Tournament',
                 description: tmpl.description || null,
@@ -233,12 +238,12 @@ export default async function handler(req, res) {
           }
 
           // Update last_applied_at
-          await supabase.from('commander_room_presets')
+          await getSupabase().from('commander_room_presets')
             .update({ last_applied_at: new Date().toISOString() })
             .eq('id', preset.id);
 
           // Log it
-          await supabase.from('commander_system_log').insert({
+          await getSupabase().from('commander_system_log').insert({
             venue_id: venueId,
             action: 'daily_preset_applied',
             details: {
@@ -274,7 +279,7 @@ export default async function handler(req, res) {
           tournaments: tournaments || [],
         };
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_room_presets')
           .insert({
             venue_id: venueId,
@@ -326,7 +331,7 @@ export default async function handler(req, res) {
           };
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_room_presets')
           .update(updates)
           .eq('id', id)
@@ -347,7 +352,7 @@ export default async function handler(req, res) {
         const id = req.query.id;
         if (!id) return res.status(400).json({ success: false, error: 'Preset ID required' });
 
-        const { error } = await supabase
+        const { error } = await getSupabase()
           .from('commander_room_presets')
           .delete()
           .eq('id', id)

@@ -9,10 +9,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -30,7 +35,7 @@ export default async function handler(req, res) {
 
   // GET - List plans (auto-seeds defaults if none exist)
   if (req.method === 'GET') {
-    let query = supabase
+    let query = getSupabase()
       .from('commander_membership_plans')
       .select('*')
       .eq('venue_id', venue_id)
@@ -83,7 +88,7 @@ export default async function handler(req, res) {
         },
       ].map(p => ({ ...p, venue_id: parseInt(venue_id) }));
 
-      const { data: seeded, error: seedErr } = await supabase
+      const { data: seeded, error: seedErr } = await getSupabase()
         .from('commander_membership_plans')
         .insert(DEFAULT_PLANS)
         .select()
@@ -114,7 +119,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'tier and name are required' });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('commander_membership_plans')
       .insert({
         venue_id: parseInt(venue_id),
@@ -153,7 +158,7 @@ export default async function handler(req, res) {
     delete updates.venue_id;
     delete updates.created_at;
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('commander_membership_plans')
       .update(updates)
       .eq('id', id)
@@ -169,7 +174,7 @@ export default async function handler(req, res) {
   if (req.method === 'DELETE') {
     if (!id) return res.status(400).json({ success: false, error: 'id required' });
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('commander_membership_plans')
       .update({ is_active: false, updated_at: new Date().toISOString() })
       .eq('id', id)

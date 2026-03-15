@@ -6,10 +6,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
           }
 
           // Look up dealer by QR code
-          const { data: staffList } = await supabase
+          const { data: staffList } = await getSupabase()
               .from('commander_staff')
               .select('id, display_name, role, venue_id')
               .eq('qr_code', qr_code)
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
 
           // Fallback: check commander_members QR code
           if (!staff) {
-              const { data: memberList } = await supabase
+              const { data: memberList } = await getSupabase()
                   .from('commander_members')
                   .select('id')
                   .eq('qr_code', qr_code)
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
                   .limit(1);
 
               if (memberList?.[0]) {
-                  const { data: linkedStaff } = await supabase
+                  const { data: linkedStaff } = await getSupabase()
                       .from('commander_staff')
                       .select('id, display_name, role, venue_id')
                       .eq('member_id', memberList[0].id)
@@ -75,7 +80,7 @@ export default async function handler(req, res) {
           }
 
           // Find the game to assign dealer to
-          let gameQuery = supabase
+          let gameQuery = getSupabase()
               .from('commander_games')
               .select('id, table_number, game_type, stakes, status')
               .eq('venue_id', venue_id)
@@ -98,7 +103,7 @@ export default async function handler(req, res) {
           }
 
           // Assign dealer to game
-          const { error: updateError } = await supabase
+          const { error: updateError } = await getSupabase()
               .from('commander_games')
               .update({ dealer_staff_id: staff.id })
               .eq('id', game.id);

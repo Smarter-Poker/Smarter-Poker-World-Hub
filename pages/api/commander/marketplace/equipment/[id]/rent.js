@@ -6,10 +6,15 @@ import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -50,7 +55,7 @@ export default async function handler(req, res) {
         }
       } else if (authHeader) {
         const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
         if (authError || !user) {
           return res.status(401).json({
@@ -88,7 +93,7 @@ export default async function handler(req, res) {
       }
 
       // Get equipment listing
-      const { data: equipment, error: equipError } = await supabase
+      const { data: equipment, error: equipError } = await getSupabase()
         .from('commander_equipment_rentals')
         .select('*, owner:owner_id (id, display_name, email)')
         .eq('id', id)
@@ -123,7 +128,7 @@ export default async function handler(req, res) {
       }
 
       // Create rental record
-      const { data: rental, error: rentalError } = await supabase
+      const { data: rental, error: rentalError } = await getSupabase()
         .from('commander_equipment_rentals')
         .insert({
           equipment_id: id,
@@ -149,7 +154,7 @@ export default async function handler(req, res) {
 
       // Create rental request notification to equipment owner
       if (equipment.owner_id) {
-        const { error: notifError } = await supabase
+        const { error: notifError } = await getSupabase()
           .from('commander_notifications')
           .insert({
             user_id: equipment.owner_id,

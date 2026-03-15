@@ -13,10 +13,15 @@ import {
     isOneSignalConfigured
 } from '../../../../../src/lib/commander/pushNotifications';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const NOTIFICATION_TYPES = [
     'tournament_starting',
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
 
       try {
           // Get tournament details
-          const { data: tournament, error: tErr } = await supabase
+          const { data: tournament, error: tErr } = await getSupabase()
               .from('commander_tournaments')
               .select('*, poker_venues:venue_id (name)')
               .eq('id', tournamentId)
@@ -89,7 +94,7 @@ export default async function handler(req, res) {
               targetUserIds = [player_id];
           } else {
               // Mass notification to all active/registered players
-              const { data: entries } = await supabase
+              const { data: entries } = await getSupabase()
                   .from('commander_tournament_entries')
                   .select('player_id')
                   .eq('tournament_id', tournamentId)
@@ -145,7 +150,7 @@ export default async function handler(req, res) {
               }
           }));
 
-          const { error: insertErr } = await supabase
+          const { error: insertErr } = await getSupabase()
               .from('commander_notifications')
               .insert(notificationRows);
 

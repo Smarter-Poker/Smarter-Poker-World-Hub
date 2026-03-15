@@ -11,10 +11,15 @@
 const { createClient } = require('../../../src/lib/supabaseServerClient');
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -29,11 +34,11 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, acceptedAt: new Date().toISOString() });
     }
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
-      const { error: updateErr } = await supabaseAdmin
+      const { error: updateErr } = await getSupabase()
         .from('profiles')
         .update({ club_arena_tos_accepted_at: new Date().toISOString() })
         .eq('id', user.id);

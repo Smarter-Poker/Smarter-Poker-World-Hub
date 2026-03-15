@@ -9,10 +9,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -43,7 +48,7 @@ export default async function handler(req, res) {
       }
 
       // Fetch tournament for name, buyin_amount, and venue_id
-      const { data: tournament, error: tErr } = await supabase
+      const { data: tournament, error: tErr } = await getSupabase()
         .from('commander_tournaments')
         .select('id, name, buyin_amount, venue_id')
         .eq('id', tournamentId)
@@ -54,8 +59,8 @@ export default async function handler(req, res) {
 
       // Fetch real venue data from both tables in parallel
       const [venueRes, settingsRes] = await Promise.all([
-        supabase.from('venues').select('name, city, state').eq('id', tournament.venue_id).maybeSingle(),
-        supabase.from('commander_venue_settings').select('club_logo_url').eq('venue_id', tournament.venue_id).maybeSingle()
+        getSupabase().from('venues').select('name, city, state').eq('id', tournament.venue_id).maybeSingle(),
+        getSupabase().from('commander_venue_settings').select('club_logo_url').eq('venue_id', tournament.venue_id).maybeSingle()
       ]);
       const venueName = venueRes.data?.name || 'Smarter Poker';
       const venueCity = venueRes.data?.city || null;
@@ -87,7 +92,7 @@ export default async function handler(req, res) {
 
       // Check destination seats are not already occupied (batch query — avoids N+1)
       const destPairs = assignments.map(a => `(${a.to_table},${a.to_seat})`);
-      const { data: conflictingSeats } = await supabase
+      const { data: conflictingSeats } = await getSupabase()
         .from('commander_tournament_entries')
         .select('table_number, seat_number, player_name')
         .eq('tournament_id', tournamentId)
@@ -110,13 +115,13 @@ export default async function handler(req, res) {
       const errors = [];
 
       for (const a of assignments) {
-        const { data: entry } = await supabase
+        const { data: entry } = await getSupabase()
           .from('commander_tournament_entries')
           .select('table_number, seat_number, player_name, current_chips, metadata')
           .eq('id', a.entry_id)
           .maybeSingle();
 
-        const { error: uErr } = await supabase
+        const { error: uErr } = await getSupabase()
           .from('commander_tournament_entries')
           .update({
             table_number: a.to_table,
@@ -147,7 +152,7 @@ export default async function handler(req, res) {
 
       // Release the broken table back to inactive (ONLY if all players successfully moved)
       if (errors.length === 0) {
-        await supabase
+        await getSupabase()
           .from('commander_tables')
           .update({
             mode: 'inactive',

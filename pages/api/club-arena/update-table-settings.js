@@ -17,10 +17,15 @@ const { isUUID } = require('../../../src/lib/club-arena/validate');
 const { sanitizeTableName, clampFloat, sanitizeSettings, safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -37,7 +42,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { tableId, clubId, name, smallBlind, bigBlind, maxPlayers,
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
       }
 
       // Verify caller is owner or admin
-      const { data: member } = await supabaseAdmin
+      const { data: member } = await getSupabase()
         .from('club_members')
         .select('role')
         .eq('club_id', clubId)
@@ -64,7 +69,7 @@ export default async function handler(req, res) {
       }
 
       // Verify table belongs to club
-      const { data: table, error: tableErr } = await supabaseAdmin
+      const { data: table, error: tableErr } = await getSupabase()
         .from('tables')
         .select('id, club_id, settings')
         .eq('id', tableId)
@@ -137,7 +142,7 @@ export default async function handler(req, res) {
         updates.settings = { ...existingSettings, ...cleanSettings };
       }
 
-      const { data: updated, error: updateErr } = await supabaseAdmin
+      const { data: updated, error: updateErr } = await getSupabase()
         .from('tables')
         .update(updates)
         .eq('id', tableId)

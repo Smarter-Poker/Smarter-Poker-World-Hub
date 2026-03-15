@@ -8,10 +8,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 /** Escape SQL LIKE wildcards */
 function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
@@ -52,9 +57,9 @@ export default async function handler(req, res) {
         const authHeader = req.headers.authorization;
         if (authHeader) {
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user } } = await supabase.auth.getUser(token);
+          const { data: { user } } = await getSupabase().auth.getUser(token);
           if (user) {
-            const { data: staff } = await supabase
+            const { data: staff } = await getSupabase()
               .from('commander_staff')
               .select('venue_id')
               .eq('user_id', user.id)
@@ -73,7 +78,7 @@ export default async function handler(req, res) {
 
       // ═══ 1. Always fetch active staff (owners, managers, floor) ═══
       try {
-        let staffQ = supabase
+        let staffQ = getSupabase()
           .from('commander_staff')
           .select('id, display_name, role, user_id, is_active')
           .eq('venue_id', venueFilter)
@@ -99,7 +104,7 @@ export default async function handler(req, res) {
             const sfLast = nameParts.length > 1 ? nameParts.slice(1).join(' ').trim() : '';
             if (!sfFirst) continue;
 
-            let mq = supabase
+            let mq = getSupabase()
               .from('commander_members')
               .select('id, first_name, last_name, time_balance_minutes, membership_tier, membership_status, membership_expires, member_number, phone, comp_balance')
               .eq('venue_id', venueFilter)
@@ -113,7 +118,7 @@ export default async function handler(req, res) {
             } else {
               // ═══ DOUBLE-CHECK: broader search before auto-creating ═══
               // Try broader match: check both first+last name variations
-              const { data: broaderMatch } = await supabase
+              const { data: broaderMatch } = await getSupabase()
                 .from('commander_members')
                 .select('id, first_name, last_name, time_balance_minutes, membership_tier, membership_status, membership_expires, member_number, phone, comp_balance')
                 .eq('venue_id', venueFilter)
@@ -132,7 +137,7 @@ export default async function handler(req, res) {
               } else {
                 // No match at all — safe to auto-create
                 const memberNum = `STAFF-${Date.now().toString(36).toUpperCase()}`;
-                const { data: newMember, error: createErr } = await supabase
+                const { data: newMember, error: createErr } = await getSupabase()
                   .from('commander_members')
                   .insert({
                     venue_id: venueFilter,
@@ -186,7 +191,7 @@ export default async function handler(req, res) {
       // ═══ 2. Search commander_members ═══
       if (searchQuery.length >= 2) {
         const isPhone = /^\d+$/.test(searchQuery.replace(/[\s\-\(\)]/g, ''));
-        let query = supabase
+        let query = getSupabase()
           .from('commander_members')
           .select('id, first_name, last_name, phone, email, last_visit, comp_balance, membership_tier, membership_status, membership_expires, time_balance_minutes, member_number')
           .eq('venue_id', venueFilter)
@@ -219,7 +224,7 @@ export default async function handler(req, res) {
       } else {
         // No search query — show recent members alongside staff
         try {
-          const { data: recentMembers } = await supabase
+          const { data: recentMembers } = await getSupabase()
             .from('commander_members')
             .select('id, first_name, last_name, phone, email, last_visit, membership_tier, membership_status, time_balance_minutes, member_number')
             .eq('venue_id', venueFilter)
@@ -240,7 +245,7 @@ export default async function handler(req, res) {
       // ═══ 3. Waitlist fallback (for web/kiosk sign-ups without member record) ═══
       if (searchQuery.length >= 2 && results.length === 0) {
         try {
-          let wlQuery = supabase
+          let wlQuery = getSupabase()
             .from('commander_waitlist')
             .select('id, player_name, player_phone, signup_method, status, created_at')
             .eq('venue_id', venueFilter)

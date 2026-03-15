@@ -17,10 +17,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const INBOUND_TYPES = ['distribute', 'agent_to_player', 'promo_agent_to_player'];
 const OUTBOUND_TYPES = ['cashout_approved'];
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { clubId } = req.body;
@@ -49,7 +54,7 @@ export default async function handler(req, res) {
 
     try {
       // Verify caller is agent / owner / admin in this club
-      const { data: member } = await supabaseAdmin
+      const { data: member } = await getSupabase()
         .from('club_members')
         .select('role')
         .eq('club_id', clubId)
@@ -66,7 +71,7 @@ export default async function handler(req, res) {
       // Get downline player IDs for scoping (agents only see their own)
       let playerIds = null;
       if (isAgent) {
-        const { data: agentRow } = await supabaseAdmin
+        const { data: agentRow } = await getSupabase()
           .from('agents')
           .select('id')
           .eq('club_id', clubId)
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (agentRow) {
-          const { data: players } = await supabaseAdmin
+          const { data: players } = await getSupabase()
             .from('club_members')
             .select('user_id')
             .eq('club_id', clubId)
@@ -84,7 +89,7 @@ export default async function handler(req, res) {
       }
 
       // Query chip_transactions in last 7 days, scoped to this club
-      let txQuery = supabaseAdmin
+      let txQuery = getSupabase()
         .from('chip_transactions')
         .select('to_user_id, from_user_id, amount, transaction_type')
         .eq('club_id', clubId)

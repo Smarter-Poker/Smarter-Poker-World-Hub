@@ -8,10 +8,15 @@ import tourSeriesData from '../../../data/poker-tour-series-2026.json';
 import allVenuesData from '../../../data/all-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Build tours list from registry
 function getToursFromRegistry() {
@@ -103,7 +108,7 @@ export default async function handler(req, res) {
           // Try to get from database first
           let dbTours = [];
           try {
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('tour_source_registry')
                   .select('*')
                   .eq('is_active', true)

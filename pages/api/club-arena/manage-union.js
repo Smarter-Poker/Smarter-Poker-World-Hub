@@ -9,10 +9,15 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateManageUnion } from '../../../src/contracts/orb4_syndicate';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 function generateCode(len = 8) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     // RED TEAM: Payload size guard (4KB max for management endpoints)
@@ -67,7 +72,7 @@ export default async function handler(req, res) {
         const safeDesc = (description?.trim() || '').replace(/[;'"\\<>]/g, '').slice(0, 1000);
 
         const unionCode = generateCode(8);
-        const { data: union, error: createErr } = await supabaseAdmin
+        const { data: union, error: createErr } = await getSupabase()
           .from('unions')
           .insert({
             name: safeName,
@@ -82,7 +87,7 @@ export default async function handler(req, res) {
         if (createErr) throw createErr;
 
         // Add creator as union admin (owner role)
-        await supabaseAdmin.from('union_admins').insert({
+        await getSupabase().from('union_admins').insert({
           union_id: union.id,
           user_id: user.id,
           role: 'union_lead',
@@ -97,7 +102,7 @@ export default async function handler(req, res) {
 
       // Verify caller is union admin (with owner fallback)
       let callerAdmin;
-      const { data: adminRow } = await supabaseAdmin
+      const { data: adminRow } = await getSupabase()
         .from('union_admins')
         .select('role, permissions')
         .eq('union_id', unionId)
@@ -108,7 +113,7 @@ export default async function handler(req, res) {
         callerAdmin = adminRow;
       } else {
         // Fallback: check if user is the union owner
-        const { data: ownerCheck } = await supabaseAdmin
+        const { data: ownerCheck } = await getSupabase()
           .from('unions')
           .select('id')
           .eq('id', unionId)
@@ -174,7 +179,7 @@ export default async function handler(req, res) {
 
         if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'Nothing to update' });
 
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabase()
           .from('unions')
           .update(updates)
           .eq('id', unionId);
@@ -196,7 +201,7 @@ export default async function handler(req, res) {
 
         // Verify club exists — support both UUID and numeric club_id
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clubId);
-        const { data: club } = await supabaseAdmin
+        const { data: club } = await getSupabase()
           .from('clubs')
           .select('id, name, union_id, owner_id')
           .eq(isUUID ? 'id' : 'club_id', isUUID ? clubId : parseInt(clubId))
@@ -210,14 +215,14 @@ export default async function handler(req, res) {
         // Add to union_clubs with commission rate
         const clubCommissionRate = payload.clubCommissionRate || 0.90;  // 90% default for clubs
 
-        const { error: linkErr } = await supabaseAdmin
+        const { error: linkErr } = await getSupabase()
           .from('union_clubs')
           .upsert({ union_id: unionId, club_id: club.id, club_commission_rate: clubCommissionRate }, { onConflict: 'union_id,club_id' });
 
         if (linkErr) throw linkErr;
 
         // Update club's union_id and commission rate
-        await supabaseAdmin
+        await getSupabase()
           .from('clubs')
           .update({
             union_id: unionId,
@@ -236,7 +241,7 @@ export default async function handler(req, res) {
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
         if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can remove clubs' });
 
-        await supabaseAdmin
+        await getSupabase()
           .from('union_clubs')
           .delete()
           .eq('union_id', unionId)
@@ -244,7 +249,7 @@ export default async function handler(req, res) {
 
         // BUG-IDOR FIX: Only update clubs that actually belong to this union
         // Prevents a union_lead from clearing another union's club.union_id
-        await supabaseAdmin
+        await getSupabase()
           .from('clubs')
           .update({ union_id: null, auto_settlement_enabled: false, club_commission_rate: 0 })
           .eq('id', clubId)
@@ -261,7 +266,7 @@ export default async function handler(req, res) {
         if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can add admins' });
 
         // Verify user exists
-        const { data: profile } = await supabaseAdmin
+        const { data: profile } = await getSupabase()
           .from('profiles')
           .select('id, username, display_name')
           .eq('id', adminUserId)
@@ -271,7 +276,7 @@ export default async function handler(req, res) {
 
         // BUG #261 FIX: Prevent adding someone as 'owner' — only 'admin' role allowed
         const safeRole = 'union_admin';
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabase()
           .from('union_admins')
           .upsert({
             union_id: unionId,
@@ -292,7 +297,7 @@ export default async function handler(req, res) {
         if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can remove admins' });
         if (adminUserId === user.id) return res.status(400).json({ success: false, error: 'Cannot remove yourself' });
 
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabase()
           .from('union_admins')
           .delete()
           .eq('union_id', unionId)
@@ -315,9 +320,9 @@ export default async function handler(req, res) {
         // to avoid PostgREST filter injection via comma-delimited .or() string interpolation
         const term = searchQuery.trim().replace(/%/g, '\\%').replace(/_/g, '\\_').slice(0, 50);
         const [{ data: byUsername }, { data: byDisplay }] = await Promise.all([
-          supabaseAdmin.from('profiles').select('id, username, display_name, avatar_url')
+          getSupabase().from('profiles').select('id, username, display_name, avatar_url')
             .ilike('username', `%${term}%`).limit(10),
-          supabaseAdmin.from('profiles').select('id, username, display_name, avatar_url')
+          getSupabase().from('profiles').select('id, username, display_name, avatar_url')
             .ilike('display_name', `%${term}%`).limit(10),
         ]);
         // Deduplicate by id
@@ -347,7 +352,7 @@ export default async function handler(req, res) {
         }
 
         // Verify club is actually in this union (IDOR guard)
-        const { data: uc } = await supabaseAdmin
+        const { data: uc } = await getSupabase()
           .from('union_clubs')
           .select('club_id')
           .eq('union_id', unionId)
@@ -357,13 +362,13 @@ export default async function handler(req, res) {
         if (!uc) return res.status(404).json({ success: false, error: 'Club not found in this union' });
 
         // Update both union_clubs join table AND clubs table (keep in sync)
-        await supabaseAdmin
+        await getSupabase()
           .from('union_clubs')
           .update({ club_commission_rate: newRate })
           .eq('union_id', unionId)
           .eq('club_id', clubId);
 
-        await supabaseAdmin
+        await getSupabase()
           .from('clubs')
           .update({ club_commission_rate: newRate })
           .eq('id', clubId)
@@ -389,7 +394,7 @@ export default async function handler(req, res) {
         const safeAnnMsg = annMsg.trim().replace(/[;'"\\<>]/g, '').slice(0, 500);
 
         // Determine target clubs
-        const { data: unionClubs } = await supabaseAdmin
+        const { data: unionClubs } = await getSupabase()
           .from('union_clubs')
           .select('club_id')
           .eq('union_id', unionId);
@@ -411,7 +416,7 @@ export default async function handler(req, res) {
           pinned: false,
         }));
 
-        const { error: annErr } = await supabaseAdmin
+        const { error: annErr } = await getSupabase()
           .from('club_announcements')
           .insert(announcements);
 
@@ -429,7 +434,7 @@ export default async function handler(req, res) {
       // Union lead manages club leave requests
       // ═══════════════════════════════════════════════════════════════
       if (action === 'list_leave') {
-        const { data: leaveReqs } = await supabaseAdmin
+        const { data: leaveReqs } = await getSupabase()
           .from('union_leave_requests')
           .select('id, union_id, club_id, club_name, reason, status, requested_at, reviewed_by, reviewed_at')
           .eq('union_id', unionId)
@@ -445,7 +450,7 @@ export default async function handler(req, res) {
         }
         if (!leaveRequestId) return res.status(400).json({ success: false, error: 'leaveRequestId required' });
 
-        const { data: leaveReq } = await supabaseAdmin
+        const { data: leaveReq } = await getSupabase()
           .from('union_leave_requests')
           .select('club_id, status, union_id')
           .eq('id', leaveRequestId)
@@ -457,15 +462,15 @@ export default async function handler(req, res) {
 
         const newStatus = action === 'approve_leave' ? 'approved' : 'denied';
 
-        await supabaseAdmin
+        await getSupabase()
           .from('union_leave_requests')
           .update({ status: newStatus, reviewed_by: user.id, reviewed_at: new Date().toISOString() })
           .eq('id', leaveRequestId);
 
         if (action === 'approve_leave') {
           // Remove club from union
-          await supabaseAdmin.from('union_clubs').delete().eq('union_id', unionId).eq('club_id', leaveReq.club_id);
-          await supabaseAdmin.from('clubs').update({ union_id: null }).eq('id', leaveReq.club_id).eq('union_id', unionId);
+          await getSupabase().from('union_clubs').delete().eq('union_id', unionId).eq('club_id', leaveReq.club_id);
+          await getSupabase().from('clubs').update({ union_id: null }).eq('id', leaveReq.club_id).eq('union_id', unionId);
         }
 
         return res.status(200).json({ success: true, status: newStatus });

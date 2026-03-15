@@ -12,10 +12,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -36,10 +41,10 @@ export default async function handler(req, res) {
     }
 
     if (token && !validEngineKey) {
-      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error } = await getSupabase().auth.getUser(token);
       if (error || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-      const { data: member } = await supabaseAdmin
+      const { data: member } = await getSupabase()
         .from('club_members')
         .select('role')
         .eq('club_id', req.body.clubId)
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
 
     try {
       // STEP 1: Record rake via RPC (Dealt Method + BBJ routing)
-      const { data: rakeResult, error: rakeErr } = await supabaseAdmin.rpc('record_rake', {
+      const { data: rakeResult, error: rakeErr } = await getSupabase().rpc('record_rake', {
         p_hand_id: handId || `hand_${tableId}_${Date.now()}`,
         p_club_id: clubId,
         p_table_id: tableId || null,
@@ -83,7 +88,7 @@ export default async function handler(req, res) {
         const perPlayerRake = rakeAmount / dealtPlayerIds.length;
 
         for (const playerId of dealtPlayerIds) {
-          const { data: commResult, error: commErr } = await supabaseAdmin.rpc('calculate_cascading_commission', {
+          const { data: commResult, error: commErr } = await getSupabase().rpc('calculate_cascading_commission', {
             p_hand_id: handId || `hand_${tableId}_${Date.now()}`,
             p_club_id: clubId,
             p_player_user_id: playerId,
@@ -99,7 +104,7 @@ export default async function handler(req, res) {
       // STEP 3: Increment the open settlement period's counters
       // (record_rake RPC updates clubs.total_rake but NOT settlement_periods)
       if (rakeAmount > 0) {
-        await supabaseAdmin.rpc('increment_settlement_counters', {
+        await getSupabase().rpc('increment_settlement_counters', {
           p_club_id: clubId,
           p_rake: rakeAmount,
           p_hands: 1,

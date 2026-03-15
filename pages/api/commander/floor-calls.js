@@ -8,10 +8,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const VALID_REASONS = [
   'dispute', 'chip_fill', 'buyin', 'player_issue',
@@ -37,7 +42,7 @@ export default async function handler(req, res) {
       if (req.method === 'GET') {
         const { venue_id, status, reason, priority, responded_by, limit = '50' } = req.query;
 
-        let query = supabase
+        let query = getSupabase()
           .from('commander_floor_calls')
           .select('*')
           .order('created_at', { ascending: false })
@@ -76,7 +81,7 @@ export default async function handler(req, res) {
         const safeReason = VALID_REASONS.includes(reason) ? reason : 'other';
         const safePriority = VALID_PRIORITIES.includes(priority) ? priority : 'normal';
 
-        const { data, error } = await supabase.from('commander_floor_calls').insert({
+        const { data, error } = await getSupabase().from('commander_floor_calls').insert({
           venue_id: venue_id || null,
           table_number,
           reason: safeReason,
@@ -90,7 +95,7 @@ export default async function handler(req, res) {
         if (!data) throw new Error('Failed to create floor call');
 
         // Also log to activity feed (non-blocking)
-        await supabase.from('commander_activity_log').insert({
+        await getSupabase().from('commander_activity_log').insert({
           venue_id: venue_id || null,
           event_type: safePriority === 'urgent' ? 'incident' : 'floor_call',
           message: `Floor call at Table ${table_number}: ${safeReason.replace(/_/g, ' ')}`,
@@ -114,7 +119,7 @@ export default async function handler(req, res) {
         }
 
         // Fetch existing call for response time computation
-        const { data: existing } = await supabase
+        const { data: existing } = await getSupabase()
           .from('commander_floor_calls')
           .select('created_at, responded_at')
           .eq('id', id)
@@ -149,7 +154,7 @@ export default async function handler(req, res) {
           updates.resolution = resolution || 'Cancelled';
         }
 
-        const { data, error } = await supabase.from('commander_floor_calls')
+        const { data, error } = await getSupabase().from('commander_floor_calls')
           .update(updates).eq('id', id).select().maybeSingle();
 
         if (error || !data) throw error || new Error('Floor call not found');

@@ -5,10 +5,15 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
       }
 
       // Fetch home game group by club_code
-      const { data: group, error: groupError } = await supabase
+      const { data: group, error: groupError } = await getSupabase()
         .from('commander_home_groups')
         .select(`
           id,
@@ -102,7 +107,7 @@ export default async function handler(req, res) {
       }
 
       // For public groups, fetch upcoming games
-      const { data: upcomingGames } = await supabase
+      const { data: upcomingGames } = await getSupabase()
         .from('commander_home_games')
         .select(`
           id,
@@ -125,7 +130,7 @@ export default async function handler(req, res) {
         .limit(5);
 
       // Get recent game history (count only)
-      const { count: recentGamesCount } = await supabase
+      const { count: recentGamesCount } = await getSupabase()
         .from('commander_home_games')
         .select('*', { count: 'exact', head: true })
         .eq('group_id', group.id)

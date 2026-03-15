@@ -4,10 +4,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -22,7 +27,7 @@ export default async function handler(req, res) {
       // Require JWT auth
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { calleeId, callerName, callerAvatar, callType, roomName } = req.body;
@@ -34,14 +39,14 @@ export default async function handler(req, res) {
 
       try {
           // Delete any existing pending calls from this caller to this callee
-          await supabase
+          await getSupabase()
               .from('pending_calls')
               .delete()
               .eq('caller_id', callerId)
               .eq('callee_id', calleeId);
 
           // Create new pending call
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
               .from('pending_calls')
               .insert({
                   caller_id: callerId,

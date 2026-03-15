@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const VALID_REQUEST_TYPES = ['food', 'drink', 'chips', 'table_change', 'cashout', 'floor', 'other'];
 
@@ -47,7 +52,7 @@ async function handleGet(req, res) {
   try {
     const { venue_id, game_id, status, limit = 50 } = req.query;
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_service_requests')
       .select(`
         *,
@@ -132,7 +137,7 @@ async function handlePost(req, res) {
       });
     }
 
-    const { data: request, error } = await supabase
+    const { data: request, error } = await getSupabase()
       .from('commander_service_requests')
       .insert({
         venue_id,

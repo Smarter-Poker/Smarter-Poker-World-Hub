@@ -10,10 +10,15 @@ import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { logAction } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -51,7 +56,7 @@ async function listTournaments(req, res) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'venue_id is required' } });
     }
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_tournaments')
       .select(`
         *,
@@ -150,7 +155,7 @@ async function createTournament(req, res, staff) {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'You are not staff at this venue' } });
     }
 
-    const { data: tournament, error } = await supabase
+    const { data: tournament, error } = await getSupabase()
       .from('commander_tournaments')
       .insert({
         venue_id: venue_id,

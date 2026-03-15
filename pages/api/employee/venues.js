@@ -4,10 +4,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -19,11 +24,11 @@ export default async function handler(req, res) {
           const token = (req.headers.authorization || '').replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid session' });
 
           // Find all staff records linked to this user
-          const { data: staffRecords, error } = await supabase
+          const { data: staffRecords, error } = await getSupabase()
               .from('commander_staff')
               .select('id, venue_id, display_name, role, is_active, email, phone, created_at')
               .eq('linked_user_id', user.id)
@@ -38,7 +43,7 @@ export default async function handler(req, res) {
 
           // Enrich with venue names and logos
           const venueIds = [...new Set(staffRecords.map(s => s.venue_id))];
-          const { data: venues } = await supabase
+          const { data: venues } = await getSupabase()
               .from('poker_venues')
               .select('id, name, logo_url, city, state')
               .in('id', venueIds)

@@ -7,10 +7,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // 25 High-quality pre-made promotions for poker rooms
 const PREMADE_PROMOS = [
@@ -62,11 +67,11 @@ export default async function handler(req, res) {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ success: false, error: 'Unauthorized' });
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
       if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
       // Verify user is owner or manager
-      const { data: staff } = await supabaseAdmin
+      const { data: staff } = await getSupabase()
           .from('commander_staff')
           .select('id, role, venue_id')
           .eq('user_id', user.id)
@@ -81,7 +86,7 @@ export default async function handler(req, res) {
 
       try {
           // Check existing codes to avoid duplicates
-          const { data: existing } = await supabaseAdmin
+          const { data: existing } = await getSupabase()
               .from('promo_codes')
               .select('code');
           const existingCodes = new Set((existing || []).map(c => c.code));
@@ -98,7 +103,7 @@ export default async function handler(req, res) {
               return res.status(200).json({ success: true, message: 'All 25 promotions already exist', created: 0 });
           }
 
-          const { data, error } = await supabaseAdmin
+          const { data, error } = await getSupabase()
               .from('promo_codes')
               .insert(toInsert)
               .select();

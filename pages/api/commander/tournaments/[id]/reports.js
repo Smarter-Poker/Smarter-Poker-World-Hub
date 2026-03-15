@@ -7,10 +7,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -46,13 +51,13 @@ export default async function handler(req, res) {
  */
 async function registrationReport(req, res, tournamentId) {
     try {
-        const { data: tournament } = await supabase
+        const { data: tournament } = await getSupabase()
             .from('commander_tournaments')
             .select('name, buyin_amount, buyin_fee, scheduled_start')
             .eq('id', tournamentId)
             .maybeSingle();
 
-        const { data: entries, error } = await supabase
+        const { data: entries, error } = await getSupabase()
             .from('commander_tournament_entries')
             .select(`
         id, player_id, player_name, status, table_number, seat_number,
@@ -119,13 +124,13 @@ async function registrationReport(req, res, tournamentId) {
  */
 async function cashierReport(req, res, tournamentId) {
     try {
-        const { data: tournament } = await supabase
+        const { data: tournament } = await getSupabase()
             .from('commander_tournaments')
             .select('name, buyin_amount, buyin_fee, scheduled_start')
             .eq('id', tournamentId)
             .maybeSingle();
 
-        const { data: entries, error } = await supabase
+        const { data: entries, error } = await getSupabase()
             .from('commander_tournament_entries')
             .select(`
         id, player_name, payment_method, cashier_staff_id,
@@ -141,7 +146,7 @@ async function cashierReport(req, res, tournamentId) {
         const cashierIds = [...new Set((entries || []).map(e => e.cashier_staff_id).filter(Boolean))]
         let staffMap = {};
         if (cashierIds.length > 0) {
-            const { data: staff } = await supabase
+            const { data: staff } = await getSupabase()
                 .from('commander_staff')
                 .select('id, first_name, last_name')
                 .in('id', cashierIds)
@@ -205,7 +210,7 @@ async function cashierReport(req, res, tournamentId) {
  */
 async function activityReport(req, res, tournamentId) {
     try {
-        const { data: entries, error } = await supabase
+        const { data: entries, error } = await getSupabase()
             .from('commander_tournament_entries')
             .select(`
         id, player_id, player_name, status, table_number, seat_number,

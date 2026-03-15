@@ -12,10 +12,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
       // Staff is already validated by guardWriteStaff at the handler level
 
       // Get tournament with full details
-      const { data: tournament, error: tErr } = await supabase
+      const { data: tournament, error: tErr } = await getSupabase()
         .from('commander_tournaments')
         .select('*')
         .eq('id', tournamentId)
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
 
 
       // Get ALL entries (active + eliminated + registered) - Up to 5000 to prevent cutoff on massive fields
-      const { data: allEntries } = await supabase
+      const { data: allEntries } = await getSupabase()
         .from('commander_tournament_entries')
         .select('*')
         .eq('tournament_id', tournamentId)
@@ -62,7 +67,7 @@ export default async function handler(req, res) {
       const avatarMap = {};
       const playerIds = [...new Set(entries.map(e => e.player_id).filter(Boolean))];
       if (playerIds.length > 0) {
-        const { data: profiles } = await supabase
+        const { data: profiles } = await getSupabase()
           .from('profiles')
           .select('id, avatar_url, display_name')
               .limit(500)
@@ -78,7 +83,7 @@ export default async function handler(req, res) {
       // Query actual table configs for max_seats
       let tableConfigs = {};
       if (tableNumbers.length > 0) {
-        const { data: dbTables } = await supabase
+        const { data: dbTables } = await getSupabase()
           .from('commander_tables')
           .select('table_number, max_seats')
           .eq('venue_id', tournament.venue_id)
@@ -184,7 +189,7 @@ export default async function handler(req, res) {
         };
         // Persist so this only happens once — store in settings to bypass schema cache issues
         const updatedSettings = { ...tournamentSettings, clock_state: clockState };
-        await supabase
+        await getSupabase()
           .from('commander_tournaments')
           .update({ settings: updatedSettings, actual_start: clockState.levelStartedAt })
           .eq('id', tournamentId);

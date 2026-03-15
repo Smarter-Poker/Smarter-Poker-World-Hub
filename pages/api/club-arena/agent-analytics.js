@@ -14,10 +14,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
@@ -29,7 +34,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { clubId, action, agentId, days = 7 } = req.body;
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
       if (action === 'pulse') {
           try {
               // Total commissions earned in the window
-              const { data: commissions } = await supabaseAdmin
+              const { data: commissions } = await getSupabase()
                   .from('commission_history')
                   .select('amount, created_at, status')
                   .eq('agent_id', targetAgent)
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
               const pendingCommissions = totalCommissions - paidCommissions;
 
               // Player count under this agent
-              const { data: players } = await supabaseAdmin
+              const { data: players } = await getSupabase()
                   .from('club_members')
                   .select('user_id, chip_balance, last_active, role')
                   .eq('club_id', clubId)
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
               }
 
               // Transaction volume
-              const { data: txns } = await supabaseAdmin
+              const { data: txns } = await getSupabase()
                   .from('action_audit_logs')
                   .select('amount')
                   .eq('user_id', targetAgent)
@@ -106,7 +111,7 @@ export default async function handler(req, res) {
       // ─── HEAT_MAP: Player Activity Color Codes ────────────────
       if (action === 'heat_map') {
           try {
-              const { data: players } = await supabaseAdmin
+              const { data: players } = await getSupabase()
                   .from('club_members')
                   .select('user_id, chip_balance, last_active, role')
                   .eq('club_id', clubId)
@@ -114,7 +119,7 @@ export default async function handler(req, res) {
                   .limit(10000);
 
               const userIds = (players || []).map(p => p.user_id);
-              const { data: profiles } = await supabaseAdmin
+              const { data: profiles } = await getSupabase()
                   .from('profiles')
                   .select('id, display_name, username')
                   .in('id', userIds);
@@ -151,7 +156,7 @@ export default async function handler(req, res) {
       if (action === 'leaderboard') {
           try {
               // Get all agents in the club
-              const { data: agents } = await supabaseAdmin
+              const { data: agents } = await getSupabase()
                   .from('agents')
                   .select('user_id, commission_rate, parent_agent_id')
                   .eq('club_id', clubId)
@@ -161,7 +166,7 @@ export default async function handler(req, res) {
               const agentIds = (agents || []).map(a => a.user_id);
 
               // Get commission totals per agent
-              const { data: commissions } = await supabaseAdmin
+              const { data: commissions } = await getSupabase()
                   .from('commission_history')
                   .select('agent_id, amount')
                   .eq('club_id', clubId)
@@ -175,7 +180,7 @@ export default async function handler(req, res) {
               }
 
               // Get player counts per agent
-              const { data: members } = await supabaseAdmin
+              const { data: members } = await getSupabase()
                   .from('club_members')
                   .select('agent_id')
                   .eq('club_id', clubId)
@@ -188,7 +193,7 @@ export default async function handler(req, res) {
               }
 
               // Resolve names
-              const { data: profiles } = await supabaseAdmin
+              const { data: profiles } = await getSupabase()
                   .from('profiles')
                   .select('id, display_name, username')
                   .in('id', agentIds);
@@ -214,7 +219,7 @@ export default async function handler(req, res) {
       // ─── TRENDS: Daily commission data for sparklines ─────────
       if (action === 'trends') {
           try {
-              const { data: commissions } = await supabaseAdmin
+              const { data: commissions } = await getSupabase()
                   .from('commission_history')
                   .select('amount, created_at')
                   .eq('agent_id', targetAgent)
@@ -249,7 +254,7 @@ export default async function handler(req, res) {
       // ─── AGENT_SCORE: Composite Performance Scoring ────────────
       if (action === 'agent_score') {
           try {
-              const { data: agent } = await supabaseAdmin
+              const { data: agent } = await getSupabase()
                   .from('agents')
                   .select('id, user_id, commission_rate, weekly_rake_generated, status, role, parent_agent_id, player_count, created_at')
                   .eq('user_id', targetAgent)
@@ -259,7 +264,7 @@ export default async function handler(req, res) {
               if (!agent) return res.status(404).json({ error: 'Agent not found' });
 
               // Get players for retention/churn scoring
-              const { data: players } = await supabaseAdmin
+              const { data: players } = await getSupabase()
                   .from('club_members')
                   .select('user_id, last_active, chip_balance, created_at')
                   .eq('club_id', clubId)
@@ -282,7 +287,7 @@ export default async function handler(req, res) {
 
               // Commissions earned last 30 days
               const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-              const { data: commissions } = await supabaseAdmin
+              const { data: commissions } = await getSupabase()
                   .from('commission_history')
                   .select('amount')
                   .eq('agent_id', targetAgent)
@@ -292,7 +297,7 @@ export default async function handler(req, res) {
               const totalCommissions = (commissions || []).reduce((s, c) => s + (c.amount || 0), 0);
 
               // Cashouts processed last 30 days
-              const { data: cashouts } = await supabaseAdmin
+              const { data: cashouts } = await getSupabase()
                   .from('action_audit_logs')
                   .select('amount, created_at')
                   .eq('club_id', clubId)
@@ -352,14 +357,14 @@ export default async function handler(req, res) {
       // ─── HIERARCHY_TREE: Recursive Agent Hierarchy ─────────────
       if (action === 'hierarchy_tree') {
           try {
-              const { data: agents } = await supabaseAdmin
+              const { data: agents } = await getSupabase()
                   .from('agents')
                   .select('id, user_id, commission_rate, status, role, parent_agent_id, player_count, weekly_rake_generated')
                   .eq('club_id', clubId)
                   .limit(5000);
 
               const agentUserIds = (agents || []).map(a => a.user_id);
-              const { data: profiles } = await supabaseAdmin
+              const { data: profiles } = await getSupabase()
                   .from('profiles')
                   .select('id, display_name, username, avatar_url')
                   .in('id', agentUserIds);

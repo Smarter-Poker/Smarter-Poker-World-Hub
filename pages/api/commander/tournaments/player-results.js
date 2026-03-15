@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
 
     try {
       // Get member info
-      const { data: member, error: memberErr } = await supabase
+      const { data: member, error: memberErr } = await getSupabase()
         .from('commander_members')
         .select('first_name, last_name, venue_id')
         .eq('id', member_id)
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
       const fullName = `${member.first_name} ${member.last_name}`;
 
       // Query tournament entries by player_name matching
-      const { data: entries, error: entriesErr } = await supabase
+      const { data: entries, error: entriesErr } = await getSupabase()
         .from('commander_tournament_entries')
         .select(`
           id,

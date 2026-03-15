@@ -6,10 +6,15 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
       // ═══ Auto-cleanup: delete expired web entries (>1 hour, not checked in) ═══
       try {
         const expiryTime = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-        await supabase
+        await getSupabase()
           .from('commander_waitlist')
           .delete()
           .eq('venue_id', venueId)
@@ -46,7 +51,7 @@ export default async function handler(req, res) {
       } catch (cleanupErr) { /* non-critical */ }
 
       // Get all waiting entries at venue
-      const { data: entries, error } = await supabase
+      const { data: entries, error } = await getSupabase()
         .from('commander_waitlist')
         .select('*')
         .eq('venue_id', venueId)

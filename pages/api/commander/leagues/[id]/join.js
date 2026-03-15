@@ -7,10 +7,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardOwnerStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: OWNER — requires owner role
 export default async function handler(req, res) {
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
 
     try {
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
       if (authError || !user) {
         return res.status(401).json({
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
       }
 
       // Check if league exists
-      const { data: league, error: leagueError } = await supabase
+      const { data: league, error: leagueError } = await getSupabase()
         .from('commander_leagues')
         .select('id, status')
         .eq('id', id)
@@ -68,7 +73,7 @@ export default async function handler(req, res) {
       }
 
       // Check if already joined
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from('commander_league_standings')
         .select('id')
         .eq('league_id', id)
@@ -83,7 +88,7 @@ export default async function handler(req, res) {
       }
 
       // Join the league
-      const { data: standing, error: joinError } = await supabase
+      const { data: standing, error: joinError } = await getSupabase()
         .from('commander_league_standings')
         .insert({
           league_id: id,

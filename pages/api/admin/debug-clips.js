@@ -4,9 +4,16 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -16,28 +23,28 @@ export default async function handler(req, res) {
     }
       try {
           // Check poker_clips
-          const { data: pokerClips, error: pokerError } = await supabase
+          const { data: pokerClips, error: pokerError } = await getSupabase()
               .from('poker_clips')
               .select('id, title, is_active, source_url')
               .limit(5);
 
           // Check sports_clips
-          const { data: sportsClips, error: sportsError } = await supabase
+          const { data: sportsClips, error: sportsError } = await getSupabase()
               .from('sports_clips')
               .select('id, title, source_url, video_id')
               .limit(5);
 
           // Count both tables
-          const { count: pokerCount } = await supabase
+          const { count: pokerCount } = await getSupabase()
               .from('poker_clips')
               .select('*', { count: 'exact', head: true });
 
-          const { count: sportsCount } = await supabase
+          const { count: sportsCount } = await getSupabase()
               .from('sports_clips')
               .select('*', { count: 'exact', head: true });
 
           // Check poker_clips with is_active = true
-          const { count: activePokerCount } = await supabase
+          const { count: activePokerCount } = await getSupabase()
               .from('poker_clips')
               .select('*', { count: 'exact', head: true })
               .eq('is_active', true);

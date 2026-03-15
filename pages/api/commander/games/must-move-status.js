@@ -11,10 +11,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -41,7 +46,7 @@ async function handleGet(req, res) {
     if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
 
     // Get all active games
-    const { data: games, error } = await supabase
+    const { data: games, error } = await getSupabase()
       .from('commander_games')
       .select('id, game_type, stakes, status, table_id, is_must_move, parent_game_id, current_players, max_players, created_at, dealer_staff_id')
       .eq('venue_id', venue_id)
@@ -54,7 +59,7 @@ async function handleGet(req, res) {
     const tableIds = [...new Set((games || []).filter(g => g.table_id).map(g => g.table_id))];
     let tablesMap = {};
     if (tableIds.length > 0) {
-      const { data: tables } = await supabase
+      const { data: tables } = await getSupabase()
         .from('commander_tables')
         .select('id, table_number, table_name, max_seats')
         .in('id', tableIds);
@@ -65,7 +70,7 @@ async function handleGet(req, res) {
     const gameIds = (games || []).map(g => g.id);
     let seatsMap = {}; // game_id -> [seats ordered by seated_at]
     if (gameIds.length > 0) {
-      const { data: seats } = await supabase
+      const { data: seats } = await getSupabase()
         .from('commander_seats')
         .select('id, game_id, seat_number, player_id, player_name, status, seated_at, buyin_amount, created_at')
         .in('game_id', gameIds)
@@ -82,7 +87,7 @@ async function handleGet(req, res) {
     // Get waitlist counts per game type+stakes
     let waitlistCounts = {};
     try {
-      const { data: wlEntries } = await supabase
+      const { data: wlEntries } = await getSupabase()
         .from('commander_waitlist')
         .select('game_type, stakes')
         .eq('venue_id', venue_id)
@@ -121,7 +126,7 @@ async function handleGet(req, res) {
     );
     if (orphans.length > 0) {
       const orphanIds = orphans.map(g => g.id);
-      await supabase
+      await getSupabase()
         .from('commander_games')
         .update({ is_must_move: false, parent_game_id: null })
         .in('id', orphanIds);
@@ -154,7 +159,7 @@ async function handleGet(req, res) {
 
         if (!game.is_must_move || game.parent_game_id !== targetGame.id) {
           updatePromises.push(
-            supabase
+            getSupabase()
               .from('commander_games')
               .update({ is_must_move: true, parent_game_id: targetGame.id })
               .eq('id', game.id)
@@ -216,7 +221,7 @@ async function handlePost(req, res) {
     }
 
     // Get the must-move game's oldest occupied seat (first in line to move)
-    const { data: seats } = await supabase
+    const { data: seats } = await getSupabase()
       .from('commander_seats')
       .select('id, game_id, seat_number, player_id, player_name, seated_at, created_at')
       .eq('game_id', must_move_game_id)
@@ -232,7 +237,7 @@ async function handlePost(req, res) {
     const playerToMove = seats[0];
 
     // Get target game info (this could be another must-move game or the main game)
-    const { data: targetGame } = await supabase
+    const { data: targetGame } = await getSupabase()
       .from('commander_games')
       .select('id, table_id, current_players, max_players')
       .eq('id', actualTargetId)
@@ -240,7 +245,7 @@ async function handlePost(req, res) {
 
     if (!targetGame) return res.status(404).json({ success: false, error: 'Target game not found' });
 
-    const { data: targetTable } = await supabase
+    const { data: targetTable } = await getSupabase()
       .from('commander_tables')
       .select('id, table_number, max_seats')
       .eq('id', targetGame.table_id)
@@ -249,7 +254,7 @@ async function handlePost(req, res) {
     if (!targetTable) return res.status(404).json({ success: false, error: 'Target table not found' });
 
     // Find an open seat at the target game
-    const { data: targetSeats } = await supabase
+    const { data: targetSeats } = await getSupabase()
       .from('commander_seats')
       .select('seat_number')
       .eq('game_id', actualTargetId)
@@ -267,13 +272,13 @@ async function handlePost(req, res) {
     }
 
     // Get source game info for the response
-    const { data: mmGame } = await supabase
+    const { data: mmGame } = await getSupabase()
       .from('commander_games')
       .select('table_id, current_players')
       .eq('id', must_move_game_id)
       .maybeSingle();
 
-    const { data: mmTable } = await supabase
+    const { data: mmTable } = await getSupabase()
       .from('commander_tables')
       .select('table_number')
       .eq('id', mmGame?.table_id)
@@ -281,7 +286,7 @@ async function handlePost(req, res) {
 
     // Move the player (INSERT FIRST, THEN DELETE — if insert fails, player stays at source):
     // 1. Insert a new seat at the target game FIRST
-    const { error: insertError } = await supabase.from('commander_seats').insert({
+    const { error: insertError } = await getSupabase().from('commander_seats').insert({
       game_id: actualTargetId,
       seat_number: openSeat,
       player_id: playerToMove.player_id,
@@ -296,27 +301,27 @@ async function handlePost(req, res) {
     }
 
     // 2. Delete their seat at the must-move table (safe — player already seated at target)
-    await supabase.from('commander_seats').delete().eq('id', playerToMove.id);
+    await getSupabase().from('commander_seats').delete().eq('id', playerToMove.id);
 
     // 3. Update player counts using actual seat counts (not stale fields)
-    const { count: sourceCount } = await supabase
+    const { count: sourceCount } = await getSupabase()
       .from('commander_seats')
       .select('id', { count: 'exact', head: true })
       .eq('game_id', must_move_game_id)
       .eq('status', 'occupied');
 
-    const { count: targetCount } = await supabase
+    const { count: targetCount } = await getSupabase()
       .from('commander_seats')
       .select('id', { count: 'exact', head: true })
       .eq('game_id', actualTargetId)
       .eq('status', 'occupied');
 
-    await supabase
+    await getSupabase()
       .from('commander_games')
       .update({ current_players: sourceCount ?? 0 })
       .eq('id', must_move_game_id);
 
-    await supabase
+    await getSupabase()
       .from('commander_games')
       .update({ current_players: targetCount ?? 0 })
       .eq('id', actualTargetId);

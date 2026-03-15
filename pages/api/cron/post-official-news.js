@@ -12,9 +12,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // SmarterPokerOfficial system account UUID
 const OFFICIAL_ACCOUNT_UUID = '00000000-0000-0000-0000-000000000001';
@@ -28,7 +34,7 @@ const CONFIG = {
 // CHECK IF ARTICLE ALREADY POSTED
 // ═══════════════════════════════════════════════════════════════════════════
 async function isArticleAlreadyPosted(articleSlug) {
-    const { data } = await supabase
+    const { data } = await getSupabase()
         .from('social_posts')
         .select('id')
         .eq('author_id', OFFICIAL_ACCOUNT_UUID)
@@ -50,7 +56,7 @@ async function postNewsArticle(article) {
 
     const postContent = `${emoji} ${article.title}\n\n${article.excerpt}\n\n🔗 Read more: https://smarter.poker/hub/news/${article.slug}`;
 
-    const { data: post, error } = await supabase
+    const { data: post, error } = await getSupabase()
         .from('social_posts')
         .insert({
             author_id: OFFICIAL_ACCOUNT_UUID,
@@ -97,7 +103,7 @@ export default async function handler(req, res) {
 
       try {
           // Verify official account exists
-          const { data: officialAccount, error: accountError } = await supabase
+          const { data: officialAccount, error: accountError } = await getSupabase()
               .from('profiles')
               .select('id, username')
               .eq('id', OFFICIAL_ACCOUNT_UUID)
@@ -113,7 +119,7 @@ export default async function handler(req, res) {
 
 
           // Get recent news articles that haven't been posted yet
-          const { data: articles, error: articlesError } = await supabase
+          const { data: articles, error: articlesError } = await getSupabase()
               .from('poker_news')
               .select('*')
               .eq('is_published', true)

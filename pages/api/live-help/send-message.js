@@ -10,10 +10,15 @@ import { injectKnowledge } from '../../../src/lib/liveHelp/knowledgeInjection';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
           if (authError || !user) {
               return res.status(401).json({ error: 'Invalid token' });
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
           }
 
           // Verify conversation belongs to user
-          const { data: conversation, error: convError } = await supabase
+          const { data: conversation, error: convError } = await getSupabase()
               .from('live_help_conversations')
               .select('*')
               .eq('id', conversationId)
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
           }
 
           // Save user message
-          const { data: userMessage, error: userMsgError } = await supabase
+          const { data: userMessage, error: userMsgError } = await getSupabase()
               .from('live_help_messages')
               .insert({
                   conversation_id: conversationId,
@@ -73,7 +78,7 @@ export default async function handler(req, res) {
           }
 
           // Get conversation history (last 10 messages)
-          const { data: history } = await supabase
+          const { data: history } = await getSupabase()
               .from('live_help_messages')
               .select('*')
               .eq('conversation_id', conversationId)
@@ -124,7 +129,7 @@ export default async function handler(req, res) {
           const typingDelay = calculateTypingDelay(aiResponse, conversation.agent_id);
 
           // Save agent message
-          const { data: agentMessage, error: agentMsgError } = await supabase
+          const { data: agentMessage, error: agentMsgError } = await getSupabase()
               .from('live_help_messages')
               .insert({
                   conversation_id: conversationId,
@@ -147,7 +152,7 @@ export default async function handler(req, res) {
           }
 
           // Update conversation updated_at
-          await supabase
+          await getSupabase()
               .from('live_help_conversations')
               .update({ updated_at: new Date().toISOString() })
               .eq('id', conversationId);

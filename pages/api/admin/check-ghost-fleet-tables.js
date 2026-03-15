@@ -4,10 +4,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -23,37 +28,37 @@ export default async function handler(req, res) {
           const tables = {};
 
           // Check posted_clips (poker clips)
-          const { count: pokerClips, error: e1 } = await supabase
+          const { count: pokerClips, error: e1 } = await getSupabase()
               .from('posted_clips')
               .select('*', { count: 'exact', head: true });
           tables.posted_clips = { exists: !e1, count: pokerClips, error: e1?.message };
 
           // Check sports_clips table
-          const { count: sportsClipsCount, error: e2 } = await supabase
+          const { count: sportsClipsCount, error: e2 } = await getSupabase()
               .from('sports_clips')
               .select('*', { count: 'exact', head: true });
           tables.sports_clips = { exists: !e2, count: sportsClipsCount, error: e2?.message };
 
           // Check stories table
-          const { count: storiesCount, error: e3 } = await supabase
+          const { count: storiesCount, error: e3 } = await getSupabase()
               .from('stories')
               .select('*', { count: 'exact', head: true });
           tables.stories = { exists: !e3, count: storiesCount, error: e3?.message };
 
           // Check social_posts table
-          const { count: postsCount, error: e4 } = await supabase
+          const { count: postsCount, error: e4 } = await getSupabase()
               .from('social_posts')
               .select('*', { count: 'exact', head: true });
           tables.social_posts = { exists: !e4, count: postsCount, error: e4?.message };
 
           // Check horse_source_assignments
-          const { count: assignmentsCount, error: e5 } = await supabase
+          const { count: assignmentsCount, error: e5 } = await getSupabase()
               .from('horse_source_assignments')
               .select('*', { count: 'exact', head: true });
           tables.horse_source_assignments = { exists: !e5, count: assignmentsCount, error: e5?.message };
 
           // Check content_authors (horses)
-          const { count: horsesCount, error: e6 } = await supabase
+          const { count: horsesCount, error: e6 } = await getSupabase()
               .from('content_authors')
               .select('*', { count: 'exact', head: true })
               .eq('is_active', true);

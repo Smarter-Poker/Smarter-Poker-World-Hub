@@ -7,10 +7,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -29,7 +34,7 @@ export default async function handler(req, res) {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
       if (authError || !user) {
           return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
 
       try {
           // ── LOOK UP CODE ──
-          const { data: promo, error: lookupError } = await supabaseAdmin
+          const { data: promo, error: lookupError } = await getSupabase()
               .from('promo_codes')
               .select('*')
               .eq('code', normalizedCode)
@@ -69,7 +74,7 @@ export default async function handler(req, res) {
           }
 
           // ── CHECK DUPLICATE REDEMPTION ──
-          const { data: existing } = await supabaseAdmin
+          const { data: existing } = await getSupabase()
               .from('promo_code_redemptions')
               .select('id')
               .eq('promo_code_id', promo.id)
@@ -83,7 +88,7 @@ export default async function handler(req, res) {
           // BUG #264 FIX: Atomic redemption insert to prevent TOCTOU double-redeem.
           // Insert FIRST with unique constraint, then apply reward. If insert fails,
           // we know another request already redeemed.
-          const { error: redeemInsertErr } = await supabaseAdmin
+          const { error: redeemInsertErr } = await getSupabase()
               .from('promo_code_redemptions')
               .insert({
                   promo_code_id: promo.id,
@@ -107,7 +112,7 @@ export default async function handler(req, res) {
 
           if (promo.reward_type === 'diamonds') {
               // BUG #264 FIX: Use atomic RPC instead of read-modify-write
-              const { error: diamondErr } = await supabaseAdmin.rpc('add_diamonds_to_balance', {
+              const { error: diamondErr } = await getSupabase().rpc('add_diamonds_to_balance', {
                   p_user_id: user.id,
                   p_amount: promo.reward_value,
                   p_type: 'promo_code',
@@ -117,7 +122,7 @@ export default async function handler(req, res) {
 
               if (diamondErr) {
                   // Fallback: use add_diamonds_to_balance RPC
-                  await supabaseAdmin.rpc('add_diamonds_to_balance', {
+                  await getSupabase().rpc('add_diamonds_to_balance', {
                       p_user_id: user.id,
                       p_amount: promo.reward_value,
                       p_type: 'promo_code',
@@ -129,7 +134,7 @@ export default async function handler(req, res) {
               reward.message = `${promo.reward_value} diamonds added to your account!`;
           } else if (promo.reward_type === 'vip_days') {
               // Extend or create VIP subscription
-              const { data: profile } = await supabaseAdmin
+              const { data: profile } = await getSupabase()
                   .from('profiles')
                   .select('vip_expires_at')
                   .eq('id', user.id)
@@ -140,7 +145,7 @@ export default async function handler(req, res) {
               const startDate = currentExpiry > now ? currentExpiry : now;
               const newExpiry = new Date(startDate.getTime() + promo.reward_value * 24 * 60 * 60 * 1000);
 
-              await supabaseAdmin
+              await getSupabase()
                   .from('profiles')
                   .update({
                       is_vip: true,
@@ -154,7 +159,7 @@ export default async function handler(req, res) {
               const now = new Date();
               const trialEnd = new Date(now.getTime() + promo.reward_value * 24 * 60 * 60 * 1000);
 
-              await supabaseAdmin
+              await getSupabase()
                   .from('profiles')
                   .update({
                       is_vip: true,
@@ -170,14 +175,14 @@ export default async function handler(req, res) {
 
           // ── Redemption already recorded above (atomic insert) ──
           // Update with reward details
-          await supabaseAdmin
+          await getSupabase()
               .from('promo_code_redemptions')
               .update({ reward_applied: reward })
               .eq('promo_code_id', promo.id)
               .eq('user_id', user.id);
 
           // ── INCREMENT USAGE COUNT ──
-          await supabaseAdmin
+          await getSupabase()
               .from('promo_codes')
               .update({ times_used: promo.times_used + 1 })
               .eq('id', promo.id);

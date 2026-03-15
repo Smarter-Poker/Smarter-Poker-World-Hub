@@ -6,10 +6,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -31,7 +36,7 @@ export default async function handler(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
 
     try {
       // Find player's current seat (where they are actively seated in a running game)
-      const { data: seats, error } = await supabase
+      const { data: seats, error } = await getSupabase()
         .from('commander_seats')
         .select(`
           id,
@@ -81,7 +86,7 @@ export default async function handler(req, res) {
       // Get table info
       let tableInfo = null;
       if (activeSeat.commander_games.table_id) {
-        const { data: table } = await supabase
+        const { data: table } = await getSupabase()
           .from('commander_tables')
           .select('id, table_number, table_name')
           .eq('id', activeSeat.commander_games.table_id)
@@ -90,7 +95,7 @@ export default async function handler(req, res) {
       }
 
       // Get venue info
-      const { data: venue } = await supabase
+      const { data: venue } = await getSupabase()
         .from('poker_venues')
         .select('id, name')
         .eq('id', activeSeat.commander_games.venue_id)

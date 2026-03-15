@@ -9,10 +9,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -57,13 +62,13 @@ async function getEvent(req, res, id) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
-    const { data: event, error } = await supabase
+    const { data: event, error } = await getSupabase()
       .from('commander_home_games')
       .select(`
         *,
@@ -82,7 +87,7 @@ async function getEvent(req, res, id) {
     }
 
     // Check if user is a member
-    const { data: membership } = await supabase
+    const { data: membership } = await getSupabase()
       .from('commander_home_members')
       .select('role, status')
       .eq('group_id', event.group_id)
@@ -148,14 +153,14 @@ async function updateEvent(req, res, id) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // Get event
-    const { data: event } = await supabase
+    const { data: event } = await getSupabase()
       .from('commander_home_games')
       .select('host_id, group_id, status')
       .eq('id', id)
@@ -168,7 +173,7 @@ async function updateEvent(req, res, id) {
     // Check permissions
     const isHost = event.host_id === user.id;
 
-    const { data: membership } = await supabase
+    const { data: membership } = await getSupabase()
       .from('commander_home_members')
       .select('role')
       .eq('group_id', event.group_id)
@@ -186,7 +191,7 @@ async function updateEvent(req, res, id) {
 
     // Handle special actions
     if (action === 'start') {
-      const { data: updated, error } = await supabase
+      const { data: updated, error } = await getSupabase()
         .from('commander_home_games')
         .update({ status: 'in_progress', updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -199,7 +204,7 @@ async function updateEvent(req, res, id) {
     }
 
     if (action === 'complete') {
-      const { data: updated, error } = await supabase
+      const { data: updated, error } = await getSupabase()
         .from('commander_home_games')
         .update({ status: 'completed', updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -211,7 +216,7 @@ async function updateEvent(req, res, id) {
       // XP system removed
 
       // Award XP to attendees
-      const { data: attendees } = await supabase
+      const { data: attendees } = await getSupabase()
         .from('commander_home_rsvps')
         .select('user_id')
         .eq('game_id', id)
@@ -225,7 +230,7 @@ async function updateEvent(req, res, id) {
       }
 
       // Update member stats
-      await supabase.rpc('increment_home_game_stats', {
+      await getSupabase().rpc('increment_home_game_stats', {
         p_game_id: id
       }).catch(() => {
         // Function may not exist, that's okay
@@ -248,7 +253,7 @@ async function updateEvent(req, res, id) {
     delete updates.rsvp_no;
     delete updates.waitlist_count;
 
-    const { data: updated, error } = await supabase
+    const { data: updated, error } = await getSupabase()
       .from('commander_home_games')
       .update(updates)
       .eq('id', id)
@@ -272,14 +277,14 @@ async function cancelEvent(req, res, id) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // Get event
-    const { data: event } = await supabase
+    const { data: event } = await getSupabase()
       .from('commander_home_games')
       .select('host_id, group_id')
       .eq('id', id)
@@ -292,7 +297,7 @@ async function cancelEvent(req, res, id) {
     // Check permissions
     const isHost = event.host_id === user.id;
 
-    const { data: membership } = await supabase
+    const { data: membership } = await getSupabase()
       .from('commander_home_members')
       .select('role')
       .eq('group_id', event.group_id)
@@ -306,7 +311,7 @@ async function cancelEvent(req, res, id) {
       return res.status(403).json({ success: false, error: 'Only the host or admins can cancel this event' });
     }
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('commander_home_games')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .eq('id', id);

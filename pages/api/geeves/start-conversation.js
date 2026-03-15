@@ -5,10 +5,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -27,14 +32,14 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
           if (authError || !user) {
               return res.status(401).json({ error: 'Invalid token' });
           }
 
           // Fetch user profile for personalized greeting
-          const { data: profile } = await supabase
+          const { data: profile } = await getSupabase()
               .from('profiles')
               .select('first_name, username')
               .eq('id', user.id)
@@ -43,7 +48,7 @@ export default async function handler(req, res) {
           const userName = profile?.first_name || profile?.username || 'there';
 
           // Create conversation
-          const { data: conversation, error: convError } = await supabase
+          const { data: conversation, error: convError } = await getSupabase()
               .from('geeves_conversations')
               .insert({
                   user_id: user.id,
@@ -73,7 +78,7 @@ export default async function handler(req, res) {
   What poker question can I help you with today?`;
 
           // Save greeting message
-          await supabase.from('geeves_messages').insert({
+          await getSupabase().from('geeves_messages').insert({
               conversation_id: conversation.id,
               content: greeting,
               is_user: false

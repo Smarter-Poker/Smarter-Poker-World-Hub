@@ -7,10 +7,15 @@ import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -48,14 +53,14 @@ async function updateAward(req, res, promotionId, awardId) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
     // Get award
-    const { data: award } = await supabase
+    const { data: award } = await getSupabase()
       .from('commander_promotion_awards')
       .select('id, venue_id, status')
       .eq('id', awardId)
@@ -67,7 +72,7 @@ async function updateAward(req, res, promotionId, awardId) {
     }
 
     // Check if user is staff at this venue
-    const { data: staff } = await supabase
+    const { data: staff } = await getSupabase()
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', award.venue_id)
@@ -108,7 +113,7 @@ async function updateAward(req, res, promotionId, awardId) {
       updates.notes = notes;
     }
 
-    const { data: updatedAward, error } = await supabase
+    const { data: updatedAward, error } = await getSupabase()
       .from('commander_promotion_awards')
       .update(updates)
       .eq('id', awardId)

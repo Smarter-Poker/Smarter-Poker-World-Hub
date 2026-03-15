@@ -7,10 +7,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
       // Staff is already validated by guardWriteStaff at the handler level
 
       // Get tournament for clock_state
-      const { data: tournament, error: tErr } = await supabase
+      const { data: tournament, error: tErr } = await getSupabase()
         .from('commander_tournaments')
         .select('*')
         .eq('id', tournamentId)
@@ -53,7 +58,7 @@ export default async function handler(req, res) {
 
       const updatedSettings = { ...settings, clock_state: updatedClockState };
 
-      const { error: uErr } = await supabase
+      const { error: uErr } = await getSupabase()
         .from('commander_tournaments')
         .update({ settings: updatedSettings })
         .eq('id', tournamentId);

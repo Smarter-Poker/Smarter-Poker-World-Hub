@@ -14,10 +14,15 @@ import { createClient } from '@supabase/supabase-js';
 import { sanitizeNote } from '../../../src/lib/club-arena/sanitize';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -26,7 +31,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Not authenticated' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { action, tableId, clubId, message, targetUserId } = req.body;
@@ -46,7 +51,7 @@ export default async function handler(req, res) {
                   if (!applyRateLimit(req, res, { max: 5, windowMs: 5000, scope: ':chat_send' })) return;
 
                   // Check if user is muted
-                  const { data: muteCheck } = await supabaseAdmin
+                  const { data: muteCheck } = await getSupabase()
                       .from('table_chat_mutes')
                       .select('id')
                       .eq('table_id', tableId)
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
                   if (muteCheck) return res.status(403).json({ error: 'You are muted at this table' });
 
                   // Check if user is seated at the table
-                  const { data: tableData } = await supabaseAdmin
+                  const { data: tableData } = await getSupabase()
                       .from('active_tables')
                       .select('table_state')
                       .eq('id', tableId)
@@ -73,7 +78,7 @@ export default async function handler(req, res) {
 
                   if (!isSeated) {
                       // Admins allowed to chat as dealers, but not regular players
-                      const { data: membership } = await supabaseAdmin
+                      const { data: membership } = await getSupabase()
                           .from('club_members')
                           .select('role')
                           .eq('user_id', user.id)
@@ -84,7 +89,7 @@ export default async function handler(req, res) {
                   }
 
                   // Get user profile for display
-                  const { data: profile } = await supabaseAdmin
+                  const { data: profile } = await getSupabase()
                       .from('profiles')
                       .select('display_name, avatar_url')
                       .eq('id', user.id)
@@ -99,7 +104,7 @@ export default async function handler(req, res) {
                       avatar_url: profile?.avatar_url || null,
                   };
 
-                  const { data, error } = await supabaseAdmin
+                  const { data, error } = await getSupabase()
                       .from('table_chat')
                       .insert(chatMsg)
                       .select()
@@ -114,7 +119,7 @@ export default async function handler(req, res) {
                   if (!message?.trim()) return res.status(400).json({ error: 'Message required' });
 
                   // Verify admin
-                  const { data: membership } = await supabaseAdmin
+                  const { data: membership } = await getSupabase()
                       .from('club_members')
                       .select('role')
                       .eq('club_id', clubId)
@@ -124,7 +129,7 @@ export default async function handler(req, res) {
                       return res.status(403).json({ error: 'Admin access required' });
                   }
 
-                  const { data, error } = await supabaseAdmin
+                  const { data, error } = await getSupabase()
                       .from('table_chat')
                       .insert({
                           table_id: tableId,
@@ -141,7 +146,7 @@ export default async function handler(req, res) {
               }
 
               case 'history': {
-                  const { data, error } = await supabaseAdmin
+                  const { data, error } = await getSupabase()
                       .from('table_chat')
                       .select('*')
                       .eq('table_id', tableId)
@@ -155,7 +160,7 @@ export default async function handler(req, res) {
               case 'mute': {
                   if (!clubId || !targetUserId) return res.status(400).json({ error: 'clubId and targetUserId required' });
 
-                  const { data: membership } = await supabaseAdmin
+                  const { data: membership } = await getSupabase()
                       .from('club_members')
                       .select('role')
                       .eq('club_id', clubId)
@@ -167,7 +172,7 @@ export default async function handler(req, res) {
 
                   // Mute for 30 minutes
                   const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-                  const { error } = await supabaseAdmin
+                  const { error } = await getSupabase()
                       .from('table_chat_mutes')
                       .upsert({
                           table_id: tableId,

@@ -17,10 +17,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 /** Escape SQL LIKE wildcards */
 function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
           // Look up member by QR code first, then by member number
           let member = null;
 
-          const { data: byQr, error: qrError } = await supabase
+          const { data: byQr, error: qrError } = await getSupabase()
               .from('commander_members')
               .select('*')
               .eq('qr_code', lookupCode)
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
 
           // If not found by QR code, try member number
           if (!member) {
-              let mnQuery = supabase
+              let mnQuery = getSupabase()
                   .from('commander_members')
                   .select('*')
                   .eq('member_number', lookupCode)
@@ -108,7 +113,7 @@ export default async function handler(req, res) {
           // Resolve the dealer record in commander_dealers (FK target)
           // Try to find by name match or staff linkage
           let dealerId = null;
-          const { data: existingDealer } = await supabase
+          const { data: existingDealer } = await getSupabase()
               .from('commander_dealers')
               .select('id')
               .eq('venue_id', venueId)
@@ -119,7 +124,7 @@ export default async function handler(req, res) {
               dealerId = existingDealer[0].id;
           } else {
               // Also try matching by first + last name parts
-              const { data: nameMatch } = await supabase
+              const { data: nameMatch } = await getSupabase()
                   .from('commander_dealers')
                   .select('id, name')
                   .eq('venue_id', venueId)
@@ -134,7 +139,7 @@ export default async function handler(req, res) {
                   dealerId = matched.id;
               } else {
                   // Create a new commander_dealers record
-                  const { data: newDealer, error: createErr } = await supabase
+                  const { data: newDealer, error: createErr } = await getSupabase()
                       .from('commander_dealers')
                       .insert({
                           venue_id: venueId,
@@ -148,7 +153,7 @@ export default async function handler(req, res) {
                   if (createErr) {
                       console.error('Failed to create dealer record:', createErr.message);
                       // Try without employee_id
-                      const { data: nd2 } = await supabase
+                      const { data: nd2 } = await getSupabase()
                           .from('commander_dealers')
                           .insert({
                               venue_id: venueId,
@@ -169,7 +174,7 @@ export default async function handler(req, res) {
           }
 
           // End any current dealer rotation for this table
-          await supabase
+          await getSupabase()
               .from('commander_dealer_rotations')
               .update({ ended_at: new Date().toISOString() })
               .eq('venue_id', venueId)
@@ -177,14 +182,14 @@ export default async function handler(req, res) {
               .is('ended_at', null);
 
           // Also end any current rotation for this dealer (if they were at another table)
-          await supabase
+          await getSupabase()
               .from('commander_dealer_rotations')
               .update({ ended_at: new Date().toISOString() })
               .eq('dealer_id', dealerId)
               .is('ended_at', null);
 
           // Create new rotation assignment
-          const { data: rotation, error: rotationError } = await supabase
+          const { data: rotation, error: rotationError } = await getSupabase()
               .from('commander_dealer_rotations')
               .insert({
                   venue_id: venueId,
@@ -200,7 +205,7 @@ export default async function handler(req, res) {
           if (rotationError) throw rotationError;
 
           // Update member's last visit
-          await supabase
+          await getSupabase()
               .from('commander_members')
               .update({
                   last_visit: new Date().toISOString(),

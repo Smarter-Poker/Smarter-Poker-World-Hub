@@ -1,9 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 /**
  * Chat API — persists table chat messages to club_chat table.
@@ -13,7 +18,6 @@ const supabaseAdmin = createClient(
  */
 export default async function handler(req, res) {
   try {
-    const supabase = supabaseAdmin;
     const tableId = req.query.tableId || req.body?.tableId;
 
     if (req.method === 'GET') {
@@ -21,7 +25,7 @@ export default async function handler(req, res) {
       if (!tableId) return res.status(400).json({ error: 'tableId required' });
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('club_chat')
           .select('id, user_id, display_name, message, message_type, created_at')
           .eq('club_id', tableId)
@@ -44,7 +48,7 @@ export default async function handler(req, res) {
       let userId = null;
       if (authHeader?.startsWith('Bearer ')) {
         try {
-          const { data: { user } } = await supabase.auth.getUser(authHeader.split(' ')[1]);
+          const { data: { user } } = await getSupabase().auth.getUser(authHeader.split(' ')[1]);
           userId = user?.id;
         } catch (_) {}
       }
@@ -52,7 +56,7 @@ export default async function handler(req, res) {
       if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('club_chat')
           .insert({
             club_id: clubId,

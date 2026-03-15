@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -38,7 +43,7 @@ async function listLeaderboards(req, res) {
         const { venue_id, active_only } = req.query;
         if (!venue_id) return res.status(400).json({ success: false, error: { message: 'venue_id required' } });
 
-        let query = supabase
+        let query = getSupabase()
             .from('commander_tournament_leaderboards')
             .select('*')
             .eq('venue_id', venue_id)
@@ -55,7 +60,7 @@ async function listLeaderboards(req, res) {
 
         // For each leaderboard, get top standings
         const leaderboardsWithStandings = await Promise.all((data || []).map(async (lb) => {
-            const { data: points } = await supabase
+            const { data: points } = await getSupabase()
                 .from('commander_tournament_points')
                 .select('player_id, player_name, points, finish_position, entry_points')
                 .eq('leaderboard_id', lb.id)
@@ -101,7 +106,7 @@ async function createLeaderboard(req, res, staff) {
             return res.status(400).json({ success: false, error: { message: 'venue_id, name, season_start, season_end required' } });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('commander_tournament_leaderboards')
             .insert({
                 venue_id,

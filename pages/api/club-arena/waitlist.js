@@ -14,10 +14,15 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
@@ -29,7 +34,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Not authenticated' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { action, tableId, clubId, targetUserId } = req.body;
@@ -40,7 +45,7 @@ export default async function handler(req, res) {
           switch (action) {
               case 'join': {
                   // Check if already on waitlist
-                  const { data: existing } = await supabaseAdmin
+                  const { data: existing } = await getSupabase()
                       .from('table_waitlist')
                       .select('id')
                       .eq('table_id', tableId)
@@ -51,13 +56,13 @@ export default async function handler(req, res) {
                   if (existing) return res.status(409).json({ error: 'Already on waitlist' });
 
                   // Get next position
-                  const { count } = await supabaseAdmin
+                  const { count } = await getSupabase()
                       .from('table_waitlist')
                       .select('id', { count: 'exact', head: true })
                       .eq('table_id', tableId)
                       .eq('status', 'waiting');
 
-                  const { data, error } = await supabaseAdmin
+                  const { data, error } = await getSupabase()
                       .from('table_waitlist')
                       .insert({
                           table_id: tableId,
@@ -73,7 +78,7 @@ export default async function handler(req, res) {
               }
 
               case 'leave': {
-                  const { error } = await supabaseAdmin
+                  const { error } = await getSupabase()
                       .from('table_waitlist')
                       .update({ status: 'left' })
                       .eq('table_id', tableId)
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
               }
 
               case 'position': {
-                  const { data } = await supabaseAdmin
+                  const { data } = await getSupabase()
                       .from('table_waitlist')
                       .select('position')
                       .eq('table_id', tableId)
@@ -103,7 +108,7 @@ export default async function handler(req, res) {
               case 'list': {
                   // Admin only — get full waitlist
                   if (!clubId) return res.status(400).json({ error: 'clubId required for list' });
-                  const { data: membership } = await supabaseAdmin
+                  const { data: membership } = await getSupabase()
                       .from('club_members')
                       .select('role')
                       .eq('club_id', clubId)
@@ -113,7 +118,7 @@ export default async function handler(req, res) {
                       return res.status(403).json({ error: 'Admin access required' });
                   }
 
-                  const { data, error } = await supabaseAdmin
+                  const { data, error } = await getSupabase()
                       .from('table_waitlist')
                       .select(`
                           *,
@@ -131,7 +136,7 @@ export default async function handler(req, res) {
               case 'notify': {
                   // Admin notifies next player
                   if (!clubId) return res.status(400).json({ error: 'clubId required' });
-                  const { data: membership } = await supabaseAdmin
+                  const { data: membership } = await getSupabase()
                       .from('club_members')
                       .select('role')
                       .eq('club_id', clubId)
@@ -144,7 +149,7 @@ export default async function handler(req, res) {
                   const userId = targetUserId;
                   if (!userId) return res.status(400).json({ error: 'targetUserId required' });
 
-                  const { error } = await supabaseAdmin
+                  const { error } = await getSupabase()
                       .from('table_waitlist')
                       .update({ status: 'notified', notified_at: new Date().toISOString() })
                       .eq('table_id', tableId)
@@ -157,7 +162,7 @@ export default async function handler(req, res) {
 
               case 'clear': {
                   if (!clubId) return res.status(400).json({ error: 'clubId required' });
-                  const { data: membership } = await supabaseAdmin
+                  const { data: membership } = await getSupabase()
                       .from('club_members')
                       .select('role')
                       .eq('club_id', clubId)
@@ -167,7 +172,7 @@ export default async function handler(req, res) {
                       return res.status(403).json({ error: 'Admin access required' });
                   }
 
-                  const { error } = await supabaseAdmin
+                  const { error } = await getSupabase()
                       .from('table_waitlist')
                       .update({ status: 'cleared' })
                       .eq('table_id', tableId)

@@ -27,10 +27,15 @@ export const config = {
 // Use Grok for image generation
 const grok = getGrokClient();
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 /**
  * Remove white/near-white background using Sharp with multi-threshold algorithm
@@ -119,7 +124,7 @@ export default async function handler(req, res) {
       // Without auth, anyone can spam it and rack up API charges.
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       try {
@@ -207,7 +212,7 @@ export default async function handler(req, res) {
           const filename = `likeness_${safeUserId}_${timestamp}.png`;
           const storagePath = `generated/${filename}`;
 
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { data: uploadData, error: uploadError } = await getSupabase().storage
               .from('custom-avatars')
               .upload(storagePath, transparentBuffer, {
                   contentType: 'image/png',
@@ -220,7 +225,7 @@ export default async function handler(req, res) {
               throw new Error('Failed to upload avatar to storage');
           }
 
-          const { data: { publicUrl } } = supabase.storage
+          const { data: { publicUrl } } = getSupabase().storage
               .from('custom-avatars')
               .getPublicUrl(storagePath);
 

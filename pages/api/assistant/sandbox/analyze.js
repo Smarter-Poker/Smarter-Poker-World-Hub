@@ -21,10 +21,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { checkSandboxAccess } from '../../../../src/lib/personal-assistant/contextAuthority';
 import { getGrokClient } from '../../../../src/lib/grokClient';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ACTION LABELS — Matches DeterministicGTOEngine standard
@@ -205,7 +210,7 @@ async function querySolverData(params) {
 
   // ━━━ TIER 1: Exact board match ━━━
   try {
-    const { data: exactMatches, error } = await supabase
+    const { data: exactMatches, error } = await getSupabase()
       .from('solved_spots_gold')
       .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
       .eq('game_type', pioGameType)
@@ -225,7 +230,7 @@ async function querySolverData(params) {
   // ━━━ TIER 2: Partial board match (flop portion) ━━━
   if (flopStr.length >= 6) {
     try {
-      const { data: partialMatches } = await supabase
+      const { data: partialMatches } = await getSupabase()
         .from('solved_spots_gold')
         .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
         .eq('game_type', pioGameType)
@@ -245,7 +250,7 @@ async function querySolverData(params) {
 
   // ━━━ TIER 3: Any scenario with same game_type/street/stack ━━━
   try {
-    const { data: anyMatches } = await supabase
+    const { data: anyMatches } = await getSupabase()
       .from('solved_spots_gold')
       .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
       .eq('game_type', pioGameType)
@@ -264,7 +269,7 @@ async function querySolverData(params) {
   // ━━━ TIER 3b: Try nearby stack depths ━━━
   const nearbyStacks = [stackDepth - 20, stackDepth + 20, stackDepth - 40, stackDepth + 40].filter(s => s > 0);
   try {
-    const { data: nearbyMatches } = await supabase
+    const { data: nearbyMatches } = await getSupabase()
       .from('solved_spots_gold')
       .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
       .eq('game_type', pioGameType)
@@ -291,7 +296,7 @@ async function queryPreflopData(params) {
   const stackDepth = normalizeStack(heroStack);
 
   try {
-    const { data: charts } = await supabase
+    const { data: charts } = await getSupabase()
       .from('memory_charts_gold')
       .select('*')
       .lte('stack_depth', stackDepth + 5)
@@ -733,7 +738,7 @@ export default async function handler(req, res) {
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.replace('Bearer ', '');
         try {
-          const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+          const { data: { user: authUser }, error: authError } = await getSupabase().auth.getUser(token);
           if (!authError && authUser) {
             userId = authUser.id;
           }
@@ -872,7 +877,7 @@ export default async function handler(req, res) {
 
       // Save session
       try {
-        const { data: session } = await supabase
+        const { data: session } = await getSupabase()
           .from('sandbox_sessions')
           .insert({
             user_id: userId,
@@ -893,7 +898,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (session) {
-          await supabase.from('sandbox_results').insert({
+          await getSupabase().from('sandbox_results').insert({
             session_id: session.id,
             primary_action: analysis.optimalAction?.label,
             primary_frequency: analysis.optimalAction?.frequency,
@@ -911,13 +916,13 @@ export default async function handler(req, res) {
           });
 
           // Update user stats
-          const { data: existing } = await supabase
+          const { data: existing } = await getSupabase()
             .from('user_assistant_stats')
             .select('sandbox_sessions_count, total_sessions_reviewed, total_hands_analyzed')
             .eq('user_id', userId)
             .maybeSingle();
 
-          await supabase.from('user_assistant_stats').upsert({
+          await getSupabase().from('user_assistant_stats').upsert({
             user_id: userId,
             sandbox_sessions_count: (existing?.sandbox_sessions_count || 0) + 1,
             total_sessions_reviewed: (existing?.total_sessions_reviewed || 0) + 1,

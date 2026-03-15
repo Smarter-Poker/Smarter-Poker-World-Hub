@@ -5,10 +5,15 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -47,7 +52,7 @@ export default async function handler(req, res) {
       const mappedStatus = statusMap[MessageStatus] || MessageStatus;
 
       // Update notification by message_sid in metadata
-      const { data: notifications, error: findError } = await supabase
+      const { data: notifications, error: findError } = await getSupabase()
         .from('commander_notifications')
         .select('id')
         .eq('channel', 'sms')
@@ -73,7 +78,7 @@ export default async function handler(req, res) {
           updates.delivered_at = new Date().toISOString();
         }
 
-        const { error: updateError } = await supabase
+        const { error: updateError } = await getSupabase()
           .from('commander_notifications')
           .update(updates)
           .eq('id', notifications[0].id);

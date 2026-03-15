@@ -8,10 +8,15 @@ import { checkMemoryRateLimit } from '../../../src/lib/commander/rateLimit';
 // Note: No auth guard — this route is called during login BEFORE staff session exists.
 // It has its own inline JWT validation below.
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
           return res.status(401).json({ error: 'Authentication required' });
       }
 
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) {
           return res.status(401).json({ error: 'Invalid token' });
       }
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
       const userId = user.id;
 
       try {
-          const { data: subs, error } = await supabase
+          const { data: subs, error } = await getSupabase()
               .from('commander_subscriptions')
               .select('*, venue:poker_venues(*)')
               .eq('owner_id', userId)

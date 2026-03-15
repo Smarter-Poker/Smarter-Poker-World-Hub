@@ -20,10 +20,15 @@ const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MANDATE 3: Economy Caps — absolute hard limits on chip minting
@@ -61,14 +66,14 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     // BUG #153 FIX: Verify caller is club owner or union admin
     // Without this, ANY authenticated user could mint chips into ANY club's treasury.
     let callerRole = null; // 'club_owner' or 'union_admin'
     try {
-      const { data: club } = await supabaseAdmin
+      const { data: club } = await getSupabase()
         .from('clubs')
         .select('id, owner_id, union_id')
         .eq('id', clubId)
@@ -79,7 +84,7 @@ export default async function handler(req, res) {
       if (club.owner_id === user.id) {
         callerRole = 'club_owner';
       } else if (club.union_id) {
-        const { data: ua } = await supabaseAdmin
+        const { data: ua } = await getSupabase()
           .from('union_admins')
           .select('role')
           .eq('union_id', club.union_id)
@@ -89,7 +94,7 @@ export default async function handler(req, res) {
             callerRole = 'union_admin';
         } else {
             // Owner fallback
-            const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
+            const { data: union } = await getSupabase().from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
             if (union) callerRole = 'union_admin';
         }
       }
@@ -105,7 +110,7 @@ export default async function handler(req, res) {
     const requestCap = MINT_CAPS[callerRole] || MINT_CAPS.club_owner;
     if (amount > requestCap) {
       // Audit log: cap enforcement event
-      await supabaseAdmin.from('chip_transactions').insert({
+      await getSupabase().from('chip_transactions').insert({
         club_id: clubId,
         amount: 0,
         transaction_type: 'mint_cap_blocked',
@@ -124,7 +129,7 @@ export default async function handler(req, res) {
     const utcToday = new Date();
     const utcDayStart = new Date(Date.UTC(utcToday.getUTCFullYear(), utcToday.getUTCMonth(), utcToday.getUTCDate())).toISOString();
     try {
-      const { data: todayMints } = await supabaseAdmin
+      const { data: todayMints } = await getSupabase()
         .from('chip_transactions')
         .select('amount')
         .eq('club_id', clubId)
@@ -137,7 +142,7 @@ export default async function handler(req, res) {
 
       if (amount > remaining) {
         // Audit log: daily ceiling enforcement
-        await supabaseAdmin.from('chip_transactions').insert({
+        await getSupabase().from('chip_transactions').insert({
           club_id: clubId,
           amount: 0,
           transaction_type: 'mint_cap_blocked',
@@ -167,7 +172,7 @@ export default async function handler(req, res) {
 
     try {
       // Call atomic RPC — handles FOR UPDATE locking, auth check, and transaction logging
-      const { data: result, error: rpcErr } = await supabaseAdmin.rpc('mint_club_chips', {
+      const { data: result, error: rpcErr } = await getSupabase().rpc('mint_club_chips', {
         p_club_id: clubId,
         p_amount: amount,
         p_minted_by: user.id,

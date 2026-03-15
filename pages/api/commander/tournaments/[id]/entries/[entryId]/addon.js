@@ -8,10 +8,15 @@ import { createClient } from '../../../../../../../src/lib/supabaseServerClient'
 import { guardWriteStaff } from '../../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
     try {
       // Staff is already validated by guardWriteStaff at the handler level
 
-      const { data: tournament } = await supabase
+      const { data: tournament } = await getSupabase()
         .from('commander_tournaments')
         .select('id, venue_id, allows_addon, addon_cost, addon_chips, addon_level')
         .eq('id', tournamentId)
@@ -47,7 +52,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Add-ons not allowed in this tournament' });
       }
 
-      const { data: entry } = await supabase
+      const { data: entry } = await getSupabase()
         .from('commander_tournament_entries')
         .select('*')
         .eq('id', entryId)
@@ -66,7 +71,7 @@ export default async function handler(req, res) {
       const addonChips = tournament.addon_chips || tournament.starting_chips || 10000;
       const newChips = (entry.current_chips || 0) + addonChips;
 
-      const { data: updated, error: uErr } = await supabase
+      const { data: updated, error: uErr } = await getSupabase()
         .from('commander_tournament_entries')
         .update({
           current_chips: newChips,
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
       // --- FINANCIAL FRAUD PROTECTION ---
       // Log the cash collected by the TD into the cashier vault
       if (tournament.addon_cost > 0) {
-        await supabase.from('commander_cash_transactions').insert({
+        await getSupabase().from('commander_cash_transactions').insert({
           venue_id: tournament.venue_id,
           player_name: entry.player_name,
           type: 'buy_in',

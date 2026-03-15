@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardManager } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
 async function handleGet(req, res, venueId) {
   try {
     // Get venue details
-    const { data: venue, error: venueError } = await supabase
+    const { data: venue, error: venueError } = await getSupabase()
       .from('poker_venues')
       .select('*')
       .eq('id', venueId)
@@ -65,7 +70,7 @@ async function handleGet(req, res, venueId) {
     }
 
     // Get current running games
-    const { data: currentGames } = await supabase
+    const { data: currentGames } = await getSupabase()
       .from('commander_games')
       .select('*')
       .eq('venue_id', venueId)
@@ -74,7 +79,7 @@ async function handleGet(req, res, venueId) {
           .limit(100)
 
     // Get waitlist summaries by game type/stakes
-    const { data: waitlists } = await supabase
+    const { data: waitlists } = await getSupabase()
       .from('commander_waitlist')
       .select('game_type, stakes, id')
       .eq('venue_id', venueId)
@@ -134,7 +139,7 @@ async function handlePatch(req, res, venueId) {
       });
     }
 
-    const { data: staff, error: staffError } = await supabase
+    const { data: staff, error: staffError } = await getSupabase()
       .from('commander_staff')
       .select('id, venue_id, role, is_active')
       .eq('id', sessionData.id)
@@ -184,7 +189,7 @@ async function handlePatch(req, res, venueId) {
       });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('poker_venues')
       .update(updates)
       .eq('id', venueId)

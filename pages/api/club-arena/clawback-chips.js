@@ -23,10 +23,15 @@ const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { checkVelocity } = require('../../../src/lib/club-arena/velocityCheck');
 import { notifyUser } from '../../../src/lib/club-arena/notify';
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const CLAWBACK_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 const ALLOWED_BODY_FIELDS = new Set(['transactionId', 'clubId', 'amount']);
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
     // CONCURRENCY: Idempotency guard — dedup rapid double-taps
     if (checkIdempotency(req, res)) return;
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { transactionId, clubId, amount: rawRequestedAmount } = req.body;
@@ -84,7 +89,7 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       // 1. Get the original transaction
       // ═════════════════════════════════════════════════════════════
-      const { data: txn, error: txnErr } = await supabaseAdmin
+      const { data: txn, error: txnErr } = await getSupabase()
         .from('chip_transactions')
         .select('id, from_user_id, to_user_id, amount, club_id, created_at, transaction_type, notes')
         .eq('id', transactionId)
@@ -156,7 +161,7 @@ export default async function handler(req, res) {
       // 5. Atomically claim the transaction (prevents double-clawback)
       // ═════════════════════════════════════════════════════════════
       const clawbackNote = `${txn.notes || ''} [CLAWED BACK: ${clawbackAmount} at ${new Date().toISOString()}]`;
-      const { data: claimed, error: claimErr } = await supabaseAdmin
+      const { data: claimed, error: claimErr } = await getSupabase()
         .from('chip_transactions')
         .update({ notes: clawbackNote })
         .eq('id', transactionId)
@@ -171,7 +176,7 @@ export default async function handler(req, res) {
       // ═════════════════════════════════════════════════════════════
       // 6. Execute atomic clawback via RPC
       // ═════════════════════════════════════════════════════════════
-      const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_clawback_chips_atomic', {
+      const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_clawback_chips_atomic', {
         p_transaction_id: transactionId,
         p_club_id: clubId,
         p_agent_id: user.id,
@@ -180,7 +185,7 @@ export default async function handler(req, res) {
 
       if (rpcErr || !rpcResult?.success) {
         // Revert claim note
-        await supabaseAdmin
+        await getSupabase()
           .from('chip_transactions')
           .update({ notes: txn.notes || '' })
           .eq('id', transactionId);

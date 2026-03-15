@@ -5,10 +5,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -23,7 +28,7 @@ export default async function handler(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user: authUser }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !authUser) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
     }
@@ -49,7 +54,7 @@ export default async function handler(req, res) {
 
     try {
       // Try to get real stats
-      const { data: stats, error } = await supabase
+      const { data: stats, error } = await getSupabase()
         .from('user_assistant_stats')
         .select('*')
         .eq('user_id', userId)
@@ -57,13 +62,13 @@ export default async function handler(req, res) {
 
       if (error || !stats) {
         // Count sandbox sessions
-        const { count: sandboxCount } = await supabase
+        const { count: sandboxCount } = await getSupabase()
           .from('sandbox_sessions')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId);
 
         // Count leaks
-        const { data: leaks } = await supabase
+        const { data: leaks } = await getSupabase()
           .from('user_leaks')
           .select('status')
           .eq('user_id', userId)

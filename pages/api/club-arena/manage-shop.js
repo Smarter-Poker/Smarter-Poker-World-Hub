@@ -8,10 +8,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -22,7 +27,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
         const clubId = req.query.clubId;
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
-        const { data: member } = await supabaseAdmin
+        const { data: member } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
           return res.status(403).json({ success: false, error: 'Admin access required' });
         }
 
-        const { data: items, error } = await supabaseAdmin
+        const { data: items, error } = await getSupabase()
           .from('club_shop_items')
           .select('*')
           .eq('club_id', clubId)
@@ -53,7 +58,7 @@ export default async function handler(req, res) {
         if (error) throw error;
 
         // Get purchase counts per item
-        const { data: purchases } = await supabaseAdmin
+        const { data: purchases } = await getSupabase()
           .from('club_shop_purchases')
           .select('item_id')
           .eq('club_id', clubId)
@@ -79,7 +84,7 @@ export default async function handler(req, res) {
         const { action, clubId, itemId, name, description, price, category, imageUrl, isActive } = req.body;
         if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });
 
-        const { data: member } = await supabaseAdmin
+        const { data: member } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -95,7 +100,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'Name and positive price required' });
           }
 
-          const { data: item, error } = await supabaseAdmin
+          const { data: item, error } = await getSupabase()
             .from('club_shop_items')
             .insert({
               club_id: clubId,
@@ -128,7 +133,7 @@ export default async function handler(req, res) {
           if (imageUrl !== undefined) updates.image_url = imageUrl;
           if (isActive !== undefined) updates.is_active = isActive;
 
-          const { error } = await supabaseAdmin
+          const { error } = await getSupabase()
             .from('club_shop_items')
             .update(updates)
             .eq('id', itemId)
@@ -141,7 +146,7 @@ export default async function handler(req, res) {
         if (action === 'toggle') {
           if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
 
-          const { data: item } = await supabaseAdmin
+          const { data: item } = await getSupabase()
             .from('club_shop_items')
             .select('is_active')
             .eq('id', itemId)
@@ -150,7 +155,7 @@ export default async function handler(req, res) {
 
           if (!item) return res.status(404).json({ success: false, error: 'Item not found' });
 
-          const { error } = await supabaseAdmin
+          const { error } = await getSupabase()
             .from('club_shop_items')
             .update({ is_active: !item.is_active })
             .eq('id', itemId)
@@ -163,7 +168,7 @@ export default async function handler(req, res) {
         if (action === 'delete') {
           if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
 
-          const { error } = await supabaseAdmin
+          const { error } = await getSupabase()
             .from('club_shop_items')
             .delete()
             .eq('id', itemId)

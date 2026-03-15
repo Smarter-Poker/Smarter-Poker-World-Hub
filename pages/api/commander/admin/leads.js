@@ -2,7 +2,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardManager } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -17,7 +25,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       const { status } = req.query;
-      let query = supabase.from('commander_leads').select('*').order('created_at', { ascending: false });
+      let query = getSupabase().from('commander_leads').select('*').order('created_at', { ascending: false });
       if (status && status !== 'all') query = query.eq('status', status);
       const { data, error } = await query;
       if (error) return res.status(500).json({ success: false, error: error.message });
@@ -30,7 +38,7 @@ export default async function handler(req, res) {
       const updates = {};
       if (status) updates.status = status;
       if (notes !== undefined) updates.notes = notes;
-      const { data, error } = await supabase.from('commander_leads').update(updates).eq('id', id).select().maybeSingle();
+      const { data, error } = await getSupabase().from('commander_leads').update(updates).eq('id', id).select().maybeSingle();
       if (error || !data) return res.status(404).json({ success: false, error: 'Lead not found' });
       return res.json({ success: true, data: { lead: data } });
     }

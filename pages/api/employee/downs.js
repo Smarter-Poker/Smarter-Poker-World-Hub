@@ -5,10 +5,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -20,7 +25,7 @@ export default async function handler(req, res) {
           const token = (req.headers.authorization || '').replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid session' });
 
           const { staff_id, venue_id, date_from, date_to } = req.query;
@@ -29,7 +34,7 @@ export default async function handler(req, res) {
           }
 
           // Verify ownership
-          const { data: staff } = await supabase
+          const { data: staff } = await getSupabase()
               .from('commander_staff')
               .select('id, display_name, role')
               .eq('id', staff_id)
@@ -46,7 +51,7 @@ export default async function handler(req, res) {
           const to = date_to || new Date().toISOString().split('T')[0];
 
           // Fetch dealer rotations (downs)
-          let query = supabase
+          let query = getSupabase()
               .from('commander_dealer_rotations')
               .select('*')
               .eq('venue_id', venue_id)
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
           if (rotErr) throw rotErr;
 
           // Check for currently active dealing assignments (open rotations)
-          const { data: activeRotations } = await supabase
+          const { data: activeRotations } = await getSupabase()
               .from('commander_dealer_rotations')
               .select('id, table_number, started_at')
               .eq('venue_id', venue_id)

@@ -8,10 +8,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import speakeasy from 'speakeasy';
 import crypto from 'crypto';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -27,7 +32,7 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+          const { data: { user }, error: userError } = await getSupabase().auth.getUser(token);
 
           if (userError || !user) {
               return res.status(401).json({ error: 'Invalid session' });
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
           }
 
           // Get stored MFA secret
-          const { data: mfaData, error: mfaError } = await supabase
+          const { data: mfaData, error: mfaError } = await getSupabase()
               .from('user_mfa_factors')
               .select('secret, enabled, backup_codes')
               .eq('user_id', user.id)
@@ -72,7 +77,7 @@ export default async function handler(req, res) {
                   // Consume the backup code
                   const updatedCodes = [...mfaData.backup_codes];
                   updatedCodes.splice(backupIndex, 1);
-                  await supabase
+                  await getSupabase()
                       .from('user_mfa_factors')
                       .update({ backup_codes: updatedCodes })
                       .eq('user_id', user.id);
@@ -84,7 +89,7 @@ export default async function handler(req, res) {
           }
 
           // Code verified — disable 2FA
-          const { error: updateError } = await supabase
+          const { error: updateError } = await getSupabase()
               .from('user_mfa_factors')
               .update({
                   enabled: false,

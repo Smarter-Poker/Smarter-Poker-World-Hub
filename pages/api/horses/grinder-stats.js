@@ -1,9 +1,14 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -12,11 +17,11 @@ export default async function handler(req, res) {
       if (!authHeader) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
       if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
       // Verify Admin Role
-      const { data: profile } = await supabaseAdmin
+      const { data: profile } = await getSupabase()
           .from('profiles')
           .select('role')
           .eq('id', user.id)
@@ -29,7 +34,7 @@ export default async function handler(req, res) {
       if (req.method === 'GET') {
           try {
               // Fetch all active personas
-              const { data: personas } = await supabaseAdmin
+              const { data: personas } = await getSupabase()
                   .from('content_authors')
                   .select('id, name, is_active')
                   .eq('is_active', true);
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
           try {
               if (action === 'add_to_club') {
                   // Fetch all active personas to give them chips
-                  const { data: personas, error: personaErr } = await supabaseAdmin
+                  const { data: personas, error: personaErr } = await getSupabase()
                       .from('content_authors')
                       .select('id')
                       .eq('is_active', true);

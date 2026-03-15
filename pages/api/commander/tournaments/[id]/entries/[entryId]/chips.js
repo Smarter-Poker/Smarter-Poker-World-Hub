@@ -8,10 +8,15 @@ import { createClient } from '../../../../../../../src/lib/supabaseServerClient'
 import { guardWriteStaff } from '../../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
     try {
       // Staff is already validated by guardWriteStaff at the handler level
 
-      const { data: tournament } = await supabase
+      const { data: tournament } = await getSupabase()
         .from('commander_tournaments')
         .select('id, venue_id')
         .eq('id', tournamentId)
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Valid chip count required (>= 0)' });
       }
 
-      const { data: entry } = await supabase
+      const { data: entry } = await getSupabase()
         .from('commander_tournament_entries')
         .select('id, player_name, current_chips, status, metadata')
         .eq('id', entryId)
@@ -58,7 +63,7 @@ export default async function handler(req, res) {
 
       const previousChips = entry.current_chips || 0;
 
-      const { data: updated, error: uErr } = await supabase
+      const { data: updated, error: uErr } = await getSupabase()
         .from('commander_tournament_entries')
         .update({
           current_chips: chips,

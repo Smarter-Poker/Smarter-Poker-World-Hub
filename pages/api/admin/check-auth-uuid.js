@@ -5,24 +5,27 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 export default async function handler(req, res) {
   try {
     // BUG #167 FIX: Block in production
     if (process.env.NODE_ENV === "production") {
       return res.status(404).json({ error: "Not found" });
     }
-      const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-          auth: { autoRefreshToken: false, persistSession: false }
-      });
+      let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
       const email = 'Daniel@bekavactrading.com';
 
       try {
           // Query auth.users directly using RPC
-          const { data: authUsers, error: authError } = await supabase.rpc('get_auth_users_by_email', {
+          const { data: authUsers, error: authError } = await getSupabase().rpc('get_auth_users_by_email', {
               email_pattern: email.toLowerCase()
           });
 
@@ -30,7 +33,7 @@ export default async function handler(req, res) {
           let adminResult = null;
           try {
               // This may not work but let's try
-              const { data } = await supabase.auth.admin.listUsers();
+              const { data } = await getSupabase().auth.admin.listUsers();
               adminResult = data?.users?.filter(u =>
                   u.email?.toLowerCase() === email.toLowerCase()
               );
@@ -39,7 +42,7 @@ export default async function handler(req, res) {
           }
 
           // Check what profiles exist
-          const { data: profiles } = await supabase
+          const { data: profiles } = await getSupabase()
               .from('profiles')
               .select('id, username, email, diamonds, xp_total')
               .or(`email.ilike.%bekavac%`);

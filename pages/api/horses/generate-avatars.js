@@ -10,9 +10,16 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 const grok = getGrokClient();
 
 // Avatar style prompts based on persona
@@ -65,7 +72,7 @@ async function uploadToStorage(imageUrl, horseId) {
         const filePath = `avatars/horses/${fileName}`;
 
         // Upload to Supabase storage
-        const { data, error } = await supabase.storage
+        const { data, error } = await getSupabase().storage
             .from('avatars')
             .upload(filePath, buffer, {
                 contentType: 'image/png',
@@ -75,7 +82,7 @@ async function uploadToStorage(imageUrl, horseId) {
         if (error) throw error;
 
         // Get public URL
-        const { data: urlData } = supabase.storage
+        const { data: urlData } = getSupabase().storage
             .from('avatars')
             .getPublicUrl(filePath);
 
@@ -104,9 +111,9 @@ export default async function handler(req, res) {
 
       if (authHeader) {
         const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error } = await supabase.auth.getUser(token);
+        const { data: { user }, error } = await getSupabase().auth.getUser(token);
         if (!error && user) {
-          const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+          const { data: profile } = await getSupabase().from('profiles').select('role').eq('id', user.id).maybeSingle();
           if (profile && ['admin', 'superadmin', 'god'].includes(profile.role)) isAuthorized = true;
         }
       }
@@ -122,7 +129,7 @@ export default async function handler(req, res) {
 
       try {
           // Get horses without avatars
-          const { data: horses, error } = await supabase
+          const { data: horses, error } = await getSupabase()
               .from('content_authors')
               .select('id, name, gender, location, specialty, profile_id')
               .is('avatar_url', null)
@@ -153,13 +160,13 @@ export default async function handler(req, res) {
               }
 
               // Update content_authors
-              await supabase
+              await getSupabase()
                   .from('content_authors')
                   .update({ avatar_url: permanentUrl })
                   .eq('id', horse.id);
 
               // Update profiles
-              await supabase
+              await getSupabase()
                   .from('profiles')
                   .update({ avatar_url: permanentUrl })
                   .eq('id', horse.profile_id);
@@ -189,7 +196,7 @@ export default async function handler(req, res) {
 }
 
 async function getRemainingCount() {
-    const { count } = await supabase
+    const { count } = await getSupabase()
         .from('content_authors')
         .select('*', { count: 'exact', head: true })
         .is('avatar_url', null)

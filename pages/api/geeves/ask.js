@@ -11,10 +11,15 @@ import crypto from 'crypto';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { lookupKnowledgeBase } from '../../../src/lib/geevesKnowledgeBase';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GEEVES SYSTEM PROMPT — Comprehensive poker knowledge
@@ -150,7 +155,7 @@ function extractTags(question) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function checkExactCache(questionHash) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
         .from('geeves_knowledge_cache')
         .select('*')
         .eq('question_hash', questionHash)
@@ -162,7 +167,7 @@ async function checkExactCache(questionHash) {
 
 async function checkSimilarCache(question) {
     // Use PostgreSQL full-text search for similar questions
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
         .rpc('find_similar_questions', {
             search_query: question,
             similarity_threshold: 0.3,
@@ -180,11 +185,11 @@ async function checkSimilarCache(question) {
 }
 
 async function incrementCacheServed(cacheId) {
-    await supabase.rpc('increment_cache_served', { cache_uuid: cacheId });
+    await getSupabase().rpc('increment_cache_served', { cache_uuid: cacheId });
 }
 
 async function saveToCache(question, answer, questionType, userId) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
         .from('geeves_knowledge_cache')
         .insert({
             question_normalized: normalizeQuestion(question),
@@ -242,7 +247,7 @@ export default async function handler(req, res) {
                       const authHeader = req.headers.authorization;
                       if (authHeader?.startsWith('Bearer ')) {
                           const token = authHeader.replace('Bearer ', '');
-                          const { data: { user } } = await supabase.auth.getUser(token);
+                          const { data: { user } } = await getSupabase().auth.getUser(token);
                           if (user) {
                               await saveConversationMessages(conversationId, question, kbResult.answer, null, false);
                           }
@@ -278,7 +283,7 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
           if (authError || !user) {
               return res.status(401).json({ error: 'Invalid token' });
@@ -383,7 +388,7 @@ export default async function handler(req, res) {
 
           // Auto-Learning Loop — log missed question to Supabase
           try {
-              await supabase.rpc('geeves_upsert_missed_question', {
+              await getSupabase().rpc('geeves_upsert_missed_question', {
                   p_question: question,
                   p_hash: questionHash,
                   p_page: currentPage || null,
@@ -430,14 +435,14 @@ export default async function handler(req, res) {
 
 async function saveConversationMessages(conversationId, question, answer, cacheId, fromCache) {
     // Save user message
-    await supabase.from('geeves_messages').insert({
+    await getSupabase().from('geeves_messages').insert({
         conversation_id: conversationId,
         content: question,
         is_user: true
     });
 
     // Save Geeves response
-    await supabase.from('geeves_messages').insert({
+    await getSupabase().from('geeves_messages').insert({
         conversation_id: conversationId,
         content: answer,
         is_user: false,
@@ -446,7 +451,7 @@ async function saveConversationMessages(conversationId, question, answer, cacheI
     });
 
     // Auto-generate title from first question (replace default title)
-    const { data: conv } = await supabase
+    const { data: conv } = await getSupabase()
         .from('geeves_conversations')
         .select('title')
         .eq('id', conversationId)
@@ -458,7 +463,7 @@ async function saveConversationMessages(conversationId, question, answer, cacheI
         : conv.title;
 
     // Update conversation timestamp (and title if still default)
-    await supabase
+    await getSupabase()
         .from('geeves_conversations')
         .update({
             updated_at: new Date().toISOString(),
@@ -468,7 +473,7 @@ async function saveConversationMessages(conversationId, question, answer, cacheI
 }
 
 async function trackAnalytics(userId, questionType, question, responseLength, fromCache) {
-    await supabase.from('geeves_analytics').insert({
+    await getSupabase().from('geeves_analytics').insert({
         user_id: userId,
         question_type: questionType,
         question: question.substring(0, 500),

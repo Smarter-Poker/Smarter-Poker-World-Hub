@@ -8,10 +8,15 @@
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // YouTube transcript fetcher using unofficial API
 async function fetchYouTubeTranscript(videoId) {
@@ -128,7 +133,7 @@ export default async function handler(req, res) {
       // BUG #267 FIX: Require JWT auth — calls paid Grok API for AI analysis
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { videoId, title, forceRefresh } = req.query;
@@ -140,7 +145,7 @@ export default async function handler(req, res) {
       try {
           // Check if we already have cached analysis
           if (!forceRefresh) {
-              const { data: cached } = await supabase
+              const { data: cached } = await getSupabase()
                   .from('video_analysis')
                   .select('*')
                   .eq('video_id', videoId)
@@ -241,7 +246,7 @@ export default async function handler(req, res) {
           }
 
           // Cache the analysis
-          const { error: insertError } = await supabase
+          const { error: insertError } = await getSupabase()
               .from('video_analysis')
               .upsert({
                   video_id: videoId,

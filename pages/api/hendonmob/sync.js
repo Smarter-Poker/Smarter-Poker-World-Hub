@@ -7,10 +7,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -24,7 +29,7 @@ export default async function handler(req, res) {
       // BUG #251 FIX: Require JWT auth and verify caller matches userId
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+      const { data: { user: _authUser }, error: _authErr } = await getSupabase().auth.getUser(_token);
       if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
 
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
 
       try {
           // Get player name from profile
-          const { data: profile } = await supabase
+          const { data: profile } = await getSupabase()
               .from('profiles')
               .select('full_name')
               .eq('id', userId)
@@ -81,7 +86,7 @@ export default async function handler(req, res) {
               });
           }
 
-          const { error: updateError } = await supabase
+          const { error: updateError } = await getSupabase()
               .from('profiles')
               .update({
                   hendon_total_cashes: stats.totalCashes,

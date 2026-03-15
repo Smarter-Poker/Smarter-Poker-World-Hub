@@ -9,10 +9,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const stripe = process.env.STRIPE_SECRET_KEY
     ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
       // ── Auth: verify JWT identity ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const userId = user.id; // From JWT, NOT body
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
 
       try {
           // 1. Get the user's active VIP subscription
-          const { data: sub, error: subErr } = await supabase
+          const { data: sub, error: subErr } = await getSupabase()
               .from('vip_subscriptions')
               .select('stripe_subscription_id, status')
               .eq('user_id', userId)
@@ -70,7 +75,7 @@ export default async function handler(req, res) {
           }
 
           // 3. Update local record — core fields (always exist)
-          await supabase
+          await getSupabase()
               .from('vip_subscriptions')
               .update({
                   cancel_at_period_end: true,
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
 
           // 4. Store cancellation reason (columns may not exist if migration not run)
           try {
-              await supabase
+              await getSupabase()
                   .from('vip_subscriptions')
                   .update({
                       cancel_reason: reason || 'unspecified',

@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const VALID_GAME_TYPES = ['nlh', 'plo', 'plo5', 'mixed', 'limit', 'stud', 'razz', 'other'];
 
@@ -71,7 +76,7 @@ export default async function handler(req, res) {
       }
 
       // Verify venue exists and has Commander enabled
-      const { data: venue, error: venueError } = await supabase
+      const { data: venue, error: venueError } = await getSupabase()
         .from('poker_venues')
         .select('id, commander_enabled')
         .eq('id', venue_id)
@@ -93,7 +98,7 @@ export default async function handler(req, res) {
 
       // If table_id provided, verify table is available
       if (table_id) {
-        const { data: table, error: tableError } = await supabase
+        const { data: table, error: tableError } = await getSupabase()
           .from('commander_tables')
           .select('id, status')
           .eq('id', table_id)
@@ -115,7 +120,7 @@ export default async function handler(req, res) {
       }
 
       // Create the game
-      const { data: game, error: gameError } = await supabase
+      const { data: game, error: gameError } = await getSupabase()
         .from('commander_games')
         .insert({
           venue_id,
@@ -144,7 +149,7 @@ export default async function handler(req, res) {
 
       // Update table status if table was assigned
       if (table_id) {
-        await supabase
+        await getSupabase()
           .from('commander_tables')
           .update({
             status: 'in_use',
@@ -163,7 +168,7 @@ export default async function handler(req, res) {
         });
       }
 
-      await supabase.from('commander_seats').insert(seats);
+      await getSupabase().from('commander_seats').insert(seats);
 
       return res.status(201).json({
         success: true,

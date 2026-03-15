@@ -15,10 +15,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
@@ -29,7 +34,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { clubId, action, limit } = req.body;
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
       const maxLimit = Math.min(limit || 50, 100);
 
       // Verify membership
-      const { data: membership } = await supabaseAdmin
+      const { data: membership } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
       // ─── CHIPS: Top players by chip balance ──────────────────
       if (action === 'chips' || !action) {
           try {
-              const { data: members } = await supabaseAdmin
+              const { data: members } = await getSupabase()
                   .from('club_members')
                   .select('user_id, chip_balance, role, joined_at')
                   .eq('club_id', clubId)
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
                   .limit(maxLimit);
 
               const userIds = (members || []).map(m => m.user_id);
-              const { data: profiles } = await supabaseAdmin
+              const { data: profiles } = await getSupabase()
                   .from('profiles')
                   .select('id, display_name, username, avatar_url')
                   .in('id', userIds);
@@ -89,7 +94,7 @@ export default async function handler(req, res) {
           try {
               const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-              const { data: transactions } = await supabaseAdmin
+              const { data: transactions } = await getSupabase()
                   .from('chip_transactions')
                   .select('from_user_id, to_user_id, amount, transaction_type')
                   .eq('club_id', clubId)
@@ -128,7 +133,7 @@ export default async function handler(req, res) {
 
               // Resolve profiles
               const userIds = sorted.map(([uid]) => uid);
-              const { data: profiles } = await supabaseAdmin
+              const { data: profiles } = await getSupabase()
                   .from('profiles')
                   .select('id, display_name, username, avatar_url')
                   .in('id', userIds);
@@ -137,7 +142,7 @@ export default async function handler(req, res) {
               for (const p of (profiles || [])) profileMap[p.id] = p;
 
               // Get roles
-              const { data: members } = await supabaseAdmin
+              const { data: members } = await getSupabase()
                   .from('club_members')
                   .select('user_id, role')
                   .eq('club_id', clubId)

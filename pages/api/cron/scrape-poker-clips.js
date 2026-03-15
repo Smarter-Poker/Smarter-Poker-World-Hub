@@ -10,9 +10,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // 50+ YouTube channel IDs for poker content
 const POKER_CHANNELS = [
@@ -116,7 +122,7 @@ async function getExistingClipIds() {
     const existingIds = new Set();
 
     // Check video_clips table
-    const { data: existingClips } = await supabase
+    const { data: existingClips } = await getSupabase()
         .from('video_clips')
         .select('clip_id, video_id')
         .limit(5000);
@@ -127,7 +133,7 @@ async function getExistingClipIds() {
     });
 
     // Also check social_posts metadata
-    const { data: existingPosts } = await supabase
+    const { data: existingPosts } = await getSupabase()
         .from('social_posts')
         .select('metadata')
         .eq('content_type', 'video')
@@ -162,7 +168,7 @@ async function storeNewClips(clips) {
         is_active: true
     }));
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
         .from('video_clips')
         .insert(clipsToInsert)
         .select('clip_id');

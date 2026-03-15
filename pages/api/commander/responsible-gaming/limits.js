@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -53,7 +58,7 @@ async function handleGet(req, res) {
 
   try {
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({
@@ -64,7 +69,7 @@ async function handleGet(req, res) {
 
     const player_id = user.id;
 
-    const { data: limits, error } = await supabase
+    const { data: limits, error } = await getSupabase()
       .from('commander_spending_limits')
       .select('*')
       .eq('player_id', player_id)
@@ -109,7 +114,7 @@ async function handleUpdate(req, res) {
 
   try {
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({
@@ -130,7 +135,7 @@ async function handleUpdate(req, res) {
       enabled = true
     } = req.body;
     // Upsert limits
-    const { data: limits, error } = await supabase
+    const { data: limits, error } = await getSupabase()
       .from('commander_spending_limits')
       .upsert({
         player_id,

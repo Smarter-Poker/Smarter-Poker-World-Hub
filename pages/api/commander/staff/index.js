@@ -9,10 +9,15 @@ import { verifyManagerSession } from '../../../../src/lib/commander/auth';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const VALID_ROLES = ['owner', 'manager', 'dualrate', 'floor', 'cashier', 'brush', 'dealer', 'security'];
 
@@ -60,7 +65,7 @@ async function handleGet(req, res) {
       });
     }
 
-    const { data: staff, error } = await supabase
+    const { data: staff, error } = await getSupabase()
       .from('commander_staff')
       .select(`
         *,
@@ -153,7 +158,7 @@ async function handlePost(req, res) {
     }
 
     // Verify venue exists
-    const { data: venue, error: venueError } = await supabase
+    const { data: venue, error: venueError } = await getSupabase()
       .from('poker_venues')
       .select('id, name')
       .eq('id', venue_id)
@@ -168,7 +173,7 @@ async function handlePost(req, res) {
 
     // If user_id provided, verify user exists and check for duplicates
     if (user_id) {
-      const { data: user, error: userError } = await supabase
+      const { data: user, error: userError } = await getSupabase()
         .from('profiles')
         .select('id')
         .eq('id', user_id)
@@ -181,7 +186,7 @@ async function handlePost(req, res) {
         });
       }
 
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from('commander_staff')
         .select('id')
         .eq('venue_id', venue_id)
@@ -199,7 +204,7 @@ async function handlePost(req, res) {
     // Create staff record — user_id is optional for name-only employees
     // Check for duplicate PIN at this venue
     if (pin_code) {
-      const { data: existingPin } = await supabase
+      const { data: existingPin } = await getSupabase()
         .from('commander_staff')
         .select('id')
         .eq('venue_id', venue_id)
@@ -221,7 +226,7 @@ async function handlePost(req, res) {
     let memberId = null;
     try {
       const prefix = (venue?.name || 'CLUB').replace(/[^A-Za-z]/g, '').substring(0, 4).toUpperCase();
-      const { count } = await supabase
+      const { count } = await getSupabase()
         .from('commander_members')
         .select('id', { count: 'exact', head: true })
         .eq('venue_id', venue_id);
@@ -231,7 +236,7 @@ async function handlePost(req, res) {
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
-      const { data: member } = await supabase
+      const { data: member } = await getSupabase()
         .from('commander_members')
         .insert({
           venue_id,
@@ -280,7 +285,7 @@ async function handlePost(req, res) {
       staffRecord.user_id = user_id;
     }
 
-    const { data: staff, error: insertError } = await supabase
+    const { data: staff, error: insertError } = await getSupabase()
       .from('commander_staff')
       .insert(staffRecord)
       .select()

@@ -10,10 +10,15 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Default theme (SmarterPoker standard)
 const DEFAULT_THEME = {
@@ -40,7 +45,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Not authenticated' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { action, clubId, theme } = req.body;
@@ -49,7 +54,7 @@ export default async function handler(req, res) {
       try {
           if (action === 'get') {
               // Anyone in the club can read the theme
-              const { data: membership } = await supabaseAdmin
+              const { data: membership } = await getSupabase()
                   .from('club_members')
                   .select('role')
                   .eq('club_id', clubId)
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
                   .maybeSingle();
               if (!membership) return res.status(403).json({ error: 'Must be a club member' });
 
-              const { data: clubData } = await supabaseAdmin
+              const { data: clubData } = await getSupabase()
                   .from('clubs')
                   .select('settings')
                   .eq('id', clubId)
@@ -72,7 +77,7 @@ export default async function handler(req, res) {
 
           if (action === 'save') {
               // Only admin/owner can save
-              const { data: membership } = await supabaseAdmin
+              const { data: membership } = await getSupabase()
                   .from('club_members')
                   .select('role')
                   .eq('club_id', clubId)
@@ -93,7 +98,7 @@ export default async function handler(req, res) {
               }
 
               // Merge with existing settings
-              const { data: existingClub } = await supabaseAdmin
+              const { data: existingClub } = await getSupabase()
                   .from('clubs')
                   .select('settings')
                   .eq('id', clubId)
@@ -110,7 +115,7 @@ export default async function handler(req, res) {
                   },
               };
 
-              const { error } = await supabaseAdmin
+              const { error } = await getSupabase()
                   .from('clubs')
                   .update({ settings: newSettings })
                   .eq('id', clubId);

@@ -9,10 +9,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 import { requireAuth } from '../../../../../src/lib/commander/auth';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Tournament-themed gradient backgrounds
 const TOURNAMENT_GRADIENTS = {
@@ -53,7 +58,7 @@ export default async function handler(req, res) {
           return res.status(401).json({ success: false, error: 'Authorization required' });
       }
 
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
       if (authError || !user) {
           return res.status(401).json({ success: false, error: 'Invalid token' });
       }
@@ -77,7 +82,7 @@ export default async function handler(req, res) {
 
       try {
           // Get tournament details
-          const { data: tournament, error: tErr } = await supabase
+          const { data: tournament, error: tErr } = await getSupabase()
               .from('commander_tournaments')
               .select('name, venue_id, status, current_level, blind_structure')
               .eq('id', tournamentId)
@@ -88,7 +93,7 @@ export default async function handler(req, res) {
           }
 
           // Get player's entry to verify participation
-          const { data: entry } = await supabase
+          const { data: entry } = await getSupabase()
               .from('commander_tournament_entries')
               .select('id, status, current_chips, finish_position, payout_amount, table_number, seat_number')
               .eq('tournament_id', tournamentId)
@@ -110,7 +115,7 @@ export default async function handler(req, res) {
           });
 
           // Create story
-          const { data: story, error: storyErr } = await supabase
+          const { data: story, error: storyErr } = await getSupabase()
               .from('social_stories')
               .insert({
                   author_id: user.id,

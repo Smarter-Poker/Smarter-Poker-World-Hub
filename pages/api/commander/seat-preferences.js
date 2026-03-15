@@ -7,10 +7,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -45,7 +50,7 @@ async function getPreferences(req, res) {
   }
 
   try {
-    let query = supabase
+    let query = getSupabase()
       .from('commander_seat_preferences')
       .select('*')
       .eq('player_id', player_id)
@@ -85,7 +90,7 @@ async function savePreferences(req, res) {
       updated_at: new Date().toISOString()
     };
 
-    const { data: pref, error } = await supabase
+    const { data: pref, error } = await getSupabase()
       .from('commander_seat_preferences')
       .upsert(data, { onConflict: 'player_id,venue_id' })
       .select()

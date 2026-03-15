@@ -4,9 +4,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 // XSS Neutralizer (strips out <script> and dangerous attributes simply)
 function sanitizeMessage(text) {
     if (!text) return text;
@@ -52,20 +49,28 @@ export default async function handler(req, res) {
       // 3. XSS Neutralization
       const content = sanitizeMessage(rawContent);
 
-      const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
+      let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}, SUPABASE_SERVICE_ROLE_KEY);
 
       try {
           // 4. Auth Verification
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           const userId = user.id;
 
           // Verify participant access
-          const { data: participant, error: partError } = await supabase
+          const { data: participant, error: partError } = await getSupabase()
               .from('social_conversation_participants')
               .select('id')
               .eq('conversation_id', conversationId)
@@ -77,7 +82,7 @@ export default async function handler(req, res) {
           }
 
           // 5. Secure RPC execution using Service Role
-          const { data: msgId, error } = await supabase.rpc('fn_send_message', {
+          const { data: msgId, error } = await getSupabase().rpc('fn_send_message', {
               p_conversation_id: conversationId,
               p_sender_id: userId,
               p_content: content,

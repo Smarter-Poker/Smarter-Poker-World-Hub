@@ -2,10 +2,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUser } from '../../../src/lib/serverAuth';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
     } else {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
       authenticatedUserId = user.id;
     }
@@ -59,7 +64,7 @@ export default async function handler(req, res) {
           });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('page_notifications')
           .insert({
             page_type,
@@ -88,7 +93,7 @@ export default async function handler(req, res) {
         const offsetNum = parseInt(offset, 10);
 
         // Get pages the user follows
-        const { data: follows, error: followError } = await supabase
+        const { data: follows, error: followError } = await getSupabase()
           .from('page_followers')
           .select('page_type, page_id')
           .eq('user_id', user_id)
@@ -109,7 +114,7 @@ export default async function handler(req, res) {
         ).join(',');
 
         // Get notifications for followed pages
-        const { data: notifications, error: notifError } = await supabase
+        const { data: notifications, error: notifError } = await getSupabase()
           .from('page_notifications')
           .select('*')
           .or(orConditions)
@@ -128,7 +133,7 @@ export default async function handler(req, res) {
         // Get read status for these notifications
         const notificationIds = notifications.map((n) => n.id);
 
-        const { data: reads, error: readError } = await supabase
+        const { data: reads, error: readError } = await getSupabase()
           .from('notification_reads')
           .select('notification_id')
           .eq('user_id', user_id)
@@ -163,7 +168,7 @@ export default async function handler(req, res) {
         // Mark all as read
         if (mark_all === true) {
           // Get pages the user follows
-          const { data: follows, error: followError } = await supabase
+          const { data: follows, error: followError } = await getSupabase()
             .from('page_followers')
             .select('page_type, page_id')
             .eq('user_id', user_id)
@@ -183,7 +188,7 @@ export default async function handler(req, res) {
             (f) => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`
           ).join(',');
 
-          const { data: notifications, error: notifError } = await supabase
+          const { data: notifications, error: notifError } = await getSupabase()
             .from('page_notifications')
             .select('id')
             .or(orConditions)
@@ -201,7 +206,7 @@ export default async function handler(req, res) {
           // Get already-read notification IDs
           const allNotifIds = notifications.map((n) => n.id);
 
-          const { data: existingReads, error: existingError } = await supabase
+          const { data: existingReads, error: existingError } = await getSupabase()
             .from('notification_reads')
             .select('notification_id')
             .eq('user_id', user_id)
@@ -227,7 +232,7 @@ export default async function handler(req, res) {
             read_at: new Date().toISOString(),
           }));
 
-          const { error: insertError } = await supabase
+          const { error: insertError } = await getSupabase()
             .from('notification_reads')
             .insert(inserts);
 
@@ -245,7 +250,7 @@ export default async function handler(req, res) {
         }
 
         // Check if already read
-        const { data: existing, error: existError } = await supabase
+        const { data: existing, error: existError } = await getSupabase()
           .from('notification_reads')
           .select('id')
           .eq('notification_id', notification_id)
@@ -261,7 +266,7 @@ export default async function handler(req, res) {
           return res.status(200).json({ success: true, already_read: true });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('notification_reads')
           .insert({
             notification_id,

@@ -14,10 +14,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 /**
  * Get current time in CST (America/Chicago)
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
 
       try {
           // Get all venues with hard stop enabled
-          const { data: venues, error: fetchError } = await supabase
+          const { data: venues, error: fetchError } = await getSupabase()
               .from('commander_venue_settings')
               .select('venue_id, hard_stop_time, room_open, last_hard_stop_date, auto_comp_rate')
               .eq('hard_stop_enabled', true)
@@ -89,7 +94,7 @@ export default async function handler(req, res) {
 
 
               // 1. Close all open CASH tables for this venue (NEVER close tournament tables)
-              const { data: openTables } = await supabase
+              const { data: openTables } = await getSupabase()
                   .from('commander_tables')
                   .select('id')
                   .eq('venue_id', venue.venue_id)
@@ -98,7 +103,7 @@ export default async function handler(req, res) {
                       .limit(100);
 
               if (openTables && openTables.length > 0) {
-                  await supabase
+                  await getSupabase()
                       .from('commander_tables')
                       .update({ status: 'closed', updated_at: cst.isoNow })
                       .eq('venue_id', venue.venue_id)
@@ -112,7 +117,7 @@ export default async function handler(req, res) {
               let compsAwarded = 0;
 
               // Get tournament table numbers to exclude
-              const { data: tournTables } = await supabase
+              const { data: tournTables } = await getSupabase()
                   .from('commander_tables')
                   .select('table_number')
                   .eq('venue_id', venue.venue_id)
@@ -149,14 +154,14 @@ export default async function handler(req, res) {
                               const compEarned = Math.round((elapsedMin / 60) * autoCompRate * 100) / 100;
                               if (compEarned <= 0) continue;
 
-                              const { data: member } = await supabase
+                              const { data: member } = await getSupabase()
                                   .from('commander_members')
                                   .select('comp_balance, comp_lifetime_earned')
                                   .eq('id', ts.member_id)
                                   .maybeSingle();
 
                               if (member) {
-                                  await supabase
+                                  await getSupabase()
                                       .from('commander_members')
                                       .update({
                                           comp_balance: Math.round(((member.comp_balance || 0) + compEarned) * 100) / 100,
@@ -165,7 +170,7 @@ export default async function handler(req, res) {
                                       })
                                       .eq('id', ts.member_id);
 
-                                  await supabase
+                                  await getSupabase()
                                       .from('commander_member_comp_log')
                                       .insert({
                                           venue_id: venue.venue_id,
@@ -186,7 +191,7 @@ export default async function handler(req, res) {
 
                   // End CASH table sessions only (by ID, not bulk venue update)
                   const sessionIds = tableSessions.map(s => s.id);
-                  await supabase
+                  await getSupabase()
                       .from('commander_table_sessions')
                       .update({
                           status: 'ended',
@@ -215,7 +220,7 @@ export default async function handler(req, res) {
               }
 
               // 3. End all active time billing sessions for this venue
-              const { data: activeSessions } = await supabase
+              const { data: activeSessions } = await getSupabase()
                   .from('commander_table_sessions')
                   .select('id')
                   .eq('venue_id', venue.venue_id)
@@ -223,7 +228,7 @@ export default async function handler(req, res) {
                       .limit(100);
 
               if (activeSessions && activeSessions.length > 0) {
-                  await supabase
+                  await getSupabase()
                       .from('commander_table_sessions')
                       .update({
                           status: 'ended',
@@ -237,7 +242,7 @@ export default async function handler(req, res) {
               }
 
               // 4. Set room to closed + record trigger date for double-trigger prevention
-              await supabase
+              await getSupabase()
                   .from('commander_venue_settings')
                   .update({
                       room_open: false,
@@ -248,7 +253,7 @@ export default async function handler(req, res) {
 
               // 5. Log activity (non-blocking — don't fail if table missing)
               try {
-                  await supabase
+                  await getSupabase()
                       .from('commander_activity_log')
                       .insert({
                           venue_id: venue.venue_id,

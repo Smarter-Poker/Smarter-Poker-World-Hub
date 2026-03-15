@@ -1,10 +1,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -31,7 +36,7 @@ export default async function handler(req, res) {
         // Require JWT for writes
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for check-ins' });
-        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { venue_id, user_name, message } = req.body;
@@ -49,7 +54,7 @@ export default async function handler(req, res) {
         // Check for recent check-in at same venue within 4 hours
         const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
 
-        const { data: recentCheckin, error: checkError } = await supabase
+        const { data: recentCheckin, error: checkError } = await getSupabase()
           .from('venue_checkins')
           .select('id')
           .eq('user_id', user_id)
@@ -76,7 +81,7 @@ export default async function handler(req, res) {
           insertData.message = message;
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('venue_checkins')
           .insert(insertData)
           .select()
@@ -103,7 +108,7 @@ export default async function handler(req, res) {
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
           if (count_only === 'true') {
-            const { count, error } = await supabase
+            const { count, error } = await getSupabase()
               .from('venue_checkins')
               .select('*', { count: 'exact', head: true })
               .eq('venue_id', String(venueIdNum))
@@ -118,7 +123,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, venue_id: venueIdNum, count: count || 0 });
           }
 
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
             .from('venue_checkins')
             .select('*')
             .eq('venue_id', String(venueIdNum))
@@ -140,7 +145,7 @@ export default async function handler(req, res) {
 
         // User check-in history
         if (user_id) {
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
             .from('venue_checkins')
             .select('*')
             .eq('user_id', user_id)

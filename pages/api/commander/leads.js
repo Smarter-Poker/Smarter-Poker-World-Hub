@@ -7,10 +7,15 @@ import { checkMemoryRateLimit } from '../../../src/lib/commander/rateLimit';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 // Note: No auth guard — this is a public lead capture form. Protected by IP rate limiting.
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
       }
 
       // Check if lead already exists
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from('commander_leads')
         .select('id, email, visit_count')
         .eq('email', email.toLowerCase())
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
 
       if (existing) {
         // Update existing lead with new activity
-        await supabase
+        await getSupabase()
           .from('commander_leads')
           .update({
             last_activity: new Date().toISOString(),
@@ -68,7 +73,7 @@ export default async function handler(req, res) {
       }
 
       // Create new lead
-      const { data: lead, error } = await supabase
+      const { data: lead, error } = await getSupabase()
         .from('commander_leads')
         .insert({
           email: email.toLowerCase(),

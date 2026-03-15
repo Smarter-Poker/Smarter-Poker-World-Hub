@@ -8,10 +8,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -45,7 +50,7 @@ async function handleList(req, res) {
         return res.status(400).json({ success: false, error: 'venue_id is required' });
     }
 
-    let query = supabase
+    let query = getSupabase()
         .from('commander_members')
         .select('*', { count: 'exact' })
         .eq('venue_id', venue_id)
@@ -120,7 +125,7 @@ async function handleCreate(req, res) {
     try {
         // ═══ DUPLICATE DETECTION ═══
         // Check by name (case-insensitive) in same venue
-        let existingQuery = supabase
+        let existingQuery = getSupabase()
             .from('commander_members')
             .select('*')
             .eq('venue_id', venue_id)
@@ -140,7 +145,7 @@ async function handleCreate(req, res) {
 
         // Check by email (case-insensitive) if provided
         if (email && email.trim()) {
-            const { data: emailMatches } = await supabase
+            const { data: emailMatches } = await getSupabase()
                 .from('commander_members')
                 .select('*')
                 .eq('venue_id', venue_id)
@@ -157,7 +162,7 @@ async function handleCreate(req, res) {
         }
 
         // Generate unique member number: PREFIX-NNNNN
-        const { data: venue } = await supabase
+        const { data: venue } = await getSupabase()
             .from('poker_venues')
             .select('name')
             .eq('id', venue_id)
@@ -169,7 +174,7 @@ async function handleCreate(req, res) {
             .toUpperCase();
 
         // Get current member count for sequential numbering
-        const { count } = await supabase
+        const { count } = await getSupabase()
             .from('commander_members')
             .select('id', { count: 'exact', head: true })
             .eq('venue_id', venue_id)
@@ -179,7 +184,7 @@ async function handleCreate(req, res) {
         // Generate unique QR code
         const qrCode = `CMD-${venue_id}-${crypto.randomUUID().split('-')[0]}`;
 
-        const { data: member, error } = await supabase
+        const { data: member, error } = await getSupabase()
             .from('commander_members')
             .insert({
                 venue_id,

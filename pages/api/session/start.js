@@ -11,10 +11,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { v4 as uuidv4 } from 'uuid';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -26,7 +31,7 @@ export default async function handler(req, res) {
       if (req.method !== 'GET') {
           const _token = req.headers.authorization?.replace('Bearer ', '');
           if (!_token) return res.status(401).json({ error: 'Authentication required' });
-          const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+          const { data: { user: _authUser }, error: _authErr } = await getSupabase().auth.getUser(_token);
           if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
           if (req.body) req.body.userId = _authUser.id;
       }
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
           let engineType = 'PIO';
           let gameConfig = {};
 
-          const { data: game, error: gameError } = await supabase
+          const { data: game, error: gameError } = await getSupabase()
               .from('game_registry')
               .select('*')
               .eq('slug', game_id)
@@ -72,7 +77,7 @@ export default async function handler(req, res) {
 
           if (user_id) {
               // Check for existing session/progress
-              const { data: existingSession } = await supabase
+              const { data: existingSession } = await getSupabase()
                   .from('god_mode_user_session')
                   .select('*')
                   .eq('user_id', user_id)
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
               }
 
               // Create or update session record
-              const { error: upsertError } = await supabase
+              const { error: upsertError } = await getSupabase()
                   .from('god_mode_user_session')
                   .upsert({
                       user_id: user_id,

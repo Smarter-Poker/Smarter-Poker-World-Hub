@@ -8,10 +8,15 @@ import { createClient } from '../../../../../../../src/lib/supabaseServerClient'
 import { guardWriteStaff } from '../../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
     try {
       // Staff is already validated by guardWriteStaff at the handler level
 
-      const { data: tournament } = await supabase
+      const { data: tournament } = await getSupabase()
         .from('commander_tournaments')
         .select('id, venue_id')
         .eq('id', tournamentId)
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'table_number and seat_number required' });
       }
 
-      const { data: entry } = await supabase
+      const { data: entry } = await getSupabase()
         .from('commander_tournament_entries')
         .select('*')
         .eq('id', entryId)
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
       if (!entry) return res.status(404).json({ success: false, error: 'Entry not found' });
 
       // Check seat not occupied
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from('commander_tournament_entries')
         .select('id, player_name')
         .eq('tournament_id', tournamentId)
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
       // If the player is currently 'registered' but is given a seat, advance them to 'seated'
       const newStatus = entry.status === 'registered' ? 'seated' : entry.status;
 
-      const { error: uErr } = await supabase
+      const { error: uErr } = await getSupabase()
         .from('commander_tournament_entries')
         .update({
           table_number,

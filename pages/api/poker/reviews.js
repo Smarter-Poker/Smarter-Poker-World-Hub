@@ -1,10 +1,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -31,7 +36,7 @@ export default async function handler(req, res) {
         // Require JWT for writes
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for reviews' });
-        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { venue_id, rating, review_text, reviewer_name } = req.body;
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Rating must be an integer between 1 and 5' });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('venue_reviews')
           .insert({
             venue_id: String(venueIdNum),
@@ -89,7 +94,7 @@ export default async function handler(req, res) {
         const offsetNum = parseInt(offset, 10) || 0;
 
         // Fetch reviews
-        const { data: reviews, error: reviewError } = await supabase
+        const { data: reviews, error: reviewError } = await getSupabase()
           .from('venue_reviews')
           .select('*')
           .eq('venue_id', String(venueIdNum))
@@ -102,7 +107,7 @@ export default async function handler(req, res) {
         }
 
         // Fetch all ratings for stats
-        const { data: allRatings, error: ratingsError } = await supabase
+        const { data: allRatings, error: ratingsError } = await getSupabase()
           .from('venue_reviews')
           .select('rating')
           .eq('venue_id', String(venueIdNum))
@@ -138,7 +143,7 @@ export default async function handler(req, res) {
         // CRITICAL FIX #1: Require JWT auth instead of query param user_id
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for delete' });
-        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { review_id } = req.query;
@@ -148,7 +153,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'review_id is required' });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('venue_reviews')
           .delete()
           .eq('id', review_id)
@@ -174,7 +179,7 @@ export default async function handler(req, res) {
         }
 
         // Fetch current helpful_count then increment
-        const { data: existing, error: fetchErr } = await supabase
+        const { data: existing, error: fetchErr } = await getSupabase()
           .from('venue_reviews')
           .select('helpful_count')
           .eq('id', review_id)
@@ -184,7 +189,7 @@ export default async function handler(req, res) {
           return res.status(404).json({ success: false, error: 'Review not found' });
         }
 
-        const { error: updateErr } = await supabase
+        const { error: updateErr } = await getSupabase()
           .from('venue_reviews')
           .update({ helpful_count: (existing.helpful_count || 0) + 1 })
           .eq('id', review_id);

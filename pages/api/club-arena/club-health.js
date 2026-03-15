@@ -19,10 +19,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
@@ -34,14 +39,14 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { clubId, action } = req.body;
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
       // Verify ownership/admin
-      const { data: membership } = await supabaseAdmin
+      const { data: membership } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -62,7 +67,7 @@ export default async function handler(req, res) {
               // ═══════════════════════════════════════════════════════
               // 1. ACTIVE PLAYERS (40%) — players active in last 7 days
               // ═══════════════════════════════════════════════════════
-              const { data: allMembers } = await supabaseAdmin
+              const { data: allMembers } = await getSupabase()
                   .from('club_members')
                   .select('user_id, last_active, role, created_at')
                   .eq('club_id', clubId)
@@ -81,14 +86,14 @@ export default async function handler(req, res) {
               // ═══════════════════════════════════════════════════════
               // 2. RAKE TREND (20%) — this week vs last week
               // ═══════════════════════════════════════════════════════
-              const { data: thisWeekLogs } = await supabaseAdmin
+              const { data: thisWeekLogs } = await getSupabase()
                   .from('action_audit_logs')
                   .select('amount')
                   .eq('club_id', clubId)
                   .in('action_type', ['buyin', 'chip_distribution'])
                   .gte('created_at', oneWeekAgo);
 
-              const { data: lastWeekLogs } = await supabaseAdmin
+              const { data: lastWeekLogs } = await getSupabase()
                   .from('action_audit_logs')
                   .select('amount')
                   .eq('club_id', clubId)
@@ -110,7 +115,7 @@ export default async function handler(req, res) {
               // ═══════════════════════════════════════════════════════
               // 3. AGENT ENGAGEMENT (15%) — agents with activity this week
               // ═══════════════════════════════════════════════════════
-              const { data: agents } = await supabaseAdmin
+              const { data: agents } = await getSupabase()
                   .from('agents')
                   .select('user_id')
                   .eq('club_id', clubId)
@@ -120,7 +125,7 @@ export default async function handler(req, res) {
               let activeAgents = 0;
               if (totalAgents > 0) {
                   const agentIds = agents.map(a => a.user_id);
-                  const { data: agentActivity } = await supabaseAdmin
+                  const { data: agentActivity } = await getSupabase()
                       .from('action_audit_logs')
                       .select('user_id')
                       .eq('club_id', clubId)
@@ -145,14 +150,14 @@ export default async function handler(req, res) {
               // ═══════════════════════════════════════════════════════
               // 5. CASHOUT VELOCITY (10%) — high cashout = drain = lower score
               // ═══════════════════════════════════════════════════════
-              const { count: cashoutCount } = await supabaseAdmin
+              const { count: cashoutCount } = await getSupabase()
                   .from('action_audit_logs')
                   .select('id', { count: 'exact', head: true })
                   .eq('club_id', clubId)
                   .eq('action_type', 'cashout_approved')
                   .gte('created_at', oneWeekAgo);
 
-              const { count: buyinCount } = await supabaseAdmin
+              const { count: buyinCount } = await getSupabase()
                   .from('action_audit_logs')
                   .select('id', { count: 'exact', head: true })
                   .eq('club_id', clubId)

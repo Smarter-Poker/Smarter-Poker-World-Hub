@@ -4,9 +4,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 const EDIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 function sanitizeMessage(text) {
@@ -39,18 +36,26 @@ export default async function handler(req, res) {
       }
 
       const content = sanitizeMessage(rawContent);
-      const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
+      let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}, SUPABASE_SERVICE_ROLE_KEY);
 
       try {
           // Auth
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           // Fetch the message
-          const { data: msg, error: msgErr } = await supabase
+          const { data: msg, error: msgErr } = await getSupabase()
               .from('social_messages')
               .select('id, sender_id, created_at, is_deleted')
               .eq('id', messageId)
@@ -78,7 +83,7 @@ export default async function handler(req, res) {
           }
 
           // Update the message
-          const { error: updateErr } = await supabase
+          const { error: updateErr } = await getSupabase()
               .from('social_messages')
               .update({ content, updated_at: new Date().toISOString() })
               .eq('id', messageId);

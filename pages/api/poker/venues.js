@@ -19,10 +19,15 @@ import allVenuesData from '../../../data/all-venues.json';
 import dailyTournamentData from '../../../data/daily-tournament-schedules.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // --- State abbreviation ↔ full name mapping ---
 const STATE_ABBREV_TO_NAME = {
@@ -247,7 +252,7 @@ export default async function handler(req, res) {
 
               // Try Supabase first (has real-time data)
               try {
-                  const { data, error } = await supabase
+                  const { data, error } = await getSupabase()
                       .from('poker_venues')
                       .select('*')
                       .eq('id', numericId)
@@ -270,7 +275,7 @@ export default async function handler(req, res) {
               // --- Merge public social pages (clubs, charities, home games) ---
               // Linked pages enrich their parent JSON venue; unlinked pages create new entries
               try {
-                  let spQuery = supabase
+                  let spQuery = getSupabase()
                       .from('social_pages')
                       .select('id, name, description, avatar_url, page_type, location_city, location_state, follower_count, metadata, linked_venue_id, owner_id')
                       .eq('is_public', true)
@@ -317,7 +322,7 @@ export default async function handler(req, res) {
                           let tournamentCountByClub = {};
                           if (ownerIds.length > 0) {
                               try {
-                                  const { data: clubs } = await supabase
+                                  const { data: clubs } = await getSupabase()
                                       .from('clubs')
                                       .select('id, owner_id, name')
                                       .in('owner_id', ownerIds)
@@ -329,7 +334,7 @@ export default async function handler(req, res) {
                                       }
                                       const clubIds = clubs.map(c => c.id);
                                       if (clubIds.length > 0) {
-                                          const { data: tourneys } = await supabase
+                                          const { data: tourneys } = await getSupabase()
                                               .from('tournaments')
                                               .select('club_id')
                                               .in('club_id', clubIds)
@@ -416,7 +421,7 @@ export default async function handler(req, res) {
                           if (missedLinkedPages.length > 0) {
                               try {
                                   const missedIds = [...new Set(missedLinkedPages.map(sp => sp.linked_venue_id))];
-                                  const { data: pvRows } = await supabase
+                                  const { data: pvRows } = await getSupabase()
                                       .from('poker_venues')
                                       .select('id, games_offered, stakes_cash, trust_score, is_featured, has_tournaments, hours_weekday, hours_weekend, poker_tables')
                                       .in('id', missedIds)

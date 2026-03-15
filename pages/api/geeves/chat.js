@@ -10,10 +10,15 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { lookupKnowledgeBase } from '../../../src/lib/geevesKnowledgeBase';
 import { getRoleBoosts } from '../../../src/lib/geevesKB/rolePersonalization';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const GEEVES_SYSTEM_PROMPT = `You are Geeves, a world-class poker strategy expert and AI assistant.
 
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
           }
           return res.status(401).json({ success: false, error: 'Sign in for AI-powered answers' });
       }
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       try {
@@ -94,7 +99,7 @@ export default async function handler(req, res) {
           // ── STEP 1: Check cache before calling Grok ──
           const questionHash = hashQuestion(message);
           try {
-              const { data: cached } = await supabaseAdmin
+              const { data: cached } = await getSupabase()
                   .from('geeves_knowledge_cache')
                   .select('id, answer, times_served, avg_rating')
                   .eq('question_hash', questionHash)
@@ -102,7 +107,7 @@ export default async function handler(req, res) {
 
               if (cached) {
                   // Increment served counter
-                  await supabaseAdmin.rpc('increment_cache_served', { cache_uuid: cached.id }).catch(() => { });
+                  await getSupabase().rpc('increment_cache_served', { cache_uuid: cached.id }).catch(() => { });
 
                   return res.status(200).json({
                       response: cached.answer,
@@ -152,7 +157,7 @@ export default async function handler(req, res) {
           // ── STEP 3: Save to cache for future use ──
           let cacheId = null;
           try {
-              const { data: newCache } = await supabaseAdmin
+              const { data: newCache } = await getSupabase()
                   .from('geeves_knowledge_cache')
                   .insert({
                       question_normalized: normalizeQuestion(message),
@@ -179,7 +184,7 @@ export default async function handler(req, res) {
           try {
               // Use raw SQL so we can do a proper ON CONFLICT DO UPDATE with arithmetic
               // The RPC is preferred but falls back to direct PostgREST if not yet created.
-              await supabaseAdmin.rpc('geeves_upsert_missed_question', {
+              await getSupabase().rpc('geeves_upsert_missed_question', {
                   p_question: message,
                   p_hash: questionHash,
                   p_page: currentPage || null,
@@ -191,7 +196,7 @@ export default async function handler(req, res) {
               // so we use separate insert + update logic:
               try {
                   // Try INSERT first
-                  const { error: insErr } = await supabaseAdmin
+                  const { error: insErr } = await getSupabase()
                       .from('geeves_missed_questions')
                       .insert({
                           question: message,
@@ -205,13 +210,13 @@ export default async function handler(req, res) {
 
                   if (insErr && insErr.code === '23505') {
                       // Unique constraint violation = already exists, increment count
-                      await supabaseAdmin.rpc('geeves_increment_missed_count', {
+                      await getSupabase().rpc('geeves_increment_missed_count', {
                           p_hash: questionHash,
                           p_grok_answer: answer.slice(0, 2000),
                           p_page: currentPage || null,
                       }).catch(() => {
                           // Final fallback: direct update (no increment, still more correct than resetting to 1)
-                          supabaseAdmin
+                          getSupabase()
                               .from('geeves_missed_questions')
                               .update({ last_asked: new Date().toISOString(), grok_answer: answer.slice(0, 2000) })
                               .eq('question_hash', questionHash)

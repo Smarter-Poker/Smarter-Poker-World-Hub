@@ -10,10 +10,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 // Admin client for RPC calls
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -55,7 +60,7 @@ async function handleGet(req, res) {
 
         // If location provided, use PostGIS function
         if (lat && lng) {
-            const { data, error } = await supabaseAdmin.rpc('find_live_games_nearby', {
+            const { data, error } = await getSupabase().rpc('find_live_games_nearby', {
                 p_lat: parseFloat(lat),
                 p_lng: parseFloat(lng),
                 p_radius_miles: parseFloat(radius),
@@ -78,7 +83,7 @@ async function handleGet(req, res) {
         }
 
         // Otherwise, fetch all active live games
-        let query = supabaseAdmin
+        let query = getSupabase()
             .from('live_games')
             .select('*')
             .eq('is_active', true)
@@ -112,7 +117,7 @@ async function handleGet(req, res) {
         if (enrichedGames.length > 0) {
             const venueIds = [...new Set(enrichedGames.map(g => g.venue_id).filter(Boolean))];
             if (venueIds.length > 0) {
-                const { data: venues } = await supabaseAdmin
+                const { data: venues } = await getSupabase()
                     .from('poker_venues')
                     .select('id, name, city, state, latitude, longitude')
                     .in('id', venueIds);
@@ -146,7 +151,7 @@ async function handlePost(req, res) {
         }
 
         const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
         if (authError || !user) {
             return res.status(401).json({ success: false, error: 'Invalid or expired token' });
@@ -181,7 +186,7 @@ async function handlePost(req, res) {
         }
 
         // Verify venue exists
-        const { data: venue, error: venueError } = await supabaseAdmin
+        const { data: venue, error: venueError } = await getSupabase()
             .from('poker_venues')
             .select('id, name')
             .eq('id', parseInt(venue_id))
@@ -192,7 +197,7 @@ async function handlePost(req, res) {
         }
 
         // Use the report_live_game function
-        const { data: gameId, error: reportError } = await supabaseAdmin.rpc('report_live_game', {
+        const { data: gameId, error: reportError } = await getSupabase().rpc('report_live_game', {
             p_venue_id: parseInt(venue_id),
             p_user_id: user.id,
             p_game_type: game_type,
@@ -210,7 +215,7 @@ async function handlePost(req, res) {
         }
 
         // Fetch the created/updated game
-        const { data: game, error: fetchError } = await supabaseAdmin
+        const { data: game, error: fetchError } = await getSupabase()
             .from('live_games')
             .select('*')
             .eq('id', gameId)

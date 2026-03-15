@@ -14,10 +14,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -27,7 +32,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const unionId = req.query.unionId;
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
 
     try {
       // 1. Verify union admin (with owner fallback)
-      const { data: unionAdmin } = await supabaseAdmin
+      const { data: unionAdmin } = await getSupabase()
         .from('union_admins')
         .select('role, permissions')
         .eq('union_id', unionId)
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
       // Fallback: check if user is the union owner
       let resolvedAdmin = unionAdmin;
       if (!resolvedAdmin) {
-        const { data: ownerCheck } = await supabaseAdmin
+        const { data: ownerCheck } = await getSupabase()
           .from('unions')
           .select('id')
           .eq('id', unionId)
@@ -59,7 +64,7 @@ export default async function handler(req, res) {
       if (!resolvedAdmin) return res.status(403).json({ success: false, error: 'Not a union admin' });
 
       // 2. Get union info
-      const { data: union } = await supabaseAdmin
+      const { data: union } = await getSupabase()
         .from('unions')
         .select('id, name, code, description, owner_id, settings, chip_balance, rake_wallet, bbj_wallet, promo_wallet, backup_bbj_balance, created_at')
         .eq('id', unionId)
@@ -69,18 +74,18 @@ export default async function handler(req, res) {
 
       // 2b. Pending union applications + leave requests (for alert banners)
       const [{ count: pendingApps }, { count: pendingLeave }] = await Promise.all([
-        supabaseAdmin.from('union_applications')
+        getSupabase().from('union_applications')
           .select('*', { count: 'exact', head: true })
           .eq('union_id', unionId)
           .eq('status', 'pending'),
-        supabaseAdmin.from('union_leave_requests')
+        getSupabase().from('union_leave_requests')
           .select('*', { count: 'exact', head: true })
           .eq('union_id', unionId)
           .eq('status', 'pending'),
       ]);
 
       // 3. Get all clubs in union
-      const { data: unionClubs } = await supabaseAdmin
+      const { data: unionClubs } = await getSupabase()
         .from('union_clubs')
         .select('club_id')
         .eq('union_id', unionId)
@@ -90,7 +95,7 @@ export default async function handler(req, res) {
 
       let clubs = [];
       if (clubIds.length > 0) {
-        const { data: clubData } = await supabaseAdmin
+        const { data: clubData } = await getSupabase()
           .from('clubs')
           .select('id, name, club_id, member_count, chip_treasury, total_rake, weekly_rake, hands_played, owner_id, settings, club_commission_rate, created_at')
           .in('id', clubIds)
@@ -101,7 +106,7 @@ export default async function handler(req, res) {
       // 4. Get all agents across union clubs
       let agents = [];
       if (clubIds.length > 0) {
-        const { data: agentData } = await supabaseAdmin
+        const { data: agentData } = await getSupabase()
           .from('agents')
           .select('id, user_id, club_id, role, commission_rate, is_prepaid, status, active_player_count, total_players, lifetime_earnings, weekly_rake_generated, business_balance, credit_limit, credit_used')
           .in('club_id', clubIds)
@@ -112,7 +117,7 @@ export default async function handler(req, res) {
         // Enrich agents with profile names
         const agentUserIds = agents.map(a => a.user_id);
         if (agentUserIds.length > 0) {
-          const { data: agentProfiles } = await supabaseAdmin
+          const { data: agentProfiles } = await getSupabase()
             .from('profiles')
             .select('id, username, display_name')
             .in('id', agentUserIds)
@@ -127,7 +132,7 @@ export default async function handler(req, res) {
       // 5. Get recent settlement periods
       let periods = [];
       if (clubIds.length > 0) {
-        const { data: periodData } = await supabaseAdmin
+        const { data: periodData } = await getSupabase()
           .from('settlement_periods')
           .select('id, club_id, status, period_number, total_rake_collected, total_hands_dealt, start_at, end_at, created_at')
           .in('club_id', clubIds)
@@ -137,7 +142,7 @@ export default async function handler(req, res) {
       }
 
       // 6. Get all union admins
-      const { data: adminList } = await supabaseAdmin
+      const { data: adminList } = await getSupabase()
         .from('union_admins')
         .select('user_id, role, permissions, created_at')
         .eq('union_id', unionId)
@@ -147,7 +152,7 @@ export default async function handler(req, res) {
       let admins = adminList || [];
       const adminUserIds = admins.map(a => a.user_id);
       if (adminUserIds.length > 0) {
-        const { data: adminProfiles } = await supabaseAdmin
+        const { data: adminProfiles } = await getSupabase()
           .from('profiles')
           .select('id, username, display_name, avatar_url')
           .in('id', adminUserIds)
@@ -160,7 +165,7 @@ export default async function handler(req, res) {
       // 6b. Active tables count per club (for Games tab)
       const activeTablesByClub = {};
       if (clubIds.length > 0) {
-        const { data: activeTables } = await supabaseAdmin
+        const { data: activeTables } = await getSupabase()
           .from('tables')
           .select('club_id, status, current_players')
           .in('club_id', clubIds)
@@ -183,7 +188,7 @@ export default async function handler(req, res) {
       let runningTournaments = 0;
       let scheduledTournaments = 0;
       if (clubIds.length > 0) {
-        const { data: tournCounts } = await supabaseAdmin
+        const { data: tournCounts } = await getSupabase()
           .from('club_tournaments')
           .select('status')
           .in('club_id', clubIds)
@@ -197,7 +202,7 @@ export default async function handler(req, res) {
       // 7b. Commission history — only loaded when ?include=commissions is passed (lazy)
       let commissionHistory = undefined;
       if (req.query.include === 'commissions' && clubIds.length > 0) {
-        const { data: commRows } = await supabaseAdmin
+        const { data: commRows } = await getSupabase()
           .from('commission_history')
           .select('id, club_id, agent_user_id, agent_role, commission_rate, commission_amount, gross_rake, is_prepaid, created_at')
           .in('club_id', clubIds)
@@ -208,7 +213,7 @@ export default async function handler(req, res) {
         const agentUserIds = [...new Set((commRows || []).map(r => r.agent_user_id).filter(Boolean))];
         let profileMap = {};
         if (agentUserIds.length > 0) {
-          const { data: profs } = await supabaseAdmin
+          const { data: profs } = await getSupabase()
             .from('profiles')
             .select('id, username, display_name')
             .in('id', agentUserIds)
@@ -244,9 +249,9 @@ export default async function handler(req, res) {
       if (clubIds.length > 0) {
         try {
           const [{ data: txs }, { data: tourns }, { data: recentTables }] = await Promise.all([
-            supabaseAdmin.from('union_wallet_transactions').select('id, amount, transaction_type, notes, created_at').eq('union_id', unionId).order('created_at', { ascending: false }).limit(3),
-            supabaseAdmin.from('club_tournaments').select('id, name, status, created_at').in('club_id', clubIds).order('created_at', { ascending: false }).limit(3),
-            supabaseAdmin.from('tables').select('id, name, stakes, status, created_at').in('club_id', clubIds).order('created_at', { ascending: false }).limit(3)
+            getSupabase().from('union_wallet_transactions').select('id, amount, transaction_type, notes, created_at').eq('union_id', unionId).order('created_at', { ascending: false }).limit(3),
+            getSupabase().from('club_tournaments').select('id, name, status, created_at').in('club_id', clubIds).order('created_at', { ascending: false }).limit(3),
+            getSupabase().from('tables').select('id, name, stakes, status, created_at').in('club_id', clubIds).order('created_at', { ascending: false }).limit(3)
           ]);
 
           const cMap = { success: '#31A24C', primary: '#2374E1', gold: '#F7C52A' };
@@ -274,7 +279,7 @@ export default async function handler(req, res) {
         try {
           // Per-club weekly rake trending (last 4 weeks)
           const fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
-          const { data: periodTrends } = await supabaseAdmin
+          const { data: periodTrends } = await getSupabase()
             .from('settlement_periods')
             .select('club_id, period_number, total_rake_collected, total_hands_dealt, status, created_at')
             .in('club_id', clubIds)
@@ -313,7 +318,7 @@ export default async function handler(req, res) {
 
           // Player migration — new members (joined in last 14 days)
           const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-          const { data: newMembers } = await supabaseAdmin
+          const { data: newMembers } = await getSupabase()
             .from('club_members')
             .select('user_id, club_id, role, created_at')
             .in('club_id', clubIds)

@@ -9,10 +9,15 @@ import { supabase } from '../../../../src/lib/supabase';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Generate a 4-digit verification code
 function generateVerificationCode() {
@@ -58,12 +63,12 @@ async function handleGet(req, res) {
 
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.replace('Bearer ', '');
-            const { data: { user } } = await supabase.auth.getUser(token);
+            const { data: { user } } = await getSupabase().auth.getUser(token);
             userId = user?.id;
         }
 
         // Check if venue is claimed
-        const { data: venue, error: venueError } = await supabaseAdmin
+        const { data: venue, error: venueError } = await getSupabase()
             .from('poker_venues')
             .select('id, name, is_claimed, claimed_at')
             .eq('id', parseInt(venue_id))
@@ -76,7 +81,7 @@ async function handleGet(req, res) {
         // Get user's claim status if logged in
         let userClaim = null;
         if (userId) {
-            const { data: claim } = await supabaseAdmin
+            const { data: claim } = await getSupabase()
                 .from('venue_claims')
                 .select('id, status, created_at, updated_at')
                 .eq('venue_id', parseInt(venue_id))
@@ -91,7 +96,7 @@ async function handleGet(req, res) {
         // Check if user is a manager
         let isManager = false;
         if (userId) {
-            const { data: manager } = await supabaseAdmin
+            const { data: manager } = await getSupabase()
                 .from('venue_managers')
                 .select('id, role')
                 .eq('venue_id', parseInt(venue_id))
@@ -126,7 +131,7 @@ async function handlePost(req, res) {
         }
 
         const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
         if (authError || !user) {
             return res.status(401).json({ success: false, error: 'Invalid or expired token' });
@@ -151,7 +156,7 @@ async function handlePost(req, res) {
         }
 
         // Check venue exists
-        const { data: venue, error: venueError } = await supabaseAdmin
+        const { data: venue, error: venueError } = await getSupabase()
             .from('poker_venues')
             .select('id, name, is_claimed, phone')
             .eq('id', parseInt(venue_id))
@@ -170,7 +175,7 @@ async function handlePost(req, res) {
         }
 
         // Check for existing pending claim by this user
-        const { data: existingClaim } = await supabaseAdmin
+        const { data: existingClaim } = await getSupabase()
             .from('venue_claims')
             .select('id, status')
             .eq('venue_id', parseInt(venue_id))
@@ -190,7 +195,7 @@ async function handlePost(req, res) {
         const verificationCode = generateVerificationCode();
 
         // Create the claim
-        const { data: claim, error: claimError } = await supabaseAdmin
+        const { data: claim, error: claimError } = await getSupabase()
             .from('venue_claims')
             .insert({
                 venue_id: parseInt(venue_id),
@@ -213,7 +218,7 @@ async function handlePost(req, res) {
         }
 
         // Log the claim submission
-        await supabaseAdmin
+        await getSupabase()
             .from('venue_verification_log')
             .insert({
                 claim_id: claim.id,

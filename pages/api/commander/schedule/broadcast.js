@@ -7,10 +7,15 @@ import { verifyManagerSession, guardWriteStaff } from '../../../../src/lib/comma
 import twilio from 'twilio';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const twilioClient = twilio(
     process.env.TWILIO_ACCOUNT_SID,
@@ -67,7 +72,7 @@ export default async function handler(req, res) {
 
           // Parallel fetch: shifts, staff, and venue name are all independent
           const [shiftsResult, staffResult, venueResult] = await Promise.all([
-              supabase
+              getSupabase()
                   .from('commander_staff_shifts')
                   .select('*')
                   .eq('venue_id', venue_id)
@@ -76,13 +81,13 @@ export default async function handler(req, res) {
                   .order('shift_date')
                   .order('start_time')
                   .limit(100),
-              supabase
+              getSupabase()
                   .from('commander_staff')
                   .select('id, display_name, phone, email, role')
                   .eq('venue_id', venue_id)
                   .eq('is_active', true)
                   .limit(100),
-              supabase
+              getSupabase()
                   .from('poker_venues')
                   .select('name')
                   .eq('id', venue_id)

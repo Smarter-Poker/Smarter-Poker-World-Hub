@@ -15,10 +15,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 // Supabase client
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Action colors for prompt
 const ACTION_COLORS = {
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
       // BUG #267 FIX: Require JWT auth — calls paid Grok AI image generation API
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       try {
@@ -204,7 +209,7 @@ function generateCacheKey(data) {
  */
 async function checkCachedImage(cacheKey) {
     try {
-        const { data } = supabase.storage
+        const { data } = getSupabase().storage
             .from('gto-panels')
             .getPublicUrl(`${cacheKey}.png`);
 
@@ -223,7 +228,7 @@ async function checkCachedImage(cacheKey) {
  * Upload image to Supabase Storage
  */
 async function uploadToStorage(cacheKey, buffer) {
-    const { data, error } = await supabase.storage
+    const { data, error } = await getSupabase().storage
         .from('gto-panels')
         .upload(`${cacheKey}.png`, buffer, {
             contentType: 'image/png',
@@ -235,7 +240,7 @@ async function uploadToStorage(cacheKey, buffer) {
         throw error;
     }
 
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = getSupabase().storage
         .from('gto-panels')
         .getPublicUrl(`${cacheKey}.png`);
 

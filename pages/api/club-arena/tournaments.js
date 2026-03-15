@@ -13,10 +13,15 @@ const { runStandardGuards, validateUUID, sanitizeInt, sanitizeFloat } = require(
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const crypto = require('crypto');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
 
     try {
       const token = req.headers.authorization?.replace('Bearer ', '');
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
       const { action, ...params } = req.body;
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
           if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
           // Verify user is admin/owner of this club
-          const { data: member } = await supabaseAdmin
+          const { data: member } = await getSupabase()
             .from('club_members')
             .select('role')
             .eq('club_id', clubId)
@@ -123,7 +128,7 @@ export default async function handler(req, res) {
             defaultBlinds.forEach(b => { if (!b.isBreak) b.duration = settings.blinds_up_minutes; });
           }
 
-          const { data: tournament, error: createErr } = await supabaseAdmin
+          const { data: tournament, error: createErr } = await getSupabase()
             .from('club_tournaments')
             .insert({
               club_id: clubId,
@@ -228,7 +233,7 @@ export default async function handler(req, res) {
           const { clubId, status } = params;
           if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
-          let query = supabaseAdmin
+          let query = getSupabase()
             .from('club_tournaments')
             .select('*')
             .eq('club_id', clubId)
@@ -262,7 +267,7 @@ export default async function handler(req, res) {
           if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
           // Get tournament (for SNG auto-start + notification metadata)
-          const { data: tourn } = await supabaseAdmin
+          const { data: tourn } = await getSupabase()
             .from('club_tournaments')
             .select('*')
             .eq('id', tournamentId)
@@ -271,7 +276,7 @@ export default async function handler(req, res) {
           if (!tourn) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
           // ── Atomic registration: single RPC with advisory lock ──
-          const { data: regResult, error: regErr } = await supabaseAdmin.rpc('fn_tournament_atomic_register', {
+          const { data: regResult, error: regErr } = await getSupabase().rpc('fn_tournament_atomic_register', {
             p_user_id: user.id,
             p_club_id: tourn.club_id,
             p_tournament_id: tournamentId,
@@ -304,7 +309,7 @@ export default async function handler(req, res) {
               const { getController } = require('../../../src/lib/poker-engine/GameController');
               const controller = await getController();
 
-              const { data: sngRegs } = await supabaseAdmin
+              const { data: sngRegs } = await getSupabase()
                 .from('tournament_registrations')
                 .select('user_id, display_name')
                 .eq('tournament_id', tournamentId)
@@ -334,7 +339,7 @@ export default async function handler(req, res) {
                   await controller.registerForTournament(tournamentId, reg.user_id, reg.display_name || 'Player', { chipsAlreadyLocked: true });
                 }
                 await controller.startTournament(tournamentId);
-                await supabaseAdmin
+                await getSupabase()
                   .from('club_tournaments')
                   .update({ status: 'running', started_at: new Date().toISOString() })
                   .eq('id', tournamentId);
@@ -355,7 +360,7 @@ export default async function handler(req, res) {
               const controller = await getController();
 
               // Get the display name saved during fn_tournament_atomic_register
-              const { data: regInfo } = await supabaseAdmin
+              const { data: regInfo } = await getSupabase()
                 .from('tournament_registrations')
                 .select('display_name')
                 .eq('tournament_id', tournamentId)
@@ -400,7 +405,7 @@ export default async function handler(req, res) {
           const { tournamentId } = params;
           if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
-          const { data: reg } = await supabaseAdmin
+          const { data: reg } = await getSupabase()
             .from('tournament_registrations')
             .select('*, club_tournaments(*)')
             .eq('tournament_id', tournamentId)
@@ -416,7 +421,7 @@ export default async function handler(req, res) {
           }
 
           // Refund by unlocking chips (registration used lock_chips_for_table)
-          await supabaseAdmin.rpc('unlock_chips_from_table', {
+          await getSupabase().rpc('unlock_chips_from_table', {
             p_user_id: user.id,
             p_club_id: tourn.club_id,
             p_table_id: tournamentId,
@@ -424,13 +429,13 @@ export default async function handler(req, res) {
           });
 
           // Update registration
-          await supabaseAdmin
+          await getSupabase()
             .from('tournament_registrations')
             .update({ status: 'unregistered' })
             .eq('id', reg.id);
 
           // Update count atomically
-          await supabaseAdmin.rpc('fn_tournament_unregister_counter', {
+          await getSupabase().rpc('fn_tournament_unregister_counter', {
             p_tournament_id: tournamentId,
             p_buy_in: reg.buy_in_amount,
           });
@@ -445,7 +450,7 @@ export default async function handler(req, res) {
           const { tournamentId } = params;
           if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
-          const { data: tourn } = await supabaseAdmin
+          const { data: tourn } = await getSupabase()
             .from('club_tournaments')
             .select('*')
             .eq('id', tournamentId)
@@ -454,7 +459,7 @@ export default async function handler(req, res) {
           if (!tourn) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
           // Verify admin
-          const { data: member } = await supabaseAdmin
+          const { data: member } = await getSupabase()
             .from('club_members')
             .select('role')
             .eq('club_id', tourn.club_id)
@@ -475,7 +480,7 @@ export default async function handler(req, res) {
             const controller = await getController();
 
             // Get registered players
-            const { data: registrations } = await supabaseAdmin
+            const { data: registrations } = await getSupabase()
               .from('tournament_registrations')
               .select('user_id, display_name')
               .eq('tournament_id', tournamentId)
@@ -537,7 +542,7 @@ export default async function handler(req, res) {
             }
 
             // Engine started successfully — NOW mark running in DB, and store prize pool/overlay
-            await supabaseAdmin
+            await getSupabase()
               .from('club_tournaments')
               .update({ 
                  status: 'running', 
@@ -550,7 +555,7 @@ export default async function handler(req, res) {
           } catch (engineErr) {
             console.error('[Tournament] Engine init error:', engineErr.message);
             // Engine failed — do NOT mark as running, revert to registering
-            await supabaseAdmin
+            await getSupabase()
               .from('club_tournaments')
               .update({ status: 'registering' })
               .eq('id', tournamentId);
@@ -581,7 +586,7 @@ export default async function handler(req, res) {
           const { tournamentId } = params;
           if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
-          const { data: tourn } = await supabaseAdmin
+          const { data: tourn } = await getSupabase()
             .from('club_tournaments')
             .select('*')
             .eq('id', tournamentId)
@@ -593,7 +598,7 @@ export default async function handler(req, res) {
           }
 
           // Verify admin
-          const { data: cancelMember } = await supabaseAdmin
+          const { data: cancelMember } = await getSupabase()
             .from('club_members')
             .select('role')
             .eq('club_id', tourn.club_id)
@@ -605,7 +610,7 @@ export default async function handler(req, res) {
           }
 
           // Fetch all registered players for batch refund
-          const { data: registrations, error: regErr } = await supabaseAdmin
+          const { data: registrations, error: regErr } = await getSupabase()
             .from('tournament_registrations')
             .select('*')
             .eq('tournament_id', tournamentId)
@@ -623,7 +628,7 @@ export default async function handler(req, res) {
           for (const reg of (registrations || [])) {
             try {
               // Step A: Refund chips (release the lock)
-              const { data: refundResult, error: refundErr } = await supabaseAdmin.rpc('unlock_chips_from_table', {
+              const { data: refundResult, error: refundErr } = await getSupabase().rpc('unlock_chips_from_table', {
                 p_user_id: reg.user_id,
                 p_club_id: tourn.club_id,
                 p_table_id: tournamentId,
@@ -633,7 +638,7 @@ export default async function handler(req, res) {
               if (refundErr) throw new Error(refundErr.message);
 
               // Step B: Mark registration as refunded
-              const { error: updateErr } = await supabaseAdmin.from('tournament_registrations')
+              const { error: updateErr } = await getSupabase().from('tournament_registrations')
                 .update({ status: 'refunded' })
                 .eq('id', reg.id);
 
@@ -659,7 +664,7 @@ export default async function handler(req, res) {
           }
 
           // All refunds verified — NOW safe to update status
-          await supabaseAdmin
+          await getSupabase()
             .from('club_tournaments')
             .update({ status: 'cancelled' })
             .eq('id', tournamentId);
@@ -676,7 +681,7 @@ export default async function handler(req, res) {
           if (!updates || typeof updates !== 'object') return res.status(400).json({ success: false, error: 'updates object required' });
 
           // Fetch tournament
-          const { data: tourn } = await supabaseAdmin
+          const { data: tourn } = await getSupabase()
             .from('club_tournaments')
             .select('*')
             .eq('id', tournamentId)
@@ -690,7 +695,7 @@ export default async function handler(req, res) {
           }
 
           // Verify admin
-          const { data: updMember } = await supabaseAdmin
+          const { data: updMember } = await getSupabase()
             .from('club_members')
             .select('role')
             .eq('club_id', tourn.club_id)
@@ -721,7 +726,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'No valid fields to update' });
           }
 
-          const { error: updErr } = await supabaseAdmin
+          const { error: updErr } = await getSupabase()
             .from('club_tournaments')
             .update(safeUpdates)
             .eq('id', tournamentId);
@@ -741,7 +746,7 @@ export default async function handler(req, res) {
           const { tournamentId } = params;
           if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
-          const { data: tourn } = await supabaseAdmin
+          const { data: tourn } = await getSupabase()
             .from('club_tournaments')
             .select('*')
             .eq('id', tournamentId)
@@ -781,7 +786,7 @@ export default async function handler(req, res) {
           const spinPrizePool = basePrize * drawnMultiplier;
 
           // Persist the drawn multiplier and prize pool
-          await supabaseAdmin
+          await getSupabase()
             .from('club_tournaments')
             .update({ spin_multiplier: drawnMultiplier, prize_pool: spinPrizePool })
             .eq('id', tournamentId);

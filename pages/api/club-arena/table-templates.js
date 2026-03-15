@@ -12,10 +12,15 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
@@ -28,7 +33,7 @@ export default async function handler(req, res) {
       if (!token) return res.status(401).json({ error: 'Not authenticated' });
 
       // Verify JWT
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { action, clubId, templateId, name, config } = req.body;
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
       // Verify user is admin/owner of the club
-      const { data: membership } = await supabaseAdmin
+      const { data: membership } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -50,7 +55,7 @@ export default async function handler(req, res) {
       try {
           switch (action) {
               case 'list': {
-                  const { data, error } = await supabaseAdmin
+                  const { data, error } = await getSupabase()
                       .from('table_templates')
                       .select('*')
                       .eq('club_id', clubId)
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
                       created_by: user.id,
                   };
 
-                  const { data, error } = await supabaseAdmin
+                  const { data, error } = await getSupabase()
                       .from('table_templates')
                       .insert(templateData)
                       .select()
@@ -91,7 +96,7 @@ export default async function handler(req, res) {
 
               case 'delete': {
                   if (!templateId) return res.status(400).json({ error: 'templateId required' });
-                  const { error } = await supabaseAdmin
+                  const { error } = await getSupabase()
                       .from('table_templates')
                       .delete()
                       .eq('id', templateId)
@@ -102,7 +107,7 @@ export default async function handler(req, res) {
 
               case 'use': {
                   if (!templateId) return res.status(400).json({ error: 'templateId required' });
-                  const { error } = await supabaseAdmin
+                  const { error } = await getSupabase()
                       .rpc('increment_column', {
                           table_name: 'table_templates',
                           column_name: 'use_count',
@@ -110,9 +115,9 @@ export default async function handler(req, res) {
                       });
                   // If RPC doesn't exist, fall back to manual update
                   if (error) {
-                      await supabaseAdmin
+                      await getSupabase()
                           .from('table_templates')
-                          .update({ use_count: supabaseAdmin.raw('use_count + 1') })
+                          .update({ use_count: getSupabase().raw('use_count + 1') })
                           .eq('id', templateId)
                           .eq('club_id', clubId);
                   }
@@ -131,7 +136,7 @@ export default async function handler(req, res) {
                   if (scheduleTimezone) updates.schedule_timezone = scheduleTimezone;
                   updates.updated_at = new Date().toISOString();
 
-                  const { error: schedErr } = await supabaseAdmin
+                  const { error: schedErr } = await getSupabase()
                       .from('table_templates')
                       .update(updates)
                       .eq('id', templateId)

@@ -5,10 +5,15 @@
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Helper to parse user agent for device name
 function getDeviceName(userAgent) {
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+          const { data: { user }, error: userError } = await getSupabase().auth.getUser(token);
 
           if (userError || !user) {
               return res.status(401).json({ error: 'Invalid session' });
@@ -64,7 +69,7 @@ export default async function handler(req, res) {
 
           // Upsert session (update if exists, insert if new)
           // We'll use a combination of user_id and device_name as a pseudo-unique key
-          const { data: existingSession } = await supabase
+          const { data: existingSession } = await getSupabase()
               .from('user_sessions')
               .select('id')
               .eq('user_id', user.id)
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
 
           if (existingSession) {
               // Update existing session
-              const { error: updateError } = await supabase
+              const { error: updateError } = await getSupabase()
                   .from('user_sessions')
                   .update({
                       last_active: new Date().toISOString(),
@@ -87,7 +92,7 @@ export default async function handler(req, res) {
               }
           } else {
               // Insert new session
-              const { error: insertError } = await supabase
+              const { error: insertError } = await getSupabase()
                   .from('user_sessions')
                   .insert({
                       user_id: user.id,

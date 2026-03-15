@@ -7,10 +7,15 @@ import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { logAction } from '../../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
 
     try {
       // Get current entry
-      const { data: entry, error: getError } = await supabase
+      const { data: entry, error: getError } = await getSupabase()
         .from('commander_waitlist')
         .select('*')
         .eq('id', id)
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
       // Move player to bottom of list: get max position for same game at this venue
       let newPosition = (entry.position || 0) + 1;
       try {
-        const { data: maxEntry } = await supabase
+        const { data: maxEntry } = await getSupabase()
           .from('commander_waitlist')
           .select('position')
           .eq('venue_id', entry.venue_id)
@@ -66,7 +71,7 @@ export default async function handler(req, res) {
       } catch { /* use fallback */ }
 
       // Set status back to waiting, move to bottom position
-      const { data: updated, error } = await supabase
+      const { data: updated, error } = await getSupabase()
         .from('commander_waitlist')
         .update({
           last_called_at: new Date().toISOString(),

@@ -3,7 +3,15 @@ import { guardManager } from '../../../../src/lib/commander/auth';
 import crypto from 'crypto';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -19,7 +27,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('commander_api_keys')
         .select('id, venue_id, name, api_key, permissions, created_at, last_used_at, is_active')
         .eq('venue_id', venue_id)
@@ -32,7 +40,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const { venue_id: vid, name, permissions } = req.body;
       const apiKey = `cmd_${crypto.randomBytes(24).toString('hex')}`;
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('commander_api_keys')
         .insert({ venue_id: vid, name: name || 'API Key', api_key: apiKey, permissions: permissions || {}, is_active: true })
         .select()

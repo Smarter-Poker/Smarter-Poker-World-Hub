@@ -1,10 +1,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -31,7 +36,7 @@ export default async function handler(req, res) {
         // Require JWT for page claims
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for page claims' });
-        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { page_type, page_id, contact_name, contact_email, contact_phone, role, verification_notes } = req.body;
@@ -47,7 +52,7 @@ export default async function handler(req, res) {
         const pageIdStr = String(page_id);
 
         // Check if claim already exists for this page
-        const { data: existingClaim, error: checkError } = await supabase
+        const { data: existingClaim, error: checkError } = await getSupabase()
           .from('page_claims')
           .select('id, status, user_id')
           .eq('page_type', page_type)
@@ -87,7 +92,7 @@ export default async function handler(req, res) {
           insertData.contact_phone = contact_phone;
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('page_claims')
           .insert(insertData)
           .select()
@@ -107,7 +112,7 @@ export default async function handler(req, res) {
         // Get claim status for a specific page
         if (page_type && page_id) {
           const pageIdStr = String(page_id);
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
             .from('page_claims')
             .select('*')
             .eq('page_type', page_type)
@@ -129,7 +134,7 @@ export default async function handler(req, res) {
 
         // Get all claims for a user
         if (user_id) {
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
             .from('page_claims')
             .select('*')
             .eq('user_id', user_id)

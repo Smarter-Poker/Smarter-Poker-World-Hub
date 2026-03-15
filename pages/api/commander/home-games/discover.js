@@ -6,10 +6,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 /** Escape SQL LIKE wildcards */
 function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
@@ -28,7 +33,7 @@ export default async function handler(req, res) {
 
       let userId = null;
       if (token) {
-        const { data: { user } } = await supabase.auth.getUser(token);
+        const { data: { user } } = await getSupabase().auth.getUser(token);
         userId = user?.id;
       }
 
@@ -95,7 +100,7 @@ async function discoverGroups(req, res, options) {
     limit
   } = options;
 
-  let query = supabase
+  let query = getSupabase()
     .from('commander_home_groups')
     .select(`
       id,
@@ -137,7 +142,7 @@ async function discoverGroups(req, res, options) {
 
   // Add user's membership status if logged in
   if (userId && groups?.length > 0) {
-    const { data: memberships } = await supabase
+    const { data: memberships } = await getSupabase()
       .from('commander_home_members')
       .select('group_id, status')
       .eq('user_id', userId)
@@ -176,7 +181,7 @@ async function discoverPlayers(req, res, options) {
   // Find players with matching preferences who are looking for games
   // This requires player_preferences from Phase 2
 
-  let query = supabase
+  let query = getSupabase()
     .from('commander_player_preferences')
     .select(`
       *,

@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardOwnerStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: OWNER — requires owner role
 export default async function handler(req, res) {
@@ -27,7 +32,7 @@ export default async function handler(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
 async function getProfile(req, res, user) {
   try {
     // Get base profile
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await getSupabase()
       .from('profiles')
       .select('*')
       .eq('id', user.id)
@@ -77,14 +82,14 @@ async function getProfile(req, res, user) {
     }
 
     // Get player preferences
-    const { data: preferences } = await supabase
+    const { data: preferences } = await getSupabase()
       .from('commander_player_preferences')
       .select('*')
       .eq('player_id', user.id)
       .maybeSingle();
 
     // Get favorite venues (venues where player has sessions)
-    const { data: sessions } = await supabase
+    const { data: sessions } = await getSupabase()
       .from('commander_player_sessions')
       .select(`
         venue_id,
@@ -104,7 +109,7 @@ async function getProfile(req, res, user) {
     const favoriteVenues = Array.from(venueMap.values()).slice(0, 5);
 
     // Get achievements (simplified - based on session counts)
-    const { count: sessionCount } = await supabase
+    const { count: sessionCount } = await getSupabase()
       .from('commander_player_sessions')
       .select('id', { count: 'exact', head: true })
       .eq('player_id', user.id)
@@ -142,7 +147,7 @@ async function updateProfile(req, res, user) {
 
     // Update profile if there are updates
     if (Object.keys(profileUpdates).length > 0) {
-      const { error: profileError } = await supabase
+      const { error: profileError } = await getSupabase()
         .from('profiles')
         .update(profileUpdates)
         .eq('id', user.id);
@@ -152,7 +157,7 @@ async function updateProfile(req, res, user) {
 
     // Update preferences if provided
     if (preferences) {
-      const { error: prefError } = await supabase
+      const { error: prefError } = await getSupabase()
         .from('commander_player_preferences')
         .upsert({
           player_id: user.id,

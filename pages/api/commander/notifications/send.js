@@ -11,10 +11,15 @@ import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { checkMemoryRateLimit } from '../../../../src/lib/commander/rateLimit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const VALID_TYPES = ['seat_available', 'tournament_starting', 'called_for_seat', 'promotion', 'custom'];
 const VALID_CHANNELS = ['sms', 'push', 'email', 'in_app'];
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
         });
       }
 
-      const { data: staff, error: staffError } = await supabase
+      const { data: staff, error: staffError } = await getSupabase()
         .from('commander_staff')
         .select('id, venue_id, role, is_active')
         .eq('id', sessionData.id)
@@ -133,7 +138,7 @@ export default async function handler(req, res) {
       const errors = [];
 
       for (const channel of channels) {
-        const { data: notification, error } = await supabase
+        const { data: notification, error } = await getSupabase()
           .from('commander_notifications')
           .insert({
             venue_id,
@@ -207,7 +212,7 @@ async function processNotification(notification, channel, phone) {
 
       case 'in_app':
         // In-app notifications are immediately available
-        await supabase
+        await getSupabase()
           .from('commander_notifications')
           .update({
             status: 'sent',
@@ -222,7 +227,7 @@ async function processNotification(notification, channel, phone) {
     }
   } catch (error) {
     console.error(`Error processing ${channel} notification:`, error);
-    await supabase
+    await getSupabase()
       .from('commander_notifications')
       .update({
         status: 'failed',
@@ -234,7 +239,7 @@ async function processNotification(notification, channel, phone) {
 
 async function sendSmsNotification(notification, phone) {
   if (!isSmsConfigured() && !isTwilioConfigured()) {
-    await supabase
+    await getSupabase()
       .from('commander_notifications')
       .update({ status: 'pending' })
       .eq('id', notification.id);
@@ -245,7 +250,7 @@ async function sendSmsNotification(notification, phone) {
   let toPhone = phone;
   if (!toPhone && notification.player_id) {
     // First check player preferences for this venue
-    const { data: prefs } = await supabase
+    const { data: prefs } = await getSupabase()
       .from('commander_player_preferences')
       .select('notification_preferences')
       .eq('player_id', notification.player_id)
@@ -254,7 +259,7 @@ async function sendSmsNotification(notification, phone) {
 
     // If no phone in preferences, get from profiles table
     if (!prefs?.notification_preferences?.phone) {
-      const { data: profile } = await supabase
+      const { data: profile } = await getSupabase()
         .from('profiles')
         .select('phone')
         .eq('id', notification.player_id)
@@ -266,7 +271,7 @@ async function sendSmsNotification(notification, phone) {
   }
 
   if (!toPhone) {
-    await supabase
+    await getSupabase()
       .from('commander_notifications')
       .update({
         status: 'failed',
@@ -280,7 +285,7 @@ async function sendSmsNotification(notification, phone) {
     // Normalize the phone number to E.164 format using shared utility
     const normalizedPhone = normalizePhoneNumber(toPhone);
     if (!normalizedPhone) {
-      await supabase
+      await getSupabase()
         .from('commander_notifications')
         .update({
           status: 'failed',
@@ -294,7 +299,7 @@ async function sendSmsNotification(notification, phone) {
     const smsResult = await twilioSendSMS(normalizedPhone, notification.message);
 
     if (smsResult.success) {
-      await supabase
+      await getSupabase()
         .from('commander_notifications')
         .update({
           status: 'sent',
@@ -303,7 +308,7 @@ async function sendSmsNotification(notification, phone) {
         })
         .eq('id', notification.id);
     } else {
-      await supabase
+      await getSupabase()
         .from('commander_notifications')
         .update({
           status: 'failed',
@@ -313,7 +318,7 @@ async function sendSmsNotification(notification, phone) {
     }
   } catch (error) {
     console.error('Twilio SMS error:', error);
-    await supabase
+    await getSupabase()
       .from('commander_notifications')
       .update({
         status: 'failed',
@@ -328,7 +333,7 @@ async function sendEmailNotification(notification) {
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'notifications@smarter.poker';
 
   if (!resendApiKey) {
-    await supabase
+    await getSupabase()
       .from('commander_notifications')
       .update({
         status: 'pending',
@@ -341,7 +346,7 @@ async function sendEmailNotification(notification) {
   // Get player email
   let toEmail = notification.metadata?.email;
   if (!toEmail && notification.player_id) {
-    const { data: profile } = await supabase
+    const { data: profile } = await getSupabase()
       .from('profiles')
       .select('email')
       .eq('id', notification.player_id)
@@ -350,7 +355,7 @@ async function sendEmailNotification(notification) {
   }
 
   if (!toEmail) {
-    await supabase
+    await getSupabase()
       .from('commander_notifications')
       .update({
         status: 'failed',
@@ -392,7 +397,7 @@ async function sendEmailNotification(notification) {
     const result = await response.json();
 
     if (result.id) {
-      await supabase
+      await getSupabase()
         .from('commander_notifications')
         .update({
           status: 'sent',
@@ -401,7 +406,7 @@ async function sendEmailNotification(notification) {
         })
         .eq('id', notification.id);
     } else {
-      await supabase
+      await getSupabase()
         .from('commander_notifications')
         .update({
           status: 'failed',
@@ -411,7 +416,7 @@ async function sendEmailNotification(notification) {
     }
   } catch (error) {
     console.error('Resend email error:', error);
-    await supabase
+    await getSupabase()
       .from('commander_notifications')
       .update({
         status: 'failed',
@@ -424,7 +429,7 @@ async function sendEmailNotification(notification) {
 async function sendPushNotification(notification) {
   // Use shared push notification utility for configuration check
   if (!isOneSignalConfigured()) {
-    await supabase
+    await getSupabase()
       .from('commander_notifications')
       .update({ status: 'pending' })
       .eq('id', notification.id);
@@ -435,7 +440,7 @@ async function sendPushNotification(notification) {
   const apiKey = process.env.ONESIGNAL_REST_API_KEY;
 
   // Get player's push subscriptions
-  const { data: subscriptions } = await supabase
+  const { data: subscriptions } = await getSupabase()
     .from('commander_push_subscriptions')
     .select('subscription_data, endpoint')
     .eq('user_id', notification.player_id)
@@ -468,7 +473,7 @@ async function sendPushNotification(notification) {
       const result = await response.json();
 
       if (result.id) {
-        await supabase
+        await getSupabase()
           .from('commander_notifications')
           .update({
             status: 'sent',
@@ -477,7 +482,7 @@ async function sendPushNotification(notification) {
           })
           .eq('id', notification.id);
       } else {
-        await supabase
+        await getSupabase()
           .from('commander_notifications')
           .update({
             status: 'failed',
@@ -487,7 +492,7 @@ async function sendPushNotification(notification) {
       }
     } catch (error) {
       console.error('OneSignal push error:', error);
-      await supabase
+      await getSupabase()
         .from('commander_notifications')
         .update({
           status: 'failed',
@@ -529,7 +534,7 @@ async function sendPushNotification(notification) {
       if (!response.ok) throw new Error(`Request failed (${response.status})`);
       const result = await response.json();
 
-      await supabase
+      await getSupabase()
         .from('commander_notifications')
         .update({
           status: result.id ? 'sent' : 'failed',
@@ -567,7 +572,7 @@ async function sendPushNotification(notification) {
     if (!response.ok) throw new Error(`Request failed (${response.status})`);
     const result = await response.json();
 
-    await supabase
+    await getSupabase()
       .from('commander_notifications')
       .update({
         status: result.id ? 'sent' : 'failed',
@@ -581,7 +586,7 @@ async function sendPushNotification(notification) {
       .eq('id', notification.id);
   } catch (error) {
     console.error('OneSignal push error:', error);
-    await supabase
+    await getSupabase()
       .from('commander_notifications')
       .update({
         status: 'failed',

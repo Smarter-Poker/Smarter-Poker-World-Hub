@@ -9,10 +9,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Valid game types and their server-side entry fees (must match arcadeEngine.ts)
 const GAME_ENTRY_FEES = {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Authentication required' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { gameType } = req.body;
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
       try {
           if (entryFee > 0) {
               // Check balance
-              const { data: profile } = await supabaseAdmin
+              const { data: profile } = await getSupabase()
                   .from('profiles')
                   .select('diamonds')
                   .eq('id', user.id)
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
               }
 
               // Deduct entry fee atomically
-              const { error: deductErr } = await supabaseAdmin.rpc('add_diamonds_to_balance', {
+              const { error: deductErr } = await getSupabase().rpc('add_diamonds_to_balance', {
                   p_user_id: user.id,
                   p_amount: -entryFee,
                   p_type: 'arcade_entry',
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
           }
 
           // Create session record for audit trail
-          const { data: session } = await supabaseAdmin
+          const { data: session } = await getSupabase()
               .from('diamond_arena_events')
               .insert({
                   user_id: user.id,

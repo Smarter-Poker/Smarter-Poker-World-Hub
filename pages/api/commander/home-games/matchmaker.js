@@ -10,10 +10,15 @@ import { getAIClient } from '../../../../src/lib/grokClient';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 /** Escape SQL LIKE wildcards */
 function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
 
     try {
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
       if (authError || !user) {
         return res.status(401).json({
@@ -60,28 +65,28 @@ export default async function handler(req, res) {
         upcomingGamesResult
       ] = await Promise.all([
         // 1. Player profile
-        supabase
+        getSupabase()
           .from('profiles')
           .select('id, display_name, city, state')
           .eq('id', user.id)
           .maybeSingle(),
 
         // 2. Player preferences (all venues — general prefs)
-        supabase
+        getSupabase()
           .from('commander_player_preferences')
           .select('preferred_games, preferred_stakes, auto_join_waitlist, notes')
           .eq('player_id', user.id)
           .limit(5),
 
         // 3. Existing group memberships (so we don't recommend groups they're in)
-        supabase
+        getSupabase()
           .from('commander_home_members')
           .select('group_id, status, role')
           .eq('user_id', user.id)
           .in('status', ['approved', 'pending']),
 
         // 4. Recent session history (last 30 days, up to 20 sessions)
-        supabase
+        getSupabase()
           .from('commander_player_sessions')
           .select('venue_id, check_in_at, total_buyin, total_time_minutes, games_played')
           .eq('player_id', user.id)
@@ -157,7 +162,7 @@ export default async function handler(req, res) {
 }
 
 async function fetchAvailableGroups({ city, state, game_type }) {
-  let query = supabase
+  let query = getSupabase()
     .from('commander_home_groups')
     .select(`
       id, name, description, city, state,
@@ -188,7 +193,7 @@ async function fetchUpcomingGames({ city, state, game_type }) {
   const today = new Date().toISOString().split('T')[0];
   const twoWeeks = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-  let query = supabase
+  let query = getSupabase()
     .from('commander_home_games')
     .select(`
       id, title, game_type, stakes,

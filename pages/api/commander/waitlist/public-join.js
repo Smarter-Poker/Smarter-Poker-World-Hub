@@ -12,10 +12,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { captureException } from '../../../../src/lib/commander/errorMonitoring';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Anon client for JWT verification
 const supabaseAnon = createClient(
@@ -77,7 +82,7 @@ export default async function handler(req, res) {
           }
 
           // Verify venue exists and has Commander enabled
-          const { data: venue, error: venueError } = await supabase
+          const { data: venue, error: venueError } = await getSupabase()
               .from('poker_venues')
               .select('id, commander_enabled, name')
               .eq('id', venue_id)
@@ -100,7 +105,7 @@ export default async function handler(req, res) {
           // ═══ Auto-delete expired web entries (>1 hour, not checked in) ═══
           try {
               const expiryTime = new Date(Date.now() - WEB_EXPIRY_MINUTES * 60 * 1000).toISOString();
-              await supabase
+              await getSupabase()
                   .from('commander_waitlist')
                   .delete()
                   .eq('venue_id', venue_id)
@@ -113,7 +118,7 @@ export default async function handler(req, res) {
           }
 
           // Check if player already on this waitlist
-          const { data: existing } = await supabase
+          const { data: existing } = await getSupabase()
               .from('commander_waitlist')
               .select('id')
               .eq('venue_id', venue_id)
@@ -131,7 +136,7 @@ export default async function handler(req, res) {
           }
 
           // Get player's display name and phone from profile
-          const { data: profile } = await supabase
+          const { data: profile } = await getSupabase()
               .from('profiles')
               .select('display_name, full_name, phone')
               .eq('id', user.id)
@@ -142,7 +147,7 @@ export default async function handler(req, res) {
           const playerPhone = player_phone || profile?.phone || user.phone || null;
 
           // Get next position
-          const { data: positionResult, error: positionError } = await supabase
+          const { data: positionResult, error: positionError } = await getSupabase()
               .rpc('get_next_waitlist_position', {
                   p_venue_id: venue_id,
                   p_game_type: game_type,
@@ -153,7 +158,7 @@ export default async function handler(req, res) {
           const estimated_wait_minutes = position * AVERAGE_WAIT_PER_POSITION;
 
           // Find matching active game
-          const { data: activeGame } = await supabase
+          const { data: activeGame } = await getSupabase()
               .from('commander_games')
               .select('id')
               .eq('venue_id', venue_id)
@@ -163,7 +168,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
           // Insert waitlist entry
-          const { data: entry, error: insertError } = await supabase
+          const { data: entry, error: insertError } = await getSupabase()
               .from('commander_waitlist')
               .insert({
                   venue_id,
@@ -198,7 +203,7 @@ export default async function handler(req, res) {
               const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
               // Check if member already exists for this player+venue
-              const { data: existingMember } = await supabase
+              const { data: existingMember } = await getSupabase()
                   .from('commander_members')
                   .select('id')
                   .eq('venue_id', venue_id)
@@ -209,7 +214,7 @@ export default async function handler(req, res) {
                   // Also try phone match
                   let memberByPhone = null;
                   if (playerPhone) {
-                      const { data: mByPhone } = await supabase
+                      const { data: mByPhone } = await getSupabase()
                           .from('commander_members')
                           .select('id')
                           .eq('venue_id', venue_id)
@@ -221,7 +226,7 @@ export default async function handler(req, res) {
                   if (!memberByPhone) {
                       // Create new member record
                       const memberNum = `WEB-${Date.now().toString(36).toUpperCase().slice(-5)}`;
-                      await supabase.from('commander_members').insert({
+                      await getSupabase().from('commander_members').insert({
                           venue_id,
                           member_number: memberNum,
                           first_name: firstName,
@@ -234,7 +239,7 @@ export default async function handler(req, res) {
                       });
                   } else {
                       // Update existing member's name if missing
-                      await supabase.from('commander_members')
+                      await getSupabase().from('commander_members')
                           .update({ first_name: firstName, last_name: lastName })
                           .eq('id', memberByPhone.id)
                           .is('first_name', null);
@@ -242,7 +247,7 @@ export default async function handler(req, res) {
               } else {
                   // Update phone if member exists but phone is missing
                   if (playerPhone) {
-                      await supabase.from('commander_members')
+                      await getSupabase().from('commander_members')
                           .update({ phone: playerPhone })
                           .eq('id', existingMember.id)
                           .is('phone', null);

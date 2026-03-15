@@ -8,10 +8,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff, verifyStaffSession } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -48,7 +53,7 @@ async function listLeaderboards(req, res) {
   try {
     const { venue_id, status = 'active', limit = 20 } = req.query;
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_leaderboards')
       .select(`
         *,
@@ -116,7 +121,7 @@ async function createLeaderboard(req, res) {
       return res.status(400).json({ error: 'Name, type, start date, and end date are required' });
     }
 
-    const { data: leaderboard, error } = await supabase
+    const { data: leaderboard, error } = await getSupabase()
       .from('commander_leaderboards')
       .insert({
         venue_id: venue_id,

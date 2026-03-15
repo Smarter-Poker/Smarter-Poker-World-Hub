@@ -7,10 +7,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
       // Get games — try with joins first, fallback to simple query
       let games = [];
       try {
-        const result = await supabase
+        const result = await getSupabase()
           .from('commander_games')
           .select(`
             *,
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
         games = result.data || [];
       } catch {
         // Fallback: simple query without FK joins
-        const result = await supabase
+        const result = await getSupabase()
           .from('commander_games')
           .select('*')
           .eq('venue_id', venueId)
@@ -70,7 +75,7 @@ export default async function handler(req, res) {
       }
 
       // Get all tables at venue
-      const { data: tables, error: tablesError } = await supabase
+      const { data: tables, error: tablesError } = await getSupabase()
         .from('commander_tables')
         .select('*')
         .eq('venue_id', venueId)

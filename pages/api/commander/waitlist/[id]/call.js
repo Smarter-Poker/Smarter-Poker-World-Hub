@@ -8,10 +8,15 @@ import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { logAction, AuditActions } from '../../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Twilio SMS Integration
 async function sendTwilioSMS(to, message) {
@@ -126,7 +131,7 @@ export default async function handler(req, res) {
       const { notify_sms = true, notify_push = true, message } = req.body;
 
       // Verify entry exists and is waiting
-      const { data: entry, error: fetchError } = await supabase
+      const { data: entry, error: fetchError } = await getSupabase()
         .from('commander_waitlist')
         .select(`
           *,
@@ -162,7 +167,7 @@ export default async function handler(req, res) {
       }
 
       // Update entry status to called
-      const { data: updatedEntry, error: updateError } = await supabase
+      const { data: updatedEntry, error: updateError } = await getSupabase()
         .from('commander_waitlist')
         .update({
           status: 'called',
@@ -204,7 +209,7 @@ export default async function handler(req, res) {
 
         // SMS notification via Twilio
         if (notify_sms && entry.player_phone && entry.poker_venues?.auto_text_enabled !== false) {
-          const { data: smsNotification, error: smsError } = await supabase
+          const { data: smsNotification, error: smsError } = await getSupabase()
             .from('commander_notifications')
             .insert({
               ...notificationData,
@@ -220,7 +225,7 @@ export default async function handler(req, res) {
             const smsResult = await sendTwilioSMS(entry.player_phone, notificationMessage);
 
             // Update notification status
-            await supabase
+            await getSupabase()
               .from('commander_notifications')
               .update({
                 status: smsResult.success ? 'sent' : 'failed',
@@ -237,7 +242,7 @@ export default async function handler(req, res) {
 
         // Push notification via OneSignal
         if (notify_push && entry.player_id) {
-          const { data: pushNotification, error: pushError } = await supabase
+          const { data: pushNotification, error: pushError } = await getSupabase()
             .from('commander_notifications')
             .insert({
               ...notificationData,
@@ -264,7 +269,7 @@ export default async function handler(req, res) {
             );
 
             // Update notification status
-            await supabase
+            await getSupabase()
               .from('commander_notifications')
               .update({
                 status: pushResult.success ? 'sent' : 'failed',
@@ -281,7 +286,7 @@ export default async function handler(req, res) {
 
         // In-app notification
         if (entry.player_id) {
-          const { data: inAppNotification } = await supabase
+          const { data: inAppNotification } = await getSupabase()
             .from('commander_notifications')
             .insert({
               ...notificationData,

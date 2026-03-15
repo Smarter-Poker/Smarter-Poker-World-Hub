@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -50,7 +55,7 @@ async function listEquipment(req, res) {
       offset = 0
     } = req.query;
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_equipment_rentals')
       .select(`
         *,
@@ -78,7 +83,7 @@ async function listEquipment(req, res) {
     if (error) throw error;
 
     // Get unique categories for filtering
-    const { data: categories } = await supabase
+    const { data: categories } = await getSupabase()
       .from('commander_equipment_rentals')
       .select('category')
       .eq('available', true)
@@ -117,7 +122,7 @@ async function listForRent(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({
@@ -144,7 +149,7 @@ async function listForRent(req, res) {
       });
     }
 
-    const { data: equipment, error } = await supabase
+    const { data: equipment, error } = await getSupabase()
       .from('commander_equipment_rentals')
       .insert({
         vendor_id: user.id,

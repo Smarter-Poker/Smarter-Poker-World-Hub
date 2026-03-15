@@ -2,7 +2,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -15,7 +23,7 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (req.method === 'GET') {
-    const { data, error } = await supabase.from('commander_dealers').select('*').eq('id', id).maybeSingle();
+    const { data, error } = await getSupabase().from('commander_dealers').select('*').eq('id', id).maybeSingle();
     if (error || !data) return res.status(404).json({ success: false, error: 'Dealer not found' });
     return res.json({ success: true, data: { dealer: data } });
   }
@@ -23,13 +31,13 @@ export default async function handler(req, res) {
   if (req.method === 'PATCH') {
     const updates = req.body;
     delete updates.id; delete updates.venue_id;
-    const { data, error } = await supabase.from('commander_dealers').update(updates).eq('id', id).select().maybeSingle();
+    const { data, error } = await getSupabase().from('commander_dealers').update(updates).eq('id', id).select().maybeSingle();
     if (error || !data) return res.status(404).json({ success: false, error: 'Dealer not found' });
     return res.json({ success: true, data: { dealer: data } });
   }
 
   if (req.method === 'DELETE') {
-    const { error } = await supabase.from('commander_dealers').delete().eq('id', id);
+    const { error } = await getSupabase().from('commander_dealers').delete().eq('id', id);
     if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
     return res.json({ success: true });
   }

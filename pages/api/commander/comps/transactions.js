@@ -8,10 +8,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -47,7 +52,7 @@ async function listTransactions(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -61,7 +66,7 @@ async function listTransactions(req, res) {
       offset = 0
     } = req.query;
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_comp_transactions')
       .select(`
         *,
@@ -74,7 +79,7 @@ async function listTransactions(req, res) {
 
     // Check if staff for venue access
     if (venue_id) {
-      const { data: staff } = await supabase
+      const { data: staff } = await getSupabase()
         .from('commander_staff')
         .select('id, role')
         .eq('venue_id', venue_id)
@@ -137,7 +142,7 @@ async function createTransaction(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -150,7 +155,7 @@ async function createTransaction(req, res) {
     }
 
     // Check if user is staff at this venue
-    const { data: staff } = await supabase
+    const { data: staff } = await getSupabase()
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', venue_id)
@@ -168,7 +173,7 @@ async function createTransaction(req, res) {
     }
 
     // Use the database function to issue manual comp
-    const { data, error } = await supabase.rpc('issue_manual_comp', {
+    const { data, error } = await getSupabase().rpc('issue_manual_comp', {
       p_venue_id: venue_id,
       p_player_id: player_id,
       p_amount: parseFloat(amount),
@@ -179,7 +184,7 @@ async function createTransaction(req, res) {
     if (error) throw error;
 
     // Get the created transaction
-    const { data: transaction } = await supabase
+    const { data: transaction } = await getSupabase()
       .from('commander_comp_transactions')
       .select(`
         *,
@@ -190,7 +195,7 @@ async function createTransaction(req, res) {
       .maybeSingle();
 
     // Get updated balance
-    const { data: balance } = await supabase
+    const { data: balance } = await getSupabase()
       .from('commander_comp_balances')
       .select('*')
       .eq('venue_id', venue_id)

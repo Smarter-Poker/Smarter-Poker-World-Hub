@@ -5,10 +5,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
       // Auth: verify JWT identity
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
       const userId = user.id;
 
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
                   const tournaments = tournamentsData.tournaments || tournamentsData.data || [];
 
                   // Fetch user prefs from Supabase (or return empty)
-                  const { data: prefs, error: prefsErr } = await supabase
+                  const { data: prefs, error: prefsErr } = await getSupabase()
                       .from('tournament_alert_preferences')
                       .select('*')
                       .eq('user_id', userId)
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
               }
 
               // Default: return just the prefs
-              const { data: prefs, error } = await supabase
+              const { data: prefs, error } = await getSupabase()
                   .from('tournament_alert_preferences')
                   .select('*')
                   .eq('user_id', userId)
@@ -119,7 +124,7 @@ export default async function handler(req, res) {
               };
 
               // Upsert
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('tournament_alert_preferences')
                   .upsert(prefsData, { onConflict: 'user_id' })
                   .select()
@@ -139,7 +144,7 @@ export default async function handler(req, res) {
 
           // DELETE: Remove alert preferences
           if (req.method === 'DELETE') {
-              const { error } = await supabase
+              const { error } = await getSupabase()
                   .from('tournament_alert_preferences')
                   .delete()
                   .eq('user_id', userId);

@@ -24,10 +24,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { validateBatch } from '../../../src/lib/triviaValidator';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Category definitions with subcategories for variety
 const CATEGORIES = [
@@ -195,7 +200,7 @@ async function checkForDuplicates(newQuestion, category) {
     if (keywords.length === 0) return false;
 
     // Check against existing questions
-    const { data: existing } = await supabase
+    const { data: existing } = await getSupabase()
         .from('trivia_questions')
         .select('question')
         .eq('category', category)
@@ -359,27 +364,27 @@ async function getPoolStats() {
     const stats = {};
 
     for (const cat of CATEGORIES) {
-        const { count: total } = await supabase
+        const { count: total } = await getSupabase()
             .from('trivia_questions')
             .select('*', { count: 'exact', head: true })
             .eq('category', cat.id)
                 .limit(100);
 
-        const { count: easy } = await supabase
+        const { count: easy } = await getSupabase()
             .from('trivia_questions')
             .select('*', { count: 'exact', head: true })
             .eq('category', cat.id)
             .eq('difficulty', 'easy')
                 .limit(100);
 
-        const { count: medium } = await supabase
+        const { count: medium } = await getSupabase()
             .from('trivia_questions')
             .select('*', { count: 'exact', head: true })
             .eq('category', cat.id)
             .eq('difficulty', 'medium')
                 .limit(100);
 
-        const { count: hard } = await supabase
+        const { count: hard } = await getSupabase()
             .from('trivia_questions')
             .select('*', { count: 'exact', head: true })
             .eq('category', cat.id)
@@ -508,7 +513,7 @@ export default async function handler(req, res) {
                       }
 
                       if (validQuestions.length > 0) {
-                          const { data, error } = await supabase
+                          const { data, error } = await getSupabase()
                               .from('trivia_questions')
                               .insert(validQuestions)
                               .select();

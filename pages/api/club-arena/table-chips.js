@@ -22,10 +22,15 @@ const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
 
     let callerUserId = null;
     if (token && !validEngineKey) {
-      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error } = await getSupabase().auth.getUser(token);
       if (error || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
       callerUserId = user.id;
     }
@@ -79,7 +84,7 @@ export default async function handler(req, res) {
     }
 
     // ── E-12: Verify userId membership exists (even for engine-key callers) ──
-    const { data: targetMember } = await supabaseAdmin
+    const { data: targetMember } = await getSupabase()
       .from('club_members')
       .select('user_id, chip_balance')
       .eq('club_id', clubId)
@@ -91,7 +96,7 @@ export default async function handler(req, res) {
 
     // ── E-08: Per-table max buy-in validation (lock/rebuy) ──────────────
     if (['lock', 'rebuy'].includes(action) && tableId) {
-      const { data: tableInfo } = await supabaseAdmin
+      const { data: tableInfo } = await getSupabase()
         .from('tables')
         .select('max_buy_in, status')
         .eq('id', tableId)
@@ -110,7 +115,7 @@ export default async function handler(req, res) {
 
     // JWT callers can only operate on themselves unless they're club admin
     if (callerUserId && callerUserId !== userId) {
-      const { data: callerMember } = await supabaseAdmin
+      const { data: callerMember } = await getSupabase()
         .from('club_members')
         .select('role')
         .eq('club_id', clubId)
@@ -128,7 +133,7 @@ export default async function handler(req, res) {
     try {
       if (action === 'lock' || action === 'rebuy') {
         // Atomic debit via RPC — no read-modify-write race
-        const { data: result, error: rpcErr } = await supabaseAdmin.rpc('lock_chips_for_table', {
+        const { data: result, error: rpcErr } = await getSupabase().rpc('lock_chips_for_table', {
           p_user_id: userId,
           p_club_id: clubId,
           p_table_id: tableId || null,
@@ -147,7 +152,7 @@ export default async function handler(req, res) {
         // ── C-06: Isolated transaction logging ──
         // If node crashes before this finishes, atomic RPC was still successful.
         try {
-          await supabaseAdmin.from('chip_transactions').insert({
+          await getSupabase().from('chip_transactions').insert({
             club_id: clubId,
             from_user_id: userId,
             to_user_id: userId,
@@ -172,7 +177,7 @@ export default async function handler(req, res) {
 
       } else if (action === 'unlock') {
         // Atomic unlock via RPC
-        const { data: result, error: rpcErr } = await supabaseAdmin.rpc('unlock_chips_from_table', {
+        const { data: result, error: rpcErr } = await getSupabase().rpc('unlock_chips_from_table', {
           p_user_id: userId,
           p_club_id: clubId,
           p_table_id: tableId || null,
@@ -183,7 +188,7 @@ export default async function handler(req, res) {
 
         // ── C-06: Isolated transaction logging ──
         try {
-          await supabaseAdmin.from('chip_transactions').insert({
+          await getSupabase().from('chip_transactions').insert({
             club_id: clubId,
             from_user_id: userId,
             to_user_id: userId,

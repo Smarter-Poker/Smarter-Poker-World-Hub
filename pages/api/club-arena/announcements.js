@@ -9,10 +9,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { sanitizeNote } = require('../../../src/lib/club-arena/sanitize');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -23,7 +28,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
         // Verify membership
-        const { data: member } = await supabaseAdmin
+        const { data: member } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
 
         if (!member) return res.status(403).json({ success: false, error: 'Not a club member' });
 
-        const { data: announcements, error } = await supabaseAdmin
+        const { data: announcements, error } = await getSupabase()
           .from('club_announcements')
           .select('*')
           .eq('club_id', clubId)
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
         if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });
 
         // Verify admin/owner role
-        const { data: member } = await supabaseAdmin
+        const { data: member } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -72,15 +77,15 @@ export default async function handler(req, res) {
 
         if (!member || !['owner', 'admin'].includes(member.role)) {
           // Union admin fallback
-          const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).maybeSingle();
+          const { data: clubInfo } = await getSupabase().from('clubs').select('union_id').eq('id', clubId).maybeSingle();
           let unionAuth = false;
           if (clubInfo?.union_id) {
-            const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
+            const { data: ua } = await getSupabase().from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
             if (ua) {
                 unionAuth = true;
             } else {
                 // Owner fallback
-                const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
+                const { data: union } = await getSupabase().from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
                 if (union) unionAuth = true;
             }
           }
@@ -92,7 +97,7 @@ export default async function handler(req, res) {
         if (action === 'create') {
           if (!title?.trim()) return res.status(400).json({ success: false, error: 'Title required' });
 
-          const { data: announcement, error } = await supabaseAdmin
+          const { data: announcement, error } = await getSupabase()
             .from('club_announcements')
             .insert({
               club_id: clubId,
@@ -116,7 +121,7 @@ export default async function handler(req, res) {
           if (content !== undefined) updates.content = sanitizeNote(content, 5000);
           if (pinned !== undefined) updates.pinned = pinned;
 
-          const { error } = await supabaseAdmin
+          const { error } = await getSupabase()
             .from('club_announcements')
             .update(updates)
             .eq('id', announcementId)
@@ -129,7 +134,7 @@ export default async function handler(req, res) {
         if (action === 'delete') {
           if (!announcementId) return res.status(400).json({ success: false, error: 'announcementId required' });
 
-          const { error } = await supabaseAdmin
+          const { error } = await getSupabase()
             .from('club_announcements')
             .delete()
             .eq('id', announcementId)

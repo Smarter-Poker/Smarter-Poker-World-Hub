@@ -9,10 +9,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -29,7 +34,7 @@ export default async function handler(req, res) {
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user: authUser }, error: authError } = await getSupabase().auth.getUser(token);
       if (!authError && authUser) {
         userId = authUser.id;
         if (req.body) req.body.userId = authUser.id;
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
         // Fetch from legacy user_leaks table
         let legacyLeaks = [];
         try {
-          let query = supabase
+          let query = getSupabase()
             .from('user_leaks')
             .select('*')
             .eq('user_id', userId)
@@ -75,7 +80,7 @@ export default async function handler(req, res) {
         // Also fetch from new user_training_leaks table (Memory Matrix)
         let trainingLeaks = [];
         try {
-          let query = supabase
+          let query = getSupabase()
             .from('user_training_leaks')
             .select('*')
             .eq('user_id', userId)
@@ -278,7 +283,7 @@ export default async function handler(req, res) {
       }
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('user_leaks')
           .upsert(leak, { onConflict: 'id' })
           .select()
@@ -308,7 +313,7 @@ export default async function handler(req, res) {
       }
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('user_leaks')
           .update({ ...updates, updated_at: new Date().toISOString() })
           .eq('id', id)
@@ -319,7 +324,7 @@ export default async function handler(req, res) {
 
         // 🚀 NEW BUG #12 FIX: Sync Global PA Stats on Status Change
         if (updates.status && data.user_id) {
-          const { data: updatedLeaks } = await supabase
+          const { data: updatedLeaks } = await getSupabase()
             .from('user_leaks')
             .select('status')
             .eq('user_id', data.user_id);
@@ -327,7 +332,7 @@ export default async function handler(req, res) {
           const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
           const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
 
-          await supabase
+          await getSupabase()
             .from('user_assistant_stats')
             .upsert({
               user_id: data.user_id,

@@ -10,10 +10,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { rateLimit } from '../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   const rl = rateLimit(req, { max: 3, windowMs: 3600000 }); // 3 per hour
@@ -30,7 +35,7 @@ export default async function handler(req, res) {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
       if (authError || !user) {
           return res.status(401).json({ error: 'Invalid or expired session' });
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
 
           // ── 0. BLOCK deletion if user has active chip balances ──
           // Chips must be cashed out or returned to agents first.
-          const { data: activeBalances } = await supabaseAdmin
+          const { data: activeBalances } = await getSupabase()
               .from('club_members')
               .select('club_id, chip_balance, locked_chips')
               .eq('user_id', userId)
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
           }
 
           // ── 0b. Block if user is an active agent (would break settlement) ──
-          const { data: activeAgent } = await supabaseAdmin
+          const { data: activeAgent } = await getSupabase()
               .from('agents')
               .select('id, club_id')
               .eq('user_id', userId)
@@ -72,7 +77,7 @@ export default async function handler(req, res) {
           }
 
           // ── 0d. Block if user owns any clubs (would orphan the club) ──
-          const { data: ownedClubs } = await supabaseAdmin
+          const { data: ownedClubs } = await getSupabase()
               .from('clubs')
               .select('id, name')
               .eq('owner_id', userId);
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
           }
 
           // ── 0e. Block if user owns any unions (would orphan the union) ──
-          const { data: ownedUnions } = await supabaseAdmin
+          const { data: ownedUnions } = await getSupabase()
               .from('unions')
               .select('id, name')
               .eq('owner_id', userId);
@@ -100,79 +105,79 @@ export default async function handler(req, res) {
           }
 
           // ── 0c. Cancel any pending cashout requests ──
-          await supabaseAdmin
+          await getSupabase()
               .from('cashout_requests')
               .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), agent_note: 'Account deleted' })
               .eq('player_id', userId)
               .eq('status', 'pending');
 
           // ── 0d. Remove club memberships (zero-balance only at this point) ──
-          await supabaseAdmin
+          await getSupabase()
               .from('club_members')
               .delete()
               .eq('user_id', userId);
 
           // ── 1. Delete user profile data ──
           // Remove diamond balance
-          await supabaseAdmin
+          await getSupabase()
               .from('user_diamond_balance')
               .delete()
               .eq('user_id', userId);
 
           // Remove diamond reward claims
-          await supabaseAdmin
+          await getSupabase()
               .from('diamond_reward_claims')
               .delete()
               .eq('user_id', userId);
 
           // Remove diamond transactions
-          await supabaseAdmin
+          await getSupabase()
               .from('diamond_transactions')
               .delete()
               .eq('user_id', userId);
 
           // Remove promo code redemptions
-          await supabaseAdmin
+          await getSupabase()
               .from('promo_code_redemptions')
               .delete()
               .eq('user_id', userId);
 
           // Remove MFA factors
-          await supabaseAdmin
+          await getSupabase()
               .from('user_mfa_factors')
               .delete()
               .eq('user_id', userId);
 
           // Remove active sessions
-          await supabaseAdmin
+          await getSupabase()
               .from('user_sessions')
               .delete()
               .eq('user_id', userId);
 
           // Remove notifications
-          await supabaseAdmin
+          await getSupabase()
               .from('notifications')
               .delete()
               .eq('user_id', userId);
 
           // Remove friendships (both directions)
-          await supabaseAdmin
+          await getSupabase()
               .from('friendships')
               .delete()
               .eq('user_id', userId);
-          await supabaseAdmin
+          await getSupabase()
               .from('friendships')
               .delete()
               .eq('friend_id', userId);
 
           // Remove the profile (must be after dependent records)
-          await supabaseAdmin
+          await getSupabase()
               .from('profiles')
               .delete()
               .eq('id', userId);
 
           // ── 2. Delete the auth user (hard delete via admin API) ──
-          const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+          const { error: deleteError } = await getSupabase().auth.admin.deleteUser(userId);
 
           if (deleteError) {
               console.error('[delete-account] Auth user deletion error:', deleteError);

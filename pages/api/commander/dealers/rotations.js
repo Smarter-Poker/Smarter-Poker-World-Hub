@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { requireStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -77,7 +82,7 @@ async function getRotations(req, res) {
     // table_number and dealer_name are stored directly as columns
     let rotations = [];
     try {
-      const result = await supabase
+      const result = await getSupabase()
         .from('commander_dealer_rotations')
         .select(`
           id,
@@ -96,7 +101,7 @@ async function getRotations(req, res) {
       rotations = result.data || [];
     } catch (joinErr) {
       // Fallback: simple query without FK join
-      const result = await supabase
+      const result = await getSupabase()
         .from('commander_dealer_rotations')
         .select('*')
         .eq('venue_id', venue_id)
@@ -136,7 +141,7 @@ async function createRotation(req, res) {
 
   try {
     // Verify dealer belongs to venue
-    const { data: dealer, error: dealerError } = await supabase
+    const { data: dealer, error: dealerError } = await getSupabase()
       .from('commander_dealers')
       .select('id, name')
       .eq('id', dealer_id)
@@ -147,7 +152,7 @@ async function createRotation(req, res) {
     // Look up table_number from table_id for complete rotation records
     let resolvedTableNumber = null;
     if (table_id) {
-      const { data: tbl } = await supabase
+      const { data: tbl } = await getSupabase()
         .from('commander_tables')
         .select('table_number')
         .eq('id', parseInt(table_id))
@@ -165,7 +170,7 @@ async function createRotation(req, res) {
     // Handle different actions
     if (action === 'push') {
       // End current assignment
-      await supabase
+      await getSupabase()
         .from('commander_dealer_rotations')
         .update({ ended_at: new Date().toISOString() })
         .eq('dealer_id', dealer_id)
@@ -173,7 +178,7 @@ async function createRotation(req, res) {
 
       // Create new assignment if table provided
       if (table_id) {
-        const { data: assignment, error } = await supabase
+        const { data: assignment, error } = await getSupabase()
           .from('commander_dealer_rotations')
           .insert({
             venue_id: venue_id,
@@ -203,13 +208,13 @@ async function createRotation(req, res) {
 
     if (action === 'break') {
       // End current assignment and mark dealer on break
-      await supabase
+      await getSupabase()
         .from('commander_dealer_rotations')
         .update({ ended_at: new Date().toISOString() })
         .eq('dealer_id', dealer_id)
         .is('ended_at', null);
 
-      await supabase
+      await getSupabase()
         .from('commander_dealers')
         .update({
           current_status: 'on_break',
@@ -225,7 +230,7 @@ async function createRotation(req, res) {
 
     if (action === 'return') {
       // Return from break
-      await supabase
+      await getSupabase()
         .from('commander_dealers')
         .update({
           current_status: 'available',
@@ -248,21 +253,21 @@ async function createRotation(req, res) {
     }
 
     // End any current assignment for this dealer
-    await supabase
+    await getSupabase()
       .from('commander_dealer_rotations')
       .update({ ended_at: new Date().toISOString() })
       .eq('dealer_id', dealer_id)
       .is('ended_at', null);
 
     // End any current assignment for this table
-    await supabase
+    await getSupabase()
       .from('commander_dealer_rotations')
       .update({ ended_at: new Date().toISOString() })
       .eq('table_id', parseInt(table_id))
       .is('ended_at', null);
 
     // Create new assignment
-    const { data: assignment, error } = await supabase
+    const { data: assignment, error } = await getSupabase()
       .from('commander_dealer_rotations')
       .insert({
         venue_id: venue_id,

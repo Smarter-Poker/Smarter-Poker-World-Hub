@@ -8,10 +8,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
       if (authError || !user) {
         return res.status(401).json({
@@ -43,7 +48,7 @@ export default async function handler(req, res) {
       }
 
       if (req.method === 'GET') {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_venue_followers')
           .select('*')
           .eq('venue_id', id)
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
         const { notify_posts = true, notify_events = true, notify_promotions = true, notify_tournaments = true } = req.body || {};
 
         // Check if already following
-        const { data: existing } = await supabase
+        const { data: existing } = await getSupabase()
           .from('commander_venue_followers')
           .select('id')
           .eq('venue_id', id)
@@ -77,7 +82,7 @@ export default async function handler(req, res) {
           });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_venue_followers')
           .insert({
             venue_id: id,
@@ -99,7 +104,7 @@ export default async function handler(req, res) {
       }
 
       if (req.method === 'DELETE') {
-        const { error } = await supabase
+        const { error } = await getSupabase()
           .from('commander_venue_followers')
           .delete()
           .eq('venue_id', id)

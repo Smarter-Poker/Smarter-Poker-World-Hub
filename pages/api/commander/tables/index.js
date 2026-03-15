@@ -8,10 +8,15 @@ import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -56,7 +61,7 @@ async function handleGet(req, res) {
     // Try with game + seats join first, fallback to simple query
     let data, error;
     try {
-      const result = await supabase
+      const result = await getSupabase()
         .from('commander_tables')
         .select(`
           *,
@@ -77,7 +82,7 @@ async function handleGet(req, res) {
 
       // Also fetch seat occupancy data
       try {
-        const { data: seats } = await supabase
+        const { data: seats } = await getSupabase()
           .from('commander_table_seats')
           .select('table_number, seat_number, status, player_name, seated_at')
           .eq('venue_id', venue_id)
@@ -98,7 +103,7 @@ async function handleGet(req, res) {
       try {
         const tournamentIds = [...new Set((data || []).filter(t => t.tournament_id).map(t => t.tournament_id))];
         if (tournamentIds.length > 0) {
-          const { data: tournaments } = await supabase
+          const { data: tournaments } = await getSupabase()
             .from('commander_tournaments')
             .select('id, name, status, buyin_amount, buyin_fee, current_level, players_remaining, current_entries, starting_chips, tournament_type')
             .in('id', tournamentIds)
@@ -111,7 +116,7 @@ async function handleGet(req, res) {
       } catch { /* tournament join non-critical */ }
     } catch {
       // Fallback: simple query without FK join
-      const result = await supabase
+      const result = await getSupabase()
         .from('commander_tables')
         .select('*')
         .eq('venue_id', venue_id)
@@ -171,7 +176,7 @@ async function handlePost(req, res) {
     }
 
     // Check if table number already exists at venue
-    const { data: existing } = await supabase
+    const { data: existing } = await getSupabase()
       .from('commander_tables')
       .select('id')
       .eq('venue_id', venue_id)
@@ -198,7 +203,7 @@ async function handlePost(req, res) {
     if (game_type) insertData.game_type = game_type.toUpperCase();
     if (stakes) insertData.stakes = stakes;
 
-    const { data: table, error } = await supabase
+    const { data: table, error } = await getSupabase()
       .from('commander_tables')
       .insert(insertData)
       .select()

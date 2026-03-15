@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyStaffSession } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const VALID_STATUSES = ['waiting', 'running', 'breaking', 'closed'];
 
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, gameId) {
   try {
-    const { data: game, error } = await supabase
+    const { data: game, error } = await getSupabase()
       .from('commander_games')
       .select(`
         *,
@@ -113,7 +118,7 @@ async function handlePatch(req, res, gameId) {
     const { status, current_players, settings } = req.body;
 
     // Verify game exists
-    const { data: existingGame, error: fetchError } = await supabase
+    const { data: existingGame, error: fetchError } = await getSupabase()
       .from('commander_games')
       .select('id, status, table_id')
       .eq('id', gameId)
@@ -173,7 +178,7 @@ async function handlePatch(req, res, gameId) {
       });
     }
 
-    const { data: game, error: updateError } = await supabase
+    const { data: game, error: updateError } = await getSupabase()
       .from('commander_games')
       .update(updates)
       .eq('id', gameId)
@@ -213,7 +218,7 @@ async function handleDelete(req, res, gameId) {
     }
 
     // Verify game exists
-    const { data: game, error: fetchError } = await supabase
+    const { data: game, error: fetchError } = await getSupabase()
       .from('commander_games')
       .select('id, status, table_id')
       .eq('id', gameId)
@@ -227,7 +232,7 @@ async function handleDelete(req, res, gameId) {
     }
 
     // Close the game (soft delete)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await getSupabase()
       .from('commander_games')
       .update({
         status: 'closed',
@@ -245,7 +250,7 @@ async function handleDelete(req, res, gameId) {
 
     // Release the table if one was assigned
     if (game.table_id) {
-      await supabase
+      await getSupabase()
         .from('commander_tables')
         .update({
           status: 'available',

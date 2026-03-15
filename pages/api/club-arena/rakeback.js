@@ -19,10 +19,15 @@ const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/valida
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
@@ -46,7 +51,7 @@ export default async function handler(req, res) {
         if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
 
         // Verify membership
-        const { data: member } = await supabaseAdmin
+        const { data: member } = await getSupabase()
           .from('club_members')
           .select('role, chip_balance')
           .eq('club_id', clubId)
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
 
         if (getAction === 'history') {
           // Player's rakeback history
-          const { data: history } = await supabaseAdmin
+          const { data: history } = await getSupabase()
             .from('rakeback_periods')
             .select('*')
             .eq('club_id', clubId)
@@ -70,7 +75,7 @@ export default async function handler(req, res) {
 
         // Default: status
         // Get active rakeback period for club
-        const { data: activePeriod } = await supabaseAdmin
+        const { data: activePeriod } = await getSupabase()
           .from('rakeback_periods')
           .select('*')
           .eq('club_id', clubId)
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         // Get player's unclaimed rakeback
-        const { data: pendingRakebacks } = await supabaseAdmin
+        const { data: pendingRakebacks } = await getSupabase()
           .from('rakeback_periods')
           .select('*')
           .eq('club_id', clubId)
@@ -91,7 +96,7 @@ export default async function handler(req, res) {
         const totalPending = (pendingRakebacks || []).reduce((s, r) => s + (r.rakeback_amount || 0), 0);
 
         // Get club's rakeback rate from settings
-        const { data: club } = await supabaseAdmin
+        const { data: club } = await getSupabase()
           .from('clubs')
           .select('settings')
           .eq('id', clubId)
@@ -133,7 +138,7 @@ export default async function handler(req, res) {
         if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
         // Verify membership
-        const { data: member } = await supabaseAdmin
+        const { data: member } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -143,17 +148,17 @@ export default async function handler(req, res) {
         // Union admin fallback — union admins are not club members but can manage rakeback
         let effectiveRole = member?.role || null;
         if (!member) {
-          const { data: clubInfo } = await supabaseAdmin
+          const { data: clubInfo } = await getSupabase()
             .from('clubs').select('union_id').eq('id', clubId).maybeSingle();
           if (clubInfo?.union_id) {
-            const { data: ua } = await supabaseAdmin
+            const { data: ua } = await getSupabase()
               .from('union_admins').select('role')
               .eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
             if (ua) {
                 effectiveRole = 'owner'; // union admins get full access
             } else {
                 // Owner fallback
-                const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
+                const { data: union } = await getSupabase().from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
                 if (union) effectiveRole = 'owner';
             }
           }
@@ -168,7 +173,7 @@ export default async function handler(req, res) {
           }
 
           // Check no existing open period
-          const { data: existing } = await supabaseAdmin
+          const { data: existing } = await getSupabase()
             .from('rakeback_periods')
             .select('id')
             .eq('club_id', clubId)
@@ -179,7 +184,7 @@ export default async function handler(req, res) {
           if (existing) return res.status(400).json({ success: false, error: 'A rakeback period is already open' });
 
           // Create a marker period (player_id = null means it's the master period)
-          const { data: period, error } = await supabaseAdmin
+          const { data: period, error } = await getSupabase()
             .from('rakeback_periods')
             .insert({
               club_id: clubId,
@@ -205,7 +210,7 @@ export default async function handler(req, res) {
           }
 
           // Find open period
-          const { data: openPeriod } = await supabaseAdmin
+          const { data: openPeriod } = await getSupabase()
             .from('rakeback_periods')
             .select('*')
             .eq('club_id', clubId)
@@ -218,7 +223,7 @@ export default async function handler(req, res) {
           if (!openPeriod) return res.status(400).json({ success: false, error: 'No open rakeback period found' });
 
           // Get club's rakeback rate
-          const { data: club } = await supabaseAdmin
+          const { data: club } = await getSupabase()
             .from('clubs')
             .select('settings')
             .eq('id', clubId)
@@ -227,7 +232,7 @@ export default async function handler(req, res) {
           const rakebackRate = club?.settings?.rakeback_rate || 0.10;
 
           // Get all rake records since period started
-          const { data: rakeRecords } = await supabaseAdmin
+          const { data: rakeRecords } = await getSupabase()
             .from('rake_records')
             .select('player_contributions')
             .eq('club_id', clubId)
@@ -260,14 +265,14 @@ export default async function handler(req, res) {
           }
 
           if (inserts.length > 0) {
-            const { error: insertErr } = await supabaseAdmin
+            const { error: insertErr } = await getSupabase()
               .from('rakeback_periods')
               .insert(inserts);
             if (insertErr) throw insertErr;
           }
 
           // Close master period
-          await supabaseAdmin
+          await getSupabase()
             .from('rakeback_periods')
             .update({ status: 'closed', period_end: new Date().toISOString() })
             .eq('id', openPeriod.id);
@@ -297,7 +302,7 @@ export default async function handler(req, res) {
         if (action === 'claim') {
           // Atomically claim pending periods — prevents double-claim race
           // Mark as 'claiming' first (only succeeds if still 'closed')
-          const { data: pending } = await supabaseAdmin
+          const { data: pending } = await getSupabase()
             .from('rakeback_periods')
             .update({ status: 'claiming' })
             .eq('club_id', clubId)
@@ -315,7 +320,7 @@ export default async function handler(req, res) {
           // BUG #152 FIX: Debit treasury FIRST, then credit player.
           // Rakeback chips come FROM the club treasury (which holds all rake).
           // Without this debit, fn_credit_chips creates chips from nothing.
-          const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_treasury', {
+          const { error: debitErr } = await getSupabase().rpc('fn_debit_treasury', {
             p_club_id: clubId,
             p_amount: totalClaim,
           });
@@ -323,7 +328,7 @@ export default async function handler(req, res) {
           if (debitErr) {
             // Rollback period status
             const ids = pending.map(p => p.id);
-            await supabaseAdmin
+            await getSupabase()
               .from('rakeback_periods')
               .update({ status: 'closed' })
               .in('id', ids);
@@ -331,7 +336,7 @@ export default async function handler(req, res) {
           }
 
           // Atomic credit via RPC (no read-modify-write race)
-          const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+          const { error: creditErr } = await getSupabase().rpc('fn_credit_chips', {
             p_club_id: clubId,
             p_user_id: user.id,
             p_amount: totalClaim,
@@ -339,14 +344,14 @@ export default async function handler(req, res) {
 
           if (creditErr) {
             // Rollback treasury debit — re-credit the chips we took
-            await supabaseAdmin.rpc('fn_credit_treasury', {
+            await getSupabase().rpc('fn_credit_treasury', {
               p_club_id: clubId,
               p_amount: totalClaim,
             }).catch(rbErr => console.error('[rakeback] Treasury rollback failed:', rbErr.message));
 
             // Rollback period status
             const ids = pending.map(p => p.id);
-            await supabaseAdmin
+            await getSupabase()
               .from('rakeback_periods')
               .update({ status: 'closed' })
               .in('id', ids);
@@ -354,7 +359,7 @@ export default async function handler(req, res) {
           }
 
           // Get fresh balance for response
-          const { data: freshMember } = await supabaseAdmin
+          const { data: freshMember } = await getSupabase()
             .from('club_members')
             .select('chip_balance')
             .eq('club_id', clubId)
@@ -364,7 +369,7 @@ export default async function handler(req, res) {
           const newBalance = freshMember?.chip_balance || 0;
 
           // Record transaction
-          await supabaseAdmin
+          await getSupabase()
             .from('chip_transactions')
             .insert({
               club_id: clubId,
@@ -376,7 +381,7 @@ export default async function handler(req, res) {
 
           // Mark periods as fully claimed
           const ids = pending.map(p => p.id);
-          await supabaseAdmin
+          await getSupabase()
             .from('rakeback_periods')
             .update({ status: 'claimed' })
             .in('id', ids);

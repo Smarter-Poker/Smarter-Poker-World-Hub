@@ -9,10 +9,15 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -30,7 +35,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { cashoutId } = req.body;
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
 
     try {
       // Fetch cashout — must be owned by this user and still pending
-      const { data: cashout } = await supabaseAdmin
+      const { data: cashout } = await getSupabase()
         .from('cashout_requests')
         .select('id, player_id, club_id, amount, status')
         .eq('id', cashoutId)
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
       }
 
       // Atomic cancellation (updates status + credits player chips + logs transaction)
-      const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_cancel_cashout_atomic', {
+      const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_cancel_cashout_atomic', {
         p_cashout_id: cashoutId,
         p_user_id: user.id,
         p_is_agent: false,

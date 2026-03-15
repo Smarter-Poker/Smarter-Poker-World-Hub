@@ -8,10 +8,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff, verifyStaffSession } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
 
 async function getLeaderboard(req, res, id) {
   try {
-    const { data: leaderboard, error } = await supabase
+    const { data: leaderboard, error } = await getSupabase()
       .from('commander_leaderboards')
       .select(`
         *,
@@ -66,7 +71,7 @@ async function getLeaderboard(req, res, id) {
     }
 
     // Get entries with rankings
-    const { data: entries } = await supabase
+    const { data: entries } = await getSupabase()
       .from('commander_leaderboard_entries')
       .select(`
         *,
@@ -98,7 +103,7 @@ async function updateLeaderboard(req, res, id) {
     const staff = staffResult.staff;
 
     // Get leaderboard to check venue
-    const { data: existing } = await supabase
+    const { data: existing } = await getSupabase()
       .from('commander_leaderboards')
       .select('venue_id')
       .eq('id', id)
@@ -130,7 +135,7 @@ async function updateLeaderboard(req, res, id) {
       return res.status(400).json({ error: 'No updates provided' });
     }
 
-    const { data: leaderboard, error } = await supabase
+    const { data: leaderboard, error } = await getSupabase()
       .from('commander_leaderboards')
       .update(updates)
       .eq('id', id)

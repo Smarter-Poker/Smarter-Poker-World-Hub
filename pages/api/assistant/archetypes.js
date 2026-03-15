@@ -5,10 +5,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const DEFAULT_ARCHETYPES = [
   { id: 'gto_neutral', name: 'GTO Neutral', description: 'Balanced, solver-like play', color: '#6b7280', bluff_frequency: 'balanced' },
@@ -30,7 +35,7 @@ export default async function handler(req, res) {
     }
 
     try {
-      const { data: archetypes, error } = await supabase
+      const { data: archetypes, error } = await getSupabase()
         .from('villain_archetypes')
         .select('*')
         .order('id')

@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { requireAuth } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: USER — requires authenticated user
 export default async function handler(req, res) {
@@ -55,7 +60,7 @@ async function handleCreate(req, res) {
     const end_date = new Date();
     end_date.setDate(end_date.getDate() + parseInt(duration_days));
 
-    const { data: exclusion, error } = await supabase
+    const { data: exclusion, error } = await getSupabase()
       .from('commander_self_exclusions')
       .insert({
         player_id: user.id,
@@ -100,7 +105,7 @@ async function handleRemove(req, res) {
 
   try {
     // Check if exclusion allows early removal and belongs to this user
-    const { data: exclusion } = await supabase
+    const { data: exclusion } = await getSupabase()
       .from('commander_self_exclusions')
       .select('*')
       .eq('id', exclusion_id)
@@ -130,7 +135,7 @@ async function handleRemove(req, res) {
       });
     }
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('commander_self_exclusions')
       .update({
         exclusion_status: 'lifted',

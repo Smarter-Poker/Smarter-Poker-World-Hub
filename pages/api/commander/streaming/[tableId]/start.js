@@ -6,10 +6,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
 
     try {
       // Check if stream already exists for this table
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from('commander_streams')
         .select('id')
         .eq('table_id', tableId)
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
       }
 
       // Create or update stream record
-      const { data: stream, error } = await supabase
+      const { data: stream, error } = await getSupabase()
         .from('commander_streams')
         .upsert({
           venue_id,

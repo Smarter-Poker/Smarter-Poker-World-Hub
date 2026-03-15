@@ -16,10 +16,15 @@ import { checkAndExecuteAutoBreak } from '../../../../../src/lib/commander/tourn
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
       }
 
       // Get tournament
-      const { data: tournament, error: tournamentError } = await supabase
+      const { data: tournament, error: tournamentError } = await getSupabase()
         .from('commander_tournaments')
         .select('*')
         .eq('id', tournamentId)
@@ -64,7 +69,7 @@ export default async function handler(req, res) {
 
 
       // Get entry being eliminated
-      const { data: entry, error: entryError } = await supabase
+      const { data: entry, error: entryError } = await getSupabase()
         .from('commander_tournament_entries')
         .select('*')
         .eq('id', entry_id)
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
       }
 
       // Count remaining players to determine finish position
-      const { count: remainingCount } = await supabase
+      const { count: remainingCount } = await getSupabase()
         .from('commander_tournament_entries')
         .select('*', { count: 'exact', head: true })
         .eq('tournament_id', tournamentId)
@@ -122,13 +127,13 @@ export default async function handler(req, res) {
       let bountiesCollected = 0;
       if (tournament.bounty_amount && eliminated_by_id) {
         // Award bounty to eliminator (read current + increment, preserving metadata)
-        const { data: eliminator } = await supabase
+        const { data: eliminator } = await getSupabase()
           .from('commander_tournament_entries')
           .select('bounties_collected, metadata')
           .eq('id', eliminated_by_id)
           .maybeSingle();
 
-        await supabase
+        await getSupabase()
           .from('commander_tournament_entries')
           .update({
             bounties_collected: (eliminator?.bounties_collected || 0) + 1,
@@ -143,7 +148,7 @@ export default async function handler(req, res) {
       }
 
       // Update eliminated player
-      const { data: eliminated, error: updateError } = await supabase
+      const { data: eliminated, error: updateError } = await getSupabase()
         .from('commander_tournament_entries')
         .update({
           status: 'eliminated',
@@ -186,7 +191,7 @@ export default async function handler(req, res) {
       // Check if tournament should end (only 1 player left)
       if (remainingCount <= 2) {
         // Mark the winner
-        const { data: winner } = await supabase
+        const { data: winner } = await getSupabase()
           .from('commander_tournament_entries')
           .select('*')
           .eq('tournament_id', tournamentId)
@@ -217,7 +222,7 @@ export default async function handler(req, res) {
             }
           }
 
-          await supabase
+          await getSupabase()
             .from('commander_tournament_entries')
             .update({
               status: 'winner',
@@ -248,7 +253,7 @@ export default async function handler(req, res) {
           }
 
           // End tournament
-          await supabase
+          await getSupabase()
             .from('commander_tournaments')
             .update({
               status: 'completed',
@@ -265,7 +270,7 @@ export default async function handler(req, res) {
       // IMPORTANT: Re-fetch tournament here — the status may have changed to 'completed'
       // if this was the last elimination. checkAndExecuteAutoBreak gates on status,
       // so using a stale 'running' snapshot would incorrectly try to break the winner's table.
-      const { data: freshTournament } = await supabase
+      const { data: freshTournament } = await getSupabase()
         .from('commander_tournaments')
         .select('*')
         .eq('id', tournamentId)
@@ -300,7 +305,7 @@ export default async function handler(req, res) {
 }
 
 async function getTotalRebuys(tournamentId) {
-  const { data } = await supabase
+  const { data } = await getSupabase()
     .from('commander_tournament_entries')
     .select('rebuy_count')
     .eq('tournament_id', tournamentId)
@@ -309,7 +314,7 @@ async function getTotalRebuys(tournamentId) {
 }
 
 async function getTotalAddons(tournamentId) {
-  const { count } = await supabase
+  const { count } = await getSupabase()
     .from('commander_tournament_entries')
     .select('*', { count: 'exact', head: true })
     .eq('tournament_id', tournamentId)
@@ -363,7 +368,7 @@ async function createAutoStory(playerId, storyType, tournament, position, payout
     winner: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #F59E0B 100%)'
   };
 
-  await supabase
+  await getSupabase()
     .from('social_stories')
     .insert({
       author_id: playerId,

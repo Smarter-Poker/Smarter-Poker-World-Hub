@@ -17,10 +17,15 @@ const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger
 const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const DEFAULT_PRESETS = [1000, 5000, 10000, 25000, 50000];
 
@@ -37,7 +42,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { clubId, action, amount, cashoutId } = req.body;
@@ -50,7 +55,7 @@ export default async function handler(req, res) {
       if (action === 'summary') {
           try {
               // Player balance (F-04: include promo_balance for visibility)
-              const { data: member } = await supabaseAdmin
+              const { data: member } = await getSupabase()
                   .from('club_members')
                   .select('chip_balance, promo_balance, role')
                   .eq('club_id', clubId)
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
               if (!member) return res.status(404).json({ error: 'Not a member of this club' });
 
               // Pending cashouts
-              const { data: pendingCashouts } = await supabaseAdmin
+              const { data: pendingCashouts } = await getSupabase()
                   .from('cashout_requests')
                   .select('id, amount, status, created_at, updated_at')
                   .eq('club_id', clubId)
@@ -69,7 +74,7 @@ export default async function handler(req, res) {
                   .order('created_at', { ascending: false });
 
               // Recent transactions (last 20)
-              const { data: recentTxns } = await supabaseAdmin
+              const { data: recentTxns } = await getSupabase()
                   .from('chip_transactions')
                   .select('id, amount, transaction_type, notes, created_at, from_user_id, to_user_id')
                   .eq('club_id', clubId)
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
               }));
 
               // Get quick-amount presets
-              const { data: club } = await supabaseAdmin
+              const { data: club } = await getSupabase()
                   .from('clubs')
                   .select('settings')
                   .eq('id', clubId)
@@ -113,7 +118,7 @@ export default async function handler(req, res) {
           if (!cashoutId) return res.status(400).json({ error: 'cashoutId required' });
 
           try {
-              const { data: cashout } = await supabaseAdmin
+              const { data: cashout } = await getSupabase()
                   .from('cashout_requests')
                   .select('id, amount, status, created_at, updated_at, notes')
                   .eq('id', cashoutId)
@@ -151,7 +156,7 @@ export default async function handler(req, res) {
           if (checkIdempotency(req, res)) return;
 
           // Verify owner/admin
-          const { data: mem } = await supabaseAdmin
+          const { data: mem } = await getSupabase()
               .from('club_members')
               .select('role')
               .eq('club_id', clubId)
@@ -163,7 +168,7 @@ export default async function handler(req, res) {
           }
 
           try {
-              const { data: club } = await supabaseAdmin
+              const { data: club } = await getSupabase()
                   .from('clubs')
                   .select('settings')
                   .eq('id', clubId)
@@ -172,7 +177,7 @@ export default async function handler(req, res) {
               const amounts = req.body.amounts || DEFAULT_PRESETS;
               const currentSettings = club?.settings || {};
 
-              await supabaseAdmin
+              await getSupabase()
                   .from('clubs')
                   .update({ settings: { ...currentSettings, cashier_presets: amounts } })
                   .eq('id', clubId);

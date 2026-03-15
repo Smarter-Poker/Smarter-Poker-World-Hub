@@ -10,10 +10,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Indifference threshold: actions with >= 40% freq are acceptable
 const INDIFFERENCE_THRESHOLD = 0.40;
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
       // Auth: verify JWT
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       try {
@@ -68,7 +73,7 @@ export default async function handler(req, res) {
 
           // If no solver_node in handData, try database
           if (!solverNode && effectiveFileId && !effectiveFileId.startsWith('chart_') && !effectiveFileId.startsWith('bb_') && !effectiveFileId.startsWith('tt_')) {
-              const { data: spotData } = await supabase
+              const { data: spotData } = await getSupabase()
                   .from('solved_spots_gold')
                   .select('strategy_matrix')
                   .eq('id', effectiveFileId)
@@ -106,7 +111,7 @@ export default async function handler(req, res) {
           // Get session data to track round number
           let roundNumber = 1;
           try {
-              const { data: sessionData } = await supabase
+              const { data: sessionData } = await getSupabase()
                   .from('god_mode_sessions')
                   .select('hands_played')
                   .eq('user_id', userId)
@@ -128,7 +133,7 @@ export default async function handler(req, res) {
               // Lookup game UUID from game_registry by slug
               let gameUUID = null;
               if (gameId) {
-                  const { data: gameData } = await supabase
+                  const { data: gameData } = await getSupabase()
                       .from('game_registry')
                       .select('id')
                       .eq('slug', gameId)
@@ -138,7 +143,7 @@ export default async function handler(req, res) {
 
               // Only insert if we have a valid game UUID
               if (gameUUID) {
-                  await supabase.from('god_mode_hand_history').insert({
+                  await getSupabase().from('god_mode_hand_history').insert({
                       user_id: user.id,
                       game_id: gameUUID,
                       source_file_id: effectiveFileId || 'unknown',

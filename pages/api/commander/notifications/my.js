@@ -5,10 +5,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
 
     try {
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
       if (authError || !user) {
         return res.status(401).json({
@@ -43,7 +48,7 @@ export default async function handler(req, res) {
 
       const { unread_only, limit = 50 } = req.query;
 
-      let query = supabase
+      let query = getSupabase()
         .from('commander_notifications')
         .select(`
           *,
@@ -62,7 +67,7 @@ export default async function handler(req, res) {
       if (error) throw error;
 
       // Count unread
-      const { count: unreadCount } = await supabase
+      const { count: unreadCount } = await getSupabase()
         .from('commander_notifications')
         .select('id', { count: 'exact', head: true })
         .eq('player_id', user.id)

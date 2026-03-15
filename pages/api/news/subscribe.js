@@ -4,10 +4,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -27,7 +32,7 @@ export default async function handler(req, res) {
           }
 
           // Check if already subscribed
-          const { data: existing } = await supabase
+          const { data: existing } = await getSupabase()
               .from('newsletter_subscribers')
               .select('id, is_active')
               .eq('email', email.toLowerCase())
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
           if (existing) {
               if (!existing.is_active) {
                   // Reactivate subscription
-                  await supabase
+                  await getSupabase()
                       .from('newsletter_subscribers')
                       .update({ is_active: true, unsubscribed_at: null })
                       .eq('id', existing.id);
@@ -47,7 +52,7 @@ export default async function handler(req, res) {
           }
 
           // New subscription
-          const { error } = await supabase
+          const { error } = await getSupabase()
               .from('newsletter_subscribers')
               .insert({ email: email.toLowerCase(), source });
 

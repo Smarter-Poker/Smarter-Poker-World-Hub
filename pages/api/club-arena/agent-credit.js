@@ -16,10 +16,15 @@ const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 import { notifyUser } from '../../../src/lib/club-arena/notify';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -38,7 +43,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'No auth token' });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
     const { clubId, agentUserId, action, amount: rawAmount, notes: rawNotes } = req.body;
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
 
     try {
       // 1. Verify caller is club owner or union admin
-      const { data: club } = await supabaseAdmin
+      const { data: club } = await getSupabase()
         .from('clubs')
         .select('id, owner_id, union_id, chip_treasury')
         .eq('id', clubId)
@@ -75,7 +80,7 @@ export default async function handler(req, res) {
 
       let authorized = club.owner_id === user.id;
       if (!authorized && club.union_id) {
-        const { data: ua } = await supabaseAdmin
+        const { data: ua } = await getSupabase()
           .from('union_admins')
           .select('role')
           .eq('union_id', club.union_id)
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
       if (!authorized) return res.status(403).json({ error: 'Not authorized' });
 
       // 2. Get agent's club_members and agents records
-      const { data: agentMember } = await supabaseAdmin
+      const { data: agentMember } = await getSupabase()
         .from('club_members')
         .select('user_id, role, chip_balance, credit_limit, credit_used, nickname')
         .eq('club_id', clubId)
@@ -97,7 +102,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Agent not found in this club' });
       }
 
-      const { data: agentRecord } = await supabaseAdmin
+      const { data: agentRecord } = await getSupabase()
         .from('agents')
         .select('id, is_prepaid, credit_limit, business_balance')
         .eq('user_id', agentUserId)
@@ -111,7 +116,7 @@ export default async function handler(req, res) {
       if (action === 'issue_credit') {
         // ATOMIC: Increment credit_limit in Postgres — no JS math on balances
         // Uses SET credit_limit = COALESCE(credit_limit, 0) + $1 inside the RPC
-        const { data: atomicResult, error: atomicErr } = await supabaseAdmin.rpc('fn_atomic_increment_field', {
+        const { data: atomicResult, error: atomicErr } = await getSupabase().rpc('fn_atomic_increment_field', {
           p_table: 'club_members',
           p_field: 'credit_limit',
           p_increment: amount,
@@ -125,7 +130,7 @@ export default async function handler(req, res) {
           // Optimistic lock: read, compute, write with WHERE old_value
           const oldLimit = agentMember.credit_limit || 0;
           newLimit = oldLimit + amount;
-          const { data: updated } = await supabaseAdmin
+          const { data: updated } = await getSupabase()
             .from('club_members')
             .update({ credit_limit: newLimit })
             .eq('club_id', clubId)
@@ -136,11 +141,11 @@ export default async function handler(req, res) {
 
           if (!updated) {
             // Concurrent modification — re-read and retry once
-            const { data: fresh } = await supabaseAdmin
+            const { data: fresh } = await getSupabase()
               .from('club_members').select('credit_limit')
               .eq('club_id', clubId).eq('user_id', agentUserId).maybeSingle();
             newLimit = (fresh?.credit_limit || 0) + amount;
-            await supabaseAdmin.from('club_members')
+            await getSupabase().from('club_members')
               .update({ credit_limit: newLimit })
               .eq('club_id', clubId).eq('user_id', agentUserId);
           }
@@ -149,12 +154,12 @@ export default async function handler(req, res) {
         }
 
         // Mirror to agents table
-        await supabaseAdmin
+        await getSupabase()
           .from('agents')
           .update({ credit_limit: newLimit })
           .eq('id', agentRecord.id);
 
-        await supabaseAdmin.from('chip_transactions').insert({
+        await getSupabase().from('chip_transactions').insert({
           club_id: clubId,
           from_user_id: user.id,
           to_user_id: agentUserId,
@@ -183,7 +188,7 @@ export default async function handler(req, res) {
         }
 
         // ATOMIC PREPAID CREDIT (Debit Treasury, Credit Member Balance, Credit Business Balance)
-        const { data: rpcResult, error: rpcErr } = await supabaseAdmin.rpc('fn_add_prepaid_credit_atomic', {
+        const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_add_prepaid_credit_atomic', {
           p_club_id: clubId,
           p_agent_id: agentUserId,
           p_amount: amount
@@ -193,7 +198,7 @@ export default async function handler(req, res) {
           throw rpcErr || new Error(rpcResult?.error || 'Atomic prepaid credit failed');
         }
 
-        await supabaseAdmin.from('chip_transactions').insert({
+        await getSupabase().from('chip_transactions').insert({
           club_id: clubId,
           from_user_id: user.id,
           to_user_id: agentUserId,
@@ -226,7 +231,7 @@ export default async function handler(req, res) {
         const newLimit = Math.max(0, currentLimit - amount);
 
         // Optimistic lock: only update if credit_limit hasn't changed
-        const { data: updated } = await supabaseAdmin
+        const { data: updated } = await getSupabase()
           .from('club_members')
           .update({ credit_limit: newLimit })
           .eq('club_id', clubId)
@@ -238,17 +243,17 @@ export default async function handler(req, res) {
         let finalLimit = newLimit;
         if (!updated) {
           // Concurrent modification — re-read and retry
-          const { data: fresh } = await supabaseAdmin
+          const { data: fresh } = await getSupabase()
             .from('club_members').select('credit_limit')
             .eq('club_id', clubId).eq('user_id', agentUserId).maybeSingle();
           finalLimit = Math.max(0, (fresh?.credit_limit || 0) - amount);
-          await supabaseAdmin.from('club_members')
+          await getSupabase().from('club_members')
             .update({ credit_limit: finalLimit })
             .eq('club_id', clubId).eq('user_id', agentUserId);
         }
 
         // Mirror to agents table
-        await supabaseAdmin
+        await getSupabase()
           .from('agents')
           .update({ credit_limit: finalLimit })
           .eq('id', agentRecord.id);

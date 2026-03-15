@@ -14,10 +14,15 @@ import { getGrokClient } from '../../../../src/lib/grokClient';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 /**
  * Generate AI-powered personalized fix suggestion for a leak
@@ -169,7 +174,7 @@ async function getPlayerStats(supabase, userId) {
   let finalStats = null;
 
   // 1. Try to get aggregated stats from live hand history
-  const { data: stats, error } = await supabase
+  const { data: stats, error } = await getSupabase()
     .from('player_stats')
     .select('*')
     .eq('user_id', userId)
@@ -179,7 +184,7 @@ async function getPlayerStats(supabase, userId) {
     finalStats = normalizeStats(stats);
   } else {
     // Try alternative stats table
-    const { data: altStats } = await supabase
+    const { data: altStats } = await getSupabase()
       .from('user_poker_stats')
       .select('*')
       .eq('user_id', userId)
@@ -189,7 +194,7 @@ async function getPlayerStats(supabase, userId) {
       finalStats = normalizeStats(altStats);
     } else {
       // Try to compute from live hand history
-      const { data: hands } = await supabase
+      const { data: hands } = await getSupabase()
         .from('hand_histories')
         .select('*')
         .eq('user_id', userId)
@@ -216,7 +221,7 @@ async function getPlayerStats(supabase, userId) {
 
 // ─── NEW: DATA BRIDGE FOR TRAINING SESSIONS ────────────────────────────────
 async function getTrainingStats(supabase, userId) {
-  const { data: sessions } = await supabase
+  const { data: sessions } = await getSupabase()
     .from('training_sessions')
     .select('classification_counts, mistake_count, hands_played, total_ev_loss')
     .eq('user_id', userId)
@@ -457,7 +462,7 @@ export default async function handler(req, res) {
     if (req.method !== 'GET') {
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-      const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+      const { data: { user: _authUser }, error: _authErr } = await getSupabase().auth.getUser(_token);
       if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
       if (req.body) req.body.userId = _authUser.id;
     }
@@ -486,7 +491,7 @@ export default async function handler(req, res) {
       }
 
       // Get existing leaks
-      const { data: existingLeaks } = await supabase
+      const { data: existingLeaks } = await getSupabase()
         .from('user_leaks')
         .select('*')
         .eq('user_id', userId)
@@ -535,7 +540,7 @@ export default async function handler(req, res) {
       // Save detected leaks and link hand examples
       if (detectedLeaks.length > 0) {
         // Batch upsert all detected leaks — eliminates N+1 (one round-trip)
-        const { data: upsertedLeaks } = await supabase
+        const { data: upsertedLeaks } = await getSupabase()
           .from('user_leaks')
           .upsert(
             detectedLeaks.map(leak => ({ ...leak, user_id: userId })),
@@ -561,7 +566,7 @@ export default async function handler(req, res) {
         .map(([, existingLeak]) => existingLeak.id);
 
       if (resolvedIds.length > 0) {
-        await supabase
+        await getSupabase()
           .from('user_leaks')
           .update({ status: 'resolved', resolved_at: now, updated_at: now })
           .in('id', resolvedIds);
@@ -569,7 +574,7 @@ export default async function handler(req, res) {
 
       // 🚀 NEW BUG #11 FIX: Update Global PA Stats
       // Recalculate active/resolved leaks
-      const { data: updatedLeaks } = await supabase
+      const { data: updatedLeaks } = await getSupabase()
         .from('user_leaks')
         .select('status')
         .eq('user_id', userId)
@@ -579,7 +584,7 @@ export default async function handler(req, res) {
       const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
 
       // Fetch existing stats to increment hands
-      const { data: existingStats } = await supabase
+      const { data: existingStats } = await getSupabase()
         .from('user_assistant_stats')
         .select('total_hands_analyzed')
         .eq('user_id', userId)
@@ -588,7 +593,7 @@ export default async function handler(req, res) {
       const currentHands = existingStats?.total_hands_analyzed || 0;
 
       // Atomic Upsert for Stats Sync
-      await supabase
+      await getSupabase()
         .from('user_assistant_stats')
         .upsert({
           user_id: userId,
@@ -667,7 +672,7 @@ function updateTrendData(existingTrend, currentValue) {
 async function linkHandExamplesToLeak(supabase, userId, leakId, leakType) {
   try {
     // Get recent hands that might show this leak
-    const { data: hands } = await supabase
+    const { data: hands } = await getSupabase()
       .from('hand_histories')
       .select('id, actions, hero_cards, board, pot_size, created_at')
       .eq('user_id', userId)
@@ -703,7 +708,7 @@ async function linkHandExamplesToLeak(supabase, userId, leakId, leakType) {
     if (examples.length > 0) {
       for (const example of examples) {
         // Check if example already exists
-        const { data: existing } = await supabase
+        const { data: existing } = await getSupabase()
           .from('leak_hand_examples')
           .select('id')
           .eq('leak_id', leakId)
@@ -711,7 +716,7 @@ async function linkHandExamplesToLeak(supabase, userId, leakId, leakType) {
           .maybeSingle();
 
         if (!existing) {
-          await supabase.from('leak_hand_examples').insert(example);
+          await getSupabase().from('leak_hand_examples').insert(example);
         }
       }
     }

@@ -12,10 +12,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -40,7 +45,7 @@ export default async function handler(req, res) {
 
     try {
       // Get member details
-      const { data: member, error: memberError } = await supabase
+      const { data: member, error: memberError } = await getSupabase()
         .from('commander_members')
         .select('*')
         .eq('id', member_id)
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
       }
 
       // Check if member already has an active session
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from('commander_table_sessions')
         .select('id, table_number, seat_number')
         .eq('member_id', member_id)
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
       }
 
       // Check if seat is already occupied
-      const { data: seatTaken } = await supabase
+      const { data: seatTaken } = await getSupabase()
         .from('commander_table_sessions')
         .select('id, player_name')
         .eq('table_number', table_number)
@@ -99,7 +104,7 @@ export default async function handler(req, res) {
       const timeToAllocate = availableTime;
 
       // Create active session
-      const { data: session, error: sessionError } = await supabase
+      const { data: session, error: sessionError } = await getSupabase()
         .from('commander_table_sessions')
         .insert({
           venue_id: member.venue_id,
@@ -120,7 +125,7 @@ export default async function handler(req, res) {
       if (sessionError) throw sessionError;
 
       // Deduct time from member's balance
-      const { error: deductError } = await supabase
+      const { error: deductError } = await getSupabase()
         .from('commander_members')
         .update({
           time_balance_minutes: 0, // All time allocated to session
@@ -133,7 +138,7 @@ export default async function handler(req, res) {
       if (deductError) console.error('Time deduct error:', deductError);
 
       // Update table seat status
-      await supabase
+      await getSupabase()
         .from('commander_table_seats')
         .upsert({
           venue_id: member.venue_id,
@@ -146,7 +151,7 @@ export default async function handler(req, res) {
         }, { onConflict: 'venue_id,table_number,seat_number' });
 
       // Log check-in
-      await supabase
+      await getSupabase()
         .from('commander_checkins')
         .insert({
           member_id: member.id,

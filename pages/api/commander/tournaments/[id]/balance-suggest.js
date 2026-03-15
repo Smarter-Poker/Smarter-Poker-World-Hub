@@ -8,10 +8,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 function findAvailableSeat(maxSeats, occupiedSeats) {
   for (let s = 1; s <= maxSeats; s++) {
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
       // Staff is already validated by guardWriteStaff at the handler level
 
       // Get tournament for venue_id
-      const { data: tournament, error: tErr } = await supabase
+      const { data: tournament, error: tErr } = await getSupabase()
         .from('commander_tournaments')
         .select('id, venue_id')
         .eq('id', tournamentId)
@@ -49,7 +54,7 @@ export default async function handler(req, res) {
       if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
       // Get all active entries with table/seat info
-      const { data: entries } = await supabase
+      const { data: entries } = await getSupabase()
         .from('commander_tournament_entries')
         .select('id, player_name, table_number, seat_number, status, current_chips, metadata')
         .eq('tournament_id', tournamentId)
@@ -67,7 +72,7 @@ export default async function handler(req, res) {
       }
 
       // Get table configs
-      const { data: tables } = await supabase
+      const { data: tables } = await getSupabase()
         .from('commander_tables')
         .select('id, table_number, max_seats, status')
         .eq('venue_id', tournament.venue_id)

@@ -1,9 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -12,8 +17,7 @@ export default async function handler(req, res) {
     const token = (req.headers.authorization || '').replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
-    const supabase = supabaseAdmin;
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     // ═══ POST: Persist a hand ═══
@@ -21,7 +25,7 @@ export default async function handler(req, res) {
       const { tableId, hand } = req.body || {};
       if (!tableId || !hand) return res.status(400).json({ error: 'tableId and hand required' });
       try {
-        await supabase.from('hand_histories').upsert({
+        await getSupabase().from('hand_histories').upsert({
           hand_id: hand.handId || `${tableId}-${Date.now()}`,
           table_id: tableId,
           user_id: user.id,
@@ -45,7 +49,7 @@ export default async function handler(req, res) {
     const lim = Math.min(parseInt(limit) || 20, 50);
 
     try {
-      const { data, error, count } = await supabase
+      const { data, error, count } = await getSupabase()
         .from('hand_histories')
         .select('*', { count: 'exact' })
         .eq('table_id', tableId)

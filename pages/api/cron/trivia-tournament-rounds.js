@@ -12,10 +12,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const HOUSE_RAKE_PERCENT = 10;
 
@@ -37,7 +42,7 @@ export default async function handler(req, res) {
 
           // 1. Send forfeit warnings (1 hour before deadline)
           const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-          const { data: warningRounds } = await supabase
+          const { data: warningRounds } = await getSupabase()
               .from('trivia_tournament_rounds')
               .select('*, trivia_tournaments(*)')
               .eq('status', 'active')
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
 
                   for (const playerId of playersToWarn) {
                       // Check if warning already sent
-                      const { data: existing } = await supabase
+                      const { data: existing } = await getSupabase()
                           .from('trivia_tournament_notifications')
                           .select('id')
                           .eq('user_id', playerId)
@@ -71,7 +76,7 @@ export default async function handler(req, res) {
                           .limit(1);
 
                       if (!existing || existing.length === 0) {
-                          await supabase
+                          await getSupabase()
                               .from('trivia_tournament_notifications')
                               .insert({
                                   user_id: playerId,
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
           }
 
           // 2. Process expired rounds (deadline has passed)
-          const { data: expiredRounds } = await supabase
+          const { data: expiredRounds } = await getSupabase()
               .from('trivia_tournament_rounds')
               .select('*, trivia_tournaments(*)')
               .eq('status', 'active')
@@ -131,7 +136,7 @@ export default async function handler(req, res) {
               });
 
               // Update round as complete
-              await supabase
+              await getSupabase()
                   .from('trivia_tournament_rounds')
                   .update({ status: 'complete', matchups: updatedMatchups })
                   .eq('id', round.id);
@@ -143,13 +148,13 @@ export default async function handler(req, res) {
                       : matchup.player1_id;
 
                   if (loserId) {
-                      await supabase
+                      await getSupabase()
                           .from('trivia_tournament_entries')
                           .update({ eliminated_round: round.round_number })
                           .eq('tournament_id', tournament.id)
                           .eq('user_id', loserId);
 
-                      await supabase
+                      await getSupabase()
                           .from('trivia_tournament_notifications')
                           .insert({
                               user_id: loserId,
@@ -225,7 +230,7 @@ async function createNextRound(tournament, winners, roundNumber) {
 
     const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await supabase
+    await getSupabase()
         .from('trivia_tournament_rounds')
         .insert({
             tournament_id: tournament.id,
@@ -235,7 +240,7 @@ async function createNextRound(tournament, winners, roundNumber) {
             matchups
         });
 
-    await supabase
+    await getSupabase()
         .from('trivia_tournaments')
         .update({
             current_round: roundNumber,
@@ -254,7 +259,7 @@ async function createNextRound(tournament, winners, roundNumber) {
         }));
 
     if (notifications.length > 0) {
-        await supabase
+        await getSupabase()
             .from('trivia_tournament_notifications')
             .insert(notifications);
     }
@@ -266,7 +271,7 @@ async function createNextRound(tournament, winners, roundNumber) {
  */
 async function completeTournament(tournament, winnerId, finalRound) {
     // Get all entries sorted by how far they got
-    const { data: entries } = await supabase
+    const { data: entries } = await getSupabase()
         .from('trivia_tournament_entries')
         .select('*, profiles(username)')
         .eq('tournament_id', tournament.id)
@@ -275,7 +280,7 @@ async function completeTournament(tournament, winnerId, finalRound) {
             .limit(100);
 
     if (!entries || entries.length === 0) {
-        await supabase
+        await getSupabase()
             .from('trivia_tournaments')
             .update({ status: 'completed', completed_at: new Date().toISOString() })
             .eq('id', tournament.id);
@@ -321,7 +326,7 @@ async function completeTournament(tournament, winnerId, finalRound) {
         const prizeAmount = Math.floor(prizePool * prizes[i].percent / 100);
 
         // Award diamonds via logging RPC
-        await supabase.rpc('add_diamonds_to_balance', {
+        await getSupabase().rpc('add_diamonds_to_balance', {
             p_user_id: entry.user_id,
             p_amount: prizeAmount,
             p_type: 'tournament_prize',
@@ -330,7 +335,7 @@ async function completeTournament(tournament, winnerId, finalRound) {
         });
 
         // Update entry
-        await supabase
+        await getSupabase()
             .from('trivia_tournament_entries')
             .update({ prize_won: prizeAmount, placement: i + 1 })
             .eq('id', entry.id);
@@ -343,7 +348,7 @@ async function completeTournament(tournament, winnerId, finalRound) {
         });
 
         // Notify winner
-        await supabase
+        await getSupabase()
             .from('trivia_tournament_notifications')
             .insert({
                 user_id: entry.user_id,
@@ -354,7 +359,7 @@ async function completeTournament(tournament, winnerId, finalRound) {
     }
 
     // Update tournament
-    await supabase
+    await getSupabase()
         .from('trivia_tournaments')
         .update({
             status: 'completed',

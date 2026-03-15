@@ -8,10 +8,15 @@ import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -69,7 +74,7 @@ async function subscribe(req, res, groupId, userId) {
     }
 
     // Check membership
-    const { data: membership } = await supabase
+    const { data: membership } = await getSupabase()
       .from('commander_home_members')
       .select('id, status')
       .eq('group_id', groupId)
@@ -81,7 +86,7 @@ async function subscribe(req, res, groupId, userId) {
     }
 
     // Upsert subscription
-    const { data: subscription, error } = await supabase
+    const { data: subscription, error } = await getSupabase()
       .from('commander_push_subscriptions')
       .upsert({
         user_id: userId,
@@ -113,7 +118,7 @@ async function unsubscribe(req, res, groupId, userId) {
   try {
     const { device_token, all_devices } = req.body;
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_push_subscriptions')
       .delete()
       .eq('group_id', groupId)
@@ -158,7 +163,7 @@ async function updatePreferences(req, res, groupId, userId) {
       return res.status(400).json({ success: false, error: 'No preferences to update' });
     }
 
-    const { data: membership, error } = await supabase
+    const { data: membership, error } = await getSupabase()
       .from('commander_home_members')
       .update(updates)
       .eq('group_id', groupId)

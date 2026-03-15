@@ -8,10 +8,15 @@ import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardManager } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -53,7 +58,7 @@ export default async function handler(req, res) {
       }
 
       // Verify post exists and belongs to venue
-      const { data: post, error: fetchError } = await supabase
+      const { data: post, error: fetchError } = await getSupabase()
         .from('commander_venue_posts')
         .select('*')
         .eq('id', postId)
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
         if (is_published !== undefined) updates.is_published = is_published;
         updates.updated_at = new Date().toISOString();
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_venue_posts')
           .update(updates)
           .eq('id', postId)
@@ -102,7 +107,7 @@ export default async function handler(req, res) {
       }
 
       if (req.method === 'DELETE') {
-        const { error } = await supabase
+        const { error } = await getSupabase()
           .from('commander_venue_posts')
           .delete()
           .eq('id', postId);

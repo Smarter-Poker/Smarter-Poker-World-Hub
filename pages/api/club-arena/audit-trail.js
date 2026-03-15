@@ -13,10 +13,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
@@ -28,14 +33,14 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { clubId, action, page = 1, pageSize = 50, filters = {} } = req.body;
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
       // Verify ownership/admin
-      const { data: membership } = await supabaseAdmin
+      const { data: membership } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
 
       // ─── BUILD QUERY ──────────────────────────────────────────
       function buildQuery(selectClause, withCount = false) {
-          let query = supabaseAdmin
+          let query = getSupabase()
               .from('action_audit_logs')
               .select(selectClause, withCount ? { count: 'exact' } : undefined)
               .eq('club_id', clubId);
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
               // Remove 'SYSTEM' entries which aren't UUIDs
               userIds.delete('SYSTEM');
 
-              const { data: profiles } = await supabaseAdmin
+              const { data: profiles } = await getSupabase()
                   .from('profiles')
                   .select('id, display_name, username')
                   .in('id', [...userIds]);

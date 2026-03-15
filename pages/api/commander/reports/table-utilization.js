@@ -6,10 +6,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 function getDateRange(range) {
   const now = new Date();
@@ -33,13 +38,13 @@ export default async function handler(req, res) {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ success: false, error: 'Auth required' });
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { venue_id, range = 'week' } = req.query;
       if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
 
-      const { data: staff } = await supabase
+      const { data: staff } = await getSupabase()
         .from('commander_staff')
         .select('id')
         .eq('venue_id', venue_id)
@@ -52,14 +57,14 @@ export default async function handler(req, res) {
       const rangeDays = Math.max(1, Math.ceil((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)));
 
       // Get all tables
-      const { data: tables } = await supabase
+      const { data: tables } = await getSupabase()
         .from('commander_tables')
         .select('id, table_number, table_name, max_seats, mode, status')
         .eq('venue_id', venue_id)
         .order('table_number');
 
       // Get all time sessions in range per table
-      const { data: sessions } = await supabase
+      const { data: sessions } = await getSupabase()
         .from('commander_table_sessions')
         .select('table_number, started_at, ended_at, duration_minutes, status')
         .eq('venue_id', venue_id)
@@ -67,7 +72,7 @@ export default async function handler(req, res) {
         .lte('created_at', end)
 
       // Get tournament entries (for tournament table usage)
-      const { data: tEntries } = await supabase
+      const { data: tEntries } = await getSupabase()
         .from('commander_tournament_entries')
         .select('table_number, created_at, status')
         .eq('status', 'active')

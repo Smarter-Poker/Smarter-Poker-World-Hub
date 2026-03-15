@@ -11,10 +11,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { checkMemoryRateLimit } from '../../../../src/lib/commander/rateLimit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -31,7 +36,7 @@ export default async function handler(req, res) {
     if (staffSession) {
       try {
         const sessionData = JSON.parse(staffSession);
-        const { data: staff } = await supabase
+        const { data: staff } = await getSupabase()
           .from('commander_staff')
           .select('id, venue_id, is_active')
           .eq('id', sessionData.id)
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
 
     try {
       // Get current member
-      const { data: member, error: fetchError } = await supabase
+      const { data: member, error: fetchError } = await getSupabase()
         .from('commander_members')
         .select('id, venue_id, time_balance_minutes, first_name, last_name')
         .eq('id', member_id)
@@ -75,7 +80,7 @@ export default async function handler(req, res) {
       const newBalance = currentBalance + parseInt(minutes);
 
       // Update member balance
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabase()
         .from('commander_members')
         .update({
           time_balance_minutes: newBalance,
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
       if (updateError) throw updateError;
 
       // Log the purchase
-      await supabase
+      await getSupabase()
         .from('commander_time_purchases')
         .insert({
           venue_id: member.venue_id,
@@ -98,7 +103,7 @@ export default async function handler(req, res) {
         });
 
       // Also add time to active session if player is currently seated
-      const { data: activeSession } = await supabase
+      const { data: activeSession } = await getSupabase()
         .from('commander_table_sessions')
         .select('id, time_added_minutes')
         .eq('member_id', member_id)
@@ -107,7 +112,7 @@ export default async function handler(req, res) {
 
       if (activeSession?.length > 0) {
         // Player is at a table — add time to their active session too
-        await supabase
+        await getSupabase()
           .from('commander_table_sessions')
           .update({
             time_added_minutes: (activeSession[0].time_added_minutes || 0) + parseInt(minutes),

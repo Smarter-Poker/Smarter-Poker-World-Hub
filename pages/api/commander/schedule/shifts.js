@@ -6,10 +6,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyStaffSession, verifyManagerSession } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -55,7 +60,7 @@ async function handleGet(req, res) {
         end.setDate(end.getDate() + 7);
         const endStr = end.toISOString().split('T')[0];
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('commander_staff_shifts')
             .select('*')
             .eq('venue_id', venue_id)
@@ -95,7 +100,7 @@ async function handlePost(req, res) {
     }
 
     try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('commander_staff_shifts')
             .insert({
                 venue_id,
@@ -138,7 +143,7 @@ async function handleDelete(req, res) {
     }
 
     try {
-        const { error } = await supabase
+        const { error } = await getSupabase()
             .from('commander_staff_shifts')
             .delete()
             .eq('id', id)

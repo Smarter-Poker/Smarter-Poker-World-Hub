@@ -10,10 +10,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -22,7 +27,7 @@ export default async function handler(req, res) {
     // Auth
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     // Lazy import to avoid circular deps
@@ -50,7 +55,7 @@ export default async function handler(req, res) {
           if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
           // Verify user is admin/owner of this club
-          const { data: member } = await supabase
+          const { data: member } = await getSupabase()
             .from('club_members')
             .select('role')
             .eq('club_id', clubId)
@@ -102,7 +107,7 @@ export default async function handler(req, res) {
           const startState = controller.getTournamentState(tournamentId);
           if (!startState) return res.status(404).json({ success: false, error: 'Tournament not found' });
           if (startState.clubId) {
-            const { data: mem } = await supabase.from('club_members').select('role')
+            const { data: mem } = await getSupabase().from('club_members').select('role')
               .eq('club_id', startState.clubId).eq('user_id', user.id).maybeSingle();
             if (!mem || !['owner', 'admin', 'manager'].includes(mem.role)) {
               return res.status(403).json({ success: false, error: 'Only staff can start tournaments' });
@@ -123,7 +128,7 @@ export default async function handler(req, res) {
 
           // Cold-start fallback: if tournament not in memory, read basic state from DB
           if (!state) {
-            const { data: row } = await supabase
+            const { data: row } = await getSupabase()
               .from('club_tournaments')
               .select('*, tournament_registrations(user_id, status, registered_at)')
               .eq('id', tournamentId)
@@ -181,7 +186,7 @@ export default async function handler(req, res) {
           const cancelState = controller.getTournamentState(tournamentId);
           if (!cancelState) return res.status(404).json({ success: false, error: 'Tournament not found' });
           if (cancelState.clubId) {
-            const { data: mem } = await supabase.from('club_members').select('role')
+            const { data: mem } = await getSupabase().from('club_members').select('role')
               .eq('club_id', cancelState.clubId).eq('user_id', user.id).maybeSingle();
             if (!mem || !['owner', 'admin', 'manager'].includes(mem.role)) {
               return res.status(403).json({ success: false, error: 'Only staff can cancel tournaments' });

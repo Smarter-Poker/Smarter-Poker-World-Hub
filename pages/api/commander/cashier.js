@@ -9,10 +9,15 @@ import { guardStaff } from '../../../src/lib/commander/auth';
 import { logAction } from '../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const VALID_TYPES = ['buy_in', 'cash_out', 'add_on', 'time_purchase', 'membership', 'void'];
 
@@ -43,7 +48,7 @@ async function handleGet(req, res, staff) {
     if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
     const limit = Math.min(parseInt(rawLimit) || 100, 500);
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_cash_transactions')
       .select('*')
       .eq('venue_id', venue_id)
@@ -107,7 +112,7 @@ async function handlePost(req, res, staff) {
       return res.status(400).json({ success: false, error: 'amount cannot be negative' });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('commander_cash_transactions')
       .insert({
         venue_id,
@@ -142,7 +147,7 @@ async function handlePost(req, res, staff) {
     // Get updated player totals for this session — EXCLUDE voided transactions
     let playerTotals = null;
     if (session_id) {
-      const { data: txns } = await supabase
+      const { data: txns } = await getSupabase()
         .from('commander_cash_transactions')
         .select('type, amount, voided_at')
         .eq('session_id', session_id);
@@ -171,7 +176,7 @@ async function handlePatch(req, res, staff) {
     }
 
     // SAFEGUARD: Fetch the transaction first to verify it exists and isn't already voided
-    const { data: existing, error: fetchErr } = await supabase
+    const { data: existing, error: fetchErr } = await getSupabase()
       .from('commander_cash_transactions')
       .select('id, voided_at, venue_id')
       .eq('id', transaction_id)
@@ -192,7 +197,7 @@ async function handlePatch(req, res, staff) {
       return res.status(403).json({ success: false, error: 'Cannot void transactions from another venue' });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('commander_cash_transactions')
       .update({
         voided_at: new Date().toISOString(),

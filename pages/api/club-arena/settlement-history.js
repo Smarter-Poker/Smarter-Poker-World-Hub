@@ -17,10 +17,15 @@ const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
 
           try {
               // Find all clubs with auto-settlement enabled
-              const { data: clubs } = await supabaseAdmin
+              const { data: clubs } = await getSupabase()
                   .from('clubs')
                   .select('id, name, settings')
                   .not('settings->auto_settlement_enabled', 'is', null);
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
               for (const club of autoClubs) {
                   try {
                       // Find current open period
-                      const { data: openPeriod } = await supabaseAdmin
+                      const { data: openPeriod } = await getSupabase()
                           .from('settlement_periods')
                           .select('id, start_at')  // BUG-05 FIX: was start_date
                           .eq('club_id', club.id)
@@ -92,7 +97,7 @@ export default async function handler(req, res) {
                       } catch (settleErr) {
                           console.error(`[auto_close] settle-period call failed for ${club.name}:`, settleErr.message);
                           // Fallback: at minimum close the period so it's not orphaned
-                          await supabaseAdmin
+                          await getSupabase()
                               .from('settlement_periods')
                               .update({ status: 'closed', settled_at: new Date().toISOString() })  // BUG-05 FIX: was end_date
                               .eq('id', openPeriod.id);
@@ -138,14 +143,14 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { clubId, limit = 12, enabled } = req.body;
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
       // Verify ownership/admin
-      const { data: membership } = await supabaseAdmin
+      const { data: membership } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -159,7 +164,7 @@ export default async function handler(req, res) {
       // ─── LIST: Settlement History ─────────────────────────────
       if (action === 'list') {
           try {
-              const { data: periods } = await supabaseAdmin
+              const { data: periods } = await getSupabase()
                   .from('settlement_periods')
                   .select('id, status, start_at, end_at, created_at, total_rake_collected')  // BUG-05 FIX: was start_date, end_date
                   .eq('club_id', clubId)
@@ -171,7 +176,7 @@ export default async function handler(req, res) {
               const periodIds = (periods || []).map(p => p.id);
               let allCommissions = [];
               if (periodIds.length > 0) {
-                  const { data: comms } = await supabaseAdmin
+                  const { data: comms } = await getSupabase()
                       .from('commission_history')
                       .select('period_id, commission_earned, status')  // BUG-08 FIX: was 'amount'
                       .in('period_id', periodIds);
@@ -200,7 +205,7 @@ export default async function handler(req, res) {
               });
 
               // Get auto-schedule status
-              const { data: club } = await supabaseAdmin
+              const { data: club } = await getSupabase()
                   .from('clubs')
                   .select('settings')
                   .eq('id', clubId)
@@ -219,7 +224,7 @@ export default async function handler(req, res) {
       // ─── AUTO_SCHEDULE: Toggle auto-settlement ────────────────
       if (action === 'auto_schedule') {
           try {
-              const { data: club } = await supabaseAdmin
+              const { data: club } = await getSupabase()
                   .from('clubs')
                   .select('settings')
                   .eq('id', clubId)
@@ -228,7 +233,7 @@ export default async function handler(req, res) {
               const currentSettings = club?.settings || {};
               const newEnabled = typeof enabled === 'boolean' ? enabled : !currentSettings.auto_settlement_enabled;
 
-              await supabaseAdmin
+              await getSupabase()
                   .from('clubs')
                   .update({ settings: { ...currentSettings, auto_settlement_enabled: newEnabled } })
                   .eq('id', clubId);
@@ -256,7 +261,7 @@ export default async function handler(req, res) {
               // BUG-04 FIX: Validate periodId UUID
               if (!isUUID(batchPeriodId)) return res.status(400).json({ error: 'Invalid periodId format' });
 
-              const { data: commissions } = await supabaseAdmin
+              const { data: commissions } = await getSupabase()
                   .from('commission_history')
                   .select('id, agent_id, commission_earned, status')  // BUG-08 FIX: was 'amount'
                   .eq('period_id', batchPeriodId)
@@ -266,7 +271,7 @@ export default async function handler(req, res) {
               const agentIds = [...new Set((commissions || []).map(c => c.agent_id))];
               let profileMap = {};
               if (agentIds.length > 0) {
-                  const { data: profiles } = await supabaseAdmin
+                  const { data: profiles } = await getSupabase()
                       .from('profiles')
                       .select('id, display_name, username')
                       .in('id', agentIds);

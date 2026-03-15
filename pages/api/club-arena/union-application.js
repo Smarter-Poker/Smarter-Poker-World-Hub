@@ -19,14 +19,19 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateUnionApplication } from '../../../src/contracts/orb4_syndicate';
 import { checkIdempotency, cacheResponse } from '../../../src/lib/club-arena/idempotency';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Resolve Midway Union ID dynamically
 async function getMidwayUnionId() {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabase()
     .from('unions')
     .select('id, name, owner_id')
     .ilike('name', '%midway%')
@@ -37,7 +42,7 @@ async function getMidwayUnionId() {
 
 // Check if caller is platform admin (has admin/superadmin in profiles.role)
 async function isPlatformAdmin(userId) {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabase()
     .from('profiles')
     .select('role')
     .eq('id', userId)
@@ -47,7 +52,7 @@ async function isPlatformAdmin(userId) {
 
 // Check if caller is union_lead for the given unionId (or the union owner)
 async function isUnionLead(userId, unionId) {
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabase()
     .from('union_admins')
     .select('role')
     .eq('union_id', unionId)
@@ -57,7 +62,7 @@ async function isUnionLead(userId, unionId) {
   if (data?.role === 'union_lead') return true;
 
   // Owner fallback
-  const { data: owner } = await supabaseAdmin
+  const { data: owner } = await getSupabase()
     .from('unions')
     .select('id')
     .eq('id', unionId)
@@ -93,7 +98,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { action, clubId, applicationId, unionId: bodyUnionId, message, reason, commissionRate } = req.body;
@@ -113,7 +118,7 @@ export default async function handler(req, res) {
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
         // Verify caller owns this club
-        const { data: club } = await supabaseAdmin
+        const { data: club } = await getSupabase()
           .from('clubs')
           .select('id, name, club_id, union_id, owner_id, member_count')
           .eq('id', clubId)
@@ -127,7 +132,7 @@ export default async function handler(req, res) {
         if (!union) return res.status(500).json({ success: false, error: 'Midway Union not found on this platform' });
 
         // Check for existing pending application
-        const { data: existing } = await supabaseAdmin
+        const { data: existing } = await getSupabase()
           .from('union_applications')
           .select('id, status')
           .eq('club_id', clubId)
@@ -143,7 +148,7 @@ export default async function handler(req, res) {
         }
 
         // Insert application
-        const { data: app, error: insertErr } = await supabaseAdmin
+        const { data: app, error: insertErr } = await getSupabase()
           .from('union_applications')
           .insert({
             union_id: union.id,
@@ -178,7 +183,7 @@ export default async function handler(req, res) {
         const union = await getMidwayUnionId();
         if (!union) return res.status(200).json({ success: true, application: null });
 
-        const { data: app } = await supabaseAdmin
+        const { data: app } = await getSupabase()
           .from('union_applications')
           .select('id, club_id, union_id, status, applied_at, reviewed_at, review_note')
           .eq('club_id', clubId)
@@ -207,7 +212,7 @@ export default async function handler(req, res) {
         }
 
         const statusFilter = req.body.statusFilter || 'pending';
-        let query = supabaseAdmin
+        let query = getSupabase()
           .from('union_applications')
           .select('*, unions(name)')
           .eq('union_id', targetUnionId)
@@ -228,7 +233,7 @@ export default async function handler(req, res) {
         if (!applicationId) return res.status(400).json({ success: false, error: 'applicationId required' });
 
         // Load application first to get union_id for auth check
-        const { data: app } = await supabaseAdmin
+        const { data: app } = await getSupabase()
           .from('union_applications')
           .select('id, club_id, union_id, club_name, status, applied_at')
           .eq('id', applicationId)
@@ -244,14 +249,14 @@ export default async function handler(req, res) {
         const rate = parseFloat(commissionRate) || 0.90;
 
         // Fully integrate club into union (same logic as manage-union add_club)
-        await supabaseAdmin
+        await getSupabase()
           .from('union_clubs')
           .upsert(
             { union_id: app.union_id, club_id: app.club_id, club_commission_rate: rate },
             { onConflict: 'union_id,club_id' }
           );
 
-        await supabaseAdmin
+        await getSupabase()
           .from('clubs')
           .update({
             union_id: app.union_id,
@@ -261,7 +266,7 @@ export default async function handler(req, res) {
           .eq('id', app.club_id);
 
         // Mark application approved
-        await supabaseAdmin
+        await getSupabase()
           .from('union_applications')
           .update({ status: 'approved', reviewed_by: user.id, reviewed_at: new Date().toISOString(), review_note: reason || null })
           .eq('id', applicationId);
@@ -278,7 +283,7 @@ export default async function handler(req, res) {
       if (action === 'reject') {
         if (!applicationId) return res.status(400).json({ success: false, error: 'applicationId required' });
 
-        const { data: app } = await supabaseAdmin
+        const { data: app } = await getSupabase()
           .from('union_applications')
           .select('club_name, status, union_id')
           .eq('id', applicationId)
@@ -291,7 +296,7 @@ export default async function handler(req, res) {
           return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
         }
 
-        await supabaseAdmin
+        await getSupabase()
           .from('union_applications')
           .update({ status: 'rejected', reviewed_by: user.id, reviewed_at: new Date().toISOString(), review_note: reason || null })
           .eq('id', applicationId);

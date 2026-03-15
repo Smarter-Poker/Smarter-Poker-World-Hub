@@ -6,10 +6,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -28,7 +33,7 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
           if (authError || !user) {
               return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
           }
 
           // Check if user already rated this answer
-          const { data: existingRating } = await supabase
+          const { data: existingRating } = await getSupabase()
               .from('geeves_answer_ratings')
               .select('id, rating')
               .eq('cache_id', cacheId)
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
 
           if (existingRating) {
               // Update existing rating
-              const { error: updateError } = await supabase
+              const { error: updateError } = await getSupabase()
                   .from('geeves_answer_ratings')
                   .update({ rating, feedback })
                   .eq('id', existingRating.id);
@@ -64,13 +69,13 @@ export default async function handler(req, res) {
               // Safely update cache stats using Supabase query
               const ratingDiff = rating - existingRating.rating;
               if (ratingDiff !== 0) {
-                  const { data: cacheRow } = await supabase
+                  const { data: cacheRow } = await getSupabase()
                       .from('geeves_knowledge_cache')
                       .select('rating_sum')
                       .eq('id', cacheId)
                       .maybeSingle();
                   if (cacheRow) {
-                      await supabase
+                      await getSupabase()
                           .from('geeves_knowledge_cache')
                           .update({ rating_sum: (cacheRow.rating_sum || 0) + ratingDiff })
                           .eq('id', cacheId);
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
           }
 
           // Insert new rating (trigger will update cache stats)
-          const { error: insertError } = await supabase
+          const { error: insertError } = await getSupabase()
               .from('geeves_answer_ratings')
               .insert({
                   cache_id: cacheId,
@@ -98,7 +103,7 @@ export default async function handler(req, res) {
           if (insertError) throw insertError;
 
           // Get updated cache stats
-          const { data: cacheData } = await supabase
+          const { data: cacheData } = await getSupabase()
               .from('geeves_knowledge_cache')
               .select('avg_rating, total_ratings')
               .eq('id', cacheId)

@@ -1,10 +1,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -16,7 +21,7 @@ const CORS_HEADERS = {
 async function getVerifiedUserId(req) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return null;
-  const { data: { user }, error } = await supabase.auth.getUser(token);
+  const { data: { user }, error } = await getSupabase().auth.getUser(token);
   return (!error && user) ? user.id : null;
 }
 
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: `Invalid activity_type. Must be one of: ${validTypes.join(', ')}` });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('page_activity')
           .insert({
             page_type,
@@ -90,7 +95,7 @@ export default async function handler(req, res) {
         // User feed mode: get activities from pages the user follows
         if (user_id && feed === 'true') {
           // First get pages the user follows
-          const { data: follows, error: followError } = await supabase
+          const { data: follows, error: followError } = await getSupabase()
             .from('page_followers')
             .select('page_type, page_id')
             .eq('user_id', user_id)
@@ -110,7 +115,7 @@ export default async function handler(req, res) {
             (f) => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`
           ).join(',');
 
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
             .from('page_activity')
             .select('*')
             .or(orConditions)
@@ -127,7 +132,7 @@ export default async function handler(req, res) {
 
         // Page activity mode
         if (page_type && page_id) {
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
             .from('page_activity')
             .select('*')
             .eq('page_type', page_type)

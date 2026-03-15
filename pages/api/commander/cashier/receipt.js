@@ -7,10 +7,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -22,14 +27,14 @@ export default async function handler(req, res) {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ success: false, error: 'Auth required' });
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { transaction_id, session_id } = req.query;
 
       if (transaction_id) {
         // Single transaction receipt
-        const { data: tx } = await supabase
+        const { data: tx } = await getSupabase()
           .from('commander_cash_transactions')
           .select('id')
           .eq('id', transaction_id)
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
 
         // Get venue name
         let venueName = 'Poker Room';
-        const { data: venue } = await supabase.from('poker_venues').select('name').eq('id', tx.venue_id).maybeSingle();
+        const { data: venue } = await getSupabase().from('poker_venues').select('name').eq('id', tx.venue_id).maybeSingle();
         if (venue?.name) venueName = venue.name;
 
         return res.status(200).json({
@@ -64,7 +69,7 @@ export default async function handler(req, res) {
 
       if (session_id) {
         // Full session summary receipt (cash-out receipt with all transactions)
-        const { data: session } = await supabase
+        const { data: session } = await getSupabase()
           .from('commander_table_sessions')
           .select('id')
           .eq('id', session_id)
@@ -72,14 +77,14 @@ export default async function handler(req, res) {
 
         if (!session) return res.status(404).json({ success: false, error: 'Session not found' });
 
-        const { data: txns } = await supabase
+        const { data: txns } = await getSupabase()
           .from('commander_cash_transactions')
           .select('id')
           .eq('session_id', session_id)
           .order('created_at', { ascending: true });
 
         let venueName = 'Poker Room';
-        const { data: venue } = await supabase.from('poker_venues').select('name').eq('id', session.venue_id).maybeSingle();
+        const { data: venue } = await getSupabase().from('poker_venues').select('name').eq('id', session.venue_id).maybeSingle();
         if (venue?.name) venueName = venue.name;
 
         const transactions = txns || [];

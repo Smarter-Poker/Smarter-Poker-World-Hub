@@ -8,10 +8,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
 
 async function listQualifications(req, res, freerollId) {
     try {
-        const { data: quals, error } = await supabase
+        const { data: quals, error } = await getSupabase()
             .from('commander_freeroll_qualifications')
             .select('*')
             .eq('freeroll_id', freerollId)
@@ -86,7 +91,7 @@ async function upsertQualification(req, res, freerollId) {
 
     try {
         // First check the freeroll to auto-qualify based on threshold
-        const { data: freeroll } = await supabase
+        const { data: freeroll } = await getSupabase()
             .from('commander_freerolls')
             .select('qualification_type, qualification_threshold')
             .eq('id', freerollId)
@@ -124,7 +129,7 @@ async function upsertQualification(req, res, freerollId) {
 
         if (player_id) {
             // Upsert based on freeroll_id + player_id (real user)
-            const result = await supabase
+            const result = await getSupabase()
                 .from('commander_freeroll_qualifications')
                 .upsert(payload, {
                     onConflict: 'freeroll_id,player_id',
@@ -136,7 +141,7 @@ async function upsertQualification(req, res, freerollId) {
             error = result.error;
         } else {
             // Insert for name-only players (no real user_id)
-            const result = await supabase
+            const result = await getSupabase()
                 .from('commander_freeroll_qualifications')
                 .insert(payload)
                 .select()
@@ -168,7 +173,7 @@ async function removeQualification(req, res, freerollId) {
     }
 
     try {
-        const { error } = await supabase
+        const { error } = await getSupabase()
             .from('commander_freeroll_qualifications')
             .delete()
             .eq('freeroll_id', freerollId)

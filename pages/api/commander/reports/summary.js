@@ -6,10 +6,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 function getDateRange(range) {
   const now = new Date();
@@ -34,7 +39,7 @@ export default async function handler(req, res) {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { range = 'today' } = req.query;
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
 
       // Get venue from staff record, with owner fallback
       let staffVenueId = null;
-      const { data: staffRow } = await supabase
+      const { data: staffRow } = await getSupabase()
         .from('commander_staff')
         .select('venue_id')
         .eq('user_id', user.id)
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
         staffVenueId = staffRow.venue_id;
       } else {
         // Fallback: check if user is a venue owner via subscription
-        const { data: sub } = await supabase
+        const { data: sub } = await getSupabase()
           .from('commander_subscriptions')
           .select('venue_id')
           .eq('owner_id', user.id)
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
       const staff = { venue_id: staffVenueId };
 
       // Tournament stats
-      const { data: tournaments } = await supabase
+      const { data: tournaments } = await getSupabase()
         .from('commander_tournaments')
         .select('id, status, buyin_amount, actual_prizepool')
         .eq('venue_id', staff.venue_id)
@@ -78,7 +83,7 @@ export default async function handler(req, res) {
       const tournamentIds = (tournaments || []).map(t => t.id);
       let totalEntries = 0;
       if (tournamentIds.length > 0) {
-        const { count } = await supabase
+        const { count } = await getSupabase()
           .from('commander_tournament_entries')
           .select('id', { count: 'exact', head: true })
           .in('tournament_id', tournamentIds)
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
       }
 
       // Tables
-      const { data: tablesData } = await supabase
+      const { data: tablesData } = await getSupabase()
         .from('commander_tables')
         .select('id')
         .eq('venue_id', staff.venue_id)

@@ -9,10 +9,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -23,11 +28,11 @@ export default async function handler(req, res) {
       // Auth: require valid JWT session
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Authorization required' });
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
       if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
       // BUG #240 FIX: Require admin/superadmin role — economy data is sensitive
-      const { data: profile } = await supabase
+      const { data: profile } = await getSupabase()
           .from('profiles').select('role').eq('id', user.id).maybeSingle();
       if (!profile || !['admin', 'superadmin', 'god'].includes(profile.role)) {
           return res.status(403).json({ error: 'Admin access required' });
@@ -45,42 +50,42 @@ export default async function handler(req, res) {
               recentUsersResult,
           ] = await Promise.all([
               // 1. Recent diamond transactions (last 100)
-              supabase
+              getSupabase()
                   .from('diamond_transactions')
                   .select('*')
                   .order('created_at', { ascending: false })
                   .limit(100),
 
               // 2. Total diamonds earned via rewards (all time)
-              supabase
+              getSupabase()
                   .from('diamond_reward_claims')
                   .select('diamonds_awarded'),
 
               // 3. Diamond purchases (Stripe)
-              supabase
+              getSupabase()
                   .from('diamond_purchases')
                   .select('*')
                   .order('created_at', { ascending: false }),
 
               // 4. VIP subscriptions
-              supabase
+              getSupabase()
                   .from('vip_subscriptions')
                   .select('*')
                   .order('created_at', { ascending: false }),
 
               // 5. Total user count
-              supabase
+              getSupabase()
                   .from('profiles')
                   .select('id', { count: 'exact', head: true }),
 
               // 6. New users (last 7 days)
-              supabase
+              getSupabase()
                   .from('profiles')
                   .select('id', { count: 'exact', head: true })
                   .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
 
               // 7. Recent users (last 10 signups with details)
-              supabase
+              getSupabase()
                   .from('profiles')
                   .select('id, username, full_name, email, created_at')
                   .order('created_at', { ascending: false })

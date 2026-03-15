@@ -6,10 +6,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'venue_id is required' });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('qr_code_scans')
             .insert({
                 venue_id: venue_id,
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
         const since = new Date();
         since.setDate(since.getDate() - (parseInt(days) || 30));
 
-        const { data, error, count } = await supabase
+        const { data, error, count } = await getSupabase()
             .from('qr_code_scans')
             .select('*', { count: 'exact' })
             .eq('venue_id', venue_id)

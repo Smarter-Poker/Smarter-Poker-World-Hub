@@ -9,10 +9,15 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Import tier config from engine
 const STAKES_TIERS = {
@@ -49,12 +54,12 @@ export default async function handler(req, res) {
       // could enumerate club BBJ pools, winner history, and contribution rates.
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       // Verify caller is a member of this club (or union admin)
       // HARDENED: March 7, 2026 — .maybeSingle() → .maybeSingle() to prevent 500 crashes
-      const { data: member } = await supabaseAdmin
+      const { data: member } = await getSupabase()
         .from('club_members')
         .select('role')
         .eq('club_id', clubId)
@@ -63,15 +68,15 @@ export default async function handler(req, res) {
 
       if (!member) {
         // Check union admin fallback
-        const { data: club } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).maybeSingle();
+        const { data: club } = await getSupabase().from('clubs').select('union_id').eq('id', clubId).maybeSingle();
         let unionAuth = false;
         if (club?.union_id) {
-          const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', club.union_id).eq('user_id', user.id).maybeSingle();
+          const { data: ua } = await getSupabase().from('union_admins').select('role').eq('union_id', club.union_id).eq('user_id', user.id).maybeSingle();
           if (ua) {
               unionAuth = true;
           } else {
               // Owner fallback
-              const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
+              const { data: union } = await getSupabase().from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
               if (union) unionAuth = true;
           }
         }
@@ -80,14 +85,14 @@ export default async function handler(req, res) {
 
       try {
         // Get pool
-        const { data: pool } = await supabaseAdmin
+        const { data: pool } = await getSupabase()
           .from('bbj_pools')
           .select('id, pool_amount, hands_contributed, last_hit_at, last_hit_amount')
           .eq('club_id', clubId)
           .maybeSingle();
 
         // Get last 10 winners
-        const { data: winners } = await supabaseAdmin
+        const { data: winners } = await getSupabase()
           .from('bbj_winners')
           .select('*')
           .eq('club_id', clubId)
@@ -96,7 +101,7 @@ export default async function handler(req, res) {
 
         // Get recent contribution rate (last hour) for tick animation
         const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
-        const { data: recentContribs } = await supabaseAdmin
+        const { data: recentContribs } = await getSupabase()
           .from('bbj_contributions')
           .select('amount')
           .eq('pool_id', pool?.id)
@@ -145,7 +150,7 @@ export default async function handler(req, res) {
 
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       // Idempotency guard on mutation actions
@@ -157,11 +162,11 @@ export default async function handler(req, res) {
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
       // Verify caller is owner or admin of this club (or platform admin)
-      const { data: member } = await supabaseAdmin
+      const { data: member } = await getSupabase()
         .from('club_members').select('role').eq('club_id', clubId).eq('user_id', user.id).maybeSingle();
       const isClubStaff = member && ['owner', 'admin'].includes(member.role);
       if (!isClubStaff) {
-        const { data: profile } = await supabaseAdmin
+        const { data: profile } = await getSupabase()
           .from('profiles').select('role').eq('id', user.id).maybeSingle();
         if (!['admin', 'superadmin', 'god'].includes(profile?.role)) {
           return res.status(403).json({ error: 'Club owner or admin required' });
@@ -170,11 +175,11 @@ export default async function handler(req, res) {
 
       // GET_CONFIG — return current BBJ setting + pool snapshot
       if (action === 'get_config') {
-        const { data: club } = await supabaseAdmin
+        const { data: club } = await getSupabase()
           .from('clubs').select('id, name, bbj_enabled').eq('id', clubId).maybeSingle();
         if (!club) return res.status(404).json({ error: 'Club not found' });
 
-        const { data: pool } = await supabaseAdmin
+        const { data: pool } = await getSupabase()
           .from('bbj_pools')
           .select('pool_amount, hands_contributed, last_hit_at, last_hit_amount')
           .eq('club_id', clubId).maybeSingle();
@@ -194,7 +199,7 @@ export default async function handler(req, res) {
         if (typeof bbjEnabled !== 'boolean') {
           return res.status(400).json({ error: 'bbjEnabled (boolean) required' });
         }
-        await supabaseAdmin.from('clubs').update({ bbj_enabled: bbjEnabled }).eq('id', clubId);
+        await getSupabase().from('clubs').update({ bbj_enabled: bbjEnabled }).eq('id', clubId);
         return res.json({
           success: true,
           message: `BBJ ${bbjEnabled ? 'enabled' : 'disabled'} for this club`,

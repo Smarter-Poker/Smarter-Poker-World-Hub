@@ -16,10 +16,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { notifyUser } from '../../../src/lib/club-arena/notify';
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const RETENTION_DEFAULTS = {
     at_risk_days: 5,        // Days of inactivity before flagging
@@ -39,14 +44,14 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { clubId, action, playerId, amount, config } = req.body;
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
       // Verify agent/owner/admin role
-      const { data: membership } = await supabaseAdmin
+      const { data: membership } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -58,7 +63,7 @@ export default async function handler(req, res) {
       }
 
       // Get club retention config
-      const { data: club } = await supabaseAdmin
+      const { data: club } = await getSupabase()
           .from('clubs')
           .select('settings')
           .eq('id', clubId)
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
               const churnedDate = new Date(now - retConfig.churned_days * 24 * 60 * 60 * 1000).toISOString();
 
               // Get all player members with their last activity
-              const { data: members } = await supabaseAdmin
+              const { data: members } = await getSupabase()
                   .from('club_members')
                   .select('user_id, chip_balance, last_active, role, agent_id')
                   .eq('club_id', clubId)
@@ -82,7 +87,7 @@ export default async function handler(req, res) {
 
               // Resolve display names
               const userIds = (members || []).map(m => m.user_id);
-              const { data: profiles } = await supabaseAdmin
+              const { data: profiles } = await getSupabase()
                   .from('profiles')
                   .select('id, display_name, username')
                   .in('id', userIds);
@@ -138,7 +143,7 @@ export default async function handler(req, res) {
 
           try {
               // Credit the player's promo wallet or chip balance
-              const { data: playerMember } = await supabaseAdmin
+              const { data: playerMember } = await getSupabase()
                   .from('club_members')
                   .select('chip_balance, user_id')
                   .eq('club_id', clubId)
@@ -147,14 +152,14 @@ export default async function handler(req, res) {
 
               if (!playerMember) return res.status(404).json({ error: 'Player not found in club' });
 
-              await supabaseAdmin
+              await getSupabase()
                   .from('club_members')
                   .update({ chip_balance: (playerMember.chip_balance || 0) + promoAmount })
                   .eq('club_id', clubId)
                   .eq('user_id', playerId);
 
               // Record the transaction
-              await supabaseAdmin.from('chip_transactions').insert({
+              await getSupabase().from('chip_transactions').insert({
                   from_user_id: user.id,
                   to_user_id: playerId,
                   club_id: clubId,
@@ -197,7 +202,7 @@ export default async function handler(req, res) {
               const currentSettings = club?.settings || {};
               const newRetention = { ...retConfig, ...(config || {}) };
 
-              await supabaseAdmin
+              await getSupabase()
                   .from('clubs')
                   .update({ settings: { ...currentSettings, retention: newRetention } })
                   .eq('id', clubId);

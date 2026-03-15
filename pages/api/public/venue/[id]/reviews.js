@@ -4,10 +4,15 @@
  */
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
         });
       }
 
-      let query = supabase
+      let query = getSupabase()
         .from('commander_venue_reviews')
         .select(`
           id,
@@ -79,7 +84,7 @@ export default async function handler(req, res) {
       if (error) {
         if (error.code === '22P02') {
           // Query social_page_reviews instead
-          let spQuery = supabase
+          let spQuery = getSupabase()
             .from('social_page_reviews')
             .select(`
               id,
@@ -109,7 +114,7 @@ export default async function handler(req, res) {
 
           // Enrich with reviewer profiles
           const enrichedReviews = await Promise.all((spReviews || []).map(async (r) => {
-            const { data: profile } = await supabase
+            const { data: profile } = await getSupabase()
               .from('profiles')
               .select('display_name, username, avatar_url')
               .eq('id', r.reviewer_id)
@@ -125,7 +130,7 @@ export default async function handler(req, res) {
           }));
 
           // Calculate distribution from social page reviews
-          const { data: allSpReviews } = await supabase
+          const { data: allSpReviews } = await getSupabase()
             .from('social_page_reviews')
             .select('overall_rating')
             .eq('page_id', id)
@@ -156,7 +161,7 @@ export default async function handler(req, res) {
       }
 
       // Calculate rating distribution
-      const { data: allReviews } = await supabase
+      const { data: allReviews } = await getSupabase()
         .from('commander_venue_reviews')
         .select('overall_rating')
         .eq('venue_id', id)

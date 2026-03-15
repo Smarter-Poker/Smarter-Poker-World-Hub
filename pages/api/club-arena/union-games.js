@@ -13,17 +13,22 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateUnionGames } from '../../../src/contracts/orb4_syndicate';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 async function verifyUnionAdmin(token, unionId) {
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  const { data: { user }, error } = await getSupabase().auth.getUser(token);
   if (error || !user) return { error: 'Not authenticated', status: 401 };
 
   // 1. Check union_admins table
-  const { data: admin } = await supabaseAdmin
+  const { data: admin } = await getSupabase()
     .from('union_admins')
     .select('role, permissions')
     .eq('union_id', unionId)
@@ -33,7 +38,7 @@ async function verifyUnionAdmin(token, unionId) {
   if (admin) return { user, admin };
 
   // 2. Fallback: check if user is the union owner
-  const { data: union } = await supabaseAdmin
+  const { data: union } = await getSupabase()
     .from('unions')
     .select('id')
     .eq('id', unionId)
@@ -46,7 +51,7 @@ async function verifyUnionAdmin(token, unionId) {
 }
 
 async function getUnionClubIds(unionId) {
-  const { data: unionClubs } = await supabaseAdmin
+  const { data: unionClubs } = await getSupabase()
     .from('union_clubs')
     .select('club_id')
     .eq('union_id', unionId)
@@ -57,7 +62,7 @@ async function getUnionClubIds(unionId) {
 
 async function getClubsInfo(clubIds) {
   if (clubIds.length === 0) return [];
-  const { data } = await supabaseAdmin
+  const { data } = await getSupabase()
     .from('clubs')
     .select('id, name, club_id, club_commission_rate')
     .in('id', clubIds)
@@ -110,7 +115,7 @@ export default async function handler(req, res) {
           return res.json({ success: true, tournaments: [], clubs: [] });
         }
 
-        const { data: tournaments, error } = await supabaseAdmin
+        const { data: tournaments, error } = await getSupabase()
           .from('club_tournaments')
           .select('id, club_id, name, status, type, variant, buy_in, starting_chips, max_players, registered_count, prize_pool, guaranteed_prize, scheduled_start, late_reg_levels, rebuy_enabled, rebuy_levels, addon_enabled, settings, created_at')
           .in('club_id', clubIds)
@@ -135,7 +140,7 @@ export default async function handler(req, res) {
 
         // Only return active/waiting tables by default; pass statusFilter=['closed','all'] to include closed
         const tableStatusFilter = params.statusFilter;
-        let tablesQuery = supabaseAdmin
+        let tablesQuery = getSupabase()
           .from('tables')
           .select('id, club_id, name, status, game_type, game_variant, small_blind, big_blind, min_buyin, max_buyin, min_buy_in, max_buy_in, current_players, max_players, settings, created_at')
           .in('club_id', clubIds)
@@ -198,7 +203,7 @@ export default async function handler(req, res) {
           ? participatingClubIds.filter(id => clubIds.includes(id))
           : [resolvedClubId];
 
-        const { data: tournament, error } = await supabaseAdmin
+        const { data: tournament, error } = await getSupabase()
           .from('club_tournaments')
           .insert({
             club_id: resolvedClubId,
@@ -250,7 +255,7 @@ export default async function handler(req, res) {
         const resolvedStakes = stakes || `${sb}/${bb}`;
         const resolvedName = (name || tableName || '').trim() || `${(gameVariant || game_type || 'NLH').toUpperCase()} ${resolvedStakes}`;
 
-        const { data: table, error } = await supabaseAdmin
+        const { data: table, error } = await getSupabase()
           .from('tables')
           .insert({
             club_id: clubId,
@@ -290,7 +295,7 @@ export default async function handler(req, res) {
         if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
         // Verify tournament belongs to a union club
-        const { data: tourn } = await supabaseAdmin
+        const { data: tourn } = await getSupabase()
           .from('club_tournaments')
           .select('id, club_id, status')
           .eq('id', tournamentId)
@@ -304,13 +309,13 @@ export default async function handler(req, res) {
         }
 
         // Fetch registered player count before starting
-        const { count: playerCount } = await supabaseAdmin
+        const { count: playerCount } = await getSupabase()
           .from('tournament_registrations')
           .select('*', { count: 'exact', head: true })
           .eq('tournament_id', tournamentId)
           .in('status', ['registered', 'playing']);
 
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabase()
           .from('club_tournaments')
           .update({ status: 'running', started_at: new Date().toISOString() })
           .eq('id', tournamentId);
@@ -350,7 +355,7 @@ export default async function handler(req, res) {
         const { tournamentId } = params;
         if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
-        const { data: tourn } = await supabaseAdmin
+        const { data: tourn } = await getSupabase()
           .from('club_tournaments')
           .select('id, club_id, status')
           .eq('id', tournamentId)
@@ -364,7 +369,7 @@ export default async function handler(req, res) {
         }
 
         // Fetch all registered players and refund their buy-ins
-        const { data: registrations } = await supabaseAdmin
+        const { data: registrations } = await getSupabase()
           .from('tournament_registrations')
           .select('id, user_id, buy_in_amount, status')
           .eq('tournament_id', tournamentId)
@@ -377,14 +382,14 @@ export default async function handler(req, res) {
         const refundResults = await Promise.allSettled(
           toRefund.map(async (reg) => {
             if ((reg.buy_in_amount || 0) > 0) {
-              await supabaseAdmin.rpc('unlock_chips_from_table', {
+              await getSupabase().rpc('unlock_chips_from_table', {
                 p_user_id: reg.user_id,
                 p_club_id: tourn.club_id,
                 p_table_id: tournamentId,
                 p_amount: reg.buy_in_amount,
               });
             }
-            await supabaseAdmin
+            await getSupabase()
               .from('tournament_registrations')
               .update({ status: 'refunded' })
               .eq('id', reg.id);
@@ -396,7 +401,7 @@ export default async function handler(req, res) {
           console.error(`[union-games] cancel_tournament: ${refundErrors.length}/${toRefund.length} refunds failed`);
         }
 
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabase()
           .from('club_tournaments')
           .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
           .eq('id', tournamentId);
@@ -412,7 +417,7 @@ export default async function handler(req, res) {
         const { tournamentId } = params;
         if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
-        const { data: tourn } = await supabaseAdmin
+        const { data: tourn } = await getSupabase()
           .from('club_tournaments')
           .select('id, club_id, status')
           .eq('id', tournamentId)
@@ -425,7 +430,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Can only open registration for scheduled tournaments' });
         }
 
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabase()
           .from('club_tournaments')
           .update({ status: 'registering' })
           .eq('id', tournamentId);
@@ -441,7 +446,7 @@ export default async function handler(req, res) {
         const { tableId } = params;
         if (!tableId) return res.status(400).json({ success: false, error: 'tableId required' });
 
-        const { data: table } = await supabaseAdmin
+        const { data: table } = await getSupabase()
           .from('tables')
           .select('id, club_id, status, current_players')
           .eq('id', tableId)
@@ -455,7 +460,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: `Cannot close table: ${table.current_players} player(s) still seated` });
         }
 
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabase()
           .from('tables')
           .update({ status: 'closed' })
           .eq('id', tableId);
@@ -471,7 +476,7 @@ export default async function handler(req, res) {
         const { tournamentId } = params;
         if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
-        const { data: tourn } = await supabaseAdmin
+        const { data: tourn } = await getSupabase()
           .from('club_tournaments')
           .select('id, club_id, status')
           .eq('id', tournamentId)
@@ -485,7 +490,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: `Cannot pause a tournament with status: ${tourn.status}` });
         }
 
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabase()
           .from('club_tournaments')
           .update({ status: 'paused', updated_at: new Date().toISOString() })
           .eq('id', tournamentId);
@@ -501,7 +506,7 @@ export default async function handler(req, res) {
         const { tournamentId } = params;
         if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
-        const { data: tourn } = await supabaseAdmin
+        const { data: tourn } = await getSupabase()
           .from('club_tournaments')
           .select('id, club_id, status')
           .eq('id', tournamentId)
@@ -514,7 +519,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: `Tournament is not paused (status: ${tourn.status})` });
         }
 
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabase()
           .from('club_tournaments')
           .update({ status: 'running', updated_at: new Date().toISOString() })
           .eq('id', tournamentId);
@@ -531,7 +536,7 @@ export default async function handler(req, res) {
         if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
         // Verify tournament belongs to a union club
-        const { data: tourn } = await supabaseAdmin
+        const { data: tourn } = await getSupabase()
           .from('club_tournaments')
           .select('id, club_id')
           .eq('id', tournamentId)
@@ -541,7 +546,7 @@ export default async function handler(req, res) {
           return res.status(404).json({ success: false, error: 'Tournament not found in union' });
         }
 
-        const { data: regs, error: regErr } = await supabaseAdmin
+        const { data: regs, error: regErr } = await getSupabase()
           .from('tournament_registrations')
           .select('user_id, club_id, status, registered_at, finish_position, payout_amount')
           .eq('tournament_id', tournamentId)
@@ -555,7 +560,7 @@ export default async function handler(req, res) {
         const userIds = [...new Set((regs || []).map(r => r.user_id))];
         let profileMap = {};
         if (userIds.length > 0) {
-          const { data: profiles } = await supabaseAdmin
+          const { data: profiles } = await getSupabase()
             .from('profiles')
             .select('id, username, display_name')
             .in('id', userIds)
@@ -576,7 +581,7 @@ export default async function handler(req, res) {
       // ════════════════════════════════════════════════════════════
       if (action === 'get_bbj_status') {
         // Call RPC server-side with service role (full auth, bypasses RLS)
-        const { data, error: rpcErr } = await supabaseAdmin.rpc('get_union_bbj_status', {
+        const { data, error: rpcErr } = await getSupabase().rpc('get_union_bbj_status', {
           p_union_id: unionId,
         });
         if (rpcErr) {

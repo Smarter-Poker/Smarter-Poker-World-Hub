@@ -8,10 +8,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { requireStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
 
     try {
       // Get all running games at this venue
-      const { data: games, error: gamesError } = await supabase
+      const { data: games, error: gamesError } = await getSupabase()
         .from('commander_games')
         .select(`
           id,
@@ -64,7 +69,7 @@ export default async function handler(req, res) {
 
       // Get seats for each game
       const gameIds = (games || []).map(g => g.id);
-      const { data: seats, error: seatsError } = await supabase
+      const { data: seats, error: seatsError } = await getSupabase()
         .from('commander_seats')
         .select('game_id, seat_number, player_id, player_name, seated_at, status')
         .in('game_id', gameIds.length > 0 ? gameIds : ['none'])

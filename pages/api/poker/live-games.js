@@ -2,10 +2,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import allVenuesData from '../../../data/all-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Build venue name lookup (live_games.venue_id is TEXT)
 const venuesList = Array.isArray(allVenuesData) ? allVenuesData : allVenuesData.venues || [];
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
         // Require JWT for writes
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for live game reports' });
-        const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+        const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { venue_id, game_type, stakes, table_count, wait_time, notes } = req.body;
@@ -78,7 +83,7 @@ export default async function handler(req, res) {
           insertData.notes = notes;
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('live_games')
           .insert(insertData)
           .select()
@@ -103,7 +108,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
           }
 
-          let query = supabase
+          let query = getSupabase()
             .from('live_games')
             .select('*')
             .eq('venue_id', String(venueIdNum))
@@ -128,7 +133,7 @@ export default async function handler(req, res) {
 
         // All active games grouped by venue
         if (active === 'true') {
-          let query = supabase
+          let query = getSupabase()
             .from('live_games')
             .select('*')
             .gt('expires_at', now)
@@ -167,7 +172,7 @@ export default async function handler(req, res) {
         // Require JWT for deletes — use authenticated user ID, not query param
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for deleting games' });
-        const { data: { user: delUser }, error: delAuthErr } = await supabase.auth.getUser(token);
+        const { data: { user: delUser }, error: delAuthErr } = await getSupabase().auth.getUser(token);
         if (delAuthErr || !delUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { game_id } = req.query;
@@ -176,7 +181,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'game_id is required' });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('live_games')
           .delete()
           .eq('id', game_id)

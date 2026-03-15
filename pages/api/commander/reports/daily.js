@@ -6,10 +6,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
 
     try {
       // Fetch games that were active on this date
-      const { data: games, error: gamesError } = await supabase
+      const { data: games, error: gamesError } = await getSupabase()
         .from('commander_games')
         .select('*')
         .eq('venue_id', venue_id)
@@ -46,7 +51,7 @@ export default async function handler(req, res) {
       if (gamesError) throw gamesError;
 
       // Fetch sessions for this date
-      const { data: sessions, error: sessionsError } = await supabase
+      const { data: sessions, error: sessionsError } = await getSupabase()
         .from('commander_player_sessions')
         .select('*')
         .eq('venue_id', venue_id)
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
       if (sessionsError) throw sessionsError;
 
       // Fetch tournaments for this date
-      const { data: tournaments, error: tournamentsError } = await supabase
+      const { data: tournaments, error: tournamentsError } = await getSupabase()
         .from('commander_tournaments')
         .select('*')
         .eq('venue_id', venue_id)
@@ -66,7 +71,7 @@ export default async function handler(req, res) {
       if (tournamentsError) throw tournamentsError;
 
       // Fetch waitlist entries for this date
-      const { data: waitlistEntries, error: waitlistError } = await supabase
+      const { data: waitlistEntries, error: waitlistError } = await getSupabase()
         .from('commander_waitlist')
         .select('*')
         .eq('venue_id', venue_id)

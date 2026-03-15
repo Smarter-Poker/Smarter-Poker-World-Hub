@@ -8,10 +8,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -59,9 +64,9 @@ async function listPromotions(req, res) {
       const authHeader = req.headers.authorization;
       if (authHeader) {
         const token = authHeader.replace('Bearer ', '');
-        const { data: { user } } = await supabase.auth.getUser(token);
+        const { data: { user } } = await getSupabase().auth.getUser(token);
         if (user) {
-          const { data: staff } = await supabase
+          const { data: staff } = await getSupabase()
             .from('commander_staff')
             .select('venue_id')
             .eq('user_id', user.id)
@@ -72,7 +77,7 @@ async function listPromotions(req, res) {
       }
     }
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_promotions')
       .select(`
         *,
@@ -101,7 +106,7 @@ async function listPromotions(req, res) {
     const now = new Date().toISOString().split('T')[0];
     const expiredIds = (data || []).filter(p => p.status === 'active' && p.end_date && p.end_date < now).map(p => p.id);
     if (expiredIds.length > 0) {
-      await supabase.from('commander_promotions')
+      await getSupabase().from('commander_promotions')
         .update({ status: 'expired', updated_at: new Date().toISOString() })
         .in('id', expiredIds);
       // Reflect in response data
@@ -135,7 +140,7 @@ async function createPromotion(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ success: false, error: 'Invalid token' });
@@ -149,7 +154,7 @@ async function createPromotion(req, res) {
 
     // Check if user is staff at this venue
     let staff = null;
-    const { data: staffRow } = await supabase
+    const { data: staffRow } = await getSupabase()
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', venue_id)
@@ -161,7 +166,7 @@ async function createPromotion(req, res) {
       staff = staffRow;
     } else {
       // Fallback: check if user is the venue owner via subscription
-      const { data: sub } = await supabase
+      const { data: sub } = await getSupabase()
         .from('commander_subscriptions')
         .select('id, venue_id, owner_id')
         .eq('owner_id', user.id)
@@ -210,7 +215,7 @@ async function createPromotion(req, res) {
       return res.status(400).json({ success: false, error: 'Name and promotion type are required' });
     }
 
-    const { data: promotion, error } = await supabase
+    const { data: promotion, error } = await getSupabase()
       .from('commander_promotions')
       .insert({
         venue_id: venue_id,
@@ -248,13 +253,13 @@ async function createPromotion(req, res) {
 
     // Push notification: broadcast to realtime channel so display pages auto-update
     try {
-      const channel = supabase.channel('promotions-push');
+      const channel = getSupabase().channel('promotions-push');
       await channel.send({
         type: 'broadcast',
         event: 'new_promotion',
         payload: { id: promotion.id, name: promotion.name, venue_id, promotion_type }
       });
-      supabase.removeChannel(channel);
+      getSupabase().removeChannel(channel);
     } catch (broadcastErr) {
       console.warn('Broadcast notification failed (non-critical):', broadcastErr.message);
     }

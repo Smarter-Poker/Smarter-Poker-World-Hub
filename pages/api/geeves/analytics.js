@@ -11,10 +11,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -22,10 +27,10 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-      const { data: profile } = await supabaseAdmin
+      const { data: profile } = await getSupabase()
           .from('profiles')
           .select('role')
           .eq('id', user.id)
@@ -40,7 +45,7 @@ export default async function handler(req, res) {
           const { action = 'summary' } = req.query;
 
           if (action === 'top_missed') {
-              const { data, error } = await supabaseAdmin
+              const { data, error } = await getSupabase()
                   .from('geeves_missed_questions')
                   .select('id, question, page, asked_count, first_asked, last_asked, resolved, added_to_kb, grok_answer')
                   .eq('resolved', false)
@@ -61,20 +66,20 @@ export default async function handler(req, res) {
                   { count: totalAddedToKB },
                   cacheRes,
               ] = await Promise.all([
-                  supabaseAdmin
+                  getSupabase()
                       .from('geeves_missed_questions')
                       .select('*', { count: 'exact', head: true })
                       .gte('last_asked', weekAgo),
-                  supabaseAdmin
+                  getSupabase()
                       .from('geeves_missed_questions')
                       .select('*', { count: 'exact', head: true })
                       .eq('resolved', true)
                       .gte('last_asked', weekAgo),
-                  supabaseAdmin
+                  getSupabase()
                       .from('geeves_missed_questions')
                       .select('*', { count: 'exact', head: true })
                       .eq('added_to_kb', true),
-                  supabaseAdmin
+                  getSupabase()
                       .from('geeves_knowledge_cache')
                       .select('times_served, avg_rating')
                       .gte('created_at', weekAgo)
@@ -107,7 +112,7 @@ export default async function handler(req, res) {
 
           if (action === 'mark_resolved') {
               if (!id) return res.status(400).json({ success: false, error: 'id required' });
-              const { error } = await supabaseAdmin
+              const { error } = await getSupabase()
                   .from('geeves_missed_questions')
                   .update({
                       resolved: true,

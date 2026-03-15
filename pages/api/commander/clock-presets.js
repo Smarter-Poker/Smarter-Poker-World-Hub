@@ -9,10 +9,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -38,7 +43,7 @@ export default async function handler(req, res) {
 
       if (req.method === 'GET') {
           try {
-              let query = supabase
+              let query = getSupabase()
                   .from('commander_clock_presets')
                   .select('*')
                   .order('is_default', { ascending: false })
@@ -68,14 +73,14 @@ export default async function handler(req, res) {
 
               // If setting as default, unset other defaults for this venue
               if (is_default) {
-                  await supabase
+                  await getSupabase()
                       .from('commander_clock_presets')
                       .update({ is_default: false })
                       .eq('venue_id', venueId)
                       .eq('is_default', true);
               }
 
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('commander_clock_presets')
                   .insert({
                       venue_id: venueId,
@@ -105,7 +110,7 @@ export default async function handler(req, res) {
 
               // If setting as default, unset other defaults for this venue
               if (is_default) {
-                  await supabase
+                  await getSupabase()
                       .from('commander_clock_presets')
                       .update({ is_default: false })
                       .eq('venue_id', venueId)
@@ -118,7 +123,7 @@ export default async function handler(req, res) {
               if (display_options !== undefined) updates.display_options = display_options;
               if (is_default !== undefined) updates.is_default = is_default;
 
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('commander_clock_presets')
                   .update(updates)
                   .eq('id', presetId)
@@ -140,7 +145,7 @@ export default async function handler(req, res) {
               const presetId = req.query.id;
               if (!presetId) return res.status(400).json({ success: false, error: { code: 'VALIDATION', message: 'Preset ID required' } });
 
-              const { error } = await supabase
+              const { error } = await getSupabase()
                   .from('commander_clock_presets')
                   .delete()
                   .eq('id', presetId)

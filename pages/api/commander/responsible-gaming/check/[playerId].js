@@ -6,10 +6,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
 
     try {
       // Check for active exclusions (not yet expired + not lifted)
-      let query = supabase
+      let query = getSupabase()
         .from('commander_self_exclusions')
         .select('*')
         .eq('player_id', playerId)
@@ -58,7 +63,7 @@ export default async function handler(req, res) {
       const activeExclusion = isExcluded ? exclusions[0] : null;
 
       // Also check spending limits (all limits are active if they exist)
-      const { data: limits } = await supabase
+      const { data: limits } = await getSupabase()
         .from('commander_spending_limits')
         .select('*')
         .eq('player_id', playerId)
@@ -69,7 +74,7 @@ export default async function handler(req, res) {
       let limitType = null;
 
       if (limits) {
-        const { data: sessions } = await supabase
+        const { data: sessions } = await getSupabase()
           .from('commander_player_sessions')
           .select('total_buyin')
           .eq('player_id', playerId)

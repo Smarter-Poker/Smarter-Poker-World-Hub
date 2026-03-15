@@ -14,10 +14,15 @@ const { sanitizeNote, safeErrorResponse } = require('../../../src/lib/club-arena
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { checkVelocity } = require('../../../src/lib/club-arena/velocityCheck');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { clubId, toUserId, amount: rawAmount, notes: rawNotes } = req.body;
@@ -72,7 +77,7 @@ export default async function handler(req, res) {
 
     try {
       // Verify caller is owner/admin/agent
-      const { data: member } = await supabaseAdmin
+      const { data: member } = await getSupabase()
         .from('club_members')
         .select('role')
         .eq('club_id', clubId)
@@ -81,18 +86,18 @@ export default async function handler(req, res) {
 
       if (!member || !['owner', 'admin', 'agent', 'sub_agent', 'super_agent'].includes(member.role)) {
         // Fallback: check if caller is a union admin for this club's union
-        const { data: club } = await supabaseAdmin
+        const { data: club } = await getSupabase()
           .from('clubs').select('union_id').eq('id', clubId).maybeSingle();
         let unionAuthorized = false;
         if (club?.union_id) {
-          const { data: ua } = await supabaseAdmin
+          const { data: ua } = await getSupabase()
             .from('union_admins').select('role')
             .eq('union_id', club.union_id).eq('user_id', user.id).maybeSingle();
           if (ua) {
               unionAuthorized = true;
           } else {
               // Owner fallback
-              const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
+              const { data: union } = await getSupabase().from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
               if (union) unionAuthorized = true;
           }
         }
@@ -106,7 +111,7 @@ export default async function handler(req, res) {
       const isAgentRole = ['agent', 'sub_agent', 'super_agent'].includes(member?.role);
       if (isAgentRole) {
         // ── RED TEAM: Downline Spoofing Validator (Bug 10) ──
-        const { data: targetMember } = await supabaseAdmin
+        const { data: targetMember } = await getSupabase()
           .from('club_members')
           .select('agent_id')
           .eq('club_id', clubId)
@@ -132,7 +137,7 @@ export default async function handler(req, res) {
         // debts, and do NOT affect weekly square-up with the union.
         // ═══════════════════════════════════════════════════════════
         if (req.body.type === 'promo') {
-          const { data: result, error: rpcErr } = await supabaseAdmin.rpc('transfer_promo_agent_to_player', {
+          const { data: result, error: rpcErr } = await getSupabase().rpc('transfer_promo_agent_to_player', {
             p_club_id: clubId,
             p_agent_user_id: user.id,
             p_player_user_id: toUserId,
@@ -152,7 +157,7 @@ export default async function handler(req, res) {
         }
 
         // Regular chip transfer — uses credit or prepaid balance
-        const { data: result, error: rpcErr } = await supabaseAdmin.rpc('transfer_chips_agent_to_player', {
+        const { data: result, error: rpcErr } = await getSupabase().rpc('transfer_chips_agent_to_player', {
           p_agent_user_id: user.id,
           p_player_user_id: toUserId,
           p_club_id: clubId,
@@ -171,7 +176,7 @@ export default async function handler(req, res) {
       }
 
       // Owner/admin: distribute from treasury via atomic RPC
-      const { data: result, error: rpcErr } = await supabaseAdmin.rpc('distribute_chips', {
+      const { data: result, error: rpcErr } = await getSupabase().rpc('distribute_chips', {
         p_club_id: clubId,
         p_to_user_id: toUserId,
         p_amount: amount,

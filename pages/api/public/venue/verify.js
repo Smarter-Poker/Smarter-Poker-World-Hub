@@ -8,10 +8,15 @@ import { supabase } from '../../../../src/lib/supabase';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const MAX_VERIFICATION_ATTEMPTS = 5;
 
@@ -38,7 +43,7 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
           if (authError || !user) {
               return res.status(401).json({ success: false, error: 'Invalid or expired token' });
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
           }
 
           // Get the claim
-          const { data: claim, error: claimError } = await supabaseAdmin
+          const { data: claim, error: claimError } = await getSupabase()
               .from('venue_claims')
               .select('*')
               .eq('id', claim_id)
@@ -83,7 +88,7 @@ export default async function handler(req, res) {
           // Check max attempts
           if (claim.verification_attempts >= MAX_VERIFICATION_ATTEMPTS) {
               // Update claim status to rejected
-              await supabaseAdmin
+              await getSupabase()
                   .from('venue_claims')
                   .update({
                       status: 'rejected',
@@ -99,7 +104,7 @@ export default async function handler(req, res) {
           }
 
           // Increment attempt counter
-          await supabaseAdmin
+          await getSupabase()
               .from('venue_claims')
               .update({
                   verification_attempts: claim.verification_attempts + 1,
@@ -110,7 +115,7 @@ export default async function handler(req, res) {
           // Verify the code
           if (claim.verification_code !== verification_code.trim()) {
               // Log failed attempt
-              await supabaseAdmin
+              await getSupabase()
                   .from('venue_verification_log')
                   .insert({
                       claim_id,
@@ -132,7 +137,7 @@ export default async function handler(req, res) {
 
           // Code is correct - approve the claim
           // Update claim status
-          await supabaseAdmin
+          await getSupabase()
               .from('venue_claims')
               .update({
                   status: 'approved',
@@ -142,7 +147,7 @@ export default async function handler(req, res) {
               .eq('id', claim_id);
 
           // Add user as venue manager
-          await supabaseAdmin
+          await getSupabase()
               .from('venue_managers')
               .upsert({
                   venue_id: claim.venue_id,
@@ -163,7 +168,7 @@ export default async function handler(req, res) {
               });
 
           // Update venue as claimed
-          await supabaseAdmin
+          await getSupabase()
               .from('poker_venues')
               .update({
                   is_claimed: true,
@@ -173,7 +178,7 @@ export default async function handler(req, res) {
               .eq('id', claim.venue_id);
 
           // Log successful verification
-          await supabaseAdmin
+          await getSupabase()
               .from('venue_verification_log')
               .insert({
                   claim_id,
@@ -184,7 +189,7 @@ export default async function handler(req, res) {
                   user_agent: req.headers['user-agent']
               });
 
-          await supabaseAdmin
+          await getSupabase()
               .from('venue_verification_log')
               .insert({
                   claim_id,

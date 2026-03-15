@@ -4,9 +4,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 // XSS Neutralizer
 function sanitizeMessage(text) {
     if (!text) return text;
@@ -39,18 +36,26 @@ export default async function handler(req, res) {
 
       const content = `📢 ${sanitizeMessage(rawContent)}`;
 
-      const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
+      let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}, SUPABASE_SERVICE_ROLE_KEY);
 
       try {
           // Auth Verification
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           // Verify sender is club owner or admin
-          const { data: membership } = await supabase
+          const { data: membership } = await getSupabase()
               .from('club_members')
               .select('role')
               .eq('club_id', clubId)
@@ -62,7 +67,7 @@ export default async function handler(req, res) {
           }
 
           // Get all conversations the sender participates in for this club context
-          const { data: conversations } = await supabase
+          const { data: conversations } = await getSupabase()
               .from('social_conversation_participants')
               .select('conversation_id')
               .eq('user_id', user.id);
@@ -76,7 +81,7 @@ export default async function handler(req, res) {
 
           for (const conv of conversations) {
               try {
-                  const { error } = await supabase.rpc('fn_send_message', {
+                  const { error } = await getSupabase().rpc('fn_send_message', {
                       p_conversation_id: conv.conversation_id,
                       p_sender_id: user.id,
                       p_content: content,

@@ -8,10 +8,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
@@ -23,14 +28,14 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Not authenticated' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { clubId, action, period } = req.query;
       if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
       // Verify admin access
-      const { data: membership } = await supabaseAdmin
+      const { data: membership } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
 
           if (action === 'csv') {
               // Generate CSV export of rake data
-              const { data: rakeData } = await supabaseAdmin
+              const { data: rakeData } = await getSupabase()
                   .from('chip_transactions')
                   .select('amount, created_at, transaction_type, notes')
                   .eq('club_id', clubId)
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
 
           if (action === 'rake_report') {
               // Rake breakdown by day
-              const { data: rakeData } = await supabaseAdmin
+              const { data: rakeData } = await getSupabase()
                   .from('chip_transactions')
                   .select('amount, created_at')
                   .eq('club_id', clubId)
@@ -125,33 +130,33 @@ export default async function handler(req, res) {
               activePlayersRes,
           ] = await Promise.allSettled([
               // Active tables
-              supabaseAdmin.from('tables').select('id, status, current_players')
+              getSupabase().from('tables').select('id, status, current_players')
                   .eq('club_id', clubId).in('status', ['active', 'playing', 'waiting', 'between_hands']),
               // Total members
-              supabaseAdmin.from('club_members').select('id', { count: 'exact', head: true })
+              getSupabase().from('club_members').select('id', { count: 'exact', head: true })
                   .eq('club_id', clubId).eq('status', 'active'),
               // Today's rake
-              supabaseAdmin.from('chip_transactions').select('amount')
+              getSupabase().from('chip_transactions').select('amount')
                   .eq('club_id', clubId).eq('transaction_type', 'rake')
                   .gte('created_at', `${today}T00:00:00Z`)
                   .limit(50000),
               // Yesterday's rake
-              supabaseAdmin.from('chip_transactions').select('amount')
+              getSupabase().from('chip_transactions').select('amount')
                   .eq('club_id', clubId).eq('transaction_type', 'rake')
                   .gte('created_at', `${yesterday}T00:00:00Z`)
                   .lt('created_at', `${today}T00:00:00Z`)
                   .limit(50000),
               // Last 7 days rake (for sparkline)
-              supabaseAdmin.from('chip_transactions').select('amount, created_at')
+              getSupabase().from('chip_transactions').select('amount, created_at')
                   .eq('club_id', clubId).eq('transaction_type', 'rake')
                   .gte('created_at', new Date(now - 7 * 86400000).toISOString())
                   .order('created_at', { ascending: true }).limit(2000),
               // Recent sessions (last 24h unique players)
-              supabaseAdmin.from('chip_transactions').select('from_user_id, to_user_id')
+              getSupabase().from('chip_transactions').select('from_user_id, to_user_id')
                   .eq('club_id', clubId).in('transaction_type', ['table_win', 'table_loss', 'rake'])
                   .gte('created_at', new Date(now - 86400000).toISOString()).limit(500),
               // Currently seated players
-              supabaseAdmin.from('tables').select('current_players')
+              getSupabase().from('tables').select('current_players')
                   .eq('club_id', clubId).in('status', ['active', 'playing']),
           ]);
 

@@ -9,10 +9,15 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUser } from '../../../src/lib/serverAuth';
 
 // Use service role to bypass RLS
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
       } else {
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-          const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
           userId = user.id;
       }
@@ -40,7 +45,7 @@ export default async function handler(req, res) {
 
       try {
           // Step 1: Get all conversation IDs where user is a participant
-          const { data: participations, error: partError } = await supabaseAdmin
+          const { data: participations, error: partError } = await getSupabase()
               .from('social_conversation_participants')
               .select('conversation_id, last_read_at')
               .eq('user_id', userId)
@@ -58,7 +63,7 @@ export default async function handler(req, res) {
 
           // Step 2: Get conversation details
           const conversationIds = participations.map(p => p.conversation_id);
-          const { data: conversations, error: convError } = await supabaseAdmin
+          const { data: conversations, error: convError } = await getSupabase()
               .from('social_conversations')
               .select('id, last_message_at, last_message_preview, is_group')
               .in('id', conversationIds)
@@ -76,7 +81,7 @@ export default async function handler(req, res) {
                   const participation = participations.find(p => p.conversation_id === conv.id);
 
                   // Get other participants
-                  const { data: otherParticipants } = await supabaseAdmin
+                  const { data: otherParticipants } = await getSupabase()
                       .from('social_conversation_participants')
                       .select('user_id')
                       .eq('conversation_id', conv.id)
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
 
                   let otherUser = null;
                   if (otherParticipants?.[0]?.user_id) {
-                      const { data: profile } = await supabaseAdmin
+                      const { data: profile } = await getSupabase()
                           .from('profiles')
                           .select('id, username, display_name, avatar_url')
                           .eq('id', otherParticipants[0].user_id)
@@ -94,7 +99,7 @@ export default async function handler(req, res) {
                   }
 
                   // Count unread messages
-                  const { count } = await supabaseAdmin
+                  const { count } = await getSupabase()
                       .from('social_messages')
                       .select('id', { count: 'exact', head: true })
                       .eq('conversation_id', conv.id)

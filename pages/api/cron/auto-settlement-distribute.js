@@ -20,10 +20,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabaseAdmin = null;
+function getSupabaseAdmin() {
+    if (!_supabaseAdmin) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabaseAdmin = createClient(url, key);
+    }
+    return _supabaseAdmin;
+}
 
 const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -39,14 +44,14 @@ export default async function handler(req, res) {
     if (cronSecret !== process.env.CRON_SECRET || !process.env.CRON_SECRET) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (token) {
-        const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+        const { data: { user } } = await getSupabaseAdmin().auth.getUser(token);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
         // BUG #123 FIX: Require platform admin or club owner
-        const { data: adminCheck } = await supabaseAdmin
+        const { data: adminCheck } = await getSupabaseAdmin()
           .from('profiles').select('role').eq('id', user.id).maybeSingle();
         const isAdmin = adminCheck?.role === 'admin' || adminCheck?.role === 'superadmin' || adminCheck?.role === 'god';
         if (!isAdmin) {
-          const { data: ownedClubs } = await supabaseAdmin
+          const { data: ownedClubs } = await getSupabaseAdmin()
             .from('clubs').select('id').eq('owner_id', user.id).limit(1);
           if (!ownedClubs || ownedClubs.length === 0) {
             return res.status(403).json({ error: 'Only admins or club owners can manually trigger' });
@@ -76,7 +81,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════
       results.phase = 'distributing';
 
-      const { data: pendingDistributions } = await supabaseAdmin
+      const { data: pendingDistributions } = await getSupabaseAdmin()
         .from('rakeback_distributions')
         .select('*')
         .eq('status', 'pending')
@@ -104,7 +109,7 @@ export default async function handler(req, res) {
           for (const [agentUserId, agentDists] of Object.entries(byAgent)) {
             try {
               // Get agent's current chip balance
-              const { data: agentMember } = await supabaseAdmin
+              const { data: agentMember } = await getSupabaseAdmin()
                 .from('club_members')
                 .select('chip_balance')
                 .eq('club_id', clubId)
@@ -134,7 +139,7 @@ export default async function handler(req, res) {
 
                 try {
                   // Verify player still exists in club
-                  const { data: playerMember } = await supabaseAdmin
+                  const { data: playerMember } = await getSupabaseAdmin()
                     .from('club_members')
                     .select('chip_balance, nickname')
                     .eq('club_id', clubId)
@@ -148,7 +153,7 @@ export default async function handler(req, res) {
                   }
 
                   // STEP 1: Debit agent FIRST (safe — if this fails, no chips move)
-                  const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+                  const { error: debitErr } = await getSupabaseAdmin().rpc('fn_debit_chips', {
                     p_club_id: clubId,
                     p_user_id: agentUserId,
                     p_amount: dist.rakeback_amount,
@@ -161,7 +166,7 @@ export default async function handler(req, res) {
                   }
 
                   // STEP 2: Credit player (agent already debited — safe)
-                  const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+                  const { error: creditErr } = await getSupabaseAdmin().rpc('fn_credit_chips', {
                     p_club_id: clubId,
                     p_user_id: dist.player_user_id,
                     p_amount: dist.rakeback_amount,
@@ -169,7 +174,7 @@ export default async function handler(req, res) {
 
                   if (creditErr) {
                     // ROLLBACK: re-credit agent since player didn't receive chips
-                    await supabaseAdmin.rpc('fn_credit_chips', {
+                    await getSupabaseAdmin().rpc('fn_credit_chips', {
                       p_club_id: clubId,
                       p_user_id: agentUserId,
                       p_amount: dist.rakeback_amount,
@@ -180,7 +185,7 @@ export default async function handler(req, res) {
                   }
 
                   // Record chip transaction
-                  const { data: txn } = await supabaseAdmin
+                  const { data: txn } = await getSupabaseAdmin()
                     .from('chip_transactions')
                     .insert({
                       club_id: clubId,
@@ -199,7 +204,7 @@ export default async function handler(req, res) {
                     .maybeSingle();
 
                   // Mark distribution as transferred
-                  await supabaseAdmin
+                  await getSupabaseAdmin()
                     .from('rakeback_distributions')
                     .update({
                       status: 'transferred',
@@ -209,7 +214,7 @@ export default async function handler(req, res) {
                     .eq('id', dist.id);
 
                   // Update the agent→player invoice
-                  await supabaseAdmin
+                  await getSupabaseAdmin()
                     .from('settlement_invoices')
                     .update({
                       chips_transferred: true,
@@ -223,7 +228,7 @@ export default async function handler(req, res) {
                     .eq('to_entity_id', dist.player_user_id);
 
                   // Notify player
-                  await supabaseAdmin.from('notifications').insert({
+                  await getSupabaseAdmin().from('notifications').insert({
                     user_id: dist.player_user_id,
                     type: 'rakeback',
                     title: '💰 Rakeback Received!',
@@ -256,7 +261,7 @@ export default async function handler(req, res) {
 
               // Notify agent of distributions
               if (agentTotalDeducted > 0) {
-                await supabaseAdmin.from('notifications').insert({
+                await getSupabaseAdmin().from('notifications').insert({
                   user_id: agentUserId,
                   type: 'rakeback_sent',
                   title: '📤 Rakeback Distributed to Players',
@@ -291,19 +296,19 @@ export default async function handler(req, res) {
       results.phase = 'unfreezing';
 
       // Deactivate all settlement locks
-      const { data: activeLocks } = await supabaseAdmin
+      const { data: activeLocks } = await getSupabaseAdmin()
         .from('settlement_locks')
         .select('id, club_id')
         .eq('is_active', true)
             .limit(100);
 
       for (const lock of (activeLocks || [])) {
-        await supabaseAdmin
+        await getSupabaseAdmin()
           .from('settlement_locks')
           .update({ is_active: false, unlocked_at: new Date().toISOString() })
           .eq('id', lock.id);
 
-        await supabaseAdmin
+        await getSupabaseAdmin()
           .from('clubs')
           .update({ settlement_locked: false, settlement_locked_until: null })
           .eq('id', lock.club_id);
@@ -312,13 +317,13 @@ export default async function handler(req, res) {
       }
 
       // Post "all clear" announcements
-      const { data: lockedClubs } = await supabaseAdmin
+      const { data: lockedClubs } = await getSupabaseAdmin()
         .from('clubs')
         .select('id, name, owner_id')
         .eq('auto_settlement_enabled', true);
 
       for (const club of (lockedClubs || [])) {
-        await supabaseAdmin.from('club_announcements').insert({
+        await getSupabaseAdmin().from('club_announcements').insert({
           club_id: club.id,
           title: '✅ Settlement Complete — Operations Resumed',
           content: [
@@ -349,12 +354,12 @@ export default async function handler(req, res) {
 
       // Emergency unfreeze on failure
       try {
-        await supabaseAdmin
+        await getSupabaseAdmin()
           .from('settlement_locks')
           .update({ is_active: false, unlocked_at: new Date().toISOString() })
           .eq('is_active', true);
 
-        await supabaseAdmin
+        await getSupabaseAdmin()
           .from('clubs')
           .update({ settlement_locked: false, settlement_locked_until: null })
           .eq('settlement_locked', true);
@@ -377,7 +382,7 @@ export default async function handler(req, res) {
 // HELPER: Mark a distribution as failed
 // ═══════════════════════════════════════════════════════════════
 async function markDistributionFailed(distId, errorMessage) {
-  await supabaseAdmin
+  await getSupabaseAdmin()
     .from('rakeback_distributions')
     .update({ status: 'failed', error_message: errorMessage })
     .eq('id', distId);

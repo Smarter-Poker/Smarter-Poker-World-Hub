@@ -4,10 +4,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -21,7 +26,7 @@ export default async function handler(req, res) {
 
       try {
           // Check table schema
-          const { data: schema, error: schemaError } = await supabase
+          const { data: schema, error: schemaError } = await getSupabase()
               .from('posted_clips')
               .select('*')
               .limit(1);
@@ -31,16 +36,16 @@ export default async function handler(req, res) {
           }
 
           // Get total count
-          const { count, error: countError } = await supabase
+          const { count, error: countError } = await getSupabase()
               .from('posted_clips')
               .select('*', { count: 'exact', head: true });
 
           // Check for duplicate video_ids
-          const { data: duplicates, error: dupError } = await supabase
+          const { data: duplicates, error: dupError } = await getSupabase()
               .rpc('check_duplicate_clips');
 
           // Get recent clips
-          const { data: recent, error: recentError } = await supabase
+          const { data: recent, error: recentError } = await getSupabase()
               .from('posted_clips')
               .select('video_id, posted_by, posted_at, clip_source')
               .order('posted_at', { ascending: false })

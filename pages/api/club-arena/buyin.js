@@ -17,10 +17,15 @@ const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 import { BuyInRequestSchema, Orb1HeadersSchema } from '../../../src/contracts/orb1_escrow';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
     const token = headerParse.data.authorization.replace('Bearer ', '');
 
     // 2. Auth Verification
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
     // 3. Zod Contract Validation (Payload)
@@ -58,7 +63,7 @@ export default async function handler(req, res) {
     try {
       // Phase 2: Domain Logic Row Locking
       // Atomic buy-in via RPC — handles idempotency cache layer and TOCTOU races
-      const { data: result, error: rpcErr } = await supabaseAdmin.rpc('orb1_buyin_transaction', {
+      const { data: result, error: rpcErr } = await getSupabase().rpc('orb1_buyin_transaction', {
         p_user_id: user.id,
         p_club_id: clubId,
         p_chip_amount: amount,

@@ -6,10 +6,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
 
     try {
       // Check if table exists
-      const { data: table, error: tableError } = await supabase
+      const { data: table, error: tableError } = await getSupabase()
         .from('commander_tables')
         .select('id, venue_id')
         .eq('id', tableId)
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
       }
 
       // Update or insert stream config
-      const { data: existingStream } = await supabase
+      const { data: existingStream } = await getSupabase()
         .from('commander_streams')
         .select('id')
         .eq('table_id', tableId)
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
       let result;
       if (existingStream) {
         // Update existing
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_streams')
           .update({
             platforms: platforms || [],
@@ -81,7 +86,7 @@ export default async function handler(req, res) {
         result = data;
       } else {
         // Insert new
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('commander_streams')
           .insert({
             table_id: tableId,

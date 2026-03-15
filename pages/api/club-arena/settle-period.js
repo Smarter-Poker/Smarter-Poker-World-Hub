@@ -20,10 +20,15 @@ const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // MANDATE 2: Timezone Agnosticism — all settlement timestamps are UTC-explicit.
 // The weekly auto-settlement cron fires at Monday 10:00 UTC (Vercel cron: "0 10 * * 1").
@@ -38,7 +43,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     // RED TEAM: Zod Contract Validation (MANDATE: Reject 100% with 400 Bad Request before hitting Postgres)
@@ -58,7 +63,7 @@ export default async function handler(req, res) {
 
     try {
       // Verify authorization
-      const { data: club } = await supabaseAdmin
+      const { data: club } = await getSupabase()
         .from('clubs')
         .select('id, name, owner_id, union_id, chip_treasury')
         .eq('id', clubId)
@@ -67,7 +72,7 @@ export default async function handler(req, res) {
 
       let authorized = club.owner_id === user.id;
       if (!authorized && club.union_id) {
-        const { data: ua } = await supabaseAdmin
+        const { data: ua } = await getSupabase()
           .from('union_admins')
           .select('role')
           .eq('union_id', club.union_id)
@@ -77,7 +82,7 @@ export default async function handler(req, res) {
             authorized = true;
         } else {
             // Owner fallback
-            const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
+            const { data: union } = await getSupabase().from('unions').select('id').eq('id', club.union_id).eq('owner_id', user.id).maybeSingle();
             if (union) authorized = true;
         }
       }
@@ -87,7 +92,7 @@ export default async function handler(req, res) {
       // STATUS: Return current period info
       // ═══════════════════════════════════════════════════════════════
       if (action === 'status') {
-        const { data: periods } = await supabaseAdmin
+        const { data: periods } = await getSupabase()
           .from('settlement_periods')
           .select('*')
           .eq('club_id', clubId)
@@ -102,7 +107,7 @@ export default async function handler(req, res) {
         // Check the most relevant period for pending commissions
         const commissionPeriod = openPeriod || closedPeriod;
         if (commissionPeriod) {
-          const { data: comms } = await supabaseAdmin
+          const { data: comms } = await getSupabase()
             .from('commission_records')
             .select('*, agents!inner(user_id)')
             .eq('period_id', commissionPeriod.id)
@@ -123,7 +128,7 @@ export default async function handler(req, res) {
       // HISTORY: Return past closed settlement periods with stats
       // ═══════════════════════════════════════════════════════════════
       if (action === 'history') {
-        const { data: periods } = await supabaseAdmin
+        const { data: periods } = await getSupabase()
           .from('settlement_periods')
           .select('id, period_number, year, start_at, end_at, status, total_rake_collected, settled_at, settled_by')
           .eq('club_id', clubId)
@@ -133,7 +138,7 @@ export default async function handler(req, res) {
 
         // Enrich each period with commission totals
         const enriched = await Promise.all((periods || []).map(async (p) => {
-          const { data: comms } = await supabaseAdmin
+          const { data: comms } = await getSupabase()
             .from('commission_records')
             .select('commission_amount, status')
             .eq('period_id', p.id);
@@ -161,7 +166,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════
       if (action === 'open') {
         // Check no open period exists
-        const { data: existing } = await supabaseAdmin
+        const { data: existing } = await getSupabase()
           .from('settlement_periods')
           .select('id')
           .eq('club_id', clubId)
@@ -173,7 +178,7 @@ export default async function handler(req, res) {
         }
 
         // Get last period number
-        const { data: lastPeriod } = await supabaseAdmin
+        const { data: lastPeriod } = await getSupabase()
           .from('settlement_periods')
           .select('period_number')
           .eq('club_id', clubId)
@@ -186,7 +191,7 @@ export default async function handler(req, res) {
         const nowISO = now.toISOString();
         const endAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 1 week
 
-        const { data: period, error: pErr } = await supabaseAdmin
+        const { data: period, error: pErr } = await getSupabase()
           .from('settlement_periods')
           .insert({
             club_id: clubId,
@@ -207,7 +212,7 @@ export default async function handler(req, res) {
         if (pErr) throw pErr;
 
         // Reset all agents' weekly_rake_generated — single batch UPDATE (was serial loop, O(n) round-trips)
-        await supabaseAdmin
+        await getSupabase()
           .from('agents')
           .update({ weekly_rake_generated: 0 })
           .eq('club_id', clubId);
@@ -227,7 +232,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════
       if (action === 'close') {
         // Find the open period — always use the DB's open period, not a client-provided ID
-        const { data: period } = await supabaseAdmin
+        const { data: period } = await getSupabase()
           .from('settlement_periods')
           .select('id, period_number, start_at')  // BUG FIX: was select('id') — period_number/start_at were undefined
           .eq('club_id', clubId)
@@ -239,7 +244,7 @@ export default async function handler(req, res) {
         const pid = period.id;
 
         // Get all agents for this club (including inactive ones to prevent union tax evasion + wage theft)
-        const { data: agents } = await supabaseAdmin
+        const { data: agents } = await getSupabase()
           .from('agents')
           .select('id, user_id, commission_rate, weekly_rake_generated, is_prepaid, parent_agent_id')
           .eq('club_id', clubId);
@@ -262,7 +267,7 @@ export default async function handler(req, res) {
         // Get union settings for rakeback split
         let unionRakeHold = 0.10; // default 10%
         if (club.union_id) {
-          const { data: union } = await supabaseAdmin
+          const { data: union } = await getSupabase()
             .from('unions')
             .select('settings')
             .eq('id', club.union_id)
@@ -402,8 +407,8 @@ export default async function handler(req, res) {
 
         // Insert commission records
         if (commissionRecords.length > 0) {
-          await supabaseAdmin.from('commission_records').insert(commissionRecords);
-          await supabaseAdmin.from('commission_history').insert(commissionHistory);
+          await getSupabase().from('commission_records').insert(commissionRecords);
+          await getSupabase().from('commission_history').insert(commissionHistory);
         }
 
         // Calculate union hold
@@ -415,7 +420,7 @@ export default async function handler(req, res) {
 
         // Update the period with the actual total
         if (actualTotalRake > 0) {
-          await supabaseAdmin
+          await getSupabase()
             .from('settlement_periods')
             .update({ total_rake_collected: actualTotalRake })
             .eq('id', pid);
@@ -423,20 +428,20 @@ export default async function handler(req, res) {
 
         // Debit union hold from club treasury, credit to union rake_wallet
         if (club.union_id && unionHold > 0) {
-          await supabaseAdmin.rpc('fn_debit_treasury', {
+          await getSupabase().rpc('fn_debit_treasury', {
             p_club_id: clubId,
             p_amount: unionHold,
           });
 
           // Credit the hold amount into the union's rake_wallet
-          await supabaseAdmin.rpc('fn_union_credit_wallet', {
+          await getSupabase().rpc('fn_union_credit_wallet', {
             p_union_id: club.union_id,
             p_wallet: 'rake_wallet',
             p_amount: unionHold,
           }).catch(e => console.error('[settle-period] union rake_wallet credit error:', e.message));
 
           // Ledger entry for union wallet
-          await supabaseAdmin.from('union_wallet_transactions').insert({
+          await getSupabase().from('union_wallet_transactions').insert({
             union_id: club.union_id,
             wallet: 'rake_wallet',
             direction: 'credit',
@@ -447,7 +452,7 @@ export default async function handler(req, res) {
             notes: `Settlement hold from ${club.name} — Period #${period.period_number} (${(unionRakeHold * 100).toFixed(1)}% of ${totalRake.toLocaleString()} rake)`,
           }).catch(e => console.error('[settle-period] union wallet tx insert error:', e.message));
 
-          await supabaseAdmin.from('chip_transactions').insert({
+          await getSupabase().from('chip_transactions').insert({
             club_id: clubId,
             amount: unionHold,
             transaction_type: 'union_hold',
@@ -461,7 +466,7 @@ export default async function handler(req, res) {
           });
 
           // Generate union_to_club invoice
-          await supabaseAdmin.from('settlement_invoices').insert({
+          await getSupabase().from('settlement_invoices').insert({
             club_id: clubId,
             period_id: pid,
             invoice_type: 'union_to_club',
@@ -508,12 +513,12 @@ export default async function handler(req, res) {
           });
         }
         if (agentInvoices.length > 0) {
-          await supabaseAdmin.from('settlement_invoices').insert(agentInvoices)
+          await getSupabase().from('settlement_invoices').insert(agentInvoices)
             .catch(e => console.error('[settle-period] Batch agent invoice error:', e.message));
         }
 
         // Close the period
-        await supabaseAdmin
+        await getSupabase()
           .from('settlement_periods')
           .update({
             status: 'closed',
@@ -545,7 +550,7 @@ export default async function handler(req, res) {
         if (!commissionId) return res.status(400).json({ success: false, error: 'commissionId required for pay action' });
 
         // Verify commission belongs to this club (via its settlement period)
-        const { data: cr } = await supabaseAdmin
+        const { data: cr } = await getSupabase()
           .from('commission_records')
           .select('id, agent_id, commission_amount, period_id, status, period:settlement_periods!inner(club_id)')
           .eq('id', commissionId)
@@ -560,7 +565,7 @@ export default async function handler(req, res) {
         }
 
         const now = new Date().toISOString();
-        const { error: payErr } = await supabaseAdmin
+        const { error: payErr } = await getSupabase()
           .from('commission_records')
           .update({ status: 'paid', paid_at: now })
           .eq('id', commissionId)
@@ -569,7 +574,7 @@ export default async function handler(req, res) {
         if (payErr) throw payErr;
 
         // Look up agent user_id (needed for chip transfer AND invoice update)
-        const { data: agentData } = await supabaseAdmin
+        const { data: agentData } = await getSupabase()
           .from('agents')
           .select('user_id')
           .eq('id', cr.agent_id)
@@ -577,7 +582,7 @@ export default async function handler(req, res) {
 
         // Distribute chips atomically
         if (cr.commission_amount > 0 && agentData) {
-          const { error: rpcErr } = await supabaseAdmin.rpc('fn_pay_commission_atomic', {
+          const { error: rpcErr } = await getSupabase().rpc('fn_pay_commission_atomic', {
             p_club_id: clubId,
             p_agent_id: agentData.user_id,
             p_commission_record_id: commissionId,
@@ -589,14 +594,14 @@ export default async function handler(req, res) {
         }
 
         // Get the period's start_at to scope the history update correctly
-        const { data: periodData } = await supabaseAdmin
+        const { data: periodData } = await getSupabase()
           .from('settlement_periods')
           .select('start_at')
           .eq('id', cr.period_id)
           .maybeSingle();
 
         // Also update commission_history for this specific period only
-        await supabaseAdmin
+        await getSupabase()
           .from('commission_history')
           .update({ status: 'paid', paid_at: now })
           .eq('agent_id', cr.agent_id)
@@ -606,7 +611,7 @@ export default async function handler(req, res) {
 
         // Update the corresponding settlement invoice
         if (agentData) {
-          await supabaseAdmin
+          await getSupabase()
             .from('settlement_invoices')
             .update({ status: 'paid', chips_transferred: true, transferred_at: now })
             .eq('club_id', clubId)
@@ -628,7 +633,7 @@ export default async function handler(req, res) {
         if (!periodId) return res.status(400).json({ success: false, error: 'periodId required for pay_all action' });
 
         // Verify this period belongs to this club
-        const { data: verifyPeriod } = await supabaseAdmin
+        const { data: verifyPeriod } = await getSupabase()
           .from('settlement_periods')
           .select('id, club_id, start_at')
           .eq('id', periodId)
@@ -641,7 +646,7 @@ export default async function handler(req, res) {
 
         const now = new Date().toISOString();
 
-        const { data: pending } = await supabaseAdmin
+        const { data: pending } = await getSupabase()
           .from('commission_records')
           .select('id, agent_id, commission_amount')
           .eq('period_id', periodId)
@@ -660,7 +665,7 @@ export default async function handler(req, res) {
 
         // ── Pre-fetch all agent user_ids in ONE query (was N+1: 1 lookup per commission) ──
         const allAgentIds = [...new Set(pending.map(c => c.agent_id))];
-        const { data: allAgentData } = await supabaseAdmin
+        const { data: allAgentData } = await getSupabase()
           .from('agents')
           .select('id, user_id')
           .in('id', allAgentIds);
@@ -672,7 +677,7 @@ export default async function handler(req, res) {
 
           if (agentUserId && cr.commission_amount > 0) {
             // Process atomically
-            const { error: rpcErr } = await supabaseAdmin.rpc('fn_pay_commission_atomic', {
+            const { error: rpcErr } = await getSupabase().rpc('fn_pay_commission_atomic', {
               p_club_id: clubId,
               p_agent_id: agentUserId,
               p_commission_record_id: cr.id,
@@ -704,7 +709,7 @@ export default async function handler(req, res) {
         // ── BATCH UPDATES: Eliminate N+1 queries by updating history/invoices after the loop ──
         if (paidIds.length > 0) {
           // 1. Commission Records
-          await supabaseAdmin
+          await getSupabase()
             .from('commission_records')
             .update({ status: 'paid', paid_at: now })
             .in('id', paidIds)
@@ -712,7 +717,7 @@ export default async function handler(req, res) {
 
           // 2. Commission History
           if (paidAgentIds.length > 0) {
-            await supabaseAdmin
+            await getSupabase()
               .from('commission_history')
               .update({ status: 'paid', paid_at: now })
               .in('agent_id', paidAgentIds)
@@ -723,7 +728,7 @@ export default async function handler(req, res) {
 
           // 3. Settlement Invoices
           if (paidAgentUserIds.length > 0) {
-            await supabaseAdmin
+            await getSupabase()
               .from('settlement_invoices')
               .update({ status: 'paid', chips_transferred: true, transferred_at: now })
               .eq('club_id', clubId)
@@ -781,7 +786,7 @@ export default async function handler(req, res) {
         if (!periodId) return res.status(400).json({ success: false, error: 'periodId required' });
 
         // Find this agent's commission for the period
-        const { data: agentRecord } = await supabaseAdmin
+        const { data: agentRecord } = await getSupabase()
           .from('agents')
           .select('id')
           .eq('user_id', user.id)
@@ -789,7 +794,7 @@ export default async function handler(req, res) {
           .maybeSingle();
         if (!agentRecord) return res.status(403).json({ success: false, error: 'You are not an agent in this club' });
 
-        const { data: commission } = await supabaseAdmin
+        const { data: commission } = await getSupabase()
           .from('commission_records')
           .select('id, commission_amount, status')
           .eq('period_id', periodId)
@@ -799,7 +804,7 @@ export default async function handler(req, res) {
         if (commission.status === 'paid') return res.status(400).json({ success: false, error: 'Cannot dispute a paid commission — contact club owner directly' });
 
         // Mark as disputed via settlement_invoices metadata
-        const { error: updateErr } = await supabaseAdmin
+        const { error: updateErr } = await getSupabase()
           .from('settlement_invoices')
           .update({
             status: 'disputed',
@@ -836,7 +841,7 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (action === 'list_disputes') {
       try {
-        const { data: disputed } = await supabaseAdmin
+        const { data: disputed } = await getSupabase()
           .from('settlement_invoices')
           .select('id, period_id, to_entity_id, net_amount, metadata, created_at, breakdown')
           .eq('club_id', clubId)
@@ -846,7 +851,7 @@ export default async function handler(req, res) {
 
         // Enrich with agent names
         const agentIds = (disputed || []).map(d => d.to_entity_id).filter(Boolean);
-        const { data: profiles } = await supabaseAdmin
+        const { data: profiles } = await getSupabase()
           .from('profiles')
           .select('id, display_name, username')
           .in('id', agentIds);
@@ -878,11 +883,11 @@ export default async function handler(req, res) {
         }
 
         const newStatus = resolution === 'approve' ? 'generated' : 'rejected';
-        const { error } = await supabaseAdmin
+        const { error } = await getSupabase()
           .from('settlement_invoices')
           .update({
             status: newStatus,
-            metadata: supabaseAdmin.rpc ? undefined : {}, // Clear dispute metadata on resolve
+            metadata: getSupabase().rpc ? undefined : {}, // Clear dispute metadata on resolve
           })
           .eq('id', invoiceId)
           .eq('club_id', clubId)

@@ -10,10 +10,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
 
       try {
           // Find the active session
-          let sessionQuery = supabase
+          let sessionQuery = getSupabase()
               .from('commander_table_sessions')
               .select('*')
               .in('status', ['active', 'paused', 'meal_break'])
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
               // Fallback: no session record, but seat might still be occupied (legacy/seeded data)
               if (table_number && seat_number) {
                   try {
-                      const { data: seatRows } = await supabase
+                      const { data: seatRows } = await getSupabase()
                           .from('commander_table_seats')
                           .select('*')
                           .eq('table_number', parseInt(table_number))
@@ -70,7 +75,7 @@ export default async function handler(req, res) {
 
                       if (seatRows?.[0]) {
                           const seatRow = seatRows[0];
-                          await supabase
+                          await getSupabase()
                               .from('commander_table_seats')
                               .update({ status: 'empty', player_name: null, member_id: null, seated_at: null })
                               .eq('id', seatRow.id);
@@ -101,7 +106,7 @@ export default async function handler(req, res) {
           const elapsedMinutes = Math.floor(elapsedSeconds / 60);
 
           // End the session
-          const { error: endError } = await supabase
+          const { error: endError } = await getSupabase()
               .from('commander_table_sessions')
               .update({
                   status: 'ended',
@@ -117,7 +122,7 @@ export default async function handler(req, res) {
           // Tournament tables use a one-time seat fee; no time was deducted, so none to return.
           let isTournamentSession = false;
           if (session.venue_id && session.table_number) {
-              const { data: tableRow } = await supabase
+              const { data: tableRow } = await getSupabase()
                   .from('commander_tables')
                   .select('mode, table_purpose')
                   .eq('table_number', session.table_number)
@@ -128,14 +133,14 @@ export default async function handler(req, res) {
 
           if (!isTournamentSession && session.member_id && unusedMinutes > 0 && session.time_allocated_minutes > 0) {
               try {
-                  const { data: member } = await supabase
+                  const { data: member } = await getSupabase()
                       .from('commander_members')
                       .select('time_balance_minutes')
                       .eq('id', session.member_id)
                       .maybeSingle();
 
                   if (member) {
-                      await supabase
+                      await getSupabase()
                           .from('commander_members')
                           .update({
                               time_balance_minutes: (member.time_balance_minutes || 0) + unusedMinutes,
@@ -152,7 +157,7 @@ export default async function handler(req, res) {
           let compEarned = 0;
           if (session.member_id && session.venue_id) {
               try {
-                  const { data: venueSettings } = await supabase
+                  const { data: venueSettings } = await getSupabase()
                       .from('commander_venue_settings')
                       .select('auto_comp_rate')
                       .eq('venue_id', session.venue_id)
@@ -162,14 +167,14 @@ export default async function handler(req, res) {
                   if (rate > 0) {
                       compEarned = Math.round((elapsedMinutes / 60) * rate * 100) / 100;
                       if (compEarned > 0) {
-                          const { data: member } = await supabase
+                          const { data: member } = await getSupabase()
                               .from('commander_members')
                               .select('comp_balance, comp_lifetime_earned')
                               .eq('id', session.member_id)
                               .maybeSingle();
 
                           if (member) {
-                              await supabase
+                              await getSupabase()
                                   .from('commander_members')
                                   .update({
                                       comp_balance: Math.round(((member.comp_balance || 0) + compEarned) * 100) / 100,
@@ -179,7 +184,7 @@ export default async function handler(req, res) {
                                   .eq('id', session.member_id);
 
                               try {
-                                  await supabase
+                                  await getSupabase()
                                       .from('commander_member_comp_log')
                                       .insert({
                                           venue_id: session.venue_id,
@@ -200,7 +205,7 @@ export default async function handler(req, res) {
 
           // Clear the seat
           try {
-              await supabase
+              await getSupabase()
                   .from('commander_table_seats')
                   .update({
                       status: 'empty',

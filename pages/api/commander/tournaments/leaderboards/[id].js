@@ -8,10 +8,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -38,7 +43,7 @@ export default async function handler(req, res) {
 
 async function getLeaderboard(req, res, id) {
     try {
-        const { data: lb, error } = await supabase
+        const { data: lb, error } = await getSupabase()
             .from('commander_tournament_leaderboards')
             .select('*')
             .eq('id', id)
@@ -48,7 +53,7 @@ async function getLeaderboard(req, res, id) {
         if (!lb) return res.status(404).json({ success: false, error: { message: 'Leaderboard not found' } });
 
         // Get all points with tournament info
-        const { data: points } = await supabase
+        const { data: points } = await getSupabase()
             .from('commander_tournament_points')
             .select('*, commander_tournaments(name, scheduled_start)')
             .eq('leaderboard_id', id)
@@ -101,7 +106,7 @@ async function updateLeaderboard(req, res, id) {
             if (req.body[key] !== undefined) updates[key] = req.body[key];
         });
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('commander_tournament_leaderboards')
             .update(updates)
             .eq('id', id)
@@ -119,7 +124,7 @@ async function updateLeaderboard(req, res, id) {
 
 async function deactivateLeaderboard(req, res, id) {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('commander_tournament_leaderboards')
             .update({ is_active: false })
             .eq('id', id)

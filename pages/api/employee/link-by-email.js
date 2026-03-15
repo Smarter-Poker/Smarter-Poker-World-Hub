@@ -6,10 +6,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -33,7 +38,7 @@ async function handleGet(req, res) {
         const token = (req.headers.authorization || '').replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+        const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
         if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid session' });
 
         const userEmail = user.email;
@@ -42,7 +47,7 @@ async function handleGet(req, res) {
         }
 
         // Find unlinked staff records matching this email
-        const { data: matches } = await supabase
+        const { data: matches } = await getSupabase()
             .from('commander_staff')
             .select('id, display_name, role, venue_id, email')
             .eq('email', userEmail)
@@ -56,7 +61,7 @@ async function handleGet(req, res) {
 
         // Enrich with venue names
         const venueIds = [...new Set(matches.map(m => m.venue_id))];
-        const { data: venues } = await supabase
+        const { data: venues } = await getSupabase()
             .from('poker_venues')
             .select('id, name')
             .in('id', venueIds)
@@ -85,14 +90,14 @@ async function handlePost(req, res) {
         const token = (req.headers.authorization || '').replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+        const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
         if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid session' });
 
         const { staff_id } = req.body;
         if (!staff_id) return res.status(400).json({ success: false, error: 'staff_id required' });
 
         // Verify the staff record has matching email and is unlinked
-        const { data: staff } = await supabase
+        const { data: staff } = await getSupabase()
             .from('commander_staff')
             .select('id, display_name, role, venue_id, email, linked_user_id')
             .eq('id', staff_id)
@@ -109,7 +114,7 @@ async function handlePost(req, res) {
         }
 
         // Link
-        const { error: updateErr } = await supabase
+        const { error: updateErr } = await getSupabase()
             .from('commander_staff')
             .update({ linked_user_id: user.id })
             .eq('id', staff_id);
@@ -118,7 +123,7 @@ async function handlePost(req, res) {
             return res.status(500).json({ success: false, error: 'Failed to link account' });
         }
 
-        const { data: venue } = await supabase
+        const { data: venue } = await getSupabase()
             .from('poker_venues')
             .select('name')
             .eq('id', staff.venue_id)

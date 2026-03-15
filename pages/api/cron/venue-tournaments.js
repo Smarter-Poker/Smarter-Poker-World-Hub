@@ -24,10 +24,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import https from 'https';
 import http from 'http';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const RATE_LIMIT_MS = 2000;
 
@@ -286,7 +291,7 @@ export default async function handler(req, res) {
                           tournament.last_scraped = new Date().toISOString();
                           tournament.is_active = true;
 
-                          const { error: insertError } = await supabase
+                          const { error: insertError } = await getSupabase()
                               .from('venue_daily_tournaments')
                               .upsert(tournament, {
                                   onConflict: 'venue_id,day_of_week,start_time,buy_in'
@@ -296,7 +301,7 @@ export default async function handler(req, res) {
                       }
                   }
 
-                  await supabase
+                  await getSupabase()
                       .from('poker_venues')
                       .update({
                           last_scraped: new Date().toISOString(),
@@ -306,7 +311,7 @@ export default async function handler(req, res) {
 
               } catch (error) {
                   stats.errors.push({ venue: venue.name, error: error.message });
-                  await supabase
+                  await getSupabase()
                       .from('poker_venues')
                       .update({ scrape_status: 'error', last_scraped: new Date().toISOString() })
                       .eq('id', venue.id);

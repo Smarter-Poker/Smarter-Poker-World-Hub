@@ -4,10 +4,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -19,7 +24,7 @@ export default async function handler(req, res) {
           try {
               const { category, search, limit = 20, offset = 0, featured } = req.query;
 
-              let query = supabase
+              let query = getSupabase()
                   .from('poker_news')
                   .select('*')
                   .eq('is_published', true)
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
               const { id } = req.body;
               if (!id) return res.status(400).json({ success: false, error: 'Missing article ID' });
 
-              const { error } = await supabase.rpc('increment_news_views', { news_id: id });
+              const { error } = await getSupabase().rpc('increment_news_views', { news_id: id });
 
               if (error) throw error;
 

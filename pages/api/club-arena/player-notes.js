@@ -14,10 +14,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -30,7 +35,7 @@ export default async function handler(req, res) {
     // ── Auth: verify JWT identity ──
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
         case 'get': {
           if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
-          const { data, error } = await supabaseAdmin
+          const { data, error } = await getSupabase()
             .from('player_notes')
             .select('*')
             .eq('user_id', userId)
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
         case 'get_bulk': {
           if (!targetUserIds?.length) return res.json({ success: true, notes: {} });
 
-          const { data, error } = await supabaseAdmin
+          const { data, error } = await getSupabase()
             .from('player_notes')
             .select('target_user_id, player_type, color_label, notes, tells, tendencies')
             .eq('user_id', userId)
@@ -93,7 +98,7 @@ export default async function handler(req, res) {
             updated_at: new Date().toISOString(),
           };
 
-          const { data, error } = await supabaseAdmin
+          const { data, error } = await getSupabase()
             .from('player_notes')
             .upsert(upsertData, {
               onConflict: 'user_id,target_user_id',
@@ -104,7 +109,7 @@ export default async function handler(req, res) {
 
           if (error) {
             // Fallback: try insert then update
-            const { data: existing } = await supabaseAdmin
+            const { data: existing } = await getSupabase()
               .from('player_notes')
               .select('id')
               .eq('user_id', userId)
@@ -112,7 +117,7 @@ export default async function handler(req, res) {
               .maybeSingle();
 
             if (existing) {
-              const { data: updated, error: updErr } = await supabaseAdmin
+              const { data: updated, error: updErr } = await getSupabase()
                 .from('player_notes')
                 .update(upsertData)
                 .eq('id', existing.id)
@@ -121,7 +126,7 @@ export default async function handler(req, res) {
               if (updErr || !updated) return res.status(500).json({ success: false, error: 'Failed to update note' });
               return res.json({ success: true, note: updated });
             } else {
-              const { data: inserted, error: insErr } = await supabaseAdmin
+              const { data: inserted, error: insErr } = await getSupabase()
                 .from('player_notes')
                 .insert(upsertData)
                 .select()
@@ -139,7 +144,7 @@ export default async function handler(req, res) {
         case 'delete': {
           if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
-          const { error } = await supabaseAdmin
+          const { error } = await getSupabase()
             .from('player_notes')
             .delete()
             .eq('user_id', userId)

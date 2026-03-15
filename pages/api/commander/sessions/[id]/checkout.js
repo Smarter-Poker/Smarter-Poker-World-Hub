@@ -8,10 +8,15 @@ import { captureException } from '../../../../../src/lib/commander/errorMonitori
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
 
     try {
       // Get the existing session
-      const { data: session, error: fetchError } = await supabase
+      const { data: session, error: fetchError } = await getSupabase()
         .from('commander_player_sessions')
         .select('*')
         .eq('id', id)
@@ -68,7 +73,7 @@ export default async function handler(req, res) {
       const totalMinutes = Math.round((checkOutTime - checkInTime) / (1000 * 60));
 
       // Update session to completed
-      const { data: updatedSession, error: updateError } = await supabase
+      const { data: updatedSession, error: updateError } = await getSupabase()
         .from('commander_player_sessions')
         .update({
           status: 'completed',
@@ -89,7 +94,7 @@ export default async function handler(req, res) {
 
       // Free any seats the player occupies
       if (session.player_id) {
-        await supabase
+        await getSupabase()
           .from('commander_seats')
           .update({
             status: 'available',

@@ -6,10 +6,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 /** Escape SQL LIKE wildcards */
 function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
         limit = 50
       } = req.query;
 
-      let query = supabase
+      let query = getSupabase()
         .from('poker_venues')
         .select('*')
         .eq('is_active', true)
@@ -81,14 +86,14 @@ export default async function handler(req, res) {
       let venues = data || [];
 
       // Fetch active games for all venues in one query
-      const { data: activeGames } = await supabase
+      const { data: activeGames } = await getSupabase()
         .from('commander_games')
         .select('venue_id, game_type, stakes, status')
         .in('status', ['running', 'waiting'])
             .limit(100)
 
       // Fetch waitlist counts in one query
-      const { data: waitlistEntries } = await supabase
+      const { data: waitlistEntries } = await getSupabase()
         .from('commander_waitlist')
         .select('venue_id')
         .eq('status', 'waiting')

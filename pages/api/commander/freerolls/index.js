@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 function getVenueIdFromSession(req) {
     try {
@@ -50,7 +55,7 @@ async function listFreerolls(req, res) {
         const venueId = getVenueIdFromSession(req);
         const { status, limit = 50 } = req.query;
 
-        let query = supabase
+        let query = getSupabase()
             .from('commander_freerolls')
             .select('*')
             .order('scheduled_date', { ascending: false, nullsFirst: false })
@@ -76,7 +81,7 @@ async function listFreerolls(req, res) {
         let qualCounts = {};
 
         if (freerollIds.length > 0) {
-            const { data: quals } = await supabase
+            const { data: quals } = await getSupabase()
                 .from('commander_freeroll_qualifications')
                 .select('freeroll_id, is_qualified')
                 .in('freeroll_id', freerollIds)
@@ -127,7 +132,7 @@ async function createFreeroll(req, res, guard) {
     }
 
     try {
-        const { data: freeroll, error } = await supabase
+        const { data: freeroll, error } = await getSupabase()
             .from('commander_freerolls')
             .insert({
                 venue_id: venueId,

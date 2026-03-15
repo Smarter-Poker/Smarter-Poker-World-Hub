@@ -5,10 +5,15 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
     try {
@@ -16,13 +21,13 @@ export default async function handler(req, res) {
         const token = authHeader?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
         if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
         if (req.method === 'POST') {
             const { position, street, gameType, action, isCorrect, handStrength } = req.body;
 
-            const { error } = await supabase
+            const { error } = await getSupabase()
                 .from('sandbox_analytics')
                 .insert({
                     user_id: user.id,
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
 
         if (req.method === 'GET') {
             // Get position distribution
-            const { data: posData } = await supabase
+            const { data: posData } = await getSupabase()
                 .from('sandbox_analytics')
                 .select('position')
                 .eq('user_id', user.id)
@@ -52,7 +57,7 @@ export default async function handler(req, res) {
                 .limit(200);
 
             // Get accuracy stats
-            const { data: accuracyData } = await supabase
+            const { data: accuracyData } = await getSupabase()
                 .from('sandbox_analytics')
                 .select('is_correct')
                 .eq('user_id', user.id)
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
                 .limit(100);
 
             // Get total count
-            const { count } = await supabase
+            const { count } = await getSupabase()
                 .from('sandbox_analytics')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id);

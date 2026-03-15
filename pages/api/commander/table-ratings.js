@@ -7,10 +7,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -50,11 +55,11 @@ async function submitRating(req, res) {
     const authHeader = req.headers.authorization;
     if (authHeader && !userId) {
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       userId = user?.id || null;
     }
 
-    const { data: rating, error } = await supabase
+    const { data: rating, error } = await getSupabase()
       .from('commander_table_ratings')
       .insert({
         venue_id,
@@ -91,7 +96,7 @@ async function getVibes(req, res) {
   try {
     const since = new Date(Date.now() - parseInt(days) * 86400000).toISOString();
 
-    const { data: ratings, error } = await supabase
+    const { data: ratings, error } = await getSupabase()
       .from('commander_table_ratings')
       .select('table_number, action_level, friendliness, pace, game_type, stakes, comment, created_at')
       .eq('venue_id', venue_id)

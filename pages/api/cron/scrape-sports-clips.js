@@ -15,11 +15,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY || ANON_KEY);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const CONFIG = {
     MAX_CLIPS_PER_CHANNEL: 10,
@@ -164,7 +168,7 @@ async function saveClips(clips) {
     let skipped = 0;
 
     // Get existing clips to avoid duplicates
-    const { data: existingClips } = await supabase
+    const { data: existingClips } = await getSupabase()
         .from('sports_clips')
         .select('source_url');
 
@@ -177,7 +181,7 @@ async function saveClips(clips) {
             continue;
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('sports_clips')
             .insert({
                 video_id: clip.video_id,

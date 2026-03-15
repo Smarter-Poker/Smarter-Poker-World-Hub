@@ -5,10 +5,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 function getWeekBounds(dateStr) {
     const d = dateStr ? new Date(dateStr) : new Date();
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
           const token = (req.headers.authorization || '').replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid session' });
 
           const { staff_id, venue_id, week } = req.query;
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
           }
 
           // Verify this staff record belongs to the authenticated user
-          const { data: staff } = await supabase
+          const { data: staff } = await getSupabase()
               .from('commander_staff')
               .select('id, display_name, role')
               .eq('id', staff_id)
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
           const { start, end } = getWeekBounds(week);
 
           // Fetch shifts for this staff member in the date range
-          const { data: shifts, error: shiftErr } = await supabase
+          const { data: shifts, error: shiftErr } = await getSupabase()
               .from('commander_staff_shifts')
               .select('*')
               .eq('staff_id', staff_id)

@@ -6,10 +6,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -37,7 +42,7 @@ export default async function handler(req, res) {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
       if (authError || !user) {
         return res.status(401).json({
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
       }
 
       // Verify home game exists
-      const { data: game, error: gameError } = await supabase
+      const { data: game, error: gameError } = await getSupabase()
         .from('commander_home_games')
         .select('id, host_id, buyin_min, buyin_max, status')
         .eq('id', home_game_id)
@@ -92,7 +97,7 @@ export default async function handler(req, res) {
       }
 
       // Check for existing pending deposit
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from('commander_escrow_transactions')
         .select('id')
         .eq('home_game_id', home_game_id)
@@ -108,7 +113,7 @@ export default async function handler(req, res) {
       }
 
       // Create escrow transaction
-      const { data: escrow, error } = await supabase
+      const { data: escrow, error } = await getSupabase()
         .from('commander_escrow_transactions')
         .insert({
           home_game_id,

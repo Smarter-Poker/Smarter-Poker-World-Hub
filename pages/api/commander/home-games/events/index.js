@@ -8,10 +8,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -46,7 +51,7 @@ async function listEvents(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -55,7 +60,7 @@ async function listEvents(req, res) {
     const { group_id, upcoming, host_id } = req.query;
 
     // Get user's group memberships
-    const { data: memberships } = await supabase
+    const { data: memberships } = await getSupabase()
       .from('commander_home_members')
       .select('group_id')
       .eq('user_id', user.id)
@@ -68,7 +73,7 @@ async function listEvents(req, res) {
       return res.status(200).json({ events: [] });
     }
 
-    let query = supabase
+    let query = getSupabase()
       .from('commander_home_games')
       .select(`
         *,
@@ -121,7 +126,7 @@ async function createEvent(req, res) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -157,7 +162,7 @@ async function createEvent(req, res) {
     }
 
     // Check if user can host
-    const { data: membership } = await supabase
+    const { data: membership } = await getSupabase()
       .from('commander_home_members')
       .select('role, can_host')
       .eq('group_id', group_id)
@@ -178,13 +183,13 @@ async function createEvent(req, res) {
     }
 
     // Get group defaults
-    const { data: group } = await supabase
+    const { data: group } = await getSupabase()
       .from('commander_home_groups')
       .select('default_game_type, default_stakes, max_players')
       .eq('id', group_id)
       .maybeSingle();
 
-    const { data: event, error } = await supabase
+    const { data: event, error } = await getSupabase()
       .from('commander_home_games')
       .insert({
         group_id,
@@ -220,7 +225,7 @@ async function createEvent(req, res) {
     if (error) throw error;
 
     // Auto-RSVP host as yes
-    await supabase
+    await getSupabase()
       .from('commander_home_rsvps')
       .insert({
         game_id: event.id,

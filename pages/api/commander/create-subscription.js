@@ -6,10 +6,15 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 // Note: No auth guard — this route is called during REGISTRATION before any session exists.
 // It creates the user account itself, so no pre-existing auth is possible.
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -34,7 +39,7 @@ async function findUserByEmail(email) {
 
   // Method 0 (Most reliable): Look up via profiles table → get auth user ID
   try {
-    const { data: profile } = await supabase
+    const { data: profile } = await getSupabase()
       .from('profiles')
       .select('id, email')
       .ilike('email', normalizedEmail)
@@ -48,10 +53,10 @@ async function findUserByEmail(email) {
 
   // Method 1: Supabase admin getUserByEmail (if available in this SDK version)
   try {
-    const { data, error } = await supabase.auth.admin.getUserById
+    const { data, error } = await getSupabase().auth.admin.getUserById
       ? await (async () => {
         // Try listing with a small page and filtering
-        const { data: listData } = await supabase.auth.admin.listUsers({ perPage: 50, page: 1 });
+        const { data: listData } = await getSupabase().auth.admin.listUsers({ perPage: 50, page: 1 });
         const found = listData?.users?.find(u => u.email?.toLowerCase() === normalizedEmail);
         return { data: found ? { user: found } : null, error: null };
       })()
@@ -126,7 +131,7 @@ export default async function handler(req, res) {
       }
 
       // ─── Duplicate prevention: check if this email already has an active Commander subscription ──
-      const { data: existingEmailSub } = await supabase
+      const { data: existingEmailSub } = await getSupabase()
         .from('commander_subscriptions')
         .select('id, status, venue:poker_venues(name)')
         .eq('billing_email', email)
@@ -143,7 +148,7 @@ export default async function handler(req, res) {
       // ─── Duplicate prevention: check if a Commander venue already exists at this address ──
       const hasAddress = clubInfo.address && clubInfo.address.trim();
       if (hasAddress) {
-        const { data: existingAddrVenue } = await supabase
+        const { data: existingAddrVenue } = await getSupabase()
           .from('poker_venues')
           .select('id, name')
           .eq('address', clubInfo.address.trim())
@@ -166,7 +171,7 @@ export default async function handler(req, res) {
           userId = existingUser.id;
           // Update their metadata to include venue_owner role
           try {
-            await supabase.auth.admin.updateUserById(userId, {
+            await getSupabase().auth.admin.updateUserById(userId, {
               user_metadata: {
                 full_name: ownerInfo.name,
                 phone: ownerInfo.phone,
@@ -183,7 +188,7 @@ export default async function handler(req, res) {
         // ─── Path B: New account — create user ─────────────────────────
         const password = ownerInfo.password || ('Tmp' + require('crypto').randomBytes(12).toString('base64url') + 'X1!');
 
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        const { data: authData, error: authError } = await getSupabase().auth.admin.createUser({
           email,
           password,
           email_confirm: true,
@@ -204,7 +209,7 @@ export default async function handler(req, res) {
           if (existingUser) {
             userId = existingUser.id;
             try {
-              await supabase.auth.admin.updateUserById(userId, {
+              await getSupabase().auth.admin.updateUserById(userId, {
                 user_metadata: {
                   full_name: ownerInfo.name,
                   phone: ownerInfo.phone,
@@ -236,7 +241,7 @@ export default async function handler(req, res) {
       // Try to find existing venue by name + address (only if address provided)
       let existingVenue = null;
       if (venueAddress) {
-        const { data: foundVenue } = await supabase
+        const { data: foundVenue } = await getSupabase()
           .from('poker_venues')
           .select('id')
           .eq('name', clubInfo.name)
@@ -248,7 +253,7 @@ export default async function handler(req, res) {
       if (existingVenue) {
         venueId = existingVenue.id;
 
-        await supabase
+        await getSupabase()
           .from('poker_venues')
           .update({
             claimed_by: userId,
@@ -294,7 +299,7 @@ export default async function handler(req, res) {
         venueInsert.state = venueState || '';
         venueInsert.country = 'US';
 
-        const { data: newVenue, error: venueError } = await supabase
+        const { data: newVenue, error: venueError } = await getSupabase()
           .from('poker_venues')
           .insert(venueInsert)
           .select()
@@ -352,7 +357,7 @@ export default async function handler(req, res) {
       }
 
       // ─── 4. Commander subscription record ────────────────────────────
-      const { data: existingSub } = await supabase
+      const { data: existingSub } = await getSupabase()
         .from('commander_subscriptions')
         .select('id')
         .eq('venue_id', venueId)
@@ -361,7 +366,7 @@ export default async function handler(req, res) {
       let subscriptionData;
 
       if (existingSub) {
-        const { data: updatedSub } = await supabase
+        const { data: updatedSub } = await getSupabase()
           .from('commander_subscriptions')
           .update({
             owner_id: userId,
@@ -379,7 +384,7 @@ export default async function handler(req, res) {
           .maybeSingle();
         subscriptionData = updatedSub || existingSub;
       } else {
-        const { data: newSub, error: subError } = await supabase
+        const { data: newSub, error: subError } = await getSupabase()
           .from('commander_subscriptions')
           .insert({
             venue_id: venueId,
@@ -408,7 +413,7 @@ export default async function handler(req, res) {
       }
 
       // ─── 5. Staff record (owner role) ────────────────────────────────
-      const { data: existingStaff } = await supabase
+      const { data: existingStaff } = await getSupabase()
         .from('commander_staff')
         .select('id')
         .eq('venue_id', venueId)
@@ -416,7 +421,7 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       if (!existingStaff) {
-        await supabase.from('commander_staff').insert({
+        await getSupabase().from('commander_staff').insert({
           venue_id: venueId,
           user_id: userId,
           name: ownerInfo.name,
@@ -433,7 +438,7 @@ export default async function handler(req, res) {
       if (tableCount > 0) {
         try {
           // Check how many tables already exist for this venue
-          const { data: existingTables } = await supabase
+          const { data: existingTables } = await getSupabase()
             .from('commander_tables')
             .select('table_number')
             .eq('venue_id', venueId)
@@ -454,7 +459,7 @@ export default async function handler(req, res) {
             }
           }
           if (tablesToInsert.length > 0) {
-            await supabase.from('commander_tables').insert(tablesToInsert);
+            await getSupabase().from('commander_tables').insert(tablesToInsert);
           }
         } catch (e) {
           console.error('Table auto-provision error (non-critical):', e.message);

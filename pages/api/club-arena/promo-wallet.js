@@ -25,10 +25,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -40,14 +45,14 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { action, clubId, ...params } = req.body;
     if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
     // Verify caller is owner/admin
-    const { data: member } = await supabaseAdmin
+    const { data: member } = await getSupabase()
       .from('club_members')
       .select('role')
       .eq('club_id', clubId)
@@ -64,13 +69,13 @@ export default async function handler(req, res) {
         // GET BALANCES — club promo + all agent promo balances
         // ═══════════════════════════════════════════════════════
         case 'get_balances': {
-          const { data: club } = await supabaseAdmin
+          const { data: club } = await getSupabase()
             .from('clubs')
             .select('promo_balance')
             .eq('id', clubId)
             .maybeSingle();
 
-          const { data: agents } = await supabaseAdmin
+          const { data: agents } = await getSupabase()
             .from('agents')
             .select('user_id, promo_balance, commission_rate, status')
             .eq('club_id', clubId)
@@ -79,7 +84,7 @@ export default async function handler(req, res) {
           const agentIds = (agents || []).map(a => a.user_id);
           let profiles = [];
           if (agentIds.length > 0) {
-            const { data } = await supabaseAdmin
+            const { data } = await getSupabase()
               .from('profiles')
               .select('id, display_name, username, avatar_url')
               .in('id', agentIds)
@@ -121,7 +126,7 @@ export default async function handler(req, res) {
           }
 
           // Atomically increment promo balance via RPC
-          const { data: result, error: rpcErr } = await supabaseAdmin.rpc('mint_club_promo', {
+          const { data: result, error: rpcErr } = await getSupabase().rpc('mint_club_promo', {
             p_club_id: clubId,
             p_amount: amount,
           });
@@ -147,7 +152,7 @@ export default async function handler(req, res) {
           if (!agentUserId) return res.status(400).json({ success: false, error: 'agentUserId required' });
           if (!amt || amt <= 0) return res.status(400).json({ success: false, error: 'Positive amount required' });
 
-          const { data: result, error: rpcErr } = await supabaseAdmin.rpc('transfer_promo_club_to_agent', {
+          const { data: result, error: rpcErr } = await getSupabase().rpc('transfer_promo_club_to_agent', {
             p_club_id: clubId,
             p_agent_user_id: agentUserId,
             p_amount: amt,

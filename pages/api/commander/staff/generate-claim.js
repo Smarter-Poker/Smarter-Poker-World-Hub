@@ -8,10 +8,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyManagerSession, guardOwnerStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: OWNER — requires owner role
 export default async function handler(req, res) {
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
           }
 
           // Verify staff exists at this venue
-          const { data: staff, error: staffErr } = await supabase
+          const { data: staff, error: staffErr } = await getSupabase()
               .from('commander_staff')
               .select('id, display_name, role, linked_user_id, email')
               .eq('id', staff_id)
@@ -68,7 +73,7 @@ export default async function handler(req, res) {
           }
 
           // Invalidate any existing unclaimed tokens for this staff member
-          await supabase
+          await getSupabase()
               .from('staff_claim_tokens')
               .update({ expires_at: new Date().toISOString() })
               .eq('staff_id', staff_id)
@@ -77,7 +82,7 @@ export default async function handler(req, res) {
           // Generate a unique 6-character alphanumeric code
           const token = crypto.randomBytes(4).toString('hex').substring(0, 6).toUpperCase();
 
-          const { data: claim, error: insertErr } = await supabase
+          const { data: claim, error: insertErr } = await getSupabase()
               .from('staff_claim_tokens')
               .insert({
                   venue_id,
@@ -94,7 +99,7 @@ export default async function handler(req, res) {
           }
 
           // Get venue name for the claim URL display
-          const { data: venue } = await supabase
+          const { data: venue } = await getSupabase()
               .from('poker_venues')
               .select('name')
               .eq('id', venue_id)

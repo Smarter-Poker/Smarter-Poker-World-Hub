@@ -8,10 +8,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -42,7 +47,7 @@ async function handleGetPayouts(req, res, tournamentId) {
     const { mode } = req.query;
 
     // Get tournament details
-    const { data: tournament, error: tErr } = await supabase
+    const { data: tournament, error: tErr } = await getSupabase()
       .from('commander_tournaments')
       .select('*, commander_tournament_leaderboards(*)')
       .eq('id', tournamentId)
@@ -51,7 +56,7 @@ async function handleGetPayouts(req, res, tournamentId) {
     if (tErr) throw tErr;
 
     // Get all entries for prize pool calculation
-    const { data: entries } = await supabase
+    const { data: entries } = await getSupabase()
       .from('commander_tournament_entries')
       .select('*, profiles(display_name, avatar_url)')
       .eq('tournament_id', tournamentId)
@@ -112,7 +117,7 @@ async function handleGetPayouts(req, res, tournamentId) {
     }
 
     // Default: return saved payouts
-    const { data: payouts, error } = await supabase
+    const { data: payouts, error } = await getSupabase()
       .from('commander_tournament_entries')
       .select('*, profiles(id, display_name, avatar_url)')
       .eq('tournament_id', tournamentId)
@@ -147,13 +152,13 @@ async function handlePayout(req, res, tournamentId) {
   }
 
   try {
-    const { data: tournament } = await supabase
+    const { data: tournament } = await getSupabase()
       .from('commander_tournaments')
       .select('venue_id, buyin_amount, buyin_fee, leaderboard_id')
       .eq('id', tournamentId)
       .maybeSingle();
 
-    const { data: entry, error } = await supabase
+    const { data: entry, error } = await getSupabase()
       .from('commander_tournament_entries')
       .update({
         finish_position: place,
@@ -171,7 +176,7 @@ async function handlePayout(req, res, tournamentId) {
     // Tax event tracking (>$5000)
     if (amount >= 5000 && tournament) {
       const totalBuyin = (tournament.buyin_amount || 0) + (tournament.buyin_fee || 0);
-      await supabase.from('commander_tax_events').insert({
+      await getSupabase().from('commander_tax_events').insert({
         venue_id: tournament.venue_id,
         player_id,
         event_type: 'tournament_win',
@@ -208,7 +213,7 @@ async function handleBulkPayouts(req, res, tournamentId) {
     }
 
     // Get tournament for leaderboard
-    const { data: tournament } = await supabase
+    const { data: tournament } = await getSupabase()
       .from('commander_tournaments')
       .select('venue_id, buyin_amount, buyin_fee, leaderboard_id')
       .eq('id', tournamentId)
@@ -217,7 +222,7 @@ async function handleBulkPayouts(req, res, tournamentId) {
     // Update each entry
     const results = [];
     for (const p of payouts) {
-      const { data: entry, error } = await supabase
+      const { data: entry, error } = await getSupabase()
         .from('commander_tournament_entries')
         .update({
           finish_position: p.position,
@@ -240,7 +245,7 @@ async function handleBulkPayouts(req, res, tournamentId) {
     }
 
     // Save final_payouts to tournament record for reference
-    await supabase
+    await getSupabase()
       .from('commander_tournaments')
       .update({ final_payouts: payouts })
       .eq('id', tournamentId);
@@ -261,7 +266,7 @@ async function handleBulkPayouts(req, res, tournamentId) {
 async function awardLeaderboardPoints(leaderboardId, tournamentId, entry) {
   try {
     // Get leaderboard point structure
-    const { data: lb } = await supabase
+    const { data: lb } = await getSupabase()
       .from('commander_tournament_leaderboards')
       .select('point_for_entry, point_structure')
       .eq('id', leaderboardId)
@@ -276,7 +281,7 @@ async function awardLeaderboardPoints(leaderboardId, tournamentId, entry) {
     if (entryPts === 0 && positionPts === 0) return;
 
     // Upsert points (avoid duplicates)
-    const { data: existing } = await supabase
+    const { data: existing } = await getSupabase()
       .from('commander_tournament_points')
       .select('id')
       .eq('leaderboard_id', leaderboardId)
@@ -285,7 +290,7 @@ async function awardLeaderboardPoints(leaderboardId, tournamentId, entry) {
       .maybeSingle();
 
     if (existing) {
-      await supabase
+      await getSupabase()
         .from('commander_tournament_points')
         .update({
           points: positionPts,
@@ -294,7 +299,7 @@ async function awardLeaderboardPoints(leaderboardId, tournamentId, entry) {
         })
         .eq('id', existing.id);
     } else {
-      await supabase
+      await getSupabase()
         .from('commander_tournament_points')
         .insert({
           leaderboard_id: leaderboardId,

@@ -7,10 +7,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -24,7 +29,7 @@ export default async function handler(req, res) {
     try {
 
       if (req.method === 'GET') {
-        const { data: sessions, error } = await supabase
+        const { data: sessions, error } = await getSupabase()
           .from('commander_table_sessions')
           .select('*')
           .eq('venue_id', staff.venue_id)
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
         // If no rate provided, look up venue's saved time_billing_rate
         let finalRate = rate_per_hour;
         if (!finalRate) {
-          const { data: settings } = await supabase
+          const { data: settings } = await getSupabase()
             .from('commander_venue_settings')
             .select('time_billing_rate')
             .eq('venue_id', staff.venue_id)
@@ -53,7 +58,7 @@ export default async function handler(req, res) {
           finalRate = settings?.time_billing_rate || 0;
         }
 
-        const { data: session, error } = await supabase
+        const { data: session, error } = await getSupabase()
           .from('commander_table_sessions')
           .insert({
             venue_id: staff.venue_id,

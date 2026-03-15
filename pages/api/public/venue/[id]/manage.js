@@ -10,10 +10,15 @@ import { supabase } from '../../../../../src/lib/supabase';
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -39,14 +44,14 @@ export default async function handler(req, res) {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
       if (authError || !user) {
           return res.status(401).json({ success: false, error: 'Invalid or expired token' });
       }
 
       // Check if user is a manager of this venue
-      const { data: manager, error: managerError } = await supabaseAdmin
+      const { data: manager, error: managerError } = await getSupabase()
           .from('venue_managers')
           .select('*')
           .eq('venue_id', parseInt(id))
@@ -78,7 +83,7 @@ export default async function handler(req, res) {
 async function handleGet(req, res, venueId, user, manager) {
     try {
         // Get venue with all editable fields
-        const { data: venue, error: venueError } = await supabaseAdmin
+        const { data: venue, error: venueError } = await getSupabase()
             .from('poker_venues')
             .select('*')
             .eq('id', parseInt(venueId))
@@ -89,7 +94,7 @@ async function handleGet(req, res, venueId, user, manager) {
         }
 
         // Get other managers
-        const { data: managers } = await supabaseAdmin
+        const { data: managers } = await getSupabase()
             .from('venue_managers')
             .select(`
                 id, role, is_active, created_at,
@@ -100,7 +105,7 @@ async function handleGet(req, res, venueId, user, manager) {
                 .limit(100);
 
         // Get recent activity
-        const { data: activity } = await supabaseAdmin
+        const { data: activity } = await getSupabase()
             .from('venue_verification_log')
             .select('*')
             .eq('venue_id', parseInt(venueId))
@@ -108,7 +113,7 @@ async function handleGet(req, res, venueId, user, manager) {
             .limit(20);
 
         // Get tournament schedules
-        const { data: tournaments } = await supabaseAdmin
+        const { data: tournaments } = await getSupabase()
             .from('venue_tournament_schedules')
             .select('*')
             .eq('venue_id', parseInt(venueId))
@@ -185,7 +190,7 @@ async function handlePatch(req, res, venueId, user, manager) {
         filteredUpdates.updated_at = new Date().toISOString();
 
         // Update venue
-        const { data: venue, error: updateError } = await supabaseAdmin
+        const { data: venue, error: updateError } = await getSupabase()
             .from('poker_venues')
             .update(filteredUpdates)
             .eq('id', parseInt(venueId))
@@ -198,7 +203,7 @@ async function handlePatch(req, res, venueId, user, manager) {
         }
 
         // Log the update
-        await supabaseAdmin
+        await getSupabase()
             .from('venue_verification_log')
             .insert({
                 venue_id: parseInt(venueId),

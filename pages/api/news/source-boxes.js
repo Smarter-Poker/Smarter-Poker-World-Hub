@@ -13,10 +13,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // THE 6 SOURCE BOXES - HARDCODED AND IMMUTABLE
 const SOURCE_BOXES = [
@@ -40,7 +45,7 @@ export default async function handler(req, res) {
           // Query each source's latest article - GUARANTEED one per box
           for (const box of SOURCE_BOXES) {
               // Try by source_box first, then by source_name
-              let { data: article } = await supabase
+              let { data: article } = await getSupabase()
                   .from('poker_news')
                   .select('*')
                   .eq('source_box', box.box)
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
 
               // Fallback: try by source_name if source_box didn't match
               if (!article) {
-                  const { data: byName } = await supabase
+                  const { data: byName } = await getSupabase()
                       .from('poker_news')
                       .select('*')
                       .eq('source_name', box.source_name)
@@ -70,7 +75,7 @@ export default async function handler(req, res) {
                   const articleAge = Date.now() - new Date(article.published_at).getTime();
                   const twoHoursMs = 2 * 60 * 60 * 1000;
                   if (articleAge > twoHoursMs) {
-                      const { data: crossSource } = await supabase
+                      const { data: crossSource } = await getSupabase()
                           .from('poker_news')
                           .select('*')
                           .ilike('title', '%MSPT%')

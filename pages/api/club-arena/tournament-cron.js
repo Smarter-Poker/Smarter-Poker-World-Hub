@@ -4,10 +4,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { notifyUser } from '../../../src/lib/club-arena/notify';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
@@ -28,7 +33,7 @@ export default async function handler(req, res) {
           // ═══════════════════════════════════════════════════════
           // 0. ACQUIRE CONCURRENCY LOCK (IMPROVEMENT #1)
           // ═══════════════════════════════════════════════════════
-          const { data: lockResult, error: lockErr } = await supabase.rpc('fn_try_cron_lock', {
+          const { data: lockResult, error: lockErr } = await getSupabase().rpc('fn_try_cron_lock', {
               p_lock_name: 'tournament_cron_execution_lock'
           });
 
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
           // ═══════════════════════════════════════════════════════
           // 1. SCHEDULED AUTO-START [Improvement #8]
           // ═══════════════════════════════════════════════════════
-          const { data: scheduledTournaments } = await supabase
+          const { data: scheduledTournaments } = await getSupabase()
               .from('club_tournaments')
               .select('id, name, status, club_id, type, variant, buy_in, starting_chips, scheduled_start, registered_count, max_players, settings, reminder_sent')
               .in('status', ['scheduled', 'registering'])
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
               try {
                   if (tourn.status === 'scheduled') {
                       // Open registration
-                      await supabase
+                      await getSupabase()
                           .from('club_tournaments')
                           .update({ status: 'registering' })
                           .eq('id', tourn.id);
@@ -68,7 +73,7 @@ export default async function handler(req, res) {
                           const controller = await getController();
 
                           // Fetch registered players
-                          const { data: regs } = await supabase
+                          const { data: regs } = await getSupabase()
                               .from('tournament_registrations')
                               .select('user_id, display_name')
                               .eq('tournament_id', tourn.id)
@@ -96,7 +101,7 @@ export default async function handler(req, res) {
                               }
                               await controller.startTournament(tourn.id);
 
-                              await supabase
+                              await getSupabase()
                                   .from('club_tournaments')
                                   .update({ status: 'running', started_at: now.toISOString() })
                                   .eq('id', tourn.id);
@@ -113,7 +118,7 @@ export default async function handler(req, res) {
                           // ═══════════════════════════════════════════════════════
                           console.log(`[TournCron] Cancelling ${tourn.name} (${tourn.id}) - Not enough players (${tourn.registered_count}/${minPlayers})`);
 
-                          const { data: regsToRefund } = await supabase
+                          const { data: regsToRefund } = await getSupabase()
                               .from('tournament_registrations')
                               .select('id, user_id, buy_in_amount')
                               .eq('tournament_id', tourn.id)
@@ -122,7 +127,7 @@ export default async function handler(req, res) {
                           for (const reg of (regsToRefund || [])) {
                               try {
                                   // Refund chips
-                                  await supabase.rpc('unlock_chips_from_table', {
+                                  await getSupabase().rpc('unlock_chips_from_table', {
                                       p_user_id: reg.user_id,
                                       p_club_id: tourn.club_id,
                                       p_table_id: tourn.id,
@@ -130,7 +135,7 @@ export default async function handler(req, res) {
                                   });
 
                                   // Mark refunded
-                                  await supabase
+                                  await getSupabase()
                                       .from('tournament_registrations')
                                       .update({ status: 'refunded' })
                                       .eq('id', reg.id);
@@ -150,7 +155,7 @@ export default async function handler(req, res) {
                           }
 
                           // Mark tournament as cancelled
-                          await supabase
+                          await getSupabase()
                               .from('club_tournaments')
                               .update({ status: 'cancelled' })
                               .eq('id', tourn.id);
@@ -168,7 +173,7 @@ export default async function handler(req, res) {
           const reminderWindow = new Date(now.getTime() + 15 * 60 * 1000);
           const reminderStart = new Date(now.getTime() + 14 * 60 * 1000);
 
-          const { data: upcomingTournaments } = await supabase
+          const { data: upcomingTournaments } = await getSupabase()
               .from('club_tournaments')
               .select('id, name, club_id, scheduled_start, settings, reminder_sent')
               .in('status', ['scheduled', 'registering'])
@@ -181,7 +186,7 @@ export default async function handler(req, res) {
               if (tourn.reminder_sent) continue;
 
               try {
-                  const { data: regs } = await supabase
+                  const { data: regs } = await getSupabase()
                       .from('tournament_registrations')
                       .select('user_id')
                       .eq('tournament_id', tourn.id)
@@ -201,7 +206,7 @@ export default async function handler(req, res) {
                   }
 
                   // Mark reminder as sent (deduplication)
-                  await supabase
+                  await getSupabase()
                       .from('club_tournaments')
                       .update({ reminder_sent: true })
                       .eq('id', tourn.id);
@@ -221,7 +226,7 @@ export default async function handler(req, res) {
           // ═══════════════════════════════════════════════════════
           // RELEASE CONCURRENCY LOCK
           // ═══════════════════════════════════════════════════════
-          await supabase.rpc('fn_release_cron_lock', {
+          await getSupabase().rpc('fn_release_cron_lock', {
               p_lock_name: 'tournament_cron_execution_lock'
           }).catch(err => console.error('[TournCron] Failed to release lock:', err.message));
       }

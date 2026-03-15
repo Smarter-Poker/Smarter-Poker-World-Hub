@@ -19,10 +19,15 @@ export const config = {
 // Use Grok for image generation
 const grok = getGrokClient();
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 /**
  * Remove white/near-white background using Sharp with multi-threshold algorithm
@@ -106,7 +111,7 @@ export default async function handler(req, res) {
       if (req.method !== 'GET') {
           const _token = req.headers.authorization?.replace('Bearer ', '');
           if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+          const { data: { user: _authUser }, error: _authErr } = await getSupabase().auth.getUser(_token);
           if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
           if (req.body) req.body.userId = _authUser.id;
       }
@@ -170,7 +175,7 @@ export default async function handler(req, res) {
           const filename = `edited_${safeUserId}_${timestamp}.png`;
           const storagePath = `generated/${filename}`;
 
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { data: uploadData, error: uploadError } = await getSupabase().storage
               .from('custom-avatars')
               .upload(storagePath, transparentBuffer, {
                   contentType: 'image/png',
@@ -183,7 +188,7 @@ export default async function handler(req, res) {
               throw new Error('Failed to upload avatar to storage');
           }
 
-          const { data: { publicUrl } } = supabase.storage
+          const { data: { publicUrl } } = getSupabase().storage
               .from('custom-avatars')
               .getPublicUrl(storagePath);
 
@@ -191,7 +196,7 @@ export default async function handler(req, res) {
           // Update the avatar in the database gallery
           // Find the most recent avatar for this user and update it with the edited version
           if (userId) {
-              const { data: existingAvatars, error: fetchError } = await supabase
+              const { data: existingAvatars, error: fetchError } = await getSupabase()
                   .from('custom_avatar_gallery')
                   .select('id')
                   .eq('user_id', userId)
@@ -201,7 +206,7 @@ export default async function handler(req, res) {
 
               if (!fetchError && existingAvatars && existingAvatars.length > 0) {
                   // Update the most recent avatar with the edited version
-                  const { error: updateError } = await supabase
+                  const { error: updateError } = await getSupabase()
                       .from('custom_avatar_gallery')
                       .update({
                           image_url: publicUrl,

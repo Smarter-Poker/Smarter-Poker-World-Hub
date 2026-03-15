@@ -7,10 +7,15 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
       const dayOfWeek = now.getDay();
 
       // Get current waitlist counts by game type and stakes
-      const { data: waitlists, error: waitlistError } = await supabase
+      const { data: waitlists, error: waitlistError } = await getSupabase()
         .from('commander_waitlist')
         .select('game_type, stakes, created_at')
         .eq('venue_id', venueId)
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
       }
 
       // Get active games to calculate turnover
-      const { data: games, error: gamesError } = await supabase
+      const { data: games, error: gamesError } = await getSupabase()
         .from('commander_games')
         .select('id, game_type, stakes, current_players, max_players, started_at')
         .eq('venue_id', venueId)
@@ -62,7 +67,7 @@ export default async function handler(req, res) {
       }
 
       // Get historical wait time data for this venue
-      const { data: history, error: historyError } = await supabase
+      const { data: history, error: historyError } = await getSupabase()
         .from('commander_waitlist_history')
         .select('game_type, stakes, wait_time_minutes, was_seated, created_at')
         .eq('venue_id', venueId)

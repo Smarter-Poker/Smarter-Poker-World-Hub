@@ -4,10 +4,15 @@
  */
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -34,7 +39,7 @@ export default async function handler(req, res) {
       }
 
       // First get the group by club code
-      const { data: group, error: groupError } = await supabase
+      const { data: group, error: groupError } = await getSupabase()
         .from('commander_home_groups')
         .select('id, is_private')
         .eq('club_code', code)
@@ -49,7 +54,7 @@ export default async function handler(req, res) {
       }
 
       // Only return public posts
-      const { data: posts, error, count } = await supabase
+      const { data: posts, error, count } = await getSupabase()
         .from('commander_home_posts')
         .select(`
           id,

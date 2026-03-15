@@ -18,10 +18,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -70,7 +75,7 @@ export default async function handler(req, res) {
       // ── Auth: verify JWT identity ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { action, clubId, ...params } = req.body;
@@ -143,7 +148,7 @@ export default async function handler(req, res) {
       }
 
       // Verify caller is club owner/admin/manager
-      const { data: membership } = await supabase
+      const { data: membership } = await getSupabase()
         .from('club_members')
         .select('role')
         .eq('club_id', clubId)
@@ -161,7 +166,7 @@ export default async function handler(req, res) {
         case 'get_flags': {
           const { status = 'open', severity, flagType, limit = 50, offset = 0 } = params;
 
-          let query = supabase
+          let query = getSupabase()
             .from('anti_cheat_flags')
             .select(`
               *,
@@ -188,7 +193,7 @@ export default async function handler(req, res) {
         case 'get_events': {
           const { limit = 50, offset = 0, eventType, playerId } = params;
 
-          let query = supabase
+          let query = getSupabase()
             .from('anti_cheat_events')
             .select(`
               *,
@@ -213,7 +218,7 @@ export default async function handler(req, res) {
         case 'get_sessions': {
           const { tableId } = params;
 
-          let query = supabase
+          let query = getSupabase()
             .from('table_sessions')
             .select(`
               *,
@@ -247,7 +252,7 @@ export default async function handler(req, res) {
           }
 
           // ATOMIC: Only update if flag is still 'open' — prevents TOCTOU double-review
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
             .from('anti_cheat_flags')
             .update({
               status: newStatus,
@@ -264,7 +269,7 @@ export default async function handler(req, res) {
           if (error) throw error;
           if (!data) {
             // Either flag doesn't exist OR was already reviewed (race condition caught)
-            const { data: existing } = await supabase
+            const { data: existing } = await getSupabase()
               .from('anti_cheat_flags')
               .select('id, status, reviewed_by, reviewed_at')
               .eq('id', flagId)
@@ -284,7 +289,7 @@ export default async function handler(req, res) {
           }
 
           // Log the review event
-          await supabase.from('anti_cheat_events').insert({
+          await getSupabase().from('anti_cheat_events').insert({
             event_type: `flag_${newStatus}`,
             player_id: data.player_id,
             club_id: clubId,
@@ -319,7 +324,7 @@ export default async function handler(req, res) {
 
           // If no tableId provided, try to find the player's active table session
           if (!tableId) {
-            const { data: activeSession } = await supabase
+            const { data: activeSession } = await getSupabase()
               .from('table_sessions')
               .select('table_id')
               .eq('club_id', clubId)
@@ -369,7 +374,7 @@ export default async function handler(req, res) {
 
               // STEP 2: Close table session (RPC — atomic on DB side)
               try {
-                await supabase.rpc('close_table_session', {
+                await getSupabase().rpc('close_table_session', {
                   p_table_id: tableId,
                   p_player_id: targetPlayerId,
                   p_reason: reason || 'Anti-cheat violation: removed by admin',
@@ -394,7 +399,7 @@ export default async function handler(req, res) {
                     clubId, targetPlayerId, tableId, amount: kickOp.cashoutAmount,
                   });
                   // CRITICAL: Log to anti_cheat_events for manual recovery
-                  await supabase.from('anti_cheat_events').insert({
+                  await getSupabase().from('anti_cheat_events').insert({
                     event_type: 'chip_unlock_failed',
                     player_id: targetPlayerId,
                     club_id: clubId,
@@ -415,7 +420,7 @@ export default async function handler(req, res) {
 
             // STEP 4: Log the kick event
             try {
-              await supabase.from('anti_cheat_events').insert({
+              await getSupabase().from('anti_cheat_events').insert({
                 event_type: 'player_kicked',
                 player_id: targetPlayerId,
                 club_id: clubId,
@@ -456,7 +461,7 @@ export default async function handler(req, res) {
           } catch (fatalErr) {
             // Disconnect / crash mid-operation: log recovery data
             console.error('[AntiCheat] FATAL kick failure at step', kickOp.step, fatalErr);
-            await supabase.from('anti_cheat_events').insert({
+            await getSupabase().from('anti_cheat_events').insert({
               event_type: 'kick_failed_recovery',
               player_id: targetPlayerId,
               club_id: clubId,
@@ -487,7 +492,7 @@ export default async function handler(req, res) {
           if (!targetPlayerId) return res.status(400).json({ error: 'playerId required' });
 
           const [flagsResult, eventsResult, sessionsResult] = await Promise.all([
-            supabase
+            getSupabase()
               .from('anti_cheat_flags')
               .select('*')
               .eq('club_id', clubId)
@@ -495,7 +500,7 @@ export default async function handler(req, res) {
               .order('flagged_at', { ascending: false })
               .limit(50),
 
-            supabase
+            getSupabase()
               .from('anti_cheat_events')
               .select('*')
               .eq('club_id', clubId)
@@ -503,7 +508,7 @@ export default async function handler(req, res) {
               .order('created_at', { ascending: false })
               .limit(50),
 
-            supabase
+            getSupabase()
               .from('table_sessions')
               .select('*')
               .eq('club_id', clubId)
@@ -531,20 +536,20 @@ export default async function handler(req, res) {
         // ─────────────────────────────────────────────────────
         case 'get_stats': {
           const [openFlags, recentBlocks, activeSessions] = await Promise.all([
-            supabase
+            getSupabase()
               .from('anti_cheat_flags')
               .select('severity, flag_type', { count: 'exact' })
               .eq('club_id', clubId)
               .eq('status', 'open'),
 
-            supabase
+            getSupabase()
               .from('anti_cheat_events')
               .select('event_type', { count: 'exact' })
               .eq('club_id', clubId)
               .eq('event_type', 'seat_blocked')
               .gte('created_at', new Date(Date.now() - 86400000).toISOString()),
 
-            supabase
+            getSupabase()
               .from('table_sessions')
               .select('*', { count: 'exact' })
               .eq('club_id', clubId)
@@ -579,7 +584,7 @@ export default async function handler(req, res) {
         case 'get_collusion_pairs': {
           const { threshold = 0.75, minHands = 5, limit = 500 } = params;
 
-          const { data: hands, error: hErr } = await supabase
+          const { data: hands, error: hErr } = await getSupabase()
             .from('mv_hand_histories')
             .select('player_ids, winner_ids, hand_data, pot_total')
             .eq('club_id', clubId)
@@ -663,7 +668,7 @@ export default async function handler(req, res) {
         case 'get_anomalies': {
           const { limit = 500 } = params;
 
-          const { data: hands, error: hErr } = await supabase
+          const { data: hands, error: hErr } = await getSupabase()
             .from('mv_hand_histories')
             .select('id, hand_number, player_ids, winner_ids, hand_data, pot_total, completed_at')
             .eq('club_id', clubId)

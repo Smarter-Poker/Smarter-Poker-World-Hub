@@ -9,10 +9,15 @@ const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -31,7 +36,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { clubId, itemId } = req.body;
@@ -46,7 +51,7 @@ export default async function handler(req, res) {
 
       try {
           // Get member
-          const { data: member, error: memErr } = await supabaseAdmin
+          const { data: member, error: memErr } = await getSupabase()
               .from('club_members')
               .select('chip_balance, user_id')
               .eq('club_id', clubId)
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
           if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member' });
 
           // Get item (scoped to this club) — BUG FIX: was .select('id'), making is_active/price undefined
-          const { data: item, error: itemErr } = await supabaseAdmin
+          const { data: item, error: itemErr } = await getSupabase()
               .from('club_shop_items')
               .select('id, price, is_active, name, description, item_type')
               .eq('id', itemId)
@@ -78,7 +83,7 @@ export default async function handler(req, res) {
           }
 
           // RED TEAM: Check if user already owns this item (prevents duplicate purchases)
-          const { data: existingPurchase } = await supabaseAdmin
+          const { data: existingPurchase } = await getSupabase()
               .from('club_shop_purchases')
               .select('id')
               .eq('club_id', clubId)
@@ -95,7 +100,7 @@ export default async function handler(req, res) {
           }
 
           // Deduct chips atomically
-          const { error: deductErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+          const { error: deductErr } = await getSupabase().rpc('fn_debit_chips', {
               p_club_id: clubId,
               p_user_id: user.id,
               p_amount: price,
@@ -109,7 +114,7 @@ export default async function handler(req, res) {
           }
 
           // Record purchase
-          const { error: purchaseErr } = await supabaseAdmin
+          const { error: purchaseErr } = await getSupabase()
               .from('club_shop_purchases')
               .insert({
                   club_id: clubId,
@@ -120,7 +125,7 @@ export default async function handler(req, res) {
 
           if (purchaseErr) {
               // Rollback chip deduction atomically
-              await supabaseAdmin.rpc('fn_credit_chips', {
+              await getSupabase().rpc('fn_credit_chips', {
                   p_club_id: clubId,
                   p_user_id: user.id,
                   p_amount: price,
@@ -129,7 +134,7 @@ export default async function handler(req, res) {
           }
 
           // Record transaction
-          await supabaseAdmin.from('chip_transactions').insert({
+          await getSupabase().from('chip_transactions').insert({
               from_user_id: user.id,
               to_user_id: user.id,
               club_id: clubId,

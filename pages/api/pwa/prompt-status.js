@@ -13,10 +13,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // ─── Simple in-memory rate limiter ───
 const rateLimitMap = new Map();
@@ -72,7 +77,7 @@ export default async function handler(req, res) {
       // ─── GET: Check if this IP already responded ───
       if (req.method === 'GET') {
           try {
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('pwa_prompt_log')
                   .select('id')
                   .eq('ip_address', ip)
@@ -100,7 +105,7 @@ export default async function handler(req, res) {
               }
 
               // Idempotent: check if already recorded for this IP
-              const { data: existing } = await supabase
+              const { data: existing } = await getSupabase()
                   .from('pwa_prompt_log')
                   .select('id')
                   .eq('ip_address', ip)
@@ -110,7 +115,7 @@ export default async function handler(req, res) {
                   return res.status(200).json({ ok: true, already_recorded: true });
               }
 
-              const { error } = await supabase
+              const { error } = await getSupabase()
                   .from('pwa_prompt_log')
                   .insert({
                       ip_address: ip,
@@ -146,7 +151,7 @@ let tableExists = false;
 async function ensureTable() {
     if (tableChecked) return tableExists;
     try {
-        const { error } = await supabase
+        const { error } = await getSupabase()
             .from('pwa_prompt_log')
             .select('id')
             .limit(1);

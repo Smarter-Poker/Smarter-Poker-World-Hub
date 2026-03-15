@@ -7,10 +7,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
       if (authError || !user) {
         return res.status(401).json({
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
       }
 
       // Get squad with members
-      const { data: squad, error: squadError } = await supabase
+      const { data: squad, error: squadError } = await getSupabase()
         .from('commander_waitlist_groups')
         .select(`
           *,
@@ -99,7 +104,7 @@ export default async function handler(req, res) {
       }
 
       // Get current waitlist position
-      const { count: currentPosition } = await supabase
+      const { count: currentPosition } = await getSupabase()
         .from('commander_waitlist')
         .select('id', { count: 'exact', head: true })
         .eq('venue_id', squad.venue_id)
@@ -131,7 +136,7 @@ export default async function handler(req, res) {
         notes: squadNotes
       }));
 
-      const { data: entries, error: entriesError } = await supabase
+      const { data: entries, error: entriesError } = await getSupabase()
         .from('commander_waitlist')
         .insert(waitlistEntries)
         .select();
@@ -139,7 +144,7 @@ export default async function handler(req, res) {
       if (entriesError) throw entriesError;
 
       // Update squad status to waiting (submitted to waitlist)
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabase()
         .from('commander_waitlist_groups')
         .update({
           status: 'waiting'

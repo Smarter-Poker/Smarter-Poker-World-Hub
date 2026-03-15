@@ -7,10 +7,15 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -24,7 +29,7 @@ export default async function handler(req, res) {
 
       try {
           // 1. Get overview of available data
-          const { data: overview, error: overviewError } = await supabase
+          const { data: overview, error: overviewError } = await getSupabase()
               .from('solved_spots_gold')
               .select('game_type, street, stack_depth')
               .limit(1000);
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
           }
 
           // 2. Get a sample scenario with full structure
-          const { data: sample, error: sampleError } = await supabase
+          const { data: sample, error: sampleError } = await getSupabase()
               .from('solved_spots_gold')
               .select('*')
               .limit(1)

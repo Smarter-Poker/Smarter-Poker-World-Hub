@@ -14,10 +14,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -27,7 +32,7 @@ export default async function handler(req, res) {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
     if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const clubId = req.query.clubId;
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
 
     try {
       // 1. Get caller's membership
-      const { data: callerMember } = await supabaseAdmin
+      const { data: callerMember } = await getSupabase()
         .from('club_members')
         .select('user_id, role, chip_balance, credit_limit, credit_used, nickname, tier')
         .eq('club_id', clubId)
@@ -53,8 +58,8 @@ export default async function handler(req, res) {
 
       // 2. Get agent record(s)
       let agentFilter = isOwnerAdmin
-        ? supabaseAdmin.from('agents').select('*').eq('club_id', clubId)
-        : supabaseAdmin.from('agents').select('*').eq('club_id', clubId).eq('user_id', user.id)
+        ? getSupabase().from('agents').select('*').eq('club_id', clubId)
+        : getSupabase().from('agents').select('*').eq('club_id', clubId).eq('user_id', user.id)
             .limit(100);
 
       const { data: agents } = await agentFilter;
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
       const targetAgentId = isAgent ? user.id : null;
 
       // 3. Get downline players
-      let playersQuery = supabaseAdmin
+      let playersQuery = getSupabase()
         .from('club_members')
         .select('user_id, role, chip_balance, agent_id, status, nickname, tier, xp')
         .eq('club_id', clubId)
@@ -81,7 +86,7 @@ export default async function handler(req, res) {
       const playerIds = (players || []).map(p => p.user_id);
       let profiles = [];
       if (playerIds.length > 0) {
-        const { data: profs } = await supabaseAdmin
+        const { data: profs } = await getSupabase()
           .from('profiles')
           .select('id, username, display_name, avatar_url, is_online, last_seen')
           .in('id', playerIds)
@@ -98,7 +103,7 @@ export default async function handler(req, res) {
       }));
 
       // 4. Get pending cashout requests
-      let cashoutQuery = supabaseAdmin
+      let cashoutQuery = getSupabase()
         .from('cashout_requests')
         .select('*')
         .eq('club_id', clubId)
@@ -113,7 +118,7 @@ export default async function handler(req, res) {
       const { data: pendingCashouts } = await cashoutQuery;
 
       // 5. Get commission history (last 5 periods)
-      let commHistQuery = supabaseAdmin
+      let commHistQuery = getSupabase()
         .from('commission_history')
         .select('*')
         .eq('club_id', clubId)
@@ -123,7 +128,7 @@ export default async function handler(req, res) {
       if (isAgent) {
         const myAgent = (agents || []).find(a => a.user_id === user.id);
         if (myAgent) {
-          commHistQuery = supabaseAdmin
+          commHistQuery = getSupabase()
             .from('commission_history')
             .select('*')
             .eq('club_id', clubId)
@@ -136,7 +141,7 @@ export default async function handler(req, res) {
       const { data: commissionHistory } = await commHistQuery;
 
       // 6. Get recent chip_transactions
-      let txnQuery = supabaseAdmin
+      let txnQuery = getSupabase()
         .from('chip_transactions')
         .select('*')
         .eq('club_id', clubId)
@@ -145,7 +150,7 @@ export default async function handler(req, res) {
 
       if (isAgent) {
         // Only show transactions involving this agent
-        txnQuery = supabaseAdmin
+        txnQuery = getSupabase()
           .from('chip_transactions')
           .select('*')
           .eq('club_id', clubId)

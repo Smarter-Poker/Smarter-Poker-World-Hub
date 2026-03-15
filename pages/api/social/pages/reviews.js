@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -26,7 +31,7 @@ export default async function handler(req, res) {
                   return res.status(400).json({ success: false, error: 'page_id required' });
               }
 
-              let query = supabase
+              let query = getSupabase()
                   .from('social_page_reviews')
                   .select('id, page_id, reviewer_id, overall_rating, title, content, helpful_count, created_at', { count: 'exact' })
                   .eq('page_id', page_id)
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
 
               // Enrich with reviewer profiles
               const enriched = await Promise.all((reviews || []).map(async (r) => {
-                  const { data: profile } = await supabase
+                  const { data: profile } = await getSupabase()
                       .from('profiles')
                       .select('display_name, username, avatar_url')
                       .eq('id', r.reviewer_id)
@@ -79,7 +84,7 @@ export default async function handler(req, res) {
               // Require JWT auth
               const token = req.headers.authorization?.replace('Bearer ', '');
               if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-              const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+              const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
               if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
               const { page_id, overall_rating, title, content } = req.body;
@@ -94,7 +99,7 @@ export default async function handler(req, res) {
               }
 
               // Check if user already reviewed this page
-              const { data: existing } = await supabase
+              const { data: existing } = await getSupabase()
                   .from('social_page_reviews')
                   .select('id')
                   .eq('page_id', page_id)
@@ -103,7 +108,7 @@ export default async function handler(req, res) {
 
               if (existing) {
                   // Update existing review
-                  const { data: updated, error } = await supabase
+                  const { data: updated, error } = await getSupabase()
                       .from('social_page_reviews')
                       .update({
                           overall_rating,
@@ -120,7 +125,7 @@ export default async function handler(req, res) {
               }
 
               // Insert new review
-              const { data: review, error } = await supabase
+              const { data: review, error } = await getSupabase()
                   .from('social_page_reviews')
                   .insert({
                       page_id,

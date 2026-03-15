@@ -9,10 +9,15 @@ import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Average wait time per position (minutes) - simple initial estimate
 const AVERAGE_WAIT_PER_POSITION = 15;
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'venue_id is required' });
         }
 
-        const query = supabase
+        const query = getSupabase()
           .from('commander_waitlist')
           .select('*')
           .eq('venue_id', venue_id)
@@ -109,7 +114,7 @@ export default async function handler(req, res) {
       }
 
       // Verify venue exists and has Commander enabled
-      const { data: venue, error: venueError } = await supabase
+      const { data: venue, error: venueError } = await getSupabase()
         .from('poker_venues')
         .select('id, commander_enabled, name')
         .eq('id', venue_id)
@@ -131,7 +136,7 @@ export default async function handler(req, res) {
 
       // Check if player already on this waitlist (if player_id provided)
       if (player_id) {
-        const { data: existing } = await supabase
+        const { data: existing } = await getSupabase()
           .from('commander_waitlist')
           .select('id')
           .eq('venue_id', venue_id)
@@ -149,7 +154,7 @@ export default async function handler(req, res) {
         }
 
         // RESPONSIBLE GAMING: Check for self-exclusions
-        const { data: exclusion } = await supabase
+        const { data: exclusion } = await getSupabase()
           .from('commander_self_exclusions')
           .select('id, exclusion_type, expires_at')
           .eq('player_id', player_id)
@@ -172,7 +177,7 @@ export default async function handler(req, res) {
         }
 
         // RESPONSIBLE GAMING: Check spending limits
-        const { data: limits } = await supabase
+        const { data: limits } = await getSupabase()
           .from('commander_spending_limits')
           .select('daily_limit, weekly_limit, monthly_limit, session_duration_limit')
           .eq('player_id', player_id)
@@ -181,7 +186,7 @@ export default async function handler(req, res) {
         if (limits) {
           // Check if player has exceeded daily sessions (simple check)
           const today = new Date().toISOString().split('T')[0];
-          const { count: todaySessions } = await supabase
+          const { count: todaySessions } = await getSupabase()
             .from('commander_player_sessions')
             .select('id', { count: 'exact' })
             .eq('player_id', player_id)
@@ -195,7 +200,7 @@ export default async function handler(req, res) {
       }
 
       // Get next position using the database function
-      const { data: positionResult, error: positionError } = await supabase
+      const { data: positionResult, error: positionError } = await getSupabase()
         .rpc('get_next_waitlist_position', {
           p_venue_id: venue_id,
           p_game_type: game_type,
@@ -209,7 +214,7 @@ export default async function handler(req, res) {
       const estimated_wait_minutes = position * AVERAGE_WAIT_PER_POSITION;
 
       // Find matching game_id if there's an active game
-      const { data: activeGame } = await supabase
+      const { data: activeGame } = await getSupabase()
         .from('commander_games')
         .select('id')
         .eq('venue_id', venue_id)
@@ -219,7 +224,7 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       // Create waitlist entry
-      const { data: entry, error: insertError } = await supabase
+      const { data: entry, error: insertError } = await getSupabase()
         .from('commander_waitlist')
         .insert({
           venue_id,
@@ -250,7 +255,7 @@ export default async function handler(req, res) {
         const XP_FOR_WAITLIST_JOIN = 5;
 
         // Get or create player session for XP tracking
-        const { data: existingSession } = await supabase
+        const { data: existingSession } = await getSupabase()
           .from('commander_player_sessions')
           .select('id, metadata')
           .eq('venue_id', venue_id)
@@ -260,7 +265,7 @@ export default async function handler(req, res) {
 
         if (existingSession) {
           const currentMetadata = existingSession.metadata || {};
-          await supabase
+          await getSupabase()
             .from('commander_player_sessions')
             .update({
               metadata: {
@@ -270,7 +275,7 @@ export default async function handler(req, res) {
             })
             .eq('id', existingSession.id);
         } else {
-          await supabase
+          await getSupabase()
             .from('commander_player_sessions')
             .insert({
               venue_id,

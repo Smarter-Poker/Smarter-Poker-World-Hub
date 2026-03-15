@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -50,7 +55,7 @@ async function handleCreate(req, res) {
 
   try {
     // Create squad (waitlist group)
-    const { data: squad, error } = await supabase
+    const { data: squad, error } = await getSupabase()
       .from('commander_waitlist_groups')
       .insert({
         venue_id,
@@ -67,7 +72,7 @@ async function handleCreate(req, res) {
     if (error) throw error;
 
     // Add leader as first member
-    await supabase
+    await getSupabase()
       .from('commander_waitlist_group_members')
       .insert({
         group_id: squad.id,
@@ -91,7 +96,7 @@ async function handleList(req, res) {
   const { venue_id, player_id, status } = req.query;
 
   try {
-    let query = supabase
+    let query = getSupabase()
       .from('commander_waitlist_groups')
       .select(`
         *,

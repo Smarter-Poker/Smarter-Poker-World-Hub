@@ -7,10 +7,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { sendTicketNotification } from '../../../src/lib/emailService';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -29,7 +34,7 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
           if (authError || !user) {
               return res.status(401).json({ error: 'Invalid token' });
@@ -43,7 +48,7 @@ export default async function handler(req, res) {
 
           // Verify conversation belongs to user (if provided)
           if (conversationId) {
-              const { data: conversation } = await supabase
+              const { data: conversation } = await getSupabase()
                   .from('live_help_conversations')
                   .select('id')
                   .eq('id', conversationId)
@@ -55,14 +60,14 @@ export default async function handler(req, res) {
               }
 
               // Update conversation status to escalated
-              await supabase
+              await getSupabase()
                   .from('live_help_conversations')
                   .update({ status: 'escalated' })
                   .eq('id', conversationId);
           }
 
           // Create ticket
-          const { data: ticket, error: ticketError } = await supabase
+          const { data: ticket, error: ticketError } = await getSupabase()
               .from('live_help_tickets')
               .insert({
                   user_id: user.id,
@@ -81,7 +86,7 @@ export default async function handler(req, res) {
           }
 
           // Get user profile for email
-          const { data: profile } = await supabase
+          const { data: profile } = await getSupabase()
               .from('profiles')
               .select('username, email')
               .eq('id', user.id)

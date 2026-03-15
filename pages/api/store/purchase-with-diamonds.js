@@ -7,10 +7,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const DIAMONDS_PER_DOLLAR = 100;
 
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
           }
 
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
           if (authError || !user) {
               return res.status(401).json({ success: false, error: 'Invalid session' });
@@ -50,7 +55,7 @@ export default async function handler(req, res) {
           const itemIds = items.map(i => i.id).filter(Boolean);
           let catalogPrices = {};
           if (itemIds.length > 0) {
-              const { data: catalogItems } = await supabase
+              const { data: catalogItems } = await getSupabase()
                   .from('merchandise_items')
                   .select('id, name, price_diamonds, price_usd, is_active')
                   .in('id', itemIds)
@@ -91,7 +96,7 @@ export default async function handler(req, res) {
           }, 0);
 
           // Get current diamond balance
-          const { data: profile, error: profileError } = await supabase
+          const { data: profile, error: profileError } = await getSupabase()
               .from('profiles')
               .select('diamonds, username')
               .eq('id', user.id)
@@ -117,7 +122,7 @@ export default async function handler(req, res) {
 
           // Deduct diamonds atomically via audit-safe RPC
           const itemNames = items.map(i => `${i.name} x${i.quantity || 1}`).join(', ');
-          const { error: deductError } = await supabase.rpc('add_diamonds_to_balance', {
+          const { error: deductError } = await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: user.id,
               p_amount: -diamondCost,
               p_type: 'purchase',
@@ -132,7 +137,7 @@ export default async function handler(req, res) {
           const newBalance = currentBalance - diamondCost;
 
           // Create order record
-          await supabase.from('merchandise_orders').insert({
+          await getSupabase().from('merchandise_orders').insert({
               user_id: user.id,
               items: resolvedItems,
               total_usd: totalUsd,

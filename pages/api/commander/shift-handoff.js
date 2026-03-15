@@ -8,10 +8,15 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -45,16 +50,16 @@ async function createHandoff(req, res) {
     const token = authHeader?.replace('Bearer ', '');
     let userId = null;
     if (token) {
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       userId = user?.id;
     }
 
     // Snapshot current floor state
     const [tablesRes, waitlistRes, incidentsRes, gamesRes] = await Promise.all([
-      supabase.from('commander_tables').select('id, table_number, table_name, status, current_game_type, current_stakes, max_seats').eq('venue_id', venue_id).eq('status', 'active'),
-      supabase.from('commander_waitlist').select('id').eq('venue_id', venue_id).eq('status', 'waiting'),
-      supabase.from('commander_incidents').select('id').eq('venue_id', venue_id).eq('status', 'open'),
-      supabase.from('commander_games').select('id, table_number, game_type, stakes, current_players, max_players, status').eq('venue_id', venue_id).eq('status', 'active')
+      getSupabase().from('commander_tables').select('id, table_number, table_name, status, current_game_type, current_stakes, max_seats').eq('venue_id', venue_id).eq('status', 'active'),
+      getSupabase().from('commander_waitlist').select('id').eq('venue_id', venue_id).eq('status', 'waiting'),
+      getSupabase().from('commander_incidents').select('id').eq('venue_id', venue_id).eq('status', 'open'),
+      getSupabase().from('commander_games').select('id, table_number, game_type, stakes, current_players, max_players, status').eq('venue_id', venue_id).eq('status', 'active')
     ]);
 
     const tables = tablesRes.data || [];
@@ -77,7 +82,7 @@ async function createHandoff(req, res) {
       };
     });
 
-    const { data: handoff, error } = await supabase
+    const { data: handoff, error } = await getSupabase()
       .from('commander_shift_handoffs')
       .insert({
         venue_id,
@@ -115,7 +120,7 @@ async function listHandoffs(req, res) {
   }
 
   try {
-    let query = supabase
+    let query = getSupabase()
       .from('commander_shift_handoffs')
       .select('*')
       .eq('venue_id', venue_id)
@@ -146,11 +151,11 @@ async function acknowledgeHandoff(req, res) {
     const token = authHeader?.replace('Bearer ', '');
     let userId = null;
     if (token) {
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       userId = user?.id;
     }
 
-    const { data: handoff, error } = await supabase
+    const { data: handoff, error } = await getSupabase()
       .from('commander_shift_handoffs')
       .update({
         incoming_staff_id: userId || '00000000-0000-0000-0000-000000000000',

@@ -8,10 +8,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
       // Staff is already validated by guardWriteStaff at the handler level
 
       // Get tournament
-      const { data: tournament, error: tErr } = await supabase
+      const { data: tournament, error: tErr } = await getSupabase()
         .from('commander_tournaments')
         .select('id, venue_id, status')
         .eq('id', tournamentId)
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
       }
 
       // Get the entry
-      const { data: entry, error: eErr } = await supabase
+      const { data: entry, error: eErr } = await getSupabase()
         .from('commander_tournament_entries')
         .select('*')
         .eq('id', entry_id)
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
       }
 
       // Check destination seat is not occupied
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from('commander_tournament_entries')
         .select('id, player_name')
         .eq('tournament_id', tournamentId)
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
       const fromSeat = entry.seat_number;
 
       // Execute move
-      const { data: updated, error: uErr } = await supabase
+      const { data: updated, error: uErr } = await getSupabase()
         .from('commander_tournament_entries')
         .update({
           table_number: to_table,

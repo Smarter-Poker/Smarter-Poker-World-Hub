@@ -8,10 +8,15 @@ import { verifyManagerSession } from '../../../../src/lib/commander/auth';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const VALID_ROLES = ['owner', 'manager', 'dualrate', 'floor', 'cashier', 'brush', 'dealer', 'security'];
 
@@ -51,7 +56,7 @@ export default async function handler(req, res) {
 async function handlePatch(req, res, id) {
   try {
     // Fetch the target staff member to get venue_id
-    const { data: target, error: fetchError } = await supabase
+    const { data: target, error: fetchError } = await getSupabase()
       .from('commander_staff')
       .select('id, venue_id, role')
       .eq('id', id)
@@ -93,7 +98,7 @@ async function handlePatch(req, res, id) {
     if (pin_code !== undefined) {
       // Check for duplicate PIN at this venue (exclude self)
       if (pin_code) {
-        const { data: existingPin } = await supabase
+        const { data: existingPin } = await getSupabase()
           .from('commander_staff')
           .select('id')
           .eq('venue_id', target.venue_id)
@@ -119,7 +124,7 @@ async function handlePatch(req, res, id) {
       });
     }
 
-    const { data: staff, error: updateError } = await supabase
+    const { data: staff, error: updateError } = await getSupabase()
       .from('commander_staff')
       .update(updates)
       .eq('id', id)
@@ -170,7 +175,7 @@ async function handlePatch(req, res, id) {
 async function handleDelete(req, res, id) {
   try {
     // Fetch the target staff member to get venue_id
-    const { data: target, error: fetchError } = await supabase
+    const { data: target, error: fetchError } = await getSupabase()
       .from('commander_staff')
       .select('id, venue_id, role')
       .eq('id', id)
@@ -189,7 +194,7 @@ async function handleDelete(req, res, id) {
     // Prevent removing yourself (bypassed for E2E since we inject mock sessions there)
 
     // Soft delete - deactivate rather than hard delete
-    const { data: staff, error: deleteError } = await supabase
+    const { data: staff, error: deleteError } = await getSupabase()
       .from('commander_staff')
       .update({ is_active: false })
       .eq('id', id)

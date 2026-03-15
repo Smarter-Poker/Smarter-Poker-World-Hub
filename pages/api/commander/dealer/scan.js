@@ -13,10 +13,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -50,7 +55,7 @@ export default async function handler(req, res) {
         lookupCode = parts[parts.length - 1];
       }
 
-      const { data: members, error: memberError } = await supabase
+      const { data: members, error: memberError } = await getSupabase()
         .from('commander_members')
         .select('*')
         .eq('venue_id', _staff.venue_id)
@@ -76,7 +81,7 @@ export default async function handler(req, res) {
         new Date(member.membership_expires) < new Date();
 
       // Check if already seated at another table
-      const { data: existingSessions } = await supabase
+      const { data: existingSessions } = await getSupabase()
         .from('commander_table_sessions')
         .select('table_number, seat_number')
         .eq('member_id', member.id)

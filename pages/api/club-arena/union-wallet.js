@@ -16,17 +16,22 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateUnionWallet } from '../../../src/contracts/orb4_syndicate';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 async function verifyUnionLead(token, unionId) {
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  const { data: { user }, error } = await getSupabase().auth.getUser(token);
   if (error || !user) return { error: 'Not authenticated', status: 401 };
 
   // Union lead check
-  const { data: admin } = await supabaseAdmin
+  const { data: admin } = await getSupabase()
     .from('union_admins')
     .select('role')
     .eq('union_id', unionId)
@@ -36,7 +41,7 @@ async function verifyUnionLead(token, unionId) {
   if (admin?.role === 'union_lead') return { user, isLead: true };
 
   // Platform admin fallback
-  const { data: profile } = await supabaseAdmin
+  const { data: profile } = await getSupabase()
     .from('profiles').select('role').eq('id', user.id).maybeSingle();
   if (['admin', 'superadmin', 'god'].includes(profile?.role)) return { user, isLead: true, isPlatformAdmin: true };
 
@@ -44,7 +49,7 @@ async function verifyUnionLead(token, unionId) {
   if (admin) return { user, isLead: false };
 
   // Owner fallback: check if user is the union owner
-  const { data: ownerCheck } = await supabaseAdmin
+  const { data: ownerCheck } = await getSupabase()
     .from('unions')
     .select('id')
     .eq('id', unionId)
@@ -93,7 +98,7 @@ export default async function handler(req, res) {
     try {
       // ── GET_BALANCES ────────────────────────────────────────────────────────
       if (action === 'get_balances') {
-        const { data: union } = await supabaseAdmin
+        const { data: union } = await getSupabase()
           .from('unions')
           .select('id, name, chip_balance, rake_wallet, bbj_wallet, promo_wallet')
           .eq('id', unionId)
@@ -101,7 +106,7 @@ export default async function handler(req, res) {
 
         if (!union) return res.status(404).json({ success: false, error: 'Union not found' });
 
-        const { data: recentTxns } = await supabaseAdmin
+        const { data: recentTxns } = await getSupabase()
           .from('union_wallet_transactions')
           .select('*, clubs(name)')
           .eq('union_id', unionId)
@@ -133,7 +138,7 @@ export default async function handler(req, res) {
         const amt = amount; // Already validated as positive integer <= 1B by Zod
 
         // Verify club is in this union
-        const { data: uc } = await supabaseAdmin
+        const { data: uc } = await getSupabase()
           .from('union_clubs')
           .select('club_id')
           .eq('union_id', unionId)
@@ -141,13 +146,13 @@ export default async function handler(req, res) {
           .maybeSingle();
         if (!uc) return res.status(403).json({ success: false, error: 'Club is not in this union' });
 
-        const { data: club } = await supabaseAdmin
+        const { data: club } = await getSupabase()
           .from('clubs').select('id, name').eq('id', clubId).maybeSingle();
         if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
 
         // MANDATE 1: Concurrency-safe debit→credit with rollback on failure.
         // Step 1: Debit union chip_balance (atomic RPC with internal FOR UPDATE lock)
-        const { error: debitErr } = await supabaseAdmin.rpc('fn_union_debit_wallet', {
+        const { error: debitErr } = await getSupabase().rpc('fn_union_debit_wallet', {
           p_union_id: unionId,
           p_wallet: 'chip_balance',
           p_amount: amt,
@@ -158,13 +163,13 @@ export default async function handler(req, res) {
         }
 
         // Step 2: Credit club treasury — ROLLBACK debit if this fails
-        const { error: creditErr } = await supabaseAdmin.rpc('fn_credit_treasury', {
+        const { error: creditErr } = await getSupabase().rpc('fn_credit_treasury', {
           p_club_id: clubId,
           p_amount: amt,
         });
         if (creditErr) {
           console.error('[union-wallet] send_to_club credit failed, rolling back debit:', creditErr.message);
-          await supabaseAdmin.rpc('fn_union_credit_wallet', {
+          await getSupabase().rpc('fn_union_credit_wallet', {
             p_union_id: unionId,
             p_wallet: 'chip_balance',
             p_amount: amt,
@@ -174,7 +179,7 @@ export default async function handler(req, res) {
 
         // Ledger entries (fire-and-forget, transfer already succeeded)
         const txNote = (notes?.trim() || `Union transfer to ${club.name}`).slice(0, 500).replace(/[;'"\\]/g, '');
-        await supabaseAdmin.from('union_wallet_transactions').insert({
+        await getSupabase().from('union_wallet_transactions').insert({
           union_id: unionId,
           wallet: 'chip_balance',
           direction: 'debit',
@@ -185,7 +190,7 @@ export default async function handler(req, res) {
           created_by: auth.user.id,
         }).catch(() => { });
 
-        await supabaseAdmin.from('chip_transactions').insert({
+        await getSupabase().from('chip_transactions').insert({
           club_id: clubId,
           amount: amt,
           transaction_type: 'union_transfer',
@@ -207,7 +212,7 @@ export default async function handler(req, res) {
         const amt = amount; // Validated by Zod
 
         // MANDATE 1: Debit first, credit second, rollback on failure.
-        const { error: debitErr } = await supabaseAdmin.rpc('fn_union_debit_wallet', {
+        const { error: debitErr } = await getSupabase().rpc('fn_union_debit_wallet', {
           p_union_id: unionId,
           p_wallet: 'rake_wallet',
           p_amount: amt,
@@ -217,14 +222,14 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Insufficient rake wallet balance' });
         }
 
-        const { error: creditErr } = await supabaseAdmin.rpc('fn_union_credit_wallet', {
+        const { error: creditErr } = await getSupabase().rpc('fn_union_credit_wallet', {
           p_union_id: unionId,
           p_wallet: 'chip_balance',
           p_amount: amt,
         });
         if (creditErr) {
           console.error('[union-wallet] move_rake_to_chips credit failed, rolling back:', creditErr.message);
-          await supabaseAdmin.rpc('fn_union_credit_wallet', {
+          await getSupabase().rpc('fn_union_credit_wallet', {
             p_union_id: unionId,
             p_wallet: 'rake_wallet',
             p_amount: amt,
@@ -233,7 +238,7 @@ export default async function handler(req, res) {
         }
 
         const txNote = (notes?.trim() || `Moved ${amt.toLocaleString()} from rake wallet to chip balance`).slice(0, 500).replace(/[;'"\\]/g, '');
-        await supabaseAdmin.from('union_wallet_transactions').insert([
+        await getSupabase().from('union_wallet_transactions').insert([
           { union_id: unionId, wallet: 'rake_wallet', direction: 'debit', amount: amt, tx_type: 'manual_transfer', notes: txNote, created_by: auth.user.id },
           { union_id: unionId, wallet: 'chip_balance', direction: 'credit', amount: amt, tx_type: 'manual_transfer', notes: txNote, created_by: auth.user.id },
         ]).catch(() => { });
@@ -247,14 +252,14 @@ export default async function handler(req, res) {
         const payout = payoutAmount; // Validated by Zod
 
         // Verify club is in this union
-        const { data: ucCheck } = await supabaseAdmin
+        const { data: ucCheck } = await getSupabase()
           .from('union_clubs').select('club_id')
           .eq('union_id', unionId).eq('club_id', payoutClubId).maybeSingle();
         if (!ucCheck) return res.status(403).json({ success: false, error: 'Club is not in this union' });
 
         // MANDATE 1: Sequential debit→credits with full rollback chain.
         // Step 1: Debit union bbj_wallet (RPC uses internal FOR UPDATE lock)
-        const { error: bbjDebitErr } = await supabaseAdmin.rpc('fn_union_debit_wallet', {
+        const { error: bbjDebitErr } = await getSupabase().rpc('fn_union_debit_wallet', {
           p_union_id: unionId,
           p_wallet: 'bbj_wallet',
           p_amount: payout,
@@ -271,12 +276,12 @@ export default async function handler(req, res) {
         let credited = 0;
 
         // Step 2: Credit loser (biggest share)
-        const { error: loserErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+        const { error: loserErr } = await getSupabase().rpc('fn_credit_chips', {
           p_club_id: payoutClubId, p_user_id: loserId, p_amount: loserShare,
         });
         if (loserErr) {
           console.error('[union-wallet] BBJ loser credit failed, rolling back:', loserErr.message);
-          await supabaseAdmin.rpc('fn_union_credit_wallet', {
+          await getSupabase().rpc('fn_union_credit_wallet', {
             p_union_id: unionId, p_wallet: 'bbj_wallet', p_amount: payout,
           }).catch(rb => console.error('[union-wallet] CRITICAL BBJ rollback failed:', rb.message));
           return res.status(500).json({ success: false, error: 'BBJ payout failed (rolled back)' });
@@ -284,16 +289,16 @@ export default async function handler(req, res) {
         credited += loserShare;
 
         // Step 3: Credit winner
-        const { error: winnerErr } = await supabaseAdmin.rpc('fn_credit_chips', {
+        const { error: winnerErr } = await getSupabase().rpc('fn_credit_chips', {
           p_club_id: payoutClubId, p_user_id: winnerId, p_amount: winnerShare,
         });
         if (winnerErr) {
           console.error('[union-wallet] BBJ winner credit failed, partial rollback:', winnerErr.message);
           // Reverse loser credit + return to pool
-          await supabaseAdmin.rpc('fn_debit_chips', {
+          await getSupabase().rpc('fn_debit_chips', {
             p_club_id: payoutClubId, p_user_id: loserId, p_amount: loserShare,
           }).catch(() => { });
-          await supabaseAdmin.rpc('fn_union_credit_wallet', {
+          await getSupabase().rpc('fn_union_credit_wallet', {
             p_union_id: unionId, p_wallet: 'bbj_wallet', p_amount: payout,
           }).catch(rb => console.error('[union-wallet] CRITICAL BBJ rollback failed:', rb.message));
           return res.status(500).json({ success: false, error: 'BBJ payout failed (rolled back)' });
@@ -301,7 +306,7 @@ export default async function handler(req, res) {
         credited += winnerShare;
 
         // Step 4: Table share → club treasury
-        const { error: tableErr } = await supabaseAdmin.rpc('fn_credit_treasury', {
+        const { error: tableErr } = await getSupabase().rpc('fn_credit_treasury', {
           p_club_id: payoutClubId, p_amount: tblShare,
         });
         if (tableErr) {
@@ -312,7 +317,7 @@ export default async function handler(req, res) {
         }
 
         // Ledger entries
-        await supabaseAdmin.from('union_wallet_transactions').insert({
+        await getSupabase().from('union_wallet_transactions').insert({
           union_id: unionId, wallet: 'bbj_wallet', direction: 'debit',
           amount: payout, tx_type: 'bbj_payout', club_id: payoutClubId,
           notes: `BBJ payout: ${payout.toLocaleString()} chips (Loser: ${loserShare}, Winner: ${winnerShare}, Table: ${tblShare})`,
@@ -329,7 +334,7 @@ export default async function handler(req, res) {
       // ── GET_TRANSACTIONS — paginated history ────────────────────────────────
       if (action === 'get_transactions') {
         const filterWallet = payload.wallet; // Validated enum by Zod
-        let query = supabaseAdmin
+        let query = getSupabase()
           .from('union_wallet_transactions')
           .select('*, clubs(name)')
           .eq('union_id', unionId)

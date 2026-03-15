@@ -12,10 +12,15 @@ import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF — requires valid staff session
 export default async function handler(req, res) {
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
 
     try {
       // Get current session
-      const { data: session, error: fetchError } = await supabase
+      const { data: session, error: fetchError } = await getSupabase()
         .from('commander_table_sessions')
         .select('*')
         .eq('id', id)
@@ -53,7 +58,7 @@ export default async function handler(req, res) {
       }
 
       // TOURNAMENT GUARD: Never add time to tournament sessions
-      const { data: tableRow } = await supabase
+      const { data: tableRow } = await getSupabase()
         .from('commander_tables')
         .select('mode')
         .eq('venue_id', session.venue_id)
@@ -70,7 +75,7 @@ export default async function handler(req, res) {
       // Add time to session
       const newAddedMinutes = (session.time_added_minutes || 0) + parseInt(minutes);
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabase()
         .from('commander_table_sessions')
         .update({
           time_added_minutes: newAddedMinutes,
@@ -89,7 +94,7 @@ export default async function handler(req, res) {
       // Deduct from member's prepaid balance if available
       let paymentMethod = 'cash_at_table';
       if (session.member_id) {
-        const { data: member } = await supabase
+        const { data: member } = await getSupabase()
           .from('commander_members')
           .select('time_balance_minutes')
           .eq('id', session.member_id)
@@ -98,7 +103,7 @@ export default async function handler(req, res) {
         const memberBalance = member?.time_balance_minutes || 0;
         if (memberBalance >= parseInt(minutes)) {
           // Deduct from prepaid balance
-          await supabase
+          await getSupabase()
             .from('commander_members')
             .update({
               time_balance_minutes: memberBalance - parseInt(minutes),
@@ -109,7 +114,7 @@ export default async function handler(req, res) {
         }
 
         // Log the time purchase
-        await supabase
+        await getSupabase()
           .from('commander_time_purchases')
           .insert({
             venue_id: session.venue_id,

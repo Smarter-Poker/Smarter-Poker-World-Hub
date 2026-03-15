@@ -15,10 +15,15 @@ async function getRawBody(req) {
   });
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -100,7 +105,7 @@ async function handlePaymentSuccess(paymentIntent) {
 
   // Update escrow if this is an escrow payment
   if (metadata?.escrow_id) {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('commander_escrow_transactions')
       .update({
         status: 'held',
@@ -121,7 +126,7 @@ async function handlePaymentFailed(paymentIntent) {
   const { id, metadata, last_payment_error } = paymentIntent;
 
   if (metadata?.escrow_id) {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('commander_escrow_transactions')
       .update({
         status: 'failed',
@@ -140,7 +145,7 @@ async function handleRefund(charge) {
   const { id, payment_intent, amount_refunded, metadata } = charge;
 
   if (metadata?.escrow_id) {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('commander_escrow_transactions')
       .update({
         status: 'refunded',
@@ -171,7 +176,7 @@ async function handleSubscriptionUpdate(subscription) {
     const resolvedTier = tierMap[status] || 'free';
 
     // Update poker_venues table
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('poker_venues')
       .update({
         commander_tier: resolvedTier,
@@ -184,7 +189,7 @@ async function handleSubscriptionUpdate(subscription) {
     }
 
     // Also update commander_subscriptions table (login flow reads from here)
-    const { error: subError } = await supabase
+    const { error: subError } = await getSupabase()
       .from('commander_subscriptions')
       .update({
         tier: resolvedTier === 'free' ? metadata.tier || 'home_game' : resolvedTier,
@@ -205,7 +210,7 @@ async function handleSubscriptionCancelled(subscription) {
 
   if (metadata?.venue_id) {
     // Update poker_venues
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('poker_venues')
       .update({
         commander_tier: 'free',
@@ -218,7 +223,7 @@ async function handleSubscriptionCancelled(subscription) {
     }
 
     // Update commander_subscriptions status
-    const { error: subError } = await supabase
+    const { error: subError } = await getSupabase()
       .from('commander_subscriptions')
       .update({
         status: 'canceled',

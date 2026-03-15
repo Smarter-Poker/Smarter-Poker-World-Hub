@@ -17,10 +17,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -37,10 +42,10 @@ export default async function handler(req, res) {
           const authHeader = req.headers.authorization;
           if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user } } = await supabase.auth.getUser(token);
+          const { data: { user } } = await getSupabase().auth.getUser(token);
           if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-          const { data: staff } = await supabase
+          const { data: staff } = await getSupabase()
               .from('commander_staff')
               .select('venue_id')
               .eq('user_id', user.id)
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
           const tableNum = parseInt(table_number);
 
           // ── Locate table (needed for id + venue scoping) ──
-          const { data: table, error: tblErr } = await supabase
+          const { data: table, error: tblErr } = await getSupabase()
               .from('commander_tables')
               .select('id')
               .eq('venue_id', staff.venue_id)
@@ -75,20 +80,20 @@ export default async function handler(req, res) {
               // Uses rpc('increment_hands_dealt') if available, otherwise falls back to
               // read-then-write with optimistic locking.
               // First try: use Supabase's built-in column arithmetic
-              const { data: updated, error: upErr } = await supabase.rpc('increment_table_hands', {
+              const { data: updated, error: upErr } = await getSupabase().rpc('increment_table_hands', {
                   p_table_id: table.id,
               });
 
               if (upErr) {
                   // Fallback: read-then-write (acceptable for low-concurrency dealer tablet)
-                  const { data: current } = await supabase
+                  const { data: current } = await getSupabase()
                       .from('commander_tables')
                       .select('hands_dealt')
                       .eq('id', table.id)
                       .maybeSingle();
 
                   newCount = (current?.hands_dealt || 0) + 1;
-                  const { error: fallbackErr } = await supabase
+                  const { error: fallbackErr } = await getSupabase()
                       .from('commander_tables')
                       .update({ hands_dealt: newCount })
                       .eq('id', table.id);
@@ -98,7 +103,7 @@ export default async function handler(req, res) {
               }
 
               // Also increment the active dealer rotation (fire-and-forget, non-blocking)
-              supabase
+              getSupabase()
                   .from('commander_dealer_rotations')
                   .select('id, hands_dealt')
                   .eq('venue_id', staff.venue_id)
@@ -109,7 +114,7 @@ export default async function handler(req, res) {
                   .maybeSingle()
                   .then(({ data: rotation }) => {
                       if (rotation) {
-                          supabase
+                          getSupabase()
                               .from('commander_dealer_rotations')
                               .update({ hands_dealt: (rotation.hands_dealt || 0) + 1 })
                               .eq('id', rotation.id)
@@ -121,7 +126,7 @@ export default async function handler(req, res) {
           } else {
               // ── RESET ──
               newCount = 0;
-              const { error: upErr } = await supabase
+              const { error: upErr } = await getSupabase()
                   .from('commander_tables')
                   .update({ hands_dealt: 0 })
                   .eq('id', table.id);

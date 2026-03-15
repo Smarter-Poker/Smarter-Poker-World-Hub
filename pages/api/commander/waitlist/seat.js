@@ -8,10 +8,15 @@ import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -32,7 +37,7 @@ export default async function handler(req, res) {
       }
 
       // Get waitlist entry
-      const { data: entry } = await supabase
+      const { data: entry } = await getSupabase()
         .from('commander_waitlist')
         .select('*')
         .eq('id', waitlist_id)
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
 
       // Log to history (non-blocking)
       try {
-        await supabase.from('commander_waitlist_history').insert({
+        await getSupabase().from('commander_waitlist_history').insert({
           venue_id: entry.venue_id,
           player_id: entry.player_id,
           game_type: entry.game_type,
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
       } catch { /* history is non-critical */ }
 
       // Delete the waitlist entry (player is now seated)
-      const { error: wlError } = await supabase
+      const { error: wlError } = await getSupabase()
         .from('commander_waitlist')
         .delete()
         .eq('id', waitlist_id);
@@ -64,7 +69,7 @@ export default async function handler(req, res) {
       // Update actual seat in commander_seats (if game_id is available)
       try {
         if (entry.game_id) {
-          await supabase
+          await getSupabase()
             .from('commander_seats')
             .upsert({
               game_id: entry.game_id,

@@ -12,10 +12,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -47,7 +52,7 @@ export default async function handler(req, res) {
           }
 
           // Try QR code first
-          let { data: members } = await supabase
+          let { data: members } = await getSupabase()
               .from('commander_members')
               .select('*')
               .eq('qr_code', lookupCode)
@@ -55,7 +60,7 @@ export default async function handler(req, res) {
 
           // Fallback to member_number
           if (!members?.length) {
-              const { data: byNumber } = await supabase
+              const { data: byNumber } = await getSupabase()
                   .from('commander_members')
                   .select('*')
                   .eq('member_number', lookupCode)
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
 
           // Always look up the table's venue to ensure session venue_id matches tablet queries
           if (!resolvedVenueId) {
-              const { data: tableInfo } = await supabase
+              const { data: tableInfo } = await getSupabase()
                   .from('commander_tables')
                   .select('venue_id')
                   .eq('table_number', tableNum)
@@ -86,7 +91,7 @@ export default async function handler(req, res) {
           let venueType = 'texas'; // default
 
           if (resolvedVenueId) {
-              const { data: settings } = await supabase
+              const { data: settings } = await getSupabase()
                   .from('commander_venue_settings')
                   .select('venue_type, time_billing_rate')
                   .eq('venue_id', resolvedVenueId)
@@ -103,7 +108,7 @@ export default async function handler(req, res) {
           // Tournaments use a one-time seat fee (rake), not time-based billing.
           let isTournamentTable = false;
           {
-              const { data: tableRow } = await supabase
+              const { data: tableRow } = await getSupabase()
                   .from('commander_tables')
                   .select('mode, table_purpose')
                   .eq('table_number', tableNum)
@@ -149,7 +154,7 @@ export default async function handler(req, res) {
 
           // ── 4. Check if already seated ──
           try {
-              const { data: existing } = await supabase
+              const { data: existing } = await getSupabase()
                   .from('commander_table_sessions')
                   .select('id, table_number, seat_number')
                   .eq('member_id', member.id)
@@ -174,7 +179,7 @@ export default async function handler(req, res) {
 
           if (!seatNum) {
               // Auto-assign: find first available seat at this table
-              const { data: table } = await supabase
+              const { data: table } = await getSupabase()
                   .from('commander_tables')
                   .select('max_seats')
                   .eq('table_number', tableNum)
@@ -186,7 +191,7 @@ export default async function handler(req, res) {
               // Get occupied seats
               let occupiedSeats = [];
               try {
-                  const { data: activeSessions } = await supabase
+                  const { data: activeSessions } = await getSupabase()
                       .from('commander_table_sessions')
                       .select('seat_number')
                       .eq('table_number', tableNum)
@@ -208,7 +213,7 @@ export default async function handler(req, res) {
           } else {
               // Check if requested seat is occupied
               try {
-                  const { data: seatTaken } = await supabase
+                  const { data: seatTaken } = await getSupabase()
                       .from('commander_table_sessions')
                       .select('id, player_name')
                       .eq('table_number', tableNum)
@@ -230,7 +235,7 @@ export default async function handler(req, res) {
           // Tournament tables: allocate 0 time (no clock). Cash: allocate full balance.
           const timeToAllocate = isTimeBilled ? (member.time_balance_minutes || 0) : 0;
 
-          const { data: session, error: sessionError } = await supabase
+          const { data: session, error: sessionError } = await getSupabase()
               .from('commander_table_sessions')
               .insert({
                   venue_id: resolvedVenueId,
@@ -252,7 +257,7 @@ export default async function handler(req, res) {
 
           // ── 7. Deduct time from member balance (Texas cash games ONLY — NEVER tournaments) ──
           if (isTimeBilled && timeToAllocate > 0) {
-              await supabase
+              await getSupabase()
                   .from('commander_members')
                   .update({
                       time_balance_minutes: 0,
@@ -263,7 +268,7 @@ export default async function handler(req, res) {
                   .eq('id', member.id);
           } else {
               // Tournament or charity/home: just update visit tracking, NO time deduction
-              await supabase
+              await getSupabase()
                   .from('commander_members')
                   .update({
                       last_visit: new Date().toISOString(),
@@ -275,7 +280,7 @@ export default async function handler(req, res) {
 
           // ── 8. Update table seat status ──
           try {
-              await supabase
+              await getSupabase()
                   .from('commander_table_seats')
                   .upsert({
                       venue_id: resolvedVenueId,
@@ -292,7 +297,7 @@ export default async function handler(req, res) {
 
           // ── 9. Log check-in ──
           try {
-              await supabase
+              await getSupabase()
                   .from('commander_checkins')
                   .insert({
                       member_id: member.id,

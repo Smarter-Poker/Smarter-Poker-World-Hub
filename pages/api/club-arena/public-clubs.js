@@ -9,10 +9,15 @@
 const { createClient } = require('../../../src/lib/supabaseServerClient');
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -23,7 +28,7 @@ export default async function handler(req, res) {
       const limit = Math.min(parseInt(req.query.limit) || 20, 50);
       const offset = parseInt(req.query.offset) || 0;
 
-      const { data: clubs, error } = await supabaseAdmin
+      const { data: clubs, error } = await getSupabase()
         .from('clubs')
         .select('id, club_id, name, description, avatar_url, member_count, is_public, status, created_at')
         .eq('is_public', true)
@@ -37,7 +42,7 @@ export default async function handler(req, res) {
       const clubIds = (clubs || []).map(c => c.id);
       let tableCounts = {};
       if (clubIds.length > 0) {
-        const { data: tables } = await supabaseAdmin
+        const { data: tables } = await getSupabase()
           .from('tables')
           .select('club_id')
           .in('club_id', clubIds)

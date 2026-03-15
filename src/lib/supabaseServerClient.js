@@ -53,7 +53,15 @@ function decodeSupabaseJWT(token) {
  * Patched createClient that wraps auth.getUser with local JWT fallback.
  */
 function createClientPatched(url, key, options) {
-    const client = originalCreateClient(url, key, options);
+    // Hardened: resolve env var with fallback if caller passes undefined
+    const resolvedUrl = url || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+    const resolvedKey = key || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!resolvedKey) {
+        console.error('[FATAL] No Supabase key available — check SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    }
+
+    const client = originalCreateClient(resolvedUrl, resolvedKey || 'missing-key', options);
 
     // Store reference to original getUser
     const originalGetUser = client.auth.getUser.bind(client.auth);

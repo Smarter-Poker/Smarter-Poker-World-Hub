@@ -10,10 +10,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -29,7 +34,7 @@ export default async function handler(req, res) {
     if (cronSecret !== process.env.CRON_SECRET || !process.env.CRON_SECRET) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (token) {
-        const { data: { user } } = await supabase.auth.getUser(token);
+        const { data: { user } } = await getSupabase().auth.getUser(token);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
       } else {
         return res.status(401).json({ error: 'Unauthorized — missing cron secret or auth token' });
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
       const dayEnd = `${date}T23:59:59`;
 
       // Get all active venues
-      const { data: venues } = await supabase
+      const { data: venues } = await getSupabase()
         .from('poker_venues')
         .select('id, name')
         .eq('status', 'active')
@@ -163,7 +168,7 @@ export default async function handler(req, res) {
             calculated_at: new Date().toISOString()
           };
 
-          const { error } = await supabase
+          const { error } = await getSupabase()
             .from('commander_analytics_daily')
             .upsert(analytics, { onConflict: 'venue_id,date' });
 

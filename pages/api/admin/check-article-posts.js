@@ -1,10 +1,15 @@
 // Check article posts metadata structure
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -14,7 +19,7 @@ export default async function handler(req, res) {
     }
       try {
           // Find posts with content_type = 'article' or 'link'
-          const { data: articlePosts, error } = await supabase
+          const { data: articlePosts, error } = await getSupabase()
               .from('social_posts')
               .select('*')
               .or('content_type.eq.article,content_type.eq.link,content_type.eq.shared')
@@ -25,7 +30,7 @@ export default async function handler(req, res) {
           }
 
           // Also look for posts with link-like content
-          const { data: allPosts } = await supabase
+          const { data: allPosts } = await getSupabase()
               .from('social_posts')
               .select('*')
               .limit(20);

@@ -6,10 +6,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { requireStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -37,7 +42,7 @@ export default async function handler(req, res) {
 
     try {
       // Get venue info
-      const { data: venue } = await supabase
+      const { data: venue } = await getSupabase()
         .from('poker_venues')
         .select('id, name')
         .eq('id', venue_id)
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
       const endOfDay = `${date}T23:59:59`;
 
       // Fetch games for the day
-      const { data: games } = await supabase
+      const { data: games } = await getSupabase()
         .from('commander_games')
         .select(`
           id, game_type, stakes, status, current_players, max_players,
@@ -66,7 +71,7 @@ export default async function handler(req, res) {
         .lte('started_at', endOfDay)
 
       // Fetch sessions for the day
-      const { data: sessions } = await supabase
+      const { data: sessions } = await getSupabase()
         .from('commander_sessions')
         .select('id, player_id, check_in_time, check_out_time')
         .eq('venue_id', venue_id)
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
         .lte('check_in_time', endOfDay)
 
       // Fetch comp transactions (from the actual comp log table)
-      const { data: comps } = await supabase
+      const { data: comps } = await getSupabase()
         .from('commander_member_comp_log')
         .select('id, amount, type')
         .eq('venue_id', venue_id)

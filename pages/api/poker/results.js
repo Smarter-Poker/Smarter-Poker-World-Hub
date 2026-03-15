@@ -1,10 +1,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 function setCorsHeaders(res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -58,7 +63,7 @@ async function handleGet(req, res) {
             return res.status(400).json({ success: false, error: 'series_id must be a valid positive integer' });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('tournament_results')
             .select('*')
             .eq('series_id', seriesIdNum)
@@ -77,7 +82,7 @@ async function handleGet(req, res) {
 
     // --- Results for a specific tour --------------------------------------
     if (tour_code) {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('tournament_results')
             .select('*')
             .eq('tour_code', tour_code)
@@ -97,7 +102,7 @@ async function handleGet(req, res) {
         const searchTerm = player_name.toLowerCase();
 
         // 1. Match against winner_name using ilike
-        const { data: winnerRows, error: winnerError } = await supabase
+        const { data: winnerRows, error: winnerError } = await getSupabase()
             .from('tournament_results')
             .select('*')
             .ilike('winner_name', `%${searchTerm}%`)
@@ -110,7 +115,7 @@ async function handleGet(req, res) {
         }
 
         // 2. Match inside results_json – cast JSONB to text and search with ilike
-        const { data: jsonRows, error: jsonError } = await supabase
+        const { data: jsonRows, error: jsonError } = await getSupabase()
             .from('tournament_results')
             .select('*')
             .filter('results_json::text', 'ilike', `%${searchTerm}%`)
@@ -133,7 +138,7 @@ async function handleGet(req, res) {
     if (latest === 'true') {
         const rowLimit = Math.min(parseInt(limit, 10) || 20, 100);
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('tournament_results')
             .select('*')
             .order('event_date', { ascending: false })
@@ -172,9 +177,9 @@ async function handlePost(req, res) {
         // Fall back to JWT + platform admin role check
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (token) {
-            const { data: { user } } = await supabase.auth.getUser(token);
+            const { data: { user } } = await getSupabase().auth.getUser(token);
             if (user) {
-                const { data: profile } = await supabase
+                const { data: profile } = await getSupabase()
                     .from('profiles').select('role').eq('id', user.id).maybeSingle();
                 if (profile?.role !== 'admin' && profile?.role !== 'superadmin') {
                     return res.status(403).json({ success: false, error: 'Admin access required' });
@@ -228,7 +233,7 @@ async function handlePost(req, res) {
         results_json: results || [],
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
         .from('tournament_results')
         .insert([row])
         .select();

@@ -6,10 +6,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 function getDateRange(range, customStart, customEnd) {
   const now = new Date();
@@ -36,14 +41,14 @@ export default async function handler(req, res) {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ success: false, error: 'Auth required' });
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { venue_id, range = 'month', start: customStart, end: customEnd } = req.query;
       if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
 
       let staff = null;
-      const { data: staffRow } = await supabase
+      const { data: staffRow } = await getSupabase()
         .from('commander_staff')
         .select('id, role')
         .eq('venue_id', venue_id)
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
         staff = staffRow;
       } else {
         // Fallback: check if user is the venue owner via subscription
-        const { data: sub } = await supabase
+        const { data: sub } = await getSupabase()
           .from('commander_subscriptions')
           .select('id, venue_id, owner_id')
           .eq('owner_id', user.id)
@@ -68,7 +73,7 @@ export default async function handler(req, res) {
       const { start, end } = getDateRange(range, customStart, customEnd);
 
       // 1. Time billing revenue
-      const { data: timeSessions } = await supabase
+      const { data: timeSessions } = await getSupabase()
         .from('commander_table_sessions')
         .select('amount_charged, duration_minutes, created_at, status')
         .eq('venue_id', venue_id)
@@ -91,7 +96,7 @@ export default async function handler(req, res) {
       });
 
       // 2. Tournament revenue
-      const { data: tournaments } = await supabase
+      const { data: tournaments } = await getSupabase()
         .from('commander_tournaments')
         .select('id, name, buyin_amount, fee_amount, status, created_at')
         .eq('venue_id', venue_id)
@@ -103,7 +108,7 @@ export default async function handler(req, res) {
       let tournamentEntryCount = 0;
 
       for (const t of (tournaments || [])) {
-        const { data: entries } = await supabase
+        const { data: entries } = await getSupabase()
           .from('commander_tournament_entries')
           .select('id, buyin_amount, rebuy_count')
           .eq('tournament_id', t.id)
@@ -118,7 +123,7 @@ export default async function handler(req, res) {
       }
 
       // 3. Comp costs (from commander_member_comp_log — the actual comp log table)
-      const { data: compTxns } = await supabase
+      const { data: compTxns } = await getSupabase()
         .from('commander_member_comp_log')
         .select('type, amount, comp_category, created_at, notes')
         .eq('venue_id', venue_id)
@@ -153,7 +158,7 @@ export default async function handler(req, res) {
       for (const t of (tournaments || [])) {
         const day = t.created_at?.split('T')[0];
         if (day) {
-          const { data: entries } = await supabase
+          const { data: entries } = await getSupabase()
             .from('commander_tournament_entries')
             .select('id, rebuy_count')
             .eq('tournament_id', t.id)

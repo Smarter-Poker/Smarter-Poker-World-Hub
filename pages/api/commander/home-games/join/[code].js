@@ -8,10 +8,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -49,7 +54,7 @@ async function getClubByCode(req, res, code) {
     const upperCode = code.toUpperCase();
 
     // Try club_code first (6 chars), then invite_code (8 chars)
-    let { data: group, error } = await supabase
+    let { data: group, error } = await getSupabase()
       .from('commander_home_groups')
       .select(`
         id,
@@ -79,10 +84,10 @@ async function getClubByCode(req, res, code) {
 
     if (authHeader) {
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
 
       if (user) {
-        const { data: membership } = await supabase
+        const { data: membership } = await getSupabase()
           .from('commander_home_members')
           .select('status, role')
           .eq('group_id', group.id)
@@ -112,7 +117,7 @@ async function joinClubByCode(req, res, code) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -121,7 +126,7 @@ async function joinClubByCode(req, res, code) {
     const upperCode = code.toUpperCase();
 
     // Find group
-    const { data: group, error: groupError } = await supabase
+    const { data: group, error: groupError } = await getSupabase()
       .from('commander_home_groups')
       .select('id, name, requires_approval, invite_code, club_code')
       .or(`club_code.eq.${upperCode},invite_code.eq.${upperCode}`)
@@ -133,7 +138,7 @@ async function joinClubByCode(req, res, code) {
     }
 
     // Check for existing membership
-    const { data: existing } = await supabase
+    const { data: existing } = await getSupabase()
       .from('commander_home_members')
       .select('id, status')
       .eq('group_id', group.id)
@@ -161,7 +166,7 @@ async function joinClubByCode(req, res, code) {
     const status = autoApprove ? 'approved' : 'pending';
 
     // Create membership
-    const { data: membership, error } = await supabase
+    const { data: membership, error } = await getSupabase()
       .from('commander_home_members')
       .upsert({
         group_id: group.id,

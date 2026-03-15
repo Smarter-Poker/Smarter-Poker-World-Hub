@@ -7,10 +7,15 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -22,14 +27,14 @@ export default async function handler(req, res) {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ success: false, error: 'Auth required' });
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await getSupabase().auth.getUser(token);
       if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { session_id, table_number, venue_id } = req.query;
 
       if (session_id) {
         // Single session totals
-        const { data: txns } = await supabase
+        const { data: txns } = await getSupabase()
           .from('commander_cash_transactions')
           .select('type, amount, created_at, payment_method')
           .eq('session_id', session_id)
@@ -54,7 +59,7 @@ export default async function handler(req, res) {
 
       if (table_number && venue_id) {
         // All active sessions at table with their cash totals
-        const { data: sessions } = await supabase
+        const { data: sessions } = await getSupabase()
           .from('commander_table_sessions')
           .select('id, player_name, seat_number, started_at')
           .eq('venue_id', venue_id)
@@ -67,7 +72,7 @@ export default async function handler(req, res) {
         }
 
         const sessionIds = sessions.map(s => s.id);
-        const { data: allTxns } = await supabase
+        const { data: allTxns } = await getSupabase()
           .from('commander_cash_transactions')
           .select('session_id, type, amount')
           .in('session_id', sessionIds)

@@ -4,10 +4,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -23,7 +28,7 @@ export default async function handler(req, res) {
 
       try {
           // Check our queue entry status
-          const { data: entry, error } = await supabase
+          const { data: entry, error } = await getSupabase()
               .from('arcade_duel_queue')
               .select('id, status, user_id, duel_type, matched_with, matched_at, expires_at')
               .eq('id', queue_id)
@@ -44,7 +49,7 @@ export default async function handler(req, res) {
 
           // If expired, return expired
           if (new Date(entry.expires_at) < new Date()) {
-              await supabase
+              await getSupabase()
                   .from('arcade_duel_queue')
                   .update({ status: 'expired' })
                   .eq('id', queue_id);
@@ -53,7 +58,7 @@ export default async function handler(req, res) {
           }
 
           // Try to find a match
-          const { data: opponent } = await supabase
+          const { data: opponent } = await getSupabase()
               .from('arcade_duel_queue')
               .select('*')
               .eq('duel_type', entry.duel_type)
@@ -68,12 +73,12 @@ export default async function handler(req, res) {
               const now = new Date().toISOString();
 
               // Match both entries
-              await supabase
+              await getSupabase()
                   .from('arcade_duel_queue')
                   .update({ status: 'matched', matched_with: opponent.user_id, matched_at: now })
                   .eq('id', queue_id);
 
-              await supabase
+              await getSupabase()
                   .from('arcade_duel_queue')
                   .update({ status: 'matched', matched_with: entry.user_id, matched_at: now })
                   .eq('id', opponent.id);

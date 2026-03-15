@@ -7,10 +7,15 @@ import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
       const timestamp = new Date().toISOString();
 
       // --- RACE CONDITION GUARD: Verify all destination seats are still empty ---
-      const { data: conflictingSeats } = await supabase
+      const { data: conflictingSeats } = await getSupabase()
         .from('commander_tournament_entries')
         .select('table_number, seat_number, player_name')
         .eq('tournament_id', tournamentId)
@@ -66,7 +71,7 @@ export default async function handler(req, res) {
           continue;
         }
 
-        const { data: entry } = await supabase
+        const { data: entry } = await getSupabase()
           .from('commander_tournament_entries')
           .select('table_number, seat_number, player_name, metadata')
           .eq('id', move.entry_id)
@@ -78,7 +83,7 @@ export default async function handler(req, res) {
           continue;
         }
 
-        const { error: uErr } = await supabase
+        const { error: uErr } = await getSupabase()
           .from('commander_tournament_entries')
           .update({
             table_number: move.to_table,

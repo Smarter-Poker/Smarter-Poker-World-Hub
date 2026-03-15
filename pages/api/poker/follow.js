@@ -15,10 +15,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // UUID v4 format check — page_followers.user_id is UUID type
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -67,7 +72,7 @@ async function handleGet(req, res) {
             return res.status(200).json({ success: true, data: [], total: 0 });
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('page_followers')
             .select('*')
             .eq('user_id', user_id)
@@ -87,7 +92,7 @@ async function handleGet(req, res) {
 
     // Get follower count for a specific page
     if (page_type && page_id) {
-        const { count, error } = await supabase
+        const { count, error } = await getSupabase()
             .from('page_followers')
             .select('*', { count: 'exact', head: true })
             .eq('page_type', page_type)
@@ -113,7 +118,7 @@ async function handleGet(req, res) {
         if (!UUID_RE.test(checkUserId)) {
             return res.status(200).json({ success: true, is_following: false });
         }
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
             .from('page_followers')
             .select('id')
             .eq('user_id', checkUserId)
@@ -146,7 +151,7 @@ async function syncToSocialPageFollowers(userId, pageType, pageIdStr, action) {
         // Skip anonymous user IDs (not valid UUIDs for social_page_followers FK)
         if (!userId || userId.startsWith('anon-')) return;
 
-        const { data: socialPage } = await supabase
+        const { data: socialPage } = await getSupabase()
             .from('social_pages')
             .select('id')
             .eq('linked_venue_id', pageIdStr)
@@ -155,7 +160,7 @@ async function syncToSocialPageFollowers(userId, pageType, pageIdStr, action) {
         if (!socialPage) return;
 
         if (action === 'follow') {
-            await supabase
+            await getSupabase()
                 .from('social_page_followers')
                 .upsert({
                     page_id: socialPage.id,
@@ -164,7 +169,7 @@ async function syncToSocialPageFollowers(userId, pageType, pageIdStr, action) {
                     notifications_enabled: true,
                 }, { onConflict: 'page_id,user_id' });
         } else {
-            await supabase
+            await getSupabase()
                 .from('social_page_followers')
                 .delete()
                 .eq('page_id', socialPage.id)
@@ -182,7 +187,7 @@ async function handlePost(req, res) {
     // Require JWT for follow/unfollow writes
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'Authentication required for follow/unfollow' });
-    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+    const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
     if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
     const userId = authUser.id;
 
@@ -202,7 +207,7 @@ async function handlePost(req, res) {
 
     if (action === 'follow') {
         // Upsert - insert if not exists
-        const { data: existing } = await supabase
+        const { data: existing } = await getSupabase()
             .from('page_followers')
             .select('id')
             .eq('user_id', userId)
@@ -220,7 +225,7 @@ async function handlePost(req, res) {
             });
         }
 
-        const { error } = await supabase
+        const { error } = await getSupabase()
             .from('page_followers')
             .insert({
                 user_id: userId,
@@ -255,7 +260,7 @@ async function handlePost(req, res) {
     }
 
     if (action === 'unfollow') {
-        const { error } = await supabase
+        const { error } = await getSupabase()
             .from('page_followers')
             .delete()
             .eq('user_id', userId)

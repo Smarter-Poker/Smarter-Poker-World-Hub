@@ -13,8 +13,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 // ORB-0 FIX-5: No hardcoded fallbacks — env vars are mandatory
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default async function handler(req, res) {
@@ -36,8 +34,15 @@ export default async function handler(req, res) {
       }
 
       // Use service key to bypass RLS
-      const supabase = createClient(
-          SUPABASE_URL.trim(),
+      let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+},
           SUPABASE_SERVICE_ROLE_KEY
       );
 
@@ -48,7 +53,7 @@ export default async function handler(req, res) {
           return res.status(401).json({ error: 'Auth token required' });
       }
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+      const { data: { user: authUser }, error: authError } = await getSupabase().auth.getUser(token);
       if (authError || !authUser) {
           return res.status(401).json({ error: 'Invalid or expired token' });
       }
@@ -58,7 +63,7 @@ export default async function handler(req, res) {
 
       try {
           // Step 1: Check if profile exists by user_id
-          const { data: existingProfile, error: checkError } = await supabase
+          const { data: existingProfile, error: checkError } = await getSupabase()
               .from('profiles')
               .select('id, username, full_name, email, created_at')
               .eq('id', user_id)
@@ -66,7 +71,7 @@ export default async function handler(req, res) {
 
           if (existingProfile) {
               // Profile exists - optionally update last_login
-              await supabase
+              await getSupabase()
                   .from('profiles')
                   .update({
                       last_login: new Date().toISOString(),
@@ -95,7 +100,7 @@ export default async function handler(req, res) {
           // a new auth.users entry but should NOT create a new profile.
           // ═══════════════════════════════════════════════════════════════════
           if (email) {
-              const { data: emailMatch, error: emailCheckError } = await supabase
+              const { data: emailMatch, error: emailCheckError } = await getSupabase()
                   .from('profiles')
                   .select('id, username, full_name, email, created_at')
                   .ilike('email', email.trim())
@@ -106,7 +111,7 @@ export default async function handler(req, res) {
 
                   // Update the existing profile to reflect the latest login
                   // but DO NOT change the profile's id — it stays linked to the ORIGINAL auth user
-                  await supabase
+                  await getSupabase()
                       .from('profiles')
                       .update({
                           last_login: new Date().toISOString(),
@@ -131,7 +136,7 @@ export default async function handler(req, res) {
           console.log(`[ANTIGRAVITY] Creating profile for orphaned user: ${user_id}`);
 
           // Get next player number
-          const { data: maxPlayer } = await supabase
+          const { data: maxPlayer } = await getSupabase()
               .from('profiles')
               .select('player_number')
               .order('player_number', { ascending: false })
@@ -146,7 +151,7 @@ export default async function handler(req, res) {
               `Player${nextPlayerNumber}`;
 
           // Create the profile with all the defaults
-          const { data: newProfile, error: insertError } = await supabase
+          const { data: newProfile, error: insertError } = await getSupabase()
               .from('profiles')
               .insert({
                   id: user_id,
@@ -175,7 +180,7 @@ export default async function handler(req, res) {
               console.error('[ANTIGRAVITY] Profile creation failed:', insertError);
 
               // Try with minimal fields if full insert failed
-              const { data: minimalProfile, error: minimalError } = await supabase
+              const { data: minimalProfile, error: minimalError } = await getSupabase()
                   .from('profiles')
                   .insert({
                       id: user_id,

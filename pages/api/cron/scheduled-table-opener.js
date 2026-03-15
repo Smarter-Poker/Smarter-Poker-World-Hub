@@ -9,10 +9,15 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabaseAdmin = null;
+function getSupabaseAdmin() {
+    if (!_supabaseAdmin) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabaseAdmin = createClient(url, key);
+    }
+    return _supabaseAdmin;
+}
 
 export default async function handler(req, res) {
   try {
@@ -28,7 +33,7 @@ export default async function handler(req, res) {
     try {
       // Get all enabled schedules where next_scheduled_at is in the past (or null)
       const now = new Date();
-      const { data: templates, error } = await supabaseAdmin
+      const { data: templates, error } = await getSupabaseAdmin()
         .from('table_templates')
         .select('*, clubs(id, name, club_id, status)')
         .eq('schedule_enabled', true)
@@ -77,7 +82,7 @@ export default async function handler(req, res) {
           }
 
           // Check if a table with this template's name is already running
-          const { data: existingTable } = await supabaseAdmin
+          const { data: existingTable } = await getSupabaseAdmin()
             .from('tables')
             .select('id')
             .eq('club_id', tmpl.club_id)
@@ -89,7 +94,7 @@ export default async function handler(req, res) {
 
           // Create the table
           const settings = tmpl.settings || {};
-          const { data: newTable, error: createErr } = await supabaseAdmin
+          const { data: newTable, error: createErr } = await getSupabaseAdmin()
             .from('tables')
             .insert({
               club_id: tmpl.club_id,
@@ -114,7 +119,7 @@ export default async function handler(req, res) {
           if (createErr) throw createErr;
 
           // Update template metadata
-          await supabaseAdmin
+          await getSupabaseAdmin()
             .from('table_templates')
             .update({
               last_scheduled_at: now.toISOString(),
@@ -152,7 +157,7 @@ export default async function handler(req, res) {
           candidate.setDate(candidate.getDate() + offset);
           candidate.setHours(h, m, 0, 0);
           if (tmpl.schedule_days.includes(candidate.getDay())) {
-            await supabaseAdmin
+            await getSupabaseAdmin()
               .from('table_templates')
               .update({ next_scheduled_at: candidate.toISOString() })
               .eq('id', tmpl.id);

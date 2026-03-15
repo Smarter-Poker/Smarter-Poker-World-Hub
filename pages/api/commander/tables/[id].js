@@ -8,10 +8,15 @@ import { verifyStaffSession } from '../../../../src/lib/commander/auth';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const VALID_STATUSES = ['available', 'in_use', 'reserved', 'maintenance'];
 
@@ -61,7 +66,7 @@ async function handleGet(req, res, tableId) {
       });
     }
 
-    const { data: table, error } = await supabase
+    const { data: table, error } = await getSupabase()
       .from('commander_tables')
       .select(`
         *,
@@ -119,7 +124,7 @@ async function handlePatch(req, res, tableId) {
     const { table_name, max_seats, status, features, position_x, position_y, rotation, game_type, stakes, table_purpose, mode } = req.body;
 
     // Verify table exists
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing, error: fetchError } = await getSupabase()
       .from('commander_tables')
       .select('id, status, current_game_id')
       .eq('id', tableId)
@@ -162,7 +167,7 @@ async function handlePatch(req, res, tableId) {
     const newMode = updates.mode || updates.table_purpose;
     if (newMode) {
       // Fetch the table's current mode and check for active games
-      const { data: tableWithGames } = await supabase
+      const { data: tableWithGames } = await getSupabase()
         .from('commander_tables')
         .select(`
           mode, table_purpose,
@@ -225,7 +230,7 @@ async function handlePatch(req, res, tableId) {
       });
     }
 
-    const { data: table, error: updateError } = await supabase
+    const { data: table, error: updateError } = await getSupabase()
       .from('commander_tables')
       .update(updates)
       .eq('id', tableId)
@@ -278,7 +283,7 @@ async function handleDelete(req, res, tableId) {
     }
 
     // Verify table exists and is not in use
-    const { data: table, error: fetchError } = await supabase
+    const { data: table, error: fetchError } = await getSupabase()
       .from('commander_tables')
       .select('id, status, current_game_id, table_number, venue_id')
       .eq('id', tableId)
@@ -298,7 +303,7 @@ async function handleDelete(req, res, tableId) {
       });
     }
 
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await getSupabase()
       .from('commander_tables')
       .delete()
       .eq('id', tableId);

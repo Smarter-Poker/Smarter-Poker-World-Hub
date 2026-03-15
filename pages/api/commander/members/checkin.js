@@ -7,10 +7,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -29,14 +34,14 @@ export default async function handler(req, res) {
       const { member_id } = req.body;
       if (!member_id) return res.status(400).json({ success: false, error: 'member_id required' });
 
-      // Increment visit count (two-step since supabase.raw() is not supported in JS v2)
-      const { data: currentMember } = await supabase
+      // Increment visit count (two-step since getSupabase().raw() is not supported in JS v2)
+      const { data: currentMember } = await getSupabase()
         .from('commander_members')
         .select('visit_count')
         .eq('id', member_id)
         .maybeSingle();
 
-      const { data: member, error: memberError } = await supabase
+      const { data: member, error: memberError } = await getSupabase()
         .from('commander_members')
         .update({
           last_checkin: new Date().toISOString(),
@@ -47,7 +52,7 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       // Also log the check-in event
-      await supabase.from('commander_checkins').insert({
+      await getSupabase().from('commander_checkins').insert({
         member_id,
         venue_id: member?.venue_id,
         checked_in_at: new Date().toISOString()

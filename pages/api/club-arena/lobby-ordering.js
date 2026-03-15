@@ -10,10 +10,15 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
@@ -25,7 +30,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Not authenticated' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
       const { action, clubId, order } = req.body;
@@ -33,7 +38,7 @@ export default async function handler(req, res) {
 
       try {
           if (action === 'get') {
-              const { data: clubData } = await supabaseAdmin
+              const { data: clubData } = await getSupabase()
                   .from('clubs')
                   .select('settings')
                   .eq('id', clubId)
@@ -47,7 +52,7 @@ export default async function handler(req, res) {
 
           if (action === 'save') {
               // Admin only
-              const { data: membership } = await supabaseAdmin
+              const { data: membership } = await getSupabase()
                   .from('club_members')
                   .select('role')
                   .eq('club_id', clubId)
@@ -61,7 +66,7 @@ export default async function handler(req, res) {
               if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array of table IDs' });
 
               // Merge with existing settings
-              const { data: existing } = await supabaseAdmin
+              const { data: existing } = await getSupabase()
                   .from('clubs')
                   .select('settings')
                   .eq('id', clubId)
@@ -71,7 +76,7 @@ export default async function handler(req, res) {
               settings.lobby_order = order;
               settings.lobby_order_updated = new Date().toISOString();
 
-              const { error } = await supabaseAdmin
+              const { error } = await getSupabase()
                   .from('clubs')
                   .update({ settings })
                   .eq('id', clubId);

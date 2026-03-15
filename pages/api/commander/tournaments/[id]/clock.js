@@ -18,10 +18,15 @@ import { logAction } from '../../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Auth: STAFF_WRITE — requires manager or owner role
 export default async function handler(req, res) {
@@ -63,7 +68,7 @@ export default async function handler(req, res) {
 
 async function getClockState(req, res, tournamentId) {
   try {
-    const { data: tournament, error } = await supabase
+    const { data: tournament, error } = await getSupabase()
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
@@ -93,7 +98,7 @@ async function getClockState(req, res, tournamentId) {
         pausedDuration: 0
       };
       const updatedSettings = { ...settings, clock_state: clockState };
-      await supabase
+      await getSupabase()
         .from('commander_tournaments')
         .update({ settings: updatedSettings })
         .eq('id', tournamentId);
@@ -176,7 +181,7 @@ async function handleClockAction(req, res, tournamentId, staff) {
     const { action } = req.body;
 
     // Get tournament
-    const { data: tournament, error: fetchError } = await supabase
+    const { data: tournament, error: fetchError } = await getSupabase()
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
@@ -419,7 +424,7 @@ async function handleClockAction(req, res, tournamentId, staff) {
       settings: updatedSettings
     };
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await getSupabase()
       .from('commander_tournaments')
       .update(updatePayload)
       .eq('id', tournamentId);
@@ -442,7 +447,7 @@ async function handleClockAction(req, res, tournamentId, staff) {
         const stakesStr = `${sb}/${bb}` + (newLevel.ante ? ` (${newLevel.ante}a)` : '');
 
         // Push the new blinds to all active tables for this tournament (Commander ecosystem)
-        await supabase
+        await getSupabase()
           .from('commander_tables')
           .update({
             small_blind: sb,
@@ -453,7 +458,7 @@ async function handleClockAction(req, res, tournamentId, staff) {
           .neq('status', 'closed');
 
         // Push the new blinds to all active tables for this tournament (Club Arena legacy ecosystem)
-        await supabase
+        await getSupabase()
           .from('tables')
           .update({
             small_blind: sb,
@@ -469,7 +474,7 @@ async function handleClockAction(req, res, tournamentId, staff) {
 
 
     // Re-fetch the updated tournament
-    const { data: updated } = await supabase
+    const { data: updated } = await getSupabase()
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
@@ -521,7 +526,7 @@ async function handleClockAction(req, res, tournamentId, staff) {
 async function fireTournamentStartNotification(tournamentId, tournamentName) {
   if (!isOneSignalConfigured()) return;
 
-  const { data: entries } = await supabase
+  const { data: entries } = await getSupabase()
     .from('commander_tournament_entries')
     .select('player_id')
     .eq('tournament_id', tournamentId)

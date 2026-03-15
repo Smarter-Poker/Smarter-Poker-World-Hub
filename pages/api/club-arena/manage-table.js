@@ -17,10 +17,15 @@ const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena
 
 const VALID_ACTIONS = ['close', 'delete', 'pause', 'resume'];
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -45,7 +50,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
-      const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { tableId, clubId, action } = req.body;
@@ -62,7 +67,7 @@ export default async function handler(req, res) {
       }
 
       // Verify caller is owner or admin
-      const { data: member } = await supabaseAdmin
+      const { data: member } = await getSupabase()
         .from('club_members')
         .select('role')
         .eq('club_id', clubId)
@@ -71,18 +76,18 @@ export default async function handler(req, res) {
 
       if (!member || !['owner', 'admin'].includes(member.role)) {
         // Union admin fallback
-        const { data: clubInfo, error: clubInfoErr } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).maybeSingle();
+        const { data: clubInfo, error: clubInfoErr } = await getSupabase().from('clubs').select('union_id').eq('id', clubId).maybeSingle();
         if (clubInfoErr || !clubInfo) {
           return res.status(403).json({ success: false, error: 'Only owners, admins, or union admins can manage tables' });
         }
         let unionAuth = false;
         if (clubInfo.union_id) {
-          const { data: ua, error: uaErr } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
+          const { data: ua, error: uaErr } = await getSupabase().from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
           if (ua && !uaErr) {
               unionAuth = true;
           } else {
               // Owner fallback
-              const { data: union } = await supabaseAdmin.from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
+              const { data: union } = await getSupabase().from('unions').select('id').eq('id', clubInfo.union_id).eq('owner_id', user.id).maybeSingle();
               if (union) unionAuth = true;
           }
         }
@@ -92,7 +97,7 @@ export default async function handler(req, res) {
       }
 
       // Verify table belongs to club
-      const { data: table } = await supabaseAdmin
+      const { data: table } = await getSupabase()
         .from('tables')
         .select('id, club_id, status, name')
         .eq('id', tableId)
@@ -124,7 +129,7 @@ export default async function handler(req, res) {
           }
 
           // ── C-01: Atomic conditional update ──
-          const { data: updated, error: updErr } = await supabaseAdmin
+          const { data: updated, error: updErr } = await getSupabase()
             .from('tables')
             .update({ status: 'closed', updated_at: new Date().toISOString() })
             .eq('id', tableId)
@@ -158,7 +163,7 @@ export default async function handler(req, res) {
           }
 
           // ── C-01: Atomic conditional update ──
-          const { data: updated, error: updErr } = await supabaseAdmin
+          const { data: updated, error: updErr } = await getSupabase()
             .from('tables')
             .update({ status: 'deleted', updated_at: new Date().toISOString() })
             .eq('id', tableId)
@@ -176,11 +181,11 @@ export default async function handler(req, res) {
           } catch (_) { /* intentionally silent */ }
 
           // Decrement club table count (C-02 wrapper — atomic JS fallback if RPC fails)
-          await supabaseAdmin.rpc('decrement_club_table_count', { p_club_id: clubId }).catch(async () => {
+          await getSupabase().rpc('decrement_club_table_count', { p_club_id: clubId }).catch(async () => {
             // Atomic decrement update
-            const { data: club } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).maybeSingle();
+            const { data: club } = await getSupabase().from('clubs').select('table_count').eq('id', clubId).maybeSingle();
             if (club) {
-              await supabaseAdmin.from('clubs').update({ table_count: Math.max(0, (club.table_count || 1) - 1) }).eq('id', clubId);
+              await getSupabase().from('clubs').update({ table_count: Math.max(0, (club.table_count || 1) - 1) }).eq('id', clubId);
             }
           });
 
@@ -198,7 +203,7 @@ export default async function handler(req, res) {
           }
 
           // ── C-01: Atomic conditional update ──
-          const { data: updated, error: updErr } = await supabaseAdmin
+          const { data: updated, error: updErr } = await getSupabase()
             .from('tables')
             .update({ status: 'paused', updated_at: new Date().toISOString() })
             .eq('id', tableId)
@@ -233,7 +238,7 @@ export default async function handler(req, res) {
           }
 
           // ── C-01: Atomic conditional update ──
-          const { data: updated, error: updErr } = await supabaseAdmin
+          const { data: updated, error: updErr } = await getSupabase()
             .from('tables')
             .update({ status: 'running', updated_at: new Date().toISOString() })
             .eq('id', tableId)
