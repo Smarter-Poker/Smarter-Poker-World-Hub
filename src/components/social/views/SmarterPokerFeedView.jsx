@@ -387,6 +387,37 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         return () => { if (unsub) unsub(); };
     }, []);
 
+    // Listen for reaction events to update like counts + optimistic state (Cross-Component Sync)
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SOCIAL_POST_LIKED, (event) => {
+            const { postId, userId } = event?.payload || {};
+            const { added, reactionType } = event?.meta || {};
+            
+            if (postId) {
+                setPosts(prev => prev.map(p => {
+                    if (p.id === postId) {
+                        const isCurrentUser = userId === currentUser?.id;
+                        const isLiked = isCurrentUser ? added : p.isLiked;
+                        const newReactionType = isCurrentUser && reactionType ? reactionType : p.reactionType;
+                        
+                        let newLikeCount = p.engagement?.likeCount || 0;
+                        if (added) newLikeCount += 1;
+                        else if (!added) newLikeCount = Math.max(0, newLikeCount - 1);
+
+                        return {
+                            ...p,
+                            isLiked,
+                            reactionType: newReactionType,
+                            engagement: { ...p.engagement, likeCount: newLikeCount }
+                        };
+                    }
+                    return p;
+                }));
+            }
+        });
+        return () => { if (unsub) unsub(); };
+    }, [currentUser?.id]);
+
     // ─────────────────────────────────────────────────────────────────────────
     // ✋ INTERACTION HANDLERS
     // ─────────────────────────────────────────────────────────────────────────
@@ -412,8 +443,8 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         }));
 
         try {
-            await socialService.toggleReaction(postId, currentUser.id, reactionType);
-            busEmit.socialPostLiked(postId, currentUser.id);
+            const { added, type } = await socialService.toggleReaction(postId, currentUser.id, reactionType);
+            busEmit.socialPostLiked(postId, currentUser.id, { added, reactionType: type });
         } catch (error) {
             console.error('Reaction failed:', error);
             // Revert optimistic update

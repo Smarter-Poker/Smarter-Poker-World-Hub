@@ -578,11 +578,36 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
                 }));
             }
         });
+        const unsub3 = eventBus.on(EventType.SOCIAL_POST_LIKED, (event) => {
+            const { postId, userId } = event?.payload || {};
+            const { added, reactionType } = event?.meta || {};
+            if (postId) {
+                setPosts(prev => prev.map(p => {
+                    if (p.id === postId) {
+                        const isCurrentUser = userId === currentUser?.id;
+                        const isLiked = isCurrentUser ? added : p.isLiked;
+                        const newReactionType = isCurrentUser && reactionType ? reactionType : p.reactionType;
+                        
+                        let newLikeCount = p.engagement?.likeCount || 0;
+                        if (added) newLikeCount += 1;
+                        else if (!added) newLikeCount = Math.max(0, newLikeCount - 1);
+
+                        return {
+                            ...p,
+                            isLiked,
+                            reactionType: newReactionType,
+                            engagement: { ...p.engagement, likeCount: newLikeCount }
+                        };
+                    }
+                    return p;
+                }));
+            }
+        });
         return () => {
-            unsub1(); unsub2();
+            unsub1(); unsub2(); unsub3();
             if (debounceTimer) clearTimeout(debounceTimer);
         };
-    }, [loadClubData]);
+    }, [loadClubData, currentUser?.id]);
 
     // Supabase real-time subscription for new club posts
     useEffect(() => {
@@ -620,7 +645,8 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
             return p;
         }));
         try {
-            await socialService.toggleReaction(postId, currentUser.id, reactionType);
+            const { added, type } = await socialService.toggleReaction(postId, currentUser.id, reactionType);
+            busEmit.socialPostLiked(postId, currentUser.id, { added, reactionType: type });
         } catch {
             // Revert on failure
             setPosts(prev => prev.map(p => {
