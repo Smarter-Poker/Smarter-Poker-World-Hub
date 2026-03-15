@@ -19,6 +19,7 @@ import { Trophy, BookOpen, GraduationCap, Gem, CheckCircle, XCircle, ArrowRight,
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
+import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import { busEmit } from '../../../src/engine/EventBus';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
@@ -482,7 +483,7 @@ export default function MixedModePage() {
     const CategoryIcon = currentCategory.icon;
 
     return (
-        <PageTransition>
+        <TriviaErrorBoundary pageName="Mixed Mode">
             <SEOHead
                 title="Mixed Trivia — All Categories"
                 description="Challenge Yourself With Mixed Poker Trivia Covering All Categories And Difficulty Levels."
@@ -1021,6 +1022,6 @@ export default function MixedModePage() {
                     }
                 }
             `}</style>
-        </PageTransition>
+        </TriviaErrorBoundary>
     );
 }

@@ -20,6 +20,7 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
+import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 /** Shuffle answer options so correct answer isn't always A */
@@ -657,7 +658,7 @@ export default function EndlessModePage() {
     const currentQuestion = questions[currentIndex];
 
     return (
-        <>
+        <TriviaErrorBoundary pageName="Endless Mode">
             <SEOHead
                 title="Endless Trivia — Keep The Streak Alive"
                 description="How Many Poker Trivia Questions Can You Answer In A Row? Play Endless Mode To Test Your Limits."
@@ -1323,6 +1324,6 @@ export default function EndlessModePage() {
                     </div>
                 </div>
             </PageTransition >
-        </>
+        </TriviaErrorBoundary>
     );
 }

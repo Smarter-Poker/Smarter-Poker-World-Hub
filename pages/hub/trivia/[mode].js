@@ -11,6 +11,7 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
+import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import { busEmit } from '../../../src/engine/EventBus';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -728,7 +729,7 @@ export default function TriviaModePage() {
     }
 
     return (
-        <PageTransition>
+        <TriviaErrorBoundary pageName={`Trivia — ${modeName}`}>
             <SEOHead
                 title="Poker Trivia Game"
                 description="Play Poker Trivia On Smarter.Poker. Test Your Knowledge Across Multiple Game Modes."
@@ -1286,7 +1287,7 @@ export default function TriviaModePage() {
                     }
                 }
             `}</style>
-        </PageTransition>
+        </TriviaErrorBoundary>
     );
 }
 /* Cache bust: lobby-images-mobile-v3 */

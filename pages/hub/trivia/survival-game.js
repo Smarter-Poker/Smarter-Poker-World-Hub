@@ -24,6 +24,7 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
+import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 /** Shuffle answer options so correct answer isn't always A */
@@ -730,7 +731,7 @@ export default function SurvivalGamePage() {
     const progressPercent = ((currentQuestionIndex + 1) / QUESTIONS_PER_LEVEL) * 100;
 
     return (
-        <>
+        <TriviaErrorBoundary pageName="Survival Mode">
             <SEOHead
                 title="Survival Trivia Game"
                 description="Play The Survival Trivia Challenge. Answer Correctly Or Lose Your Streak."
@@ -1566,6 +1567,6 @@ export default function SurvivalGamePage() {
                     </div>
                 </div>
             </PageTransition>
-        </>
+        </TriviaErrorBoundary>
     );
 }

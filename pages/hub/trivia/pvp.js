@@ -21,6 +21,7 @@ import {
     processMatchReward
 } from '../../../src/services/pvpMatchmaking';
 import { busEmit } from '../../../src/engine/EventBus';
+import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -786,7 +787,7 @@ export default function PvPPage() {
     const currentQuestion = questions[currentQuestionIndex];
 
     return (
-        <PageTransition>
+        <TriviaErrorBoundary pageName="PvP Battle">
             <SEOHead
                 title="PvP Trivia — Player vs Player"
                 description="Challenge Other Players To Head-to-head Poker Trivia Battles. Prove Who Knows Poker Best."
@@ -1784,6 +1785,6 @@ export default function PvPPage() {
                     }
                 }
             `}</style>
-        </PageTransition>
+        </TriviaErrorBoundary>
     );
 }

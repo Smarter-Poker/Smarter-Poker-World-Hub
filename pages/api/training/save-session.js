@@ -12,11 +12,17 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 export default async function handler(req, res) {
   try {
       withTiming(res);
@@ -25,7 +31,7 @@ export default async function handler(req, res) {
       // Auth
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       if (req.method !== 'POST') {
@@ -121,7 +127,7 @@ export default async function handler(req, res) {
           if (safeSpeedBonus > 0) {
               try {
                   // Use RPC to atomically increment diamonds
-                  const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                  const { error: rpcErr } = await getSupabase().rpc('add_diamonds_to_balance', {
                       p_user_id: userId,
                       p_amount: safeSpeedBonus,
                       p_type: 'speed_bonus',

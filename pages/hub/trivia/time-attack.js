@@ -18,6 +18,7 @@ import HexButton from '../../../src/components/ui/HexButton';
 import { Timer, Trophy, Gem, Zap, Play } from 'lucide-react';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
+import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import { busEmit } from '../../../src/engine/EventBus';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
@@ -301,7 +302,7 @@ export default function TimeAttackPage() {
     );
 
     return (
-        <PageTransition>
+        <TriviaErrorBoundary pageName="Time Attack">
             <SEOHead
                 title="Time Attack Trivia — Beat The Clock"
                 description="Race Against The Clock In Time Attack Poker Trivia. Answer As Many Questions As Possible Before Time Runs Out."
@@ -653,6 +654,6 @@ export default function TimeAttackPage() {
                     justify-content: center;
                 }
             `}</style>
-        </PageTransition>
+        </TriviaErrorBoundary>
     );
 }

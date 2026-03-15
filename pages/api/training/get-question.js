@@ -27,11 +27,17 @@ function hashSeed(str) {
     return Math.abs(h);
 }
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 export default async function handler(req, res) {
   try {
       withTiming(res);
@@ -40,7 +46,7 @@ export default async function handler(req, res) {
       // BUG #245 FIX: Require JWT auth
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+      const { data: { user: _authUser }, error: _authErr } = await getSupabase().auth.getUser(_token);
       if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       if (req.method !== 'GET') {
@@ -159,7 +165,7 @@ export default async function handler(req, res) {
                   // Enrich cached questions that were generated before GTO fields were added
                   question = enrichGrokQuestion(cachedQuestions[randomIndex].question_data, gameConfig, parseInt(level, 10), gameType);
 
-                  // Increment times_used (supabase.raw() doesn't exist in JS SDK v2)
+                  // Increment times_used (getSupabase().raw() doesn't exist in JS SDK v2)
                   const questionId = cachedQuestions[randomIndex].question_id;
                   const { data: currentQ } = await supabase
                       .from('training_question_cache')

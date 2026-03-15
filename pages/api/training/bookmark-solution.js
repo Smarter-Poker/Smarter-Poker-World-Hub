@@ -13,10 +13,17 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 export default async function handler(req, res) {
     try {
       withTiming(res);
@@ -31,7 +38,7 @@ export default async function handler(req, res) {
 
         if (authHeader?.startsWith('Bearer ')) {
             const token = authHeader.substring(7);
-            const { data: { user }, error } = await supabase.auth.getUser(token);
+            const { data: { user }, error } = await getSupabase().auth.getUser(token);
             if (!error && user) userId = user.id;
         }
 

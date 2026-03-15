@@ -25,10 +25,17 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
+// ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return _supabase;
+}
 /**
  * Upsert leaderboard entry for user
  * Updates both 'daily' and 'all_time' leaderboards
@@ -89,7 +96,7 @@ export default async function handler(req, res) {
       if (req.method !== 'GET') {
           const _token = req.headers.authorization?.replace('Bearer ', '');
           if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+          const { data: { user: _authUser }, error: _authErr } = await getSupabase().auth.getUser(_token);
           if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
           if (req.body) req.body.userId = _authUser.id;
       }
@@ -188,7 +195,7 @@ export default async function handler(req, res) {
 
               // 3. Upsert leaderboard entry
               try {
-                  await upsertLeaderboard(supabase, userId, gameId, diamondsEarned, accuracy, passed);
+                  await upsertLeaderboard(getSupabase(), userId, gameId, diamondsEarned, accuracy, passed);
               } catch (lbError) {
                   console.warn('Leaderboard upsert failed:', lbError.message);
               }
@@ -196,7 +203,7 @@ export default async function handler(req, res) {
               // 4. Award diamonds to profile balance
               if (diamondsEarned > 0) {
                   try {
-                      await supabase.rpc('add_diamonds_to_balance', {
+                      await getSupabase().rpc('add_diamonds_to_balance', {
                           p_user_id: userId,
                           p_amount: diamondsEarned,
                           p_type: 'training_reward',
@@ -244,7 +251,7 @@ export default async function handler(req, res) {
 
               // 3. Upsert leaderboard entry
               try {
-                  await upsertLeaderboard(supabase, userId, gameId, diamondsEarned, accuracy, passed);
+                  await upsertLeaderboard(getSupabase(), userId, gameId, diamondsEarned, accuracy, passed);
               } catch (lbError) {
                   console.warn('Leaderboard upsert failed:', lbError.message);
               }
@@ -252,7 +259,7 @@ export default async function handler(req, res) {
               // 4. Award diamonds to profile balance
               if (diamondsEarned > 0) {
                   try {
-                      await supabase.rpc('add_diamonds_to_balance', {
+                      await getSupabase().rpc('add_diamonds_to_balance', {
                           p_user_id: userId,
                           p_amount: diamondsEarned,
                           p_type: 'training_reward',
