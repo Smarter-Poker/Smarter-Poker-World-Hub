@@ -89,7 +89,7 @@ export default async function handler(req, res) {
           // ═══════════════════════════════════════════════════════════════════
           let seenQuestionIds = [];
           if (userId) {
-              const { data: seen } = await supabase
+              const { data: seen } = await getSupabase()
                   .from('user_seen_questions')
                   .select('question_id')
                   .eq('user_id', userId)
@@ -152,7 +152,7 @@ export default async function handler(req, res) {
           // ═══════════════════════════════════════════════════════════════════
           if (!question) {
 
-              const { data: cachedQuestions } = await supabase
+              const { data: cachedQuestions } = await getSupabase()
                   .from('training_question_cache')
                   .select('question_data, question_id')
                   .eq('game_id', gameId)
@@ -167,12 +167,12 @@ export default async function handler(req, res) {
 
                   // Increment times_used (getSupabase().raw() doesn't exist in JS SDK v2)
                   const questionId = cachedQuestions[randomIndex].question_id;
-                  const { data: currentQ } = await supabase
+                  const { data: currentQ } = await getSupabase()
                       .from('training_question_cache')
                       .select('times_used')
                       .eq('question_id', questionId)
                       .maybeSingle();
-                  await supabase
+                  await getSupabase()
                       .from('training_question_cache')
                       .update({ times_used: (currentQ?.times_used || 0) + 1 })
                       .eq('question_id', questionId);
@@ -194,7 +194,7 @@ export default async function handler(req, res) {
               // Save to cache for future use
               if (question) {
                   try {
-                      await supabase
+                      await getSupabase()
                           .from('training_question_cache')
                           .insert({
                               question_id: question.id,

@@ -110,7 +110,7 @@ export default async function handler(req, res) {
           const MAX_SPOTS = 2000;
 
           // Fetch all spots matching criteria (select only what we need)
-          let query = supabase
+          let query = getSupabase()
               .from('solved_spots_gold')
               .select('scenario_hash, strategy_matrix')
               .eq('game_type', gameType)

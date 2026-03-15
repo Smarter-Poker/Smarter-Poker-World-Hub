@@ -69,7 +69,7 @@ export default async function handler(req, res) {
           console.log(`[CustomTrain] Config: ${gameType} | ${position || 'any'} | vs ${villainPosition || 'any'} | ${actionScenario || 'any'} | ${parsedStack}BB | ${street || 'all'} | ${handClass || 'any'} | ${parsedCount} hands`);
 
           // Build query filters
-          let query = supabase
+          let query = getSupabase()
               .from('solved_spots_gold')
               .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
               .in('game_type', pioGameTypes)
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
               console.log(`[CustomTrain] No scenarios found for config, trying broader search...`);
 
               // Fallback: try without position filter
-              let fallbackQuery = supabase
+              let fallbackQuery = getSupabase()
                   .from('solved_spots_gold')
                   .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
                   .in('game_type', pioGameTypes)
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
 
               if (!fallbackData || fallbackData.length === 0) {
                   // Final fallback: any stack depth for this game type
-                  const { data: anyData } = await supabase
+                  const { data: anyData } = await getSupabase()
                       .from('solved_spots_gold')
                       .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
                       .in('game_type', pioGameTypes)

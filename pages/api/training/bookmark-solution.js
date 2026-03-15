@@ -49,7 +49,7 @@ export default async function handler(req, res) {
         // ─── GET: Retrieve user's bookmarks ──────────────────────────
         if (req.method === 'GET') {
             res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
-            const { data: bookmarks, error } = await supabase
+            const { data: bookmarks, error } = await getSupabase()
                 .from('solution_bookmarks')
                 .select('id, spot_id, scenario_hash, notes, created_at')
                 .eq('user_id', userId)
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
 
             if (action === 'save') {
                 // Upsert — don't create duplicates
-                const { data: existing } = await supabase
+                const { data: existing } = await getSupabase()
                     .from('solution_bookmarks')
                     .select('id')
                     .eq('user_id', userId)
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
                 if (existing) {
                     // Update notes if provided
                     if (notes !== undefined) {
-                        await supabase
+                        await getSupabase()
                             .from('solution_bookmarks')
                             .update({ notes })
                             .eq('id', existing.id);
@@ -100,7 +100,7 @@ export default async function handler(req, res) {
                     return res.status(200).json({ success: true, action: 'updated', bookmarkId: existing.id });
                 }
 
-                const { data: newBookmark, error: insertErr } = await supabase
+                const { data: newBookmark, error: insertErr } = await getSupabase()
                     .from('solution_bookmarks')
                     .insert({
                         user_id: userId,
@@ -121,7 +121,7 @@ export default async function handler(req, res) {
             }
 
             if (action === 'delete') {
-                const { error: deleteErr } = await supabase
+                const { error: deleteErr } = await getSupabase()
                     .from('solution_bookmarks')
                     .delete()
                     .eq('user_id', userId)

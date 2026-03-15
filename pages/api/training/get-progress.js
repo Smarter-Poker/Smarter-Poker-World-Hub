@@ -46,7 +46,7 @@ export default async function handler(req, res) {
 
           // If gameId is provided, fetch progress for that game only
           if (gameId) {
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('training_progress')
                   .select('*')
                   .eq('user_id', userId)
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
           }
 
           // Fetch all progress for user
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
               .from('training_progress')
               .select('*')
               .eq('user_id', userId)

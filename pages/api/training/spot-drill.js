@@ -99,7 +99,7 @@ export default async function handler(req, res) {
           const { format, position, stack } = req.query;
 
           // Build query — get a random offset from total count
-          let countQuery = supabase
+          let countQuery = getSupabase()
               .from('solved_spots_gold')
               .select('id', { count: 'exact', head: true });
 
@@ -121,7 +121,7 @@ export default async function handler(req, res) {
           // Pick random offset
           const randomOffset = Math.floor(Math.random() * count);
 
-          let spotQuery = supabase
+          let spotQuery = getSupabase()
               .from('solved_spots_gold')
               .select('id, scenario_hash, game_type, stack_depth, strategy_matrix');
 

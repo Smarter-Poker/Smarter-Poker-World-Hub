@@ -175,7 +175,7 @@ export default async function handler(req, res) {
               const sd = parseInt(stackDepth, 10) || 15;
 
               // Try loading from memory_charts_gold
-              const { data: charts } = await supabase
+              const { data: charts } = await getSupabase()
                   .from('memory_charts_gold')
                   .select('hand_matrix, hero_position, stack_depth')
                   .eq('hero_position', pos)

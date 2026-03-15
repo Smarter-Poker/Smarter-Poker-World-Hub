@@ -47,7 +47,7 @@ export default async function handler(req, res) {
               const dailyId = `daily-${today}`;
 
               // Get total question count first
-              const { count } = await supabase
+              const { count } = await getSupabase()
                   .from('training_questions')
                   .select('*', { count: 'exact', head: true });
 
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
               // Use date hash to pick a consistent question for the day
               const offset = dateHash(today) % count;
 
-              const { data: question, error } = await supabase
+              const { data: question, error } = await getSupabase()
                   .from('training_questions')
                   .select('*')
                   .range(offset, offset)
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
                   return res.status(400).json({ success: false, error: 'dailyId required' });
               }
 
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('training_daily_challenge')
                   .upsert({
                       user_id: userId,

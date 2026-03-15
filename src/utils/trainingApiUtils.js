@@ -143,3 +143,41 @@ export function withTiming(res) {
         return originalEnd(...args);
     };
 }
+
+// ── Structured Logger ───────────────────────────────────────────────────
+/**
+ * Lightweight structured logger for training API endpoints.
+ * Outputs JSON lines for Vercel log search and alerting.
+ *
+ * Usage:
+ *   const log = apiLog('SaveSession');
+ *   log.info('saved', { userId, gameId });
+ *   log.warn('fallback used', { reason: 'table missing' });
+ *   log.error('query failed', err, { userId });
+ *
+ * @param {string} endpoint - Short endpoint name (e.g. 'SaveSession', 'Streak')
+ * @returns {{ info, warn, error }}
+ */
+export function apiLog(endpoint) {
+    const _emit = (level, message, extra = {}) => {
+        const entry = { ts: Date.now(), endpoint, level, message, ...extra };
+        // Strip undefined values for cleaner output
+        Object.keys(entry).forEach(k => entry[k] === undefined && delete entry[k]);
+        if (level === 'error') {
+            console.error(JSON.stringify(entry));
+        } else if (level === 'warn') {
+            console.warn(JSON.stringify(entry));
+        } else {
+            console.log(JSON.stringify(entry));
+        }
+    };
+    return {
+        info: (msg, extra) => _emit('info', msg, extra),
+        warn: (msg, extra) => _emit('warn', msg, extra),
+        error: (msg, err, extra) => _emit('error', msg, {
+            err: err?.message || String(err || ''),
+            stack: err?.stack?.split('\n').slice(0, 3).join(' | ') || undefined,
+            ...extra,
+        }),
+    };
+}

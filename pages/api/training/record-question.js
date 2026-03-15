@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       try {
           // Record the seen question (for no-repeat)
           await withRetry(
-              () => supabase
+              () => getSupabase()
                   .from('user_seen_questions')
                   .upsert({
                       user_id: userId,
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
 
           // Record the answer for stats
           await withRetry(
-              () => supabase
+              () => getSupabase()
                   .from('training_answers')
                   .insert({
                       user_id: userId,

@@ -38,7 +38,7 @@ export default async function handler(req, res) {
 
         // 1. Supabase connectivity check (lightweight query)
         try {
-            const { error } = await supabase
+            const { error } = await getSupabase()
                 .from('training_progress')
                 .select('id')
                 .limit(1);

@@ -51,7 +51,7 @@ export default async function handler(req, res) {
 
       try {
           // Get user session for this game
-          const { data: session, error } = await supabase
+          const { data: session, error } = await getSupabase()
               .from('god_mode_user_session')
               .select('current_level, highest_level_unlocked, health_chips, total_hands_played, total_correct, total_rounds_completed')
               .eq('user_id', userId)

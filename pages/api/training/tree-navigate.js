@@ -64,7 +64,7 @@ export default async function handler(req, res) {
               const childHash = `${safeHash}${cardStr}`;
 
               // Try exact match first
-              let { data: childSpot, error } = await supabase
+              let { data: childSpot, error } = await getSupabase()
                   .from('solved_spots_gold')
                   .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, hand_evs')
                   .eq('scenario_hash', childHash)
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
                   const prefix = hashParts.slice(0, -1).join('_');
                   const altChildHash = `${prefix}_${boardSegment}${cardStr}`;
 
-                  const { data: altSpots } = await supabase
+                  const { data: altSpots } = await getSupabase()
                       .from('solved_spots_gold')
                       .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, hand_evs')
                       .eq('scenario_hash', altChildHash)
@@ -138,7 +138,7 @@ export default async function handler(req, res) {
           const currentBoard = parseBoardFromHash(safeHash);
 
           // Query all spots that have the same hash prefix with exactly 2 more chars (1 card)
-          const { data: childSpots, error } = await supabase
+          const { data: childSpots, error } = await getSupabase()
               .from('solved_spots_gold')
               .select('scenario_hash')
               .ilike('scenario_hash', `${safeHash}__`)

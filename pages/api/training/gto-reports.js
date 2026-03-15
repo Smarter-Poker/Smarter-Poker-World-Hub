@@ -81,7 +81,7 @@ export default async function handler(req, res) {
           }
 
           // Fetch training sessions
-          let query = supabase
+          let query = getSupabase()
               .from('training_sessions')
               .select('id, game_id, accuracy, total_questions, correct_answers, best_answers, position_stats, classification_breakdown, hand_history, created_at')
               .eq('user_id', userId)

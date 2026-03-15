@@ -47,7 +47,7 @@ export default async function handler(req, res) {
 
       try {
           // Only allow deletion of records owned by the authenticated user
-          const { error: delErr } = await supabase
+          const { error: delErr } = await getSupabase()
               .from('training_sessions')
               .delete()
               .eq('id', sessionId)

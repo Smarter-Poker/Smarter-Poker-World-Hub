@@ -136,7 +136,7 @@ export default async function handler(req, res) {
 
           // 1. Save level completion to history (with retry for transient failures)
           const { data: levelHistory, error: historyError } = await withRetry(
-              () => supabase
+              () => getSupabase()
                   .from('training_level_history')
                   .insert({
                       user_id: userId,
@@ -160,7 +160,7 @@ export default async function handler(req, res) {
           }
 
           // 2. Update or create training_progress
-          const { data: existingProgress } = await supabase
+          const { data: existingProgress } = await getSupabase()
               .from('training_progress')
               .select('hands_played, correct_answers, total_answers, current_streak, best_streak')
               .eq('user_id', userId)
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
           if (existingProgress) {
               // Update existing progress
               const { data: updatedProgress, error: updateError } = await withRetry(
-                  () => supabase
+                  () => getSupabase()
                       .from('training_progress')
                       .update({
                           level: passed ? Math.min(level + 1, 10) : level,
@@ -223,7 +223,7 @@ export default async function handler(req, res) {
           } else {
               // Create new progress
               const { data: newProgress, error: insertError } = await withRetry(
-                  () => supabase
+                  () => getSupabase()
                       .from('training_progress')
                       .insert({
                           user_id: userId,

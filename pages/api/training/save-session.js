@@ -109,7 +109,7 @@ export default async function handler(req, res) {
           };
 
           const { error: sessErr } = await withRetry(
-              () => supabase
+              () => getSupabase()
                   .from('training_sessions')
                   .insert(detailedSession),
               { label: 'SaveSession:insert' }
@@ -137,14 +137,14 @@ export default async function handler(req, res) {
 
                   if (rpcErr) {
                       // Fallback: direct update with current value
-                      const { data: profile } = await supabase
+                      const { data: profile } = await getSupabase()
                           .from('profiles')
                           .select('diamond_balance')
                           .eq('id', userId)
                           .maybeSingle();
 
                       if (profile) {
-                          await supabase
+                          await getSupabase()
                               .from('profiles')
                               .update({ diamond_balance: (profile.diamond_balance || 0) + safeSpeedBonus })
                               .eq('id', userId);

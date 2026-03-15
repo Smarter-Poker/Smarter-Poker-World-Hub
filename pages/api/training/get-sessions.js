@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
       try {
           // Try training_sessions first (rich data — select only frontend-consumed columns)
-          let query = supabase
+          let query = getSupabase()
               .from('training_sessions')
               .select('id, game_id, game_name, gtow_score, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, created_at')
               .eq('user_id', user.id)
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
           }
 
           // Fallback to training_level_history
-          let histQuery = supabase
+          let histQuery = getSupabase()
               .from('training_level_history')
               .select('id, game_id, accuracy_percentage, questions_answered, questions_correct, best_streak, passed, level, created_at')
               .eq('user_id', user.id)

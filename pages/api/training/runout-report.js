@@ -106,7 +106,7 @@ export default async function handler(req, res) {
           }
 
           // Get current spot's aggression index as baseline
-          const { data: currentSpot } = await supabase
+          const { data: currentSpot } = await getSupabase()
               .from('solved_spots_gold')
               .select('strategy_matrix')
               .eq('scenario_hash', safeHash)
@@ -120,7 +120,7 @@ export default async function handler(req, res) {
           // A child has the same scenario_hash but with 2 more characters (one more card)
           // Use the full current hash + 2 wildcard chars for precision
 
-          const { data: childSpots, error } = await supabase
+          const { data: childSpots, error } = await getSupabase()
               .from('solved_spots_gold')
               .select('scenario_hash, strategy_matrix, hand_evs')
               .ilike('scenario_hash', `${safeHash}__`)

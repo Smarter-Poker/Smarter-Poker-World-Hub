@@ -68,7 +68,7 @@ export default async function handler(req, res) {
 
           // If requesting a specific spot's full data
           if (spotId) {
-              const { data: spot, error } = await supabase
+              const { data: spot, error } = await getSupabase()
                   .from('solved_spots_gold')
                   .select('id, scenario_hash, game_type, stack_depth, strategy_matrix')
                   .eq('id', spotId)
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
           }
 
           // List spots with pagination
-          let query = supabase
+          let query = getSupabase()
               .from('solved_spots_gold')
               .select('id, scenario_hash, game_type, stack_depth', { count: 'exact' })
               .eq('game_type', gameType)
