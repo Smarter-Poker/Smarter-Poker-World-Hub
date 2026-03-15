@@ -397,10 +397,18 @@ export const SmarterPokerWatchView = ({ onNavigate }) => {
 
     // EventBus: refresh videos when a new post is created (could be a video post)
     useEffect(() => {
+        let debounceTimer = null;
         const unsub = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
-            fetchVideos();
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetchVideos();
+                debounceTimer = null;
+            }, 3000);
         });
-        return () => { if (unsub) unsub(); };
+        return () => {
+            if (unsub) unsub();
+            if (debounceTimer) clearTimeout(debounceTimer);
+        };
     }, [fetchVideos]);
 
     return (

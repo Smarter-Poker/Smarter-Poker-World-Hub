@@ -110,6 +110,13 @@ export default function TriviaHubPage() {
         loadUserData();
     }, [loadUserData]);
 
+    // Keep diamond balance in sync with other pages via EventBus
+    useEffect(() => {
+        const handleBalanceRefresh = () => { loadUserData(); };
+        window.addEventListener('diamond-balance-refresh', handleBalanceRefresh);
+        return () => window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
+    }, [loadUserData]);
+
     // Realtime subscription — live updates
     useEffect(() => {
         if (!user?.id) return;

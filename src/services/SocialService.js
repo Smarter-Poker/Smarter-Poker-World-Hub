@@ -726,7 +726,7 @@ export class SocialService {
             };
         } catch (err) {
             console.warn('sendMessage failed:', err.message);
-            return { id: Date.now(), text, time: 'Now', senderId: 'u1' };
+            return null; // Let caller handle failure
         }
     }
 

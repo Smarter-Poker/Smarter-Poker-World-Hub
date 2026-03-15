@@ -273,7 +273,7 @@ export default function TriviaGame({
                 totalQuestions: questions.length, timeSpent,
                 timeRemaining: timeRemaining || 0,
                 stakePot: enableStakes ? stakePotRef.current : undefined,
-                streak,
+                streak: streakRef.current,
                 opponentScore: opponentDataRef.current.score,
                 opponentName: opponentDataRef.current.name,
             });

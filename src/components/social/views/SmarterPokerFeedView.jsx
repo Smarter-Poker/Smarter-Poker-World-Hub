@@ -246,8 +246,8 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
     // Hooks
     const { user: authUser, profile: authProfile, supabase } = useSupabase();
 
-    // Create SocialService instance
-    const socialService = supabase ? new SocialService(supabase) : null;
+    // Create SocialService instance (memoized to prevent new instance every render)
+    const socialService = React.useMemo(() => supabase ? new SocialService(supabase) : null, [supabase]);
 
     // Construct currentUser object for UI
     const currentUser = authUser ? {
