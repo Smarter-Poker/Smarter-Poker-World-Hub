@@ -110,6 +110,8 @@ export default function FloorCalls() {
   };
 
   const [venueId] = useState(() => {
+    return getVenueId();
+  });
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
@@ -120,8 +122,6 @@ export default function FloorCalls() {
     const t = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(t);
   }, [toast]);
-    return getVenueId();
-  });
 
   /* ─── API ──────────────────────────────────────────────────── */
 

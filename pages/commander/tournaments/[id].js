@@ -72,6 +72,9 @@ export default function TournamentDetailPage() {
 
   // Extract venueId for sync
   const [venueId] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    return getVenueId();
+  });
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
@@ -82,9 +85,6 @@ export default function TournamentDetailPage() {
     const t = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(t);
   }, [toast]);
-    if (typeof window === 'undefined') return null;
-    return getVenueId();
-  });
 
   // Check staff session
   useEffect(() => {

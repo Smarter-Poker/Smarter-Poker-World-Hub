@@ -542,7 +542,7 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
             if (clubs?.length > 0) {
                 setClub(prev => ({ ...prev, ...clubs[0], membersCount: clubs[0].membersCount || clubs[0].member_count || 0 }));
             }
-            const { posts: fetched } = await socialService.getFeed({ limit: 10 });
+            const { posts: fetched } = await socialService.getFeed({ userId: authUser?.id, limit: 10 });
             if (fetched?.length > 0) setPosts(fetched);
         } catch (err) {
             console.warn('ClubView data fetch failed:', err.message);

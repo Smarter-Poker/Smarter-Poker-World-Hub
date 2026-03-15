@@ -196,6 +196,12 @@ export const SPPostCard = ({
     const longPressTimerRef = useRef(null);
     const reactionPickerRef = useRef(null);
 
+    // Sync liked/reactionType from parent when props change (EventBus cross-user updates)
+    useEffect(() => {
+        setLiked(post.userLiked || post.isLiked || false);
+        if (post.reactionType) setReactionType(post.reactionType);
+    }, [post.isLiked, post.userLiked, post.reactionType]);
+
     // Click-outside dismiss for more menu
     useEffect(() => {
         if (!showMoreMenu) return;

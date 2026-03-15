@@ -77,6 +77,8 @@ export default function AnnouncementsDisplay() {
     title: '', message: '', priority: 'normal', type: 'general', expires_at: '', starts_at: '' });
 
   const [venueId] = useState(() => {
+    return getVenueId();
+  });
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
@@ -87,8 +89,6 @@ export default function AnnouncementsDisplay() {
     const t = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(t);
   }, [toast]);
-    return getVenueId();
-  });
 
   // ─── Fetch active announcements (for display) ───
   const fetchData = useCallback(async () => {

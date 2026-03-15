@@ -60,6 +60,8 @@ export default function BreakManager() {
   }, [tournamentId]);
 
   const [venueId] = useState(() => {
+    return getVenueId();
+  });
 
   // ── Toast notification state ──
   const [toast, setToast] = useState(null);
@@ -70,8 +72,6 @@ export default function BreakManager() {
     const t = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(t);
   }, [toast]);
-    return getVenueId();
-  });
 
   // Real-time sync — instantly reacts to tournament changes from other TD pages
   useCommanderSync(venueId, checkBreak, { entities: ['tournaments'] });

@@ -28,8 +28,6 @@ function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
   const [copiedKey, setCopiedKey] = useState(null);
   const [error, setError] = useState(null);
 
-  const { requestConfirm, ConfirmDialog } = useConfirmAction();
-
 
   useEffect(() => {
     if (isOpen && venueId) loadApiKeys();
@@ -436,6 +434,7 @@ const TABS = [
 ];
 
 export default function AdminDashboard() {
+  const { requestConfirm, ConfirmDialog } = useConfirmAction();
   useEffect(() => { busEmit.sessionStart('commander-admin-index'); }, []);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
