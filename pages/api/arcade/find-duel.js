@@ -126,19 +126,22 @@ export default async function handler(req, res) {
           }
 
           // No opponent found - add to queue
-          const { error: queueErr } = await supabase
+          const { data: queueEntry, error: queueErr } = await supabase
               .from('arcade_duel_queue')
               .upsert({
                   user_id,
                   duel_type,
                   status: 'waiting',
                   created_at: new Date().toISOString()
-              }, { onConflict: 'user_id,duel_type' });
+              }, { onConflict: 'user_id,duel_type' })
+              .select('id')
+              .maybeSingle();
 
           if (queueErr) {
-              // Table might not exist - return simulated queue status
+              // Table might not exist - return simulated queue status with a fallback ID
               return res.status(200).json({
                   status: 'queued',
+                  queue_id: `sim-${Date.now()}`,
                   duel_type,
                   entry_fee: cost,
                   message: 'Searching for opponent...',
@@ -152,11 +155,12 @@ export default async function handler(req, res) {
               p_amount: -cost,
               p_type: 'arcade_entry',
               p_description: `Duel queue entry — ${duel_type} (${cost}💎)`,
-              p_reference_id: null
+              p_reference_id: queueEntry?.id || null
           });
 
           return res.status(200).json({
               status: 'queued',
+              queue_id: queueEntry?.id || null,
               duel_type,
               entry_fee: cost,
               message: 'Searching for opponent...',

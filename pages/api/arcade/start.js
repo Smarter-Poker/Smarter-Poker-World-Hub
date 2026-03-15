@@ -14,13 +14,16 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Valid game types and their server-side entry fees (client values not trusted)
+// Valid game types and their server-side entry fees (must match arcadeEngine.ts)
 const GAME_ENTRY_FEES = {
-    'hand-snap':     50,
-    'board-nuts':    25,
-    'the-gauntlet':  75,
-    'range-radar':   30,
-    'equity-edge':   40,
+    'hand-snap':        10,
+    'board-nuts':       15,
+    'chip-math':        10,
+    'showdown':         20,
+    'double-or-nothing': 50,
+    'the-gauntlet':     100,
+    'mystery-box':      25,
+    'ev-or-fold':       30,
 };
 
 export default async function handler(req, res) {
