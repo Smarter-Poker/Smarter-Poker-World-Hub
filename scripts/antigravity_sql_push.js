@@ -107,9 +107,25 @@ function getPasswordCandidates() {
 }
 
 const passwords = getPasswordCandidates();
-const connStrings = passwords.flatMap(pw => [
-    `postgresql://postgres:${encodeURIComponent(pw)}@db.kuklfnapbkmacvwxktbh.supabase.co:5432/postgres`,
-    `postgresql://postgres.kuklfnapbkmacvwxktbh:${encodeURIComponent(pw)}@aws-0-us-west-2.pooler.supabase.com:5432/postgres`
+
+// Build parameter-based configs (avoids encodeURIComponent mangling special chars like !)
+const connConfigs = passwords.flatMap(pw => [
+    // Supabase Supavisor pooler — port 6543 (transaction mode)
+    {
+        host: 'aws-0-us-west-2.pooler.supabase.com',
+        port: 6543,
+        user: `postgres.${projectRef}`,
+        password: pw,
+        database: 'postgres',
+    },
+    // Direct Postgres connection — port 5432
+    {
+        host: `db.${projectRef}.supabase.co`,
+        port: 5432,
+        user: 'postgres',
+        password: pw,
+        database: 'postgres',
+    },
 ]);
 
 // ── Connection with retry ───────────────────────────────────────────────────
@@ -118,10 +134,10 @@ const CONNECT_RETRY_DELAY_MS = 2000;
 
 async function connectWithRetry() {
     for (let attempt = 1; attempt <= MAX_CONNECT_RETRIES; attempt++) {
-        for (const cs of connStrings) {
+        for (const cfg of connConfigs) {
             try {
                 const pool = new Pool({
-                    connectionString: cs,
+                    ...cfg,
                     ssl: { rejectUnauthorized: false },
                     connectionTimeoutMillis: 10000,
                     idleTimeoutMillis: 30000,

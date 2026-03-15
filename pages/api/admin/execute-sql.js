@@ -105,14 +105,34 @@ export default async function handler(req, res) {
       ].filter(Boolean);
 
       const uniqueCands = [...new Set(candidates)];
-      const connStrings = uniqueCands.map(pw => `postgresql://postgres.kuklfnapbkmacvwxktbh:${encodeURIComponent(pw)}@aws-0-us-west-2.pooler.supabase.com:5432/postgres`);
 
-      for (const cs of connStrings) {
+      // Build parameter-based configs (avoids encodeURIComponent mangling special chars like !)
+      const connConfigs = [];
+      for (const pw of uniqueCands) {
+          // Supabase Supavisor pooler — port 6543 (transaction mode)
+          connConfigs.push({
+              host: 'aws-0-us-west-2.pooler.supabase.com',
+              port: 6543,
+              user: 'postgres.kuklfnapbkmacvwxktbh',
+              password: pw,
+              database: 'postgres',
+          });
+          // Direct Postgres connection — port 5432
+          connConfigs.push({
+              host: 'db.kuklfnapbkmacvwxktbh.supabase.co',
+              port: 5432,
+              user: 'postgres',
+              password: pw,
+              database: 'postgres',
+          });
+      }
+
+      for (const cfg of connConfigs) {
           let pool;
           let client;
           try {
               pool = new Pool({
-                  connectionString: cs,
+                  ...cfg,
                   ssl: { rejectUnauthorized: false },
                   connectionTimeoutMillis: 10000,
                   statement_timeout: 10000, // Hard 10-second circuit breaker
