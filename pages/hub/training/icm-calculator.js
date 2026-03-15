@@ -14,7 +14,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch } from '../../../src/lib/authUtils';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -78,11 +78,6 @@ const PRESETS = [
   },
 ];
 
-function getAuthHeaders() {
-  const token = getAccessToken();
-  if (token) return { Authorization: `Bearer ${token}` };
-  return {};
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ICM PREFLOP RANGES COMPONENT
@@ -436,10 +431,6 @@ export default function ICMCalculatorPage() {
     try {
       const res = await authedFetch('/api/training/icm-calc', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
         body: JSON.stringify({ stacks, prizes, prizePool }),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

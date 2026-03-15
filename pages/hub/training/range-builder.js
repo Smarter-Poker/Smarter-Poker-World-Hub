@@ -14,7 +14,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch } from '../../../src/lib/authUtils';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -42,11 +42,8 @@ function getCombos(hand) {
   return 12;
 }
 
-function getAuthHeaders() {
-  const token = getAccessToken();
-  if (token) return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-  return { 'Content-Type': 'application/json' };
-}
+
+
 
 const DIFF_COLORS = {
   correct: '#22c55e',
@@ -259,10 +256,6 @@ export default function RangeBuilder() {
     try {
       const res = await authedFetch('/api/training/grade-range', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
         body: JSON.stringify({
           position,
           scenario: 'rfi',

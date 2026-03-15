@@ -16,7 +16,7 @@ import RangeGrid from '../../../src/components/training/RangeGrid';
 import PreflopChartStats from '../../../src/components/training/PreflopChartStats';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch } from '../../../src/lib/authUtils';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -60,11 +60,6 @@ const ACTION_COLORS = {
   Push: '#ef4444',
 };
 
-function getAuthHeaders() {
-  const token = getAccessToken();
-  if (token) return { Authorization: `Bearer ${token}` };
-  return {};
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PAGE COMPONENT
@@ -125,9 +120,7 @@ export default function PreflopCharts() {
           scenario,
         });
 
-        const res = await authedFetch(`/api/training/preflop-ranges?${params}`, {
-          headers: getAuthHeaders(),
-        });
+        const res = await authedFetch(`/api/training/preflop-ranges?${params}`);
         // HARDENED: Guard against non-OK responses
         if (!res.ok) {
           console.warn('[PreflopCharts] API returned', res.status);

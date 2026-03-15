@@ -14,7 +14,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -42,11 +42,6 @@ const PRESETS = [
   { name: 'Pair vs Overcards', hands: ['6d6c', 'AhKs'], board: [] },
 ];
 
-function getAuthHeaders() {
-  const token = getAccessToken();
-  if (token) return { Authorization: `Bearer ${token}` };
-  return {};
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CARD PICKER COMPONENT
@@ -704,10 +699,6 @@ export default function EquityCalculatorPage() {
       const handStrings = hands.slice(0, numPlayers).map((h) => h.join(''));
       const res = await authedFetch('/api/training/equity', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
         body: JSON.stringify({
           hands: handStrings,
           board: boardCards,

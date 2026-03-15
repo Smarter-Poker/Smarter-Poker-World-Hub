@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
-import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { authedFetch } from '../../../src/lib/authUtils';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -44,11 +44,6 @@ const POSITION_OPTIONS = [
   { value: 'BB', label: 'BB' },
 ];
 
-function getAuthHeaders() {
-  const token = getAccessToken();
-  if (token) return { Authorization: `Bearer ${token}` };
-  return {};
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HAND DISPLAY — hero hand notation like "AKs"
@@ -115,9 +110,7 @@ export default function SpotTrainerPage() {
       if (format) params.set('format', format);
       if (position) params.set('position', position);
 
-      const res = await authedFetch(`/api/training/spot-drill?${params.toString()}`, {
-        headers: { ...getAuthHeaders() },
-      });
+      const res = await authedFetch(`/api/training/spot-drill?${params.toString()}`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
 
