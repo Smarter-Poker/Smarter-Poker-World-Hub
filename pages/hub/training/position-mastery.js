@@ -195,7 +195,7 @@ export default function PositionMasteryPage() {
     setError(null);
     const headers = getAuthHeaders();
     try {
-      const res = await fetch('/api/training/get-progress', { headers });
+      const res = await authedFetch('/api/training/get-progress', { headers });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {

@@ -105,7 +105,7 @@ export default function TrainingCalendarPage() {
     try {
       const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
       if (!token) { setLoading(false); return; }
-      const res = await fetch('/api/training/get-sessions?limit=500', {
+      const res = await authedFetch('/api/training/get-sessions?limit=500', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

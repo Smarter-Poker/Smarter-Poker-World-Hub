@@ -146,7 +146,7 @@ export default function DailyChallengePage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/training/hand-of-the-day', {
+      const res = await authedFetch('/api/training/hand-of-the-day', {
         headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -243,7 +243,7 @@ export default function DailyChallengePage() {
         const user = getAuthUser();
         const userId = user?.id;
         if (userId) {
-          fetch('/api/training/hand-of-the-day', {
+          authedFetch('/api/training/hand-of-the-day', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({

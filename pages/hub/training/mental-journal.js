@@ -68,7 +68,7 @@ export default function MentalJournalPage() {
     try {
       const token = getAccessToken();
       if (!token) return;
-      const res = await fetch('/api/training/get-sessions?gameId=mental-journal&limit=50', {
+      const res = await authedFetch('/api/training/get-sessions?gameId=mental-journal&limit=50', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -121,7 +121,6 @@ export default function MentalJournalPage() {
       if (token) {
         await authedFetch('/api/training/save-session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             gameId: 'mental-journal',
             questionsAnswered: 1,

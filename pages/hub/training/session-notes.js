@@ -95,7 +95,7 @@ export default function SessionNotesPage() {
     try {
       const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
       if (!token) return;
-      const res = await fetch('/api/training/get-sessions?limit=1', {
+      const res = await authedFetch('/api/training/get-sessions?limit=1', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
