@@ -685,7 +685,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
     };
 
     // Like handler — persists to Supabase
-    const handleLike = async (postId) => {
+    const handleLike = async (postId, reactionType = 'like') => {
         if (!socialService || !authUser?.id) return;
         setUserPosts(prev => prev.map(p => {
             if (p.id === postId) {
@@ -693,6 +693,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
                 return {
                     ...p,
                     isLiked: !isLiked,
+                    reactionType: !isLiked ? reactionType : p.reactionType,
                     engagement: {
                         ...p.engagement,
                         likeCount: isLiked ? (p.engagement?.likeCount || 0) - 1 : (p.engagement?.likeCount || 0) + 1
@@ -702,7 +703,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
             return p;
         }));
         try {
-            await socialService.toggleReaction(postId, authUser.id, 'like');
+            await socialService.toggleReaction(postId, authUser.id, reactionType);
         } catch {
             // Revert on failure
             setUserPosts(prev => prev.map(p => {
@@ -841,7 +842,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
                                     key={post.id || i}
                                     post={post}
                                     user={user}
-                                    onLike={() => handleLike(post.id)}
+                                    onLike={handleLike}
                                     onSubmitComment={handleComment}
                                     onLoadComments={handleLoadComments}
                                     onDeletePost={handleDeletePost}
