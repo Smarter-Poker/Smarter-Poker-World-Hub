@@ -19,6 +19,8 @@ import { Timer, Trophy, Gem, Zap, Play } from 'lucide-react';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
+import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
@@ -143,23 +145,8 @@ export default function TimeAttackPage() {
     }
 
     async function loadQuestions() {
-        // 60-day non-repeat: Get user's recently seen question IDs
-        let excludeIds = [];
-        if (userId) {
-            const sixtyDaysAgo = new Date();
-            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-            const { data: recentHistory } = await supabase
-                .from('trivia_user_question_history')
-                .select('question_id')
-                .eq('user_id', userId)
-                .gte('seen_at', sixtyDaysAgo.toISOString())
-                .limit(200) // seen questions
-
-            if (recentHistory) {
-                excludeIds = recentHistory.map(h => h.question_id);
-            }
-        }
+        // 60-day non-repeat: Get user's recently seen question IDs using shared utility
+        const excludeIds = await getRecentlySeenIds(supabase, userId, 200, 'time-attack');
 
         const { data } = await supabase
             .from('trivia_questions')
@@ -167,16 +154,12 @@ export default function TimeAttackPage() {
             .limit(200);
 
         if (data) {
-            // Filter out recently seen questions
-            let available = excludeIds.length > 0
-                ? data.filter(q => !excludeIds.includes(q.id))
-                : data;
-
-            if (available.length < 30) available = data;
-
-            const shuffled = available.sort(() => Math.random() - 0.5);
-            setQuestions(shuffleOptions(shuffled));
-            return shuffled;
+            // Filter and shuffle questions using shared utility
+            const shuffled = filterAndShuffle(data, excludeIds, data.length);
+            // also shuffle options
+            const finalized = shuffleOptions(shuffled);
+            setQuestions(finalized);
+            return finalized;
         }
         return [];
     }
@@ -228,9 +211,11 @@ export default function TimeAttackPage() {
         }
     }
 
+    const [saveErrorPayload, setSaveErrorPayload] = useState(null);
+
     async function handleComplete(gameResult) {
         setResult(gameResult);
-        setGameState('complete');
+        setGameState('saving');
 
         if (userId) {
             const today = new Date().toISOString().split('T')[0];
@@ -263,15 +248,11 @@ export default function TimeAttackPage() {
                     setPersonalBest(gameResult.correctCount);
                 }
                 setDailyDiamondsEarned(prev => prev + gameResult.diamondsEarned);
-            } catch (e) {
-                console.error('[TimeAttack] Failed to save score/diamonds:', e);
-            }
 
-            // Record question history for 60-day non-repeat
-            const answeredCount = gameResult.correctCount + (gameResult.wrongCount || 0);
-            const answeredQuestions = questions.slice(0, answeredCount);
-            if (answeredQuestions.length > 0) {
-                try {
+                // Record question history for 60-day non-repeat
+                const answeredCount = gameResult.correctCount + (gameResult.wrongCount || 0);
+                const answeredQuestions = questions.slice(0, answeredCount);
+                if (answeredQuestions.length > 0) {
                     const historyRecords = answeredQuestions.map((q, idx) => ({
                         user_id: userId,
                         question_id: q.id,
@@ -285,19 +266,37 @@ export default function TimeAttackPage() {
                             onConflict: 'user_id,question_id',
                             ignoreDuplicates: false
                         });
-                } catch (e) {
-                    console.error('[TimeAttack] Error recording history:', e);
                 }
+
+                // Done saving
+                setGameState('complete');
+                setSaveErrorPayload(null);
+
+            } catch (e) {
+                console.error('[TimeAttack] Failed to save data:', e);
+                setSaveErrorPayload(gameResult);
+                setGameState('saving_error');
+                return; // halt and show retry UI
             }
+        } else {
+            setGameState('complete');
+            setSaveErrorPayload(null);
         }
 
         loadLeaderboard();
     }
 
+    // Retry function for network drops
+    const handleRetrySave = () => {
+        setGameState('saving');
+        setSaveErrorPayload(null);
+        handleComplete(result); // result is cached in state
+    };
+
 
     if (pageLoading) return (
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400"></div>
+        <div className="min-h-screen bg-gray-950 flex items-center justify-center pt-24 pb-12">
+            <TriviaSkeleton />
         </div>
     );
 
@@ -398,6 +397,47 @@ export default function TimeAttackPage() {
                             onComplete={handleComplete}
                             dailyDiamondsEarned={dailyDiamondsEarned}
                         />
+                    )}
+
+                    {/* Saving state */}
+                    {gameState === 'saving' && (
+                        <TriviaSkeleton />
+                    )}
+
+                    {/* Saving Error State (Retry UI) */}
+                    {gameState === 'saving_error' && (
+                        <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh'
+                        }}>
+                            <div style={{
+                                background: 'rgba(30, 41, 59, 0.9)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                borderRadius: '16px',
+                                padding: '40px',
+                                textAlign: 'center',
+                                maxWidth: '480px'
+                            }}>
+                                <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
+                                <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
+                                    We couldn't save your time attack run because you lost connection. Please check your internet and try again so you don't lose {saveErrorPayload?.diamondsEarned}💎!
+                                </p>
+                                <button
+                                    onClick={handleRetrySave}
+                                    style={{
+                                        padding: '16px 32px',
+                                        background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        color: 'white',
+                                        fontSize: '16px',
+                                        fontWeight: 'bold',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Retry Save
+                                </button>
+                            </div>
+                        </div>
                     )}
 
                     {gameState === 'complete' && result && (

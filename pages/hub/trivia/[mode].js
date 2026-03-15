@@ -21,6 +21,9 @@ import TriviaResult from '../../../src/components/trivia/TriviaResult';
 import LeaderboardDisplay from '../../../src/components/trivia/LeaderboardDisplay';
 import { TRIVIA_MODES, calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
 
+import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
+import { getRecentlySeenIds } from '../../../src/lib/triviaQuestionLoader';
+
 // Phase 1 Enhancement Imports
 import PrizeWheel from '../../../src/components/trivia/PrizeWheel';
 import { useCelebrations } from '../../../src/components/trivia/CelebrationEffects';
@@ -98,6 +101,8 @@ export default function TriviaModePage() {
     // Phase 2: Double or Nothing state
     const [showDoubleOrNothing, setShowDoubleOrNothing] = useState(false);
     const [doubleQuestion, setDoubleQuestion] = useState(null);
+
+    const [saveErrorPayload, setSaveErrorPayload] = useState(null);
 
     // Using existing supabase instance from lib
     const modeConfig = mode ? TRIVIA_MODES[mode] : null;
@@ -229,18 +234,8 @@ export default function TriviaModePage() {
         // ═══════════════════════════════════════════════════════════════
         let excludedSet = new Set();
         if (userId) {
-            const sixtyDaysAgo = new Date();
-            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-            const { data: history } = await supabase
-                .from('trivia_user_question_history')
-                .select('question_id')
-                .eq('user_id', userId)
-                .gte('created_at', sixtyDaysAgo.toISOString());
-
-            if (history) {
-                history.forEach(h => excludedSet.add(h.question_id));
-            }
+            const excludeArray = await getRecentlySeenIds(supabase, userId, 200, mode);
+            excludeArray.forEach(id => excludedSet.add(id));
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -519,6 +514,7 @@ export default function TriviaModePage() {
     };
 
     const handleComplete = async (gameResult) => {
+        setGameState('saving');
         const {
             correctCount, totalQuestions, timeSpent, timeRemaining, answers,
             stakePot = 0, cashedOut = false,
@@ -679,7 +675,10 @@ export default function TriviaModePage() {
                     });
                 }
             } catch (err) {
-                console.error('Error saving results:', err);
+                console.error('[mode] Failed to save data:', err);
+                setSaveErrorPayload(gameResult);
+                setGameState('saving_error');
+                return; // halt and show retry UI
             }
         }
 
@@ -703,6 +702,7 @@ export default function TriviaModePage() {
         });
 
         setGameState('results');
+        setSaveErrorPayload(null);
 
         // Reload daily leaderboard after completion
         if (mode === 'daily') {
@@ -713,6 +713,13 @@ export default function TriviaModePage() {
         if (mode === 'arcade') {
             await loadLeaderboard();
         }
+    };
+
+    // Retry function for network drops
+    const handleRetrySave = () => {
+        setGameState('saving');
+        setSaveErrorPayload(null);
+        handleComplete(saveErrorPayload || result);
     };
 
     const handlePlayAgain = () => {
@@ -762,9 +769,50 @@ export default function TriviaModePage() {
 
                 <div className="content" style={{ padding: '80px 0 40px' }}>
                     {gameState === 'loading' && (
-                        <div className="loading">
-                            <div className="spinner" />
-                            <p>Loading Trivia...</p>
+                        <div className="loading" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <TriviaSkeleton />
+                        </div>
+                    )}
+
+                    {gameState === 'saving' && (
+                        <div className="saving" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <TriviaSkeleton />
+                        </div>
+                    )}
+
+                    {/* Saving Error State (Retry UI) */}
+                    {gameState === 'saving_error' && (
+                        <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh'
+                        }}>
+                            <div style={{
+                                background: 'rgba(30, 41, 59, 0.9)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                borderRadius: '16px',
+                                padding: '40px',
+                                textAlign: 'center',
+                                maxWidth: '480px'
+                            }}>
+                                <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
+                                <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
+                                    We couldn't save your trivia results because you lost connection. Please check your internet and try again so you don't lose your progress!
+                                </p>
+                                <button
+                                    onClick={handleRetrySave}
+                                    style={{
+                                        padding: '16px 32px',
+                                        background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        color: 'white',
+                                        fontSize: '16px',
+                                        fontWeight: 'bold',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Retry Save
+                                </button>
+                            </div>
                         </div>
                     )}
 
