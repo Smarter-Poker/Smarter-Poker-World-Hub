@@ -450,8 +450,7 @@ function SolutionsBrowserInner({ setError }) {
   useEffect(() => {
     async function loadBookmarks() {
       try {
-        const res = await authedFetch('/api/training/bookmark-solution', {
-        });
+        const res = await authedFetch('/api/training/bookmark-solution');
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         if (data.success && data.bookmarks) {
@@ -544,8 +543,7 @@ function SolutionsBrowserInner({ setError }) {
       });
       if (position) params.set('position', position);
 
-      const res = await authedFetch(`/api/training/browse-solutions?${params}`, {
-      });
+      const res = await authedFetch(`/api/training/browse-solutions?${params}`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
 
@@ -576,8 +574,7 @@ function SolutionsBrowserInner({ setError }) {
     setActiveTab('grid');
     setRunoutData({});
     try {
-      const res = await authedFetch(`/api/training/browse-solutions?spotId=${spotId}`, {
-      });
+      const res = await authedFetch(`/api/training/browse-solutions?spotId=${spotId}`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       if (data.success && data.spot) {
@@ -610,8 +607,7 @@ function SolutionsBrowserInner({ setError }) {
           scenarioHash: spotDetail.scenarioHash,
           nextCard,
         });
-        const res = await authedFetch(`/api/training/tree-navigate?${params}`, {
-        });
+        const res = await authedFetch(`/api/training/tree-navigate?${params}`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
 

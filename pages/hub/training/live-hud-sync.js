@@ -13,7 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { authedFetch } from '../../../src/lib/authUtils';
+// no fetch imports needed
 
 export default function LiveHudSyncPage() {
   const router = useRouter();
