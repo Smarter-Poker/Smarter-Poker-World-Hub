@@ -94,7 +94,7 @@ export default function CommanderStaffPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/staff/venue/${venueId}`, {
+      const res = await commanderFetch(`/api/commander/staff/venue/${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
       });
@@ -121,7 +121,7 @@ export default function CommanderStaffPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/staff', {
+      const res = await commanderFetch('/api/commander/staff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ ...staffData, venue_id: venueId })
@@ -235,7 +235,7 @@ export default function CommanderStaffPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/staff/${staffId}`, {
+      const res = await commanderFetch(`/api/commander/staff/${staffId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(staffData)
@@ -266,7 +266,7 @@ export default function CommanderStaffPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/staff/${staffId}`, {
+      const res = await commanderFetch(`/api/commander/staff/${staffId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -307,7 +307,7 @@ export default function CommanderStaffPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/staff/generate-claim', {
+      const res = await commanderFetch('/api/commander/staff/generate-claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId, staff_id: staffId }),

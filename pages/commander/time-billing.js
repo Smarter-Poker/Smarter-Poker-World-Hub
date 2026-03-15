@@ -84,7 +84,7 @@ export default function TimeBilling() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Fetch tables to know which are active
-      const tabRes = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
+      const tabRes = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
       if (!tabRes.ok) throw new Error(`Tables fetch failed (${tabRes.status})`);
       const tabJson = await tabRes.json();
       const tablesArr = tabJson.success
@@ -99,7 +99,7 @@ export default function TimeBilling() {
       await Promise.all(activeTables.map(async (t) => {
         const tNum = t.table_number || t.number;
         try {
-          const sRes = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
+          const sRes = await commanderFetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
           if (!sRes.ok) throw new Error(`Sessions fetch failed (${sRes.status})`);
           const sJson = await sRes.json();
           if (sJson.success && sJson.data) {
@@ -117,7 +117,7 @@ export default function TimeBilling() {
       // Also fetch completed/ended sessions for history view
       if (filter === 'completed') {
         try {
-          const histRes = await fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}`, { headers });
+          const histRes = await commanderFetch(`/api/commander/time-billing/sessions?venue_id=${venueId}`, { headers });
           if (!histRes.ok) throw new Error(`History fetch failed (${histRes.status})`);
           const histJson = await histRes.json();
           if (histJson.success) {
@@ -150,7 +150,7 @@ export default function TimeBilling() {
       try {
         const token = getToken();
         const staffSession = getStaffSession() || '';
-        const res = await fetch('/api/commander/settings', {
+        const res = await commanderFetch('/api/commander/settings', {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -171,7 +171,7 @@ export default function TimeBilling() {
         const token = getToken();
         const staffSession = getStaffSession() || '';
         const venueId = getVenueId();
-        const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
+        const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -188,7 +188,7 @@ export default function TimeBilling() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/settings', {
+      const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
@@ -233,7 +233,7 @@ export default function TimeBilling() {
     setPinError('');
     try {
       const venueId = getVenueId();
-      const pinRes = await fetch('/api/commander/staff/verify-pin', {
+      const pinRes = await commanderFetch('/api/commander/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' },
         body: JSON.stringify({ venue_id: venueId, pin_code: digits })
@@ -278,7 +278,7 @@ export default function TimeBilling() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
+      const res = await commanderFetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -296,7 +296,7 @@ export default function TimeBilling() {
             });
 
             const venueId = getVenueId();
-            const res = await fetch(`/api/commander/cashier`, {
+            const res = await commanderFetch(`/api/commander/cashier`, {
               method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
               body: JSON.stringify({
                 venue_id: venueId,
@@ -367,7 +367,7 @@ export default function TimeBilling() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/time-billing/sessions/${payModal.id}/payment`, {
+      const res = await commanderFetch(`/api/commander/time-billing/sessions/${payModal.id}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ amount: parseFloat(payAmount), staff_name: staff?.display_name })
@@ -410,7 +410,7 @@ export default function TimeBilling() {
       const token = getToken();
       const venueId = getVenueId();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
+      const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ [field]: parseFloat(value) || 0 })

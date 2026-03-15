@@ -77,7 +77,7 @@ export default function CommanderSettingsPage() {
     const controller = new AbortController();
     const { signal } = controller;
     try {
-      fetch('/api/commander/settings', {
+      commanderFetch('/api/commander/settings', {
         headers: { 'x-staff-session': storedStaffData, Authorization: `Bearer ${getToken()}` }
       })
         .then(r => r.json())
@@ -116,7 +116,7 @@ export default function CommanderSettingsPage() {
     if (!venueId) return;
     const storedStaffData = getStaffSession();
     if (!storedStaffData) return;
-    fetch('/api/commander/settings', { headers: { 'x-staff-session': storedStaffData, Authorization: `Bearer ${getToken()}` } })
+    commanderFetch('/api/commander/settings', { headers: { 'x-staff-session': storedStaffData, Authorization: `Bearer ${getToken()}` } })
       .then(r => r.json())
       .then(data => {
         if (data?.data) {
@@ -158,7 +158,7 @@ export default function CommanderSettingsPage() {
 
       // Save display/waitlist settings via PUT (upserts to commander_venue_settings)
       // Note: hard_stop settings managed from Room Presets page
-      const res = await fetch('/api/commander/settings', {
+      const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({
@@ -204,7 +204,7 @@ export default function CommanderSettingsPage() {
     // Auto-save toggle instantly
     try {
       const staffSession = getStaffSession();
-      const res = await fetch('/api/commander/settings', {
+      const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ [key]: newValue })
@@ -420,7 +420,7 @@ export default function CommanderSettingsPage() {
                                 reader.onerror = reject;
                                 reader.readAsDataURL(file);
                               });
-                              const res = await fetch('/api/commander/settings/logo', {
+                              const res = await commanderFetch('/api/commander/settings/logo', {
                                 method: 'POST',
                                 headers: {
                                   'Content-Type': 'application/json',
@@ -455,7 +455,7 @@ export default function CommanderSettingsPage() {
                         <button onClick={async () => {
                           try {
                             const staffSession = getStaffSession() || '';
-                            const res = await fetch('/api/commander/settings/logo', {
+                            const res = await commanderFetch('/api/commander/settings/logo', {
                               method: 'DELETE',
                               headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }
                             });

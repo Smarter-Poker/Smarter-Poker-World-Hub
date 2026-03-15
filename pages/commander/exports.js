@@ -54,8 +54,8 @@ export default function ExportsHub() {
     try {
       const headers = { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' };
       const [expRes, tRes] = await Promise.all([
-        fetch(`/api/commander/exports?venue_id=${venueId}`, { headers }).catch(() => ({ ok: false })),
-        fetch(`/api/commander/tournaments?venue_id=${venueId}&status=completed&limit=20`, { headers }).catch(() => ({ ok: false })),
+        commanderFetch(`/api/commander/exports?venue_id=${venueId}`, { headers }).catch(() => ({ ok: false })),
+        commanderFetch(`/api/commander/tournaments?venue_id=${venueId}&status=completed&limit=20`, { headers }).catch(() => ({ ok: false })),
       ]);
       const expJson = await expRes.json().catch(() => ({ exports: [] }));
       const tJson = await tRes.json().catch(() => ({ data: [] }));
@@ -71,7 +71,7 @@ export default function ExportsHub() {
     setCreating(exportType);
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/exports', {
+      const res = await commanderFetch('/api/commander/exports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
@@ -107,7 +107,7 @@ export default function ExportsHub() {
   const exportHendonMob = async (tournamentId) => {
     setCreating('hendon');
     try {
-      const res = await fetch(`/api/commander/exports/hendon-mob?tournament_id=${tournamentId}`, {
+      const res = await commanderFetch(`/api/commander/exports/hendon-mob?tournament_id=${tournamentId}`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' }
       });
       if (res.ok) {

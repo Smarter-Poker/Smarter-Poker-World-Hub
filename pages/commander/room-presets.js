@@ -82,7 +82,7 @@ export default function DailyPresetsPage() {
       const token = getToken();
       if (!token) return;
       const staffSession = getStaffSession() || '';
-      fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
+      commanderFetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
         .then(r => r.json())
         .then(data => {
           if (data?.data) {
@@ -101,7 +101,7 @@ export default function DailyPresetsPage() {
       const token = getToken();
       if (!token) return;
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/settings', {
+      const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ hard_stop_enabled: hardStopEnabled, hard_stop_time: hardStopTime })
@@ -125,7 +125,7 @@ export default function DailyPresetsPage() {
       const token = getToken();
       if (!token) return;
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/settings', {
+      const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ auto_comp_rate: autoCompRate })
@@ -151,9 +151,9 @@ export default function DailyPresetsPage() {
       const venueId = stored.venue_id;
       const safeJson = (r) => (r && typeof r.json === 'function') ? r.json().catch(() => ({})) : Promise.resolve({});
       const [presetsRes, typesRes, promosRes] = await Promise.all([
-        fetch(`/api/commander/room-presets?venue_id=${venueId}`, { headers }).catch(() => null),
-        fetch(`/api/commander/game-types?venue_id=${venueId}`, { headers }).catch(() => null),
-        fetch(`/api/commander/promotions?venue_id=${venueId}&status=all`, { headers }).catch(() => null)
+        commanderFetch(`/api/commander/room-presets?venue_id=${venueId}`, { headers }).catch(() => null),
+        commanderFetch(`/api/commander/game-types?venue_id=${venueId}`, { headers }).catch(() => null),
+        commanderFetch(`/api/commander/promotions?venue_id=${venueId}&status=all`, { headers }).catch(() => null)
       ]);
       const [presetsJson, typesJson, promosJson] = await Promise.all([
         safeJson(presetsRes), safeJson(typesRes), safeJson(promosRes)
@@ -186,7 +186,7 @@ export default function DailyPresetsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/room-presets?id=${preset.id}&action=apply`, {
+      const res = await commanderFetch(`/api/commander/room-presets?id=${preset.id}&action=apply`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -334,7 +334,7 @@ export default function DailyPresetsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/room-presets?id=${preset.id}`, {
+      const res = await commanderFetch(`/api/commander/room-presets?id=${preset.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });

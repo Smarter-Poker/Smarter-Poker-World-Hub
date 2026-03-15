@@ -93,7 +93,7 @@ export default function ClockSetup() {
     const fetchPresets = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/commander/clock-presets', {
+            const res = await commanderFetch('/api/commander/clock-presets', {
                 headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -170,7 +170,7 @@ export default function ClockSetup() {
     const handleDelete = async (presetId) => {
         if (!confirm('Delete this clock preset?')) return;
         try {
-            const res = await fetch(`/api/commander/clock-presets?id=${presetId}`, {
+            const res = await commanderFetch(`/api/commander/clock-presets?id=${presetId}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
             });

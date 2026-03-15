@@ -84,7 +84,7 @@ export default function AnnouncementsDisplay() {
   const fetchData = useCallback(async () => {
     if (!venueId) return;
     try {
-      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/announcements?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -93,7 +93,7 @@ export default function AnnouncementsDisplay() {
     } catch (err) { console.error(err); }
 
     try {
-      const settingsRes = await fetch(`/api/commander/settings?venue_id=${venueId}`, {
+      const settingsRes = await commanderFetch(`/api/commander/settings?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
       });
       if (!settingsRes.ok) throw new Error(`Request failed (${settingsRes.status})`);
@@ -108,7 +108,7 @@ export default function AnnouncementsDisplay() {
   const fetchAllAnnouncements = useCallback(async () => {
     if (!venueId) return;
     try {
-      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {
+      const res = await commanderFetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -198,7 +198,7 @@ export default function AnnouncementsDisplay() {
         title: formData.title, message: formData.message, priority: formData.priority, type: formData.type,
         expires_at: formData.expires_at || null, starts_at: formData.starts_at || null,
       };
-      const res = await fetch('/api/commander/announcements', {
+      const res = await commanderFetch('/api/commander/announcements', {
         method: editingAnnouncement ? 'PATCH' : 'POST', headers: hdrs, body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -215,7 +215,7 @@ export default function AnnouncementsDisplay() {
   const deleteAnnouncement = async (id) => {
     if (!confirm('Delete this announcement?')) return;
     try {
-      const res = await fetch(`/api/commander/announcements?id=${id}`, {
+      const res = await commanderFetch(`/api/commander/announcements?id=${id}`, {
         method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
       });
       if (res.ok) {

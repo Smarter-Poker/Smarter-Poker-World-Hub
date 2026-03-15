@@ -65,10 +65,10 @@ export default function DealerRotation() {
       const headers = getHeaders();
 
       const [dealersRes, tablesRes, rotationsRes, gamesRes] = await Promise.all([
-        fetch(`/api/commander/dealers?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
-        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
-        fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
-        fetch(`/api/commander/games/venue/${venueId}`, { headers }).then(r => r.json()).catch(() => ({}))
+        commanderFetch(`/api/commander/dealers?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
+        commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
+        commanderFetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({})),
+        commanderFetch(`/api/commander/games/venue/${venueId}`, { headers }).then(r => r.json()).catch(() => ({}))
       ]);
 
       // Parse dealers — API returns { dealers: [...] } or { data: { dealers: [...] } }
@@ -110,7 +110,7 @@ export default function DealerRotation() {
     setActionLoading(dealerId);
     try {
       const venueId = getVenueId();
-      const res = await fetch('/api/commander/dealers/rotations', {
+      const res = await commanderFetch('/api/commander/dealers/rotations', {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({

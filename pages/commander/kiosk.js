@@ -16,6 +16,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import useWakeLock from '../../src/hooks/useWakeLock';
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 
 
@@ -131,7 +132,7 @@ export default function MembershipKiosk() {
   const fetchGames = async () => {
     if (!venueId) return;
     try {
-      const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, {
         headers: { 'x-staff-session': staffHeader, Authorization: `Bearer ${getToken()}` }
       });
       // HIGH FIX #2e: Add response.ok check before .json()
@@ -176,7 +177,7 @@ export default function MembershipKiosk() {
     setSearching(true);
     try {
       // Fetch all active waitlist entries for this venue
-      const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, {
         headers: { 'x-staff-session': staffHeader, Authorization: `Bearer ${getToken()}` }
       });
       // HIGH FIX #2f: Add response.ok check before .json()
@@ -206,7 +207,7 @@ export default function MembershipKiosk() {
       // Check in all matched waitlist entries
       let successCount = 0;
       for (const entry of waitlistMatches) {
-        const res = await fetch(`/api/commander/waitlist/${entry.id}`, {
+        const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -237,7 +238,7 @@ export default function MembershipKiosk() {
     setScanError('');
     let foundOnWaitlist = false;
     try {
-      const res = await fetch('/api/commander/members/scan', {
+      const res = await commanderFetch('/api/commander/members/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ qr_code: scanQR.trim(), venue_id: venueId })
@@ -257,7 +258,7 @@ export default function MembershipKiosk() {
 
       // Also check in to waitlist if they have matching entries
       try {
-        const wlRes = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
+        const wlRes = await commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, {
           headers: { 'x-staff-session': staffHeader, Authorization: `Bearer ${getToken()}` }
         });
         // HIGH FIX #2h: Add response.ok check before .json()
@@ -281,7 +282,7 @@ export default function MembershipKiosk() {
           if (matchingEntries.length > 0) foundOnWaitlist = true;
           let successCount = 0;
           for (const entry of matchingEntries) {
-            const patchRes = await fetch(`/api/commander/waitlist/${entry.id}`, {
+            const patchRes = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader, Authorization: `Bearer ${getToken()}` },
               body: JSON.stringify({ checked_in_at: new Date().toISOString() })
@@ -315,7 +316,7 @@ export default function MembershipKiosk() {
     setSubmitting(true);
     setScanError('');
     try {
-      const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, {
         headers: { 'x-staff-session': staffHeader, Authorization: `Bearer ${getToken()}` }
       });
       // HIGH FIX #2i: Add response.ok check before .json()
@@ -334,7 +335,7 @@ export default function MembershipKiosk() {
           // Check in all matching entries
           let successCount = 0;
           for (const entry of matches) {
-            const patchRes = await fetch(`/api/commander/waitlist/${entry.id}`, {
+            const patchRes = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader, Authorization: `Bearer ${getToken()}` },
               body: JSON.stringify({ checked_in_at: new Date().toISOString() })
@@ -372,7 +373,7 @@ export default function MembershipKiosk() {
     setSubmitting(true);
     setScanError('');
     try {
-      const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, {
         headers: { 'x-staff-session': staffHeader, Authorization: `Bearer ${getToken()}` }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -386,7 +387,7 @@ export default function MembershipKiosk() {
         if (matches.length > 0) {
           let successCount = 0;
           for (const entry of matches) {
-            const patchRes = await fetch(`/api/commander/waitlist/${entry.id}`, {
+            const patchRes = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader, Authorization: `Bearer ${getToken()}` },
               body: JSON.stringify({ checked_in_at: new Date().toISOString() })
@@ -422,7 +423,7 @@ export default function MembershipKiosk() {
     setSubmitting(true);
     setScanError('');
     try {
-      const res = await fetch('/api/commander/members/scan', {
+      const res = await commanderFetch('/api/commander/members/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ qr_code: scanQR.trim(), venue_id: venueId })
@@ -454,7 +455,7 @@ export default function MembershipKiosk() {
     try {
       let successCount = 0;
       for (const game of selectedGames) {
-        const res = await fetch('/api/commander/waitlist', {
+        const res = await commanderFetch('/api/commander/waitlist', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

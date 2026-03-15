@@ -37,7 +37,7 @@ export default function TournamentDirector() {
     const fetchTournaments = useCallback(async (signal) => {
         try {
             const staffSession = getStaffSession() || '';
-            const res = await fetch('/api/commander/tournaments', {
+            const res = await commanderFetch('/api/commander/tournaments', {
                 headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);

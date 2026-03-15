@@ -45,7 +45,7 @@ export default function PokerRoomFunctions() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Get settings (room open/close state + venue_id)
-      const vRes = await fetch('/api/commander/settings', { headers });
+      const vRes = await commanderFetch('/api/commander/settings', { headers });
       if (!vRes.ok) throw new Error(`Request failed (${vRes.status})`);
       const vJson = await vRes.json();
       let vid = venueId;
@@ -58,8 +58,8 @@ export default function PokerRoomFunctions() {
       // Fetch tables AND games data
       if (vid) {
         const [tabRes, gamesRes] = await Promise.all([
-          fetch(`/api/commander/tables?venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
-          fetch(`/api/commander/games/venue/${vid}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
+          commanderFetch(`/api/commander/tables?venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
+          commanderFetch(`/api/commander/games/venue/${vid}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
         ]);
 
         if (tabRes.success) {
@@ -92,7 +92,7 @@ export default function PokerRoomFunctions() {
           const hasActiveGames = tList.some(t => t.status === 'in_use');
           if (hasActiveGames && !vJson.data?.room_open) {
             try {
-              const res = await fetch('/api/commander/settings', {
+              const res = await commanderFetch('/api/commander/settings', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                 body: JSON.stringify({ room_open: true })
@@ -116,7 +116,7 @@ export default function PokerRoomFunctions() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/settings', {
+      const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ room_open: !roomOpen })

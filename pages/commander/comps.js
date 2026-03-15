@@ -112,7 +112,7 @@ export default function CompSystem() {
   useEffect(() => {
     const staffSession = getStaffSession();
     if (!staffSession) return;
-    fetch('/api/commander/settings', { headers: getHeaders() })
+    commanderFetch('/api/commander/settings', { headers: getHeaders() })
       .then(r => r.json())
       .then(data => {
         if (data?.data?.auto_comp_rate !== undefined) {
@@ -124,7 +124,7 @@ export default function CompSystem() {
     // Fetch membership plans for auto-populating comp costs
     const venueId = getVenueId();
     if (venueId) {
-      fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { headers: getHeaders() })
+      commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}`, { headers: getHeaders() })
         .then(r => r.json())
         .then(data => {
           if (data?.success && data.data?.plans) {
@@ -147,8 +147,8 @@ export default function CompSystem() {
 
       if (tab === 'dashboard') {
         const [membersRes, logRes] = await Promise.all([
-          fetch(`/api/commander/members?venue_id=${venueId}&has_comps=true&limit=100`, { headers }).catch(() => ({ ok: false })),
-          fetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers }).catch(() => ({ ok: false }))
+          commanderFetch(`/api/commander/members?venue_id=${venueId}&has_comps=true&limit=100`, { headers }).catch(() => ({ ok: false })),
+          commanderFetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers }).catch(() => ({ ok: false }))
         ]);
         if (!membersRes || typeof membersRes.json !== 'function') throw new Error('Members fetch failed (network error)');
         if (!membersRes.ok) throw new Error(`Request failed (${membersRes.status})`);
@@ -183,7 +183,7 @@ export default function CompSystem() {
         setStats({ today, week, allTime, count });
 
       } else if (tab === 'log') {
-        const res = await fetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers });
+        const res = await commanderFetch(`/api/commander/comps/balances?venue_id=${venueId}&history=true`, { headers });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         setCompLog(json.data?.transactions || []);
@@ -205,7 +205,7 @@ export default function CompSystem() {
       const headers = {};
       const staffSession = getStaffSession();
       if (staffSession) headers['x-staff-session'] = staffSession;
-      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(q)}&limit=10${venueId ? `&venue_id=${venueId}` : ''}`, { headers });
+      const res = await commanderFetch(`/api/commander/members/search?q=${encodeURIComponent(q)}&limit=10${venueId ? `&venue_id=${venueId}` : ''}`, { headers });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setSearchResults(json.data || []);
@@ -237,7 +237,7 @@ export default function CompSystem() {
     setPinError('');
     try {
       const venueId = getVenueId();
-      const pinRes = await fetch('/api/commander/staff/verify-pin', {
+      const pinRes = await commanderFetch('/api/commander/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ venue_id: venueId, pin_code: pinCode })
@@ -300,7 +300,7 @@ export default function CompSystem() {
         body.time_minutes = parseInt(timeMinutes);
       }
 
-      const res = await fetch('/api/commander/comps/balances', {
+      const res = await commanderFetch('/api/commander/comps/balances', {
         method: 'POST',
         headers,
         body: JSON.stringify(body)
@@ -450,7 +450,7 @@ export default function CompSystem() {
     setVoidLoading(true);
     setVoidPinError('');
     var venueId = getVenueId();
-    fetch('/api/commander/staff/verify-pin', {
+    commanderFetch('/api/commander/staff/verify-pin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession(), Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ venue_id: venueId, pin_code: voidPinCode })
@@ -476,7 +476,7 @@ export default function CompSystem() {
         var headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
         if (staffSession) headers['x-staff-session'] = staffSession;
         // Record void transaction via PATCH (voidComp handler)
-        return fetch('/api/commander/comps/balances', {
+        return commanderFetch('/api/commander/comps/balances', {
           method: 'PATCH',
           headers: headers,
           body: JSON.stringify({

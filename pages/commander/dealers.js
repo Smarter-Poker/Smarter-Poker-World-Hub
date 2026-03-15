@@ -355,7 +355,7 @@ export default function DealersPage() {
     try {
       const staffSession = getStaffSession() || '';
       const token = getToken();
-      const res = await fetch(`/api/commander/dealers?venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/dealers?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
       });
@@ -376,7 +376,7 @@ export default function DealersPage() {
     try {
       const staffSession = getStaffSession() || '';
       const token = getToken();
-      const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
       });
@@ -396,7 +396,7 @@ export default function DealersPage() {
     try {
       const staffSession = getStaffSession() || '';
       const token = getToken();
-      const res = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}&limit=50`, {
+      const res = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${venueId}&limit=50`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
       });
@@ -415,7 +415,7 @@ export default function DealersPage() {
     try {
       const staffSession = getStaffSession() || '';
       const token = getToken();
-      const res = await fetch('/api/commander/dealers', {
+      const res = await commanderFetch('/api/commander/dealers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId, ...data })
@@ -438,7 +438,7 @@ export default function DealersPage() {
     try {
       const staffSession = getStaffSession() || '';
       const token = getToken();
-      const res = await fetch(`/api/commander/dealers/${editingDealer.id}`, {
+      const res = await commanderFetch(`/api/commander/dealers/${editingDealer.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(data)
@@ -461,7 +461,7 @@ export default function DealersPage() {
     try {
       const staffSession = getStaffSession() || '';
       const token = getToken();
-      const res = await fetch('/api/commander/dealers/rotations', {
+      const res = await commanderFetch('/api/commander/dealers/rotations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ dealer_id: dealerId, table_id: tableId, venue_id: venueId })

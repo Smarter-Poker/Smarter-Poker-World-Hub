@@ -31,7 +31,7 @@ export default function DisplayManagement() {
   const fetchData = useCallback(async(signal) => {
     try {
       const token = getToken();
-      const res = await fetch('/api/commander/tournaments', {
+      const res = await commanderFetch('/api/commander/tournaments', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

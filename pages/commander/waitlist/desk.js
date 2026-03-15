@@ -99,7 +99,7 @@ export default function WaitlistDesk() {
       try {
         const token = getToken();
         const staffSession = getStaffSession();
-        const res = await fetch('/api/commander/settings', {
+        const res = await commanderFetch('/api/commander/settings', {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
           signal: controller.signal,
         });
@@ -118,7 +118,7 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      const res = await fetch('/api/commander/settings', {
+      const res = await commanderFetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ desk_customization: newCustom })
@@ -138,9 +138,9 @@ export default function WaitlistDesk() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const fetchOpts = signal ? { headers, signal } : { headers };
       const [tabRes, wlRes, mmRes] = await Promise.all([
-        fetch(`/api/commander/tables?venue_id=${vid}`, fetchOpts).then(r => { if (!r.ok) throw new Error(`tables ${r.status}`); return r; }).catch(() => ({ json: async () => ({ success: false }) })),
-        fetch(`/api/commander/waitlist?venue_id=${vid}`, fetchOpts).then(r => { if (!r.ok) throw new Error(`waitlist ${r.status}`); return r; }).catch(() => ({ json: async () => ({ success: false }) })),
-        fetch(`/api/commander/games/must-move-status?venue_id=${vid}`, fetchOpts).catch(() => ({ json: async () => ({ success: false }) }))
+        commanderFetch(`/api/commander/tables?venue_id=${vid}`, fetchOpts).then(r => { if (!r.ok) throw new Error(`tables ${r.status}`); return r; }).catch(() => ({ json: async () => ({ success: false }) })),
+        commanderFetch(`/api/commander/waitlist?venue_id=${vid}`, fetchOpts).then(r => { if (!r.ok) throw new Error(`waitlist ${r.status}`); return r; }).catch(() => ({ json: async () => ({ success: false }) })),
+        commanderFetch(`/api/commander/games/must-move-status?venue_id=${vid}`, fetchOpts).catch(() => ({ json: async () => ({ success: false }) }))
       ]);
       const tabJson = await tabRes.json();
       const wlJson = await wlRes.json();
@@ -157,7 +157,7 @@ export default function WaitlistDesk() {
         );
         if (expiredCalled.length > 0) {
           await Promise.all(expiredCalled.map(e =>
-            fetch(`/api/commander/waitlist/${e.id}`, {
+            commanderFetch(`/api/commander/waitlist/${e.id}`, {
               method: 'DELETE',
               headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
             }).then(r => { if (!r.ok) console.warn('Non-critical cleanup err'); }).catch(() => { /* non-critical */ })
@@ -196,7 +196,7 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      const res = await fetch(`/api/commander/waitlist/${entry.id}/call`, {
+      const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/call`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({ notify_sms: true, notify_push: true })
@@ -231,7 +231,7 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      const res = await fetch('/api/commander/waitlist/seat', {
+      const res = await commanderFetch('/api/commander/waitlist/seat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({ waitlist_id: entry.id, table_number: tableNumber, seat_number: seatNumber })
@@ -264,7 +264,7 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      const res = await fetch(`/api/commander/waitlist/${entry.id}/pass`, {
+      const res = await commanderFetch(`/api/commander/waitlist/${entry.id}/pass`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() }
       });
@@ -296,7 +296,7 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      const res = await fetch(`/api/commander/waitlist/${entry.id}`, {
+      const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() }
       });
@@ -322,7 +322,7 @@ export default function WaitlistDesk() {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      const res = await fetch(`/api/commander/waitlist/${entry.id}`, {
+      const res = await commanderFetch(`/api/commander/waitlist/${entry.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ checked_in_at: new Date().toISOString() })
@@ -359,7 +359,7 @@ export default function WaitlistDesk() {
       const parts = (playerData.game_type || 'NLH 1/3').split(' ');
       const gameType = parts[0] || 'NLH';
       const stakes = parts.slice(1).join(' ') || '1/3';
-      const res = await fetch('/api/commander/waitlist', {
+      const res = await commanderFetch('/api/commander/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({
@@ -412,7 +412,7 @@ export default function WaitlistDesk() {
       );
       // Batch update each entry
       await Promise.all(entriesToUpdate.map(entry =>
-        fetch(`/api/commander/waitlist/${entry.id}`, {
+        commanderFetch(`/api/commander/waitlist/${entry.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
           body: JSON.stringify({ game_type: newGameType, stakes: newStakes })
@@ -440,7 +440,7 @@ export default function WaitlistDesk() {
         const token = getToken();
         const staffSession = getStaffSession();
         const staffData = JSON.parse(getStaffSession() || '{}');
-        const r = await fetch('/api/commander/tables', {
+        const r = await commanderFetch('/api/commander/tables', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
           body: JSON.stringify({ venue_id: staffData.venue_id, table_number: parseInt(tn) || tn, table_name: `Table ${tn}`, max_seats: 9, game_type: gt, stakes: st })
@@ -471,7 +471,7 @@ export default function WaitlistDesk() {
         (w.status === 'waiting' || w.status === 'called')
       );
       await Promise.all(entriesToDelete.map(entry =>
-        fetch(`/api/commander/waitlist/${entry.id}`, {
+        commanderFetch(`/api/commander/waitlist/${entry.id}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         }).then(r => { if (!r.ok) throw new Error('Delete failed'); })
@@ -923,7 +923,7 @@ export default function WaitlistDesk() {
                                 try {
                                   const token = getToken();
                                   const staffSession = getStaffSession();
-                                  const res = await fetch('/api/commander/games/must-move-status', {
+                                  const res = await commanderFetch('/api/commander/games/must-move-status', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                                     body: JSON.stringify({ must_move_game_id: mmGame.id, target_game_id: targetGame.id })

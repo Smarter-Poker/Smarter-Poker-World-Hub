@@ -54,7 +54,7 @@ export default function ShiftHandoff() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/shift-handoff?venue_id=${staff.venue_id}&limit=30`, {
+      const res = await commanderFetch(`/api/commander/shift-handoff?venue_id=${staff.venue_id}&limit=30`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         ...(signal ? { signal } : {}),
       });
@@ -85,7 +85,7 @@ export default function ShiftHandoff() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/shift-handoff', {
+      const res = await commanderFetch('/api/commander/shift-handoff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
@@ -120,7 +120,7 @@ export default function ShiftHandoff() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/shift-handoff', {
+      const res = await commanderFetch('/api/commander/shift-handoff', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({

@@ -52,7 +52,7 @@ export default function TournamentSettingsPage() {
 
     async function fetchClockPresets(staffSession) {
         try {
-            const res = await fetch('/api/commander/clock-presets', {
+            const res = await commanderFetch('/api/commander/clock-presets', {
                 headers: { 'x-staff-session': staffSession || '', Authorization: `Bearer ${getToken()}` },
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -103,7 +103,7 @@ export default function TournamentSettingsPage() {
                     ...(shotClockEnabled ? { shot_clock_enabled: true, shot_clock_seconds: shotClockSeconds } : {}),
                 },
             };
-            const res = await fetch('/api/commander/tournaments', {
+            const res = await commanderFetch('/api/commander/tournaments', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ export default function TournamentSettingsPage() {
                             guaranteed_pool: null,
                         },
                     };
-                    const r = await fetch('/api/commander/sync-tournament-to-club', {
+                    const r = await commanderFetch('/api/commander/sync-tournament-to-club', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

@@ -123,8 +123,8 @@ export default function FloorCalls() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       const [activeRes, resolvedRes] = await Promise.all([
-        fetch(`/api/commander/floor-calls?status=pending,acknowledged,en_route&venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/floor-calls?status=resolved&venue_id=${vid}&limit=30`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        commanderFetch(`/api/commander/floor-calls?status=pending,acknowledged,en_route&venue_id=${vid}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        commanderFetch(`/api/commander/floor-calls?status=resolved&venue_id=${vid}&limit=30`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
       ]);
 
       const allActive = (activeRes.data || []).sort((a, b) => {
@@ -178,7 +178,7 @@ export default function FloorCalls() {
       let respondedBy = '';
       try { const s = JSON.parse(staffSession); respondedBy = s.name || s.id || ''; } catch (e) { /* silent */ }
 
-      const res = await fetch(`/api/commander/floor-calls/${id}`, {
+      const res = await commanderFetch(`/api/commander/floor-calls/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ status, responded_by: respondedBy, resolution })
@@ -196,7 +196,7 @@ export default function FloorCalls() {
     setSubmitting(true);
     try {
       const { token, staffSession, venueId: vid } = getAuth();
-      const res = await fetch('/api/commander/floor-calls', {
+      const res = await commanderFetch('/api/commander/floor-calls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({

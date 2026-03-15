@@ -117,7 +117,7 @@ export default function CommanderTablesPage() {
     // Fetch tables
     let tablesArr = [];
     try {
-      const tablesRes = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers, signal });
+      const tablesRes = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { headers, signal });
       if (!tablesRes.ok) throw new Error(`Tables fetch failed (${tablesRes.status})`);
       const tablesData = await tablesRes.json();
       if (tablesData.success) {
@@ -130,7 +130,7 @@ export default function CommanderTablesPage() {
 
     // Fetch games
     try {
-      const gamesRes = await fetch(`/api/commander/games/venue/${venueId}`, { headers, signal });
+      const gamesRes = await commanderFetch(`/api/commander/games/venue/${venueId}`, { headers, signal });
       if (!gamesRes.ok) throw new Error(`Games fetch failed (${gamesRes.status})`);
       const gamesData = await gamesRes.json();
       if (gamesData.success) {
@@ -148,7 +148,7 @@ export default function CommanderTablesPage() {
       await Promise.all(activeTables.map(async (t) => {
         try {
           const tNum = t.table_number || t.number;
-          const res = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
+          const res = await commanderFetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
           if (!res.ok) throw new Error(`Sessions fetch failed (${res.status})`);
           const json = await res.json();
           if (json.success) sessionData[tNum] = json.data || [];
@@ -161,7 +161,7 @@ export default function CommanderTablesPage() {
 
     // Fetch active dealer rotations — maps table_number to dealer_name
     try {
-      const rotRes = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers });
+      const rotRes = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, { headers });
       if (!rotRes.ok) throw new Error(`Rotation fetch failed (${rotRes.status})`);
       const rotData = await rotRes.json();
       if (rotData.success) {
@@ -211,7 +211,7 @@ export default function CommanderTablesPage() {
     setActionLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/games', {
+      const res = await commanderFetch('/api/commander/games', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({
@@ -223,7 +223,7 @@ export default function CommanderTablesPage() {
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success || data.data) {
-        const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
+        const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
           body: JSON.stringify({ status: 'in_use', game_type: newGameType, stakes: newStakes, mode: 'cash', table_purpose: 'cash_game' })
@@ -243,14 +243,14 @@ export default function CommanderTablesPage() {
     setActionLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const res1 = await fetch(`/api/commander/games/${gameId}`, {
+      const res1 = await commanderFetch(`/api/commander/games/${gameId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ status: 'closed' })
       });
       if (!res1.ok) throw new Error('Failed to close game');
       if (selectedTable) {
-        const res2 = await fetch(`/api/commander/tables/${selectedTable.id}`, {
+        const res2 = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
           body: JSON.stringify({ status: 'available', game_type: null, stakes: null, mode: 'inactive' })
@@ -273,7 +273,7 @@ export default function CommanderTablesPage() {
         updates.game_type = null;
         updates.stakes = null;
       }
-      const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
+      const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify(updates)
@@ -292,7 +292,7 @@ export default function CommanderTablesPage() {
     setActionLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
+      const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'DELETE',
         headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` }
       });
@@ -308,7 +308,7 @@ export default function CommanderTablesPage() {
   const handleAddTable = async (tableData) => {
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/tables', {
+      const res = await commanderFetch('/api/commander/tables', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ ...tableData, venue_id: venueId })
@@ -332,7 +332,7 @@ export default function CommanderTablesPage() {
       const staffSession = getStaffSession() || '';
       // Sync both table_purpose and mode columns
       const mode = purpose === 'tournament' ? 'tournament' : 'cash';
-      const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
+      const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ table_purpose: purpose, mode })

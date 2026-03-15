@@ -13,6 +13,7 @@ import { ChevronLeft, Building2, CheckCircle, XCircle, AlertTriangle, RefreshCw,
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
+import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 // Success criteria from IMPLEMENTATION_PHASES.md Step 6.6
 const SUCCESS_CRITERIA = {
@@ -51,7 +52,7 @@ export default function PilotVenuesPage() {
     setLoading(true);
     try {
       const token = getToken();
-      const res = await fetch('/api/commander/admin/pilots', {
+      const res = await commanderFetch('/api/commander/admin/pilots', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

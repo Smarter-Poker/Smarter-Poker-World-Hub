@@ -60,7 +60,7 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/high-hands', {
+      const res = await commanderFetch('/api/commander/high-hands', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -336,7 +336,7 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/promotions?venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/promotions?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -358,7 +358,7 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/high-hands?venue_id=${venueId}&limit=20`, {
+      const res = await commanderFetch(`/api/commander/high-hands?venue_id=${venueId}&limit=20`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error('err');
@@ -517,7 +517,7 @@ export default function PromotionsPage() {
       const token = getToken();
       const staffSession = getStaffSession() || '';
       const results = await Promise.allSettled([...selectedIds].map(id =>
-        fetch(`/api/commander/promotions/${id}`, {
+        commanderFetch(`/api/commander/promotions/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
           body: JSON.stringify({ status: activate ? 'active' : 'draft', is_active: activate })
@@ -539,7 +539,7 @@ export default function PromotionsPage() {
       const token = getToken();
       const staffSession = getStaffSession() || '';
       const results = await Promise.allSettled([...selectedIds].map(id =>
-        fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
+        commanderFetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
         .then(r => { if (!r.ok) throw new Error('fail'); return r; })
       ));
       const failed = results.filter(r => r.status === 'rejected').length;
@@ -587,7 +587,7 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/promotions/${promo.id}/awards?limit=50`, {
+      const res = await commanderFetch(`/api/commander/promotions/${promo.id}/awards?limit=50`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -605,7 +605,7 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/high-hands/${highHand.id}`, {
+      const res = await commanderFetch(`/api/commander/high-hands/${highHand.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -629,7 +629,7 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/promotions/${promo.id}`, {
+      const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ is_active: !promo.is_active })
@@ -649,7 +649,7 @@ export default function PromotionsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+      const res = await commanderFetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
       if (res.ok) {
         broadcastChange('settings');
         fetchPromotions();
@@ -694,7 +694,7 @@ export default function PromotionsPage() {
         settings: promo.settings,
         status: 'draft'
       };
-      const res = await fetch('/api/commander/promotions', {
+      const res = await commanderFetch('/api/commander/promotions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(cloneData)
@@ -745,7 +745,7 @@ export default function PromotionsPage() {
     const staffSession = getStaffSession() || '';
     try {
       await Promise.allSettled(items.map((p, idx) =>
-        fetch(`/api/commander/promotions/${p.id}`, {
+        commanderFetch(`/api/commander/promotions/${p.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
           body: JSON.stringify({ settings: { ...(p.settings || {}), display_order: idx } })
@@ -1067,7 +1067,7 @@ export default function PromotionsPage() {
                     try {
                       const token = getToken();
                       const staffSession = getStaffSession() || '';
-                      const res = await fetch('/api/commander/high-hands', {
+                      const res = await commanderFetch('/api/commander/high-hands', {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',
@@ -1468,7 +1468,7 @@ export default function PromotionsPage() {
                     try {
                       const token = getToken();
                       const staffSession = getStaffSession() || '';
-                      const res = await fetch('/api/commander/promotions', {
+                      const res = await commanderFetch('/api/commander/promotions', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                         body: JSON.stringify(data)
@@ -1499,7 +1499,7 @@ export default function PromotionsPage() {
                 try {
                   const token = getToken();
                   const staffSession = getStaffSession() || '';
-                  const res = await fetch('/api/commander/promotions', {
+                  const res = await commanderFetch('/api/commander/promotions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                     body: JSON.stringify(data)
@@ -1531,7 +1531,7 @@ export default function PromotionsPage() {
               try {
                 const token = getToken();
                 const staffSession = getStaffSession() || '';
-                const res = await fetch(`/api/commander/promotions/${editingPromo.id}`, {
+                const res = await commanderFetch(`/api/commander/promotions/${editingPromo.id}`, {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                   body: JSON.stringify(data)
@@ -1556,7 +1556,7 @@ export default function PromotionsPage() {
               try {
                 const token = getToken();
                 const staffSession = getStaffSession() || '';
-                const res = await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+                const res = await commanderFetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
                 if (res.ok) {
                   fetchPromotions();
                   broadcastChange('settings');

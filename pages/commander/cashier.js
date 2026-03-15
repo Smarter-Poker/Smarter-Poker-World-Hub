@@ -134,7 +134,7 @@ export default function Cashier() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       const today = new Date().toISOString().split('T')[0];
-      const txRes = await fetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=50`, { headers });
+      const txRes = await commanderFetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=50`, { headers });
       if (!txRes.ok) throw new Error(`Transactions fetch failed (${txRes.status})`);
       const txJson = await txRes.json();
       setTransactions(txJson.data || []);
@@ -146,7 +146,7 @@ export default function Cashier() {
       setSelectedPlayer(prev => {
         if (!prev?.id || String(prev.id).startsWith('wl-')) return prev;
         // Fire async refresh for the selected player
-        fetch(`/api/commander/members/${prev.id}`, {
+        commanderFetch(`/api/commander/members/${prev.id}`, {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         }).then(r => r.json()).then(json => {
           if (json.success && json.data?.member) {
@@ -188,7 +188,7 @@ export default function Cashier() {
         const token = getToken();
         const staffSession = getStaffSession() || '';
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-        const res = await fetch(`/api/commander/members/${member_id}?venue_id=${venueId}`, { headers });
+        const res = await commanderFetch(`/api/commander/members/${member_id}?venue_id=${venueId}`, { headers });
         if (!res.ok) throw new Error(`Member fetch failed (${res.status})`);
         const json = await res.json();
         if (json.success && (json.data?.member || json.data)) {
@@ -235,7 +235,7 @@ export default function Cashier() {
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
         // Time billing settings
-        const settingsRes = await fetch('/api/commander/settings', { headers });
+        const settingsRes = await commanderFetch('/api/commander/settings', { headers });
         if (!settingsRes.ok) throw new Error(`Settings fetch failed (${settingsRes.status})`);
         const settingsJson = await settingsRes.json();
         if (settingsJson.success && settingsJson.data) {
@@ -244,7 +244,7 @@ export default function Cashier() {
         }
 
         // Membership plans
-        const plansRes = await fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { headers });
+        const plansRes = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}`, { headers });
         if (!plansRes.ok) throw new Error(`Plans fetch failed (${plansRes.status})`);
         const plansJson = await plansRes.json();
         if (plansJson.success && plansJson.data?.plans) {
@@ -339,7 +339,7 @@ export default function Cashier() {
       const token = getToken();
       const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-      const res = await fetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { headers });
+      const res = await commanderFetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { headers });
       if (!res.ok) throw new Error(`Search failed (${res.status})`);
       const json = await res.json();
       const members = json.data?.members || json.data || [];
@@ -391,7 +391,7 @@ export default function Cashier() {
       const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const params = query ? `q=${encodeURIComponent(query)}&` : '';
-      const res = await fetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { headers });
+      const res = await commanderFetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { headers });
       if (!res.ok) throw new Error(`Search failed (${res.status})`);
       const json = await res.json();
       setSearchResults(json.data || []);
@@ -439,7 +439,7 @@ export default function Cashier() {
     setPinVerifying(true);
     setPinError('');
     try {
-      const pinRes = await fetch('/api/commander/staff/verify-pin', {
+      const pinRes = await commanderFetch('/api/commander/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' },
         body: JSON.stringify({ venue_id: venueId, pin_code: digits })
@@ -495,7 +495,7 @@ export default function Cashier() {
     setActionLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/cashier', {
+      const res = await commanderFetch('/api/commander/cashier', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
@@ -562,7 +562,7 @@ export default function Cashier() {
       const newBalance = (selectedPlayer.time_balance_minutes || 0) + mins;
 
       // 1. Update member time balance
-      const res = await fetch(`/api/commander/members/${selectedPlayer.id}`, {
+      const res = await commanderFetch(`/api/commander/members/${selectedPlayer.id}`, {
         method: 'PUT', headers, body: JSON.stringify({ time_balance_minutes: newBalance })
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -570,7 +570,7 @@ export default function Cashier() {
       if (!json.success) { setMessage({ type: 'error', text: json.error || 'Failed To Add Time' }); setActionLoading(false); return; }
 
       // 2. Record transaction (type: time_purchase, NOT buy_in)
-      const txRes = await fetch('/api/commander/cashier', {
+      const txRes = await commanderFetch('/api/commander/cashier', {
         method: 'POST', headers,
         body: JSON.stringify({
           venue_id: venueId,
@@ -634,7 +634,7 @@ export default function Cashier() {
       expires.setDate(expires.getDate() + (tierInfo?.duration || 1));
 
       // 1. Update member tier
-      const res = await fetch(`/api/commander/members/${selectedPlayer.id}`, {
+      const res = await commanderFetch(`/api/commander/members/${selectedPlayer.id}`, {
         method: 'PUT', headers,
         body: JSON.stringify({ membership_tier: selectedTier, membership_status: 'active', membership_expires: expires.toISOString() })
       });
@@ -643,7 +643,7 @@ export default function Cashier() {
       if (!json.success) { setMessage({ type: 'error', text: json.error || 'Failed To Update Membership' }); setActionLoading(false); return; }
 
       // 2. Record transaction (type: membership, NOT buy_in)
-      const txRes = await fetch('/api/commander/cashier', {
+      const txRes = await commanderFetch('/api/commander/cashier', {
         method: 'POST', headers,
         body: JSON.stringify({
           venue_id: venueId,
@@ -714,7 +714,7 @@ export default function Cashier() {
       const voidAmount = details.amount || 0;
 
       // 1. ALWAYS record the void/refund transaction (even for $0 — creates audit trail)
-      const voidRes = await fetch('/api/commander/cashier', {
+      const voidRes = await commanderFetch('/api/commander/cashier', {
         method: 'POST', headers,
         body: JSON.stringify({
           venue_id: venueId,
@@ -731,7 +731,7 @@ export default function Cashier() {
       if (!voidJson.success) console.warn('Void transaction record failed:', voidJson.error);
 
       // 2. Mark the ORIGINAL transaction as voided (audit trail)
-      const patchRes = await fetch('/api/commander/cashier', {
+      const patchRes = await commanderFetch('/api/commander/cashier', {
         method: 'PATCH', headers,
         body: JSON.stringify({
           transaction_id: txId,
@@ -760,7 +760,7 @@ export default function Cashier() {
       } else if (details.player_name && details.player_name !== 'Unknown') {
         // Lookup member by name for balance correction
         try {
-          const searchRes = await fetch(`/api/commander/members/search?q=${encodeURIComponent(details.player_name)}&venue_id=${venueId}&limit=1`, { headers });
+          const searchRes = await commanderFetch(`/api/commander/members/search?q=${encodeURIComponent(details.player_name)}&venue_id=${venueId}&limit=1`, { headers });
           if (!searchRes.ok) throw new Error(`Request failed (${searchRes.status})`);
           const searchJson = await searchRes.json();
           const match = (searchJson.data || []).find(m => {
@@ -776,7 +776,7 @@ export default function Cashier() {
 
       if (type === 'time' && memberId && details.minutes) {
         const newBal = Math.max(0, (memberBalance || 0) - details.minutes);
-        const tRes = await fetch(`/api/commander/members/${memberId}`, {
+        const tRes = await commanderFetch(`/api/commander/members/${memberId}`, {
           method: 'PUT', headers,
           body: JSON.stringify({ time_balance_minutes: newBal })
         });
@@ -787,7 +787,7 @@ export default function Cashier() {
 
       // 5. If membership void, revert membership to none
       if (type === 'membership' && memberId) {
-        const mRes = await fetch(`/api/commander/members/${memberId}`, {
+        const mRes = await commanderFetch(`/api/commander/members/${memberId}`, {
           method: 'PUT', headers,
           body: JSON.stringify({ membership_tier: null, membership_status: 'expired', membership_expires: new Date().toISOString() })
         });
@@ -858,7 +858,7 @@ export default function Cashier() {
       const staffSession = getStaffSession() || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       // Use server-side player_name filter for efficiency
-      const res = await fetch(`/api/commander/cashier?venue_id=${venueId}&player_name=${encodeURIComponent(selectedPlayer.player_name)}&limit=100`, { headers });
+      const res = await commanderFetch(`/api/commander/cashier?venue_id=${venueId}&player_name=${encodeURIComponent(selectedPlayer.player_name)}&limit=100`, { headers });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       setPlayerHistory(json.data || []);

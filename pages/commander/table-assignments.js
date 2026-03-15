@@ -60,7 +60,7 @@ export default function TableAssignments() {
 
   const fetchData = useCallback(async(signal) => {
     try {
-      const res = await fetch('/api/commander/table-assignments', { headers: getHeaders() });
+      const res = await commanderFetch('/api/commander/table-assignments', { headers: getHeaders() });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -106,7 +106,7 @@ export default function TableAssignments() {
         body.tournament_id = selectedTournament;
       }
 
-      const res = await fetch('/api/commander/table-assignments', {
+      const res = await commanderFetch('/api/commander/table-assignments', {
         method: 'PUT',
         headers: getHeaders(),
         body: JSON.stringify(body)
@@ -138,7 +138,7 @@ export default function TableAssignments() {
     }
     setClosing(table.id);
     try {
-      const res = await fetch('/api/commander/table-assignments', {
+      const res = await commanderFetch('/api/commander/table-assignments', {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ table_id: table.id })

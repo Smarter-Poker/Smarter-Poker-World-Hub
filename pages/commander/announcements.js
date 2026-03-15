@@ -69,7 +69,7 @@ export default function CommanderAnnouncementsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/notifications/send', {
+      const res = await commanderFetch('/api/commander/notifications/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({

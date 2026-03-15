@@ -28,7 +28,7 @@ export default function StaffActivity() {
       try {
         const token = getToken();
         const staffSession = getStaffSession() || '';
-        const res = await fetch('/api/commander/incidents?status=all&limit=50', {
+        const res = await commanderFetch('/api/commander/incidents?status=all&limit=50', {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -50,7 +50,7 @@ export default function StaffActivity() {
       if (filters.dateFrom) params.set('date_from', filters.dateFrom);
       if (filters.dateTo) params.set('date_to', filters.dateTo);
 
-      const res = await fetch(`/api/commander/admin/audit-logs?${params}`, {
+      const res = await commanderFetch(`/api/commander/admin/audit-logs?${params}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

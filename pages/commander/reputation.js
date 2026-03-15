@@ -57,7 +57,7 @@ export default function PlayerReputation() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/reputation?venue_id=${staff.venue_id}`, {
+      const res = await commanderFetch(`/api/commander/reputation?venue_id=${staff.venue_id}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -71,7 +71,7 @@ export default function PlayerReputation() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/reputation?player_id=${playerId}`, {
+      const res = await commanderFetch(`/api/commander/reputation?player_id=${playerId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -98,7 +98,7 @@ export default function PlayerReputation() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/reputation', {
+      const res = await commanderFetch('/api/commander/reputation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({

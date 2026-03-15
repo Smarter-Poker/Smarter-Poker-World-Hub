@@ -54,7 +54,7 @@ export default function OpenGame() {
       const token = getToken();
       const venueId = getVenueId();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+      const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
       if (!res.ok) throw new Error(`Tables fetch failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -84,7 +84,7 @@ export default function OpenGame() {
         const token = getToken();
         const venueId = getVenueId();
         const staffSession = getStaffSession() || '';
-        const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, signal: controller.signal });
+        const res = await commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, signal: controller.signal });
         if (!res.ok) throw new Error(`Waitlist fetch failed (${res.status})`);
         const json = await res.json();
         if (json.success) {
@@ -113,7 +113,7 @@ export default function OpenGame() {
       const gameTypeLower = selectedGame.type.toLowerCase();
 
       // 1. Create the game record in commander_games
-      const gameRes = await fetch('/api/commander/games', {
+      const gameRes = await commanderFetch('/api/commander/games', {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -133,7 +133,7 @@ export default function OpenGame() {
       }
 
       // 2. Update table status to active
-      const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
+      const res = await commanderFetch(`/api/commander/tables/${selectedTable.id}`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({

@@ -33,7 +33,7 @@ export default function WaitlistStatus() {
 
     if (!id) return;
     try {
-      const res = await fetch(`/api/commander/waitlist/${id}`);
+      const res = await commanderFetch(`/api/commander/waitlist/${id}`);
       // HIGH FIX #2b: Add response.ok check before .json()
       if (!res.ok) {
         const errorText = await res.text().catch(() => 'Unknown error');
@@ -48,7 +48,7 @@ export default function WaitlistStatus() {
       setEntry(json.data);
 
       // Get position in waitlist
-      const listRes = await fetch('/api/commander/waitlist');
+      const listRes = await commanderFetch('/api/commander/waitlist');
       // HIGH FIX #2c: Add response.ok check before .json()
       if (!listRes.ok) {
         const errorText = await listRes.text().catch(() => 'Unknown error');

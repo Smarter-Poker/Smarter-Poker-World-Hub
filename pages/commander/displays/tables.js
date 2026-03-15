@@ -136,7 +136,7 @@ export default function TablesDisplay() {
       const token = getToken();
       const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
 
-      const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
+      const res = await commanderFetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -150,7 +150,7 @@ export default function TablesDisplay() {
           await Promise.all(activeTbls.map(async (t) => {
             const tNum = t.table_number || t.number;
             try {
-              const sRes = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
+              const sRes = await commanderFetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
               if (!sRes.ok) throw new Error(`Request failed (${sRes.status})`);
               const sJson = await sRes.json();
               if (sJson.success) sessionsByTable[tNum] = sJson.data || [];
@@ -192,7 +192,7 @@ export default function TablesDisplay() {
     try {
       const staffSession = getStaffSession() || '';
       const token = getToken();
-      const res = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, {
         headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -247,7 +247,7 @@ export default function TablesDisplay() {
     setPinLoading(true);
     setPinError('');
     try {
-      const res = await fetch('/api/commander/staff/verify-pin', {
+      const res = await commanderFetch('/api/commander/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': getStaffSession() || '', Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ pin_code: pinValue, venue_id: venueId }),
@@ -333,7 +333,7 @@ export default function TablesDisplay() {
     if (type === 'dealer') {
       // Scan in a dealer
       try {
-        const res = await fetch('/api/commander/dealer/scan-in', {
+        const res = await commanderFetch('/api/commander/dealer/scan-in', {
           method: 'POST', headers,
           body: JSON.stringify({ venue_id: venueId, qr_code: qrData, table_number: lockedTableNum }),
         });
@@ -351,7 +351,7 @@ export default function TablesDisplay() {
     } else if (type === 'seat') {
       // Seat a player — single call to unauthenticated player-scan-in
       try {
-        const seatRes = await fetch('/api/commander/dealer/player-scan-in', {
+        const seatRes = await commanderFetch('/api/commander/dealer/player-scan-in', {
           method: 'POST', headers,
           body: JSON.stringify({ qr_code: qrData, table_number: lockedTableNum, seat_number: seatNumber, venue_id: venueId }),
         });
@@ -375,7 +375,7 @@ export default function TablesDisplay() {
     try {
       const staffSession = getStaffSession() || '';
       const token = getToken();
-      const res = await fetch('/api/commander/dealer/session-action', {
+      const res = await commanderFetch('/api/commander/dealer/session-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
         body: JSON.stringify({ table_number: lockedTableNum, seat_number: seat.number, venue_id: venueId, action, ...extra }),
@@ -396,7 +396,7 @@ export default function TablesDisplay() {
     try {
       const staffSession = getStaffSession() || '';
       const token = getToken();
-      const res = await fetch('/api/commander/dealer/player-unseat', {
+      const res = await commanderFetch('/api/commander/dealer/player-unseat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
         body: JSON.stringify({ table_number: lockedTableNum, seat_number: seat.number }),

@@ -36,7 +36,7 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId, onSuccess }) 
     setSubmitting(true);
     try {
       const staffSession = getStaffSession();
-      const res = await fetch(`/api/commander/marketplace/equipment/${equipment.id}/rent`, {
+      const res = await commanderFetch(`/api/commander/marketplace/equipment/${equipment.id}/rent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -181,7 +181,7 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId, onSuccess }) {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/marketplace/dealers/${dealer.id}/book`, {
+      const res = await commanderFetch(`/api/commander/marketplace/dealers/${dealer.id}/book`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -473,7 +473,7 @@ export default function MarketplacePage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/marketplace/dealers?limit=50', {
+      const res = await commanderFetch('/api/commander/marketplace/dealers?limit=50', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -490,7 +490,7 @@ export default function MarketplacePage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/marketplace/equipment?limit=50', {
+      const res = await commanderFetch('/api/commander/marketplace/equipment?limit=50', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

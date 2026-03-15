@@ -389,7 +389,7 @@ export default function IncidentsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/incidents?venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/incidents?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -405,7 +405,7 @@ export default function IncidentsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/incidents', {
+      const res = await commanderFetch('/api/commander/incidents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId, reported_by: staff.id, ...data })
@@ -427,7 +427,7 @@ export default function IncidentsPage() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/incidents/${incidentId}/resolve`, {
+      const res = await commanderFetch(`/api/commander/incidents/${incidentId}/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ resolution })

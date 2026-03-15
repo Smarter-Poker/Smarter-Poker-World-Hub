@@ -34,7 +34,7 @@ export default function TournamentMaintenance() {
     const fetchTournaments = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/commander/tournaments?limit=100', {
+            const res = await commanderFetch('/api/commander/tournaments?limit=100', {
                 headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);

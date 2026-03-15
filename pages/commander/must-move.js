@@ -56,7 +56,7 @@ export default function MustMoveManager() {
     if (!venueId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/commander/games/must-move-status?venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/games/must-move-status?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         ...(signal ? { signal } : {}),
       });
@@ -84,7 +84,7 @@ export default function MustMoveManager() {
   const unlinkMustMove = async (gameId) => {
     setActionLoading(gameId);
     try {
-      const res = await fetch(`/api/commander/games/${gameId}/must-move`, {
+      const res = await commanderFetch(`/api/commander/games/${gameId}/must-move`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
@@ -105,7 +105,7 @@ export default function MustMoveManager() {
   const movePlayer = async (mustMoveGameId, targetGameId) => {
     setMoveLoading(mustMoveGameId);
     try {
-      const res = await fetch('/api/commander/games/must-move-status', {
+      const res = await commanderFetch('/api/commander/games/must-move-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ must_move_game_id: mustMoveGameId, target_game_id: targetGameId })

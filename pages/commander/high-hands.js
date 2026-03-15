@@ -49,7 +49,7 @@ export default function HighHands() {
     setLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/high-hands?venue_id=${venueId}&limit=50`, {
+      const res = await commanderFetch(`/api/commander/high-hands?venue_id=${venueId}&limit=50`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -70,7 +70,7 @@ export default function HighHands() {
     setSubmitting(true);
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/high-hands', {
+      const res = await commanderFetch('/api/commander/high-hands', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({
@@ -102,7 +102,7 @@ export default function HighHands() {
   const handleVerify = async (id) => {
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/high-hands/${id}`, {
+      const res = await commanderFetch(`/api/commander/high-hands/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ action: 'verify' })
@@ -118,7 +118,7 @@ export default function HighHands() {
     if (!confirm('Delete this high hand?')) return;
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/high-hands/${id}`, {
+      const res = await commanderFetch(`/api/commander/high-hands/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': staffSession }
       });

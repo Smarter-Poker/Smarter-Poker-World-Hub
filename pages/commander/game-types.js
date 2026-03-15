@@ -62,7 +62,7 @@ export default function GameTypesPage() {
     if (!venueId) return;
     try {
       const token = getToken();
-      const res = await fetch('/api/commander/game-types?include_inactive=true', {
+      const res = await commanderFetch('/api/commander/game-types?include_inactive=true', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -142,7 +142,7 @@ export default function GameTypesPage() {
     try {
       const staffSession = getStaffSession() || '';
       const token = getToken();
-      const res = await fetch(`/api/commander/game-types/${gt.id}`, {
+      const res = await commanderFetch(`/api/commander/game-types/${gt.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ venue_id: venueId, is_active: !gt.is_active })
@@ -159,7 +159,7 @@ export default function GameTypesPage() {
     try {
       const staffSession = getStaffSession() || '';
       const token = getToken();
-      const res = await fetch(`/api/commander/game-types/${gt.id}?venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/game-types/${gt.id}?venue_id=${venueId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });

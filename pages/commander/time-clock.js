@@ -45,7 +45,7 @@ export default function TimeClock() {
         try {
             const token = getToken();
             const staffSession = getStaffSession() || '';
-            const res = await fetch(`/api/commander/time-clock?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, ...(signal ? { signal } : {}) });
+            const res = await commanderFetch(`/api/commander/time-clock?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, ...(signal ? { signal } : {}) });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
             if (data.success) {
@@ -112,7 +112,7 @@ export default function TimeClock() {
         setError('');
         setScanResult(null);
         try {
-             const res = await fetch('/api/commander/time-clock', {
+             const res = await commanderFetch('/api/commander/time-clock', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() || '' },
                 body: JSON.stringify({ venue_id: venueId, qr_code: qrCode }),

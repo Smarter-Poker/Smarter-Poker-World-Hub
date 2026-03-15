@@ -172,7 +172,7 @@ export default function ClockDisplay() {
   const fetchPreset = useCallback(async (presetId) => {
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/clock-presets', {
+      const res = await commanderFetch('/api/commander/clock-presets', {
         headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -189,7 +189,7 @@ export default function ClockDisplay() {
     if (!id) return;
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
+      const res = await commanderFetch(`/api/commander/tournaments/${id}/floor-view`, {
         headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         ...(signal ? { signal } : {}),
       });
@@ -327,7 +327,7 @@ export default function ClockDisplay() {
     setActionLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/tournaments/${id}/clock`, {
+      const res = await commanderFetch(`/api/commander/tournaments/${id}/clock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ action })
@@ -335,7 +335,7 @@ export default function ClockDisplay() {
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
-        const res2 = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
+        const res2 = await commanderFetch(`/api/commander/tournaments/${id}/floor-view`, {
           headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${getToken()}` },
         });
         if (!res2.ok) throw new Error(`Request failed (${res2.status})`);

@@ -56,7 +56,7 @@ export default function PlayerCheckIn() {
   const fetchMember = async () => {
     try {
       // Use the dealer scan API to validate QR code
-      const res = await fetch('/api/commander/dealer/scan', {
+      const res = await commanderFetch('/api/commander/dealer/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ qr_code: code })
@@ -76,7 +76,7 @@ export default function PlayerCheckIn() {
 
       // Check for active session
       if (json.data.already_seated) {
-        const sessionRes = await fetch(`/api/commander/dealer/sessions?table=${json.data.already_seated.table_number}`);
+        const sessionRes = await commanderFetch(`/api/commander/dealer/sessions?table=${json.data.already_seated.table_number}`);
         if (!sessionRes.ok) throw new Error(`Session request failed (${sessionRes.status})`);
         const sessionJson = await sessionRes.json();
         if (sessionJson.success) {

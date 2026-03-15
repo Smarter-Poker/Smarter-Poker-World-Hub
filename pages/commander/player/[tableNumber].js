@@ -38,6 +38,7 @@ import Script from 'next/script';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 function formatCountdown(seconds) {
   if (seconds === null || seconds === undefined) return '--:--';
@@ -324,7 +325,7 @@ export default function PlayerTableDisplay() {
     if (!tableNumber) return;
     try {
       const venueParam = table?.venue_id ? `&venue_id=${table.venue_id}` : '';
-      const res = await fetch(`/api/commander/dealer/tablet-data?table=${tableNumber}${venueParam}`);
+      const res = await commanderFetch(`/api/commander/dealer/tablet-data?table=${tableNumber}${venueParam}`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -384,7 +385,7 @@ export default function PlayerTableDisplay() {
     setScanStatus({ type: 'loading', message: 'Scanning...' });
 
     try {
-      const res = await fetch('/api/commander/dealer/scan-in', {
+      const res = await commanderFetch('/api/commander/dealer/scan-in', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -417,7 +418,7 @@ export default function PlayerTableDisplay() {
     setScanStatus({ type: 'loading', message: 'Scanning Player...' });
 
     try {
-      const res = await fetch('/api/commander/dealer/player-scan-in', {
+      const res = await commanderFetch('/api/commander/dealer/player-scan-in', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -454,7 +455,7 @@ export default function PlayerTableDisplay() {
     setScanStatus({ type: 'loading', message: 'Removing Player...' });
 
     try {
-      const res = await fetch('/api/commander/dealer/player-unseat', {
+      const res = await commanderFetch('/api/commander/dealer/player-unseat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: player.session_id })

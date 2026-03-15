@@ -49,10 +49,10 @@ export default function CloseDay() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const fetchOpts = signal ? { headers, signal } : { headers };
       const [tablesRes, waitlistRes, sessionsRes, reportRes] = await Promise.all([
-        fetch(`/api/commander/tables?venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/waitlist?venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/time-billing/sessions?status=active&venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/reports/daily?venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: {} }))
+        commanderFetch(`/api/commander/tables?venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: [] })),
+        commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: [] })),
+        commanderFetch(`/api/commander/time-billing/sessions?status=active&venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: [] })),
+        commanderFetch(`/api/commander/reports/daily?venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: {} }))
       ]);
 
       // Tables: data may be {tables: []} or array directly
@@ -86,7 +86,7 @@ export default function CloseDay() {
       // Close all open tables
       let successCount = 0;
       for (const table of openTables) {
-        const res = await fetch(`/api/commander/tables/${table.id}`, {
+        const res = await commanderFetch(`/api/commander/tables/${table.id}`, {
           method: 'PUT', headers,
           body: JSON.stringify({ status: 'closed' })
         });
@@ -95,7 +95,7 @@ export default function CloseDay() {
 
       // End all active sessions
       for (const session of activeSessions) {
-        const res = await fetch(`/api/commander/dealer/sessions/${session.id}/end`, {
+        const res = await commanderFetch(`/api/commander/dealer/sessions/${session.id}/end`, {
           method: 'POST', headers,
           body: JSON.stringify({ reason: 'end_of_day' })
         });
@@ -118,7 +118,7 @@ export default function CloseDay() {
       const token = getToken();
       const staffSession = getStaffSession() || '';
       const venueId = getVenueId();
-      const res = await fetch('/api/commander/staff/verify-pin', {
+      const res = await commanderFetch('/api/commander/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ pin_code: pin, venue_id: venueId })

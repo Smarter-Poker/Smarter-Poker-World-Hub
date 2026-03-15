@@ -80,7 +80,7 @@ export default function NotificationCenter() {
     setLoading(true);
     try {
       const params = filter === 'unread' ? '&unread_only=true' : '';
-      const res = await fetch(`/api/commander/notifications/my?limit=100${params}`, {
+      const res = await commanderFetch(`/api/commander/notifications/my?limit=100${params}`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         ...(signal ? { signal } : {}),
       });
@@ -100,7 +100,7 @@ export default function NotificationCenter() {
 
   const markAsRead = async (id) => {
     try {
-      const res = await fetch(`/api/commander/notifications/${id}`, {
+      const res = await commanderFetch(`/api/commander/notifications/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify({ read_at: new Date().toISOString() })
@@ -116,7 +116,7 @@ export default function NotificationCenter() {
   const markAllRead = async () => {
     setMarkingAll(true);
     try {
-      const res = await fetch('/api/commander/notifications/mark-all-read', {
+      const res = await commanderFetch('/api/commander/notifications/mark-all-read', {
         method: 'POST',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
@@ -131,7 +131,7 @@ export default function NotificationCenter() {
 
   const deleteNotification = async (id) => {
     try {
-      const res = await fetch(`/api/commander/notifications/${id}`, {
+      const res = await commanderFetch(`/api/commander/notifications/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
@@ -148,7 +148,7 @@ export default function NotificationCenter() {
     try {
       const venueId = getVenueId();
       if (!venueId) return;
-      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {
+      const res = await commanderFetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -208,7 +208,7 @@ export default function NotificationCenter() {
       const venueId = getVenueId();
       if (editingAnnouncement) {
         // PATCH
-        const res = await fetch('/api/commander/announcements', {
+        const res = await commanderFetch('/api/commander/announcements', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
           body: JSON.stringify({
@@ -226,7 +226,7 @@ export default function NotificationCenter() {
         if (!json.success) throw new Error(json.error);
       } else {
         // POST
-        const res = await fetch('/api/commander/announcements', {
+        const res = await commanderFetch('/api/commander/announcements', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
           body: JSON.stringify({
@@ -257,7 +257,7 @@ export default function NotificationCenter() {
   const deleteAnnouncement = async (id) => {
     if (!confirm('Delete this announcement? This cannot be undone.')) return;
     try {
-      const res = await fetch(`/api/commander/announcements?id=${id}`, {
+      const res = await commanderFetch(`/api/commander/announcements?id=${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });

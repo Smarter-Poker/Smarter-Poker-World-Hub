@@ -258,8 +258,8 @@ export default function StaffSchedule() {
     try {
       const headers = getHeaders();
       const [shiftsRes, staffRes] = await Promise.all([
-        fetch(`/api/commander/schedule/shifts?venue_id=${venueId}&week_start=${weekStart}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
-        fetch(`/api/commander/staff?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ success: false }))
+        commanderFetch(`/api/commander/schedule/shifts?venue_id=${venueId}&week_start=${weekStart}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
+        commanderFetch(`/api/commander/staff?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ success: false }))
       ]);
       const realShifts = shiftsRes.success ? (shiftsRes.data || []) : [];
       const rawStaff = staffRes.success
@@ -330,7 +330,7 @@ export default function StaffSchedule() {
     }
     try {
       const venueId = getVenueId();
-      const res = await fetch('/api/commander/schedule/shifts', {
+      const res = await commanderFetch('/api/commander/schedule/shifts', {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ venue_id: venueId, ...data })
@@ -360,7 +360,7 @@ export default function StaffSchedule() {
     }
     try {
       const venueId = getVenueId();
-      const res = await fetch(`/api/commander/schedule/shifts?id=${shiftId}&venue_id=${venueId}`, {
+      const res = await commanderFetch(`/api/commander/schedule/shifts?id=${shiftId}&venue_id=${venueId}`, {
         method: 'DELETE',
         headers: getHeaders()
       });
@@ -383,7 +383,7 @@ export default function StaffSchedule() {
     setBroadcastResult(null);
     try {
       const venueId = getVenueId();
-      const res = await fetch('/api/commander/schedule/broadcast', {
+      const res = await commanderFetch('/api/commander/schedule/broadcast', {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ venue_id: venueId, week_start: weekStart, channel })

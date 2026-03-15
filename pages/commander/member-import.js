@@ -117,7 +117,7 @@ export default function MemberImport() {
     for (let i = 0; i < rows.length; i++) {
       try {
         const token = getToken();
-        const res = await fetch('/api/commander/members', {
+        const res = await commanderFetch('/api/commander/members', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' },
           body: JSON.stringify(rows[i])

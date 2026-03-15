@@ -66,7 +66,7 @@ export default function WaitlistDisplay() {
       const staffSession = getStaffSession();
       const opts = signal ? { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, signal }
         : { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } };
-      const res = await fetch('/api/commander/settings', opts);
+      const res = await commanderFetch('/api/commander/settings', opts);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success && json.data?.desk_customization) {
@@ -91,8 +91,8 @@ export default function WaitlistDisplay() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       const opts = signal ? { headers, signal } : { headers };
       const [tabRes, wlRes] = await Promise.all([
-        fetch(`/api/commander/tables?venue_id=${vid}`, opts).catch(() => ({ ok: false })),
-        fetch(`/api/commander/waitlist?venue_id=${vid}`, opts).catch(() => ({ ok: false }))
+        commanderFetch(`/api/commander/tables?venue_id=${vid}`, opts).catch(() => ({ ok: false })),
+        commanderFetch(`/api/commander/waitlist?venue_id=${vid}`, opts).catch(() => ({ ok: false }))
       ]);
       if (!tabRes.ok) throw new Error(`Request failed (${tabRes.status})`);
       const tabJson = await tabRes.json();

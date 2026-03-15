@@ -66,7 +66,7 @@ export default function TaxCompliance() {
     try {
       const token = getToken();
       const staffSession = getStaffSession() || '';
-      const res = await fetch('/api/commander/tax/w2g', {
+      const res = await commanderFetch('/api/commander/tax/w2g', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ tax_event_id: eventId })

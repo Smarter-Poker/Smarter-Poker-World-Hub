@@ -98,7 +98,7 @@ export default function LeaguesAndFreerollsManagement() {
   const fetchLeagues = useCallback(async (signal) => {
     setLeaguesLoading(true);
     try {
-      const res = await fetch('/api/commander/leagues?limit=50', {
+      const res = await commanderFetch('/api/commander/leagues?limit=50', {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         ...(signal ? { signal } : {}),
       });
@@ -113,7 +113,7 @@ export default function LeaguesAndFreerollsManagement() {
   const fetchFreerolls = useCallback(async (signal) => {
     setFreerollsLoading(true);
     try {
-      const res = await fetch('/api/commander/freerolls?limit=50', {
+      const res = await commanderFetch('/api/commander/freerolls?limit=50', {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         ...(signal ? { signal } : {}),
       });
@@ -144,7 +144,7 @@ export default function LeaguesAndFreerollsManagement() {
   /* ── League standings ── */
   const fetchStandings = async (leagueId) => {
     try {
-      const res = await fetch(`/api/commander/leagues/${leagueId}/standings`, {
+      const res = await commanderFetch(`/api/commander/leagues/${leagueId}/standings`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -176,7 +176,7 @@ export default function LeaguesAndFreerollsManagement() {
         venues: [staff.venue_id],
         status: 'active'
       };
-      const res = await fetch('/api/commander/leagues', {
+      const res = await commanderFetch('/api/commander/leagues', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify(body)
@@ -199,7 +199,7 @@ export default function LeaguesAndFreerollsManagement() {
   /* ── Freeroll qualifications ── */
   const fetchQualifications = async (freerollId) => {
     try {
-      const res = await fetch(`/api/commander/freerolls/${freerollId}/qualifications`, {
+      const res = await commanderFetch(`/api/commander/freerolls/${freerollId}/qualifications`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -234,7 +234,7 @@ export default function LeaguesAndFreerollsManagement() {
         max_qualifiers: freerollForm.max_qualifiers ? parseInt(freerollForm.max_qualifiers) : null,
         status: 'upcoming'
       };
-      const res = await fetch('/api/commander/freerolls', {
+      const res = await commanderFetch('/api/commander/freerolls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify(body)
@@ -271,7 +271,7 @@ export default function LeaguesAndFreerollsManagement() {
         manually_added: true,
         is_qualified: addPlayerForm.manually_added,
       };
-      const res = await fetch(`/api/commander/freerolls/${freerollId}/qualifications`, {
+      const res = await commanderFetch(`/api/commander/freerolls/${freerollId}/qualifications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
         body: JSON.stringify(body)
@@ -321,7 +321,7 @@ export default function LeaguesAndFreerollsManagement() {
   const handleRemovePlayer = async (freerollId, playerId, playerName) => {
     if (!confirm(`Remove ${playerName || 'this player'} from qualifications?`)) return;
     try {
-      const res = await fetch(`/api/commander/freerolls/${freerollId}/qualifications?player_id=${playerId}`, {
+      const res = await commanderFetch(`/api/commander/freerolls/${freerollId}/qualifications?player_id=${playerId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });

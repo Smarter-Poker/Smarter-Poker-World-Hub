@@ -39,7 +39,7 @@ export default function SystemInfoPage() {
     if (showRefresh) setRefreshing(true);
     try {
       const token = getToken();
-      const res = await fetch('/api/commander/system-info', {
+      const res = await commanderFetch('/api/commander/system-info', {
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': getStaffSession() || '' }
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
