@@ -19,7 +19,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import useDebounce from '../../src/hooks/useDebounce';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const QUICK_AMOUNTS = [50, 100, 200, 300, 500, 1000];
 // Fallback time options — overridden by owner settings from Time Billing page

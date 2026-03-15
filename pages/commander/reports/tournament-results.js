@@ -10,7 +10,7 @@ import { Trophy, ChevronDown, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getStaffSession } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 export default function TournamentResultsReport() {
   useEffect(() => { busEmit.sessionStart('commander-reports-tournament-results'); }, []);

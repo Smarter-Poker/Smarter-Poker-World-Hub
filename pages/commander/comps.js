@@ -19,7 +19,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { busEmit } from '../../src/engine/EventBus';
 import useDebounce from '../../src/hooks/useDebounce';
 import { getToken, getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth'
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 // ─── Comp Categories ─────────────────────────────────────────
 const COMP_CATEGORIES = [

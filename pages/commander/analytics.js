@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { BarChart3, Users, DollarSign, Clock, TrendingUp, TrendingDown, Trophy, Target, Loader2 } from 'lucide-react';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 // Peak Hours Grid — visual heatmap of hour-by-hour activity
 function PeakHoursGrid({ analytics }) {
   // Build hourly counts from analytics data

@@ -11,7 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const RATING_LABELS = {
   reliability: { label: 'Reliability', desc: 'Shows up, stays committed' },

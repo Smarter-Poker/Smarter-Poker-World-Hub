@@ -13,7 +13,7 @@ import { Server, Database, Wifi, Shield, Clock, RefreshCw,
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 export default function SystemInfoPage() {
   useEffect(() => { busEmit.sessionStart('commander-system-info'); }, []);

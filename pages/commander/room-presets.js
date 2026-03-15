@@ -17,7 +17,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { hasFeature } from '../../src/lib/commander/tierConfig';
 import { busEmit } from '../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 

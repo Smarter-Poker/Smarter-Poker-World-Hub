@@ -29,7 +29,7 @@ import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/us
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getStaffSession } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 const STATUS_CONFIG = {
   scheduled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]', label: 'Scheduled' },

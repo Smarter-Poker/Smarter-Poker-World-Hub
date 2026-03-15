@@ -18,7 +18,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
 import { busEmit } from '../../../src/engine/EventBus';
-import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 import { getStaffSession } from '../../../src/lib/commander/clientAuth';
 
 /* ─── Supabase client for Realtime (no auth needed for display) ── */

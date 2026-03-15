@@ -14,7 +14,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import Pagination from '../../src/components/commander/shared/Pagination';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const STATUS_COLORS = {
   available: { bg: 'rgba(49,162,76,0.15)', border: '#31A24C', text: '#31A24C', label: 'Available' },

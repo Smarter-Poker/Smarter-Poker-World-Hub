@@ -11,7 +11,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { Palette, Save, Loader2, Check, Plus, Trash2, Copy, Volume2, VolumeX, MonitorPlay } from 'lucide-react';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const DEFAULT_THEME = {
     background: '#0D192E',

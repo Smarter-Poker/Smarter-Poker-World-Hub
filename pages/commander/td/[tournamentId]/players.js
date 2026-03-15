@@ -14,7 +14,7 @@ import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync'
 import { Trophy, LayoutGrid, Users, Monitor, Search, X, Loader2, ChevronDown, ArrowRightLeft, UserX, RotateCcw, Star, Coins, DollarSign, FileText } from 'lucide-react';
 import { busEmit } from '../../../../src/engine/EventBus';
 import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../../../src/lib/commander/commanderFetch';
 
 const NAV_ITEMS = [
   { key: 'control', path: '' }, { key: 'tables', path: '/tables' },

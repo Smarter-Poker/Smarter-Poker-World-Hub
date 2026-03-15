@@ -17,7 +17,7 @@ import {
     Calculator, Save, RefreshCw, Loader2, FileText,
     ChevronDown, ChevronUp, AlertTriangle
 } from 'lucide-react';
-import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../../../src/lib/commander/commanderFetch';
 
 const NAV_ITEMS = [
     { key: 'control', label: 'Control', path: '' },

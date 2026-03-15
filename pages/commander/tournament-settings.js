@@ -13,7 +13,7 @@ import BlindStructureEditor from '../../src/components/commander/tournaments/Bli
 import { TOURNAMENT_TEMPLATES, TOURNAMENT_TYPES, formatBuyin, formatChips } from '../../src/components/commander/tournaments/tournamentTemplates';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const ICON_MAP = {
     Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair };

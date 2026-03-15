@@ -14,7 +14,7 @@ import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import useWakeLock from '../../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../../../src/lib/commander/commanderFetch';
 
 export default function StructureDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-structure-display'); }, []);

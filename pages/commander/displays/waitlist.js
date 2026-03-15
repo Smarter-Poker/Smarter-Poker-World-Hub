@@ -15,7 +15,7 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import useWakeLock from '../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getStaffSession } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 // Capitalize first letter of every word
 function titleCase(str) {
