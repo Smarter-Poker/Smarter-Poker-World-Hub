@@ -50,7 +50,6 @@ export default function PilotVenuesPage() {
   async function fetchPilots(signal) {
     setLoading(true);
     try {
-      const token = getToken();
       const data = await commanderFetchJSON('/api/commander/admin/pilots', {
         
       });

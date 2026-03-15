@@ -82,9 +82,31 @@ export default function CommanderLayout({ children, title, backHref = '/commande
   // Session expiry warning
   const [sessionExpiring, setSessionExpiring] = useState(null); // null or { minutesLeft }
   useEffect(() => {
-    const handler = (e) => setSessionExpiring(e.detail);
+    const handler = (e) => {
+      setSessionExpiring(e.detail);
+      // Auto-logout when session has already expired (0 min left)
+      if (e.detail?.minutesLeft <= 0 && typeof window !== 'undefined') {
+        try { sessionStorage.setItem('commander_return_url', window.location.pathname); } catch {}
+        window.location.href = '/commander/login?expired=1';
+      }
+    };
     window.addEventListener('commander:session-expiring', handler);
     return () => window.removeEventListener('commander:session-expiring', handler);
+  }, []);
+
+  // ── OFFLINE DETECTION ──
+  const [isOffline, setIsOffline] = useState(false);
+  useEffect(() => {
+    const goOffline = () => setIsOffline(true);
+    const goOnline = () => setIsOffline(false);
+    // Check initial state
+    if (typeof navigator !== 'undefined' && !navigator.onLine) setIsOffline(true);
+    window.addEventListener('offline', goOffline);
+    window.addEventListener('online', goOnline);
+    return () => {
+      window.removeEventListener('offline', goOffline);
+      window.removeEventListener('online', goOnline);
+    };
   }, []);
 
   useEffect(() => {
@@ -745,8 +767,23 @@ export default function CommanderLayout({ children, title, backHref = '/commande
           </div>
         </div>
 
+        {/* ── OFFLINE DETECTION BANNER ── */}
+        {isOffline && (
+          <div style={{
+            background: 'linear-gradient(90deg, #EF444422, #DC262622)',
+            borderBottom: '1px solid #EF444444',
+            padding: '8px 16px',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <AlertCircle size={16} color="#EF4444" />
+            <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 600 }}>
+              You are offline — changes will not save until reconnected
+            </span>
+          </div>
+        )}
+
         {/* ── SESSION EXPIRY WARNING BANNER ── */}
-        {sessionExpiring && (
+        {sessionExpiring && !isOffline && (
           <div style={{
             background: 'linear-gradient(90deg, #F59E0B22, #EF444422)',
             borderBottom: '1px solid #F59E0B44',

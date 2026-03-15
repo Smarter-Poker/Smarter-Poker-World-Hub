@@ -147,7 +147,7 @@ return {
         setTimeout(() => setSuccess(null), 3000);
         await fetchData();
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setError('Action failed. Please check your connection and try again.'); }
     finally { setClosing(null); }
   };
 

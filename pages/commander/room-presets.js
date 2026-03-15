@@ -111,7 +111,7 @@ const res = await commanderFetch('/api/commander/settings', {
           setTimeout(() => setHardStopSuccess(null), 3000);
         }
       }
-    } catch (e) { console.error("[room-presets.js]", e); alert('Action failed. Please check your connection and try again.'); }
+    } catch (e) { console.error("[room-presets.js]", e); setError('Action failed. Please check your connection and try again.'); }
     finally { setHardStopSaving(false); }
   }
 
@@ -134,7 +134,7 @@ const res = await commanderFetch('/api/commander/settings', {
           setTimeout(() => setAutoCompSuccess(null), 3000);
         }
       }
-    } catch (e) { console.error("[room-presets.js]", e); alert('Action failed. Please check your connection and try again.'); }
+    } catch (e) { console.error("[room-presets.js]", e); setError('Action failed. Please check your connection and try again.'); }
     finally { setAutoCompSaving(false); }
   }
 
@@ -328,7 +328,7 @@ const res = await commanderFetch('/api/commander/settings', {
           broadcastChange('settings');
         }
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setError('Action failed. Please check your connection and try again.'); }
   }
 
   function startEdit(preset) {

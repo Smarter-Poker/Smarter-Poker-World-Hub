@@ -142,7 +142,7 @@ const res = await commanderFetch(`/api/commander/game-types/${gt.id}`, {
         fetchGameTypes();
         broadcastChange('games');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setError('Action failed. Please check your connection and try again.'); }
   }
 
   async function handleDelete(gt) {
@@ -154,7 +154,7 @@ const res = await commanderFetch(`/api/commander/game-types/${gt.id}?venue_id=${
         fetchGameTypes();
         broadcastChange('games');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setError('Action failed. Please check your connection and try again.'); }
   }
 
   const canManage = staff?.role === 'owner' || staff?.role === 'manager';

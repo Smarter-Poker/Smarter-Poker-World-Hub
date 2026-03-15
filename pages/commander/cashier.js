@@ -124,8 +124,7 @@ export default function Cashier() {
   }, []);
 
   const fetchData = useCallback(async () => {
-    const controller = new AbortController();
-    const { signal } = controller;
+
     if (!venueId) return;
     setLoading(true);
     try {

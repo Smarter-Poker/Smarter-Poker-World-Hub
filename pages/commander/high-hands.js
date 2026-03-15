@@ -104,7 +104,7 @@ const res = await commanderFetch(`/api/commander/high-hands/${id}`, {
         broadcastChange('settings');
         fetchData();
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setMessage({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   const handleDelete = async (id) => {
@@ -116,7 +116,7 @@ const res = await commanderFetch(`/api/commander/high-hands/${id}`, {
         broadcastChange('settings');
         fetchData();
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setMessage({ type: 'error', text: 'Action failed. Please check your connection and try again.' }); }
   };
 
   useEffect(() => {

@@ -71,7 +71,6 @@ const data = await commanderFetchJSON(`/api/commander/admin/leads?status=${statu
 
   async function updateLeadStatus(leadId, newStatus) {
     try {
-      const token = getToken();
 const res = await commanderFetch('/api/commander/admin/leads', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -88,7 +87,7 @@ const res = await commanderFetch('/api/commander/admin/leads', {
     } catch (err) {
       setLoading(false);
       console.error('Failed to update status:', err);
-      alert('Failed to update lead status. Please try again.');
+      setError('Failed to update lead status. Please try again.');
     }
   }
 

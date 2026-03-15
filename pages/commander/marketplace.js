@@ -478,7 +478,6 @@ const data = await commanderFetchJSON('/api/commander/marketplace/dealers?limit=
 
   const fetchEquipment = useCallback(async () => {
     try {
-      const token = getToken();
 const data = await commanderFetchJSON('/api/commander/marketplace/equipment?limit=50', {});
       if (data.success) {
         setEquipment(data.data?.equipment || []);

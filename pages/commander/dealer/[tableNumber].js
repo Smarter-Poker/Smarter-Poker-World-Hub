@@ -832,7 +832,6 @@ export default function DealerTablet() {
           <div className="flex gap-2">
             <button onClick={async () => {
               try {
-                const token = getToken();
                 const res = await commanderFetch('/api/commander/dealer/hand-count', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' || '' },

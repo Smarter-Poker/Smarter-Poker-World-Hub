@@ -258,7 +258,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave, onSuccess }) {
       }
     } catch (err) {
       console.error('Save venue settings error:', err);
-      alert('Failed to save venue settings. Please try again.');
+      setError('Failed to save venue settings. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -508,7 +508,6 @@ export default function AdminDashboard() {
 
   const handleCreateExport = async (formData) => {
     try {
-      const token = getToken();
       const venueId = selectedVenue?.id || venues[0]?.id;
       if (!venueId) return;
 
@@ -530,7 +529,7 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       console.error('Create export error:', err);
-      alert('Failed to create export. Please try again.');
+      setError('Failed to create export. Please try again.');
     }
   };
 

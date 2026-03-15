@@ -1477,7 +1477,6 @@ const res = await commanderFetch(`/api/commander/promotions/${editingPromo.id}`,
             onDelete={async (id) => {
               if (!confirm('Delete this promotion?')) return;
               try {
-                const token = getToken();
 const res = await commanderFetch(`/api/commander/promotions/${id}`, { method: 'DELETE'});
                 if (res.ok) {
                   fetchPromotions();

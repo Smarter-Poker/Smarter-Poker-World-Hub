@@ -267,7 +267,7 @@ const data = await commanderFetchJSON(`/api/commander/staff/${staffId}`, {
       }
     } catch (err) {
       console.error('Failed to delete staff:', err);
-      alert('Failed to delete staff member. Please try again.');
+      setError('Failed to delete staff member. Please try again.');
     }
   }
 
@@ -307,7 +307,7 @@ const res = await commanderFetch('/api/commander/staff/generate-claim', {
         alert(data.error || 'Failed to generate code');
       }
     } catch (e) {
-      alert('Network error');
+      setError('Network error');
     }
     setLinkCodeLoading(null);
   }
