@@ -78,7 +78,7 @@ export default function MembershipPlansPage() {
   async function fetchPlans(signal) {
     setLoading(true);
     try {
-const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`);
+const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -131,7 +131,7 @@ const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&inc
       const price = parseFloat(editPrice);
       if (isNaN(price) || price < 0) { setError('Enter A Valid Price'); setSaving(null); return; }
       const field = getPriceField(plan.tier);
-const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
+const res = await commanderFetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' || '' },
         body: JSON.stringify({ [field]: price })

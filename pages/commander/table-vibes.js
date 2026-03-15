@@ -38,7 +38,7 @@ export default function TableVibes() {
     setLoading(true);
     try {
 const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/table-ratings?venue_id=${staff.venue_id}&days=${days}`, {});
+      const res = await commanderFetch(`/api/commander/table-ratings?venue_id=${staff.venue_id}&days=${days}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {

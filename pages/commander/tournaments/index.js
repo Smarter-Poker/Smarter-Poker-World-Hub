@@ -99,7 +99,7 @@ export default function CommanderTournamentsPage() {
       if (filter !== 'all') params.set('status', filter);
       const staffSession = getStaffSession() || '';
       const bearerToken = getToken();
-      const res = await fetch(`/api/commander/tournaments?${params}`, { headers: { Authorization: `Bearer ${bearerToken}` } });
+      const res = await commanderFetch(`/api/commander/tournaments?${params}`, { headers: { Authorization: `Bearer ${bearerToken}` } });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) setTournaments(data.data.tournaments || []);

@@ -51,9 +51,9 @@ const venueId = getVenueId();
       const staffSession = getStaffSession();
       const headers = { };
       const [memberRes, sessionsRes, tournamentsRes] = await Promise.all([
-        fetch(`/api/commander/members/${id}?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: null })),
-        fetch(`/api/commander/time-billing/sessions?member_id=${id}&venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/tournaments/player-results?member_id=${id}&venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
+        commanderFetch(`/api/commander/members/${id}?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: null })),
+        commanderFetch(`/api/commander/time-billing/sessions?member_id=${id}&venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        commanderFetch(`/api/commander/tournaments/player-results?member_id=${id}&venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
       if (memberRes.data || memberRes.success) setMember(memberRes.data || memberRes);
       const sessionsArr = Array.isArray(sessionsRes.data) ? sessionsRes.data : [];
@@ -71,7 +71,7 @@ const venueId = getVenueId();
     const minutes = parseInt(addTimeAmount);
     if (!minutes || minutes <= 0) return;
     try {
-const res = await fetch(`/api/commander/members/${id}`, {
+const res = await commanderFetch(`/api/commander/members/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -93,7 +93,7 @@ const res = await fetch(`/api/commander/members/${id}`, {
 
   const toggleStatus = async (newStatus) => {
     try {
-const res = await fetch(`/api/commander/members/${id}`, {
+const res = await commanderFetch(`/api/commander/members/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ membership_status: newStatus })

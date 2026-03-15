@@ -92,7 +92,7 @@ export default function ReportsPage() {
         const { signal } = controller;
       try {
 const staffSession = getStaffSession() || '';
-        const res = await fetch(`/api/commander/reports/summary?range=${dateRange}`, {});
+        const res = await commanderFetch(`/api/commander/reports/summary?range=${dateRange}`, {});
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const json = await res.json();
         if (json.success) setSummary(json.data);

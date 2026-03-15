@@ -52,7 +52,7 @@ export default function TDReports() {
         if (!tournamentId) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/commander/tournaments/${tournamentId}/reports?type=${type}`, {});
+            const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/reports?type=${type}`, {});
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setReportData(json.data);

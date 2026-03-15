@@ -48,7 +48,7 @@ export default function TDPayouts() {
     const fetchPayouts = useCallback(async () => {
         if (!tournamentId) return;
         try {
-            const res = await fetch(`/api/commander/tournaments/${tournamentId}/payout?mode=calculate`, {});
+            const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/payout?mode=calculate`, {});
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
@@ -90,7 +90,7 @@ export default function TDPayouts() {
                 amount: overrides[p.position] || p.amount
             })).filter(p => p.player_id);
 
-            const res = await fetch(`/api/commander/tournaments/${tournamentId}/payout`, {
+            const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/payout`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ payouts })

@@ -46,9 +46,9 @@ const venueId = getVenueId();
       const headers = { };
       const fo = signal ? { headers, signal } : { headers };
       const [tableRes, sessionsRes, waitlistRes] = await Promise.all([
-        fetch(`/api/commander/tables/${id}`, fo).then(r => r.json()).catch(() => ({ data: null })),
-        fetch(`/api/commander/dealer/sessions?table_id=${id}&status=active`, fo).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/waitlist?venue_id=${venueId}`, fo).then(r => r.json()).catch(() => ({ data: [] }))
+        commanderFetch(`/api/commander/tables/${id}`, fo).then(r => r.json()).catch(() => ({ data: null })),
+        commanderFetch(`/api/commander/dealer/sessions?table_id=${id}&status=active`, fo).then(r => r.json()).catch(() => ({ data: [] })),
+        commanderFetch(`/api/commander/waitlist?venue_id=${venueId}`, fo).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
       if (tableRes.data || tableRes.success) setTable(tableRes.data || tableRes);
       const sessionsArr = Array.isArray(sessionsRes.data) ? sessionsRes.data : [];
@@ -77,7 +77,7 @@ const venueId = getVenueId();
   useCommanderSync(venueId, fetchData, { entities: ['tables', 'games', 'waitlist'] });
   const removePlayer = async (sessionId) => {
     try {
-const res = await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
+const res = await commanderFetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: 'removed' })

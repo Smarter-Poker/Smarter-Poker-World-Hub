@@ -71,7 +71,7 @@ export default function TDControlCenter() {
   const fetchFloor = useCallback(async (signal) => {
     if (!tournamentId) return;
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, { ...(signal ? { signal } : {}) });
+      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/floor-view`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -115,7 +115,7 @@ export default function TDControlCenter() {
     if (!messageText.trim()) return;
     setSendingMessage(true);
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
+      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: messageText, type: 'announcement', duration_seconds: 60 })
@@ -134,7 +134,7 @@ export default function TDControlCenter() {
   const handleHandForHand = async () => {
     const isActive = floor?.alerts?.hand_for_hand;
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
+      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: !isActive })

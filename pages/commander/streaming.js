@@ -297,7 +297,7 @@ export default function StreamingPage() {
     setLoading(true);
     try {
 const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/streaming?venue_id=${venueId}`, { ...(signal ? { signal } : {}) });
+      const res = await commanderFetch(`/api/commander/streaming?venue_id=${venueId}`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       if (data.success) {
@@ -325,7 +325,7 @@ const staffSession = getStaffSession() || '';
   async function handleStartStream(tableId) {
     try {
 const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/streaming/${tableId}/start`, {
+      const res = await commanderFetch(`/api/commander/streaming/${tableId}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId })
@@ -344,7 +344,7 @@ const staffSession = getStaffSession() || '';
   async function handleStopStream(tableId) {
     try {
 const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/streaming/${tableId}/stop`, {
+      const res = await commanderFetch(`/api/commander/streaming/${tableId}/stop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId })
@@ -362,7 +362,7 @@ const staffSession = getStaffSession() || '';
   async function handleSaveConfig(tableId, config) {
     try {
 const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/streaming/${tableId}/config`, {
+      const res = await commanderFetch(`/api/commander/streaming/${tableId}/config`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, ...config })

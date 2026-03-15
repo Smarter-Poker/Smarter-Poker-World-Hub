@@ -76,8 +76,8 @@ export default function TDTablesMap() {
       const headers = { };
       const fetchOpts = signal ? { headers, signal } : { headers };
       const [floorRes, breakRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, fetchOpts),
-        fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, fetchOpts).catch(() => null)
+        commanderFetch(`/api/commander/tournaments/${tournamentId}/floor-view`, fetchOpts),
+        commanderFetch(`/api/commander/tournaments/${tournamentId}/auto-break`, fetchOpts).catch(() => null)
       ]);
       const json = await floorRes.json();
       if (json.success) setFloor(json.data);
@@ -158,7 +158,7 @@ ${receipts.map(r => `<div class="card">
       onConfirm: async () => {
         setActionLoading(entryId);
         try {
-          const elimRes = await fetch(`/api/commander/tournaments/${tournamentId}/eliminate`, {
+          const elimRes = await commanderFetch(`/api/commander/tournaments/${tournamentId}/eliminate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ entry_id: entryId, finish_position: floor?.stats?.players_remaining || 0 })
@@ -237,7 +237,7 @@ ${receipts.map(r => `<div class="card">
               onClick={async () => {
                 setBreakExecuting(true);
                 try {
-                  const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
+                  const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -434,8 +434,7 @@ ${receipts.map(r => `<div class="card">
                           // Step 1: Fetch auto-break assignments for THIS specific table
                           // Use ?force_table= so the API generates assignments for the TD's chosen table,
                           // not the system's automatically-detected smallest table.
-                          const breakSuggestRes = await fetch(
-                            `/api/commander/tournaments/${tournamentId}/auto-break?force_table=${selectedTable.table_number}`,
+                          const breakSuggestRes = await commanderFetch(`/api/commander/tournaments/${tournamentId}/auto-break?force_table=${selectedTable.table_number}`,
                             {}
                           );
                           if (!breakSuggestRes.ok) throw new Error(`Request failed (${breakSuggestRes.status})`);
@@ -452,7 +451,7 @@ ${receipts.map(r => `<div class="card">
                           }
 
                           // Step 2: Execute the break via break-table API
-                          const res = await fetch(`/api/commander/tournaments/${tournamentId}/break-table`, {
+                          const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/break-table`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({

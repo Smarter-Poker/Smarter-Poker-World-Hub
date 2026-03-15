@@ -43,7 +43,7 @@ export default function TDClock() {
 
     if (!tournamentId) return;
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, { ...(signal ? { signal } : {}) });
+      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/floor-view`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -178,7 +178,7 @@ ${receipts.map(r => `<div class="card">
   const clockAction = async (action) => {
     setActionLoading(action);
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/clock`, {
+      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/clock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })
@@ -205,7 +205,7 @@ ${receipts.map(r => `<div class="card">
   const toggleH4H = async () => {
     const isActive = floor?.alerts?.hand_for_hand;
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
+      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/hand-for-hand`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: !isActive })
@@ -227,7 +227,7 @@ ${receipts.map(r => `<div class="card">
   const triggerFinalTable = async () => {
     setActionLoading('final');
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/final-table`, {
+      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/final-table`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ final_table_number: 1 })
@@ -249,7 +249,7 @@ ${receipts.map(r => `<div class="card">
 
   const sendMessage = async () => {
     if (!messageText.trim()) return;
-    const res = await fetch(`/api/commander/tournaments/${tournamentId}/message`, {
+    const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: messageText, type: 'announcement', duration_seconds: 60 })

@@ -34,7 +34,7 @@ export default function WaitlistMetrics() {
     setLoading(true);
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/reports/waitlist-metrics?venue_id=${venueId}&range=${range}`, {});
+      const res = await commanderFetch(`/api/commander/reports/waitlist-metrics?venue_id=${venueId}&range=${range}`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setData(json.data);

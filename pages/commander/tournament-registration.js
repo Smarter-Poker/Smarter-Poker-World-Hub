@@ -43,7 +43,7 @@ export default function TournamentRegistration() {
         try {
 const staffSession = getStaffSession() || '';
             const headers = { };
-            const res = await fetch(`/api/commander/tournaments?venue_id=${venueId}&status=upcoming,active`, { headers });
+            const res = await commanderFetch(`/api/commander/tournaments?venue_id=${venueId}&status=upcoming,active`, { headers });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             const list = json.data?.tournaments || json.tournaments || json.data || [];
@@ -64,7 +64,7 @@ const staffSession = getStaffSession() || '';
         try {
 const staffSession = getStaffSession() || '';
             const headers = { };
-            const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}&limit=8`, { headers });
+            const res = await commanderFetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}&limit=8`, { headers });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             setSearchResults(json.data || []);
@@ -279,7 +279,7 @@ const staffSession = getStaffSession() || '';
             const headers = { 'Content-Type': 'application/json' };
 
             // 1. Register player in tournament via API
-            const regRes = await fetch(`/api/commander/tournaments/${selectedTournament.id}/register`, {
+            const regRes = await commanderFetch(`/api/commander/tournaments/${selectedTournament.id}/register`, {
                 method: 'POST', headers,
                 body: JSON.stringify({ player_id: selectedPlayer.id })
             });

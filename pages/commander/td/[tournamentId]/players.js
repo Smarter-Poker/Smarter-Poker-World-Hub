@@ -60,7 +60,7 @@ export default function TDPlayers() {
 
     if (!tournamentId) return;
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, { ...(signal ? { signal } : {}) });
+      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/floor-view`, { ...(signal ? { signal } : {}) });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) setFloor(json.data);
@@ -271,7 +271,7 @@ ${receipts.map(r => `<div class="card">
     if (!chipModal || !chipValue) return;
     setActionLoading('chips');
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/entries/${chipModal.entry_id}/chips`, {
+      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/entries/${chipModal.entry_id}/chips`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chips: parseInt(chipValue) })

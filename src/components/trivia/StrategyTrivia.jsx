@@ -620,7 +620,12 @@ export default function StrategyTrivia({ mode }) {
     async function finishGame() {
         setIsTimerRunning(false);
         const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-        const diamondsEarned = calculateDiamonds(mode, correctCount, questions.length, 0);
+        // Recompute correctCount from answersRef (always current) to avoid stale closure
+        // when called from skip lifeline's 300ms setTimeout
+        const actualCorrectCount = answersRef.current.filter((a, i) =>
+            a === questions[i]?.correct_index || a === -2 // -2 = skipped (counts as correct)
+        ).length;
+        const diamondsEarned = calculateDiamonds(mode, actualCorrectCount, questions.length, 0);
 
         if (userId) {
             // Save score and award diamonds

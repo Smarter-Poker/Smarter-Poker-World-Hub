@@ -99,8 +99,8 @@ export default function TournamentDetailPage() {
       const headers = { };
       const fo = signal ? { headers, signal } : { headers };
       const [tournamentRes, entriesRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${id}`, fo).catch(() => ({ ok: false })),
-        fetch(`/api/commander/tournaments/${id}/entries`, fo).catch(() => ({ ok: false }))
+        commanderFetch(`/api/commander/tournaments/${id}`, fo).catch(() => ({ ok: false })),
+        commanderFetch(`/api/commander/tournaments/${id}/entries`, fo).catch(() => ({ ok: false }))
       ]);
 
       if (!tournamentRes.ok) throw new Error(`Request failed (${tournamentRes.status})`);
@@ -165,7 +165,7 @@ export default function TournamentDetailPage() {
   async function handleClockAction(action) {
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/tournaments/${id}/clock`, {
+      const res = await commanderFetch(`/api/commander/tournaments/${id}/clock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })
@@ -187,7 +187,7 @@ export default function TournamentDetailPage() {
   async function handleStatusChange(newStatus) {
     try {
       const staffSession = getStaffSession() || '';
-      const res = await fetch(`/api/commander/tournaments/${id}`, {
+      const res = await commanderFetch(`/api/commander/tournaments/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -295,7 +295,7 @@ export default function TournamentDetailPage() {
                     setClosing(true);
                     try {
                       const staffSession = getStaffSession() || '';
-                      const res = await fetch(`/api/commander/tournaments/${tournament.id}`, {
+                      const res = await commanderFetch(`/api/commander/tournaments/${tournament.id}`, {
                         method: 'DELETE'});
                       if (!res.ok) throw new Error(`Request failed (${res.status})`);
                       const json = await res.json();

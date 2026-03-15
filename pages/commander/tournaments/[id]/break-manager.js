@@ -46,7 +46,7 @@ export default function BreakManager() {
     if (!tournamentId || checkingRef.current) return;
     checkingRef.current = true;
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {});
+      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {});
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const json = await res.json();
       if (json.success) {
@@ -74,7 +74,7 @@ export default function BreakManager() {
     if (!breakData?.break_table || assignments.length === 0) return;
     setExecuting(true);
     try {
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
+      const res = await commanderFetch(`/api/commander/tournaments/${tournamentId}/auto-break`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
