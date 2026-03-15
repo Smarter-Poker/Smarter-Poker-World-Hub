@@ -649,6 +649,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
     const handleComment = async (postId, text) => {
         if (!socialService || !authUser?.id) return;
         await socialService.createComment({ postId, authorId: authUser.id, content: text });
+        busEmit.socialCommentAdded(postId, authUser.id);
     };
 
     const handleLoadComments = async (postId) => {

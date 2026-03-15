@@ -5,7 +5,7 @@
  * Light, bright, familiar SmarterPoker UI with poker integration
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { getAuthorDisplayName } from '../../utils/displayName';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -178,6 +178,20 @@ export const SPPostCard = ({
     const [commentsLoaded, setCommentsLoaded] = useState(false);
     const [submittingComment, setSubmittingComment] = useState(false);
     const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const [shareToast, setShareToast] = useState(false);
+    const moreMenuRef = useRef(null);
+
+    // Click-outside dismiss for more menu
+    useEffect(() => {
+        if (!showMoreMenu) return;
+        const handleClickOutside = (e) => {
+            if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
+                setShowMoreMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showMoreMenu]);
 
     // Support both old and new data structures
     const author = user || post.author || post.user;
@@ -256,6 +270,25 @@ export const SPPostCard = ({
 
     const isOwnPost = currentUserId && (post.author_id === currentUserId || post.author?.id === currentUserId || post.authorId === currentUserId);
 
+    // Share → copy link to clipboard + show toast
+    const handleShare = async () => {
+        const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/app/social/post/${post.id}`;
+        try {
+            await navigator.clipboard.writeText(url);
+        } catch {
+            // Fallback for older browsers
+            const input = document.createElement('input');
+            input.value = url;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+        }
+        setShareToast(true);
+        setTimeout(() => setShareToast(false), 2000);
+        onShare?.(post.id);
+    };
+
     return (
         <div className="sp-post">
             {/* Header */}
@@ -272,7 +305,7 @@ export const SPPostCard = ({
                         {formatTime(post.createdAt)} · 🌐
                     </div>
                 </div>
-                <div className="sp-post-more-container" style={{ position: 'relative' }}>
+                <div className="sp-post-more-container" style={{ position: 'relative' }} ref={moreMenuRef}>
                     <button className="sp-post-more" onClick={() => setShowMoreMenu(!showMoreMenu)}>⋯</button>
                     {showMoreMenu && (
                         <div className="sp-more-dropdown">
@@ -403,12 +436,20 @@ export const SPPostCard = ({
                 </button>
                 <button
                     className="sp-action-btn"
-                    onClick={() => onShare?.(post.id)}
+                    onClick={handleShare}
                 >
                     <span className="icon">↗️</span>
                     <span>Share</span>
                 </button>
             </div>
+
+            {/* Share Toast */}
+            {shareToast && (
+                <div style={{
+                    padding: '8px 16px', background: '#323232', color: '#fff',
+                    fontSize: 14, textAlign: 'center', borderRadius: '0 0 8px 8px'
+                }}>Link Copied To Clipboard</div>
+            )}
 
             {/* Comments */}
             {showComments && (
