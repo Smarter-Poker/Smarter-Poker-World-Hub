@@ -4,6 +4,17 @@ const { getServerUser } = require('../../../src/lib/serverAuth');
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
       if (req.method !== 'POST') {
@@ -14,7 +25,6 @@ export default async function handler(req, res) {
           return res.status(500).json({ error: 'Service key not configured' });
       }
 
-      const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
 
       // HARDENED: Local JWT decode (no GoTrue network call) + fallback
       const localUser = getServerUser(req);
@@ -25,7 +35,7 @@ export default async function handler(req, res) {
           // Fallback to GoTrue
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ error: 'Auth required' });
-          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
           userId = user.id;
       }

@@ -82,7 +82,6 @@ async function loadDeduplicationService() {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const grok = getGrokClient();
 
 
@@ -610,13 +609,13 @@ async function generateOriginalImage(postType) {
         const fileName = `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
         const filePath = `photos/horses/${fileName}`;
 
-        const { error } = await supabase.storage
+        const { error } = await getSupabase().storage
             .from('social-media')
             .upload(filePath, buffer, { contentType: 'image/png' });
 
         if (error) return null;
 
-        const { data: urlData } = supabase.storage
+        const { data: urlData } = getSupabase().storage
             .from('social-media')
             .getPublicUrl(filePath);
 
@@ -632,7 +631,7 @@ async function generateOriginalImage(postType) {
 
 async function postToStory(authorId, mediaUrl, mediaType = 'video') {
     try {
-        await supabase.from('stories').insert({
+        await getSupabase().from('stories').insert({
             author_id: authorId,
             media_url: mediaUrl,
             media_type: mediaType,
@@ -647,6 +646,17 @@ async function postToStory(authorId, mediaUrl, mediaType = 'video') {
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN CRON HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
+
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {

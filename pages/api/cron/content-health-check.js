@@ -13,10 +13,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import * as Sentry from '@sentry/nextjs';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SOURCE DEFINITIONS WITH FALLBACKS
@@ -98,7 +103,7 @@ async function tryFallbacks(source, configPath) {
         if (result.ok) {
 
             // Log the fix for later manual review
-            await supabase.from('system_logs').insert({
+            await getSupabase().from('system_logs').insert({
                 type: 'content_health_autofix',
                 message: `${source.name}: Switched from ${source.primary} to ${fallback}`,
                 metadata: {

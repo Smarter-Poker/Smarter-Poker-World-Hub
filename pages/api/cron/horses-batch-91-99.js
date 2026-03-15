@@ -1,3 +1,14 @@
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 /**
  * 🐴 BATCH HORSE CRON - Handles horses 91-99 (remaining 9 horses)
  * 
@@ -10,7 +21,7 @@ import { applyWritingStyle } from '../../../src/content-engine/pipeline/HorseSch
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const grok = getGrokClient();
 
 function extractVideoIdFromUrl(url) {
@@ -98,7 +109,7 @@ export default async function handler(req, res) {
 
               if (!error) {
                   results.push({ horse: horse.name, postId: post.id });
-                  await supabase.from('poker_clips').update({ last_used_at: new Date().toISOString() }).eq('id', clip.id);
+                  await getSupabase().from('poker_clips').update({ last_used_at: new Date().toISOString() }).eq('id', clip.id);
               }
           }
 

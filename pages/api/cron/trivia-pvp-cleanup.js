@@ -13,10 +13,17 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -96,7 +103,7 @@ export default async function handler(req, res) {
 async function refundPlayer(playerId, amount) {
     if (!playerId) return;
 
-    await supabase.rpc('add_diamonds_to_balance', {
+    await getSupabase().rpc('add_diamonds_to_balance', {
         p_user_id: playerId,
         p_amount: amount,
         p_type: 'pvp_refund',
@@ -112,7 +119,7 @@ async function awardForfeitWin(winnerId, loserId, stakeAmount, matchId) {
     const winnerPayout = totalPot - rakeAmount;
 
     // Award winner via logging RPC
-    await supabase.rpc('add_diamonds_to_balance', {
+    await getSupabase().rpc('add_diamonds_to_balance', {
         p_user_id: winnerId,
         p_amount: winnerPayout,
         p_type: 'pvp_win',

@@ -10,6 +10,17 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
       if (req.method !== 'GET') {
@@ -20,8 +31,7 @@ export default async function handler(req, res) {
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
 
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const userId = authUser.id; // Trust JWT, not query string

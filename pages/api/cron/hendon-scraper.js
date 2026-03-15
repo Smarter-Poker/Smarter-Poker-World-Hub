@@ -13,10 +13,17 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import * as cheerio from 'cheerio';
 
 // Server-side Supabase client with service role
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -59,7 +66,7 @@ export default async function handler(req, res) {
 
                   if (scraped) {
                       // Update profile with scraped data
-                      await supabase.rpc('fn_update_hendon_data', {
+                      await getSupabase().rpc('fn_update_hendon_data', {
                           p_profile_id: profile.id,
                           p_total_cashes: scraped.totalCashes,
                           p_total_earnings: scraped.totalEarnings,
@@ -68,7 +75,7 @@ export default async function handler(req, res) {
                       });
 
                       // Log success
-                      await supabase.from('hendon_scrape_log').insert({
+                      await getSupabase().from('hendon_scrape_log').insert({
                           profile_id: profile.id,
                           hendon_url: profile.hendon_url,
                           status: 'success',
@@ -91,7 +98,7 @@ export default async function handler(req, res) {
                   console.error(`Error scraping ${profile.hendon_url}:`, scrapeError);
 
                   // Log failure
-                  await supabase.from('hendon_scrape_log').insert({
+                  await getSupabase().from('hendon_scrape_log').insert({
                       profile_id: profile.id,
                       hendon_url: profile.hendon_url,
                       status: 'failed',

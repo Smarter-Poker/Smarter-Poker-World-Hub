@@ -33,7 +33,6 @@ async function loadClipLibrary() {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const grok = getGrokClient();
 
 const CONFIG = {
@@ -121,7 +120,7 @@ async function postVideoStory(horse) {
         // Use YouTube thumbnail as story image
         const thumbnailUrl = `https://img.youtube.com/vi/${validClip.video_id}/hqdefault.jpg`;
 
-        const { data: storyId, error } = await supabase.rpc('fn_create_story', {
+        const { data: storyId, error } = await getSupabase().rpc('fn_create_story', {
             p_user_id: horse.profile_id,
             p_content: caption,
             p_media_url: thumbnailUrl,
@@ -172,7 +171,7 @@ async function postTextStory(horse) {
             console.error(`   Using default topic (Grok error)`);
         }
 
-        const { data: storyId, error } = await supabase.rpc('fn_create_story', {
+        const { data: storyId, error } = await getSupabase().rpc('fn_create_story', {
             p_user_id: horse.profile_id,
             p_content: content,
             p_media_url: null,
@@ -191,6 +190,17 @@ async function postTextStory(horse) {
         console.error(`❌ ${horse.name}: Text story failed - ${e.message}`);
         return null;
     }
+}
+
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
 }
 
 export default async function handler(req, res) {

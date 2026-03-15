@@ -1,3 +1,14 @@
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 /**
  * BATCH HORSE CRON - Handles 10 horses per batch
  * 
@@ -58,7 +69,7 @@ async function validateYouTubeVideo(url) {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const grok = getGrokClient();
 
 // 100 UNIQUE VOICE PATTERNS - each horse gets ONE pattern
@@ -242,7 +253,7 @@ const SPORTS_NEWS_SOURCES = [
 ];
 
 async function getHorseSources(profileId) {
-    const { data: sportsSources } = await supabase.from('sports_clips').select('source').limit(1000);
+    const { data: sportsSources } = await getSupabase().from('sports_clips').select('source').limit(1000);
     const allSources = new Set();
     (sportsSources || []).forEach(s => s.source && allSources.add(s.source));
     const sourceList = [...allSources];
@@ -318,12 +329,12 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
 
     } else {
         if (assignedSources.length > 0) {
-            const { data } = await supabase.from('sports_clips').select('*').in('source', assignedSources).limit(200);
+            const { data } = await getSupabase().from('sports_clips').select('*').in('source', assignedSources).limit(200);
             if (data?.length) clips = data;
         }
         if (!clips.length) {
             const offset = Math.floor(Math.random() * 5000);
-            const { data } = await supabase.from('sports_clips').select('*').range(offset, offset + 200);
+            const { data } = await getSupabase().from('sports_clips').select('*').range(offset, offset + 200);
             if (data?.length) clips = data;
         }
         if (!clips.length) return { success: false, error: 'No sports clips' };
@@ -388,7 +399,7 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
 
     caption = voice.opener + cleanCaption(caption, horseIndex);
 
-    const { data: post, error } = await supabase.from('social_posts').insert({
+    const { data: post, error } = await getSupabase().from('social_posts').insert({
         author_id: horse.profile_id,
         content: caption,
         content_type: 'video',
@@ -454,7 +465,7 @@ async function postNewsLink(horse, horseIndex, newsType) {
         caption = voice.opener + cleanCaption(caption, horseIndex);
         const postContent = `${caption}\n\n${article.link}`;
 
-        const { data: post, error } = await supabase.from('social_posts').insert({
+        const { data: post, error } = await getSupabase().from('social_posts').insert({
             author_id: horse.profile_id,
             content: postContent,
             content_type: 'link',

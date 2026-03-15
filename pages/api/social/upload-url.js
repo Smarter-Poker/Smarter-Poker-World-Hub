@@ -23,6 +23,17 @@ const ALLOWED_TYPES = [
     'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
 ];
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -40,12 +51,11 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: 'Server configuration error' });
       }
 
-      const supabase = createClient(supabaseUrl, serviceKey);
 
       // ── Auth: verify JWT identity ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       try {
@@ -79,7 +89,7 @@ export default async function handler(req, res) {
           const storagePath = pathParts.join('/');
 
           // Create signed upload URL (one-time use, expires in 5 minutes)
-          const { data, error: signError } = await supabase.storage
+          const { data, error: signError } = await getSupabase().storage
               .from(BUCKET)
               .createSignedUploadUrl(storagePath);
 
@@ -89,7 +99,7 @@ export default async function handler(req, res) {
           }
 
           // Get the public URL for after upload completes
-          const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+          const { data: urlData } = getSupabase().storage.from(BUCKET).getPublicUrl(storagePath);
           const publicUrl = urlData?.publicUrl;
 
 

@@ -214,7 +214,7 @@ export default async function handler(req, res) {
 
       try {
           // Build query
-          let query = supabase
+          let query = getSupabase()
               .from('poker_venues')
               .select('id, name, city, state, scrape_source, scrape_url, pokeratlas_url, last_scraped')
               .eq('is_active', true)

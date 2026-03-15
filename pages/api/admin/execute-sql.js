@@ -1,5 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../src/lib/supabaseServerClient';
 import { Pool } from 'pg';
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 
 // [HARDENING] Increase body size limit to 10MB to support large AI-generated SQL migrations
 export const config = {
@@ -48,12 +59,9 @@ export default async function handler(req, res) {
       } else {
           // Check 2: Browser User Admin Session
           try {
-              const supabase = createClient(
-                  process.env.NEXT_PUBLIC_SUPABASE_URL,
-                  process.env.SUPABASE_SERVICE_ROLE_KEY
-              );
+              
 
-              const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+              const { data: { user }, error: userError } = await getSupabase().auth.getUser(token);
               if (userError || !user) {
                   return res.status(401).json({ success: false, error: 'Invalid JWT token.' });
               }
@@ -97,7 +105,7 @@ export default async function handler(req, res) {
       ].filter(Boolean);
 
       const uniqueCands = [...new Set(candidates)];
-      const connStrings = uniqueCands.map(pw => `postgresql://postgres.kuklfnapbkmacvwxktbh:${encodeURIComponent(pw)}@aws-0-us-west-2.pooler.supabase.com:5432/postgres`);
+      const connStrings = uniqueCands.map(pw => `postgresql://postgres.kuklfnapbkmacvwxktbh:${encodeURIComponent(pw)}@aws-0-us-west-2.pooler.getSupabase().com:5432/postgres`);
 
       for (const cs of connStrings) {
           let pool;

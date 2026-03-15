@@ -21,6 +21,17 @@ export const config = {
     maxDuration: 60
 };
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
       // Verify cron secret
@@ -28,10 +39,6 @@ export default async function handler(req, res) {
           return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co',
-          process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      );
 
       try {
           const now = new Date();
@@ -81,7 +88,7 @@ export default async function handler(req, res) {
                   }
 
                   // 3. Credit diamonds atomically via RPC with unique reference_id
-                  const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                  const { error: rpcErr } = await getSupabase().rpc('add_diamonds_to_balance', {
                       p_user_id: user.id,
                       p_amount: VIP_MONTHLY_STIPEND,
                       p_type: 'bonus',

@@ -12,6 +12,17 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method === 'POST' || req.method === 'DELETE') {
@@ -21,7 +32,6 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: 'Server configuration error' });
       }
 
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
       if (req.method === 'GET') {
           const { post_id, type } = req.query;
@@ -30,7 +40,7 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'post_id required' });
           }
 
-          let query = supabase
+          let query = getSupabase()
               .from('social_interactions')
               .select('id, post_id, user_id, interaction_type, created_at')
               .eq('post_id', post_id)
@@ -100,7 +110,7 @@ export default async function handler(req, res) {
           // Require JWT auth for social interactions
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           const { post_id, interaction_type, content } = req.body;
@@ -140,13 +150,13 @@ export default async function handler(req, res) {
               if (!data) return res.status(500).json({ success: false, error: 'Failed to create comment' });
 
               // Update comment count on post
-              await supabase.rpc('increment_post_count', { p_post_id: post_id, p_field: 'comment_count' }).catch(async (err) => {
+              await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'comment_count' }).catch(async (err) => {
                   // If RPC doesn't exist, try direct update
                   if (err.code === '42883') {
                       try {
-                          const { data: p } = await supabase.from('social_posts').select('comment_count').eq('id', post_id).maybeSingle();
+                          const { data: p } = await getSupabase().from('social_posts').select('comment_count').eq('id', post_id).maybeSingle();
                           if (p) {
-                              await supabase.from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', post_id);
+                              await getSupabase().from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', post_id);
                           }
                       } catch (fallbackErr) {
                           console.warn('[Interactions] Fallback comment count update failed:', fallbackErr.message);
@@ -170,14 +180,14 @@ export default async function handler(req, res) {
 
               if (existing) {
                   // Unlike - delete
-                  await supabase.from('social_interactions').delete().eq('id', existing.id);
+                  await getSupabase().from('social_interactions').delete().eq('id', existing.id);
 
                   // Atomic decrement like count
-                  await supabase.rpc('decrement_post_count', { p_post_id: post_id, p_field: 'like_count' }).catch(async () => {
+                  await getSupabase().rpc('decrement_post_count', { p_post_id: post_id, p_field: 'like_count' }).catch(async () => {
                     try {
-                      const { data: post } = await supabase.from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
+                      const { data: post } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
                       if (post) {
-                        await supabase.from('social_posts').update({ like_count: Math.max(0, (post.like_count || 1) - 1) }).eq('id', post_id);
+                        await getSupabase().from('social_posts').update({ like_count: Math.max(0, (post.like_count || 1) - 1) }).eq('id', post_id);
                       }
                     } catch (e) {
                       console.warn('[Interactions] Like count decrement fallback failed:', e.message);
@@ -194,11 +204,11 @@ export default async function handler(req, res) {
                   if (error) return res.status(500).json({ success: false, error: error.message });
 
                   // Atomic increment like count
-                  await supabase.rpc('increment_post_count', { p_post_id: post_id, p_field: 'like_count' }).catch(async () => {
+                  await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'like_count' }).catch(async () => {
                     try {
-                      const { data: post } = await supabase.from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
+                      const { data: post } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
                       if (post) {
-                        await supabase.from('social_posts').update({ like_count: (post.like_count || 0) + 1 }).eq('id', post_id);
+                        await getSupabase().from('social_posts').update({ like_count: (post.like_count || 0) + 1 }).eq('id', post_id);
                       }
                     } catch (e) {
                       console.warn('[Interactions] Like count increment fallback failed:', e.message);
@@ -219,11 +229,11 @@ export default async function handler(req, res) {
               }
 
               // Atomic increment share count
-              await supabase.rpc('increment_post_count', { p_post_id: post_id, p_field: 'share_count' }).catch(async () => {
+              await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'share_count' }).catch(async () => {
                 try {
-                  const { data: post } = await supabase.from('social_posts').select('share_count').eq('id', post_id).maybeSingle();
+                  const { data: post } = await getSupabase().from('social_posts').select('share_count').eq('id', post_id).maybeSingle();
                   if (post) {
-                    await supabase.from('social_posts').update({ share_count: (post.share_count || 0) + 1 }).eq('id', post_id);
+                    await getSupabase().from('social_posts').update({ share_count: (post.share_count || 0) + 1 }).eq('id', post_id);
                   }
                 } catch (e) {
                   console.warn('[Interactions] Share count increment fallback failed:', e.message);
@@ -239,7 +249,7 @@ export default async function handler(req, res) {
           // Require JWT auth for deleting interactions
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           const { post_id, interaction_type } = req.query;
@@ -249,7 +259,7 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'post_id required' });
           }
 
-          let query = supabase
+          let query = getSupabase()
               .from('social_interactions')
               .delete()
               .eq('post_id', post_id)

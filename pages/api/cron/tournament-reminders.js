@@ -1,3 +1,14 @@
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 /**
  * Tournament Reminders Cron
  * ═══════════════════════════════════════════════════════════════════════════
@@ -9,10 +20,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+
 
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
@@ -57,7 +65,7 @@ async function wasAlreadySent(tournamentId, userId, reminderType) {
 }
 
 async function markSent(tournamentId, userId, reminderType) {
-    await supabase.from('tournament_reminders_sent').upsert({
+    await getSupabase().from('tournament_reminders_sent').upsert({
         tournament_id: tournamentId,
         user_id: userId,
         reminder_type: reminderType,

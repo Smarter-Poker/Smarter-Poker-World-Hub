@@ -10,13 +10,20 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 const ENTRY_FEE = 25;
 const HOUSE_RAKE_PERCENT = 10;
+
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -221,7 +228,7 @@ async function generateBracket(tournament, entries) {
  */
 async function cancelAndRefund(tournament, entries) {
     for (const entry of entries) {
-        await supabase.rpc('add_diamonds_to_balance', {
+        await getSupabase().rpc('add_diamonds_to_balance', {
             p_user_id: entry.user_id,
             p_amount: tournament.entry_fee,
             p_type: 'tournament_refund',

@@ -18,6 +18,17 @@ import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -27,7 +38,6 @@ export default async function handler(req, res) {
       if (!supabaseUrl || !supabaseServiceKey) {
           return res.status(500).json({ success: false, error: 'Server configuration error' });
       }
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
       // ===== GET =====
       if (req.method === 'GET') {
@@ -290,7 +300,7 @@ export default async function handler(req, res) {
           // Require JWT auth for all game write operations
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
           const verified_user_id = authUser.id;
 
@@ -395,7 +405,7 @@ export default async function handler(req, res) {
               const { game_id, player_name, seat_id } = req.body;
               if (!game_id) return res.status(400).json({ success: false, error: 'game_id required' });
 
-              let query = supabase.from('club_game_seats').delete().eq('game_id', game_id);
+              let query = getSupabase().from('club_game_seats').delete().eq('game_id', game_id);
               if (seat_id) query = query.eq('id', seat_id);
               else if (player_name) query = query.eq('player_name', player_name);
               else return res.status(400).json({ success: false, error: 'player_name or seat_id required' });
@@ -427,7 +437,7 @@ export default async function handler(req, res) {
       if (req.method === 'PUT') {
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           const { id, status, game_name, stakes, max_seats, notes, table_number } = req.body;
@@ -456,13 +466,13 @@ export default async function handler(req, res) {
       if (req.method === 'DELETE') {
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           const { id } = req.query;
           if (!id) return res.status(400).json({ success: false, error: 'id required' });
 
-          const { error } = await supabase.from('club_live_games').delete().eq('id', id);
+          const { error } = await getSupabase().from('club_live_games').delete().eq('id', id);
           if (error) return res.status(500).json({ success: false, error: error.message });
           return res.status(200).json({ success: true });
       }

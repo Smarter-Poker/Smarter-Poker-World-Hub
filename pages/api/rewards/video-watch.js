@@ -22,6 +22,17 @@ const MAX_PER_DAY = 5;
 const MIN_WATCH_SECONDS = 300;
 const DAILY_CAP = 500;
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -32,11 +43,10 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      const supabase = createClient(supabaseUrl, supabaseKey);
       // ── Auth: JWT required (awards diamonds) ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const { videoId } = req.body;
@@ -104,7 +114,7 @@ export default async function handler(req, res) {
 
           // Record & award
           // BUG #271 FIX: Check insert result before awarding diamonds
-          const { error: claimErr } = await supabase.from('diamond_reward_claims').insert({
+          const { error: claimErr } = await getSupabase().from('diamond_reward_claims').insert({
               user_id: userId,
               reward_type: 'video_watch',
               diamonds_awarded: WATCH_REWARD,
@@ -119,7 +129,7 @@ export default async function handler(req, res) {
               throw claimErr;
           }
 
-          await supabase.rpc('add_diamonds_to_balance', {
+          await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: userId,
               p_amount: WATCH_REWARD,
               p_type: 'video_watch',

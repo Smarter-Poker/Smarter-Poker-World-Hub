@@ -11,6 +11,17 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
       if (req.method !== 'POST') {
@@ -29,13 +40,9 @@ export default async function handler(req, res) {
           }
 
           // BUG #242 FIX: Require JWT auth and verify caller is linking their OWN user ID
-          const supabase = createClient(
-              process.env.NEXT_PUBLIC_SUPABASE_URL,
-              process.env.SUPABASE_SERVICE_ROLE_KEY
-          );
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
           if (user.id !== userId) {
               return res.status(403).json({ success: false, error: 'Cannot link notifications for another user' });

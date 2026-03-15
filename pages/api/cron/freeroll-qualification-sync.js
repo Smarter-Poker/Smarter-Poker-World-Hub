@@ -14,10 +14,6 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 /* ── Points table for tournament finish positions ── */
 const POSITION_POINTS = {
@@ -67,7 +63,7 @@ function getQualificationDateRange(period, freeroll) {
 // gameTypes and minStakes are future-proofing params — commander_player_sessions
 // doesn't have game_type/stakes columns yet; these will be used when added.
 async function getCashHoursPerPlayer(venueId, dateRange, gameTypes, minStakes) {
-    let query = supabase
+    let query = getSupabase()
         .from('commander_player_sessions')
         .select('player_id, player_name, total_time_minutes, check_in_at, check_out_at')
         .eq('venue_id', venueId)
@@ -246,6 +242,17 @@ async function syncFreeroll(freeroll) {
 }
 
 /* ── Main handler ── */
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
       if (req.method !== 'GET' && req.method !== 'POST') {
@@ -261,7 +268,7 @@ export default async function handler(req, res) {
           if (!token) {
               return res.status(401).json({ error: 'Unauthorized — no auth token' });
           }
-          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) {
               return res.status(401).json({ error: 'Unauthorized — invalid token' });
           }
@@ -271,7 +278,7 @@ export default async function handler(req, res) {
           const specificFreerollId = req.body?.freeroll_id || req.query?.freeroll_id;
 
           // Build query for freerolls to sync
-          let query = supabase
+          let query = getSupabase()
               .from('commander_freerolls')
               .select('*')
               .in('status', ['qualifying', 'upcoming'])
@@ -279,7 +286,7 @@ export default async function handler(req, res) {
                   .limit(100);
 
           if (specificFreerollId) {
-              query = supabase
+              query = getSupabase()
                   .from('commander_freerolls')
                   .select('*')
                   .eq('id', specificFreerollId)

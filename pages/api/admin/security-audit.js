@@ -6,8 +6,19 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+
+
+
 
 export default async function handler(req, res) {
   try {
@@ -128,7 +139,7 @@ export default async function handler(req, res) {
       // ==========================================
 
       if (supabaseUrl && supabaseServiceKey) {
-          const supabase = createClient(supabaseUrl, supabaseServiceKey);
+          
 
           // Check RLS is enabled on critical tables
           const criticalTables = [

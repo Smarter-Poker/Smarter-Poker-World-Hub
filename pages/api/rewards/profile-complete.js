@@ -18,6 +18,17 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const COMPLETION_REWARD = 50;
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -28,11 +39,10 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      const supabase = createClient(supabaseUrl, supabaseKey);
       // ── Auth: JWT required (awards diamonds) ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const userId = authUser.id; // Use JWT identity
@@ -88,7 +98,7 @@ export default async function handler(req, res) {
           // BUG #265 FIX: Check insert result before awarding diamonds.
           // Without this, concurrent requests both pass the 'existing' check,
           // both insert (if no unique constraint), and both award diamonds.
-          const { error: claimInsertErr } = await supabase.from('diamond_reward_claims').insert({
+          const { error: claimInsertErr } = await getSupabase().from('diamond_reward_claims').insert({
               user_id: userId,
               reward_type: 'profile_complete',
               diamonds_awarded: COMPLETION_REWARD,
@@ -104,7 +114,7 @@ export default async function handler(req, res) {
               throw claimInsertErr;
           }
 
-          await supabase.rpc('add_diamonds_to_balance', {
+          await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: userId,
               p_amount: COMPLETION_REWARD,
               p_type: 'profile_complete',

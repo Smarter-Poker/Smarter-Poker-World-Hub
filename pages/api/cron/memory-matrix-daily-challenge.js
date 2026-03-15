@@ -14,6 +14,17 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+
 export const config = {
     maxDuration: 60 // Allow up to 60 seconds for Grok generation
 };
@@ -69,10 +80,7 @@ export default async function handler(req, res) {
           return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.SUPABASE_SERVICE_ROLE_KEY
-      );
+      
 
       try {
           const today = new Date();

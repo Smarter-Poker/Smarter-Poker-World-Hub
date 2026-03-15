@@ -76,7 +76,7 @@ function getRandomSportsCaption(category) {
 async function getRandomSportsClip(excludeIds = []) {
     try {
         // Get a random clip from the database that hasn't been used recently
-        let query = supabase
+        let query = getSupabase()
             .from('sports_clips')
             .select('*');
 
@@ -113,7 +113,6 @@ async function getRandomSportsClip(excludeIds = []) {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const grok = getGrokClient();
 
 const CONFIG = {
@@ -127,6 +126,17 @@ const usedClipsThisSession = new Set();
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
+
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {

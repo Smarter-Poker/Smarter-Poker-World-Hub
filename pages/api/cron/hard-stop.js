@@ -125,7 +125,7 @@ export default async function handler(req, res) {
                       .limit(100);
               const tournTableNums = (tournTables || []).map(t => t.table_number);
 
-              let sessionQuery = supabase
+              let sessionQuery = getSupabase()
                   .from('commander_table_sessions')
                   .select('id, member_id, started_at, table_number')
                   .eq('venue_id', venue.venue_id)
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
                       .in('id', sessionIds);
 
                   // Clear CASH seats only (exclude tournament table numbers)
-                  let seatQuery = supabase
+                  let seatQuery = getSupabase()
                       .from('commander_table_seats')
                       .update({
                           status: 'empty',

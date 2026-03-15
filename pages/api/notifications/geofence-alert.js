@@ -17,6 +17,17 @@ const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 const rateLimitMap = new Map();
 const RATE_LIMIT_MS = 4 * 60 * 60 * 1000; // 4 hours
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
       if (req.method !== 'POST') {
@@ -30,13 +41,9 @@ export default async function handler(req, res) {
       }
 
       // BUG #241 FIX: Require JWT auth and verify caller is the target user
-      const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.SUPABASE_SERVICE_ROLE_KEY
-      );
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
       if (user.id !== userId) {
           return res.status(403).json({ success: false, error: 'Cannot send geofence alerts for other users' });

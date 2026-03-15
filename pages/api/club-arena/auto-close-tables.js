@@ -8,12 +8,23 @@
  * Body: { clubId? } — optional: only check tables for a specific club
  * Auth: requires admin or engine-key
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkIdempotency, cacheResponse } from '../../../src/lib/club-arena/idempotency';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+
+
+
 
 export default async function handler(req, res) {
   try {
@@ -25,15 +36,15 @@ export default async function handler(req, res) {
       const engineKey = req.headers['x-engine-key'] || req.body?.engineKey;
       const validEngineKey = engineKey && engineKey === process.env.ENGINE_INTERNAL_SECRET;
 
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      
 
       if (!validEngineKey) {
           const token = req.headers['authorization']?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ error: 'Unauthorized' });
-          const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
           // Verify caller is a platform admin
-          const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+          const { data: profile } = await getSupabase().from('profiles').select('role').eq('id', user.id).maybeSingle();
           if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
               return res.status(403).json({ error: 'Admin access required' });
           }
@@ -43,7 +54,7 @@ export default async function handler(req, res) {
 
       try {
           // Fetch all active/running/waiting tables
-          let query = supabase
+          let query = getSupabase()
               .from('tables')
               .select('id, name, club_id, status, created_at, settings')
               .in('status', ['active', 'running', 'waiting']);

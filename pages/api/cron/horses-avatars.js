@@ -20,12 +20,6 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 const IS_SERVICE_ROLE = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Create client with appropriate auth settings
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, IS_SERVICE_ROLE ? {
-    auth: {
-        persistSession: false,
-        autoRefreshToken: false
-    }
-} : {});
 
 const grok = getGrokClient();
 
@@ -105,7 +99,7 @@ async function generateAndUploadAvatar(horse) {
         const fileName = `horse_avatar_${horse.profile_id}_${Date.now()}.png`;
         const storagePath = `avatars/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await getSupabase().storage
             .from('social-media')
             .upload(storagePath, buffer, {
                 contentType: 'image/png',
@@ -118,7 +112,7 @@ async function generateAndUploadAvatar(horse) {
         }
 
         // Get public URL
-        const { data: urlData } = supabase.storage
+        const { data: urlData } = getSupabase().storage
             .from('social-media')
             .getPublicUrl(storagePath);
 
@@ -164,6 +158,17 @@ async function generateAndUploadAvatar(horse) {
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
       // Verify cron secret
@@ -186,7 +191,7 @@ export default async function handler(req, res) {
 
       try {
           // Get horses needing avatars
-          let query = supabase
+          let query = getSupabase()
               .from('content_authors')
               .select('id, profile_id, name, avatar_url')
               .eq('is_active', true)

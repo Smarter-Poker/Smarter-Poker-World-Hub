@@ -23,6 +23,17 @@ Answer clearly and concisely. Use bullet points for rule lists. Keep responses f
 If asked about a specific game variant, always cover: dealing order, betting structure, showdown rules, and one or two common edge cases.
 Do NOT discuss strategy, odds, or anything unrelated to dealing and game rules.`;
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -34,10 +45,9 @@ export default async function handler(req, res) {
       }
 
       // BUG #248 FIX: Require JWT auth — this route uses paid OpenAI API
-      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ error: 'Auth required' });
-      const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+      const { data: { user: _authUser }, error: _authErr } = await getSupabase().auth.getUser(_token);
       if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
 
       const { query, history = [] } = req.body;

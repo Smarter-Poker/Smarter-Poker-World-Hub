@@ -12,6 +12,17 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -26,12 +37,11 @@ export default async function handler(req, res) {
           return res.status(500).json({ error: 'Server configuration error' });
       }
 
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
       // ── Auth: JWT required (handles diamond entry fees + prizes) ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
 
       const { duel_type = 'quick', entry_fee = 25 } = req.body;
@@ -89,7 +99,7 @@ export default async function handler(req, res) {
               if (matchErr) {
                   // Tables might not exist yet - return simulated match
                   // Remove from queue
-                  await supabase.from('arcade_duel_queue').delete().eq('id', waiting.id);
+                  await getSupabase().from('arcade_duel_queue').delete().eq('id', waiting.id);
 
                   return res.status(200).json({
                       status: 'matched',
@@ -107,10 +117,10 @@ export default async function handler(req, res) {
               }
 
               // Remove from queue
-              await supabase.from('arcade_duel_queue').delete().eq('id', waiting.id);
+              await getSupabase().from('arcade_duel_queue').delete().eq('id', waiting.id);
 
               // Deduct diamonds from joining player via logging RPC
-              await supabase.rpc('add_diamonds_to_balance', {
+              await getSupabase().rpc('add_diamonds_to_balance', {
                   p_user_id: user_id,
                   p_amount: -cost,
                   p_type: 'arcade_entry',
@@ -150,7 +160,7 @@ export default async function handler(req, res) {
           }
 
           // Deduct entry fee when queued via logging RPC
-          await supabase.rpc('add_diamonds_to_balance', {
+          await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: user_id,
               p_amount: -cost,
               p_type: 'arcade_entry',

@@ -38,6 +38,17 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -48,11 +59,10 @@ export default async function handler(req, res) {
           return res.status(405).json({ error: 'Method not allowed' });
       }
 
-      const supabase = createClient(supabaseUrl, supabaseKey);
       // ── Auth: JWT required (awards diamonds) ──
       const token = req.headers.authorization?.replace('Bearer ', '');
       if (!token) return res.status(401).json({ error: 'Auth required' });
-      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
       if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
 
 
@@ -193,7 +203,7 @@ export default async function handler(req, res) {
           }
 
           // ── CREDIT DIAMONDS (atomic: balance + transaction in one RPC) ──
-          const { error: rpcError } = await supabase.rpc('add_diamonds_to_balance', {
+          const { error: rpcError } = await getSupabase().rpc('add_diamonds_to_balance', {
               p_user_id: userId,
               p_amount: diamonds,
               p_type: 'venue_review',

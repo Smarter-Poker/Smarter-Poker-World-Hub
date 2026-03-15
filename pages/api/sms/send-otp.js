@@ -15,12 +15,23 @@ import twilio from 'twilio';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+
 
 /* ── Shared utility: normalise any phone input to E.164 ────────────────── */
 function normalizePhone(raw) {
@@ -53,7 +64,7 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: 'Server configuration error' });
       }
 
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      
 
       try {
           const { phone } = req.body;

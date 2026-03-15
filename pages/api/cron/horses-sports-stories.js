@@ -15,7 +15,6 @@ import { shouldHorseBeActive, isHorseActiveHour } from '../../../src/content-eng
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const grok = getGrokClient();
 
 const CONFIG = {
@@ -50,7 +49,7 @@ const SPORTS_TEXT_TOPICS = [
 // Get random sports clip from database
 async function getRandomSportsClip(excludeIds = []) {
     try {
-        let query = supabase
+        let query = getSupabase()
             .from('sports_clips')
             .select('*')
             .order('created_at', { ascending: false })
@@ -152,6 +151,17 @@ async function postSportsStory(horse, storyType, content) {
         console.error(`Error posting story for ${horse.name}:`, error);
         return { success: false, error: error.message };
     }
+}
+
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
 }
 
 export default async function handler(req, res) {

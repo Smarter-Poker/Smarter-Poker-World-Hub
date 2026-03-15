@@ -3,10 +3,21 @@
  * Generate PDF reports for bankroll data
  */
 
-import { supabase } from '../../../src/lib/supabase';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export default async function handler(req, res) {
   try {
@@ -21,7 +32,7 @@ export default async function handler(req, res) {
               return res.status(401).json({ error: 'Unauthorized' });
           }
           const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+          const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
           if (authError || !user) {
               return res.status(401).json({ error: 'Invalid token' });
           }
@@ -37,7 +48,7 @@ export default async function handler(req, res) {
           const { startDate, endDate, category } = req.query;
 
           // Build query
-          let query = supabase
+          let query = getSupabase()
               .from('bankroll_ledger')
               .select(`
           id,

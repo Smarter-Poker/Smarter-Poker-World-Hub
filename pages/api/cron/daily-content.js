@@ -1,5 +1,16 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+
 /**
  * Vercel Cron Endpoint: Daily Content Publisher
  * POST /api/cron/daily-content
@@ -62,10 +73,7 @@ export default async function handler(req, res) {
       try {
 
           // Initialize Supabase with anon key (RLS will handle permissions)
-          const supabase = createClient(
-              process.env.NEXT_PUBLIC_SUPABASE_URL,
-              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-          );
+          
 
           // Get today's content
           const todayContent = getTodayContent();

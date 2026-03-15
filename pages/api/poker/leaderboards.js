@@ -11,6 +11,17 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
     if (!applyRateLimit(req, res, LIMITS.read)) return;
@@ -23,7 +34,6 @@ export default async function handler(req, res) {
           return res.status(500).json({ error: 'Server configuration error' });
       }
 
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
       const { type = 'overall', period = 'all', limit = '25' } = req.query;
       const maxLimit = Math.min(parseInt(limit) || 25, 100);
 
@@ -40,7 +50,7 @@ export default async function handler(req, res) {
           const leaders = [];
 
           if (type === 'checkins' || type === 'overall') {
-              let query = supabase
+              let query = getSupabase()
                   .from('venue_checkins')
                   .select('user_id, created_at');
               if (dateFilter) query = query.gte('created_at', dateFilter);
@@ -83,7 +93,7 @@ export default async function handler(req, res) {
           }
 
           if (type === 'reviews' || type === 'overall') {
-              let query = supabase
+              let query = getSupabase()
                   .from('venue_reviews')
                   .select('user_id, created_at');
               if (dateFilter) query = query.gte('created_at', dateFilter);
@@ -125,7 +135,7 @@ export default async function handler(req, res) {
           }
 
           if (type === 'activity' || type === 'overall') {
-              let query = supabase
+              let query = getSupabase()
                   .from('social_posts')
                   .select('author_id, created_at');
               if (dateFilter) query = query.gte('created_at', dateFilter);

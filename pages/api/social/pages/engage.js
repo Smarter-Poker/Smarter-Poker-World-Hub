@@ -11,6 +11,17 @@ import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -21,13 +32,12 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: 'Server configuration error' });
       }
 
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
       if (req.method === 'POST') {
           // Require JWT auth
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           const { action, post_id, content, parent_id } = req.body;
@@ -47,10 +57,10 @@ export default async function handler(req, res) {
                   .maybeSingle();
 
               if (existing) {
-                  await supabase.from('social_page_post_likes').delete().eq('id', existing.id);
+                  await getSupabase().from('social_page_post_likes').delete().eq('id', existing.id);
                   return res.status(200).json({ success: true, liked: false });
               } else {
-                  await supabase.from('social_page_post_likes').insert({ post_id, user_id });
+                  await getSupabase().from('social_page_post_likes').insert({ post_id, user_id });
                   return res.status(201).json({ success: true, liked: true });
               }
           }

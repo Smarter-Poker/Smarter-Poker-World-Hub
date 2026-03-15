@@ -11,8 +11,19 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+
+
+
 
 function formatTournamentPost(tournament) {
     const date = new Date(tournament.scheduled_start);
@@ -89,7 +100,7 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: 'Server configuration error' });
       }
 
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      
       const { venue_id, tournament } = req.body;
 
       if (!venue_id || !tournament) {

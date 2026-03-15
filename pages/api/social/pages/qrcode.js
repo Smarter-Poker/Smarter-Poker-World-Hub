@@ -11,8 +11,15 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // Simple QR code generation using a free API
 function getQRCodeUrl(data, size = 300) {
@@ -29,11 +36,7 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      if (!supabaseUrl || !supabaseServiceKey) {
-          return res.status(500).json({ success: false, error: 'Server configuration error' });
-      }
-
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const supabase = getSupabase();
       const { page_id, ref } = req.query;
 
       // === Lookup page by referral code ===

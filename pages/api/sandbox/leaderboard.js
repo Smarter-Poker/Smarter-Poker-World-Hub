@@ -27,7 +27,7 @@ export default async function handler(req, res) {
           if (authHeader?.startsWith('Bearer ')) {
               const token = authHeader.replace('Bearer ', '');
               try {
-                  const { data: { user } } = await supabase.auth.getUser(token);
+                  const { data: { user } } = await getSupabase().auth.getUser(token);
                   if (user) userId = user.id;
               } catch (e) { /* non-fatal */ }
           }
