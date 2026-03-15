@@ -160,6 +160,16 @@ export const CreatePostBox = ({ user, onPost }) => (
 // 📰 POST CARD
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Reaction emoji map
+const REACTIONS = [
+    { type: 'like', emoji: '👍', label: 'Like', color: '#1877F2' },
+    { type: 'love', emoji: '❤️', label: 'Love', color: '#E0245E' },
+    { type: 'haha', emoji: '😂', label: 'Haha', color: '#F7B928' },
+    { type: 'wow', emoji: '😮', label: 'Wow', color: '#F7B928' },
+    { type: 'sad', emoji: '😢', label: 'Sad', color: '#F7B928' },
+    { type: 'fire', emoji: '🔥', label: 'Fire', color: '#FF6B35' },
+];
+
 export const SPPostCard = ({
     post,
     user,
@@ -172,6 +182,8 @@ export const SPPostCard = ({
     currentUserId
 }) => {
     const [liked, setLiked] = useState(post.userLiked || post.isLiked || false);
+    const [reactionType, setReactionType] = useState(post.reactionType || 'like');
+    const [showReactionPicker, setShowReactionPicker] = useState(false);
     const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
     const [comments, setComments] = useState(post.comments || []);
@@ -179,7 +191,10 @@ export const SPPostCard = ({
     const [submittingComment, setSubmittingComment] = useState(false);
     const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [shareToast, setShareToast] = useState(false);
+    const [likePending, setLikePending] = useState(false);
     const moreMenuRef = useRef(null);
+    const longPressTimerRef = useRef(null);
+    const reactionPickerRef = useRef(null);
 
     // Click-outside dismiss for more menu
     useEffect(() => {
@@ -192,6 +207,23 @@ export const SPPostCard = ({
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showMoreMenu]);
+
+    // Click-outside dismiss for reaction picker
+    useEffect(() => {
+        if (!showReactionPicker) return;
+        const handleClickOutside = (e) => {
+            if (reactionPickerRef.current && !reactionPickerRef.current.contains(e.target)) {
+                setShowReactionPicker(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showReactionPicker]);
+
+    // Cleanup long-press timer on unmount
+    useEffect(() => {
+        return () => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); };
+    }, []);
 
     // Support both old and new data structures
     const author = user || post.author || post.user;
@@ -220,10 +252,61 @@ export const SPPostCard = ({
         return postTime.toLocaleDateString();
     };
 
-    const handleLike = () => {
-        setLiked(!liked);
-        onLike?.(post.id, !liked);
+    // Like with proper async error handling + rollback
+    const handleLike = async (selectedType = 'like') => {
+        if (likePending) return; // prevent rapid fire
+        setLikePending(true);
+        setShowReactionPicker(false);
+
+        const wasLiked = liked;
+        const prevType = reactionType;
+
+        // Optimistic UI
+        setLiked(!wasLiked);
+        if (!wasLiked) setReactionType(selectedType);
+
+        try {
+            await onLike?.(post.id, selectedType);
+        } catch {
+            // Rollback on failure
+            setLiked(wasLiked);
+            setReactionType(prevType);
+        }
+        setLikePending(false);
     };
+
+    // Long-press handlers for reaction picker
+    const handleLikeMouseDown = () => {
+        longPressTimerRef.current = setTimeout(() => {
+            setShowReactionPicker(true);
+            longPressTimerRef.current = null;
+        }, 500);
+    };
+
+    const handleLikeMouseUp = () => {
+        if (longPressTimerRef.current) {
+            // Short press — toggle like
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+            handleLike('like');
+        }
+    };
+
+    const handleLikeMouseLeave = () => {
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+    };
+
+    // Select a specific reaction from picker
+    const handleSelectReaction = (type) => {
+        handleLike(type);
+    };
+
+    // Get current reaction emoji for display
+    const currentReaction = REACTIONS.find(r => r.type === reactionType) || REACTIONS[0];
+    const likeButtonColor = liked ? (currentReaction.color || SP_COLORS.blue) : SP_COLORS.textSecondary;
 
     // Toggle comments and load existing ones on first open
     const handleToggleComments = async () => {
@@ -420,13 +503,35 @@ export const SPPostCard = ({
 
             {/* Action Buttons */}
             <div className="sp-post-actions">
-                <button
-                    className={`sp-action-btn ${liked ? 'liked' : ''}`}
-                    onClick={handleLike}
-                >
-                    <span className="icon">{liked ? '👍' : '👍'}</span>
-                    <span>Like</span>
-                </button>
+                <div style={{ position: 'relative', flex: 1 }} ref={reactionPickerRef}>
+                    {/* Reaction Picker Flyout */}
+                    {showReactionPicker && (
+                        <div className="sp-reaction-picker">
+                            {REACTIONS.map(r => (
+                                <button
+                                    key={r.type}
+                                    className="sp-reaction-option"
+                                    onClick={() => handleSelectReaction(r.type)}
+                                    title={r.label}
+                                >
+                                    <span className="sp-reaction-emoji-btn">{r.emoji}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    <button
+                        className={`sp-action-btn ${liked ? 'liked' : ''}`}
+                        style={{ width: '100%', color: liked ? likeButtonColor : undefined }}
+                        onMouseDown={handleLikeMouseDown}
+                        onMouseUp={handleLikeMouseUp}
+                        onMouseLeave={handleLikeMouseLeave}
+                        onTouchStart={handleLikeMouseDown}
+                        onTouchEnd={(e) => { e.preventDefault(); handleLikeMouseUp(); }}
+                    >
+                        <span className="icon">{liked ? currentReaction.emoji : '👍'}</span>
+                        <span>{liked ? currentReaction.label : 'Like'}</span>
+                    </button>
+                </div>
                 <button
                     className="sp-action-btn"
                     onClick={handleToggleComments}
@@ -820,6 +925,51 @@ export const SPPostCard = ({
 
                 .sp-action-btn .icon {
                     font-size: 18px;
+                }
+
+                /* Reaction Picker */
+                .sp-reaction-picker {
+                    position: absolute;
+                    bottom: 100%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    display: flex;
+                    gap: 2px;
+                    padding: 6px 8px;
+                    background: ${SP_COLORS.bgWhite};
+                    border-radius: 28px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                    z-index: 200;
+                    animation: reactionFadeIn 0.2s ease;
+                    margin-bottom: 6px;
+                }
+
+                @keyframes reactionFadeIn {
+                    from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.9); }
+                    to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+                }
+
+                .sp-reaction-option {
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: none;
+                    border: none;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    transition: transform 0.15s ease;
+                }
+
+                .sp-reaction-option:hover {
+                    transform: scale(1.35);
+                    background: ${SP_COLORS.bgHover};
+                }
+
+                .sp-reaction-emoji-btn {
+                    font-size: 24px;
+                    line-height: 1;
                 }
 
                 /* Comments */
