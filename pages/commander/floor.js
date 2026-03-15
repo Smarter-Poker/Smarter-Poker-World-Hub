@@ -17,7 +17,6 @@ import { RefreshCw, Users, Loader2, Lock, Unlock, Save, AlertTriangle, Activity,
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const STATUS_CONFIG = {
   in_use: { color: '#31A24C', glow: '0 0 12px rgba(49,162,76,0.5)', label: 'Active' },

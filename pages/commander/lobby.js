@@ -19,7 +19,6 @@ import useWakeLock from '../../src/hooks/useWakeLock';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { getVenueId } from '../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 export default function LobbyDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-lobby'); }, []);

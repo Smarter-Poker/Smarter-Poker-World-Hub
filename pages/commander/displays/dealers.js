@@ -13,7 +13,6 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import { busEmit } from '../../../src/engine/EventBus';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getStaffSession, getStaffData } from '../../../src/lib/commander/clientAuth';
-import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
 export default function DealerRotationDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-displays-dealers'); }, []);
