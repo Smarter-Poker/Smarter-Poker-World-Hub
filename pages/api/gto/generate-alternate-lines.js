@@ -19,7 +19,6 @@ function getSupabase() {
     return _supabase;
 }
 
-
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
