@@ -4569,52 +4569,65 @@ function SocialMediaPage() {
                 }
 
                 if (authUser) {
-                    // Use native fetch to avoid AbortError (same issue as stories/profiles)
-                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Fetching profile for user:', authUser.id);
+                    // Profile fetch is wrapped in its own try/catch so auth NEVER fails
+                    // even if the profile REST query returns 400 or network errors.
+                    // The user object will always be set if authUser exists.
+                    let p = null;
+                    try {
+                        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Fetching profile for user:', authUser.id);
 
-                    let profileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name,skill_tier,avatar_url,hendon_total_cashes,hendon_total_earnings,role`, {
-                        headers: {
-                            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
-                        }
-                    });
-
-                    if (!profileRes.ok) throw new Error(`Request failed (${profileRes.status})`);
-                    let profiles = await profileRes.json();
-                    let p = profiles?.[0] || null;
-                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Profile loaded:', p ? `${p.username} (avatar: ${p.avatar_url ? 'YES' : 'NO'})` : 'NOT FOUND');
-
-                    // If no profile found by id, check if user owns another profile via owner_id
-                    if (!p) {
-                        const ownedProfileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?owner_id=eq.${authUser.id}&select=id,username,full_name,display_name,skill_tier,avatar_url,hendon_total_cashes,hendon_total_earnings,role`, {
+                        let profileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name,skill_tier,avatar_url,role`, {
                             headers: {
                                 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
                                 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
                             }
                         });
-                        if (!ownedProfileRes.ok) throw new Error(`Request failed (${ownedProfileRes.status})`);
-                        const ownedProfiles = await ownedProfileRes.json();
-                        if (ownedProfiles?.[0]) p = ownedProfiles[0];
+
+                        if (profileRes.ok) {
+                            let profiles = await profileRes.json();
+                            p = profiles?.[0] || null;
+                        } else {
+                            console.warn('[Social] Profile fetch returned', profileRes.status, '— falling back to auth data');
+                        }
+
+                        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Profile loaded:', p ? `${p.username} (avatar: ${p.avatar_url ? 'YES' : 'NO'})` : 'NOT FOUND');
+
+                        // If no profile found by id, check if user owns another profile via owner_id
+                        if (!p) {
+                            try {
+                                const ownedProfileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?owner_id=eq.${authUser.id}&select=id,username,full_name,display_name,skill_tier,avatar_url,role`, {
+                                    headers: {
+                                        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+                                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+                                    }
+                                });
+                                if (ownedProfileRes.ok) {
+                                    const ownedProfiles = await ownedProfileRes.json();
+                                    if (ownedProfiles?.[0]) p = ownedProfiles[0];
+                                }
+                            } catch (ownedErr) {
+                                console.warn('[Social] Owner profile fetch failed:', ownedErr.message);
+                            }
+                        }
+                    } catch (profileErr) {
+                        console.warn('[Social] Profile fetch failed:', profileErr.message, '— using auth session data');
                     }
-                    //  Check for God Mode
+
+                    // ALWAYS set user if authUser exists — profile data is enrichment, not a gate
                     if (p?.role === 'god') {
                         setIsGodMode(true);
                     }
-                    // Use display_name if set, else full_name, else username fallback
                     const displayName = p?.display_name || p?.full_name || p?.username || authUser.email?.split('@')[0] || 'Player';
                     setUser({
-                        id: p?.id || authUser.id, // Use profile ID if owned, else auth ID
+                        id: p?.id || authUser.id,
                         name: displayName,
                         username: p?.username || null,
                         avatar: p?.avatar_url || null,
-                        tier: p?.skill_tier,
+                        tier: p?.skill_tier || null,
                         role: p?.role || 'user',
-                        hendon: (p?.hendon_total_cashes || p?.hendon_total_earnings) ? {
-                            cashes: p.hendon_total_cashes,
-                            earnings: p.hendon_total_earnings
-                        } : null
+                        hendon: null
                     });
-                    await loadContacts(authUser.id);
+                    try { await loadContacts(authUser.id); } catch (_) { /* non-critical */ }
 
                     // 🕐 Update last_active timestamp (powers "last active" status on friends page)
                     supabase.from('profiles')

@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
       try {
           // Fetch profile data for header
-          const { data: profile, error } = await supabase
+          const { data: profile, error } = await getSupabase()
               .from('profiles')
               .select('username, full_name, avatar_url, diamonds, is_vip')
               .eq('id', userId)
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
           // Level system removed - no longer using XP
 
           // Count unread notifications
-          const { count: notificationCount } = await supabase
+          const { count: notificationCount } = await getSupabase()
               .from('notifications')
               .select('*', { count: 'exact', head: true })
               .eq('user_id', userId)
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
 
           // Count unread messages - using social messaging schema
           // Get user's conversations with their last_read_at timestamp
-          const { data: conversations } = await supabase
+          const { data: conversations } = await getSupabase()
               .from('social_conversation_participants')
               .select('conversation_id, last_read_at')
               .eq('user_id', userId);
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
                   return ts < earliest ? ts : earliest;
               }, conversations[0].last_read_at || '1970-01-01');
 
-              const { data: allMessages } = await supabase
+              const { data: allMessages } = await getSupabase()
                   .from('social_messages')
                   .select('conversation_id, created_at')
                   .in('conversation_id', conversationIds)

@@ -1182,7 +1182,7 @@ export default function UserProfilePage() {
                     height: 220,
                     background: profile.cover_photo_url
                         ? `url(${profile.cover_photo_url}) center/cover`
-                        : '#E5E7EB',
+                        : 'linear-gradient(135deg, #0a1628 0%, #1a2a4a 30%, #0d2137 60%, #162d50 100%)',
                     position: 'relative',
                     borderRadius: '0 0 12px 12px'
                 }}>
@@ -1262,6 +1262,10 @@ export default function UserProfilePage() {
                                     flex: 1, padding: '10px 16px', background: '#e4e6eb', color: C.text,
                                     borderRadius: 8, textDecoration: 'none', fontWeight: 600, textAlign: 'center', fontSize: 14
                                 }}>✏️ Edit Profile</Link>
+                                <Link href="/hub/social-media" style={{
+                                    flex: 1, padding: '10px 16px', background: C.blue, color: 'white',
+                                    borderRadius: 8, textDecoration: 'none', fontWeight: 600, textAlign: 'center', fontSize: 14
+                                }}>Social Feed</Link>
                             </>
                         ) : (
                             <>
