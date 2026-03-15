@@ -20,6 +20,8 @@ import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
+import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
@@ -180,21 +182,8 @@ export default function MixedModePage() {
 
     async function loadMixedQuestions(uid) {
         try {
-            // Get user's question history (60-day exclusion)
-            let excludeIds = [];
-            const sixtyDaysAgo = new Date();
-            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-            const { data: history } = await supabase
-                .from('trivia_user_question_history')
-                .select('question_id')
-                .eq('user_id', uid)
-                .gte('seen_at', sixtyDaysAgo.toISOString())
-                .limit(200) // seen questions
-
-            if (history) {
-                excludeIds = history.map(h => h.question_id);
-            }
+            // 60-day non-repeat: Get user's recently seen question IDs using shared utility
+            const excludeIds = await getRecentlySeenIds(supabase, uid, 200);
 
             // Load questions from all categories
             const allQuestions = [];
@@ -209,20 +198,15 @@ export default function MixedModePage() {
                 const { data } = await query;
 
                 if (data) {
-                    // Filter out seen questions
-                    let available = excludeIds.length > 0
-                        ? data.filter(q => !excludeIds.includes(q.id))
-                        : data;
-
-                    // Shuffle and take 5 from each category
-                    const shuffled = available.sort(() => Math.random() - 0.5).slice(0, 5);
+                    // Filter out recently seen questions and shuffle using shared utility (unbiased)
+                    const available = filterAndShuffle(data, excludeIds, 5);
 
                     // Tag with normalized category for tracking
-                    shuffled.forEach(q => {
+                    available.forEach(q => {
                         q.displayCategory = cat.id;
                     });
 
-                    allQuestions.push(...shuffled);
+                    allQuestions.push(...available);
                 }
             }
 
@@ -361,11 +345,16 @@ export default function MixedModePage() {
         }, 1200);
     }
 
+    const [saveErrorPayload, setSaveErrorPayload] = useState(null);
+
     async function finishGame() {
         setIsTimerRunning(false);
-        setGameState('results');
+        setGameState('saving');
 
-        if (!userId) return;
+        if (!userId) {
+            setGameState('results');
+            return;
+        }
 
         // Recompute from answersRef (always current) to avoid stale closure from setTimeout
         const actualCorrect = answersRef.current.filter(Boolean).length;
@@ -473,10 +462,23 @@ export default function MixedModePage() {
                 play_date: new Date().toISOString().split('T')[0]
             });
 
+            // Success! Game saved.
+            setGameState('results');
+            setSaveErrorPayload(null);
         } catch (e) {
-            console.error('Failed to save results:', e);
+            console.error('[Mixed] Failed to save results:', e);
+            // Save failed (network drop) -> Provide Retry UI
+            setSaveErrorPayload({ actualCorrect, actualDiamonds });
+            setGameState('saving_error');
         }
     }
+
+    // Retry function for network drops
+    const handleRetrySave = () => {
+        setGameState('saving');
+        setSaveErrorPayload(null);
+        finishGame(); // It will recompute from answersRef, which is safe
+    };
 
     const currentQuestion = questions[currentQuestionIndex];
     const currentCategory = CATEGORIES.find(c => c.id === currentQuestion?.displayCategory) || CATEGORIES[0];
@@ -515,10 +517,44 @@ export default function MixedModePage() {
                 )}
 
                 <div className="content">
-                    {gameState === 'loading' && (
-                        <div className="loading">
-                            <div className="spinner" />
-                            <p>Loading Questions...</p>
+                    {/* Combine loading and saving states to use the beautiful new Skeleton */}
+                    {(gameState === 'loading' || gameState === 'saving') && (
+                        <TriviaSkeleton />
+                    )}
+
+                    {/* Saving Error State (Retry UI) */}
+                    {gameState === 'saving_error' && (
+                        <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh'
+                        }}>
+                            <div style={{
+                                background: 'rgba(30, 41, 59, 0.9)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                borderRadius: '16px',
+                                padding: '40px',
+                                textAlign: 'center',
+                                maxWidth: '480px'
+                            }}>
+                                <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
+                                <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
+                                    We couldn't save your score of {saveErrorPayload?.actualCorrect} correct answers because you lost connection. Please check your internet and try again so you don't lose {saveErrorPayload?.actualDiamonds}💎!
+                                </p>
+                                <button
+                                    onClick={handleRetrySave}
+                                    style={{
+                                        padding: '16px 32px',
+                                        background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        color: 'white',
+                                        fontSize: '16px',
+                                        fontWeight: 'bold',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Retry Save
+                                </button>
+                            </div>
                         </div>
                     )}
 

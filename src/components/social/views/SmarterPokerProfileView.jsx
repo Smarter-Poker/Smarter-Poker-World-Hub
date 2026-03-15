@@ -646,33 +646,24 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
         return () => { if (unsub) unsub(); };
     }, []);
 
-    // Listen for reaction events to update like counts + optimistic state (Cross-Component Sync)
+    // Listen for reaction events from OTHER components/users (Cross-Component Sync)
     useEffect(() => {
         const unsub = eventBus.on(EventType.SOCIAL_POST_LIKED, (event) => {
-            const { postId, userId } = event?.payload || {};
-            const { added, reactionType } = event?.meta || {};
+            const { postId, userId, added } = event?.payload || {};
+            if (!postId || userId === authUser?.id) return; // Skip self — already handled optimistically
             
-            if (postId) {
-                setUserPosts(prev => prev.map(p => {
-                    if (p.id === postId) {
-                        const isCurrentUser = userId === authUser?.id;
-                        const isLiked = isCurrentUser ? added : p.isLiked;
-                        const newReactionType = isCurrentUser && reactionType ? reactionType : p.reactionType;
-                        
-                        let newLikeCount = p.engagement?.likeCount || 0;
-                        if (added) newLikeCount += 1;
-                        else if (!added) newLikeCount = Math.max(0, newLikeCount - 1);
-
-                        return {
-                            ...p,
-                            isLiked,
-                            reactionType: newReactionType,
-                            engagement: { ...p.engagement, likeCount: newLikeCount }
-                        };
-                    }
-                    return p;
-                }));
-            }
+            setUserPosts(prev => prev.map(p => {
+                if (p.id === postId) {
+                    let newLikeCount = p.engagement?.likeCount || 0;
+                    if (added) newLikeCount += 1;
+                    else newLikeCount = Math.max(0, newLikeCount - 1);
+                    return {
+                        ...p,
+                        engagement: { ...p.engagement, likeCount: newLikeCount }
+                    };
+                }
+                return p;
+            }));
         });
         return () => { if (unsub) unsub(); };
     }, [authUser?.id]);

@@ -20,6 +20,7 @@ import {
     submitMatchScore,
     processMatchReward
 } from '../../../src/services/pvpMatchmaking';
+import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 
@@ -372,23 +373,8 @@ export default function PvPPage() {
             };
         }
 
-        // Load questions for horse match with 60-day exclusion
-        let excludeIds = [];
-        if (userId) {
-            const sixtyDaysAgo = new Date();
-            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-            const { data: recentHistory } = await supabase
-                .from('trivia_user_question_history')
-                .select('question_id')
-                .eq('user_id', userId)
-                .gte('seen_at', sixtyDaysAgo.toISOString())
-                .limit(200); // pvp seen questions
-
-            if (recentHistory) {
-                excludeIds = recentHistory.map(h => h.question_id);
-            }
-        }
+        // Load questions for horse match with 60-day exclusion using shared utility
+        const excludeIds = await getRecentlySeenIds(supabase, userId, 200, 'pvp'); // specify 'pvp' mode to only exclude pvp-seen questions, maintaining isolation
 
         const { data: questions } = await supabase
             .from('trivia_questions')
@@ -396,12 +382,8 @@ export default function PvPPage() {
             .limit(100);
 
         let matchQuestions = [];
-        if (questions && questions.length >= 20) {
-            let available = excludeIds.length > 0
-                ? questions.filter(q => !excludeIds.includes(q.id))
-                : questions;
-            if (available.length < 20) available = questions;
-            matchQuestions = available.sort(() => Math.random() - 0.5).slice(0, 20);
+        if (questions && questions.length > 0) {
+            matchQuestions = filterAndShuffle(questions, excludeIds, 20); // Get 20 random questions
         }
 
         // Shuffle options FIRST so correct_index is updated before horse answer calc

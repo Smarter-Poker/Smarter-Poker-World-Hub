@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import MetalFrame from './MetalFrame';
+import MetalFrame from '../ui/MetalFrame';
 
 export default function TriviaSkeleton() {
     return (

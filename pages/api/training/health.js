@@ -68,7 +68,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         console.error('[Health] Error:', err);
-        return res.status(500).json({
+        if (!res.headersSent) return res.status(500).json({
             status: 'error',
             latencyMs: 0,
             timestamp: new Date().toISOString(),

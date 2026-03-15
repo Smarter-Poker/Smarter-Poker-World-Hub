@@ -387,33 +387,27 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         return () => { if (unsub) unsub(); };
     }, []);
 
-    // Listen for reaction events to update like counts + optimistic state (Cross-Component Sync)
+    // Listen for reaction events from OTHER components/users (Cross-Component Sync)
+    // NOTE: Skip events from the current user — handleLike already did the optimistic update.
+    // Processing it again would double-count the like.
     useEffect(() => {
         const unsub = eventBus.on(EventType.SOCIAL_POST_LIKED, (event) => {
-            const { postId, userId } = event?.payload || {};
-            const { added, reactionType } = event?.meta || {};
+            const { postId, userId, added, reactionType } = event?.payload || {};
+            if (!postId || userId === currentUser?.id) return; // Skip self — already handled optimistically
             
-            if (postId) {
-                setPosts(prev => prev.map(p => {
-                    if (p.id === postId) {
-                        const isCurrentUser = userId === currentUser?.id;
-                        const isLiked = isCurrentUser ? added : p.isLiked;
-                        const newReactionType = isCurrentUser && reactionType ? reactionType : p.reactionType;
-                        
-                        let newLikeCount = p.engagement?.likeCount || 0;
-                        if (added) newLikeCount += 1;
-                        else if (!added) newLikeCount = Math.max(0, newLikeCount - 1);
+            setPosts(prev => prev.map(p => {
+                if (p.id === postId) {
+                    let newLikeCount = p.engagement?.likeCount || 0;
+                    if (added) newLikeCount += 1;
+                    else newLikeCount = Math.max(0, newLikeCount - 1);
 
-                        return {
-                            ...p,
-                            isLiked,
-                            reactionType: newReactionType,
-                            engagement: { ...p.engagement, likeCount: newLikeCount }
-                        };
-                    }
-                    return p;
-                }));
-            }
+                    return {
+                        ...p,
+                        engagement: { ...p.engagement, likeCount: newLikeCount }
+                    };
+                }
+                return p;
+            }));
         });
         return () => { if (unsub) unsub(); };
     }, [currentUser?.id]);

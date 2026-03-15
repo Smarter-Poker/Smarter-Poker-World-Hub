@@ -21,6 +21,8 @@ import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
+import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 /** Shuffle answer options so correct answer isn't always A */
@@ -201,23 +203,8 @@ export default function EndlessModePage() {
 
     async function loadMoreQuestions() {
         try {
-            // 60-day non-repeat: Get user's recently seen question IDs
-            let excludeIds = [];
-            if (userId) {
-                const sixtyDaysAgo = new Date();
-                sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-                const { data: recentHistory } = await supabase
-                    .from('trivia_user_question_history')
-                    .select('question_id')
-                    .eq('user_id', userId)
-                    .gte('seen_at', sixtyDaysAgo.toISOString())
-                    .limit(200) // seen questions
-
-                if (recentHistory) {
-                    excludeIds = recentHistory.map(h => h.question_id);
-                }
-            }
+            // 60-day non-repeat: Get user's recently seen question IDs using shared utility
+            const excludeIds = await getRecentlySeenIds(supabase, userId, 200);
 
             // Get ALL questions from ALL categories
             const { data, error } = await supabase
@@ -227,17 +214,11 @@ export default function EndlessModePage() {
                 .limit(200);
 
             if (!error && data) {
-                // Filter out recently seen questions
-                let available = excludeIds.length > 0
-                    ? data.filter(q => !excludeIds.includes(q.id))
-                    : data;
-
-                // Fall back to all if not enough
-                if (available.length < 20) available = data;
-
-                // Shuffle the questions
-                const shuffled = available.sort(() => Math.random() - 0.5).slice(0, 50);
-                setQuestions(prev => [...prev, ...shuffleOptions(shuffled)]);
+                // Filter out recently seen questions and shuffle using shared utility (unbiased)
+                const available = filterAndShuffle(data, excludeIds, 20);
+                const toAdd = available.slice(0, 50);
+                
+                setQuestions(prev => [...prev, ...shuffleOptions(toAdd)]);
             }
         } catch (e) {
             console.error('Failed to load questions:', e);
@@ -567,11 +548,13 @@ export default function EndlessModePage() {
             busEmit.decisionIncorrect(streak);
             busEmit.screenShake('medium');
             answerTimeoutRef.current = setTimeout(() => {
-                setGameState('gameover');
+                setGameState('saving'); // Show skeleton while saving
                 saveGameResult();
             }, 1500);
         }
     }
+
+    const [saveErrorPayload, setSaveErrorPayload] = useState(null);
 
     async function saveGameResult() {
         if (!userId) return;
@@ -641,10 +624,23 @@ export default function EndlessModePage() {
                     console.error('[Endless] Error recording history:', e);
                 }
             }
+            // Success! Game saved.
+            setGameState('gameover');
+            setSaveErrorPayload(null);
         } catch (e) {
-            console.error('Failed to save:', e);
+            console.error('[Endless] Failed to save game result:', e);
+            // Save failed (network drop) -> Provide Retry UI
+            setSaveErrorPayload({ finalDiamonds, finalStreak, finalIndex });
+            setGameState('saving_error');
         }
     }
+
+    // Retry function for network drops
+    const handleRetrySave = () => {
+        setGameState('saving');
+        setSaveErrorPayload(null);
+        saveGameResult();
+    };
 
     function playAgain() {
         setQuestions(prev => shuffleOptions(prev.slice(currentIndex).sort(() => Math.random() - 0.5)));
@@ -743,6 +739,47 @@ export default function EndlessModePage() {
                                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
                             >
                                 <Image src="/images/trivia/lobby-endless.jpg" alt="Endless Mode - Start Challenge" width={686} height={1024} className="lobby-image" style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 'calc(100dvh - 60px)', objectFit: 'contain' }} />
+                            </div>
+                        )}
+
+                        {/* Saving State (TriviaSkeleton) */}
+                        {gameState === 'saving' && (
+                            <TriviaSkeleton />
+                        )}
+
+                        {/* Saving Error State (Retry UI) */}
+                        {gameState === 'saving_error' && (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh'
+                            }}>
+                                <div style={{
+                                    background: 'rgba(30, 41, 59, 0.9)',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    borderRadius: '16px',
+                                    padding: '40px',
+                                    textAlign: 'center',
+                                    maxWidth: '480px'
+                                }}>
+                                    <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
+                                    <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
+                                        We couldn't save your score of {saveErrorPayload?.finalStreak} and {saveErrorPayload?.finalDiamonds}💎 because you lost connection. Please check your internet and try again so you don't lose your rewards!
+                                    </p>
+                                    <button
+                                        onClick={handleRetrySave}
+                                        style={{
+                                            padding: '16px 32px',
+                                            background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            color: 'white',
+                                            fontSize: '16px',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Retry Save
+                                    </button>
+                                </div>
                             </div>
                         )}
 

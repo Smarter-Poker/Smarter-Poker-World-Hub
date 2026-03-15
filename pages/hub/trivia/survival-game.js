@@ -25,6 +25,8 @@ import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
+import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 /** Shuffle answer options so correct answer isn't always A */
@@ -304,23 +306,8 @@ export default function SurvivalGamePage() {
         const config = LEVEL_CONFIG[level - 1];
 
         try {
-            // 60-day non-repeat: Get user's recently seen question IDs
-            let excludeIds = [];
-            if (userId) {
-                const sixtyDaysAgo = new Date();
-                sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-                const { data: history } = await supabase
-                    .from('trivia_user_question_history')
-                    .select('question_id')
-                    .eq('user_id', userId)
-                    .gte('seen_at', sixtyDaysAgo.toISOString())
-                    .limit(200) // survival seen
-
-                if (history) {
-                    excludeIds = history.map(h => h.question_id);
-                }
-            }
+            // 60-day non-repeat: Get user's recently seen question IDs using shared utility
+            const excludeIds = await getRecentlySeenIds(supabase, userId, 200);
 
             // Get questions with appropriate difficulty based on level
             let query = supabase
@@ -345,20 +332,12 @@ export default function SurvivalGamePage() {
             const { data, error } = await query.limit(200);
 
             if (!error && data) {
-                // Filter out recently seen questions
-                let available = excludeIds.length > 0
-                    ? data.filter(q => !excludeIds.includes(q.id))
-                    : data;
-
-                // If not enough unseen questions, fall back to all questions
-                if (available.length < QUESTIONS_PER_LEVEL) {
-                    available = data;
-                }
-
+                // Filter out recently seen questions and shuffle using shared utility (unbiased)
+                const available = filterAndShuffle(data, excludeIds, QUESTIONS_PER_LEVEL);
+                
                 if (available.length >= QUESTIONS_PER_LEVEL) {
-                    // Shuffle and take 20
-                    const shuffled = available.sort(() => Math.random() - 0.5).slice(0, QUESTIONS_PER_LEVEL);
-                    setQuestions(shuffleOptions(shuffled));
+                    // Take exactly what we need
+                    setQuestions(shuffleOptions(available.slice(0, QUESTIONS_PER_LEVEL)));
                 } else {
                     // Ultimate fallback: get any questions
                     const { data: fallbackData } = await supabase
@@ -367,7 +346,8 @@ export default function SurvivalGamePage() {
                         .limit(QUESTIONS_PER_LEVEL);
 
                     if (fallbackData) {
-                        setQuestions(shuffleOptions(fallbackData.sort(() => Math.random() - 0.5)));
+                        const fallbackAvailable = filterAndShuffle(fallbackData, [], 0);
+                        setQuestions(shuffleOptions(fallbackAvailable.slice(0, QUESTIONS_PER_LEVEL)));
                     }
                 }
             }
@@ -653,6 +633,8 @@ export default function SurvivalGamePage() {
         }, 1200);
     }
 
+    const [saveErrorPayload, setSaveErrorPayload] = useState(null);
+
     function evaluateLevelResult(finalCorrect) {
         const config = LEVEL_CONFIG[currentLevel - 1];
         const passed = finalCorrect >= config.minCorrect;
@@ -662,20 +644,19 @@ export default function SurvivalGamePage() {
             const levelDiamonds = currentLevel * 2; // 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 per level
             setTotalDiamondsEarned(prev => prev + levelDiamonds);
 
+            setGameState('saving_progress'); // Show skeleton
             if (currentLevel >= 10) {
                 // Victory!
-                setGameState('victory');
-                saveProgress(10, levelDiamonds);
+                saveProgress(10, levelDiamonds, 'victory');
             } else {
-                setGameState('levelComplete');
-                saveProgress(currentLevel, levelDiamonds);
+                saveProgress(currentLevel, levelDiamonds, 'levelComplete');
             }
         } else {
             setGameState('gameOver');
         }
     }
 
-    async function saveProgress(level, diamonds) {
+    async function saveProgress(level, diamonds, targetGameState) {
         if (!userId) return;
 
         try {
@@ -725,10 +706,24 @@ export default function SurvivalGamePage() {
                         ignoreDuplicates: false
                     });
             }
+            
+            // Success! Game saved.
+            setGameState(targetGameState);
+            setSaveErrorPayload(null);
         } catch (e) {
-            console.error('Failed to save progress:', e);
+            console.error('[Survival] Failed to save progress:', e);
+            // Save failed (network drop) -> Provide Retry UI
+            setSaveErrorPayload({ level, diamonds, targetGameState });
+            setGameState('saving_error');
         }
     }
+
+    // Retry function for network drops
+    const handleRetrySave = () => {
+        setGameState('saving_progress');
+        setSaveErrorPayload(null);
+        saveProgress(saveErrorPayload.level, saveErrorPayload.diamonds, saveErrorPayload.targetGameState);
+    };
 
     function continueToNextLevel() {
         startLevel(currentLevel + 1);
@@ -910,6 +905,47 @@ export default function SurvivalGamePage() {
                                         ? `CONTINUE FROM LEVEL ${Math.min(userProgress.highestLevel + 1, 10)}`
                                         : 'START LEVEL 1'}
                                 </button>
+                            </div>
+                        )}
+
+                        {/* Saving State (TriviaSkeleton) */}
+                        {gameState === 'saving_progress' && (
+                            <TriviaSkeleton />
+                        )}
+
+                        {/* Saving Error State (Retry UI) */}
+                        {gameState === 'saving_error' && (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh'
+                            }}>
+                                <div style={{
+                                    background: 'rgba(30, 41, 59, 0.9)',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    borderRadius: '16px',
+                                    padding: '40px',
+                                    textAlign: 'center',
+                                    maxWidth: '480px'
+                                }}>
+                                    <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
+                                    <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
+                                        We couldn't save your progress for Level {saveErrorPayload?.level} because you lost connection. Please check your internet and try again so you don't lose {saveErrorPayload?.diamonds}💎!
+                                    </p>
+                                    <button
+                                        onClick={handleRetrySave}
+                                        style={{
+                                            padding: '16px 32px',
+                                            background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            color: 'white',
+                                            fontSize: '16px',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Retry Save
+                                    </button>
+                                </div>
                             </div>
                         )}
 
