@@ -241,8 +241,12 @@ export default function StrategyTrivia({ mode }) {
     const timerRef = useRef(null);
     const startTimeRef = useRef(null);
     const isStartingRef = useRef(false); // Prevent double-click race
+    const answersRef = useRef([]); // Ref mirror — avoids stale closure in skip→finishGame
 
     const currentQuestion = questions[currentQuestionIndex];
+
+    // Keep answersRef in sync with answers state
+    useEffect(() => { answersRef.current = answers; }, [answers]);
 
     // Preloaded questions state (load in background while user views lobby image)
     const [preloadedQuestions, setPreloadedQuestions] = useState(null);
@@ -661,7 +665,7 @@ export default function StrategyTrivia({ mode }) {
                     const historyRecords = questions.map((q, idx) => ({
                         user_id: userId,
                         question_id: q.id,
-                        was_correct: answers[idx] === q.correct_index,
+                        was_correct: answersRef.current[idx] === q.correct_index,
                         seen_at: new Date().toISOString(),
                         mode
                     }));

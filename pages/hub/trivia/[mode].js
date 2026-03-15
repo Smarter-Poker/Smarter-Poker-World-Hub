@@ -5,7 +5,7 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
@@ -449,6 +449,9 @@ export default function TriviaModePage() {
         return `${cstDate.getFullYear()}-${String(cstDate.getMonth() + 1).padStart(2, '0')}-${String(cstDate.getDate()).padStart(2, '0')}`;
     }
 
+    const isMountedRef = useRef(true);
+    useEffect(() => () => { isMountedRef.current = false; }, []);
+
     const isStartingRef = useRef(false); // Prevent double-click race
     const startGame = async () => {
         if (isStartingRef.current) return;
@@ -588,7 +591,7 @@ export default function TriviaModePage() {
                         .select('diamonds')
                         .eq('id', userId)
                         .maybeSingle();
-                    if (profile) setUserDiamonds(profile.diamonds || 0);
+                    if (profile && isMountedRef.current) setUserDiamonds(profile.diamonds || 0);
 
                     busEmit.diamondsEarned(totalDiamondsToAward, `Trivia ${mode}`);
                 }
@@ -678,6 +681,7 @@ export default function TriviaModePage() {
             }
         }
 
+        if (!isMountedRef.current) return;
         setResult({
             mode,
             correctCount,
