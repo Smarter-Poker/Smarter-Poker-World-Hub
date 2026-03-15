@@ -22,7 +22,7 @@ const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getVenueId, getStaffSession } from '../../src/lib/commander/clientAuth';
+import { getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const PUSH_THRESHOLD = 30; // minutes before highlighting for rotation

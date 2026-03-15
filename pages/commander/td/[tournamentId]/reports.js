@@ -10,7 +10,6 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../../src/engine/EventBus';
-import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import {
     Trophy, Users, DollarSign, LayoutGrid, Monitor,
     FileText, Download, Loader2, ClipboardList,

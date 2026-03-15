@@ -12,7 +12,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import MultiVenueDashboard from '../../../src/components/commander/admin/MultiVenueDashboard';
 import AuditLogViewer from '../../../src/components/commander/admin/AuditLogViewer';
 import ExportManager from '../../../src/components/commander/admin/ExportManager';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getToken } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
 import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';

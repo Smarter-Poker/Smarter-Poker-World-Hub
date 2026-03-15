@@ -13,7 +13,6 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../../src/engine/EventBus';
-import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import {
   Trophy, Users, DollarSign,
   AlertTriangle, ChevronRight, RefreshCw, Loader2,

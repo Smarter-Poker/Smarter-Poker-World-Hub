@@ -7,6 +7,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { withRetry } from '../../../src/lib/supabaseRetry';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -68,13 +69,16 @@ export default async function handler(req, res) {
           // Update each period
           for (const period of periods) {
               // Check if entry exists
-              const { data: existing } = await supabase
-                  .from('training_leaderboard')
-                  .select('id, sessions_completed, questions_answered, questions_correct, total_xp, best_streak')
-                  .eq('user_id', userId)
-                  .eq('period_type', period.type)
-                  .eq('period_key', period.key)
-                  .maybeSingle();
+              const { data: existing } = await withRetry(
+                  () => supabase
+                      .from('training_leaderboard')
+                      .select('id, sessions_completed, questions_answered, questions_correct, total_xp, best_streak')
+                      .eq('user_id', userId)
+                      .eq('period_type', period.type)
+                      .eq('period_key', period.key)
+                      .maybeSingle(),
+                  { label: `UpdateLB:select:${period.type}` }
+              );
 
               if (existing) {
                   // Update existing entry
@@ -82,33 +86,39 @@ export default async function handler(req, res) {
                   const newCorrect = existing.questions_correct + questionsCorrect;
                   const newAccuracy = newTotal > 0 ? (newCorrect / newTotal * 100).toFixed(2) : 0;
 
-                  await supabase
-                      .from('training_leaderboard')
-                      .update({
-                          sessions_completed: existing.sessions_completed + 1,
-                          questions_answered: newTotal,
-                          questions_correct: newCorrect,
-                          accuracy: newAccuracy,
-                          total_xp: existing.total_xp + xpEarned,
-                          best_streak: Math.max(existing.best_streak, bestStreak),
-                          updated_at: new Date().toISOString()
-                      })
-                      .eq('id', existing.id);
+                  await withRetry(
+                      () => supabase
+                          .from('training_leaderboard')
+                          .update({
+                              sessions_completed: existing.sessions_completed + 1,
+                              questions_answered: newTotal,
+                              questions_correct: newCorrect,
+                              accuracy: newAccuracy,
+                              total_xp: existing.total_xp + xpEarned,
+                              best_streak: Math.max(existing.best_streak, bestStreak),
+                              updated_at: new Date().toISOString()
+                          })
+                          .eq('id', existing.id),
+                      { label: `UpdateLB:update:${period.type}` }
+                  );
               } else {
                   // Create new entry
-                  await supabase
-                      .from('training_leaderboard')
-                      .insert({
-                          user_id: userId,
-                          period_type: period.type,
-                          period_key: period.key,
-                          sessions_completed: 1,
-                          questions_answered: questionsAnswered,
-                          questions_correct: questionsCorrect,
-                          accuracy,
-                          total_xp: xpEarned,
-                          best_streak: bestStreak
-                      });
+                  await withRetry(
+                      () => supabase
+                          .from('training_leaderboard')
+                          .insert({
+                              user_id: userId,
+                              period_type: period.type,
+                              period_key: period.key,
+                              sessions_completed: 1,
+                              questions_answered: questionsAnswered,
+                              questions_correct: questionsCorrect,
+                              accuracy,
+                              total_xp: xpEarned,
+                              best_streak: bestStreak
+                          }),
+                      { label: `UpdateLB:insert:${period.type}` }
+                  );
               }
           }
 

@@ -13,7 +13,6 @@ import { Upload, Check, AlertTriangle, Loader2, ChevronRight } from 'lucide-reac
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
-import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const REQUIRED_FIELDS = ['first_name', 'last_name'];

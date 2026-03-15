@@ -98,13 +98,16 @@ export default async function handler(req, res) {
               heroPosition,
           } = req.query;
 
+          // Cap query to prevent excessively large result sets
+          const MAX_SPOTS = 2000;
+
           // Fetch all spots matching criteria (select only what we need)
           let query = supabase
               .from('solved_spots_gold')
               .select('scenario_hash, strategy_matrix')
               .eq('game_type', gameType)
               .eq('stack_depth', parseInt(stackDepth, 10))
-              .limit(2000);
+              .limit(MAX_SPOTS);
 
           if (heroPosition) {
               const safeHeroPos = sanitizeParam(heroPosition, 10);

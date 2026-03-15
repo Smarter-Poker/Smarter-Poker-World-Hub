@@ -10,7 +10,7 @@ import { Bell, BellOff, CheckCheck, Loader2, RefreshCw, Trash2, Trophy, Users, D
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
+import { getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const TYPE_CONFIG = {

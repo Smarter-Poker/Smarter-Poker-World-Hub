@@ -99,7 +99,7 @@ export default async function handler(req, res) {
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.7,
               max_tokens: 500,
-          });
+          }, { signal: AbortSignal.timeout(15000) });
 
           const content = response.choices[0]?.message?.content || '';
 

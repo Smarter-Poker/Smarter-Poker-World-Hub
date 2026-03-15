@@ -115,7 +115,7 @@ export default async function handler(req, res) {
                               const resp = await grok.chat.completions.create({
                                   model: 'grok-3', messages: [{ role: 'user', content: prompt }],
                                   temperature: 0.9, max_tokens: 600,
-                              });
+                              }, { signal: AbortSignal.timeout(15000) });
                               const content = resp.choices[0]?.message?.content || '';
                               const jsonMatch = content.match(/\{[\s\S]*\}/);
                               if (jsonMatch) {

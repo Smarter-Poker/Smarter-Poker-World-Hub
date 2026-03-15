@@ -114,16 +114,19 @@ export default async function handler(req, res) {
 
               if (!existing) {
                   // Create new streak
-                  await supabase
-                      .from('training_streaks')
-                      .insert({
-                          user_id: userId,
-                          current_streak: 1,
-                          longest_streak: 1,
-                          last_training_date: today,
-                          streak_start_date: today,
-                          milestones_claimed: []
-                      });
+                  await withRetry(
+                      () => supabase
+                          .from('training_streaks')
+                          .insert({
+                              user_id: userId,
+                              current_streak: 1,
+                              longest_streak: 1,
+                              last_training_date: today,
+                              streak_start_date: today,
+                              milestones_claimed: []
+                          }),
+                      { label: 'Streak:insert' }
+                  );
 
                   return res.status(200).json({
                       success: true,
@@ -233,11 +236,14 @@ export default async function handler(req, res) {
               // Also do an optimistic lock on the array length to prevent concurrent claims.
               const expectedLength = (streak.milestones_claimed || []).length;
 
-              const { data: updatedRows, error: updErr } = await supabase
-                  .from('training_streaks')
-                  .update({ milestones_claimed: newClaimed })
-                  .eq('user_id', userId)
-                  .select('id');
+              const { data: updatedRows, error: updErr } = await withRetry(
+                  () => supabase
+                      .from('training_streaks')
+                      .update({ milestones_claimed: newClaimed })
+                      .eq('user_id', userId)
+                      .select('id'),
+                  { label: 'Streak:claimUpdate' }
+              );
 
               if (updErr || !updatedRows?.length) {
                   return res.status(409).json({ success: false, error: 'Claim failed' });

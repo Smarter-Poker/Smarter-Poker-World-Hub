@@ -150,7 +150,7 @@ export default async function handler(req, res) {
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.9, // High temp for maximum variety
               max_tokens: 700,
-          });
+          }, { signal: AbortSignal.timeout(15000) });
 
           const content = response.choices[0]?.message?.content || '';
 

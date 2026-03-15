@@ -124,3 +124,22 @@ export function clampPagination(limit, page) {
     const p = Math.max(1, parseInt(page, 10) || PAGINATION.DEFAULT_PAGE);
     return { limit: l, page: p, offset: (p - 1) * l };
 }
+
+// ── Response timing ─────────────────────────────────────────────────────
+/**
+ * Attach a high-resolution timer to the response.
+ * Call at the very top of a handler — it hooks into `res.end()` to set
+ * the `X-Response-Time` header automatically (no changes to response body).
+ *
+ * @param {object} res - Node.js HTTP response
+ */
+export function withTiming(res) {
+    const start = Date.now();
+    const originalEnd = res.end.bind(res);
+    res.end = function (...args) {
+        if (!res.headersSent) {
+            res.setHeader('X-Response-Time', `${Date.now() - start}ms`);
+        }
+        return originalEnd(...args);
+    };
+}

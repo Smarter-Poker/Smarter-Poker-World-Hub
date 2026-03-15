@@ -5,6 +5,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { withRetry } from '../../../src/lib/supabaseRetry';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -44,27 +45,33 @@ export default async function handler(req, res) {
 
       try {
           // Record the seen question (for no-repeat)
-          await supabase
-              .from('user_seen_questions')
-              .upsert({
-                  user_id: userId,
-                  game_id: gameId,
-                  question_id: questionId,
-                  seen_at: new Date().toISOString(),
-              }, { onConflict: 'user_id,game_id,question_id' });
+          await withRetry(
+              () => supabase
+                  .from('user_seen_questions')
+                  .upsert({
+                      user_id: userId,
+                      game_id: gameId,
+                      question_id: questionId,
+                      seen_at: new Date().toISOString(),
+                  }, { onConflict: 'user_id,game_id,question_id' }),
+              { label: 'RecordQuestion:upsert' }
+          );
 
           // Record the answer for stats
-          await supabase
-              .from('training_answers')
-              .insert({
-                  user_id: userId,
-                  game_id: gameId,
-                  question_id: questionId,
-                  answer_id: answerId,
-                  is_correct: isCorrect,
-                  level: level,
-                  answered_at: new Date().toISOString(),
-              });
+          await withRetry(
+              () => supabase
+                  .from('training_answers')
+                  .insert({
+                      user_id: userId,
+                      game_id: gameId,
+                      question_id: questionId,
+                      answer_id: answerId,
+                      is_correct: isCorrect,
+                      level: level,
+                      answered_at: new Date().toISOString(),
+                  }),
+              { label: 'RecordQuestion:insert' }
+          );
 
           return res.status(200).json({ success: true });
 

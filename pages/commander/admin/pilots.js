@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ChevronLeft, Building2, CheckCircle, XCircle, AlertTriangle, RefreshCw, Plus, MapPin, Calendar, Target, Award } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
-import { getToken, getStaffSession } from '../../../src/lib/commander/clientAuth';
+import { getToken } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
 import { commanderFetch } from '../../../src/lib/commander/commanderFetch';
 
@@ -66,7 +66,6 @@ export default function PilotVenuesPage() {
       setLoading(false);
     }
   }
-
 
   const activePilots = pilots.filter((p) => p.status === 'active');
   const pilotsByRegion = {
