@@ -391,7 +391,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
     // ✋ INTERACTION HANDLERS
     // ─────────────────────────────────────────────────────────────────────────
 
-    const handleLike = async (postId) => {
+    const handleLike = async (postId, reactionType = 'like') => {
         if (!socialService || !currentUser) return;
 
         // Optimistic UI Update
@@ -401,6 +401,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                 return {
                     ...p,
                     isLiked: !isLiked,
+                    reactionType: !isLiked ? reactionType : p.reactionType,
                     engagement: {
                         ...p.engagement,
                         likeCount: isLiked ? (p.engagement?.likeCount || 0) - 1 : (p.engagement?.likeCount || 0) + 1
@@ -411,12 +412,12 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         }));
 
         try {
-            await socialService.toggleReaction(postId, currentUser.id, 'like');
+            await socialService.toggleReaction(postId, currentUser.id, reactionType);
             busEmit.socialPostLiked(postId, currentUser.id);
         } catch (error) {
-            console.error("Reaction failed");
+            console.error('Reaction failed:', error);
+            // Revert optimistic update
             loadFeed();
-            throw error; // Re-throw so SocialCard can roll back its optimistic state
         }
     };
 
@@ -480,7 +481,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                             key={post.id}
                             post={post}
                             user={post.user || post.author} // Handle both data shapes
-                            onLike={() => handleLike(post.id)}
+                            onLike={handleLike}
                             onSubmitComment={handleComment}
                             onLoadComments={handleLoadComments}
                             onDeletePost={handleDeletePost}
