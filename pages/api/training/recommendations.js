@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   try {
       // CDN cache: fresh for 300s, serve stale up to 3600s
       if (req.method === 'GET') {
-          res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
+          res.setHeader('Cache-Control', 'private, max-age=300, stale-while-revalidate=600');
       }
 
       if (!applyRateLimit(req, res, LIMITS.read)) return;

@@ -146,6 +146,7 @@ export default function DiamondArcade() {
     const isStartingRef = useRef(false); // Prevent double-click race on game start
     const isDuelingRef = useRef(false); // Prevent double-click race on duel search
     const duelMatchedRef = useRef(false); // Prevent Realtime+poll dual-fire race
+    const duelChannelRef = useRef(null); // Track Realtime duel subscription for cleanup
     const [menuOpen, setMenuOpen] = useState(false);
     const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
     const [attemptedGameCharge, setAttemptedGameCharge] = useState(10);
@@ -235,6 +236,10 @@ export default function DiamondArcade() {
             clearInterval(interval);
             if (timerRef.current) clearInterval(timerRef.current);
             if (duelPollRef.current) clearInterval(duelPollRef.current);
+            if (duelChannelRef.current) {
+                supabase.removeChannel(duelChannelRef.current);
+                duelChannelRef.current = null;
+            }
             if (typeof window !== 'undefined') {
                 window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
             }
@@ -531,6 +536,7 @@ export default function DiamondArcade() {
                             clearInterval(duelPollRef.current);
                             duelPollRef.current = null;
                             supabase.removeChannel(duelChannel);
+                            duelChannelRef.current = null;
                             setBalance(prev => prev - (costs[duelType] || 25));
                             busEmit.diamondsSpent(costs[duelType] || 25, `Arcade Duel: ${duelType}`);
                             setDuelResult({ matched: true, message: 'Opponent Found! Starting Duel...' });
@@ -542,6 +548,8 @@ export default function DiamondArcade() {
                         }
                     })
                     .subscribe();
+
+                duelChannelRef.current = duelChannel;
 
                 if (duelPollRef.current) clearInterval(duelPollRef.current);
                 duelPollRef.current = setInterval(async () => {
@@ -556,6 +564,7 @@ export default function DiamondArcade() {
                             clearInterval(duelPollRef.current);
                             duelPollRef.current = null;
                             supabase.removeChannel(duelChannel);
+                            duelChannelRef.current = null;
                             setBalance(prev => prev - (costs[duelType] || 25));
                             busEmit.diamondsSpent(costs[duelType] || 25, `Arcade Duel: ${duelType}`);
                             setDuelResult({ matched: true, message: 'Opponent Found! Starting Duel...' });
@@ -568,6 +577,7 @@ export default function DiamondArcade() {
                             clearInterval(duelPollRef.current);
                             duelPollRef.current = null;
                             supabase.removeChannel(duelChannel);
+                            duelChannelRef.current = null;
                             setDuelResult({ error: 'No opponent found. Entry fee refunded.' });
                             setDuelSearching(null);
                             setTimeout(() => setDuelResult(null), 3000);
@@ -577,6 +587,7 @@ export default function DiamondArcade() {
                         clearInterval(duelPollRef.current);
                         duelPollRef.current = null;
                         supabase.removeChannel(duelChannel);
+                        duelChannelRef.current = null;
                         setDuelResult({ error: 'Matchmaking failed. Try again.' });
                         setDuelSearching(null);
                         setTimeout(() => setDuelResult(null), 3000);
