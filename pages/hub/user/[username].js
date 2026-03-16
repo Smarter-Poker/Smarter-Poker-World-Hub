@@ -279,14 +279,18 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
     useEffect(() => {
         if (!currentUserId || !post.id) return;
         const token = getAccessToken();
-        fetch('/api/social/interactions?post_id=' + post.id + '&type=like', {
+        // Fetch ALL interactions (not just 'like') to detect any reaction type
+        fetch('/api/social/interactions?post_id=' + post.id, {
             headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         })
             .then(r => r.json())
             .then(json => {
-                const myReaction = (json.interactions || []).find(i => i.user_id === currentUserId);
+                const reactionTypes = new Set(['like', 'love', 'haha', 'wow', 'sad', 'angry']);
+                const myReaction = (json.interactions || []).find(
+                    i => i.user_id === currentUserId && reactionTypes.has(i.interaction_type)
+                );
                 if (myReaction) {
-                    setCurrentReaction(myReaction.interaction_type || 'like');
+                    setCurrentReaction(myReaction.interaction_type);
                 }
             })
             .catch(() => { });

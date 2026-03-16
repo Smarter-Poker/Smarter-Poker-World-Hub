@@ -195,43 +195,54 @@ export default async function handler(req, res) {
 
               return res.status(201).json({ comment: data });
 
-          } else if (interaction_type === 'like') {
-              // Toggle like - check if already liked
+          } else if (['like', 'love', 'haha', 'wow', 'sad', 'angry'].includes(interaction_type)) {
+              // Toggle reaction — supports all 6 emoji reaction types
+              // Check if user has ANY existing reaction on this post
               const { data: existing } = await getSupabase()
                   .from('social_interactions')
-                  .select('id')
+                  .select('id, interaction_type')
                   .eq('post_id', post_id)
                   .eq('user_id', user_id)
-                  .eq('interaction_type', 'like')
+                  .in('interaction_type', ['like', 'love', 'haha', 'wow', 'sad', 'angry'])
                   .maybeSingle();
 
               if (existing) {
-                  // Unlike - delete
-                  await getSupabase().from('social_interactions').delete().eq('id', existing.id);
+                  if (existing.interaction_type === interaction_type) {
+                      // Same reaction — toggle OFF (remove)
+                      await getSupabase().from('social_interactions').delete().eq('id', existing.id);
 
-                  // Atomic decrement like count
-                  try {
-                      const { error: rpcErr } = await getSupabase().rpc('decrement_post_count', { p_post_id: post_id, p_field: 'like_count' });
-                      if (rpcErr) {
-                          const { data: post } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
-                          if (post) {
-                              await getSupabase().from('social_posts').update({ like_count: Math.max(0, (post.like_count || 1) - 1) }).eq('id', post_id);
+                      // Decrement like count
+                      try {
+                          const { error: rpcErr } = await getSupabase().rpc('decrement_post_count', { p_post_id: post_id, p_field: 'like_count' });
+                          if (rpcErr) {
+                              const { data: post } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
+                              if (post) {
+                                  await getSupabase().from('social_posts').update({ like_count: Math.max(0, (post.like_count || 1) - 1) }).eq('id', post_id);
+                              }
                           }
+                      } catch (e) {
+                          console.warn('[Interactions] Like count decrement failed:', e.message);
                       }
-                  } catch (e) {
-                      console.warn('[Interactions] Like count decrement failed:', e.message);
-                  }
 
-                  return res.status(200).json({ action: 'unliked', liked: false });
+                      return res.status(200).json({ action: 'unreacted', reacted: false });
+                  } else {
+                      // Different reaction — SWITCH type (no count change)
+                      await getSupabase()
+                          .from('social_interactions')
+                          .update({ interaction_type })
+                          .eq('id', existing.id);
+
+                      return res.status(200).json({ action: 'switched', reacted: true, from: existing.interaction_type, to: interaction_type });
+                  }
               } else {
-                  // Like - insert
+                  // No existing reaction — INSERT new
                   const { error } = await getSupabase()
                       .from('social_interactions')
-                      .insert({ post_id, user_id, interaction_type: 'like' });
+                      .insert({ post_id, user_id, interaction_type });
 
                   if (error) return res.status(500).json({ success: false, error: error.message });
 
-                  // Atomic increment like count
+                  // Increment like count
                   try {
                       const { error: rpcErr } = await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'like_count' });
                       if (rpcErr) {
@@ -244,7 +255,7 @@ export default async function handler(req, res) {
                       console.warn('[Interactions] Like count increment failed:', e.message);
                   }
 
-                  return res.status(201).json({ action: 'liked', liked: true });
+                  return res.status(201).json({ action: 'reacted', reacted: true });
               }
 
           } else if (interaction_type === 'share') {

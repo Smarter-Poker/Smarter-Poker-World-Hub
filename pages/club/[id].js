@@ -564,22 +564,19 @@ export default function ClubPage() {
         body: JSON.stringify({ post_id: postId, user_id: user.id, interaction_type: 'like' }),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      if (!res.ok) {
-        // Revert on failure
-        setLikedPosts(prev => {
-          const next = new Set(prev);
-          wasLiked ? next.add(postId) : next.delete(postId);
-          return next;
-        });
-        setPosts(prev => prev.map(p =>
-          p.id === postId
-            ? { ...p, likes_count: Math.max(0, (p.likes_count || 0) + (wasLiked ? 1 : -1)) }
-            : p
-        ));
-      }
     } catch (err) {
       console.error('Like error:', err);
+      // Revert optimistic update on failure
+      setLikedPosts(prev => {
+        const next = new Set(prev);
+        wasLiked ? next.add(postId) : next.delete(postId);
+        return next;
+      });
+      setPosts(prev => prev.map(p =>
+        p.id === postId
+          ? { ...p, likes_count: Math.max(0, (p.likes_count || 0) + (wasLiked ? 1 : -1)) }
+          : p
+      ));
     }
   }
 

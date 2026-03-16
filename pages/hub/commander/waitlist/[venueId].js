@@ -113,6 +113,7 @@ export default function PlayerWaitlistPage() {
           }
         }
       }
+    } catch (err) {
       if (err.name !== 'AbortError') console.error('Failed to fetch data:', err);
     } finally {
       setLoading(false);
