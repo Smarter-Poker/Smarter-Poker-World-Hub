@@ -1133,7 +1133,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                                 {m.type === 'video' ? (
                                     <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
-                                    <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={m.url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 )}
                                 <button
                                     onClick={() => setMedia(prev => prev.filter((_, idx) => idx !== i))}
@@ -1356,6 +1356,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [newComment, setNewComment] = useState('');
     const [loadingComments, setLoadingComments] = useState(false);
     const [commentCount, setCommentCount] = useState(post.commentCount || 0);
+    const [hasMoreComments, setHasMoreComments] = useState(false);
     const [fullScreenVideo, setFullScreenVideo] = useState(null);
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
 
@@ -1462,16 +1463,17 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         }
     };
 
-    const loadComments = async () => {
-        if (comments.length > 0) return;
+    const loadComments = async (offset = 0) => {
+        if (offset === 0 && comments.length > 0) return;
         setLoadingComments(true);
         try {
             // Step 1: Fetch comments and embedded likes
+            const COMMENT_PAGE_SIZE = 50;
             const { data: commentsData, error: commentsError } = await supabase.from('social_comments')
                 .select('id, content, created_at, author_id, parent_id, social_comment_likes(id, user_id)')
                 .eq('post_id', post.id)
                 .order('created_at', { ascending: true })
-                .limit(50);
+                .range(offset, offset + COMMENT_PAGE_SIZE - 1);
 
             if (commentsError) {
                 console.error('[Comments] Error fetching comments:', commentsError);
@@ -1480,10 +1482,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             }
 
             if (!commentsData || commentsData.length === 0) {
-                setComments([]);
+                if (offset === 0) setComments([]);
+                setHasMoreComments(false);
                 setLoadingComments(false);
                 return;
             }
+
+            // Track if there might be more comments
+            setHasMoreComments(commentsData.length === COMMENT_PAGE_SIZE);
 
             // Step 2: Fetch author profiles for all comments
             const authorIds = [...new Set(commentsData.map(c => c.author_id).filter(Boolean))];
@@ -1500,7 +1506,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             }
 
             // Step 3: Combine comments with author profiles and likes
-            setComments(commentsData.map(c => {
+            const newComments = commentsData.map(c => {
                 const author = profilesMap[c.author_id] || {};
                 const likes = c.social_comment_likes || [];
                 return {
@@ -1515,11 +1521,16 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     likeCount: likes.length,
                     isLikedByMe: likes.some(like => like.user_id === currentUserId)
                 };
-            }));
+            });
+            setComments(prev => offset === 0 ? newComments : [...prev, ...newComments]);
         } catch (e) {
             console.error('[Comments] Error loading comments:', e);
         }
         setLoadingComments(false);
+    };
+
+    const loadMoreComments = () => {
+        loadComments(comments.length);
     };
 
     const handleToggleComments = () => {
@@ -1743,7 +1754,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 onClick={onOpenArticle}
                             />
                         ) : (
-                            <img src={post.mediaUrls[0]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} />
+                            <img src={post.mediaUrls[0]} loading="lazy" alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} />
                         )
                     ) : post.mediaUrls.length === 2 ? (
                         // 2 media - side by side
@@ -1753,7 +1764,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                     {post.contentType === 'video' && i === 0 ? (
                                         <video controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} src={url} />
                                     ) : (
-                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     )}
                                 </div>
                             ))}
@@ -1762,12 +1773,12 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         // 3 media - 1 large + 2 small
                         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 2 }}>
                             <div style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={post.mediaUrls[0]} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 {post.mediaUrls.slice(1).map((url, i) => (
                                     <div key={i} style={{ flex: 1, overflow: 'hidden' }}>
-                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     </div>
                                 ))}
                             </div>
@@ -1777,7 +1788,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                             {post.mediaUrls.map((url, i) => (
                                 <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                    <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 </div>
                             ))}
                         </div>
@@ -1787,14 +1798,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, marginBottom: 2 }}>
                                 {post.mediaUrls.slice(0, 2).map((url, i) => (
                                     <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     </div>
                                 ))}
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
                                 {post.mediaUrls.slice(2, 5).map((url, i) => (
                                     <div key={i} style={{ aspectRatio: '1', overflow: 'hidden', position: 'relative' }}>
-                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         {i === 2 && post.mediaUrls.length > 5 && (
                                             <div style={{
                                                 position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
@@ -1954,6 +1965,18 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         
                         return topLevel.map(c => renderCommentBlock(c, false));
                     })()}
+
+                    {/* Load more comments button */}
+                    {hasMoreComments && !loadingComments && (
+                        <button
+                            onClick={loadMoreComments}
+                            style={{
+                                width: '100%', padding: '8px 12px', background: 'none', border: 'none',
+                                color: C.blue, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                                marginTop: 4
+                            }}
+                        >View more comments</button>
+                    )}
 
                     {replyingTo && (
                         <div style={{ fontSize: 12, color: C.textSec, marginBottom: 4, display: 'flex', justifyContent: 'space-between', padding: '0 40px' }}>
@@ -2801,7 +2824,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         {m.type === 'video' ? (
                                             <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
-                                            <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <img src={m.url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         )}
                                         <button onClick={() => setPostMedia(prev => prev.filter((_, j) => j !== i))} style={{
                                             position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%',
@@ -2907,7 +2930,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
                             {photos.map((photo, i) => (
                                 <div key={i} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: '#1a1a2e' }}>
-                                    <img src={photo.url} alt={photo.caption || 'Club photo'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                                    <img src={photo.url} loading="lazy" alt={photo.caption || 'Club photo'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
                                     {photo.caption && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '16px 8px 6px', fontSize: 11, color: '#fff' }}>{photo.caption}</div>}
                                     <button onClick={() => {
                                         const updated = photos.filter((_, j) => j !== i);
@@ -4535,6 +4558,45 @@ function SocialMediaPage() {
         };
     }, [user?.id]);
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // REALTIME: Notification subscription — live badge updates
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        if (!user?.id) return;
+        const notifChannel = supabase
+            .channel(`notifications:${user.id}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'notifications',
+                filter: `user_id=eq.${user.id}`
+            }, async (payload) => {
+                const n = payload.new;
+                // Enrich with actor profile
+                let actorProfile = null;
+                const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id;
+                if (actorId) {
+                    try {
+                        const { data: prof } = await supabase.from('profiles')
+                            .select('id, username, full_name, avatar_url')
+                            .eq('id', actorId)
+                            .maybeSingle();
+                        actorProfile = prof;
+                    } catch { /* non-critical */ }
+                }
+                const displayName = n.data?.actor_name || n.data?.sender_name || n.title || 'Someone';
+                setNotifications(prev => [{
+                    ...n,
+                    actor_avatar_url: actorProfile?.avatar_url || n.metadata?.actor_avatar || null,
+                    actor_name: actorProfile?.full_name || displayName,
+                    actor_username: actorProfile?.username || null
+                }, ...prev]);
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(notifChannel); };
+    }, [user?.id]);
+
     // Cross-tab Social Feed sync
     useEffect(() => {
         const cleanupSocialBc = listenBroadcast('smarter_poker_social_sync', (msg) => {
@@ -4633,7 +4695,7 @@ function SocialMediaPage() {
                         // Collect actor IDs from notifications
                         // The data is stored in the 'data' JSONB column: data.commenter_id (comments), data.sender_id (friend requests), data.actor_id (generic)
                         const actorIds = [...new Set(notifs.map(n =>
-                            n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id || n.actor_id
+                            n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id
                         ).filter(Boolean))];
 
                         // Also parse actor names from notification titles as fallback
@@ -4669,7 +4731,7 @@ function SocialMediaPage() {
                         // Merge actor profile data into notifications
                         const enrichedNotifs = notifs.map(n => {
                             // Get actor ID from the data JSONB column
-                            const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id || n.actor_id;
+                            const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id;
                             let profile = actorId ? profileById[actorId] : null;
 
                             // Fallback to name matching
@@ -4832,7 +4894,7 @@ function SocialMediaPage() {
 
                 // Enrich with actor profiles
                 const actorIds = [...new Set(notifs.map(n =>
-                    n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id || n.actor_id
+                    n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id
                 ).filter(Boolean))];
                 let profileById = {};
                 if (actorIds.length > 0) {
@@ -4842,7 +4904,7 @@ function SocialMediaPage() {
                     (profiles || []).forEach(p => { profileById[p.id] = p; });
                 }
                 const enriched = notifs.map(n => {
-                    const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id || n.actor_id;
+                    const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id;
                     const profile = actorId ? profileById[actorId] : null;
                     const displayName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
                     return {
@@ -5560,12 +5622,12 @@ function SocialMediaPage() {
         setGlobalSearchLoading(true);
         globalSearchTimeout.current = setTimeout(async () => {
             try {
-                // Search users
+                // Search users (search both username and full_name)
                 const { data: users } = await supabase
                     .from('profiles')
-                    .select('id, username, avatar_url')
-                    .ilike('username', `%${query}%`)
-                    .limit(5);
+                    .select('id, username, full_name, avatar_url')
+                    .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
+                    .limit(8);
 
                 // Search posts
                 const { data: posts } = await supabase
@@ -5617,6 +5679,10 @@ function SocialMediaPage() {
     };
 
     // 📡 Supabase Realtime: Listen for incoming messages across all conversations
+    // Uses ref for openChats to avoid re-binding channel on every chat open/close
+    const openChatsRef = useRef(openChats);
+    useEffect(() => { openChatsRef.current = openChats; }, [openChats]);
+
     useEffect(() => {
         if (!user?.id) return;
         
@@ -5631,8 +5697,8 @@ function SocialMediaPage() {
                     // Update chatMsgs if this conversation is open and it's not our own message (we optimistically add our own)
                     if (newMsg.sender_id !== user.id) {
                         setChatMsgs(prev => {
-                            // Find which open chat has this conversation ID
-                            const chatEntry = openChats.find(c => c.conversationId === convId);
+                            // Find which open chat has this conversation ID (via ref to avoid stale closure)
+                            const chatEntry = openChatsRef.current.find(c => c.conversationId === convId);
                             if (chatEntry) {
                                 return {
                                     ...prev,
@@ -5652,7 +5718,7 @@ function SocialMediaPage() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user?.id, openChats]);
+    }, [user?.id]);
 
     const handleSendMsg = async (cid, txt) => {
         const chat = openChats.find(x => x.id === cid);
@@ -6629,24 +6695,31 @@ function SocialMediaPage() {
 
             {/* Delete Post Confirmation Modal */}
             {deletePostId && (
-                <div style={{
-                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
-                }} onClick={() => setDeletePostId(null)}>
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Delete post confirmation"
+                    onKeyDown={e => { if (e.key === 'Escape') setDeletePostId(null); }}
+                    style={{
+                        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+                    }}
+                    onClick={() => setDeletePostId(null)}
+                >
                     <div style={{
-                        background: '#FFFFFF', borderRadius: 12, padding: 24, maxWidth: 320, width: '100%',
+                        background: C.card, borderRadius: 12, padding: 24, maxWidth: 320, width: '100%',
                         boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
                     }} onClick={e => e.stopPropagation()}>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: '#050505', marginBottom: 12 }}>Delete This Post?</div>
-                        <div style={{ fontSize: 14, color: '#65676B', marginBottom: 20 }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Delete This Post?</div>
+                        <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
                             This post will be permanently removed. This action cannot be undone.
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <button
                                 onClick={() => setDeletePostId(null)}
                                 style={{
-                                    flex: 1, padding: '10px 16px', background: '#e4e6eb', color: '#050505',
-                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+                                    flex: 1, padding: '10px 16px', background: C.bg, color: C.text,
+                                    border: `1px solid ${C.border}`, borderRadius: 8, fontWeight: 600, cursor: 'pointer'
                                 }}
                             >Cancel</button>
                             <button
