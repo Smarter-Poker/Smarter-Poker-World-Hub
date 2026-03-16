@@ -284,13 +284,38 @@ export default function PlayerWaitlistPage() {
     setJoiningAll(false);
   }
 
-  // Signal arrival to venue
+  // Signal arrival to venue — persists to Supabase
   async function handleArrived() {
-    setArrived(true);
-    setSuccess('Staff has been notified that you have arrived!');
-    setTimeout(() => setSuccess(null), 5000);
-    // Note: In a future iteration, this could call an API endpoint
-    // to update the waitlist entry with an arrived_at timestamp
+    const token = await getAuthToken();
+    if (!token) {
+      router.push(`/auth/login?redirect=/hub/commander/waitlist/${venueId}`);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/commander/waitlist/arrive', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ venue_id: parseInt(venueId) })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setArrived(true);
+        setSuccess(`Staff has been notified you have arrived! (${data.data.entries_updated} game${data.data.entries_updated !== 1 ? 's' : ''} updated)`);
+        fetchData(); // Refresh to show updated checked_in_at
+        setTimeout(() => setSuccess(null), 5000);
+      } else {
+        setError(data.error?.message || 'Could not signal arrival. Please try again.');
+        setTimeout(() => setError(null), 3000);
+      }
+    } catch (err) {
+      console.error('Arrival signal failed:', err);
+      setError('Network error. Please try again.');
+      setTimeout(() => setError(null), 3000);
+    }
   }
 
   function isMyEntry(gameType, stakes) {

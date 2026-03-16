@@ -794,7 +794,7 @@ export default function StudyPlanPage() {
                 </div>
                 <motion.button
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => handleStartArea(focus.gameId || focus.name)}
+                  onClick={() => handleStartArea(focus, 'focus-0')}
                   style={{
                     padding: '8px 14px',
                     borderRadius: 8,

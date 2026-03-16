@@ -976,11 +976,11 @@ export default function DiamondArcade() {
                                 </div>
 
                                 <div style={styles.questionArea}>
-                                    {activeGame.id === 'hand-snap' && (
+                                    {activeGame.id === 'hand-snap' && currentQuestion.hand1 && (
                                         <>
                                             <p style={styles.questionText}>Which Hand Wins?</p>
                                             <div style={styles.handsContainer}>
-                                                {currentQuestion.hands.map((hand, idx) => (
+                                                {[currentQuestion.hand1.cards, currentQuestion.hand2.cards].map((hand, idx) => (
                                                     <motion.button
                                                         key={idx}
                                                         style={styles.handButton}

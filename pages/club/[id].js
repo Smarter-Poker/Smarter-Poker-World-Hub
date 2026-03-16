@@ -374,8 +374,7 @@ export default function ClubPage() {
 
   // Check follow status when user and page id are available
   useEffect(() => {
-
-  if (!router.isReady) return null;
+    if (!router.isReady) return;
 
     if (!id || !user?.id) return;
     async function checkFollowStatus() {
