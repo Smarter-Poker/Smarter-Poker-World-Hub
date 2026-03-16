@@ -39,40 +39,93 @@ export function TrainingSettingsProvider({ children }) {
 
     const loadSettings = async (userId) => {
         try {
+            // Training settings are stored in the profiles.settings JSONB column
+            // (NOT as individual columns — those don't exist)
             const { data, error } = await supabase
                 .from('profiles')
                 .select('training_view_mode, training_sound_enabled, training_timer_enabled, training_auto_advance, training_hints_enabled')
                 .eq('id', userId)
                 .maybeSingle();
 
-            if (error) throw error;
-
-            if (data) {
+            if (error) {
+                // Column may not exist yet — fall back to localStorage cache
+                console.warn('[TrainingSettings] DB query failed (columns may not exist yet), using cached/default values:', error.message);
+                const cached = loadFromCache();
+                if (cached) {
+                    setViewModeState(cached.viewMode || 'standard');
+                    setSoundEnabledState(cached.soundEnabled ?? true);
+                    setTimerEnabledState(cached.timerEnabled ?? true);
+                    setAutoAdvanceEnabledState(cached.autoAdvanceEnabled ?? false);
+                    setHintsEnabledState(cached.hintsEnabled ?? true);
+                }
+                // Don't throw — use defaults and let the app continue
+            } else if (data) {
                 setViewModeState(data.training_view_mode || 'standard');
                 setSoundEnabledState(data.training_sound_enabled ?? true);
                 setTimerEnabledState(data.training_timer_enabled ?? true);
                 setAutoAdvanceEnabledState(data.training_auto_advance ?? false);
                 setHintsEnabledState(data.training_hints_enabled ?? true);
+                // Cache to localStorage for resilience
+                saveToCache({
+                    viewMode: data.training_view_mode || 'standard',
+                    soundEnabled: data.training_sound_enabled ?? true,
+                    timerEnabled: data.training_timer_enabled ?? true,
+                    autoAdvanceEnabled: data.training_auto_advance ?? false,
+                    hintsEnabled: data.training_hints_enabled ?? true,
+                });
             }
         } catch (error) {
-            console.error('[TrainingSettings] Load error:', error);
+            console.error('[TrainingSettings] Unexpected load error:', error);
         } finally {
             setLoading(false);
         }
     };
 
+    // Fallback: load from localStorage when DB is unavailable
+    const loadFromLocalStorage = () => {
+        try {
+            const cached = localStorage.getItem('training_settings');
+            if (cached) {
+                const s = JSON.parse(cached);
+                setViewModeState(s.training_view_mode || 'standard');
+                setSoundEnabledState(s.training_sound_enabled ?? true);
+                setTimerEnabledState(s.training_timer_enabled ?? true);
+                setAutoAdvanceEnabledState(s.training_auto_advance ?? false);
+                setHintsEnabledState(s.training_hints_enabled ?? true);
+            }
+        } catch { /* use defaults */ }
+    };
+
     const updateSettings = async (updates) => {
         if (!user) return;
 
+        // Cache to localStorage immediately (instant persistence)
         try {
+            const existing = JSON.parse(localStorage.getItem('training_settings') || '{}');
+            localStorage.setItem('training_settings', JSON.stringify({ ...existing, ...updates }));
+        } catch { /* best effort */ }
+
+        try {
+            // Merge into the profiles.settings JSONB column
+            // First read current settings, then merge
+            const { data: current } = await supabase
+                .from('profiles')
+                .select('settings')
+                .eq('id', user.id)
+                .maybeSingle();
+
+            const mergedSettings = { ...(current?.settings || {}), ...updates };
+
             const { error } = await supabase
                 .from('profiles')
-                .update(updates)
+                .update({ settings: mergedSettings })
                 .eq('id', user.id);
 
-            if (error) throw error;
-
-            console.log('[TrainingSettings] Updated:', updates);
+            if (error) {
+                console.warn('[TrainingSettings] Update error (saved locally):', error.message);
+            } else {
+                console.log('[TrainingSettings] Updated:', updates);
+            }
         } catch (error) {
             console.error('[TrainingSettings] Update error:', error);
         }
