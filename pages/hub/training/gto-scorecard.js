@@ -246,6 +246,7 @@ export default function GTOScorecardPage() {
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
   const [selectedStat, setSelectedStat] = useState('vpip');
+  const [sharing, setSharing] = useState(false);
 
   const fetchData = useCallback(async () => {
     const user = getAuthUser();
@@ -410,10 +411,13 @@ export default function GTOScorecardPage() {
             {!loading && gtoScore > 0 && (
               <motion.button
                 whileTap={{ scale: 0.97 }}
+                disabled={sharing}
                 onClick={async () => {
+                  if (sharing) return;
+                  setSharing(true);
                   try {
                     const user = getAuthUser();
-                    if (!user?.id) return;
+                    if (!user?.id) { setSharing(false); return; }
                     const res = await authedFetch('/api/training/share', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
@@ -424,8 +428,12 @@ export default function GTOScorecardPage() {
                       }),
                     });
                     if (res.ok) alert('GTO Score shared to your feed!');
+                    else alert('Share failed — please try again.');
                   } catch (e) {
                     console.error('Share error:', e);
+                    alert('Share failed — please try again.');
+                  } finally {
+                    setSharing(false);
                   }
                 }}
                 style={{
@@ -437,10 +445,11 @@ export default function GTOScorecardPage() {
                   color: scoreColor,
                   fontSize: 11,
                   fontWeight: 700,
-                  cursor: 'pointer',
+                  cursor: sharing ? 'wait' : 'pointer',
+                  opacity: sharing ? 0.6 : 1,
                 }}
               >
-                Share My Score
+                {sharing ? 'Sharing...' : 'Share My Score'}
               </motion.button>
             )}
           </motion.div>

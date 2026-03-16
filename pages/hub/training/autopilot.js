@@ -193,6 +193,7 @@ export default function AutopilotPage() {
   const [currentSpotIdx, setCurrentSpotIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [results, setResults] = useState([]);
+  const [sharing, setSharing] = useState(false);
 
   const fetchAndAnalyze = useCallback(async () => {
     const user = getAuthUser();
@@ -459,10 +460,13 @@ export default function AutopilotPage() {
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
+                  disabled={sharing}
                   onClick={async () => {
+                    if (sharing) return;
+                    setSharing(true);
                     try {
                       const user = getAuthUser();
-                      if (!user?.id) return;
+                      if (!user?.id) { setSharing(false); return; }
                       const totalQ = results.reduce((s, r) => s + (r.questionsAnswered || 0), 0);
                       const avgAcc = totalQ > 0 ? Math.round(results.reduce((s, r) => s + ((r.accuracy || 0) * (r.questionsAnswered || 0)), 0) / totalQ) : 0;
                       const res = await authedFetch('/api/training/share', {
@@ -475,8 +479,12 @@ export default function AutopilotPage() {
                         }),
                       });
                       if (res.ok) alert('Autopilot results shared to your feed!');
+                      else alert('Share failed — please try again.');
                     } catch (e) {
                       console.error('Share error:', e);
+                      alert('Share failed — please try again.');
+                    } finally {
+                      setSharing(false);
                     }
                   }}
                   style={{
@@ -491,7 +499,7 @@ export default function AutopilotPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  Share Results
+                  {sharing ? 'Sharing...' : 'Share Results'}
                 </motion.button>
               </div>
             </motion.div>
