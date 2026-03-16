@@ -33,10 +33,10 @@ import ClubArenaSkeleton from './ClubArenaSkeleton';
 // Enforce relative paths so the Next.js same-origin proxy (rewrites) takes over.
 const SPA_ORIGIN = '';
 const SPA_BASE = '/hub/club-arena';
-const LOAD_TIMEOUT_MS = 8_000;        // 8s before showing error (same-origin proxy loads fast)
-const AUTH_RETRY_INTERVAL_MS = 2_000; // Retry auth every 2s
-const AUTH_MAX_RETRIES = 5;           // Max 5 auth attempts
-const HEARTBEAT_TIMEOUT_MS = 45_000;  // 45s without heartbeat = dead iframe
+const LOAD_TIMEOUT_MS = 15_000;        // 15s before showing error (boot sequence can take time)
+const AUTH_RETRY_INTERVAL_MS = 1_500;  // Retry auth every 1.5s
+const AUTH_MAX_RETRIES = 10;           // Max 10 auth attempts (15s total window)
+const HEARTBEAT_TIMEOUT_MS = 90_000;   // 90s without heartbeat = dead iframe (generous for heavy pages)
 
 /* ── Settings keys that bridge World Hub → Club Arena ─────────────────── */
 const SETTINGS_KEYS = ['smarter-poker-theme', 'poker-sound-enabled', 'poker-4color-deck'];
@@ -363,8 +363,9 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     const resetHeartbeatTimer = useCallback(() => {
         clearTimeout(heartbeatTimerRef.current);
         heartbeatTimerRef.current = setTimeout(() => {
-            // Only trigger if the iframe was previously healthy
-            if (loadState === 'ready' && authAckedRef.current) {
+            // Only trigger if the iframe was previously healthy AND tab is visible
+            // Background tabs don't fire timers reliably, causing false positives
+            if (loadState === 'ready' && authAckedRef.current && document.visibilityState === 'visible') {
                 console.warn('[ClubArenaEmbed] Heartbeat timeout — SPA may be unresponsive');
                 try { window.Sentry?.addBreadcrumb?.({ category: 'club-arena', message: 'Heartbeat timeout — iframe unresponsive', level: 'warning' }); } catch (_) {}
                 setLoadState('error');
@@ -385,6 +386,21 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         }
         return () => clearTimeout(heartbeatTimerRef.current);
     }, [loadState, resetHeartbeatTimer]);
+
+    // Pause/resume heartbeat when tab visibility changes
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && loadState === 'ready' && authAckedRef.current) {
+                // Tab became visible again — reset heartbeat timer (gives SPA time to resume)
+                resetHeartbeatTimerRef.current?.();
+            } else if (document.visibilityState === 'hidden') {
+                // Tab hidden — pause heartbeat timeout (background tabs don't fire timers)
+                clearTimeout(heartbeatTimerRef.current);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [loadState]);
 
     if (!iframeSrc) return null;
 
