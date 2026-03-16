@@ -33,7 +33,7 @@ import ClubArenaSkeleton from './ClubArenaSkeleton';
 // Enforce relative paths so the Next.js same-origin proxy (rewrites) takes over.
 const SPA_ORIGIN = '';
 const SPA_BASE = '/hub/club-arena';
-const LOAD_TIMEOUT_MS = 15_000;        // 15s before showing error (boot sequence can take time)
+const LOAD_TIMEOUT_MS = 8_000;         // 8s before showing error (boot is now non-blocking)
 const AUTH_RETRY_INTERVAL_MS = 1_500;  // Retry auth every 1.5s
 const AUTH_MAX_RETRIES = 10;           // Max 10 auth attempts (15s total window)
 const HEARTBEAT_TIMEOUT_MS = 90_000;   // 90s without heartbeat = dead iframe (generous for heavy pages)
@@ -214,8 +214,13 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     }, [loadState, handleRetry]);
 
     /* ── Auth token passthrough with retry + ACK ──────────────────────── */
+    // CRITICAL: Start sending auth IMMEDIATELY when iframe src is set, NOT
+    // after iframe onLoad. The iframe's inline script and early auth listener
+    // in main.tsx capture the token even before React mounts in the iframe.
+    // Waiting for onLoad created a 2-10s delay where the iframe was ready to
+    // receive auth but the Hub wasn't sending it.
     useEffect(() => {
-        if (loadState !== 'ready') return;
+        if (!iframeSrc) return;
 
         let attempts = 0;
         let noSessionDetected = false;
@@ -265,7 +270,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         authRetryRef.current = setInterval(sendAuth, AUTH_RETRY_INTERVAL_MS);
 
         return () => clearInterval(authRetryRef.current);
-    }, [loadState]);
+    }, [iframeSrc]);
 
     /* ── Auth Token Refresh — re-send token when Supabase refreshes session ── */
     useEffect(() => {

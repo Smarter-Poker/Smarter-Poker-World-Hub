@@ -4708,7 +4708,8 @@ function SocialMediaPage() {
                     supabase.from('profiles')
                         .update({ last_seen: new Date().toISOString() })
                         .eq('id', p?.id || authUser.id)
-                        .then(() => { if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Updated last_seen timestamp'); });
+                        .then(() => { if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Updated last_seen timestamp'); })
+                        .catch(() => { /* non-critical — suppress unhandled rejection */ });
 
                     // ⚡ PARALLEL LOADING: Fire contacts, notifications, feed, and streams ALL AT ONCE
                     const [, , ,] = await Promise.allSettled([

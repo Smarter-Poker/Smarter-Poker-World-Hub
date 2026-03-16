@@ -417,7 +417,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                             <button
                                 onClick={() => setShowDeleteConfirm(false)}
                                 style={{
-                                    flex: 1, padding: '10px 16px', background: '#e4e6eb', color: C.text,
+                                    flex: 1, padding: '10px 16px', background: C.bg, color: C.text,
                                     border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer'
                                 }}
                             >Cancel</button>
@@ -514,7 +514,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                         ))}
                     </div>
                     <div style={{ 
-                        background: '#f0f2f5', borderRadius: 16, padding: '8px 12px', fontSize: 12,
+                        background: C.bg, borderRadius: 16, padding: '8px 12px', fontSize: 12,
                         color: C.textSec, display: 'flex', alignItems: 'center', gap: 6, marginLeft: Object.values(typists).length > 2 ? 30 : (Object.values(typists).length - 1) * 12
                     }}>
                         <span>{Object.values(typists)[0].name.split(' ')[0]} is typing</span>
@@ -536,7 +536,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                             {comments.map((c, i) => (
                                 <div key={c.id || i} style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                                     <img src={c.author?.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} alt="User avatar" loading="lazy" />
-                                    <div style={{ flex: 1, background: '#f0f2f5', borderRadius: 12, padding: '8px 12px' }}>
+                                    <div style={{ flex: 1, background: C.bg, borderRadius: 12, padding: '8px 12px' }}>
                                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.author?.full_name || c.author?.username || 'User'}</div>
                                         <div style={{ fontSize: 14, color: C.text, marginTop: 2 }}>{renderMentions(c.content)}</div>
                                         <div style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>{timeAgo(c.created_at)}</div>
@@ -556,7 +556,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
                                 placeholder="Write A Comment..."
                                 style={{
-                                    flex: 1, padding: '10px 14px', background: '#f0f2f5', border: 'none',
+                                    flex: 1, padding: '10px 14px', background: C.bg, border: 'none',
                                     borderRadius: 20, fontSize: 14, outline: 'none', color: C.text
                                 }}
                             />
@@ -978,7 +978,8 @@ export default function UserProfilePage() {
             })
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_comments' }, (payload) => {
                 // Skip own comments — already handled by optimistic UI in submitComment
-                if (payload.new && payload.new.post_id && payload.new.user_id !== myUserId) {
+                // NOTE: social_comments uses 'author_id', NOT 'user_id'
+                if (payload.new && payload.new.post_id && payload.new.author_id !== myUserId) {
                     eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: payload.new.post_id }, 'SocialRealtime');
                 }
             })
