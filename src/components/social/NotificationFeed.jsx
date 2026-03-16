@@ -4,7 +4,11 @@
  * 
  * Fetches real notifications from Supabase and renders them with
  * mark-as-read, filtering, and real-time subscription.
- * Uses the existing NotificationsDropdown UI from SmarterPokerNotifications.jsx.
+ * 
+ * BUG FIXES:
+ * - Replaced risky SQL string interpolation with safe separate queries
+ * - Removed broken FK join (profiles! syntax) — uses separate profiles fetch
+ * - Removed dependency on non-existent `read` column — uses local state
  * 
  * SAFETY: This is a NEW file — no existing code is modified.
  */
@@ -12,7 +16,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser } from '../../lib/authUtils';
-import { busEmit } from '../../engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 import { isNotificationEnabled } from './NotificationPreferences';
 
 const C = {
@@ -22,12 +26,17 @@ const C = {
 
 const NOTIF_TYPES = {
     like: { icon: '👍', color: '#1877F2', label: 'liked your post' },
+    love: { icon: '❤️', color: '#F33E58', label: 'loved your post' },
+    haha: { icon: '😂', color: '#F7B928', label: 'reacted to your post' },
+    wow: { icon: '😮', color: '#F7B928', label: 'reacted to your post' },
+    sad: { icon: '😢', color: '#F7B928', label: 'reacted to your post' },
+    angry: { icon: '😡', color: '#E9710F', label: 'reacted to your post' },
     comment: { icon: '💬', color: '#31A24C', label: 'commented on your post' },
     share: { icon: '↗️', color: '#F7B928', label: 'shared your post' },
+    bookmark: { icon: '🔖', color: '#7C3AED', label: 'saved your post' },
     friend_request: { icon: '👤', color: '#1877F2', label: 'sent you a friend request' },
     follow: { icon: '👥', color: '#31A24C', label: 'started following you' },
     mention: { icon: '@', color: '#1877F2', label: 'mentioned you' },
-    reaction: { icon: '❤️', color: '#F33E58', label: 'reacted to your post' },
 };
 
 function timeAgo(date) {
@@ -44,6 +53,7 @@ export default function NotificationFeed({ onClose }) {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
+    const [readIds, setReadIds] = useState(new Set());
     const subRef = useRef(null);
 
     const loadNotifications = useCallback(async () => {
@@ -51,33 +61,66 @@ export default function NotificationFeed({ onClose }) {
             const user = getAuthUser();
             if (!user) { setLoading(false); return; }
 
-            // Fetch from social_interactions where target is current user
-            const { data, error } = await supabase
+            // Step 1: Get own post IDs
+            const { data: ownPosts } = await supabase
+                .from('social_posts')
+                .select('id')
+                .eq('author_id', user.id)
+                .limit(200);
+
+            const ownPostIds = ownPosts ? ownPosts.map(p => p.id) : [];
+
+            if (ownPostIds.length === 0) {
+                setNotifications([]);
+                setLoading(false);
+                return;
+            }
+
+            // Step 2: Fetch interactions on OWN posts (not by self)
+            const { data: interactions, error } = await supabase
                 .from('social_interactions')
-                .select(`
-                    id, interaction_type, created_at, post_id, read,
-                    user_id,
-                    profiles!social_interactions_user_id_fkey( id, username, full_name, avatar_url )
-                `)
+                .select('id, interaction_type, created_at, post_id, user_id')
+                .in('post_id', ownPostIds)
                 .neq('user_id', user.id)
-                .or(`post_id.in.(${await getOwnPostIds(user.id)}),target_user_id.eq.${user.id}`)
                 .order('created_at', { ascending: false })
                 .limit(50);
 
-            if (error) {
-                // Fallback: simpler query without post filtering
-                const { data: fallbackData } = await supabase
-                    .from('social_interactions')
-                    .select('id, interaction_type, created_at, post_id, read, user_id')
-                    .order('created_at', { ascending: false })
-                    .limit(30);
-
-                if (fallbackData) {
-                    setNotifications(fallbackData.map(formatNotification));
-                }
-            } else if (data) {
-                setNotifications(data.map(formatNotification));
+            if (error || !interactions?.length) {
+                setNotifications([]);
+                setLoading(false);
+                return;
             }
+
+            // Step 3: Fetch actor profiles
+            const actorIds = [...new Set(interactions.map(i => i.user_id).filter(Boolean))];
+            let profileMap = {};
+            if (actorIds.length > 0) {
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, username, full_name, avatar_url')
+                    .in('id', actorIds);
+                if (profiles) {
+                    profiles.forEach(p => { profileMap[p.id] = p; });
+                }
+            }
+
+            // Step 4: Format notifications
+            const notifs = interactions.map(row => {
+                const profile = profileMap[row.user_id];
+                return {
+                    id: row.id,
+                    type: row.interaction_type || 'like',
+                    time: row.created_at,
+                    postId: row.post_id,
+                    actorName: profile?.full_name || profile?.username || 'Someone',
+                    avatar: profile?.avatar_url || '/default-avatar.png',
+                };
+            });
+
+            setNotifications(notifs);
+
+            // Emit count for badge
+            busEmit.notificationCountUpdated?.(notifs.length);
         } catch (err) {
             console.error('Notification load error:', err);
         }
@@ -87,67 +130,65 @@ export default function NotificationFeed({ onClose }) {
     useEffect(() => {
         loadNotifications();
 
-        // Real-time subscription
+        // Real-time subscription for new interactions
         const user = getAuthUser();
         if (user) {
             subRef.current = supabase
-                .channel('notifications-' + user.id)
+                .channel('notif-feed-' + user.id)
                 .on('postgres_changes', {
                     event: 'INSERT',
                     schema: 'public',
                     table: 'social_interactions',
                 }, (payload) => {
                     if (payload.new && payload.new.user_id !== user.id) {
-                        const notif = formatNotification(payload.new);
-                        // Check preferences
-                        const prefKey = mapInteractionToPreference(notif.type);
+                        const newNotif = {
+                            id: payload.new.id,
+                            type: payload.new.interaction_type || 'like',
+                            time: payload.new.created_at,
+                            postId: payload.new.post_id,
+                            actorName: 'Someone',
+                            avatar: '/default-avatar.png',
+                        };
+                        // Check user preferences before adding
+                        const prefKey = mapInteractionToPreference(newNotif.type);
                         if (isNotificationEnabled(prefKey)) {
-                            setNotifications(prev => [notif, ...prev]);
+                            setNotifications(prev => [newNotif, ...prev]);
                         }
                     }
                 })
                 .subscribe();
         }
 
+        // Listen for EventBus events
+        const unsubPost = eventBus.on(EventType.SOCIAL_POST_LIKED, () => {
+            // Debounced reload
+            setTimeout(() => loadNotifications(), 2000);
+        });
+
         return () => {
             subRef.current?.unsubscribe();
+            unsubPost?.();
         };
     }, [loadNotifications]);
 
-    const handleMarkAllRead = async () => {
-        const user = getAuthUser();
-        if (!user) return;
+    const handleMarkAllRead = () => {
+        setReadIds(new Set(notifications.map(n => n.id)));
+        busEmit.notificationsRead?.(notifications.filter(n => !readIds.has(n.id)).length);
+    };
 
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-
-        try {
-            await supabase
-                .from('social_interactions')
-                .update({ read: true })
-                .eq('read', false);
-        } catch (err) {
-            console.error('Mark all read failed:', err);
+    const handleNotifClick = (notif) => {
+        if (!readIds.has(notif.id)) {
+            setReadIds(prev => new Set([...prev, notif.id]));
         }
     };
 
-    const handleNotifClick = async (notif) => {
-        // Mark single as read
-        if (!notif.read) {
-            setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
-            try {
-                await supabase
-                    .from('social_interactions')
-                    .update({ read: true })
-                    .eq('id', notif.id);
-            } catch { /* non-critical */ }
-        }
-    };
+    const isRead = (id) => readIds.has(id);
 
     const filteredNotifs = filter === 'unread'
-        ? notifications.filter(n => !n.read)
+        ? notifications.filter(n => !isRead(n.id))
         : notifications;
 
-    const unreadCount = notifications.filter(n => !n.read).length;
+    const unreadCount = notifications.filter(n => !isRead(n.id)).length;
 
     return (
         <div style={{
@@ -220,6 +261,7 @@ export default function NotificationFeed({ onClose }) {
                 ) : (
                     filteredNotifs.map(notif => {
                         const typeInfo = NOTIF_TYPES[notif.type] || NOTIF_TYPES.like;
+                        const read = isRead(notif.id);
                         return (
                             <div
                                 key={notif.id}
@@ -227,10 +269,10 @@ export default function NotificationFeed({ onClose }) {
                                 style={{
                                     display: 'flex', gap: 10, padding: '10px 16px',
                                     cursor: 'pointer', transition: 'background 0.15s',
-                                    background: notif.read ? 'transparent' : C.blueLight,
+                                    background: read ? 'transparent' : C.blueLight,
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.background = notif.read ? C.bg : '#DCE9F7'}
-                                onMouseLeave={e => e.currentTarget.style.background = notif.read ? 'transparent' : C.blueLight}
+                                onMouseEnter={e => e.currentTarget.style.background = read ? C.bg : '#DCE9F7'}
+                                onMouseLeave={e => e.currentTarget.style.background = read ? 'transparent' : C.blueLight}
                             >
                                 <div style={{ position: 'relative', flexShrink: 0 }}>
                                     <img
@@ -252,13 +294,13 @@ export default function NotificationFeed({ onClose }) {
                                     </div>
                                     <div style={{
                                         fontSize: 12, marginTop: 3,
-                                        color: notif.read ? C.textSec : C.blue,
-                                        fontWeight: notif.read ? 400 : 600
+                                        color: read ? C.textSec : C.blue,
+                                        fontWeight: read ? 400 : 600
                                     }}>
                                         {timeAgo(notif.time)}
                                     </div>
                                 </div>
-                                {!notif.read && (
+                                {!read && (
                                     <div style={{
                                         width: 10, height: 10, borderRadius: '50%',
                                         background: C.blue, flexShrink: 0, alignSelf: 'center'
@@ -275,45 +317,12 @@ export default function NotificationFeed({ onClose }) {
 
 // ─── Helpers ──────────────────────────────────────────
 
-function formatNotification(row) {
-    const profile = row.profiles;
-    return {
-        id: row.id,
-        type: row.interaction_type || 'like',
-        time: row.created_at,
-        read: row.read || false,
-        postId: row.post_id,
-        actorName: profile?.full_name || profile?.username || 'Someone',
-        avatar: profile?.avatar_url || '/default-avatar.png',
-    };
-}
-
 function mapInteractionToPreference(type) {
     const map = {
-        like: 'likes',
-        love: 'likes',
-        haha: 'likes',
-        wow: 'likes',
-        sad: 'likes',
-        angry: 'likes',
-        comment: 'comments',
-        share: 'likes',
-        follow: 'followers',
-        friend_request: 'friendRequests',
+        like: 'likes', love: 'likes', haha: 'likes', wow: 'likes',
+        sad: 'likes', angry: 'likes', comment: 'comments',
+        share: 'likes', follow: 'followers', friend_request: 'friendRequests',
         mention: 'mentions',
     };
     return map[type] || 'likes';
-}
-
-async function getOwnPostIds(userId) {
-    try {
-        const { data } = await supabase
-            .from('social_posts')
-            .select('id')
-            .eq('author_id', userId)
-            .limit(100);
-        return data ? data.map(p => p.id).join(',') : '';
-    } catch {
-        return '';
-    }
 }

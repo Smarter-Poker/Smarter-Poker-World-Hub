@@ -5,7 +5,7 @@
  * Increments the share_count on social_posts when a user shares a post.
  * Fire-and-forget endpoint — non-critical if it fails.
  * 
- * SAFETY: This is a NEW file — no existing code is modified.
+ * BUG FIX: Replaced broken supabase.raw fallback with proper SQL increment.
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -27,20 +27,27 @@ export default async function handler(req, res) {
     try {
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // Increment share_count using RPC or direct update
-        const { error } = await supabase.rpc('increment_share_count', { p_post_id: post_id });
+        // Try RPC first (if fn exists)
+        const { error: rpcError } = await supabase.rpc('increment_share_count', { p_post_id: post_id });
 
-        if (error) {
-            // Fallback: direct column increment if RPC doesn't exist
-            // This uses a raw SQL increment pattern via PostgREST
-            const { error: directError } = await supabase
+        if (rpcError) {
+            // Fallback: read current count and increment by 1
+            const { data: post, error: readError } = await supabase
                 .from('social_posts')
-                .update({ share_count: supabase.raw ? undefined : 0 }) // Can't easily increment via client
-                .eq('id', post_id);
+                .select('share_count')
+                .eq('id', post_id)
+                .maybeSingle();
 
-            // If both fail, just log it — share count is non-critical
-            if (directError) {
-                console.warn('Share count increment failed (non-critical):', directError.message);
+            if (!readError && post) {
+                const newCount = (post.share_count || 0) + 1;
+                const { error: updateError } = await supabase
+                    .from('social_posts')
+                    .update({ share_count: newCount })
+                    .eq('id', post_id);
+
+                if (updateError) {
+                    console.warn('Share count update failed (non-critical):', updateError.message);
+                }
             }
         }
 

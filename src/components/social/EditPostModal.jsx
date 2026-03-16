@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { busEmit } from '../../engine/EventBus';
 
 const MAX_CHARS = 2000;
 
@@ -85,6 +86,8 @@ export default function EditPostModal({ post, onClose, onSaved, supabase }) {
                 updated_at: new Date().toISOString(),
                 isEdited: true
             });
+            // Emit so feed views can refresh
+            try { busEmit.socialPostEdited?.({ postId: post.id, content: trimmed }); } catch { /* non-critical */ }
             onClose();
         } catch (err) {
             console.error('Edit post failed:', err);

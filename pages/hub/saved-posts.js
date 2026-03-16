@@ -15,10 +15,10 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import ArticleCard from '../../src/components/social/ArticleCard';
-import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 import HashtagRenderer from '../../src/components/social/HashtagRenderer';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
+import { busEmit } from '../../src/engine/EventBus';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -229,6 +229,8 @@ export default function SavedPostsPage() {
 
     const handleUnsave = (postId) => {
         setSavedPosts(prev => prev.filter(p => p.id !== postId));
+        // Notify other views that bookmark state changed
+        try { busEmit.bookmarkChanged?.({ postId, bookmarked: false }); } catch { /* non-critical */ }
     };
 
     return (
