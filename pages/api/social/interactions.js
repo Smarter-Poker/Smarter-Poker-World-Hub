@@ -168,7 +168,7 @@ export default async function handler(req, res) {
                   if (error.code === '42P01') {
                       const { data: fallback, error: fbError } = await getSupabase()
                           .from('social_interactions')
-                          .upsert({ post_id, user_id, interaction_type: 'comment' }, { onConflict: 'post_id,user_id' })
+                          .insert({ post_id, user_id, interaction_type: 'comment' })
                           .select()
                           .maybeSingle();
                       if (fbError || !fallback) return res.status(500).json({ success: false, error: fbError?.message || 'Failed to create comment' });
@@ -289,18 +289,45 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'post_id required' });
           }
 
-          let query = getSupabase()
+          // Count what we're about to delete so we can decrement counts
+          let countQuery = getSupabase()
+              .from('social_interactions')
+              .select('interaction_type')
+              .eq('post_id', post_id)
+              .eq('user_id', user_id);
+          if (interaction_type) countQuery = countQuery.eq('interaction_type', interaction_type);
+          const { data: toDelete } = await countQuery;
+
+          let deleteQuery = getSupabase()
               .from('social_interactions')
               .delete()
               .eq('post_id', post_id)
               .eq('user_id', user_id);
 
           if (interaction_type) {
-              query = query.eq('interaction_type', interaction_type);
+              deleteQuery = deleteQuery.eq('interaction_type', interaction_type);
           }
 
-          const { error } = await query;
+          const { error } = await deleteQuery;
           if (error) return res.status(500).json({ success: false, error: error.message });
+
+          // Decrement counts on social_posts for deleted interactions
+          if (toDelete && toDelete.length > 0) {
+              const likesRemoved = toDelete.filter(i => i.interaction_type === 'like').length;
+              const sharesRemoved = toDelete.filter(i => i.interaction_type === 'share').length;
+              try {
+                  if (likesRemoved > 0) {
+                      const { data: p } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
+                      if (p) await getSupabase().from('social_posts').update({ like_count: Math.max(0, (p.like_count || 0) - likesRemoved) }).eq('id', post_id);
+                  }
+                  if (sharesRemoved > 0) {
+                      const { data: p } = await getSupabase().from('social_posts').select('share_count').eq('id', post_id).maybeSingle();
+                      if (p) await getSupabase().from('social_posts').update({ share_count: Math.max(0, (p.share_count || 0) - sharesRemoved) }).eq('id', post_id);
+                  }
+              } catch (e) {
+                  console.warn('[Interactions] Count decrement on DELETE failed:', e.message);
+              }
+          }
 
           return res.status(200).json({ success: true });
 

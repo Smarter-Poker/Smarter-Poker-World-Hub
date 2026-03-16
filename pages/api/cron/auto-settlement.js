@@ -238,7 +238,7 @@ export default async function handler(req, res) {
 
           // Calculate actual total rake from agents' weekly_rake_generated
           // (settlement_periods.total_rake_collected is never updated by record_rake RPC)
-          const actualTotalRake = agents.reduce((sum, a) => sum + (a.weekly_rake_generated || 0), 0);
+          const actualTotalRake = (agents || []).reduce((sum, a) => sum + (a.weekly_rake_generated || 0), 0);
           const totalRake = actualTotalRake || openPeriod.total_rake_collected || 0;
           const totalHands = openPeriod.total_hands_dealt || 0;
           const unionHoldAmount = Math.round(totalRake * unionRakeHold * 100) / 100;

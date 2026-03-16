@@ -405,6 +405,36 @@ export default async function handler(req, res) {
               const { game_id, player_name, seat_id } = req.body;
               if (!game_id) return res.status(400).json({ success: false, error: 'game_id required' });
 
+              // Verify the authenticated user owns the seat, or is the page/game owner
+              let canRemove = false;
+              if (seat_id) {
+                  const { data: seatCheck } = await getSupabase()
+                      .from('club_game_seats').select('player_id').eq('id', seat_id).maybeSingle();
+                  canRemove = seatCheck?.player_id === verified_user_id;
+              } else if (player_name) {
+                  const { data: seatCheck } = await getSupabase()
+                      .from('club_game_seats').select('player_id').eq('game_id', game_id).eq('player_name', player_name).maybeSingle();
+                  canRemove = seatCheck?.player_id === verified_user_id;
+              }
+
+              // Also allow page owner or game creator to remove anyone
+              if (!canRemove) {
+                  const { data: gameInfo } = await getSupabase()
+                      .from('club_live_games').select('created_by, page_id').eq('id', game_id).maybeSingle();
+                  if (gameInfo) {
+                      if (gameInfo.created_by === verified_user_id) canRemove = true;
+                      else {
+                          const { data: pageInfo } = await getSupabase()
+                              .from('social_pages').select('owner_id').eq('id', gameInfo.page_id).maybeSingle();
+                          if (pageInfo?.owner_id === verified_user_id) canRemove = true;
+                      }
+                  }
+              }
+
+              if (!canRemove) {
+                  return res.status(403).json({ success: false, error: 'You can only remove yourself or players from your own game' });
+              }
+
               let query = getSupabase().from('club_game_seats').delete().eq('game_id', game_id);
               if (seat_id) query = query.eq('id', seat_id);
               else if (player_name) query = query.eq('player_name', player_name);
@@ -419,6 +449,20 @@ export default async function handler(req, res) {
           const { page_id, game_name, game_type, stakes, max_seats, table_number, notes } = req.body;
           if (!page_id || !game_name) {
               return res.status(400).json({ success: false, error: 'page_id and game_name required' });
+          }
+
+          // Verify user is page owner or admin before allowing game creation
+          const { data: pageOwnerCheck } = await getSupabase()
+              .from('social_pages').select('owner_id').eq('id', page_id).maybeSingle();
+          if (!pageOwnerCheck) return res.status(404).json({ success: false, error: 'Page not found' });
+          if (pageOwnerCheck.owner_id !== verified_user_id) {
+              // Check if admin/moderator
+              const { data: memberCheck } = await getSupabase()
+                  .from('social_page_followers').select('role')
+                  .eq('page_id', page_id).eq('user_id', verified_user_id).maybeSingle();
+              if (!memberCheck || !['admin', 'moderator', 'owner'].includes(memberCheck.role)) {
+                  return res.status(403).json({ success: false, error: 'Only page owners and admins can create games' });
+              }
           }
 
           const { data, error } = await getSupabase()

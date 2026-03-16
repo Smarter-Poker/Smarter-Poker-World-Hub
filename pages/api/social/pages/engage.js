@@ -57,7 +57,8 @@ export default async function handler(req, res) {
                   .maybeSingle();
 
               if (existing) {
-                  await getSupabase().from('social_page_post_likes').delete().eq('id', existing.id);
+                  const { error: delErr } = await getSupabase().from('social_page_post_likes').delete().eq('id', existing.id);
+                  if (delErr) return res.status(500).json({ success: false, error: delErr.message });
                   return res.status(200).json({ success: true, liked: false });
               } else {
                   await getSupabase().from('social_page_post_likes').insert({ post_id, user_id });
