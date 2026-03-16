@@ -43,39 +43,29 @@ export function TrainingSettingsProvider({ children }) {
             // (NOT as individual columns — those don't exist)
             const { data, error } = await supabase
                 .from('profiles')
-                .select('training_view_mode, training_sound_enabled, training_timer_enabled, training_auto_advance, training_hints_enabled')
+                .select('settings')
                 .eq('id', userId)
                 .maybeSingle();
 
             if (error) {
-                // Column may not exist yet — fall back to localStorage cache
-                console.warn('[TrainingSettings] DB query failed (columns may not exist yet), using cached/default values:', error.message);
-                const cached = loadFromCache();
-                if (cached) {
-                    setViewModeState(cached.viewMode || 'standard');
-                    setSoundEnabledState(cached.soundEnabled ?? true);
-                    setTimerEnabledState(cached.timerEnabled ?? true);
-                    setAutoAdvanceEnabledState(cached.autoAdvanceEnabled ?? false);
-                    setHintsEnabledState(cached.hintsEnabled ?? true);
-                }
+                // Column may not exist or query failed — fall back to localStorage
+                console.warn('[TrainingSettings] DB query failed, using cached/default values:', error.message);
+                loadFromLocalStorage();
                 // Don't throw — use defaults and let the app continue
-            } else if (data) {
-                setViewModeState(data.training_view_mode || 'standard');
-                setSoundEnabledState(data.training_sound_enabled ?? true);
-                setTimerEnabledState(data.training_timer_enabled ?? true);
-                setAutoAdvanceEnabledState(data.training_auto_advance ?? false);
-                setHintsEnabledState(data.training_hints_enabled ?? true);
-                // Cache to localStorage for resilience
-                saveToCache({
-                    viewMode: data.training_view_mode || 'standard',
-                    soundEnabled: data.training_sound_enabled ?? true,
-                    timerEnabled: data.training_timer_enabled ?? true,
-                    autoAdvanceEnabled: data.training_auto_advance ?? false,
-                    hintsEnabled: data.training_hints_enabled ?? true,
-                });
+            } else if (data?.settings) {
+                const s = data.settings;
+                setViewModeState(s.training_view_mode || 'standard');
+                setSoundEnabledState(s.training_sound_enabled ?? true);
+                setTimerEnabledState(s.training_timer_enabled ?? true);
+                setAutoAdvanceEnabledState(s.training_auto_advance ?? false);
+                setHintsEnabledState(s.training_hints_enabled ?? true);
+            } else {
+                // No settings yet — load from localStorage if available
+                loadFromLocalStorage();
             }
         } catch (error) {
             console.error('[TrainingSettings] Unexpected load error:', error);
+            loadFromLocalStorage();
         } finally {
             setLoading(false);
         }
