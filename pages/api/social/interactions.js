@@ -113,7 +113,8 @@ export default async function handler(req, res) {
               }
           } catch {
               // Fallback to counting from query results if post lookup fails
-              like_count = (data || []).filter(i => i.interaction_type === 'like').length;
+              const reactionSet = new Set(['like', 'love', 'haha', 'wow', 'sad', 'angry']);
+              like_count = (data || []).filter(i => reactionSet.has(i.interaction_type)).length;
               share_count = (data || []).filter(i => i.interaction_type === 'share').length;
               comment_count = comments.length;
           }
