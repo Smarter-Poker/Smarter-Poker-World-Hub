@@ -128,7 +128,7 @@ jobs:
           echo "✓ Build compilation passed"
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || '' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
   # ═══════════════════════════════════════════════════════════════════
@@ -142,33 +142,46 @@ jobs:
 
     steps:
       - name: Wait for Vercel deployment
-        run: sleep 300  # 5 minutes for Vercel to finish deploying
+        run: sleep 180  # 3 minutes for Vercel build + deploy
 
       - name: Verify deployment is live
         run: |
           SITE_URL="${{ secrets.SITE_URL || 'https://smarter.poker' }}"
-          echo "Checking $SITE_URL..."
+          echo "Checking $SITE_URL with retry..."
 
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL" --max-time 30)
+          for attempt in 1 2 3; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL" --max-time 30)
+            echo "  Attempt $attempt: HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" -eq 200 ]; then
+              echo "✓ Site is live (HTTP $HTTP_CODE)"
+              exit 0
+            fi
+            if [ $attempt -lt 3 ]; then
+              echo "  Retrying in 30s..."
+              sleep 30
+            fi
+          done
 
-          if [ "$HTTP_CODE" -ne 200 ]; then
-            echo "::error::DEPLOYMENT FAILED: $SITE_URL returned HTTP $HTTP_CODE"
-            exit 1
-          fi
-
-          echo "✓ Site is live (HTTP $HTTP_CODE)"
+          echo "::error::DEPLOYMENT FAILED: $SITE_URL returned HTTP $HTTP_CODE after 3 attempts"
+          exit 1
 
       - name: Verify API health
         run: |
           SITE_URL="${{ secrets.SITE_URL || 'https://smarter.poker' }}"
 
-          # Check a simple API endpoint
+          # Check the health endpoint — allow 404 (endpoint may not exist), only fail on 5xx
           API_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL/api/health" --max-time 10)
           echo "API health check: HTTP $API_CODE"
 
           if [ "$API_CODE" -ge 500 ]; then
-            echo "::error::API is returning server errors (HTTP $API_CODE)"
-            exit 1
+            echo "::warning::API health returned HTTP $API_CODE — checking if transient..."
+            sleep 10
+            API_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL/api/health" --max-time 10)
+            echo "API health retry: HTTP $API_CODE"
+            if [ "$API_CODE" -ge 500 ]; then
+              echo "::error::API is returning persistent server errors (HTTP $API_CODE)"
+              exit 1
+            fi
           fi
 
-          echo "✓ API is responsive"
+          echo "✓ API is responsive (HTTP $API_CODE)"

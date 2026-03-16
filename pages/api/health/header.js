@@ -74,7 +74,6 @@ export default async function handler(req, res) {
               message: 'Header stats API is healthy',
               latency_ms: latency,
               test_data: {
-                  diamonds: profile.diamonds,
                   diamonds: profile.diamonds
               }
           });
