@@ -64,7 +64,7 @@ export default async function handler(req, res) {
               try {
                   const { data: commentData, error: commentError } = await getSupabase()
                       .from('social_comments')
-                      .select('id, post_id, user_id, content, created_at, parent_id')
+                      .select('id, post_id, author_id, content, created_at, parent_id')
                       .eq('post_id', post_id)
                       .order('created_at', { ascending: true })
                           .limit(100);
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
                       comments = commentInteractions;
                   } else if (commentData) {
                       // Enrich comments with user info
-                      const userIds = [...new Set(commentData.map(c => c.user_id))];
+                      const userIds = [...new Set(commentData.map(c => c.author_id))];
                       if (userIds.length > 0) {
                           const { data: profiles } = await getSupabase()
                               .from('profiles')
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
 
                           comments = commentData.map(c => ({
                               ...c,
-                              author: profileMap[c.user_id] || { username: 'Unknown' }
+                              author: profileMap[c.author_id] || { username: 'Unknown' }
                           }));
                       }
                   }
