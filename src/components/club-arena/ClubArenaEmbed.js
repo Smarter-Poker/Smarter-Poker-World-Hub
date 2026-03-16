@@ -76,6 +76,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     const heartbeatTimerRef = useRef(null);
     const resetHeartbeatTimerRef = useRef(null);
     const loadStartTimeRef = useRef(null); // Performance telemetry
+    const iframeLoadedRef = useRef(false); // FIX 1: Track whether iframe onLoad has fired
 
     // Stabilize query object identity to prevent infinite re-renders
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,6 +104,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         setErrorMsg('');
         setIsOffline(false);
         authAckedRef.current = false;
+        iframeLoadedRef.current = false; // FIX 1: Reset on new iframe load
         loadStartTimeRef.current = performance.now(); // Start TTI measurement
     }, [spaRoute, queryKey]);
 
@@ -133,6 +135,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     /* ── Iframe load / error handlers ─────────────────────────────────── */
     const handleIframeLoad = useCallback(() => {
         clearTimeout(timeoutRef.current);
+        iframeLoadedRef.current = true; // FIX 1: iframe DOM is now ready
         setLoadState('ready');
         retryCountRef.current = 0;
 
