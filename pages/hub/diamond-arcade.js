@@ -367,8 +367,9 @@ export default function DiamondArcade() {
                 setCurrentQuestion(generateMysteryBoxQuestion());
                 break;
             case 'double-or-nothing':
-                // Uses hand-snap style question for the single high-stakes question
-                setCurrentQuestion(generateHandSnapQuestion());
+                // Uses chip-math style question for the single high-stakes question
+                // (HandSnap has incompatible correctAnswer field — uses 1-indexed + hand1/hand2 objects)
+                setCurrentQuestion(generateChipMathQuestion());
                 break;
             case 'the-gauntlet':
                 // Mix of question types for the 10-question gauntlet

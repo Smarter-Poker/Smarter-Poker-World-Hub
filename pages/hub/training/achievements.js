@@ -6,6 +6,7 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -107,7 +108,9 @@ export default function TrainingAchievements() {
 
           {/* Achievement List */}
           {loading ? (
-            <div style={styles.loading}>Loading Achievements...</div>
+            <div style={{ padding: '20px 0' }}>
+              <SkeletonLoader variant="rows" rows={6} />
+            </div>
           ) : (
             <div style={styles.grid}>
               {filteredAchievements.map((ach, i) => (
@@ -129,7 +132,25 @@ export default function TrainingAchievements() {
                   </div>
                   <div style={styles.reward}>
                     <span style={styles.diamonds}>{ach.diamond_reward}</span>
-                    {ach.unlocked && <span style={styles.unlocked}>✓</span>}
+                    {ach.unlocked ? (
+                      <span style={styles.unlocked}>✓</span>
+                    ) : (
+                      <div style={{
+                        width: 48,
+                        height: 4,
+                        borderRadius: 2,
+                        background: 'rgba(255,255,255,0.08)',
+                        marginTop: 6,
+                        overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          width: `${Math.min(100, (ach.progress || 0))}%`,
+                          height: '100%',
+                          borderRadius: 2,
+                          background: RARITY_COLORS[ach.rarity] || '#9ca3af',
+                        }} />
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

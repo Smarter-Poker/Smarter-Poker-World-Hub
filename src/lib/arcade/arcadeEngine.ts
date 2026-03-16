@@ -587,9 +587,10 @@ export function generateEVOrFoldQuestion(): EVOrFoldQuestion {
     };
 }
 
-export function generateMysteryBoxQuestion(): HandSnapQuestion | BoardNutsQuestion | ChipMathQuestion | ShowdownQuestion | EVOrFoldQuestion {
+export function generateMysteryBoxQuestion(): BoardNutsQuestion | ChipMathQuestion | ShowdownQuestion | EVOrFoldQuestion {
+    // HandSnapQuestion excluded — uses correctAnswer (1-indexed) + hand1/hand2 objects,
+    // incompatible with the generic handleAnswer correctIndex check and fallback renderer
     const generators = [
-        generateHandSnapQuestion,
         generateBoardNutsQuestion,
         generateChipMathQuestion,
         generateShowdownQuestion,

@@ -15,6 +15,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MISTAKE RECONSTRUCTION
@@ -453,22 +454,61 @@ export default function ReplayTheaterPage() {
 
           {/* Loading */}
           {loading && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                style={{
-                  width: 32,
-                  height: 32,
-                  margin: '0 auto 12px',
-                  border: '2px solid rgba(255,255,255,0.05)',
-                  borderTopColor: '#ef4444',
-                  borderRadius: '50%',
-                }}
-              />
-              Loading mistakes...
+            <div style={{ padding: '20px 0' }}>
+              <SkeletonLoader variant="card" count={3} />
             </div>
           )}
+
+          {/* Worst Leak Summary */}
+          {!loading && filteredMistakes.length > 0 && (() => {
+            const leakMap = {};
+            filteredMistakes.forEach(m => {
+              const key = `${m.position} · ${m.street}`;
+              if (!leakMap[key]) leakMap[key] = { count: 0, evLoss: 0 };
+              leakMap[key].count++;
+              leakMap[key].evLoss += m.evLoss;
+            });
+            const worstLeak = Object.entries(leakMap).sort((a, b) => b[1].count - a[1].count)[0];
+            if (!worstLeak) return null;
+            return (
+              <div style={{
+                padding: '12px 14px',
+                borderRadius: 12,
+                background: 'rgba(239,68,68,0.04)',
+                border: '1px solid rgba(239,68,68,0.1)',
+                marginBottom: 16,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Biggest Leak</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#f87171' }}>{worstLeak[0]}</div>
+                  <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>{worstLeak[1].count} mistakes · {worstLeak[1].evLoss.toFixed(1)} BB lost</div>
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    const [pos, street] = worstLeak[0].split(' · ');
+                    const params = new URLSearchParams({ format: 'cash', positions: pos, streets: street.toLowerCase() });
+                    router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
+                  }}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    background: 'rgba(0,212,255,0.06)',
+                    border: '1px solid rgba(0,212,255,0.2)',
+                    color: '#00d4ff',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Drill This
+                </motion.button>
+              </div>
+            );
+          })()}
 
           {/* Mistakes */}
           {!loading &&

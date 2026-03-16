@@ -1223,6 +1223,26 @@ export default function ClubPage() {
                   {/* Post Composer (for page owner) */}
                   {user?.id && (
                     <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4">
+                      {/* Session Share Quick Card */}
+                      <div className="flex items-center gap-2 mb-3 pb-3 border-b border-[#E5E7EB]">
+                        <button
+                          onClick={() => {
+                            const outcomes = ['Won', 'Lost', 'Break Even'];
+                            const outcome = prompt('How did your session go?\n\n1 = Won\n2 = Lost\n3 = Break Even');
+                            const outcomeLabel = outcomes[parseInt(outcome) - 1];
+                            if (!outcomeLabel) return;
+                            const gameInfo = prompt('What game? (e.g., NLH 1/3, PLO 2/5)');
+                            if (!gameInfo) return;
+                            const duration = prompt('How long did you play? (e.g., 4 hours)');
+                            const sessionText = `Session at ${venue?.name || 'the club'}\nGame: ${gameInfo}\nResult: ${outcomeLabel}${duration ? `\nDuration: ${duration}` : ''}\n\n#PokerSession #LivePoker`;
+                            setPostContent(sessionText);
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#F59E0B] bg-[#F59E0B]/5 hover:bg-[#F59E0B]/10 rounded-lg transition-colors border border-[#F59E0B]/20"
+                        >
+                          <Trophy className="w-3.5 h-3.5" />
+                          Share Session Results
+                        </button>
+                      </div>
                       <div className="flex items-start gap-3">
                         {user.avatar_url ? (
                           <Image src={user.avatar_url} alt="" width={40} height={40} className="w-10 h-10 rounded-full object-cover" style={{ borderRadius: '50%' }} unoptimized />
@@ -1360,6 +1380,79 @@ export default function ClubPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Detailed Schedule */}
+                  {venue.run_schedule && (
+                    <div className="mt-6 pt-6 border-t border-[#E5E7EB]">
+                      <h3 className="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-[#6B7280]" />
+                        Weekly Poker Schedule
+                      </h3>
+                      <div className="space-y-1">
+                        {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                          const sched = venue.run_schedule[day];
+                          const isToday = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][new Date().getDay()] === day;
+                          const isOpen = sched?.open === true;
+                          return (
+                            <div
+                              key={day}
+                              className={`flex items-center justify-between p-2 rounded-lg text-sm ${
+                                isToday ? 'bg-[#1877F2]/5 border border-[#1877F2]/20' : ''
+                              }`}
+                            >
+                              <span className={`font-medium capitalize ${isToday ? 'text-[#1877F2]' : 'text-[#1F2937]'}`}>
+                                {day.charAt(0).toUpperCase() + day.slice(1)}
+                                {isToday && <span className="text-xs font-normal text-[#1877F2] ml-1">(Today)</span>}
+                              </span>
+                              <div className="text-right">
+                                {isOpen ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[#10B981] font-medium">Open</span>
+                                    {sched.games?.length > 0 && (
+                                      <span className="text-xs text-[#6B7280]">
+                                        {sched.games.map(g => `${g.game_type || ''} ${g.stakes || ''}`).filter(Boolean).join(', ')}
+                                      </span>
+                                    )}
+                                    {sched.start_time && (
+                                      <span className="text-xs text-[#6B7280]">
+                                        {sched.start_time}{sched.end_time ? ` - ${sched.end_time}` : ''}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-[#9CA3AF]">Closed</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hours Summary (fallback when no detailed schedule) */}
+                  {!venue.run_schedule && (venue.hours_weekday || venue.hours_weekend) && (
+                    <div className="mt-6 pt-6 border-t border-[#E5E7EB]">
+                      <h3 className="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-[#6B7280]" />
+                        Hours
+                      </h3>
+                      <div className="space-y-2 text-sm text-[#6B7280]">
+                        {venue.hours_weekday && (
+                          <div className="flex justify-between">
+                            <span>Monday - Friday</span>
+                            <span className="font-medium text-[#1F2937]">{venue.hours_weekday}</span>
+                          </div>
+                        )}
+                        {venue.hours_weekend && (
+                          <div className="flex justify-between">
+                            <span>Saturday - Sunday</span>
+                            <span className="font-medium text-[#1F2937]">{venue.hours_weekend}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

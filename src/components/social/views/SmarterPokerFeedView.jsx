@@ -15,6 +15,7 @@ import { useSupabase } from '../../providers/SupabaseProvider';
 import { SocialService } from '../../services/SocialService';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 import TrendingPosts from '../TrendingPosts';
+import FeedFilterTabs from '../FeedFilterTabs';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📱 LEFT SIDEBAR (Shortcuts)
@@ -265,6 +266,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
 
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [feedFilter, setFeedFilter] = useState('recent');
 
     // Mock Data for non-connected parts
     const [stories] = useState([]);
@@ -305,7 +307,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
             setLoading(true);
             const { posts: newPosts } = await socialService.getFeed({
                 userId: currentUser.id,
-                filter: 'recent'
+                filter: feedFilter
             });
             setPosts(newPosts || []);
         } catch (error) {
@@ -314,7 +316,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
         } finally {
             setLoading(false);
         }
-    }, [socialService, currentUser?.id]);
+    }, [socialService, currentUser?.id, feedFilter]);
 
     useEffect(() => {
         loadFeed();
@@ -473,6 +475,11 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
 
             <main className="sp-feed-center">
                 <FBStoriesRow stories={stories} currentUser={currentUser} />
+
+                <FeedFilterTabs
+                    activeFilter={feedFilter}
+                    onFilterChange={(f) => { setFeedFilter(f); }}
+                />
 
                 <EnhancedPostCreator
                     user={currentUser}

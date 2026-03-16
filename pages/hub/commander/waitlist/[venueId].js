@@ -32,9 +32,11 @@ export default function PlayerWaitlistPage() {
   const [myEntries, setMyEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [joiningGame, setJoiningGame] = useState(null);
+  const [joiningAll, setJoiningAll] = useState(false);
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [arrived, setArrived] = useState(false);
 
   
   // fetchData declared first — must precede useEffect/useCommanderSync that reference it
@@ -226,6 +228,74 @@ export default function PlayerWaitlistPage() {
     }
   }
 
+  // Join ALL available games at once
+  async function handleJoinAll() {
+    const token = await getAuthToken();
+    if (!token) {
+      router.push(`/auth/login?redirect=/hub/commander/waitlist/${venueId}`);
+      return;
+    }
+
+    // Find games the player is NOT already on
+    const availableGames = waitlistColumns.filter(col => !isMyEntry(col.gameType, col.stakes));
+    if (availableGames.length === 0) {
+      setError('You are already on all available waitlists.');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    setJoiningAll(true);
+    setError(null);
+    setSuccess(null);
+
+    let joined = 0;
+    let failed = 0;
+
+    await Promise.allSettled(
+      availableGames.map(async (col) => {
+        try {
+          const res = await fetch('/api/commander/waitlist/public-join', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              venue_id: parseInt(venueId),
+              game_type: col.gameType,
+              stakes: col.stakes,
+            })
+          });
+          const data = await res.json();
+          if (data.success) joined++;
+          else failed++;
+        } catch {
+          failed++;
+        }
+      })
+    );
+
+    if (joined > 0) {
+      setSuccess(`Joined ${joined} waitlist${joined > 1 ? 's' : ''}!${failed > 0 ? ` (${failed} already joined)` : ''}`);
+      fetchData();
+      setTimeout(() => setSuccess(null), 4000);
+    } else if (failed > 0) {
+      setError('Could not join waitlists. You may already be on all of them.');
+      setTimeout(() => setError(null), 3000);
+    }
+
+    setJoiningAll(false);
+  }
+
+  // Signal arrival to venue
+  async function handleArrived() {
+    setArrived(true);
+    setSuccess('Staff has been notified that you have arrived!');
+    setTimeout(() => setSuccess(null), 5000);
+    // Note: In a future iteration, this could call an API endpoint
+    // to update the waitlist entry with an arrived_at timestamp
+  }
+
   function isMyEntry(gameType, stakes) {
     return myEntries.find(e =>
       e.game_type === gameType &&
@@ -331,6 +401,64 @@ export default function PlayerWaitlistPage() {
                 <span style={{ color: '#EF4444', fontSize: 14, fontWeight: 600 }}>{error}</span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ═══ MY WAITLIST SUMMARY + ACTIONS ═══ */}
+        {myEntries.filter(e => e.status === 'waiting' || e.status === 'called').length > 0 && (
+          <div style={S.myEntriesArea}>
+            <div style={S.myEntriesHeader}>
+              <span style={S.myEntriesTitle}>Your Waitlists</span>
+              <span style={S.myEntriesCount}>
+                {myEntries.filter(e => e.status === 'waiting' || e.status === 'called').length} game{myEntries.filter(e => e.status === 'waiting' || e.status === 'called').length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div style={S.myEntriesList}>
+              {myEntries.filter(e => e.status === 'waiting' || e.status === 'called').map(entry => (
+                <div key={entry.id} style={{
+                  ...S.myEntryChip,
+                  ...(entry.status === 'called' ? S.myEntryChipCalled : {})
+                }}>
+                  <span style={{ fontWeight: 700, color: entry.status === 'called' ? '#D4AF37' : '#E0E0E0' }}>
+                    {GAME_LABELS[entry.game_type] || entry.game_type} {entry.stakes}
+                  </span>
+                  <span style={{ fontSize: 11, color: entry.status === 'called' ? '#D4AF37' : '#888' }}>
+                    {entry.status === 'called' ? 'CALLED' : `#${entry.position || '?'}`}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {!arrived && (
+              <button onClick={handleArrived} style={S.arrivedBtn}>
+                I've Arrived
+              </button>
+            )}
+            {arrived && (
+              <div style={S.arrivedConfirm}>
+                <CheckCircle style={{ width: 14, height: 14 }} />
+                Staff has been notified
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ JOIN ALL BUTTON ═══ */}
+        {waitlistColumns.length > 1 && waitlistColumns.some(col => !isMyEntry(col.gameType, col.stakes)) && (
+          <div style={S.joinAllArea}>
+            <button
+              onClick={handleJoinAll}
+              disabled={joiningAll}
+              style={{
+                ...S.joinAllBtn,
+                ...(joiningAll ? S.joinBtnDisabled : {}),
+              }}
+            >
+              {joiningAll ? (
+                <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} />
+              ) : (
+                'Join All Games'
+              )}
+            </button>
           </div>
         )}
 
@@ -823,5 +951,105 @@ const S = {
     fontSize: 13,
     fontWeight: 700,
     letterSpacing: '0.5px',
+  },
+
+  // ── My Entries Summary ──
+  myEntriesArea: {
+    margin: '0 16px 8px',
+    padding: '12px 14px',
+    borderRadius: 8,
+    background: 'rgba(212, 175, 55, 0.06)',
+    border: '1px solid rgba(212, 175, 55, 0.2)',
+  },
+  myEntriesHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  myEntriesTitle: {
+    fontSize: 13,
+    fontWeight: 800,
+    color: '#D4AF37',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase',
+  },
+  myEntriesCount: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#888',
+  },
+  myEntriesList: {
+    display: 'flex',
+    gap: 6,
+    flexWrap: 'wrap',
+    marginBottom: 10,
+  },
+  myEntryChip: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 10px',
+    borderRadius: 6,
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid #333',
+    fontSize: 13,
+  },
+  myEntryChipCalled: {
+    background: 'rgba(212, 175, 55, 0.1)',
+    border: '1px solid rgba(212, 175, 55, 0.4)',
+  },
+  arrivedBtn: {
+    width: '100%',
+    padding: '10px 16px',
+    borderRadius: 6,
+    border: '2px solid #10B981',
+    background: 'rgba(16, 185, 129, 0.08)',
+    color: '#10B981',
+    fontSize: 14,
+    fontWeight: 800,
+    letterSpacing: '0.5px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  arrivedConfirm: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    padding: '8px 16px',
+    borderRadius: 6,
+    background: 'rgba(16, 185, 129, 0.08)',
+    border: '1px solid rgba(16, 185, 129, 0.2)',
+    color: '#10B981',
+    fontSize: 13,
+    fontWeight: 600,
+  },
+
+  // ── Join All ──
+  joinAllArea: {
+    padding: '0 16px 8px',
+  },
+  joinAllBtn: {
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: 8,
+    border: '2px solid #D4AF37',
+    background: 'linear-gradient(180deg, rgba(212,175,55,0.2), rgba(212,175,55,0.08))',
+    color: '#D4AF37',
+    fontSize: 15,
+    fontWeight: 800,
+    letterSpacing: '1.5px',
+    textTransform: 'uppercase',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    transition: 'all 0.15s ease',
+    boxShadow: '0 2px 12px rgba(212, 175, 55, 0.15)',
   },
 };

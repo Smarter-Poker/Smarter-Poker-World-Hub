@@ -27,6 +27,8 @@ import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
 import EditPostModal from '../../../src/components/social/EditPostModal';
 import HashtagRenderer from '../../../src/components/social/HashtagRenderer';
 import SharePostModal from '../../../src/components/social/SharePostModal';
+import ReactionPicker from '../../../src/components/social/ReactionPicker';
+import PostImageLightbox from '../../../src/components/social/PostImageLightbox';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -198,6 +200,9 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
     const [deleting, setDeleting] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [lightboxIndex, setLightboxIndex] = useState(0);
+    const [currentReaction, setCurrentReaction] = useState(null);
     const [editablePost, setEditablePost] = useState(post);
     const [liked, setLiked] = useState(false);
     const [likeAnimating, setLikeAnimating] = useState(false);
@@ -488,12 +493,14 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                         post.content_type === 'video' ? (
                             <video src={post.media_urls[0]} controls style={{ width: '100%', maxHeight: 400, objectFit: 'cover' }} />
                         ) : (
-                            <img src={post.media_urls[0]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} loading="lazy" />
+                            <img src={post.media_urls[0]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto', cursor: 'pointer' }} loading="lazy"
+                             onClick={() => { setLightboxIndex(0); setLightboxOpen(true); }} />
                         )
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
                             {post.media_urls.slice(0, 4).map((url, i) => (
-                                <img key={i} src={url} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover' }} alt="Image" loading="lazy" />
+                                <img key={i} src={url} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', cursor: 'pointer' }} alt="Image" loading="lazy"
+                                     onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }} />
                             ))}
                         </div>
                     )}
@@ -504,12 +511,23 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                 <span>{commentCount > 0 && `${commentCount} comments`}{shareMsg && ` · ${shareMsg}`}</span>
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
-                <button onClick={handleLike} style={{
-                    flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer',
-                    color: liked ? C.blue : C.textSec, fontWeight: liked ? 700 : 500, fontSize: 13,
-                    transition: 'all 0.2s',
-                    transform: likeAnimating ? 'scale(1.3)' : 'scale(1)',
-                }}>👍 {liked ? 'Liked' : 'Like'}</button>
+                <ReactionPicker
+                    currentReaction={currentReaction}
+                    onReact={(type) => {
+                        setCurrentReaction(prev => prev === type ? null : type);
+                        setLikeCount(prev => currentReaction ? (type === currentReaction ? prev - 1 : prev) : prev + 1);
+                        setLikeAnimating(true);
+                        setTimeout(() => setLikeAnimating(false), 300);
+                        if (currentUserId) {
+                            const token = getAccessToken();
+                            fetch('/api/social/interactions', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+                                body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: type })
+                            }).catch(() => {});
+                        }
+                    }}
+                />
                 <button onClick={handleComment} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
                 <button onClick={() => setShowShareModal(true)} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>↗️ Share</button>
             </div>
@@ -605,6 +623,16 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                     authorUsername={author?.username}
                     onClose={() => setShowShareModal(false)}
                     onShared={handleShareComplete}
+                />
+            )}
+
+            {/* Post Image Lightbox */}
+            {lightboxOpen && post.media_urls?.length > 0 && (
+                <PostImageLightbox
+                    mediaUrls={post.media_urls}
+                    initialIndex={lightboxIndex}
+                    contentType={post.content_type}
+                    onClose={() => setLightboxOpen(false)}
                 />
             )}
         </div>

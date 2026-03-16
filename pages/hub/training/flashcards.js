@@ -341,6 +341,20 @@ function calculateSM2(quality, prevInterval = 0, prevEase = 2.5) {
   return { interval, ease, nextReview: Date.now() + interval * 86400000 };
 }
 
+function formatInterval(days) {
+  if (days === 0) return 'Today';
+  if (days === 1) return '1 day';
+  if (days < 7) return `${days} days`;
+  if (days < 30) return `${Math.round(days / 7)} weeks`;
+  return `${Math.round(days / 30)} months`;
+}
+
+function previewInterval(quality, sm2Data, cardId) {
+  const prev = sm2Data[cardId] || { interval: 0, ease: 2.5 };
+  const next = calculateSM2(quality, prev.interval, prev.ease);
+  return formatInterval(next.interval);
+}
+
 export default function FlashcardsPage() {
   const router = useRouter();
   useTrainingBus('flashcards');
@@ -604,6 +618,51 @@ export default function FlashcardsPage() {
               <div style={{ fontSize: 12, marginTop: 4 }}>
                 You've reviewed all due cards for this category today.
               </div>
+              {/* Mastery Progress */}
+              <div
+                style={{
+                  marginTop: 24,
+                  padding: '14px 16px',
+                  borderRadius: 12,
+                  background: 'rgba(0,0,0,0.2)',
+                  border: '1px solid rgba(74,222,128,0.1)',
+                  textAlign: 'left',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#4ade80',
+                    textTransform: 'uppercase',
+                    letterSpacing: 1,
+                    marginBottom: 8,
+                  }}
+                >
+                  Mastery Progress
+                </div>
+                <div
+                  style={{
+                    height: 6,
+                    borderRadius: 3,
+                    background: 'rgba(255,255,255,0.06)',
+                    overflow: 'hidden',
+                    marginBottom: 6,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${CARDS.length > 0 ? (stats.mastered / CARDS.length) * 100 : 0}%`,
+                      height: '100%',
+                      borderRadius: 3,
+                      background: 'linear-gradient(90deg, #4ade80, #22c55e)',
+                    }}
+                  />
+                </div>
+                <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                  {stats.mastered}/{CARDS.length} cards mastered (21+ day interval)
+                </div>
+              </div>
             </div>
           )}
 
@@ -625,7 +684,7 @@ export default function FlashcardsPage() {
                   cursor: 'pointer',
                 }}
               >
-                Hard{' '}
+                Hard
                 <span
                   style={{
                     fontSize: 9,
@@ -634,7 +693,7 @@ export default function FlashcardsPage() {
                     marginTop: 2,
                   }}
                 >
-                  Review Soon
+                  {current ? previewInterval(0, sm2Data, current.id) : 'Today'}
                 </span>
               </motion.button>
               <motion.button
@@ -652,7 +711,7 @@ export default function FlashcardsPage() {
                   cursor: 'pointer',
                 }}
               >
-                Good{' '}
+                Good
                 <span
                   style={{
                     fontSize: 9,
@@ -661,7 +720,7 @@ export default function FlashcardsPage() {
                     marginTop: 2,
                   }}
                 >
-                  Normal Interval
+                  {current ? previewInterval(1, sm2Data, current.id) : '1 day'}
                 </span>
               </motion.button>
               <motion.button
@@ -679,7 +738,7 @@ export default function FlashcardsPage() {
                   cursor: 'pointer',
                 }}
               >
-                Easy{' '}
+                Easy
                 <span
                   style={{
                     fontSize: 9,
@@ -688,7 +747,7 @@ export default function FlashcardsPage() {
                     marginTop: 2,
                   }}
                 >
-                  Long Interval
+                  {current ? previewInterval(2, sm2Data, current.id) : '2 days'}
                 </span>
               </motion.button>
             </div>

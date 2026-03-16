@@ -224,6 +224,29 @@ export default function StreaksPage() {
             {streak.longestStreak > streak.currentStreak && (
               <div style={styles.longestStreak}>Best: {streak.longestStreak} days</div>
             )}
+
+            {/* Diamond Multiplier Badge */}
+            {streak.currentStreak >= 3 && (() => {
+              const mult = streak.currentStreak >= 30 ? '5x' : streak.currentStreak >= 14 ? '3x' : streak.currentStreak >= 7 ? '2x' : '1.5x';
+              const multColor = streak.currentStreak >= 30 ? '#fbbf24' : streak.currentStreak >= 14 ? '#a855f7' : streak.currentStreak >= 7 ? '#3b82f6' : '#22c55e';
+              return (
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 16px',
+                  borderRadius: 20,
+                  background: `${multColor}10`,
+                  border: `1px solid ${multColor}30`,
+                  marginTop: 12,
+                }}>
+                  <span style={{ fontSize: 14 }}>💎</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: multColor }}>{mult}</span>
+                  <span style={{ fontSize: 11, color: '#94a3b8' }}>Diamond Multiplier</span>
+                </div>
+              );
+            })()}
+
             {streak.currentStreak >= 3 && (
               <button
                 onClick={async () => {
@@ -253,6 +276,35 @@ export default function StreaksPage() {
                 📢 Share Streak
               </button>
             )}
+
+            {/* Daily Motivational Tip */}
+            {(() => {
+              const tips = [
+                'Consistency beats intensity. 30 minutes every day > 4 hours once a week.',
+                'The best players review their mistakes the same day they make them.',
+                'Position awareness is the fastest ROI skill. Master your BTN game first.',
+                'Review 5 flashcards per day and you will master 50 GTO concepts in 2 weeks.',
+                'Warm up with 5 minutes of preflop ranges before every session.',
+                'Track your tilt patterns. Most leaks are emotional, not strategic.',
+                'The gap between 70% and 90% accuracy is where the real money is hidden.',
+              ];
+              const dayIdx = Math.floor(Date.now() / 86400000) % tips.length;
+              return (
+                <div style={{
+                  marginTop: 16,
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  fontSize: 11,
+                  color: '#94a3b8',
+                  lineHeight: 1.5,
+                  fontStyle: 'italic',
+                }}>
+                  💡 {tips[dayIdx]}
+                </div>
+              );
+            })()}
           </motion.div>
 
           {/* Next Milestone Progress */}

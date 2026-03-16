@@ -15,6 +15,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TILT DETECTION
@@ -336,20 +337,8 @@ export default function TiltGuardPage() {
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {/* Loading */}
           {loading && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                style={{
-                  width: 32,
-                  height: 32,
-                  margin: '0 auto 12px',
-                  border: '2px solid rgba(255,255,255,0.05)',
-                  borderTopColor: '#a855f7',
-                  borderRadius: '50%',
-                }}
-              />
-              Analyzing your emotional patterns...
+            <div style={{ padding: '20px 0' }}>
+              <SkeletonLoader variant="card" count={2} />
             </div>
           )}
 

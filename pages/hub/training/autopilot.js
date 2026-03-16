@@ -16,6 +16,7 @@ import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
@@ -325,23 +326,8 @@ export default function AutopilotPage() {
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {/* Loading */}
           {loading && (
-            <div style={{ textAlign: 'center', padding: '80px 20px', color: '#64748b' }}>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                style={{
-                  width: 40,
-                  height: 40,
-                  margin: '0 auto 16px',
-                  border: '3px solid rgba(255,255,255,0.05)',
-                  borderTopColor: '#a855f7',
-                  borderRadius: '50%',
-                }}
-              />
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
-                Scanning your weaknesses...
-              </div>
-              <div style={{ fontSize: 11 }}>Analyzing session history</div>
+            <div style={{ padding: '20px 0' }}>
+              <SkeletonLoader variant="card" count={2} />
             </div>
           )}
 
