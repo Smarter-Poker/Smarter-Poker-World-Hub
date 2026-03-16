@@ -126,7 +126,7 @@ export default async function handler(req, res) {
                   .from('social_comments')
                   .insert({
                       post_id,
-                      user_id,
+                      author_id: user_id,
                       content: content || '',
                       parent_id: req.body.parent_id || null
                   })
@@ -150,21 +150,18 @@ export default async function handler(req, res) {
               if (!data) return res.status(500).json({ success: false, error: 'Failed to create comment' });
 
               // Update comment count on post
-              await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'comment_count' }).catch(async (err) => {
-                  // If RPC doesn't exist, try direct update
-                  if (err.code === '42883') {
-                      try {
-                          const { data: p } = await getSupabase().from('social_posts').select('comment_count').eq('id', post_id).maybeSingle();
-                          if (p) {
-                              await getSupabase().from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', post_id);
-                          }
-                      } catch (fallbackErr) {
-                          console.warn('[Interactions] Fallback comment count update failed:', fallbackErr.message);
+              try {
+                  const { error: rpcErr } = await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'comment_count' });
+                  if (rpcErr) {
+                      // RPC doesn't exist or failed — try direct update
+                      const { data: p } = await getSupabase().from('social_posts').select('comment_count').eq('id', post_id).maybeSingle();
+                      if (p) {
+                          await getSupabase().from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', post_id);
                       }
-                  } else {
-                      console.warn('[Interactions] Comment count increment RPC failed:', err.message);
                   }
-              });
+              } catch (e) {
+                  console.warn('[Interactions] Comment count update failed:', e.message);
+              }
 
               return res.status(201).json({ comment: data });
 
@@ -183,16 +180,17 @@ export default async function handler(req, res) {
                   await getSupabase().from('social_interactions').delete().eq('id', existing.id);
 
                   // Atomic decrement like count
-                  await getSupabase().rpc('decrement_post_count', { p_post_id: post_id, p_field: 'like_count' }).catch(async () => {
-                    try {
-                      const { data: post } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
-                      if (post) {
-                        await getSupabase().from('social_posts').update({ like_count: Math.max(0, (post.like_count || 1) - 1) }).eq('id', post_id);
+                  try {
+                      const { error: rpcErr } = await getSupabase().rpc('decrement_post_count', { p_post_id: post_id, p_field: 'like_count' });
+                      if (rpcErr) {
+                          const { data: post } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
+                          if (post) {
+                              await getSupabase().from('social_posts').update({ like_count: Math.max(0, (post.like_count || 1) - 1) }).eq('id', post_id);
+                          }
                       }
-                    } catch (e) {
-                      console.warn('[Interactions] Like count decrement fallback failed:', e.message);
-                    }
-                  });
+                  } catch (e) {
+                      console.warn('[Interactions] Like count decrement failed:', e.message);
+                  }
 
                   return res.status(200).json({ action: 'unliked', liked: false });
               } else {
@@ -204,16 +202,17 @@ export default async function handler(req, res) {
                   if (error) return res.status(500).json({ success: false, error: error.message });
 
                   // Atomic increment like count
-                  await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'like_count' }).catch(async () => {
-                    try {
-                      const { data: post } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
-                      if (post) {
-                        await getSupabase().from('social_posts').update({ like_count: (post.like_count || 0) + 1 }).eq('id', post_id);
+                  try {
+                      const { error: rpcErr } = await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'like_count' });
+                      if (rpcErr) {
+                          const { data: post } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
+                          if (post) {
+                              await getSupabase().from('social_posts').update({ like_count: (post.like_count || 0) + 1 }).eq('id', post_id);
+                          }
                       }
-                    } catch (e) {
-                      console.warn('[Interactions] Like count increment fallback failed:', e.message);
-                    }
-                  });
+                  } catch (e) {
+                      console.warn('[Interactions] Like count increment failed:', e.message);
+                  }
 
                   return res.status(201).json({ action: 'liked', liked: true });
               }
@@ -229,16 +228,17 @@ export default async function handler(req, res) {
               }
 
               // Atomic increment share count
-              await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'share_count' }).catch(async () => {
-                try {
-                  const { data: post } = await getSupabase().from('social_posts').select('share_count').eq('id', post_id).maybeSingle();
-                  if (post) {
-                    await getSupabase().from('social_posts').update({ share_count: (post.share_count || 0) + 1 }).eq('id', post_id);
+              try {
+                  const { error: rpcErr } = await getSupabase().rpc('increment_post_count', { p_post_id: post_id, p_field: 'share_count' });
+                  if (rpcErr) {
+                      const { data: post } = await getSupabase().from('social_posts').select('share_count').eq('id', post_id).maybeSingle();
+                      if (post) {
+                          await getSupabase().from('social_posts').update({ share_count: (post.share_count || 0) + 1 }).eq('id', post_id);
+                      }
                   }
-                } catch (e) {
-                  console.warn('[Interactions] Share count increment fallback failed:', e.message);
-                }
-              });
+              } catch (e) {
+                  console.warn('[Interactions] Share count increment failed:', e.message);
+              }
 
               return res.status(201).json({ action: 'shared' });
           }
