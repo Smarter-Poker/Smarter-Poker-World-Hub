@@ -4334,6 +4334,7 @@ function SocialMediaPage() {
     // showMoreMenu state removed — all sidebar items now always visible
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [isPosting, setIsPosting] = useState(false);
+    const [deletePostId, setDeletePostId] = useState(null);
     const [bottomNavVisible, setBottomNavVisible] = useState(true);
     const [notifications, setNotifications] = useState([]);
     const [horseProfileIds, setHorseProfileIds] = useState(new Set());
@@ -5440,7 +5441,14 @@ function SocialMediaPage() {
     };
 
     const handleDelete = async (id) => {
-        if (!user?.id || !confirm('Delete this post?')) return;
+        if (!user?.id) return;
+        setDeletePostId(id);
+    };
+
+    const confirmDeletePost = async () => {
+        const id = deletePostId;
+        if (!id) return;
+        setDeletePostId(null);
         try {
             // Get auth token for server-side API
             const token = getAccessToken();
@@ -6617,6 +6625,40 @@ function SocialMediaPage() {
                     title={articleReader.title}
                     onClose={() => setArticleReader({ open: false, url: null, title: null })}
                 />
+            )}
+
+            {/* Delete Post Confirmation Modal */}
+            {deletePostId && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+                }} onClick={() => setDeletePostId(null)}>
+                    <div style={{
+                        background: '#FFFFFF', borderRadius: 12, padding: 24, maxWidth: 320, width: '100%',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: '#050505', marginBottom: 12 }}>Delete This Post?</div>
+                        <div style={{ fontSize: 14, color: '#65676B', marginBottom: 20 }}>
+                            This post will be permanently removed. This action cannot be undone.
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                                onClick={() => setDeletePostId(null)}
+                                style={{
+                                    flex: 1, padding: '10px 16px', background: '#e4e6eb', color: '#050505',
+                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+                                }}
+                            >Cancel</button>
+                            <button
+                                onClick={confirmDeletePost}
+                                style={{
+                                    flex: 1, padding: '10px 16px', background: '#F02849', color: 'white',
+                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+                                }}
+                            >Delete</button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Invite Friends Modal */}

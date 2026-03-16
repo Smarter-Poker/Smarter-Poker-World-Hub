@@ -69,10 +69,16 @@ function NotificationsPage() {
 
                 const [socialRes, pokerRes] = await Promise.all([
                     fetch('/api/notifications/list?limit=50', { headers, signal })
-                        .then(r => r.json())
+                        .then(r => {
+                            if (!r.ok) { console.warn('[Notifications] list API returned', r.status); return { success: false }; }
+                            return r.json();
+                        })
                         .catch(() => ({ success: false })),
                     fetch('/api/poker/notifications?user_id=' + encodeURIComponent(au.id) + '&limit=30', { headers, signal })
-                        .then(r => r.json())
+                        .then(r => {
+                            if (!r.ok) { console.warn('[Notifications] poker API returned', r.status); return { success: false }; }
+                            return r.json();
+                        })
                         .catch(() => ({ success: false })),
                 ]);
 
