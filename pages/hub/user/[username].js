@@ -204,13 +204,11 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
     const [lightboxIndex, setLightboxIndex] = useState(0);
     const [currentReaction, setCurrentReaction] = useState(null);
     const [editablePost, setEditablePost] = useState(post);
-    const [liked, setLiked] = useState(false);
     const [likeAnimating, setLikeAnimating] = useState(false);
     const [likeCount, setLikeCount] = useState(post.like_count || 0);
     const [commentCount, setCommentCount] = useState(post.comment_count || 0);
     const [showComments, setShowComments] = useState(false);
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
-    const likeThrottleRef = useRef(false);
 
     // Render post content with @mentions and #hashtags
     function renderContent(text) {
@@ -507,7 +505,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                 </div>
             )}
             <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', color: C.textSec, fontSize: 13 }}>
-                <span>{likeCount > 0 && `👍 ${likeCount}`}</span>
+                <span>{likeCount > 0 && `${currentReaction ? {like:'👍',love:'❤️',haha:'😂',wow:'😮',sad:'😢',angry:'😡'}[currentReaction] || '👍' : '👍'} ${likeCount}`}</span>
                 <span>{commentCount > 0 && `${commentCount} comments`}{shareMsg && ` · ${shareMsg}`}</span>
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>

@@ -44,14 +44,12 @@ export default function PlayerWaitlistPage() {
     try {
       const fetchOpts = signal ? { signal } : {};
       const [publicRes, waitlistRes] = await Promise.all([
-        fetch(`/api/public/venue/${venueId}`, fetchOpts).catch(() => ({ ok: false })),
-        fetch(`/api/commander/waitlist/venue/${venueId}`, fetchOpts).catch(() => ({ ok: false }))
+        fetch(`/api/public/venue/${venueId}`, fetchOpts).catch(() => null),
+        fetch(`/api/commander/waitlist/venue/${venueId}`, fetchOpts).catch(() => null)
       ]);
 
-      const [publicData, waitlistData] = await Promise.all([
-        publicRes.json(),
-        waitlistRes.json()
-      ]);
+      const publicData = publicRes?.ok ? await publicRes.json() : { success: false };
+      const waitlistData = waitlistRes?.ok ? await waitlistRes.json() : { success: false };
 
       if (publicData.success) {
         setVenue(publicData.data.venue);
@@ -117,8 +115,7 @@ export default function PlayerWaitlistPage() {
   }, [venueId]);
 
   useEffect(() => {
-
-  if (!router.isReady) return null;
+    if (!router.isReady) return;
 
     if (venueId) {
       const controller = new AbortController();

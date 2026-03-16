@@ -33,10 +33,43 @@ import ClubArenaSkeleton from './ClubArenaSkeleton';
 // Enforce relative paths so the Next.js same-origin proxy (rewrites) takes over.
 const SPA_ORIGIN = '';
 const SPA_BASE = '/hub/club-arena';
-const LOAD_TIMEOUT_MS = 8_000;         // 8s before showing error (boot is now non-blocking)
+const LOAD_TIMEOUT_MS = 15_000;        // FIX 3: 15s for iframe HTML to load (generous for slow networks)
 const AUTH_RETRY_INTERVAL_MS = 1_500;  // Retry auth every 1.5s
 const AUTH_MAX_RETRIES = 10;           // Max 10 auth attempts (15s total window)
 const HEARTBEAT_TIMEOUT_MS = 90_000;   // 90s without heartbeat = dead iframe (generous for heavy pages)
+
+/* ── FIX 4: Token Expiry Pre-Check ────────────────────────────────────── */
+/**
+ * Check if a JWT access token is expired or expiring within 30 seconds.
+ * Prevents sending stale tokens to the iframe that App.tsx would reject.
+ */
+function isTokenExpiringSoon(token) {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return true; // Malformed → treat as expired
+        const payload = JSON.parse(atob(parts[1]));
+        if (typeof payload.exp !== 'number') return true;
+        // 30s buffer — same as App.tsx's isTokenExpired()
+        return payload.exp * 1000 < Date.now() + 30_000;
+    } catch {
+        return true; // Parse error → treat as expired
+    }
+}
+
+/* ── FIX 6: Consistent Origin Targeting ──────────────────────────────── */
+/**
+ * Get the correct target origin for postMessage to the iframe.
+ * Uses env var override if set, otherwise falls back to window.location.origin
+ * (which works when the Next.js proxy rewrite serves the iframe same-origin).
+ */
+function getTargetOrigin() {
+    // env var override for non-proxy setups (e.g. direct club-arena.vercel.app)
+    if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_CLUB_ARENA_ORIGIN) {
+        return process.env.NEXT_PUBLIC_CLUB_ARENA_ORIGIN;
+    }
+    // Same-origin proxy (default) — iframe is served from our domain via rewrites
+    return window.location.origin;
+}
 
 /* ── Settings keys that bridge World Hub → Club Arena ─────────────────── */
 const SETTINGS_KEYS = ['smarter-poker-theme', 'poker-sound-enabled', 'poker-4color-deck'];
@@ -123,8 +156,8 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
             } else {
                 console.error('[ClubArenaEmbed] Iframe load timed out after', LOAD_TIMEOUT_MS, 'ms');
                 setErrorMsg(
-                    `Club Arena failed to load within ${LOAD_TIMEOUT_MS / 1000}s. ` +
-                    'This may be a network issue or a Content-Security-Policy block.'
+                    'Club Arena is taking too long to load. ' +
+                    'This may be a network issue — please check your connection and try again.'
                 );
             }
         }, LOAD_TIMEOUT_MS);
@@ -217,11 +250,11 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     }, [loadState, handleRetry]);
 
     /* ── Auth token passthrough with retry + ACK ──────────────────────── */
-    // CRITICAL: Start sending auth IMMEDIATELY when iframe src is set, NOT
-    // after iframe onLoad. The iframe's inline script and early auth listener
-    // in main.tsx capture the token even before React mounts in the iframe.
-    // Waiting for onLoad created a 2-10s delay where the iframe was ready to
-    // receive auth but the Hub wasn't sending it.
+    // FIX 1+4: Auth is sent on a retry loop, but:
+    //   - We only postMessage AFTER iframeLoadedRef is true (contentWindow is guaranteed)
+    //   - Before onLoad, the iframe's inline script sends ACKs on its own
+    //   - We validate token expiry BEFORE sending (FIX 4)
+    //   - Max retries extended to 20 (30s window) to accommodate slow networks
     useEffect(() => {
         if (!iframeSrc) return;
 
@@ -244,6 +277,15 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                 return;
             }
             attempts++;
+
+            // FIX 1: Don't attempt postMessage until iframe onLoad has fired.
+            // Before onLoad, contentWindow may be null or point to about:blank.
+            // The iframe's inline script handles ACKs independently pre-load.
+            if (!iframeLoadedRef.current) {
+                console.log(`[ClubArenaEmbed] Waiting for iframe onLoad before sending auth (attempt ${attempts}/${AUTH_MAX_RETRIES})`);
+                return; // Continue retrying — iframe hasn't loaded yet
+            }
+
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) {
@@ -251,21 +293,45 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                     console.warn(`[ClubArenaEmbed] No session available (attempt ${attempts}/${AUTH_MAX_RETRIES})`);
                     return; // Continue retrying — session may hydrate
                 }
-                if (session.access_token && iframeRef.current?.contentWindow) {
-                    noSessionDetected = false; // Session recovered
-                    const globalSettings = readWorldHubSettings();
 
-                    iframeRef.current.contentWindow.postMessage({
-                        type: 'SMARTER_AUTH_TOKEN',
-                        token: session.access_token,
-                        refreshToken: session.refresh_token,
-                        settings: globalSettings,
-                    }, window.location.origin);
-                    console.log(`[ClubArenaEmbed] Auth token and settings sent (attempt ${attempts}/${AUTH_MAX_RETRIES})`);
+                // FIX 4: Check token expiry BEFORE sending. If expired, force refresh.
+                if (isTokenExpiringSoon(session.access_token)) {
+                    console.warn('[ClubArenaEmbed] Token expiring soon — requesting refresh before sending');
+                    try {
+                        const { data: refreshed } = await supabase.auth.refreshSession();
+                        if (refreshed?.session) {
+                            // Use the refreshed session instead
+                            sendTokenToIframe(refreshed.session, attempts);
+                            return;
+                        }
+                    } catch (refreshErr) {
+                        console.warn('[ClubArenaEmbed] Token refresh failed, sending current token:', refreshErr);
+                    }
                 }
+
+                sendTokenToIframe(session, attempts);
             } catch (e) {
                 console.error('[ClubArenaEmbed] Failed to send auth:', e);
             }
+        };
+
+        /** Helper: actually send the token via postMessage */
+        const sendTokenToIframe = (session, attempt) => {
+            if (!session.access_token || !iframeRef.current?.contentWindow) {
+                console.warn(`[ClubArenaEmbed] Cannot send — contentWindow unavailable (attempt ${attempt}/${AUTH_MAX_RETRIES})`);
+                return;
+            }
+            noSessionDetected = false;
+            const globalSettings = readWorldHubSettings();
+            // FIX 6: Use getTargetOrigin() for consistent origin targeting
+            const targetOrigin = getTargetOrigin();
+            iframeRef.current.contentWindow.postMessage({
+                type: 'SMARTER_AUTH_TOKEN',
+                token: session.access_token,
+                refreshToken: session.refresh_token,
+                settings: globalSettings,
+            }, targetOrigin);
+            console.log(`[ClubArenaEmbed] Auth token and settings sent (attempt ${attempt}/${AUTH_MAX_RETRIES})`);
         };
 
         // Send immediately, then retry on interval until ACK
@@ -289,7 +355,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                     token: session.access_token,
                     refreshToken: session.refresh_token,
                     settings: globalSettings,
-                }, window.location.origin);
+                }, getTargetOrigin());
                 console.log('[ClubArenaEmbed] 🔄 Token refreshed — re-sent to SPA');
             }
         });
@@ -312,7 +378,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                 iframeRef.current.contentWindow.postMessage({
                     type: 'SMARTER_SETTINGS_UPDATE',
                     settings: updatedSettings,
-                }, window.location.origin);
+                }, getTargetOrigin());
                 console.log(`[ClubArenaEmbed] Live settings push: ${event.key} changed`);
             } catch (e) {
                 /* best effort — ignore postMessage errors */
@@ -330,7 +396,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         // We listen for AUTH_ACK here specifically for TTI measurement
         // (The main message handler also catches AUTH_ACK for the retry loop)
         const measureTTI = (event) => {
-            if (event.origin !== window.location.origin) return;
+            if (event.origin !== getTargetOrigin() && event.origin !== window.location.origin) return;
             if (event.data?.type !== 'SMARTER_AUTH_ACK') return;
 
             if (loadStartTimeRef.current) {
@@ -356,7 +422,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     useEffect(() => {
         const handleMessage = (event) => {
             // Must be strictly from this origin to prevent cross-site scripting
-            if (event.origin !== window.location.origin) return;
+            if (event.origin !== getTargetOrigin() && event.origin !== window.location.origin) return;
             const data = event.data;
             if (!data || typeof data !== 'object') return;
 

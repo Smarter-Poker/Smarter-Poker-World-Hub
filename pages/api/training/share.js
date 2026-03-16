@@ -52,6 +52,16 @@ const SHARE_TEMPLATES = {
         generateContent: (data) =>
             `📚 Just completed a training session on "${data.gameName}" with ${data.accuracy}% accuracy!`,
         postType: 'update'
+    },
+    autopilot: {
+        generateContent: (data) =>
+            `🤖 Autopilot session complete! Trained ${data.spotsTrailed || 0} weak spots with ${data.accuracy || 0}% accuracy. ${(data.spots || []).slice(0, 3).join(', ')}`,
+        postType: 'accomplishment'
+    },
+    'gto-score': {
+        generateContent: (data) =>
+            `📊 My GTO Proximity Score: ${data.score}/100 (${data.tier}) — based on ${(data.hands || 0).toLocaleString()} hands analyzed!`,
+        postType: 'milestone'
     }
 };
 

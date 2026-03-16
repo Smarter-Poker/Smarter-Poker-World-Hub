@@ -1008,7 +1008,17 @@ export default function DiamondArcade() {
 
                                     {activeGame.id === 'chip-math' && (
                                         <>
-                                            <p style={styles.questionText}>{currentQuestion.question}</p>
+                                            <p style={styles.questionText}>What equity do you need to call?</p>
+                                            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', margin: '12px 0', flexWrap: 'wrap' }}>
+                                                <div style={{ background: 'rgba(35, 116, 225, 0.15)', border: '1px solid rgba(35, 116, 225, 0.3)', borderRadius: '10px', padding: '12px 20px', textAlign: 'center' }}>
+                                                    <div style={{ color: '#65676b', fontSize: '11px', textTransform: 'uppercase' }}>Pot</div>
+                                                    <div style={{ color: '#2374e1', fontSize: '22px', fontWeight: '800' }}>{currentQuestion.pot}</div>
+                                                </div>
+                                                <div style={{ background: 'rgba(240, 40, 73, 0.15)', border: '1px solid rgba(240, 40, 73, 0.3)', borderRadius: '10px', padding: '12px 20px', textAlign: 'center' }}>
+                                                    <div style={{ color: '#65676b', fontSize: '11px', textTransform: 'uppercase' }}>Bet to Call</div>
+                                                    <div style={{ color: '#f02849', fontSize: '22px', fontWeight: '800' }}>{currentQuestion.bet}</div>
+                                                </div>
+                                            </div>
                                             <div style={styles.optionsGrid}>
                                                 {currentQuestion.options.map((opt, idx) => (
                                                     <motion.button
