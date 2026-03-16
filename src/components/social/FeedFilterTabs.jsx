@@ -27,7 +27,7 @@ const C = {
 
 export default function FeedFilterTabs({ activeFilter = 'recent', onFilterChange }) {
     return (
-        <div style={{
+        <div className="sp-feed-filter-tabs" style={{
             display: 'flex', gap: 8, padding: '12px 0', marginBottom: 12,
             overflowX: 'auto', scrollbarWidth: 'none',
         }}>
@@ -53,7 +53,7 @@ export default function FeedFilterTabs({ activeFilter = 'recent', onFilterChange
             })}
 
             <style>{`
-                div::-webkit-scrollbar { display: none; }
+                .sp-feed-filter-tabs::-webkit-scrollbar { display: none; }
             `}</style>
         </div>
     );

@@ -526,6 +526,12 @@ export function generateShowdownQuestion(): ShowdownQuestion {
     }));
 
     evaluations.sort((a, b) => b.eval.value - a.eval.value);
+
+    // Tie protection: if top two hands chop, regenerate to avoid unsolvable question
+    if (evaluations[0].eval.value === evaluations[1].eval.value) {
+        return generateShowdownQuestion();
+    }
+
     const correctIndex = evaluations[0].idx;
     const handRanks = hands.map((hand) => getHandName(evaluateHand(hand, board).rank));
 

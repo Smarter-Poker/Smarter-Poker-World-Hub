@@ -204,24 +204,33 @@ export default function SessionNotesPage() {
     }, {}),
   };
 
-  // Export notes to clipboard as markdown
+  // Export notes as downloadable CSV
   const exportNotes = () => {
-    const md = filtered.map((n) => {
-      let out = `## ${formatDate(n.createdAt)} — ${moodObj(n.mood).emoji} ${moodObj(n.mood).label}`;
-      if (n.accuracy !== null) out += ` (${n.accuracy}%)`;
-      out += '\n';
-      if (n.tags?.length) out += `**Tags:** ${n.tags.map((t) => `#${t}`).join(' ')}\n`;
-      if (n.wentWell) out += `**Good:** ${n.wentWell}\n`;
-      if (n.toImprove) out += `**Fix:** ${n.toImprove}\n`;
-      if (n.freeText) out += `\n${n.freeText}\n`;
-      return out;
-    }).join('\n---\n\n');
-    const header = `# Training Session Notes — Smarter.Poker\n\n`;
-    navigator.clipboard?.writeText(header + md).then(() => {
-      alert('Notes copied to clipboard!');
-    }).catch(() => {
-      alert('Copy failed — try manually selecting text.');
+    const escCsv = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
+    const header = 'Date,Game,Accuracy,Mood,Tags,Went Well,To Improve,Notes';
+    const rows = filtered.map((n) => {
+      const m = moodObj(n.mood);
+      return [
+        escCsv(formatDate(n.createdAt)),
+        escCsv(n.gameId || 'Unknown'),
+        n.accuracy !== null ? n.accuracy : '',
+        escCsv(`${m.emoji} ${m.label}`),
+        escCsv((n.tags || []).join(', ')),
+        escCsv(n.wentWell),
+        escCsv(n.toImprove),
+        escCsv(n.freeText),
+      ].join(',');
     });
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `smarter-poker-notes-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const moodObj = (id) => MOOD_OPTIONS.find((m) => m.id === id) || MOOD_OPTIONS[2];
@@ -674,7 +683,7 @@ export default function SessionNotesPage() {
                     marginBottom: 16,
                   }}
                 >
-                  Export {filtered.length} Notes to Clipboard
+                  Download {filtered.length} Notes as CSV
                 </motion.button>
               )
               }

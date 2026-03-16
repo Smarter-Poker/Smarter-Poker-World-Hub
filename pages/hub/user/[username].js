@@ -514,10 +514,25 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                 <ReactionPicker
                     currentReaction={currentReaction}
                     onReact={(type) => {
-                        setCurrentReaction(prev => prev === type ? null : type);
-                        setLikeCount(prev => currentReaction ? (type === currentReaction ? prev - 1 : prev) : prev + 1);
+                        const wasReacted = currentReaction !== null;
+                        const isSameReaction = currentReaction === type;
+
+                        if (isSameReaction) {
+                            // Toggle off — remove reaction
+                            setCurrentReaction(null);
+                            setLikeCount(prev => Math.max(0, prev - 1));
+                        } else if (wasReacted) {
+                            // Switch reaction type — count stays the same
+                            setCurrentReaction(type);
+                        } else {
+                            // New reaction — add
+                            setCurrentReaction(type);
+                            setLikeCount(prev => prev + 1);
+                        }
+
                         setLikeAnimating(true);
                         setTimeout(() => setLikeAnimating(false), 300);
+
                         if (currentUserId) {
                             const token = getAccessToken();
                             fetch('/api/social/interactions', {

@@ -350,14 +350,47 @@ export default function AutopilotPage() {
               <div style={{ fontSize: 18, fontWeight: 800, color: '#4ade80', marginBottom: 4 }}>
                 Autopilot Complete
               </div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
-                You trained {results.length} weak spots
-              </div>
+
+              {/* Coaching Grade Badge */}
+              {(() => {
+                const totalQ = results.reduce((s, r) => s + (r.questionsAnswered || 0), 0);
+                const totalCorrect = results.reduce((s, r) => s + Math.round(((r.accuracy || 0) / 100) * (r.questionsAnswered || 0)), 0);
+                const avgAccuracy = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
+                const grade = avgAccuracy >= 90 ? 'A' : avgAccuracy >= 80 ? 'B' : avgAccuracy >= 70 ? 'C' : 'D';
+                const gradeColor = avgAccuracy >= 90 ? '#4ade80' : avgAccuracy >= 80 ? '#3b82f6' : avgAccuracy >= 70 ? '#fbbf24' : '#f87171';
+                return (
+                  <>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 20px',
+                      borderRadius: 12,
+                      background: `${gradeColor}10`,
+                      border: `1px solid ${gradeColor}30`,
+                      marginBottom: 16,
+                    }}>
+                      <span style={{ fontSize: 28, fontWeight: 900, color: gradeColor }}>{grade}</span>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>
+                          {avgAccuracy}% Overall
+                        </div>
+                        <div style={{ fontSize: 10, color: '#64748b' }}>
+                          {totalCorrect}/{totalQ} questions correct
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+
+              {/* Per-Spot Breakdown */}
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: `repeat(${results.length}, 1fr)`,
                   gap: 8,
+                  marginBottom: 16,
                 }}
               >
                 {results.map((r, i) => (
@@ -380,24 +413,87 @@ export default function AutopilotPage() {
                   </div>
                 ))}
               </div>
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={startAutopilot}
-                style={{
-                  marginTop: 16,
-                  padding: '12px 24px',
-                  borderRadius: 10,
-                  border: '1px solid rgba(0,212,255,0.3)',
-                  background:
-                    'linear-gradient(180deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
-                  color: '#00d4ff',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Run Again
-              </motion.button>
+
+              {/* Coaching Recommendation */}
+              {(() => {
+                const weakest = [...results].sort((a, b) => a.accuracy - b.accuracy)[0];
+                if (!weakest) return null;
+                return (
+                  <div style={{
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    background: 'rgba(0,0,0,0.2)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    textAlign: 'left',
+                    marginBottom: 16,
+                  }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                      Coach Recommendation
+                    </div>
+                    <div style={{ fontSize: 12, color: '#e2e8f0', lineHeight: 1.5 }}>
+                      Focus your next session on <strong style={{ color: weakest.spot.color }}>{weakest.spot.name}</strong> — it was your weakest area at {weakest.accuracy}%.
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={startAutopilot}
+                  style={{
+                    flex: 1,
+                    padding: '12px 24px',
+                    borderRadius: 10,
+                    border: '1px solid rgba(0,212,255,0.3)',
+                    background:
+                      'linear-gradient(180deg, rgba(0,212,255,0.15) 0%, rgba(0,212,255,0.05) 100%)',
+                    color: '#00d4ff',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Run Again
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={async () => {
+                    try {
+                      const user = getAuthUser();
+                      if (!user?.id) return;
+                      const totalQ = results.reduce((s, r) => s + (r.questionsAnswered || 0), 0);
+                      const avgAcc = totalQ > 0 ? Math.round(results.reduce((s, r) => s + ((r.accuracy || 0) * (r.questionsAnswered || 0)), 0) / totalQ) : 0;
+                      const res = await authedFetch('/api/training/share', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          userId: user.id,
+                          shareType: 'autopilot',
+                          data: { spotsTrailed: results.length, accuracy: avgAcc, spots: results.map(r => r.spot.name) },
+                        }),
+                      });
+                      if (res.ok) alert('Autopilot results shared to your feed!');
+                    } catch (e) {
+                      console.error('Share error:', e);
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px 24px',
+                    borderRadius: 10,
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'rgba(255,255,255,0.03)',
+                    color: '#94a3b8',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Share Results
+                </motion.button>
+              </div>
             </motion.div>
           )}
 

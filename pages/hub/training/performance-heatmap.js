@@ -15,6 +15,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GRID DEFINITIONS
@@ -697,20 +698,8 @@ export default function PerformanceHeatmapPage() {
 
           {/* Loading */}
           {loading && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                style={{
-                  width: 32,
-                  height: 32,
-                  margin: '0 auto 12px',
-                  border: '2px solid rgba(255,255,255,0.05)',
-                  borderTopColor: '#00d4ff',
-                  borderRadius: '50%',
-                }}
-              />
-              Building heatmap...
+            <div style={{ padding: '20px 0' }}>
+              <SkeletonLoader variant="table" />
             </div>
           )}
 

@@ -407,6 +407,42 @@ export default function GTOScorecardPage() {
               GTO Proximity Score — based on {totalHands.toLocaleString()} hands across{' '}
               {sessions.length} sessions
             </div>
+            {!loading && gtoScore > 0 && (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={async () => {
+                  try {
+                    const user = getAuthUser();
+                    if (!user?.id) return;
+                    const res = await authedFetch('/api/training/share', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        userId: user.id,
+                        shareType: 'gto-score',
+                        data: { score: gtoScore, tier: scoreLabel, hands: totalHands },
+                      }),
+                    });
+                    if (res.ok) alert('GTO Score shared to your feed!');
+                  } catch (e) {
+                    console.error('Share error:', e);
+                  }
+                }}
+                style={{
+                  marginTop: 12,
+                  padding: '8px 20px',
+                  borderRadius: 8,
+                  border: `1px solid ${scoreColor}30`,
+                  background: `${scoreColor}08`,
+                  color: scoreColor,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Share My Score
+              </motion.button>
+            )}
           </motion.div>
 
           {/* Stat Selector */}

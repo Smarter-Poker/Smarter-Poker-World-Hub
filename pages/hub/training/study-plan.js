@@ -759,6 +759,60 @@ export default function StudyPlanPage() {
             );
           })()}
 
+          {/* Today's Focus — CTA */}
+          {sessions.length > 0 && (() => {
+            const allWeaknesses = analyzeWeaknesses(sessions);
+            const focusWeaknesses = allWeaknesses.filter((w) => w.weakness && w.accuracy !== undefined);
+            if (focusWeaknesses.length === 0) return null;
+            const focus = focusWeaknesses[Math.floor(Date.now() / 86400000) % focusWeaknesses.length];
+            if (!focus) return null;
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: 12,
+                  marginBottom: 16,
+                  background: 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(59,130,246,0.03))',
+                  border: '1px solid rgba(0,212,255,0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                    Today's Focus
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
+                    {focus.icon} {focus.name}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                    {focus.accuracy}% accuracy — needs attention
+                  </div>
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleStartArea(focus.gameId || focus.name)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(0,212,255,0.25)',
+                    background: 'rgba(0,212,255,0.08)',
+                    color: '#00d4ff',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Start Training
+                </motion.button>
+              </motion.div>
+            );
+          })()}
+
           {/* Day Cards */}
           {plan &&
             plan.map((dayPlan, idx) => (

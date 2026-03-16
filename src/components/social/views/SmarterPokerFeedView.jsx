@@ -281,24 +281,8 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
 
     const loadFeed = useCallback(async () => {
         if (!socialService || !currentUser?.id) {
-            // Fallback to mock data if service not available
-            setPosts([
-                {
-                    id: 1,
-                    content: "Just crushed it at the 2/5 NL tables! 🔥 That river bluff was chef's kiss 👨‍🍳",
-                    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-                    engagement: { likeCount: 47, commentCount: 12, shareCount: 3 },
-                    handData: {
-                        stakes: '$2/$5 NL',
-                        won: true,
-                        amount: 1250,
-                        heroCards: ['A♠', 'K♠'],
-                        board: ['Q♠', 'J♠', '4♥', '8♦', '2♣']
-                    },
-                    author: { username: 'Mike Thompson', tier: 'SHARK', isVerified: true },
-                    comments: [{ author: { username: 'Sarah G' }, content: 'Nice hand! That river was scary though 😅' }]
-                }
-            ]);
+            // No service or user — show empty state, not mock data
+            setPosts([]);
             setLoading(false);
             return;
         }

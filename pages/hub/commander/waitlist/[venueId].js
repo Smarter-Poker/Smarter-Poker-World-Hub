@@ -405,42 +405,46 @@ export default function PlayerWaitlistPage() {
         )}
 
         {/* ═══ MY WAITLIST SUMMARY + ACTIONS ═══ */}
-        {myEntries.filter(e => e.status === 'waiting' || e.status === 'called').length > 0 && (
-          <div style={S.myEntriesArea}>
-            <div style={S.myEntriesHeader}>
-              <span style={S.myEntriesTitle}>Your Waitlists</span>
-              <span style={S.myEntriesCount}>
-                {myEntries.filter(e => e.status === 'waiting' || e.status === 'called').length} game{myEntries.filter(e => e.status === 'waiting' || e.status === 'called').length !== 1 ? 's' : ''}
-              </span>
-            </div>
-            <div style={S.myEntriesList}>
-              {myEntries.filter(e => e.status === 'waiting' || e.status === 'called').map(entry => (
-                <div key={entry.id} style={{
-                  ...S.myEntryChip,
-                  ...(entry.status === 'called' ? S.myEntryChipCalled : {})
-                }}>
-                  <span style={{ fontWeight: 700, color: entry.status === 'called' ? '#D4AF37' : '#E0E0E0' }}>
-                    {GAME_LABELS[entry.game_type] || entry.game_type} {entry.stakes}
-                  </span>
-                  <span style={{ fontSize: 11, color: entry.status === 'called' ? '#D4AF37' : '#888' }}>
-                    {entry.status === 'called' ? 'CALLED' : `#${entry.position || '?'}`}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {!arrived && (
-              <button onClick={handleArrived} style={S.arrivedBtn}>
-                I've Arrived
-              </button>
-            )}
-            {arrived && (
-              <div style={S.arrivedConfirm}>
-                <CheckCircle style={{ width: 14, height: 14 }} />
-                Staff has been notified
+        {(() => {
+          const activeEntries = myEntries.filter(e => e.status === 'waiting' || e.status === 'called');
+          if (activeEntries.length === 0) return null;
+          return (
+            <div style={S.myEntriesArea}>
+              <div style={S.myEntriesHeader}>
+                <span style={S.myEntriesTitle}>Your Waitlists</span>
+                <span style={S.myEntriesCount}>
+                  {activeEntries.length} game{activeEntries.length !== 1 ? 's' : ''}
+                </span>
               </div>
-            )}
-          </div>
-        )}
+              <div style={S.myEntriesList}>
+                {activeEntries.map(entry => (
+                  <div key={entry.id} style={{
+                    ...S.myEntryChip,
+                    ...(entry.status === 'called' ? S.myEntryChipCalled : {})
+                  }}>
+                    <span style={{ fontWeight: 700, color: entry.status === 'called' ? '#D4AF37' : '#E0E0E0' }}>
+                      {GAME_LABELS[entry.game_type] || entry.game_type} {entry.stakes}
+                    </span>
+                    <span style={{ fontSize: 11, color: entry.status === 'called' ? '#D4AF37' : '#888' }}>
+                      {entry.status === 'called' ? 'CALLED' : `#${entry.position || '?'}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {!arrived && (
+                <button onClick={handleArrived} style={S.arrivedBtn}>
+                  I've Arrived
+                </button>
+              )}
+              {arrived && (
+                <div style={S.arrivedConfirm}>
+                  <CheckCircle style={{ width: 14, height: 14 }} />
+                  Staff has been notified
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ═══ JOIN ALL BUTTON ═══ */}
         {waitlistColumns.length > 1 && waitlistColumns.some(col => !isMyEntry(col.gameType, col.stakes)) && (
