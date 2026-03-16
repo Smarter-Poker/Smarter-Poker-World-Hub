@@ -120,6 +120,16 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'post_id and interaction_type required' });
           }
 
+          // Validate post exists before any interaction
+          const { data: postExists } = await getSupabase()
+              .from('social_posts')
+              .select('id')
+              .eq('id', post_id)
+              .maybeSingle();
+          if (!postExists) {
+              return res.status(404).json({ success: false, error: 'Post not found' });
+          }
+
           if (interaction_type === 'comment') {
               // Insert into social_comments table
               const { data, error } = await getSupabase()
@@ -221,7 +231,7 @@ export default async function handler(req, res) {
               // Record share
               const { error } = await getSupabase()
                   .from('social_interactions')
-                  .upsert({ post_id, user_id, interaction_type: 'share' }, { onConflict: 'post_id,user_id' });
+                  .upsert({ post_id, user_id, interaction_type: 'share' }, { onConflict: 'post_id,user_id,interaction_type' });
 
               if (error && error.code !== '23505') {
                   return res.status(500).json({ success: false, error: error.message });
