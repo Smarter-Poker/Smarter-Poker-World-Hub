@@ -367,7 +367,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                     },
                     body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'share' })
-                }).catch(() => { }).catch(() => {});
+                }).catch(() => { });
             }
         } catch {
             setShareMsg('Share failed');
@@ -447,7 +447,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                 )}
             </div>
             {post.content && (
-                <div style={{ padding: '0 12px 12px', fontSize: 15, color: C.text, lineHeight: 1.4 }}>{post.content}</div>
+                <div style={{ padding: '0 12px 12px', fontSize: 15, color: C.text, lineHeight: 1.4 }}>{renderMentions(post.content)}</div>
             )}
             {isArticleOrLink ? (
                 <ArticleCard
@@ -873,8 +873,9 @@ export default function UserProfilePage() {
             // Fetch fresh profile data inline (lightweight re-fetch of posts/follows only)
             const refreshContent = async () => {
                 try {
-                    const [postsData, followingRes, followersRes, friendsRes] = await Promise.all([
+                    const [postsData, postsCountRes, followingRes, followersRes, friendsRes] = await Promise.all([
                         supabase.from('social_posts').select('*').eq('author_id', profile.id).order('created_at', { ascending: false }).limit(20),
+                        supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', profile.id),
                         supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profile.id),
                         supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profile.id),
                         supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`),
@@ -885,7 +886,7 @@ export default function UserProfilePage() {
                         following: followingRes.count || prev.following,
                         followers: followersRes.count || prev.followers,
                         friends: friendsRes.count ? Math.floor(friendsRes.count / 2) : prev.friends,
-                        posts: (postsData.data || []).length || prev.posts,
+                        posts: postsCountRes.count ?? prev.posts,
                     }));
                 } catch (e) {
                     console.warn('[Profile Realtime] Refresh failed:', e);
@@ -894,22 +895,28 @@ export default function UserProfilePage() {
             refreshContent();
         };
 
+        // Get current user ID for filtering own events (prevents optimistic + realtime double-count)
+        const myUserId = currentUser?.id;
+
         const _ch = supabase
             .channel(`user-profile:${profile.id}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts', filter: `author_id=eq.${profile.id}` }, handleRealtimeUpdate)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'follows' }, handleRealtimeUpdate)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_likes' }, (payload) => {
-                if (payload.new && payload.new.post_id) {
+                // Skip own likes — already handled by optimistic UI in handleLike
+                if (payload.new && payload.new.post_id && payload.new.user_id !== myUserId) {
                     eventBus.emit('SOCIAL_LIKE_UPDATE', { postId: payload.new.post_id, delta: 1 }, 'SocialRealtime');
                 }
             })
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'social_likes' }, (payload) => {
-                if (payload.old && payload.old.post_id) {
+                // Skip own unlikes — already handled by optimistic UI in handleLike
+                if (payload.old && payload.old.post_id && payload.old.user_id !== myUserId) {
                     eventBus.emit('SOCIAL_LIKE_UPDATE', { postId: payload.old.post_id, delta: -1 }, 'SocialRealtime');
                 }
             })
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_comments' }, (payload) => {
-                if (payload.new && payload.new.post_id) {
+                // Skip own comments — already handled by optimistic UI in submitComment
+                if (payload.new && payload.new.post_id && payload.new.user_id !== myUserId) {
                     eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: payload.new.post_id }, 'SocialRealtime');
                 }
             })
