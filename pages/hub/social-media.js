@@ -5100,49 +5100,49 @@ function SocialMediaPage() {
             // Sort by score (SmarterPoker-style ranking)
             mixedFeed.sort((a, b) => b.score - a.score);
 
-            // Fetch author profiles using native fetch to avoid AbortError
+            // Fetch author profiles AND bookmarks in PARALLEL (independent queries)
             if (mixedFeed.length > 0) {
                 const authorIds = [...new Set(mixedFeed.map(p => p.author_id).filter(Boolean))];
                 if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  Processing', mixedFeed.length, 'posts with', authorIds.length, 'unique authors');
                 let authorMap = {};
-                if (authorIds.length) {
-                    try {
-                        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Fetching profiles for author IDs:', authorIds.slice(0, 3), '...');
-                        const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name,avatar_url`, {
-                            headers: {
-                                'apikey': supabaseKey,
-                                'Authorization': `Bearer ${supabaseKey}`
-                            }
-                        });
-
-                        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Profile fetch response status:', profilesRes.status);
-                        if (!profilesRes.ok) {
-                            const errorText = await profilesRes.text();
-                            console.error('[Social] ❌ Profile fetch failed:', profilesRes.status, errorText);
-                        } else {
-                            const profiles = await profilesRes.json();
-                            if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Loaded', profiles.length, 'profiles:', profiles.map(p => p.username || p.full_name));
-                            if (profiles && profiles.length > 0) {
-                                authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
-                                if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Author map created with', Object.keys(authorMap).length, 'entries');
-                            } else {
-                                console.warn('[Social]  No profiles returned from query');
-                            }
-                        }
-                    } catch (profileError) {
-                        console.error('[Social] Profile fetch error:', profileError);
-                    }
-                }
-
-                // Fetch user's bookmarked post IDs (fire-and-forget if fails)
                 let bookmarkedPostIds = new Set();
-                try {
-                    if (user?.id) {
-                        const bookmarkRes = await fetch(
-                            `${supabaseUrl}/rest/v1/social_interactions?user_id=eq.${user.id}&interaction_type=eq.bookmark&select=post_id`,
-                            { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` } }
-                        );
-                        if (bookmarkRes.ok) {
+
+                // ⚡ Fire BOTH queries in parallel
+                const [profileResult, bookmarkResult] = await Promise.allSettled([
+                    // 1. Fetch author profiles
+                    (async () => {
+                        if (!authorIds.length) return {};
+                        try {
+                            const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name,avatar_url`, {
+                                headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+                            });
+                            if (!profilesRes.ok) {
+                                console.error('[Social] Profile fetch failed:', profilesRes.status);
+                                return {};
+                            }
+                            const profiles = await profilesRes.json();
+                            return (profiles && profiles.length > 0) ? Object.fromEntries(profiles.map(p => [p.id, p])) : {};
+                        } catch (e) { console.error('[Social] Profile fetch error:', e); return {}; }
+                    })(),
+                    // 2. Fetch bookmarks
+                    (async () => {
+                        if (!user?.id) return new Set();
+                        try {
+                            const bookmarkRes = await fetch(
+                                `${supabaseUrl}/rest/v1/social_interactions?user_id=eq.${user.id}&interaction_type=eq.bookmark&select=post_id`,
+                                { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` } }
+                            );
+                            if (bookmarkRes.ok) {
+                                const bookmarks = await bookmarkRes.json();
+                                return new Set(bookmarks.map(b => b.post_id));
+                            }
+                        } catch { /* bookmark fetch non-critical */ }
+                        return new Set();
+                    })(),
+                ]);
+
+                authorMap = profileResult.status === 'fulfilled' ? profileResult.value : {};
+                bookmarkedPostIds = bookmarkResult.status === 'fulfilled' ? bookmarkResult.value : new Set();
                             const bookmarks = await bookmarkRes.json();
                             bookmarkedPostIds = new Set(bookmarks.map(b => b.post_id));
                         }
