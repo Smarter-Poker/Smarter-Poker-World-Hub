@@ -279,10 +279,23 @@ export default async function handler(req, res) {
             // ─── DEBIT CLUB TREASURY for union hold ───
             // Without this, the club keeps 100% of rake and the union hold is paper-only.
             // The union hold amount is deducted from the club's chip_treasury.
-            await supabaseAdmin.rpc('fn_debit_treasury', {
+            const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_treasury', {
               p_club_id: club.id,
               p_amount: unionHoldAmount,
             });
+
+            if (debitErr) {
+              console.error(`[auto-settlement] Treasury debit failed for ${club.name}: ${debitErr.message}`);
+              results.errors.push({ club: club.name, phase: 'union_debit', error: debitErr.message });
+              // Don't continue distributing commissions if treasury debit failed
+              // Close the period but skip agent commission distribution
+              await supabaseAdmin.from('settlement_periods').update({
+                status: 'closed', closed_at: now.toISOString(),
+                notes: `Union hold debit failed: ${debitErr.message}`,
+              }).eq('id', openPeriod.id);
+              results.periods_closed++;
+              continue; // Skip to next club
+            }
 
             // Record the union hold as a chip transaction for audit trail
             await supabaseAdmin.from('chip_transactions').insert({

@@ -347,10 +347,10 @@ export default async function handler(req, res) {
                   return res.status(409).json({ success: false, error: 'Seat already taken', code: 'SEAT_TAKEN' });
               }
 
-              // Check player isn't already in this game
+              // Check player isn't already in this game (by player_id, not name)
               const { data: playerSeat } = await getSupabase()
                   .from('club_game_seats').select('id')
-                  .eq('game_id', game_id).eq('player_name', player_name)
+                  .eq('game_id', game_id).eq('player_id', player_id)
                   .neq('status', 'waitlist').maybeSingle();
 
               if (playerSeat) {
