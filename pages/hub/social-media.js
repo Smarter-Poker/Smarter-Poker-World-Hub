@@ -5126,10 +5126,10 @@ function SocialMediaPage() {
                     })(),
                     // 2. Fetch bookmarks
                     (async () => {
-                        if (!user?.id) return new Set();
+                        if (!authUser?.id) return new Set();
                         try {
                             const bookmarkRes = await fetch(
-                                `${supabaseUrl}/rest/v1/social_interactions?user_id=eq.${user.id}&interaction_type=eq.bookmark&select=post_id`,
+                                `${supabaseUrl}/rest/v1/social_interactions?user_id=eq.${authUser.id}&interaction_type=eq.bookmark&select=post_id`,
                                 { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` } }
                             );
                             if (bookmarkRes.ok) {

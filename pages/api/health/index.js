@@ -36,13 +36,13 @@ export default async function handler(req, res) {
 
       // ── Database Connectivity Check ──
       try {
-          
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
           const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
           if (!supabaseUrl || !supabaseKey) {
               health.checks.db = { status: 'skip', reason: 'Missing env vars' };
           } else {
-              
+              const supabase = getSupabase();
               const { data, error } = await supabase
                   .from('profiles')
                   .select('id')
