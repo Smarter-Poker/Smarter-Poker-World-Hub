@@ -275,7 +275,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
     const [shareMsg, setShareMsg] = useState('');
     const isArticleOrLink = post.content_type === 'article' || post.content_type === 'link';
 
-    // Check if already liked on mount
+    // Check for existing reaction on mount → initialize currentReaction
     useEffect(() => {
         if (!currentUserId || !post.id) return;
         const token = getAccessToken();
@@ -284,41 +284,13 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
         })
             .then(r => r.json())
             .then(json => {
-                const myLike = (json.interactions || []).find(i => i.user_id === currentUserId);
-                if (myLike) setLiked(true);
+                const myReaction = (json.interactions || []).find(i => i.user_id === currentUserId);
+                if (myReaction) {
+                    setCurrentReaction(myReaction.interaction_type || 'like');
+                }
             })
             .catch(() => { });
     }, [currentUserId, post.id]);
-
-    const handleLike = async () => {
-        if (!currentUserId) return;
-        // Debounce: prevent rapid-fire spam
-        if (likeThrottleRef.current) return;
-        likeThrottleRef.current = true;
-        setTimeout(() => { likeThrottleRef.current = false; }, 500);
-
-        const wasLiked = liked;
-        setLiked(!wasLiked);
-        setLikeAnimating(!wasLiked); // trigger animation on like (not unlike)
-        if (!wasLiked) setTimeout(() => setLikeAnimating(false), 600);
-        setLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
-        try {
-            const token = getAccessToken();
-            const res = await fetch('/api/social/interactions', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                },
-                body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'like' })
-            });
-            if (!res.ok) throw new Error(`Like failed: ${res.status}`);
-        } catch (e) {
-            setLiked(wasLiked);
-            setLikeAnimating(false);
-            setLikeCount(prev => wasLiked ? prev + 1 : Math.max(0, prev - 1));
-        }
-    };
 
     const handleComment = async () => {
         setShowComments(!showComments);

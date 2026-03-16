@@ -4,7 +4,7 @@
  * Shows the SAME column-based layout as the Commander desk view
  * with per-game "Join List" buttons for online sign-up.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Users, MapPin, Loader2, ChevronDown, ChevronUp, X, Globe, CheckCircle } from 'lucide-react';
@@ -37,6 +37,7 @@ export default function PlayerWaitlistPage() {
   const [error, setError] = useState(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [arrived, setArrived] = useState(false);
+  const debounceRef = useRef(null);
 
   
   // fetchData declared first — must precede useEffect/useCommanderSync that reference it
@@ -105,9 +106,13 @@ export default function PlayerWaitlistPage() {
             estimated_wait: e.estimated_wait
           }));
           setMyEntries(flat);
+          // Initialize arrived state from checked_in_at (persists across refresh)
+          const venueEntries = flat.filter(e => String(e.venue_id) === String(venueId));
+          if (venueEntries.some(e => e.checked_in_at)) {
+            setArrived(true);
+          }
         }
       }
-    } catch (err) {
       if (err.name !== 'AbortError') console.error('Failed to fetch data:', err);
     } finally {
       setLoading(false);
@@ -129,7 +134,11 @@ export default function PlayerWaitlistPage() {
     if (!venueId) return;
     const ch = supabase
       .channel(`waitlist:${venueId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist', filter: `venue_id=eq.${venueId}` }, () => { fetchData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist', filter: `venue_id=eq.${venueId}` }, () => {
+        // Debounce: during Join All Games, multiple inserts fire rapidly
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => { fetchData(); }, 500);
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [venueId, fetchData]);

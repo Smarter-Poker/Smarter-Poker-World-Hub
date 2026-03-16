@@ -91,6 +91,8 @@ export default async function handler(req, res) {
           status: entry.status,
           call_count: entry.call_count,
           last_called_at: entry.last_called_at,
+          checked_in_at: entry.checked_in_at,
+          venue_id: entry.venue_id,
           created_at: entry.created_at
         },
         venue: entry.poker_venues,
