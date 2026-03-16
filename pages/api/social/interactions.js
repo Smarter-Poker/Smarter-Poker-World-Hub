@@ -322,14 +322,15 @@ export default async function handler(req, res) {
           const { error } = await deleteQuery;
           if (error) return res.status(500).json({ success: false, error: error.message });
 
-          // Decrement counts on social_posts for deleted interactions
+           // Decrement counts on social_posts for deleted interactions
           if (toDelete && toDelete.length > 0) {
-              const likesRemoved = toDelete.filter(i => i.interaction_type === 'like').length;
+              const reactionTypes = new Set(['like', 'love', 'haha', 'wow', 'sad', 'angry']);
+              const reactionsRemoved = toDelete.filter(i => reactionTypes.has(i.interaction_type)).length;
               const sharesRemoved = toDelete.filter(i => i.interaction_type === 'share').length;
               try {
-                  if (likesRemoved > 0) {
+                  if (reactionsRemoved > 0) {
                       const { data: p } = await getSupabase().from('social_posts').select('like_count').eq('id', post_id).maybeSingle();
-                      if (p) await getSupabase().from('social_posts').update({ like_count: Math.max(0, (p.like_count || 0) - likesRemoved) }).eq('id', post_id);
+                      if (p) await getSupabase().from('social_posts').update({ like_count: Math.max(0, (p.like_count || 0) - reactionsRemoved) }).eq('id', post_id);
                   }
                   if (sharesRemoved > 0) {
                       const { data: p } = await getSupabase().from('social_posts').select('share_count').eq('id', post_id).maybeSingle();
