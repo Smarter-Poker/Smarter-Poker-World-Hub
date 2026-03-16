@@ -4629,11 +4629,11 @@ function SocialMediaPage() {
                     });
                     try { await loadContacts(authUser.id); } catch (_) { /* non-critical */ }
 
-                    // 🕐 Update last_active timestamp (powers "last active" status on friends page)
+                    // 🕐 Update last_seen timestamp (powers "last active" status on friends page)
                     supabase.from('profiles')
-                        .update({ last_active: new Date().toISOString() })
+                        .update({ last_seen: new Date().toISOString() })
                         .eq('id', p?.id || authUser.id)
-                        .then(() => { if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Updated last_active timestamp'); });
+                        .then(() => { if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Updated last_seen timestamp'); });
 
                     // Load notifications with actor profile data
                     const { data: notifs, error: notifsError } = await supabase.from('notifications')
