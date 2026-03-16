@@ -1066,6 +1066,18 @@ export default function UserProfilePage() {
                     following_id: profile.id
                 });
                 if (error) throw error;
+                // Create follow notification for the person being followed (fire-and-forget)
+                supabase.from('notifications').insert({
+                    user_id: profile.id,
+                    type: 'new_follow',
+                    title: currentUser.username || currentUser.email?.split('@')[0] || 'Someone',
+                    message: 'started following you',
+                    actor_id: currentUser.id,
+                    link: `/hub/user/${username}`,
+                    data: { follower_id: currentUser.id }
+                }).then(() => {
+                    busEmit.dataMutated('notifications');
+                }).catch(() => { /* non-critical */ });
             }
             invalidateProfileCache();
             busEmit.dataMutated('follows');
