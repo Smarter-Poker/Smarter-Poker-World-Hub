@@ -1,0 +1,174 @@
+name: Build Safety Gate
+
+# Runs on EVERY push and PR — no exceptions
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  safety-checks:
+    name: Pre-Deploy Safety Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      # ═══════════════════════════════════════════════════════════════
+      # CHECK 1: No .single() calls (must use .maybeSingle())
+      # .single() throws PGRST116 when 0 rows returned = crash
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 1: No .single() in Supabase queries"
+        run: |
+          echo "Scanning for .single() calls..."
+          HITS=$(grep -rn '\.single()' \
+            --include='*.js' --include='*.jsx' --include='*.ts' --include='*.tsx' \
+            --exclude-dir=node_modules --exclude-dir=.next --exclude='*.bak' \
+            pages/ src/ lib/ services/ 2>/dev/null \
+            | grep -v 'maybeSingle' \
+            | grep -v '// .*single' || true)
+
+          if [ -n "$HITS" ]; then
+            echo "::error::FATAL: Found .single() calls that should be .maybeSingle():"
+            echo "$HITS"
+            echo ""
+            echo "Fix: Replace .single() with .maybeSingle() in all Supabase queries"
+            exit 1
+          fi
+          echo "✓ No .single() calls found"
+
+      # ═══════════════════════════════════════════════════════════════
+      # CHECK 2: No unused hook imports (the ThreePillHeader bug)
+      # Imported but uncalled hooks = ReferenceError during SSG
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 2: No unused React hook imports"
+        run: |
+          echo "Scanning for unused hook imports..."
+          ERRORS=0
+          for file in $(find pages/ src/ -name '*.js' -o -name '*.jsx' -o -name '*.tsx' | grep -v node_modules | grep -v .next); do
+            HOOKS=$(grep -oE 'import\s+\{[^}]*\}' "$file" 2>/dev/null | grep -oE 'use[A-Z][a-zA-Z]+' | sort -u)
+            for hook in $HOOKS; do
+              CALL_COUNT=$(grep -cE "${hook}\s*[<(]" "$file" 2>/dev/null || echo 0)
+              if [ "$CALL_COUNT" -eq 0 ]; then
+                echo "::error file=${file}::Hook '${hook}' is imported but NEVER CALLED"
+                ERRORS=$((ERRORS + 1))
+              fi
+            done
+          done
+
+          if [ $ERRORS -gt 0 ]; then
+            echo "::error::FATAL: $ERRORS unused hook import(s) found. These WILL crash the build."
+            exit 1
+          fi
+          echo "✓ All imported hooks are called"
+
+      # ═══════════════════════════════════════════════════════════════
+      # CHECK 3: No dynamic Supabase imports bypassing patched client
+      # Must use src/lib/supabaseServerClient, never raw import
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 3: No raw Supabase imports in API routes"
+        run: |
+          echo "Scanning for unpatched Supabase client usage..."
+          HITS=$(grep -rn "await import.*@supabase/supabase-js" \
+            --include='*.js' --include='*.ts' \
+            pages/api/ 2>/dev/null || true)
+
+          if [ -n "$HITS" ]; then
+            echo "::error::FATAL: Found dynamic @supabase/supabase-js imports bypassing patched server client:"
+            echo "$HITS"
+            echo ""
+            echo "Fix: Use 'import { createClient } from \"src/lib/supabaseServerClient\"' instead"
+            exit 1
+          fi
+          echo "✓ All API routes use patched Supabase client"
+
+      # ═══════════════════════════════════════════════════════════════
+      # CHECK 4: No .limit() on JavaScript arrays
+      # .limit() is a Supabase query builder method, NOT an array method
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 4: No .limit() on array operations"
+        run: |
+          echo "Scanning for .limit() after .filter()/.reduce()/.map()..."
+          HITS=$(grep -rn '\.filter(.*\.limit(\|\.reduce(.*\.limit(\|\.map(.*\.limit(' \
+            --include='*.js' --include='*.jsx' --include='*.ts' --include='*.tsx' \
+            --exclude-dir=node_modules --exclude-dir=.next \
+            pages/ src/ 2>/dev/null || true)
+
+          if [ -n "$HITS" ]; then
+            echo "::error::FATAL: Found .limit() called on JavaScript array operations (not Supabase queries):"
+            echo "$HITS"
+            exit 1
+          fi
+          echo "✓ No .limit() on array operations"
+
+      # ═══════════════════════════════════════════════════════════════
+      # CHECK 5: Next.js compilation check
+      # Verifies no broken imports, syntax errors, or module resolution failures
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 5: Next.js compilation"
+        run: |
+          echo "Running Next.js build compilation check..."
+          NODE_OPTIONS="--max_old_space_size=4096" npx next build 2>&1 | tee build.log
+          if grep -q "Failed to compile" build.log; then
+            echo "::error::FATAL: Next.js build compilation failed"
+            cat build.log
+            exit 1
+          fi
+          echo "✓ Build compilation passed"
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+  # ═══════════════════════════════════════════════════════════════════
+  # POST-DEPLOY VERIFICATION (runs 5 minutes after deploy)
+  # ═══════════════════════════════════════════════════════════════════
+  post-deploy-check:
+    name: Post-Deploy Verification
+    needs: safety-checks
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait for Vercel deployment
+        run: sleep 300  # 5 minutes for Vercel to finish deploying
+
+      - name: Verify deployment is live
+        run: |
+          SITE_URL="${{ secrets.SITE_URL || 'https://smarter.poker' }}"
+          echo "Checking $SITE_URL..."
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL" --max-time 30)
+
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "::error::DEPLOYMENT FAILED: $SITE_URL returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "✓ Site is live (HTTP $HTTP_CODE)"
+
+      - name: Verify API health
+        run: |
+          SITE_URL="${{ secrets.SITE_URL || 'https://smarter.poker' }}"
+
+          # Check a simple API endpoint
+          API_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL/api/health" --max-time 10)
+          echo "API health check: HTTP $API_CODE"
+
+          if [ "$API_CODE" -ge 500 ]; then
+            echo "::error::API is returning server errors (HTTP $API_CODE)"
+            exit 1
+          fi
+
+          echo "✓ API is responsive"

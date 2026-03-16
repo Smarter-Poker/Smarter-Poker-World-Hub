@@ -5143,11 +5143,6 @@ function SocialMediaPage() {
 
                 authorMap = profileResult.status === 'fulfilled' ? profileResult.value : {};
                 bookmarkedPostIds = bookmarkResult.status === 'fulfilled' ? bookmarkResult.value : new Set();
-                            const bookmarks = await bookmarkRes.json();
-                            bookmarkedPostIds = new Set(bookmarks.map(b => b.post_id));
-                        }
-                    }
-                } catch { /* bookmark fetch non-critical */ }
 
                 const formattedPosts = mixedFeed.map(p => {
                     const likesArray = p.social_likes || [];
