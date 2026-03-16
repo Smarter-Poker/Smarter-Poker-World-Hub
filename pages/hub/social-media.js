@@ -4643,17 +4643,31 @@ function SocialMediaPage() {
     useEffect(() => {
         (async () => {
             try {
-                const authUser = await ensureAuthReady(supabase);
+                // ⚡ FAST PATH: Try localStorage first (instant, no network)
+                let authUser = getAuthUser();
+                if (!authUser) {
+                    // Only fall back to ensureAuthReady if localStorage miss
+                    authUser = await ensureAuthReady(supabase);
+                }
                 if (authUser) {
-                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Auth hydrated via ensureAuthReady:', authUser.email || authUser.id);
+                    if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] ✅ Auth hydrated:', authUser.email || authUser.id);
                 } else {
-                    console.warn('[Social] ❌ ensureAuthReady could not find valid auth session');
+                    console.warn('[Social] ❌ No valid auth session found');
                 }
 
+                // ⚡ INSTANT RENDER: Hydrate feed from cache BEFORE any network calls
+                try {
+                    const feedCacheRaw = localStorage.getItem('sp-feed-cache');
+                    if (feedCacheRaw) {
+                        const feedCache = JSON.parse(feedCacheRaw);
+                        if (feedCache._cachedAt && (Date.now() - feedCache._cachedAt) < 15 * 60 * 1000 && feedCache.posts?.length) {
+                            setPosts(feedCache.posts);
+                        }
+                    }
+                } catch { /* cache miss */ }
+
                 if (authUser) {
-                    // Profile fetch is wrapped in its own try/catch so auth NEVER fails
-                    // even if the profile REST query returns 400 or network errors.
-                    // The user object will always be set if authUser exists.
+                    // Profile fetch — needed for user state before other operations
                     let p = null;
                     try {
                         if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Fetching profile for user:', authUser.id);
@@ -4671,10 +4685,6 @@ function SocialMediaPage() {
                         } else {
                             console.warn('[Social] Profile fetch returned', profileRes.status, '— falling back to auth data');
                         }
-
-                        if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Profile loaded:', p ? `${p.username} (avatar: ${p.avatar_url ? 'YES' : 'NO'})` : 'NOT FOUND');
-
-                        // Profile not found is handled by the outer try/catch — user is set from authUser regardless
                     } catch (profileErr) {
                         console.warn('[Social] Profile fetch failed:', profileErr.message, '— using auth session data');
                     }
@@ -4693,102 +4703,85 @@ function SocialMediaPage() {
                         role: p?.role || 'user',
                         hendon: null
                     });
-                    try { await loadContacts(authUser.id); } catch (_) { /* non-critical */ }
 
-                    // 🕐 Update last_seen timestamp (powers "last active" status on friends page)
+                    // 🕐 Update last_seen (fire-and-forget, non-blocking)
                     supabase.from('profiles')
                         .update({ last_seen: new Date().toISOString() })
                         .eq('id', p?.id || authUser.id)
                         .then(() => { if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Updated last_seen timestamp'); });
 
-                    // Load notifications with actor profile data
-                    const { data: notifs, error: notifsError } = await supabase.from('notifications')
-                        .select('*')
-                        .eq('user_id', authUser.id)
-                        .order('created_at', { ascending: false })
-                        .limit(50);
-                    if (notifsError) console.error('[Social] Failed to load notifications:', notifsError);
-                    if (notifs && notifs.length > 0) {
-                        // Collect actor IDs from notifications
-                        // The data is stored in the 'data' JSONB column: data.commenter_id (comments), data.sender_id (friend requests), data.actor_id (generic)
-                        const actorIds = [...new Set(notifs.map(n =>
-                            n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id
-                        ).filter(Boolean))];
+                    // ⚡ PARALLEL LOADING: Fire contacts, notifications, feed, and streams ALL AT ONCE
+                    const [, , ,] = await Promise.allSettled([
+                        // 1. Load contacts (non-critical)
+                        loadContacts(authUser.id).catch(() => { /* non-critical */ }),
 
-                        // Also parse actor names from notification titles as fallback
-                        const actorNames = [...new Set(notifs.map(n => {
-                            const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                            return match ? match[1] : null;
-                        }).filter(Boolean))];
+                        // 2. Load & enrich notifications
+                        (async () => {
+                            try {
+                                const { data: notifs, error: notifsError } = await supabase.from('notifications')
+                                    .select('*')
+                                    .eq('user_id', authUser.id)
+                                    .order('created_at', { ascending: false })
+                                    .limit(50);
+                                if (notifsError) { console.error('[Social] Failed to load notifications:', notifsError); return; }
+                                if (notifs && notifs.length > 0) {
+                                    const actorIds = [...new Set(notifs.map(n =>
+                                        n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id
+                                    ).filter(Boolean))];
+                                    const actorNames = [...new Set(notifs.map(n => {
+                                        const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                                        return match ? match[1] : null;
+                                    }).filter(Boolean))];
 
-                        // Build profile lookup maps
-                        let profileById = {};
-                        let profileByName = {};
+                                    // ⚡ Fetch both profile lookups in PARALLEL
+                                    const [profilesByIdRes, profilesByNameRes] = await Promise.all([
+                                        actorIds.length > 0
+                                            ? supabase.from('profiles').select('id, username, full_name, avatar_url').in('id', actorIds)
+                                            : Promise.resolve({ data: [] }),
+                                        actorNames.length > 0
+                                            ? supabase.from('profiles').select('id, username, full_name, avatar_url').in('full_name', actorNames)
+                                            : Promise.resolve({ data: [] }),
+                                    ]);
 
-                        // Lookup by actor_id if available
-                        if (actorIds.length > 0) {
-                            const { data: profilesById } = await supabase.from('profiles')
-                                .select('id, username, full_name, avatar_url')
-                                .in('id', actorIds);
-                            (profilesById || []).forEach(p => {
-                                profileById[p.id] = p;
-                            });
-                        }
+                                    const profileById = {};
+                                    (profilesByIdRes.data || []).forEach(p => { profileById[p.id] = p; });
+                                    const profileByName = {};
+                                    (profilesByNameRes.data || []).forEach(p => { if (p.full_name) profileByName[p.full_name.toLowerCase()] = p; });
 
-                        // Lookup by full_name as fallback
-                        if (actorNames.length > 0) {
-                            const { data: profilesByName } = await supabase.from('profiles')
-                                .select('id, username, full_name, avatar_url')
-                                .in('full_name', actorNames);
-                            (profilesByName || []).forEach(p => {
-                                if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
-                            });
-                        }
+                                    const enrichedNotifs = notifs.map(n => {
+                                        const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id;
+                                        let profile = actorId ? profileById[actorId] : null;
+                                        if (!profile) {
+                                            const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
+                                            const actorName = match ? match[1] : null;
+                                            profile = actorName ? profileByName[actorName.toLowerCase()] : null;
+                                        }
+                                        const dispName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
+                                        return {
+                                            ...n,
+                                            actor_avatar_url: profile?.avatar_url || n.metadata?.actor_avatar || null,
+                                            actor_name: profile?.full_name || dispName,
+                                            actor_username: profile?.username || null
+                                        };
+                                    });
+                                    setNotifications(enrichedNotifs);
+                                }
+                            } catch (e) { console.warn('[Social] Notification load error:', e); }
+                        })(),
 
-                        // Merge actor profile data into notifications
-                        const enrichedNotifs = notifs.map(n => {
-                            // Get actor ID from the data JSONB column
-                            const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id;
-                            let profile = actorId ? profileById[actorId] : null;
+                        // 3. Load feed (runs its own parallel queries internally now)
+                        loadFeed(),
 
-                            // Fallback to name matching
-                            if (!profile) {
-                                const match = n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/);
-                                const actorName = match ? match[1] : null;
-                                profile = actorName ? profileByName[actorName.toLowerCase()] : null;
-                            }
-
-                            // Get display name from data or parse from title
-                            const displayName = n.data?.actor_name || n.data?.sender_name || n.title?.match(/^([A-Za-z]+\s+[A-Za-z]+)/)?.[1] || n.title;
-
-                            return {
-                                ...n,
-                                actor_avatar_url: profile?.avatar_url || n.metadata?.actor_avatar || null,
-                                actor_name: profile?.full_name || displayName,
-                                actor_username: profile?.username || null
-                            };
-                        });
-                        setNotifications(enrichedNotifs);
-                    }
+                        // 4. Load live streams (non-critical)
+                        LiveStreamService.getLiveStreams()
+                            .then(streams => setLiveStreams(streams || []))
+                            .catch(e => console.log('No live streams:', e)),
+                    ]);
                 } else {
                     if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] No authenticated user found');
+                    // Still load the public feed even without auth
+                    await loadFeed();
                 }
-                // Hydrate feed from cache for instant render
-                try {
-                    const feedCacheRaw = localStorage.getItem('sp-feed-cache');
-                    if (feedCacheRaw) {
-                        const feedCache = JSON.parse(feedCacheRaw);
-                        if (feedCache._cachedAt && (Date.now() - feedCache._cachedAt) < 15 * 60 * 1000 && feedCache.posts?.length) {
-                            setPosts(feedCache.posts);
-                        }
-                    }
-                } catch { /* cache miss */ }
-                await loadFeed();
-                // Load live streams
-                try {
-                    const streams = await LiveStreamService.getLiveStreams();
-                    setLiveStreams(streams || []);
-                } catch (e) { console.log('No live streams:', e); }
             } catch (e) { console.error('[Social] Auth error:', e); }
             setLoading(false);
         })();
@@ -4988,19 +4981,12 @@ function SocialMediaPage() {
             let followingIds = [];
 
             if (authUser) {
-                // Fetch friends (accepted friendships)
-                const { data: friendships } = await supabase
-                    .from('friendships')
-                    .select('friend_id')
-                    .eq('user_id', authUser.id)
-                    .eq('status', 'accepted');
+                // ⚡ Fetch friends AND follows in PARALLEL (independent queries)
+                const [{ data: friendships }, { data: follows }] = await Promise.all([
+                    supabase.from('friendships').select('friend_id').eq('user_id', authUser.id).eq('status', 'accepted'),
+                    supabase.from('follows').select('following_id').eq('follower_id', authUser.id),
+                ]);
                 if (friendships) friendIds = friendships.map(f => f.friend_id);
-
-                // Fetch people I'm following
-                const { data: follows } = await supabase
-                    .from('follows')
-                    .select('following_id')
-                    .eq('follower_id', authUser.id);
                 if (follows) followingIds = follows.map(f => f.following_id);
             }
 
