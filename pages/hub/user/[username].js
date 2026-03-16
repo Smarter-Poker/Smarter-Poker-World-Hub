@@ -636,8 +636,38 @@ export default function UserProfilePage() {
                     if (data) setProfile(prev => prev ? { ...prev, ...data } : prev);
                 });
         });
-        return cleanupAvatar;
-    }, [username]);
+
+        // Cross-tab social sync — refresh posts when another tab creates/deletes a post
+        const cleanupSocial = listenBroadcast('smarter_poker_social_sync', (msg) => {
+            if (msg?.tabId === BROADCAST_TAB_ID) return;
+            if (!profile?.id) return;
+            // Re-fetch post count
+            supabase.from('social_posts').select('*', { count: 'exact', head: true })
+                .eq('author_id', profile.id)
+                .then(({ count }) => {
+                    if (count != null) setStats(prev => ({ ...prev, posts: count }));
+                });
+        });
+
+        // Cross-tab friends sync — refresh friend count/status when another tab changes friendships
+        const cleanupFriends = listenBroadcast('smarter_poker_friends_sync', (msg) => {
+            if (msg?.tabId === BROADCAST_TAB_ID) return;
+            if (!profile?.id) return;
+            // Re-fetch friend count
+            supabase.from('friendships').select('*', { count: 'exact', head: true })
+                .eq('status', 'accepted')
+                .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`)
+                .then(({ count }) => {
+                    if (count != null) setStats(prev => ({ ...prev, friends: Math.floor(count / 2) }));
+                });
+        });
+
+        return () => {
+            cleanupAvatar();
+            cleanupSocial();
+            cleanupFriends();
+        };
+    }, [username, profile?.id]);
 
     // 📡 Supabase Realtime: Typing broadcast channel for profile page
     // NOTE: Likes & Comments listeners are on the `user-profile:{id}` channel
