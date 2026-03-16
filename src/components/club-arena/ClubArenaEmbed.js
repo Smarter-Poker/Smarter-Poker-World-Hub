@@ -177,6 +177,42 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         });
     }, []);
 
+    /* ── Auto-retry: Recover automatically on tab focus or network return ── */
+    // When the Connection Problem overlay is showing and the user returns to
+    // the tab or comes back online, retry automatically instead of requiring
+    // a manual click. Max 3 auto-retries to prevent infinite retry loops.
+    const autoRetryCountRef = useRef(0);
+    useEffect(() => {
+        if (loadState !== 'error') {
+            autoRetryCountRef.current = 0; // Reset on successful load
+            return;
+        }
+        const MAX_AUTO_RETRIES = 3;
+
+        const handleAutoRetry = () => {
+            if (loadState !== 'error') return;
+            if (autoRetryCountRef.current >= MAX_AUTO_RETRIES) {
+                console.warn('[ClubArenaEmbed] Max auto-retries reached — manual retry required');
+                return;
+            }
+            autoRetryCountRef.current++;
+            console.log(`[ClubArenaEmbed] Auto-retry #${autoRetryCountRef.current} (${MAX_AUTO_RETRIES} max)`);
+            handleRetry();
+        };
+
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') handleAutoRetry();
+        };
+        const handleOnline = () => handleAutoRetry();
+
+        document.addEventListener('visibilitychange', handleVisibility);
+        window.addEventListener('online', handleOnline);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibility);
+            window.removeEventListener('online', handleOnline);
+        };
+    }, [loadState, handleRetry]);
+
     /* ── Auth token passthrough with retry + ACK ──────────────────────── */
     useEffect(() => {
         if (loadState !== 'ready') return;
