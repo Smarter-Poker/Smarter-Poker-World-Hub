@@ -615,28 +615,11 @@ export default function UserProfilePage() {
         return cleanupAvatar;
     }, [username]);
 
-    // 📡 Supabase Realtime: Likes & Comments bridge for profile page
+    // 📡 Supabase Realtime: Typing broadcast channel for profile page
+    // NOTE: Likes & Comments listeners are on the `user-profile:{id}` channel
+    // (see the useEffect below with profile?.id dep) to avoid double-counting.
     useEffect(() => {
-        const profileChannel = supabase
-            .channel('profile-realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_likes' }, (payload) => {
-                if (payload.new && payload.new.post_id) {
-                    eventBus.emit('SOCIAL_LIKE_UPDATE', { postId: payload.new.post_id, delta: 1 }, 'ProfileRealtime');
-                }
-            })
-            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'social_likes' }, (payload) => {
-                if (payload.old && payload.old.post_id) {
-                    eventBus.emit('SOCIAL_LIKE_UPDATE', { postId: payload.old.post_id, delta: -1 }, 'ProfileRealtime');
-                }
-            })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_comments' }, (payload) => {
-                if (payload.new && payload.new.post_id) {
-                    eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: payload.new.post_id }, 'ProfileRealtime');
-                }
-            })
-            .subscribe();
-
-        // Separate channel matching the backend 'social-feed' for broadcast typing events
+        // Channel matching the backend 'social-feed' for broadcast typing events
         const typingChannel = supabase
             .channel('social-feed')
             .on('broadcast', { event: 'typing' }, (payload) => {
@@ -654,7 +637,6 @@ export default function UserProfilePage() {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(profileChannel);
             supabase.removeChannel(typingChannel);
         };
     }, []);
