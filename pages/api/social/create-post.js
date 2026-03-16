@@ -72,6 +72,7 @@ export default async function handler(req, res) {
                       author_id: user.id,
                       content: content.trim(),
                       content_type,
+                      media_urls: media_urls || [],
                       visibility,
                       metadata: metadata || null,
                       created_at: new Date().toISOString()

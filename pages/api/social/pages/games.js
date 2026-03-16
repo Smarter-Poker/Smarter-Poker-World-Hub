@@ -443,6 +443,18 @@ export default async function handler(req, res) {
           const { id, status, game_name, stakes, max_seats, notes, table_number } = req.body;
           if (!id) return res.status(400).json({ success: false, error: 'id required' });
 
+          // Verify game ownership: must be creator or page owner
+          const { data: gameCheck } = await getSupabase()
+              .from('club_live_games').select('created_by, page_id').eq('id', id).maybeSingle();
+          if (!gameCheck) return res.status(404).json({ success: false, error: 'Game not found' });
+          if (gameCheck.created_by !== authUser.id) {
+              const { data: pageCheck } = await getSupabase()
+                  .from('social_pages').select('owner_id').eq('id', gameCheck.page_id).maybeSingle();
+              if (!pageCheck || pageCheck.owner_id !== authUser.id) {
+                  return res.status(403).json({ success: false, error: 'Not authorized to update this game' });
+              }
+          }
+
           const updates = {};
           if (status) {
               updates.status = status;
@@ -471,6 +483,18 @@ export default async function handler(req, res) {
 
           const { id } = req.query;
           if (!id) return res.status(400).json({ success: false, error: 'id required' });
+
+          // Verify game ownership: must be creator or page owner
+          const { data: gameCheck } = await getSupabase()
+              .from('club_live_games').select('created_by, page_id').eq('id', id).maybeSingle();
+          if (!gameCheck) return res.status(404).json({ success: false, error: 'Game not found' });
+          if (gameCheck.created_by !== authUser.id) {
+              const { data: pageCheck } = await getSupabase()
+                  .from('social_pages').select('owner_id').eq('id', gameCheck.page_id).maybeSingle();
+              if (!pageCheck || pageCheck.owner_id !== authUser.id) {
+                  return res.status(403).json({ success: false, error: 'Not authorized to delete this game' });
+              }
+          }
 
           const { error } = await getSupabase().from('club_live_games').delete().eq('id', id);
           if (error) return res.status(500).json({ success: false, error: error.message });

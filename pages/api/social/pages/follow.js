@@ -50,6 +50,12 @@ export default async function handler(req, res) {
           // === Approve/Reject (Commander actions) ===
           if (action === 'approve' || action === 'reject') {
               if (!follower_id) return res.status(400).json({ success: false, error: 'follower_id required' });
+              // Verify requester is the page owner
+              const { data: ownerCheck } = await getSupabase()
+                  .from('social_pages').select('owner_id').eq('id', page_id).maybeSingle();
+              if (!ownerCheck || ownerCheck.owner_id !== user_id) {
+                  return res.status(403).json({ success: false, error: 'Only page owner can approve/reject followers' });
+              }
               if (action === 'approve') {
                   const { data, error } = await getSupabase()
                       .from('social_page_followers')

@@ -98,12 +98,32 @@ export default async function handler(req, res) {
               }
           }
 
+          // Read stored counts from social_posts for accuracy (not from limited query results)
+          let like_count = 0, share_count = 0, comment_count = 0;
+          try {
+              const { data: postCounts } = await getSupabase()
+                  .from('social_posts')
+                  .select('like_count, share_count, comment_count')
+                  .eq('id', post_id)
+                  .maybeSingle();
+              if (postCounts) {
+                  like_count = postCounts.like_count || 0;
+                  share_count = postCounts.share_count || 0;
+                  comment_count = postCounts.comment_count || 0;
+              }
+          } catch {
+              // Fallback to counting from query results if post lookup fails
+              like_count = (data || []).filter(i => i.interaction_type === 'like').length;
+              share_count = (data || []).filter(i => i.interaction_type === 'share').length;
+              comment_count = comments.length;
+          }
+
           return res.status(200).json({
               interactions: data || [],
               comments,
-              like_count: (data || []).filter(i => i.interaction_type === 'like').length,
-              share_count: (data || []).filter(i => i.interaction_type === 'share').length,
-              comment_count: comments.length
+              like_count,
+              share_count,
+              comment_count
           });
 
       } else if (req.method === 'POST') {
