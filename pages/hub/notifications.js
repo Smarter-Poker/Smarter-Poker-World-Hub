@@ -103,7 +103,7 @@ function NotificationsPage() {
                 if (combined.length > 0) {
                     // Collect actor IDs from the data JSONB column
                     const actorIds = [...new Set(combined.map(n =>
-                        n.data?.actor_id || n.data?.sender_id || n.actor_id
+                        n.data?.actor_id || n.data?.sender_id
                     ).filter(Boolean))];
 
                     // Also parse actor names from notification titles as fallback
@@ -141,7 +141,7 @@ function NotificationsPage() {
                     // Merge actor data
                     const enriched = combined.map(n => {
                         // Get actor ID from the data JSONB column
-                        const actorId = n.data?.actor_id || n.data?.sender_id || n.actor_id;
+                        const actorId = n.data?.actor_id || n.data?.sender_id;
                         let profile = actorId ? profileById[actorId] : null;
 
                         // Fallback to name matching

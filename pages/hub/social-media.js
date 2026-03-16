@@ -1754,7 +1754,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 onClick={onOpenArticle}
                             />
                         ) : (
-                            <img src={post.mediaUrls[0]} loading="lazy" alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} />
+                            <img src={post.mediaUrls[0]} loading="lazy" alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} onError={e => { e.target.style.display = 'none'; }} />
                         )
                     ) : post.mediaUrls.length === 2 ? (
                         // 2 media - side by side
@@ -1764,7 +1764,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                     {post.contentType === 'video' && i === 0 ? (
                                         <video controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} src={url} />
                                     ) : (
-                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
                                     )}
                                 </div>
                             ))}
@@ -1773,12 +1773,12 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         // 3 media - 1 large + 2 small
                         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 2 }}>
                             <div style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                <img src={post.mediaUrls[0]} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={post.mediaUrls[0]} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 {post.mediaUrls.slice(1).map((url, i) => (
                                     <div key={i} style={{ flex: 1, overflow: 'hidden' }}>
-                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
                                     </div>
                                 ))}
                             </div>
@@ -1788,7 +1788,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                             {post.mediaUrls.map((url, i) => (
                                 <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                    <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
                                 </div>
                             ))}
                         </div>
@@ -1798,14 +1798,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, marginBottom: 2 }}>
                                 {post.mediaUrls.slice(0, 2).map((url, i) => (
                                     <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
                                     </div>
                                 ))}
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
                                 {post.mediaUrls.slice(2, 5).map((url, i) => (
                                     <div key={i} style={{ aspectRatio: '1', overflow: 'hidden', position: 'relative' }}>
-                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
                                         {i === 2 && post.mediaUrls.length > 5 && (
                                             <div style={{
                                                 position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
@@ -1899,7 +1899,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         ))}
                     </div>
                     <div style={{ 
-                        background: '#f0f2f5', borderRadius: 16, padding: '8px 12px', fontSize: 12,
+                        background: C.bg, borderRadius: 16, padding: '8px 12px', fontSize: 12,
                         color: C.textSec, display: 'flex', alignItems: 'center', gap: 6, marginLeft: Object.values(typists).length > 2 ? 30 : (Object.values(typists).length - 1) * 12
                     }}>
                         <span>{Object.values(typists)[0].name.split(' ')[0]} is typing</span>
@@ -1915,7 +1915,20 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
 
             {showComments && (
                 <div style={{ borderTop: `1px solid ${C.border}`, padding: 12 }}>
-                    {loadingComments && <div style={{ color: C.textSec, fontSize: 13 }}>Loading Comments...</div>}
+                    {loadingComments && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '4px 0' }}>
+                            {[1, 2, 3].map(i => (
+                                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.border, animation: 'sp-shimmer 1.5s infinite' }} />
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ width: `${60 + i * 10}%`, height: 12, borderRadius: 6, background: C.border, marginBottom: 6, animation: 'sp-shimmer 1.5s infinite' }} />
+                                        <div style={{ width: `${30 + i * 5}%`, height: 10, borderRadius: 5, background: C.border, animation: 'sp-shimmer 1.5s infinite' }} />
+                                    </div>
+                                </div>
+                            ))}
+                            <style>{`@keyframes sp-shimmer { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+                        </div>
+                    )}
                     
                     {/* Separate top level comments and replies */}
                     {(() => {
@@ -4585,12 +4598,16 @@ function SocialMediaPage() {
                     } catch { /* non-critical */ }
                 }
                 const displayName = n.data?.actor_name || n.data?.sender_name || n.title || 'Someone';
-                setNotifications(prev => [{
-                    ...n,
-                    actor_avatar_url: actorProfile?.avatar_url || n.metadata?.actor_avatar || null,
-                    actor_name: actorProfile?.full_name || displayName,
-                    actor_username: actorProfile?.username || null
-                }, ...prev]);
+                setNotifications(prev => {
+                    // Deduplicate — skip if this notification ID is already in the list
+                    if (prev.some(existing => existing.id === n.id)) return prev;
+                    return [{
+                        ...n,
+                        actor_avatar_url: actorProfile?.avatar_url || n.metadata?.actor_avatar || null,
+                        actor_name: actorProfile?.full_name || displayName,
+                        actor_username: actorProfile?.username || null
+                    }, ...prev];
+                });
             })
             .subscribe();
 
