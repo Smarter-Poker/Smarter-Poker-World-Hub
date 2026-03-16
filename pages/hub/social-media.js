@@ -1862,8 +1862,13 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             navigator.clipboard.writeText(shareUrl);
                             toast.success('Link copied to clipboard!');
                         }
-                        // Sync denormalized share_count (fire-and-forget)
-                        supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'share_count' }).catch(() => {});
+                        // Sync denormalized share_count (fire-and-forget with manual fallback)
+                        supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'share_count' }).catch(async () => {
+                            try {
+                                const { data: p } = await supabase.from('social_posts').select('share_count').eq('id', post.id).maybeSingle();
+                                if (p) await supabase.from('social_posts').update({ share_count: (p.share_count || 0) + 1 }).eq('id', post.id);
+                            } catch (e) { console.warn('[Social] share_count fallback failed:', e.message); }
+                        });
                     }}
                     style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}
                 >↗️ Share</button>
