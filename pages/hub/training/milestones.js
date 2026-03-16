@@ -326,7 +326,7 @@ export default function MilestonesPage() {
   }, [fetchData]);
   useEffect(() => {
     const h = () => fetchData();
-    const unsub = eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', h);
     return () => unsub();
   }, [fetchData]);
 

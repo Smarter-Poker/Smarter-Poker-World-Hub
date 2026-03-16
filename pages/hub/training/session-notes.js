@@ -115,7 +115,7 @@ export default function SessionNotesPage() {
   }, [fetchRecentSession]);
   useEffect(() => {
     const h = () => fetchRecentSession();
-    const unsub = eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', h);
     return () => unsub();
   }, [fetchRecentSession]);
 
