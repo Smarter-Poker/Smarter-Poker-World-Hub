@@ -153,6 +153,25 @@ export default function NotificationFeed({ onClose }) {
                         const prefKey = mapInteractionToPreference(newNotif.type);
                         if (isNotificationEnabled(prefKey)) {
                             setNotifications(prev => [newNotif, ...prev]);
+
+                            // Async enrich: fetch actor profile and update name/avatar
+                            if (payload.new.user_id) {
+                                supabase
+                                    .from('profiles')
+                                    .select('id, username, full_name, avatar_url')
+                                    .eq('id', payload.new.user_id)
+                                    .maybeSingle()
+                                    .then(({ data: profile }) => {
+                                        if (profile) {
+                                            setNotifications(prev => prev.map(n =>
+                                                n.id === newNotif.id
+                                                    ? { ...n, actorName: profile.full_name || profile.username || 'Someone', avatar: profile.avatar_url || '/default-avatar.png' }
+                                                    : n
+                                            ));
+                                        }
+                                    })
+                                    .catch(() => { /* non-critical */ });
+                            }
                         }
                     }
                 })

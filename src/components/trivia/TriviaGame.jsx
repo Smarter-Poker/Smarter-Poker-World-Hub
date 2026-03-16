@@ -34,6 +34,7 @@ export default function TriviaGame({
     enableHints = true,
     enableStakes = false,     // Escalating diamond stakes
     enableGhostOpponent = true, // Show ghost opponent
+    ghostAccuracy = null,        // Community accuracy for ghost opponent (0-1 or null)
 }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -374,6 +375,7 @@ export default function TriviaGame({
                     currentQuestionIndex={currentIndex}
                     playerCorrectCount={correctCount}
                     isGameActive={isGameActive}
+                    realAccuracy={ghostAccuracy}
                     onOpponentResult={(score, name) => {
                         opponentDataRef.current = { score, name };
                     }}

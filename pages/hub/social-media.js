@@ -451,8 +451,9 @@ function LinkPreviewCard({ url }) {
     const handleClick = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        // Open article links directly in new tab - modal was showing "Content Unavailable"
-        window.open(url, '_blank', 'noopener,noreferrer');
+        // Use the in-app ExternalLinkModal rather than opening a new tab
+        // The modal tries iframe first, falls back to "Copy Link" if site blocks embedding
+        openExternal(url, metadata?.title || 'Link Preview');
     };
 
     return (
@@ -1593,33 +1594,42 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
 
     const handleSubmitComment = async () => {
         if (!newComment.trim() || !currentUserId) return;
+        
+        // Capture values and clear input immediately for snappy UX
+        const commentText = newComment.trim();
+        const parentInfo = replyingTo;
+        setNewComment('');
+        setReplyingTo(null);
+        
+        // Optimistic insert: show comment instantly with a temporary ID
+        const tempId = `temp-${Date.now()}`;
+        const optimisticComment = {
+            id: tempId,
+            text: commentText,
+            parentId: parentInfo?.id || null,
+            authorName: currentUserName || 'You',
+            authorId: currentUserId,
+            authorAvatar: currentUserAvatar,
+            time: 'Just now',
+            likeCount: 0,
+            isLikedByMe: false
+        };
+        setComments(prev => [...prev, optimisticComment]);
+        setCommentCount(prev => prev + 1);
+        if (onComment) onComment(post.id);
+        
         try {
-            const payload = { post_id: post.id, author_id: currentUserId, content: newComment };
-            if (replyingTo) payload.parent_id = replyingTo.id;
+            const payload = { post_id: post.id, author_id: currentUserId, content: commentText };
+            if (parentInfo) payload.parent_id = parentInfo.id;
             
             const { data, error } = await supabase.from('social_comments').insert(payload).select('id, content, created_at, parent_id').maybeSingle();
             if (!error && data) {
-                setComments(prev => [...prev, {
+                // Replace optimistic entry with real server data
+                setComments(prev => prev.map(c => c.id === tempId ? {
+                    ...c,
                     id: data.id,
-                    text: data.content,
                     parentId: data.parent_id || null,
-                    authorName: currentUserName || 'You',
-                    authorId: currentUserId,
-                    authorAvatar: currentUserAvatar,
-                    time: 'Just now',
-                    likeCount: 0,
-                    isLikedByMe: false
-                }]);
-                
-                setCommentCount(prev => prev + 1);
-                
-                // Clear input IMMEDIATELY after successful insert — before any secondary operations
-                // that might throw and leave the input filled with an already-saved comment
-                const savedComment = newComment; // Capture for notification use below
-                const savedReplyingTo = replyingTo;
-                setNewComment('');
-                setReplyingTo(null);
-                if (onComment) onComment(post.id);
+                } : c));
                 
                 // Sync the denormalized comment_count column on social_posts (fire-and-forget)
                 supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(async () => {
@@ -1633,9 +1643,9 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 // Secondary operations: notifications (isolated — failure must NOT affect comment UX)
                 try {
                     // Trigger reply notification
-                    if (savedReplyingTo && savedReplyingTo.authorId !== currentUserId) {
+                    if (parentInfo && parentInfo.authorId !== currentUserId) {
                         await supabase.from('notifications').insert({
-                            user_id: savedReplyingTo.authorId,
+                            user_id: parentInfo.authorId,
                             type: 'reply',
                             message: `replied to your comment`,
                             data: { actor_id: currentUserId, reference_id: post.id }
@@ -1643,7 +1653,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     }
                     
                     // Phase 28 Fix: Trigger mention notifications
-                    const mentions = savedComment.match(/@([\w.]+)/g);
+                    const mentions = commentText.match(/@([\w.]+)/g);
                     if (mentions && mentions.length > 0) {
                         const usernames = mentions.map(m => m.slice(1));
                         const { data: mentionedUsers } = await supabase.from('profiles').select('id, username').in('username', usernames);
@@ -1666,8 +1676,18 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     // Notification failures are non-critical — comment was already saved
                     console.warn('[Social] Notification insert failed (comment was saved):', notifErr.message);
                 }
+            } else {
+                // DB insert returned error — rollback optimistic entry
+                setComments(prev => prev.filter(c => c.id !== tempId));
+                setCommentCount(prev => Math.max(0, prev - 1));
+                console.error('[Social] Comment insert error:', error);
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            // Network or unexpected error — rollback optimistic entry
+            setComments(prev => prev.filter(c => c.id !== tempId));
+            setCommentCount(prev => Math.max(0, prev - 1));
+            console.error('[Social] Comment submit failed:', e);
+        }
     };
 
     return (

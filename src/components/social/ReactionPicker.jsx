@@ -25,6 +25,8 @@ export default function ReactionPicker({ onReact, currentReaction, compact = fal
     const [hoveredReaction, setHoveredReaction] = useState(null);
     const timeoutRef = useRef(null);
     const pickerRef = useRef(null);
+    const touchStartRef = useRef(null);
+    const longPressRef = useRef(null);
 
     const handleMouseEnter = () => {
         clearTimeout(timeoutRef.current);
@@ -39,6 +41,33 @@ export default function ReactionPicker({ onReact, currentReaction, compact = fal
         }, 300);
     };
 
+    // Mobile long-press support: opens picker after 500ms hold
+    const handleTouchStart = (e) => {
+        touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        clearTimeout(longPressRef.current);
+        longPressRef.current = setTimeout(() => {
+            setShowPicker(true);
+            // Prevent the subsequent click from firing a default like
+            touchStartRef.current = null;
+        }, 500);
+    };
+
+    const handleTouchMove = (e) => {
+        // Cancel long-press if finger moves more than 10px (user is scrolling)
+        if (touchStartRef.current) {
+            const dx = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
+            const dy = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
+            if (dx > 10 || dy > 10) {
+                clearTimeout(longPressRef.current);
+                touchStartRef.current = null;
+            }
+        }
+    };
+
+    const handleTouchEnd = () => {
+        clearTimeout(longPressRef.current);
+    };
+
     const handleReaction = (type) => {
         setShowPicker(false);
         setHoveredReaction(null);
@@ -47,8 +76,24 @@ export default function ReactionPicker({ onReact, currentReaction, compact = fal
 
     // Cleanup
     useEffect(() => {
-        return () => clearTimeout(timeoutRef.current);
+        return () => {
+            clearTimeout(timeoutRef.current);
+            clearTimeout(longPressRef.current);
+        };
     }, []);
+
+    // Close picker when tapping outside (mobile)
+    useEffect(() => {
+        if (!showPicker) return;
+        const handleOutsideTouch = (e) => {
+            if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+                setShowPicker(false);
+                setHoveredReaction(null);
+            }
+        };
+        document.addEventListener('touchstart', handleOutsideTouch, { passive: true });
+        return () => document.removeEventListener('touchstart', handleOutsideTouch);
+    }, [showPicker]);
 
     const activeReaction = currentReaction
         ? REACTIONS.find(r => r.type === currentReaction)
@@ -59,6 +104,9 @@ export default function ReactionPicker({ onReact, currentReaction, compact = fal
             style={{ position: 'relative', display: 'inline-block' }}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
         >
             {/* Trigger button */}
             <button

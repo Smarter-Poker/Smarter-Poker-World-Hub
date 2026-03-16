@@ -41,6 +41,7 @@ export default function GhostOpponent({
     currentQuestionIndex = 0,
     playerCorrectCount = 0,
     isGameActive = true,
+    realAccuracy = null, // Community accuracy from trivia_scores (0-1), null = fallback
     onOpponentResult, // callback: (opponentScore) when game ends
 }) {
     const [opponent] = useState(() => getOpponent(Date.now()));
@@ -49,6 +50,9 @@ export default function GhostOpponent({
     const [opponentCorrect, setOpponentCorrect] = useState(null);
     const [showReaction, setShowReaction] = useState(false);
     const answeredQuestionsRef = useRef(new Set());
+
+    // Use real community accuracy if available, otherwise 55% default
+    const accuracy = realAccuracy != null ? Math.max(0.35, Math.min(0.75, realAccuracy)) : 0.55;
 
     // Simulate opponent answering each question
     useEffect(() => {
@@ -63,8 +67,8 @@ export default function GhostOpponent({
         const timer = setTimeout(() => {
             answeredQuestionsRef.current.add(currentQuestionIndex);
 
-            // ~55% accuracy for the opponent (player wins ~60%)
-            const correct = Math.random() < 0.55;
+            // Use community accuracy (clamped 35-75%) for realistic feel
+            const correct = Math.random() < accuracy;
             setOpponentCorrect(correct);
             if (correct) setOpponentScore(prev => prev + 1);
             setOpponentAnswered(true);

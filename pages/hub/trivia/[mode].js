@@ -87,6 +87,7 @@ export default function TriviaModePage() {
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [error, setError] = useState(null);
     const [isVIP, setIsVIP] = useState(false);
+    const [communityAccuracy, setCommunityAccuracy] = useState(null);
     const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
 
     // Daily trivia enhancements
@@ -187,11 +188,26 @@ export default function TriviaModePage() {
                     return;
                 }
 
-                setQuestions(shuffleOptions(loadedQuestions));
+                setQuestions(sortByDifficulty(shuffleOptions(loadedQuestions)));
 
                 // Load leaderboard for arcade
                 if (mode === 'arcade') {
                     await loadLeaderboard();
+                }
+
+                // Load community accuracy for ghost opponent
+                try {
+                    const { data: accuracyData } = await supabase
+                        .from('trivia_scores')
+                        .select('correct_count, total_questions')
+                        .limit(100);
+                    if (accuracyData && accuracyData.length >= 5) {
+                        const totalCorrect = accuracyData.reduce((s, r) => s + (r.correct_count || 0), 0);
+                        const totalQs = accuracyData.reduce((s, r) => s + (r.total_questions || 0), 0);
+                        if (totalQs > 0) setCommunityAccuracy(totalCorrect / totalQs);
+                    }
+                } catch (e) {
+                    // Non-critical — ghost falls back to 55%
                 }
 
                 setGameState('ready');
@@ -324,6 +340,16 @@ export default function TriviaModePage() {
             [arr[i], arr[j]] = [arr[j], arr[i]];
         }
         return arr;
+    }
+
+    // Sort questions by difficulty: easy → medium → hard (random order within each tier)
+    function sortByDifficulty(questions) {
+        const order = { easy: 0, medium: 1, hard: 2 };
+        return [...questions].sort((a, b) => {
+            const da = order[a.difficulty] ?? 1; // default to medium if missing
+            const db = order[b.difficulty] ?? 1;
+            return da - db;
+        });
     }
 
     async function loadLeaderboard() {
@@ -906,6 +932,7 @@ export default function TriviaModePage() {
                             enableHints={mode !== 'arcade'}
                             enableStakes={mode === 'arcade'}
                             enableGhostOpponent={true}
+                            ghostAccuracy={communityAccuracy}
                             onDiamondsChange={async (delta) => {
                                 if (!userId) return;
                                 try {
