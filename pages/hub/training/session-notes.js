@@ -179,6 +179,51 @@ export default function SessionNotesPage() {
       return b.createdAt - a.createdAt;
     });
 
+  // Tag frequency for quick filter
+  const tagFrequency = {};
+  notes.forEach((n) => (n.tags || []).forEach((t) => {
+    tagFrequency[t] = (tagFrequency[t] || 0) + 1;
+  }));
+  const topTags = Object.entries(tagFrequency)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([tag]) => tag);
+
+  // Note statistics
+  const noteStats = {
+    total: notes.length,
+    avgAccuracy: notes.filter((n) => n.accuracy !== null && n.accuracy !== undefined).length > 0
+      ? Math.round(
+          notes.filter((n) => n.accuracy !== null).reduce((sum, n) => sum + n.accuracy, 0) /
+          notes.filter((n) => n.accuracy !== null).length
+        )
+      : null,
+    moodCounts: notes.reduce((acc, n) => {
+      acc[n.mood] = (acc[n.mood] || 0) + 1;
+      return acc;
+    }, {}),
+  };
+
+  // Export notes to clipboard as markdown
+  const exportNotes = () => {
+    const md = filtered.map((n) => {
+      let out = `## ${formatDate(n.createdAt)} — ${moodObj(n.mood).emoji} ${moodObj(n.mood).label}`;
+      if (n.accuracy !== null) out += ` (${n.accuracy}%)`;
+      out += '\n';
+      if (n.tags?.length) out += `**Tags:** ${n.tags.map((t) => `#${t}`).join(' ')}\n`;
+      if (n.wentWell) out += `**Good:** ${n.wentWell}\n`;
+      if (n.toImprove) out += `**Fix:** ${n.toImprove}\n`;
+      if (n.freeText) out += `\n${n.freeText}\n`;
+      return out;
+    }).join('\n---\n\n');
+    const header = `# Training Session Notes — Smarter.Poker\n\n`;
+    navigator.clipboard?.writeText(header + md).then(() => {
+      alert('Notes copied to clipboard!');
+    }).catch(() => {
+      alert('Copy failed — try manually selecting text.');
+    });
+  };
+
   const moodObj = (id) => MOOD_OPTIONS.find((m) => m.id === id) || MOOD_OPTIONS[2];
 
   return (
@@ -498,6 +543,102 @@ export default function SessionNotesPage() {
 
           {tab === 'browse' && (
             <>
+              {/* Note stats */}
+              {notes.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    marginBottom: 12,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: 80,
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      background: 'rgba(0,212,255,0.04)',
+                      border: '1px solid rgba(0,212,255,0.08)',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: 20, fontWeight: 900, color: '#00d4ff' }}>
+                      {noteStats.total}
+                    </div>
+                    <div style={{ fontSize: 8, color: '#64748b', textTransform: 'uppercase' }}>
+                      Notes
+                    </div>
+                  </div>
+                  {noteStats.avgAccuracy !== null && (
+                    <div
+                      style={{
+                        flex: 1,
+                        minWidth: 80,
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        background: 'rgba(34,197,94,0.04)',
+                        border: '1px solid rgba(34,197,94,0.08)',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: 20, fontWeight: 900, color: '#4ade80' }}>
+                        {noteStats.avgAccuracy}%
+                      </div>
+                      <div style={{ fontSize: 8, color: '#64748b', textTransform: 'uppercase' }}>
+                        Avg Accuracy
+                      </div>
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: 80,
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      background: 'rgba(251,191,36,0.04)',
+                      border: '1px solid rgba(251,191,36,0.08)',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: 20 }}>
+                      {moodObj(
+                        Object.entries(noteStats.moodCounts).sort((a, b) => b[1] - a[1])?.[0]?.[0] || 'neutral'
+                      ).emoji}
+                    </div>
+                    <div style={{ fontSize: 8, color: '#64748b', textTransform: 'uppercase' }}>
+                      Top Mood
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tag quick-filter */}
+              {topTags.length > 0 && (
+                <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
+                  {topTags.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => setSearchTerm(searchTerm === tag ? '' : tag)}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 10,
+                        background:
+                          searchTerm === tag ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${searchTerm === tag ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                        color: searchTerm === tag ? '#00d4ff' : '#64748b',
+                        fontSize: 9,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -510,10 +651,33 @@ export default function SessionNotesPage() {
                   border: '1px solid rgba(255,255,255,0.08)',
                   color: '#e2e8f0',
                   fontSize: 12,
-                  marginBottom: 16,
+                  marginBottom: 12,
                   fontFamily: 'Inter, sans-serif',
                 }}
               />
+
+              {/* Export button */}
+              {filtered.length > 0 && (
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={exportNotes}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'rgba(255,255,255,0.03)',
+                    color: '#94a3b8',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    marginBottom: 16,
+                  }}
+                >
+                  Export {filtered.length} Notes to Clipboard
+                </motion.button>
+              )
+              }
               {filtered.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>📝</div>

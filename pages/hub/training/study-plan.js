@@ -687,6 +687,78 @@ export default function StudyPlanPage() {
             </div>
           )}
 
+          {/* Weakness Insights (data-driven transparency) */}
+          {plan && sessions.length > 0 && (() => {
+            const weaknesses = analyzeWeaknesses(sessions);
+            const dataWeaknesses = weaknesses.filter((w) => w.weakness && w.accuracy !== undefined);
+            if (dataWeaknesses.length === 0) return null;
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: 12,
+                  marginBottom: 16,
+                  background: 'rgba(239,68,68,0.04)',
+                  border: '1px solid rgba(239,68,68,0.08)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#f87171',
+                    textTransform: 'uppercase',
+                    letterSpacing: 1,
+                    marginBottom: 10,
+                  }}
+                >
+                  Your Weak Spots (Based on Data)
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {dataWeaknesses.slice(0, 3).map((w, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        background: 'rgba(0,0,0,0.15)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 16 }}>{w.icon}</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>
+                          {w.name}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 800,
+                            color: w.accuracy < 50 ? '#ef4444' : w.accuracy < 70 ? '#fbbf24' : '#4ade80',
+                          }}
+                        >
+                          {w.accuracy}%
+                        </span>
+                        {w.evLoss > 0 && (
+                          <span style={{ fontSize: 10, color: '#f87171' }}>
+                            -{Math.round(w.evLoss * 10) / 10} EV
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            );
+          })()}
+
           {/* Day Cards */}
           {plan &&
             plan.map((dayPlan, idx) => (

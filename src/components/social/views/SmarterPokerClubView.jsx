@@ -507,28 +507,12 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
     });
     const [posts, setPosts] = useState([]);
 
-    const leaderboard = [
-        { user: { name: 'Mike Shark', avatar: '', tier: 'shark' }, stats: { profit: 12500, bb100: 12.5, hands: 15000 } },
-        { user: { name: 'Sarah GTO', avatar: '', tier: 'gto_master' }, stats: { profit: 8900, bb100: 9.2, hands: 22000 } },
-        { user: { name: 'Tom Durrr', avatar: '', tier: 'whale' }, stats: { profit: -4500, bb100: -5.4, hands: 8000 } }
-    ];
+    const leaderboard = [];
 
-    const events = [
-        { month: 'JAN', day: '15', title: '$10k GTD Monthly Deepstack', time: 'SAT AT 2 PM', location: 'Aria Poker Room', attendeesCount: 145, interestedCount: 302 },
-        { month: 'JAN', day: '22', title: 'PLO Strategy Workshop', time: 'SAT AT 6 PM', location: 'Online Zoom', attendeesCount: 45, interestedCount: 120 }
-    ];
+    const events = [];
 
-    // Default post used when no real posts are fetched
-    const displayPosts = posts.length > 0 ? posts : [
-        {
-            id: 1,
-            user: { name: 'Club Admin', isVerified: true },
-            text: "Welcome To The Club!",
-            createdAt: '2h ago',
-            likeCount: 0,
-            commentCount: 0
-        }
-    ];
+    // Show real posts only — no mock welcome post
+    const displayPosts = posts;
 
     // Fetch real club data from Supabase
     const loadClubData = useCallback(async () => {
@@ -693,7 +677,15 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
                 <div className="club-main">
                     <CreatePostBox user={currentUser} placeholder="Write Something..." />
 
-                    <ClubLeaderboard data={leaderboard} />
+                    {leaderboard.length > 0 ? (
+                        <ClubLeaderboard data={leaderboard} />
+                    ) : (
+                        <div style={{ textAlign: 'center', padding: '32px 16px', background: '#fff', borderRadius: 8, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                            <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.4 }}>🏆</div>
+                            <div style={{ fontSize: 15, fontWeight: 600, color: '#1c1e21' }}>No Leaderboard Data Yet</div>
+                            <div style={{ fontSize: 13, color: '#65676B', marginTop: 4 }}>Play games to appear on the leaderboard</div>
+                        </div>
+                    )}
 
                     {loading ? (
                         <div style={{ padding: 20 }}>
@@ -734,10 +726,14 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
 
                     <div className="sidebar-card">
                         <h3>Upcoming Events</h3>
-                        {events.map((e, i) => (
+                        {events.length > 0 ? events.map((e, i) => (
                             <ClubEventCard key={i} event={e} />
-                        ))}
-                        <button className="btn-see-all">See All</button>
+                        )) : (
+                            <div style={{ textAlign: 'center', padding: '20px 12px', color: '#65676B', fontSize: 14 }}>
+                                No Upcoming Events
+                            </div>
+                        )}
+                        {events.length > 0 && <button className="btn-see-all">See All</button>}
                     </div>
                 </div>
             </div>

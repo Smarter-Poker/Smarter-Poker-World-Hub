@@ -32,7 +32,13 @@ import {
     generateHandSnapQuestion,
     generateBoardNutsQuestion,
     generateChipMathQuestion,
+    generateShowdownQuestion,
+    generateEVOrFoldQuestion,
+    generateMysteryBoxQuestion,
     calculatePrize,
+    calculateDoubleOrNothing,
+    calculateGauntlet,
+    rollMysteryMultiplier,
     getTimeUntilReset,
 } from '../../src/lib/arcade/arcadeEngine';
 import { busEmit } from '../../src/engine/EventBus';
@@ -349,8 +355,24 @@ export default function DiamondArcade() {
                 setCurrentQuestion(generateBoardNutsQuestion());
                 break;
             case 'chip-math':
-            case 'ev-or-fold':
                 setCurrentQuestion(generateChipMathQuestion());
+                break;
+            case 'showdown':
+                setCurrentQuestion(generateShowdownQuestion());
+                break;
+            case 'ev-or-fold':
+                setCurrentQuestion(generateEVOrFoldQuestion());
+                break;
+            case 'mystery-box':
+                setCurrentQuestion(generateMysteryBoxQuestion());
+                break;
+            case 'double-or-nothing':
+                // Uses hand-snap style question for the single high-stakes question
+                setCurrentQuestion(generateHandSnapQuestion());
+                break;
+            case 'the-gauntlet':
+                // Mix of question types for the 10-question gauntlet
+                setCurrentQuestion(generateMysteryBoxQuestion());
                 break;
             default:
                 setCurrentQuestion(generateHandSnapQuestion());
@@ -412,7 +434,19 @@ export default function DiamondArcade() {
         // Use override if provided (from handleAnswer), otherwise fall back to state
         const finalCorrectCount = correctCountOverride !== undefined ? correctCountOverride : correctCount;
         if (timerRef.current) clearInterval(timerRef.current);
-        const result = calculatePrize(activeGame, finalCorrectCount, activeGame.questionsCount, streak, 1);
+
+        // Use specialized prize calculators for specific game types
+        let result;
+        if (activeGame.id === 'double-or-nothing') {
+            result = calculateDoubleOrNothing(finalCorrectCount >= 1, activeGame.entryFee);
+        } else if (activeGame.id === 'the-gauntlet') {
+            result = calculateGauntlet(finalCorrectCount, activeGame.entryFee);
+        } else if (activeGame.id === 'mystery-box') {
+            const multiplier = rollMysteryMultiplier();
+            result = calculatePrize(activeGame, finalCorrectCount, activeGame.questionsCount, streak, multiplier);
+        } else {
+            result = calculatePrize(activeGame, finalCorrectCount, activeGame.questionsCount, streak, 1);
+        }
         setGameResult(result);
         setGamePhase('result');
 
@@ -971,7 +1005,7 @@ export default function DiamondArcade() {
                                         </>
                                     )}
 
-                                    {(activeGame.id === 'chip-math' || activeGame.id === 'ev-or-fold') && (
+                                    {activeGame.id === 'chip-math' && (
                                         <>
                                             <p style={styles.questionText}>{currentQuestion.question}</p>
                                             <div style={styles.optionsGrid}>
@@ -1014,6 +1048,127 @@ export default function DiamondArcade() {
                                             </div>
                                         </>
                                     )}
+
+                                    {activeGame.id === 'showdown' && currentQuestion.hands && (
+                                        <>
+                                            <p style={styles.questionText}>Which Hand Wins This Showdown?</p>
+                                            <div style={styles.boardDisplay}>
+                                                <span style={styles.boardLabel}>Board:</span>
+                                                {currentQuestion.board.map((card, idx) => (
+                                                    <span key={idx} style={styles.boardCard}>{card}</span>
+                                                ))}
+                                            </div>
+                                            <div style={styles.handsContainer}>
+                                                {currentQuestion.hands.map((hand, idx) => (
+                                                    <motion.button
+                                                        key={idx}
+                                                        style={styles.handButton}
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => handleAnswer(idx)}
+                                                    >
+                                                        <div style={styles.handLabel}>Hand {idx + 1}</div>
+                                                        <div style={styles.handCards}>
+                                                            {hand.map((card, cidx) => (
+                                                                <span key={cidx} style={styles.card}>{card}</span>
+                                                            ))}
+                                                        </div>
+                                                    </motion.button>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {activeGame.id === 'ev-or-fold' && currentQuestion.scenario && (
+                                        <>
+                                            <p style={styles.questionText}>{currentQuestion.scenario}</p>
+                                            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', margin: '16px 0', flexWrap: 'wrap' }}>
+                                                <div style={{ background: 'rgba(35, 116, 225, 0.15)', border: '1px solid rgba(35, 116, 225, 0.3)', borderRadius: '10px', padding: '12px 20px', textAlign: 'center' }}>
+                                                    <div style={{ color: '#65676b', fontSize: '11px', textTransform: 'uppercase' }}>Pot</div>
+                                                    <div style={{ color: '#2374e1', fontSize: '22px', fontWeight: '800' }}>{currentQuestion.pot}</div>
+                                                </div>
+                                                <div style={{ background: 'rgba(240, 40, 73, 0.15)', border: '1px solid rgba(240, 40, 73, 0.3)', borderRadius: '10px', padding: '12px 20px', textAlign: 'center' }}>
+                                                    <div style={{ color: '#65676b', fontSize: '11px', textTransform: 'uppercase' }}>Bet</div>
+                                                    <div style={{ color: '#f02849', fontSize: '22px', fontWeight: '800' }}>{currentQuestion.bet}</div>
+                                                </div>
+                                                <div style={{ background: 'rgba(49, 162, 76, 0.15)', border: '1px solid rgba(49, 162, 76, 0.3)', borderRadius: '10px', padding: '12px 20px', textAlign: 'center' }}>
+                                                    <div style={{ color: '#65676b', fontSize: '11px', textTransform: 'uppercase' }}>Your Equity</div>
+                                                    <div style={{ color: '#31a24c', fontSize: '22px', fontWeight: '800' }}>{currentQuestion.equity}%</div>
+                                                </div>
+                                            </div>
+                                            <div style={styles.optionsGrid}>
+                                                {currentQuestion.options.map((opt, idx) => (
+                                                    <motion.button
+                                                        key={idx}
+                                                        style={{
+                                                            ...styles.optionButton,
+                                                            background: idx === 0
+                                                                ? 'linear-gradient(135deg, rgba(49, 162, 76, 0.2), rgba(49, 162, 76, 0.1))'
+                                                                : 'linear-gradient(135deg, rgba(240, 40, 73, 0.2), rgba(240, 40, 73, 0.1))',
+                                                            borderColor: idx === 0 ? 'rgba(49, 162, 76, 0.4)' : 'rgba(240, 40, 73, 0.4)',
+                                                        }}
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => handleAnswer(idx)}
+                                                    >
+                                                        {opt}
+                                                    </motion.button>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* Fallback for mystery-box, double-or-nothing, the-gauntlet */}
+                                    {!['hand-snap', 'chip-math', 'board-nuts', 'showdown', 'ev-or-fold'].includes(activeGame.id) && (
+                                        <>
+                                            <p style={styles.questionText}>
+                                                {currentQuestion.question || currentQuestion.scenario || 'Which Hand Wins?'}
+                                            </p>
+                                            {currentQuestion.board && (
+                                                <div style={styles.boardDisplay}>
+                                                    <span style={styles.boardLabel}>Board:</span>
+                                                    {currentQuestion.board.map((card, idx) => (
+                                                        <span key={idx} style={styles.boardCard}>{card}</span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {currentQuestion.hands ? (
+                                                <div style={styles.handsContainer}>
+                                                    {currentQuestion.hands.map((hand, idx) => (
+                                                        <motion.button
+                                                            key={idx}
+                                                            style={styles.handButton}
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            onClick={() => handleAnswer(idx)}
+                                                        >
+                                                            <div style={styles.handLabel}>Hand {idx + 1}</div>
+                                                            <div style={styles.handCards}>
+                                                                {hand.map((card, cidx) => (
+                                                                    <span key={cidx} style={styles.card}>{card}</span>
+                                                                ))}
+                                                            </div>
+                                                        </motion.button>
+                                                    ))}
+                                                </div>
+                                            ) : currentQuestion.options ? (
+                                                <div style={styles.optionsGrid}>
+                                                    {currentQuestion.options.map((opt, idx) => (
+                                                        <motion.button
+                                                            key={idx}
+                                                            style={styles.optionButton}
+                                                            whileHover={{ scale: 1.03 }}
+                                                            whileTap={{ scale: 0.97 }}
+                                                            onClick={() => handleAnswer(idx)}
+                                                        >
+                                                            {opt}
+                                                        </motion.button>
+                                                    ))}
+                                                </div>
+                                            ) : null}
+                                        </>
+                                    )}
+
                                 </div>
                             </motion.div>
                         )}

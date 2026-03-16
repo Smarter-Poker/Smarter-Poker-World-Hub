@@ -24,6 +24,9 @@ import ArticleReaderModal from '../../../src/components/social/ArticleReaderModa
 import ProfileSkeleton from '../../../src/components/skeletons/ProfileSkeleton';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
+import EditPostModal from '../../../src/components/social/EditPostModal';
+import HashtagRenderer from '../../../src/components/social/HashtagRenderer';
+import SharePostModal from '../../../src/components/social/SharePostModal';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -190,9 +193,12 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
 }
 
 // Post Card Component
-function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId, horseProfileIds = new Set() }) {
+function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, currentUserId, horseProfileIds = new Set() }) {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [editablePost, setEditablePost] = useState(post);
     const [liked, setLiked] = useState(false);
     const [likeAnimating, setLikeAnimating] = useState(false);
     const [likeCount, setLikeCount] = useState(post.like_count || 0);
@@ -201,19 +207,15 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
     const likeThrottleRef = useRef(false);
 
-    // Phase 28: Render @mentions as clickable links
-    function renderMentions(text) {
+    // Render post content with @mentions and #hashtags
+    function renderContent(text) {
         if (!text) return text;
-        const parts = text.split(/(@\w+)/g);
-        return parts.map((part, i) => {
-            if (part.startsWith('@')) {
-                const uname = part.slice(1);
-                return React.createElement('a', {
-                    key: i, href: `/hub/user/${uname}`,
-                    style: { color: C.blue, fontWeight: 600, textDecoration: 'none' }
-                }, part);
+        return React.createElement(HashtagRenderer, {
+            text,
+            onHashtagClick: (tag) => {
+                // Future: navigate to hashtag search
+                console.log('Hashtag clicked:', tag);
             }
-            return part;
         });
     }
 
@@ -363,26 +365,22 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
         }}></span>
     );
 
-    const handleShare = async () => {
-        const url = window.location.origin + '/hub/user/' + (author?.username || '') + '?post=' + post.id;
-        try {
-            await navigator.clipboard.writeText(url);
-            setShareMsg('Link copied!');
-            setTimeout(() => setShareMsg(''), 2000);
-            if (currentUserId) {
-                const token = getAccessToken();
-                fetch('/api/social/interactions', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                    },
-                    body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'share' })
-                }).catch(() => { });
-            }
-        } catch {
-            setShareMsg('Share failed');
-            setTimeout(() => setShareMsg(''), 2000);
+    const handleShareComplete = (platformId) => {
+        if (currentUserId) {
+            const token = getAccessToken();
+            fetch('/api/social/interactions', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'share' })
+            }).catch(() => { });
+            fetch('/api/social/share-count', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ post_id: post.id })
+            }).catch(() => { });
         }
     };
 
@@ -444,21 +442,33 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                 </div>
                 <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{author?.full_name || author?.username}</div>
-                    <div style={{ fontSize: 12, color: C.textSec }}>{timeAgo(post.created_at)} · 🌍</div>
+                    <div style={{ fontSize: 12, color: C.textSec }}>{timeAgo(editablePost.created_at)}{editablePost.isEdited || (editablePost.updated_at && editablePost.updated_at !== editablePost.created_at) ? ' · Edited' : ''} · 🌍</div>
                 </div>
-                {isOwnProfile && onDelete && (
-                    <button
-                        onClick={() => setShowDeleteConfirm(true)}
-                        style={{
-                            background: 'transparent', border: 'none', cursor: 'pointer',
-                            fontSize: 18, color: C.textSec, padding: 8, borderRadius: 20
-                        }}
-                        title="Delete Post"
-                    >🗑️</button>
+                {isOwnProfile && (
+                    <div style={{ display: 'flex', gap: 4 }}>
+                        <button
+                            onClick={() => setShowEditModal(true)}
+                            style={{
+                                background: 'transparent', border: 'none', cursor: 'pointer',
+                                fontSize: 16, color: C.textSec, padding: 8, borderRadius: 20
+                            }}
+                            title="Edit Post"
+                        >✏️</button>
+                        {onDelete && (
+                            <button
+                                onClick={() => setShowDeleteConfirm(true)}
+                                style={{
+                                    background: 'transparent', border: 'none', cursor: 'pointer',
+                                    fontSize: 18, color: C.textSec, padding: 8, borderRadius: 20
+                                }}
+                                title="Delete Post"
+                            >🗑️</button>
+                        )}
+                    </div>
                 )}
             </div>
-            {post.content && (
-                <div style={{ padding: '0 12px 12px', fontSize: 15, color: C.text, lineHeight: 1.4 }}>{renderMentions(post.content)}</div>
+            {editablePost.content && (
+                <div style={{ padding: '0 12px 12px', fontSize: 15, color: C.text, lineHeight: 1.4 }}>{renderContent(editablePost.content)}</div>
             )}
             {isArticleOrLink ? (
                 <ArticleCard
@@ -501,7 +511,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                     transform: likeAnimating ? 'scale(1.3)' : 'scale(1)',
                 }}>👍 {liked ? 'Liked' : 'Like'}</button>
                 <button onClick={handleComment} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
-                <button onClick={handleShare} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>↗️ Share</button>
+                <button onClick={() => setShowShareModal(true)} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>↗️ Share</button>
             </div>
             
             {/* Display Animated Typing Indicators (Phase 11) */}
@@ -538,7 +548,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                                     <img src={c.author?.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} alt="User avatar" loading="lazy" />
                                     <div style={{ flex: 1, background: C.bg, borderRadius: 12, padding: '8px 12px' }}>
                                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.author?.full_name || c.author?.username || 'User'}</div>
-                                        <div style={{ fontSize: 14, color: C.text, marginTop: 2 }}>{renderMentions(c.content)}</div>
+                                        <div style={{ fontSize: 14, color: C.text, marginTop: 2 }}>{renderContent(c.content)}</div>
                                         <div style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>{timeAgo(c.created_at)}</div>
                                     </div>
                                 </div>
@@ -573,6 +583,29 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* Edit Post Modal */}
+            {showEditModal && (
+                <EditPostModal
+                    post={editablePost}
+                    supabase={supabase}
+                    onClose={() => setShowEditModal(false)}
+                    onSaved={(updatedPost) => {
+                        setEditablePost(updatedPost);
+                        onPostEdited?.(updatedPost);
+                    }}
+                />
+            )}
+
+            {/* Share Post Modal */}
+            {showShareModal && (
+                <SharePostModal
+                    post={editablePost}
+                    authorUsername={author?.username}
+                    onClose={() => setShowShareModal(false)}
+                    onShared={handleShareComplete}
+                />
             )}
         </div>
     );

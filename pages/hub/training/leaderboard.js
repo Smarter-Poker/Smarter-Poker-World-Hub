@@ -49,8 +49,9 @@ export default function TrainingLeaderboard() {
   const periodMap = { daily: 'daily', weekly: 'weekly', 'all-time': 'alltime' };
   const period = periodMap[timeframe] || 'alltime';
 
-  // SWR-backed leaderboard fetch — cached 60s, instant on timeframe switch
-  const swrKey = `/api/training/leaderboard?period=${period}&limit=100`;
+  // SWR-backed leaderboard fetch — cached 60s, instant on timeframe/category switch
+  const categoryParam = view && view !== 'global' ? `&category=${view}` : '';
+  const swrKey = `/api/training/leaderboard?period=${period}&limit=100${categoryParam}`;
   const { data: swrData, isLoading: loading } = useSWR(swrKey, (url) =>
     fetch(url)
       .then((r) => r.json())
@@ -112,7 +113,25 @@ export default function TrainingLeaderboard() {
               </button>
             </div>
 
-            {/* TODO: Add friends filter when friendships are implemented */}
+            {/* Category filter */}
+            <div style={{ ...styles.filterGroup, marginTop: 8 }}>
+              {[
+                { id: 'global', label: 'All Games' },
+                { id: 'mtt', label: 'MTT' },
+                { id: 'cash', label: 'Cash' },
+                { id: 'spins', label: 'Spins' },
+                { id: 'psychology', label: 'Psychology' },
+                { id: 'advanced', label: 'Advanced' },
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  style={view === cat.id ? styles.categoryButtonActive : styles.categoryButton}
+                  onClick={() => setView(cat.id)}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* User Rank */}
@@ -386,5 +405,26 @@ const styles = {
     borderRadius: '8px',
     textDecoration: 'none',
     fontWeight: 600,
+  },
+  categoryButton: {
+    padding: '6px 14px',
+    background: 'transparent',
+    color: '#6b7280',
+    border: '1px solid rgba(255, 255, 255, 0.06)',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  categoryButtonActive: {
+    padding: '6px 14px',
+    background: 'rgba(139, 92, 246, 0.15)',
+    color: '#a78bfa',
+    border: '1px solid rgba(139, 92, 246, 0.4)',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
   },
 };

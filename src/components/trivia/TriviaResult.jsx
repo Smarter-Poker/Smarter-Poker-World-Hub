@@ -12,7 +12,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Zap, Gem, Target, Clock, Flame, RotateCcw, Home, ChevronRight, Crown } from 'lucide-react';
+import { Trophy, Zap, Gem, Target, Clock, Flame, RotateCcw, Home, ChevronRight, ChevronDown, ChevronUp, Crown, CheckCircle, XCircle, BookOpen } from 'lucide-react';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -45,6 +45,9 @@ export default function TriviaResult({
     opponentName = null,    // Ghost opponent name
     stakePot = 0,           // Total diamonds from stakes
     cashedOut = false,       // Whether player cashed out
+    // ══ REVIEW MODE PROPS ══
+    questions = null,        // Array of question objects for review
+    answers = null,          // Array of user answer indices
 }) {
     const accuracy = Math.round((correctCount / totalQuestions) * 100);
     const isPerfect = isPerfectProp || correctCount === totalQuestions;
@@ -53,6 +56,10 @@ export default function TriviaResult({
     const hasOpponent = opponentScore !== null;
     const playerWon = hasOpponent ? correctCount > opponentScore : true;
     const tied = hasOpponent && correctCount === opponentScore;
+
+    // Review mode state
+    const [showReview, setShowReview] = useState(false);
+    const canReview = questions && answers && questions.length > 0;
 
     // ══ Animated count-up ══
     const [displayDiamonds, setDisplayDiamonds] = useState(0);
@@ -279,6 +286,59 @@ export default function TriviaResult({
                 )}
 
                 {/* Action Buttons */}
+                {/* ════ Question Review Section ════ */}
+                {canReview && (
+                    <div className="review-section">
+                        <button className="review-toggle" onClick={() => setShowReview(!showReview)}>
+                            <BookOpen size={18} />
+                            <span>{showReview ? 'Hide Answers' : 'Review Answers'}</span>
+                            {showReview ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        </button>
+                        <AnimatePresence>
+                            {showReview && (
+                                <motion.div
+                                    className="review-list"
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    {questions.map((q, idx) => {
+                                        const userAnswer = answers[idx];
+                                        const isCorrect = userAnswer === q.correct_index;
+                                        const wasSkipped = userAnswer === -1 || userAnswer === undefined;
+                                        return (
+                                            <div key={idx} className={`review-item ${isCorrect ? 'correct' : 'incorrect'}`}>
+                                                <div className="review-q-header">
+                                                    <span className="review-q-num">Q{idx + 1}</span>
+                                                    {isCorrect ? <CheckCircle size={16} className="review-icon correct" /> : <XCircle size={16} className="review-icon incorrect" />}
+                                                </div>
+                                                <p className="review-question">{q.question}</p>
+                                                <div className="review-options">
+                                                    {q.options.map((opt, oi) => (
+                                                        <div
+                                                            key={oi}
+                                                            className={`review-option ${oi === q.correct_index ? 'is-correct' : ''} ${oi === userAnswer && oi !== q.correct_index ? 'is-wrong' : ''}`}
+                                                        >
+                                                            <span className="review-opt-letter">{String.fromCharCode(65 + oi)}</span>
+                                                            <span>{opt}</span>
+                                                            {oi === q.correct_index && <CheckCircle size={14} />}
+                                                            {oi === userAnswer && oi !== q.correct_index && <XCircle size={14} />}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                {q.explanation && (
+                                                    <p className="review-explanation">{q.explanation}</p>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                )}
+
                 <div className="actions">
                     <Link href="/hub/trivia" className="action-btn secondary">
                         <Home size={18} />
@@ -611,6 +671,110 @@ export default function TriviaResult({
                 @keyframes doublePulse {
                     0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.4); }
                     50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.7); }
+                }
+                /* ═══ REVIEW MODE ═══ */
+                .review-section {
+                    width: 100%;
+                    margin-top: 16px;
+                    margin-bottom: 16px;
+                }
+                .review-toggle {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    width: 100%;
+                    padding: 12px;
+                    background: rgba(35, 116, 225, 0.1);
+                    border: 1px solid rgba(35, 116, 225, 0.25);
+                    border-radius: 10px;
+                    color: #2374e1;
+                    font-weight: 600;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                }
+                .review-toggle:hover {
+                    background: rgba(35, 116, 225, 0.2);
+                }
+                .review-list {
+                    overflow: hidden;
+                    margin-top: 12px;
+                }
+                .review-item {
+                    padding: 16px;
+                    border-radius: 10px;
+                    background: rgba(255, 255, 255, 0.04);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    margin-bottom: 10px;
+                }
+                .review-item.correct {
+                    border-left: 3px solid #31a24c;
+                }
+                .review-item.incorrect {
+                    border-left: 3px solid #f02849;
+                }
+                .review-q-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 8px;
+                }
+                .review-q-num {
+                    font-weight: 700;
+                    font-size: 12px;
+                    color: #65676b;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .review-icon.correct { color: #31a24c; }
+                .review-icon.incorrect { color: #f02849; }
+                .review-question {
+                    color: #e4e6eb;
+                    font-size: 14px;
+                    line-height: 1.5;
+                    margin: 0 0 10px;
+                }
+                .review-options {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                }
+                .review-option {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 13px;
+                    color: rgba(255, 255, 255, 0.6);
+                    background: rgba(255, 255, 255, 0.03);
+                }
+                .review-option.is-correct {
+                    background: rgba(49, 162, 76, 0.15);
+                    border: 1px solid rgba(49, 162, 76, 0.3);
+                    color: #31a24c;
+                    font-weight: 600;
+                }
+                .review-option.is-wrong {
+                    background: rgba(240, 40, 73, 0.1);
+                    border: 1px solid rgba(240, 40, 73, 0.25);
+                    color: #f02849;
+                }
+                .review-opt-letter {
+                    font-weight: 700;
+                    opacity: 0.5;
+                    min-width: 16px;
+                }
+                .review-explanation {
+                    margin: 10px 0 0;
+                    padding: 10px 12px;
+                    background: rgba(35, 116, 225, 0.08);
+                    border-radius: 6px;
+                    color: rgba(255, 255, 255, 0.7);
+                    font-size: 13px;
+                    line-height: 1.5;
+                    border-left: 2px solid rgba(35, 116, 225, 0.3);
                 }
             `}</style>
         </div>

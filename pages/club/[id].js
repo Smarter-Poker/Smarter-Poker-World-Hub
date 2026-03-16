@@ -264,29 +264,56 @@ function TournamentCard({ tournament }) {
   const buyIn = tournament.buyin_amount || tournament.buy_in_amount || 0;
   const gtd = tournament.guaranteed_prize;
   const gameType = tournament.game_type;
+  const isLive = ['running', 'break', 'final_table'].includes(tournament.status);
+  const isCompleted = tournament.status === 'completed';
+  const prizePool = (tournament.current_entries || 0) * buyIn;
 
-  const GAME_LABELS = { NLH: "NL Hold'em", PLO: 'PLO', PLO5: 'PLO-5', PLO8: 'PLO Hi-Lo' };
+  const GAME_LABELS = { NLH: "NL Hold'em", PLO: 'PLO', PLO5: 'PLO-5', PLO8: 'PLO Hi-Lo', nlh: "NL Hold'em", plo: 'PLO', plo5: 'PLO-5', plo8: 'PLO Hi-Lo' };
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-[#F3F4F6] rounded-lg">
-      <div className="w-12 h-12 bg-white rounded-lg flex flex-col items-center justify-center border border-[#E5E7EB]">
+    <div
+      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+        isLive ? 'bg-[#10B981]/5 border border-[#10B981]/20 hover:bg-[#10B981]/10' :
+        isCompleted ? 'bg-[#F3F4F6] opacity-60' : 'bg-[#F3F4F6] hover:bg-[#E5E7EB]'
+      }`}
+      onClick={() => tournament.id && window.open(`/commander/tournaments/${tournament.id}/public`, '_blank')}
+    >
+      <div className={`w-12 h-12 rounded-lg flex flex-col items-center justify-center border ${
+        isLive ? 'bg-[#10B981]/10 border-[#10B981]/30' : 'bg-white border-[#E5E7EB]'
+      }`}>
         <span className="text-xs text-[#6B7280] uppercase">
           {startDate.toLocaleDateString('en-US', { month: 'short' })}
         </span>
-        <span className="text-lg font-bold text-[#1F2937]">
+        <span className={`text-lg font-bold ${isLive ? 'text-[#10B981]' : 'text-[#1F2937]'}`}>
           {startDate.getDate()}
         </span>
       </div>
-      <div className="flex-1">
-        <p className="font-medium text-[#1F2937]">{tournament.name}</p>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="font-medium text-[#1F2937] truncate">{tournament.name}</p>
+          {isLive && (
+            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-[#10B981]/10 text-[#10B981] text-xs font-bold rounded whitespace-nowrap">
+              <span className="w-1.5 h-1.5 bg-[#10B981] rounded-full animate-pulse" />
+              LIVE
+            </span>
+          )}
+        </div>
         <p className="text-sm text-[#6B7280]">
           {startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
           {gameType ? ` · ${GAME_LABELS[gameType] || gameType}` : ''}
           {buyIn ? ` · $${buyIn} Buy-in` : ''}
           {gtd ? ` · $${gtd.toLocaleString()} GTD` : ''}
         </p>
+        {isLive && (
+          <p className="text-xs text-[#10B981] font-medium mt-0.5">
+            {tournament.players_remaining ? `${tournament.players_remaining} players remaining` : ''}
+            {tournament.players_remaining && prizePool > 0 ? ' · ' : ''}
+            {prizePool > 0 ? `$${prizePool.toLocaleString()} prize pool` : ''}
+            {!tournament.players_remaining && tournament.current_entries ? `${tournament.current_entries} entries` : ''}
+          </p>
+        )}
       </div>
-      <ChevronRight className="w-5 h-5 text-[#9CA3AF]" />
+      <ChevronRight className="w-5 h-5 text-[#9CA3AF] flex-shrink-0" />
     </div>
   );
 }
@@ -846,14 +873,38 @@ export default function ClubPage() {
                       <CheckCircle className="w-5 h-5 text-[#1877F2]" />
                     )}
                   </div>
-                  <p className="text-[#6B7280] mb-2">
-                    {venue.venue_type === 'casino' ? 'Casino' :
-                      venue.venue_type === 'card_room' ? 'Card Room' :
-                        venue.venue_type === 'poker_club' ? 'Poker Club' :
-                          venue.venue_type === 'charity' ? 'Charity' :
-                            venue.venue_type === 'home_game' ? 'Home Game' : 'Venue'}
-                    {venue.city && ` in ${venue.city}, ${venue.state}`}
-                  </p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-[#6B7280]">
+                      {venue.venue_type === 'casino' ? 'Casino' :
+                        venue.venue_type === 'card_room' ? 'Card Room' :
+                          venue.venue_type === 'poker_club' ? 'Poker Club' :
+                            venue.venue_type === 'charity' ? 'Charity' :
+                              venue.venue_type === 'home_game' ? 'Home Game' : 'Venue'}
+                      {venue.city && ` in ${venue.city}, ${venue.state}`}
+                    </p>
+                    {(() => {
+                      // Determine open/closed status from schedule or live games
+                      const hasLiveGames = liveGames.length > 0;
+                      const schedule = venue.run_schedule;
+                      let isOpen = hasLiveGames; // If live games exist, definitely open
+                      if (!isOpen && schedule) {
+                        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                        const today = days[new Date().getDay()];
+                        const todaySchedule = schedule[today];
+                        isOpen = todaySchedule?.open === true;
+                      }
+                      return (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          isOpen
+                            ? 'bg-[#10B981]/10 text-[#10B981]'
+                            : 'bg-[#6B7280]/10 text-[#6B7280]'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-[#10B981] animate-pulse' : 'bg-[#6B7280]'}`} />
+                          {isOpen ? 'Open Now' : 'Closed'}
+                        </span>
+                      );
+                    })()}
+                  </div>
                   {venue.address && (
                     <p className="text-sm text-[#6B7280] mb-2 flex items-center gap-1">
                       <MapPin className="w-3.5 h-3.5" />
@@ -937,7 +988,7 @@ export default function ClubPage() {
                 { id: 'about', label: 'About' },
                 { id: 'photos', label: 'Photos' },
                 { id: 'reviews', label: 'Reviews' },
-                { id: 'events', label: 'Events' }
+                { id: 'events', label: `Events${tournaments.length > 0 ? ` (${tournaments.length})` : ''}` }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -1091,6 +1142,78 @@ export default function ClubPage() {
                   )}
                 </div>
               </div>
+
+              {/* Upcoming Tournaments — sidebar preview */}
+              {tournaments.length > 0 && (
+                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-[#1F2937] flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-[#F59E0B]" />
+                      Upcoming Events
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab('events')}
+                      className="text-xs text-[#1877F2] font-medium hover:underline"
+                    >
+                      View All
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {tournaments.slice(0, 3).map((t) => {
+                      const d = new Date(t.scheduled_start || t.start_time);
+                      const isLive = ['running', 'break', 'final_table'].includes(t.status);
+                      return (
+                        <div
+                          key={t.id}
+                          className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                            isLive ? 'bg-[#10B981]/5 hover:bg-[#10B981]/10' : 'bg-[#F3F4F6] hover:bg-[#E5E7EB]'
+                          }`}
+                          onClick={() => t.id && window.open(`/commander/tournaments/${t.id}/public`, '_blank')}
+                        >
+                          <div className={`w-10 h-10 rounded-lg flex flex-col items-center justify-center text-center ${
+                            isLive ? 'bg-[#10B981]/10' : 'bg-white border border-[#E5E7EB]'
+                          }`}>
+                            <span className="text-[9px] text-[#6B7280] uppercase leading-none">{d.toLocaleDateString('en-US', { month: 'short' })}</span>
+                            <span className={`text-sm font-bold leading-none ${isLive ? 'text-[#10B981]' : 'text-[#1F2937]'}`}>{d.getDate()}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-[#1F2937] truncate">{t.name}</p>
+                            <p className="text-[10px] text-[#6B7280]">
+                              {d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                              {t.buyin_amount ? ` · $${t.buyin_amount}` : ''}
+                            </p>
+                          </div>
+                          {isLive && <span className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse flex-shrink-0" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Promotions / Hours Summary */}
+              {(venue.hours_weekday || venue.hours_weekend) && (
+                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                  <h3 className="font-semibold text-[#1F2937] mb-3 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#6B7280]" />
+                    Hours
+                  </h3>
+                  <div className="space-y-1 text-sm text-[#6B7280]">
+                    {venue.hours_weekday && (
+                      <div className="flex justify-between">
+                        <span>Weekdays</span>
+                        <span className="font-medium text-[#1F2937]">{venue.hours_weekday}</span>
+                      </div>
+                    )}
+                    {venue.hours_weekend && (
+                      <div className="flex justify-between">
+                        <span>Weekends</span>
+                        <span className="font-medium text-[#1F2937]">{venue.hours_weekend}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Main Content Area */}
@@ -1398,18 +1521,48 @@ export default function ClubPage() {
               )}
 
               {activeTab === 'events' && (
-                <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
-                  <h2 className="font-semibold text-[#1F2937] mb-4">Upcoming Tournaments</h2>
-                  {tournaments.length === 0 ? (
-                    <div className="p-8 text-center">
-                      <Calendar className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
-                      <p className="text-[#6B7280]">No Upcoming Tournaments</p>
+                <div className="space-y-4">
+                  {/* Live Tournaments */}
+                  {tournaments.filter(t => ['running', 'break', 'final_table'].includes(t.status)).length > 0 && (
+                    <div className="bg-white rounded-xl border border-[#10B981]/20 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="w-2 h-2 bg-[#10B981] rounded-full animate-pulse" />
+                        <h2 className="font-semibold text-[#10B981]">Live Now</h2>
+                      </div>
+                      <div className="space-y-2">
+                        {tournaments.filter(t => ['running', 'break', 'final_table'].includes(t.status)).map((tournament) => (
+                          <TournamentCard key={tournament.id} tournament={tournament} />
+                        ))}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {tournaments.map((tournament) => (
-                        <TournamentCard key={tournament.id} tournament={tournament} />
-                      ))}
+                  )}
+
+                  {/* Upcoming Tournaments */}
+                  <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                    <h2 className="font-semibold text-[#1F2937] mb-4">Upcoming Tournaments</h2>
+                    {tournaments.filter(t => !['running', 'break', 'final_table', 'completed'].includes(t.status)).length === 0 ? (
+                      <div className="p-8 text-center">
+                        <Calendar className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
+                        <p className="text-[#6B7280]">No Upcoming Tournaments</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {tournaments.filter(t => !['running', 'break', 'final_table', 'completed'].includes(t.status)).map((tournament) => (
+                          <TournamentCard key={tournament.id} tournament={tournament} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Completed Tournaments */}
+                  {tournaments.filter(t => t.status === 'completed').length > 0 && (
+                    <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+                      <h2 className="font-semibold text-[#1F2937] mb-4">Recent Results</h2>
+                      <div className="space-y-2">
+                        {tournaments.filter(t => t.status === 'completed').map((tournament) => (
+                          <TournamentCard key={tournament.id} tournament={tournament} />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

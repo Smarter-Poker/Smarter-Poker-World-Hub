@@ -9,8 +9,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 
 let _supabase = null;
@@ -33,9 +31,7 @@ export default async function handler(req, res) {
           return res.status(405).json({ error: 'Method not allowed' });
       }
 
-      if (!supabaseUrl || !supabaseServiceKey) {
-          return res.status(500).json({ error: 'Server configuration error' });
-      }
+
 
 
       // ── Auth: JWT required (handles diamond entry fees + prizes) ──
@@ -54,7 +50,7 @@ export default async function handler(req, res) {
 
       try {
           // Check if user already has enough diamonds
-          const { data: profile } = await supabase
+          const { data: profile } = await getSupabase()
               .from('profiles')
               .select('id, diamonds')
               .eq('id', user_id)
@@ -70,7 +66,7 @@ export default async function handler(req, res) {
           }
 
           // Look for a waiting opponent in the queue
-          const { data: waiting } = await supabase
+          const { data: waiting } = await getSupabase()
               .from('arcade_duel_queue')
               .select('*')
               .eq('duel_type', duel_type)
@@ -82,7 +78,7 @@ export default async function handler(req, res) {
 
           if (waiting) {
               // Match found - create a duel match
-              const { data: match, error: matchErr } = await supabase
+              const { data: match, error: matchErr } = await getSupabase()
                   .from('arcade_duels')
                   .insert({
                       player1_id: waiting.user_id,
@@ -136,7 +132,7 @@ export default async function handler(req, res) {
           }
 
           // No opponent found - add to queue
-          const { data: queueEntry, error: queueErr } = await supabase
+          const { data: queueEntry, error: queueErr } = await getSupabase()
               .from('arcade_duel_queue')
               .upsert({
                   user_id,

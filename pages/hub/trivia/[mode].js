@@ -715,6 +715,9 @@ export default function TriviaModePage() {
             cashedOut,
             opponentScore,
             opponentName,
+            // Review mode data
+            questions,
+            answers: gameResult.answers || [],
         });
 
         setGameState('results');

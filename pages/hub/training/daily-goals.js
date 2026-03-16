@@ -102,6 +102,7 @@ export default function DailyGoalsPage() {
   const [data, setData] = useState({ goals: [], completeCount: 0, totalGoals: 5 });
   const [streakDays, setStreakDays] = useState(0);
   const [prevComplete, setPrevComplete] = useState(0);
+  const [dailyBonus, setDailyBonus] = useState(null); // { available, totalBonus, streakBonus, alreadyClaimed }
 
   // Load streak
   useEffect(() => {
@@ -113,6 +114,20 @@ export default function DailyGoalsPage() {
       else if (saved.lastDate === yesterday) setStreakDays(saved.streak || 0);
       else setStreakDays(0);
     } catch {}
+  }, []);
+
+  // Fetch daily bonus status
+  useEffect(() => {
+    async function checkBonus() {
+      try {
+        const res = await authedFetch('/api/training/daily-bonus');
+        if (res.ok) {
+          const d = await res.json();
+          if (d.success) setDailyBonus(d);
+        }
+      } catch {}
+    }
+    checkBonus();
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -144,6 +159,20 @@ export default function DailyGoalsPage() {
             { gameId: 'daily-goals', allComplete: true, streak: newStreak },
             'DailyGoals'
           );
+          // Auto-claim daily bonus when all goals complete
+          try {
+            const bonusRes = await authedFetch('/api/training/daily-bonus', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ claimNow: true }),
+            });
+            if (bonusRes.ok) {
+              const bonusData = await bonusRes.json();
+              if (bonusData.claimed) {
+                setDailyBonus((prev) => ({ ...prev, available: false, alreadyClaimed: true, diamondsAwarded: bonusData.totalAwarded }));
+              }
+            }
+          } catch {}
         }
         setPrevComplete(result.completeCount);
       }
@@ -231,6 +260,56 @@ export default function DailyGoalsPage() {
 
           {!loading && (
             <>
+              {/* Daily Bonus Banner */}
+              {dailyBonus && dailyBonus.available && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, rgba(251,191,36,0.08), rgba(245,158,11,0.04))',
+                    border: '1px solid rgba(251,191,36,0.2)',
+                    marginBottom: 16,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24' }}>
+                      Daily Bonus Available
+                    </div>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                      Complete all goals to claim +{dailyBonus.totalBonus} diamonds
+                      {dailyBonus.streakBonus > 0 && (
+                        <span style={{ color: '#fbbf24' }}> (includes {dailyBonus.streakBonus} streak bonus)</span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: '#fbbf24' }}>
+                    +{dailyBonus.totalBonus}
+                  </div>
+                </motion.div>
+              )}
+              {dailyBonus && dailyBonus.alreadyClaimed && (
+                <div
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: 10,
+                    background: 'rgba(34,197,94,0.06)',
+                    border: '1px solid rgba(34,197,94,0.15)',
+                    marginBottom: 16,
+                    fontSize: 12,
+                    color: '#4ade80',
+                    fontWeight: 600,
+                    textAlign: 'center',
+                  }}
+                >
+                  Daily bonus claimed — +{dailyBonus.diamondsAwarded || dailyBonus.totalBonus} diamonds
+                </div>
+              )}
+
               {/* Header Summary */}
               <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
                 <div

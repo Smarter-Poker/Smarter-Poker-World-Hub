@@ -49,12 +49,29 @@ const WARMUP_GAMES = [
   { id: 'cash-threeBet-spots', name: '3-Bet Pots' },
 ];
 
-function selectWarmupGame(sessions) {
+const POSITION_GAMES = [
+  { id: 'cash-bb-defense', name: 'BB Defense' },
+  { id: 'cash-btn-play', name: 'BTN Play' },
+  { id: 'cash-sb-3bet', name: 'SB 3-Bet' },
+  { id: 'cash-co-opens', name: 'CO Opens' },
+  { id: 'cash-preflop', name: 'Preflop Opens' },
+];
+
+const POSTFLOP_GAMES = [
+  { id: 'cash-cbet', name: 'C-Betting' },
+  { id: 'cash-turn-play', name: 'Turn Play' },
+  { id: 'cash-river-bluffs', name: 'River Decisions' },
+  { id: 'cash-probe-bets', name: 'Probe Bets' },
+  { id: 'cash-delayed-cbet', name: 'Delayed C-Bet' },
+];
+
+function selectWarmupGame(sessions, mode) {
+  const pool = mode === 'position' ? POSITION_GAMES : mode === 'postflop' ? POSTFLOP_GAMES : WARMUP_GAMES;
   if (!sessions || sessions.length === 0) {
-    return WARMUP_GAMES[Math.floor(Math.random() * WARMUP_GAMES.length)];
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // Prefer the user's weakest game
+  // Prefer the user's weakest game from the pool
   const gameStats = {};
   sessions.forEach((s) => {
     const gid = s.game_id || '';
@@ -63,9 +80,9 @@ function selectWarmupGame(sessions) {
     gameStats[gid].correct += s.correct_count || s.correct_answers || 0;
   });
 
-  let weakest = WARMUP_GAMES[0];
+  let weakest = pool[0];
   let lowestAcc = 100;
-  WARMUP_GAMES.forEach((g) => {
+  pool.forEach((g) => {
     const st = gameStats[g.id];
     if (st && st.hands > 0) {
       const acc = (st.correct / st.hands) * 100;
@@ -97,6 +114,7 @@ export default function QuickWarmupPage() {
   const [selectedGame, setSelectedGame] = useState(null);
   const [results, setResults] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [warmupMode, setWarmupMode] = useState('auto');
   const timerRef = useRef(null);
 
   // Fetch user data for weakness detection
@@ -149,7 +167,7 @@ export default function QuickWarmupPage() {
   }, [timeLeft, phase]);
 
   const startWarmup = () => {
-    const game = selectWarmupGame(sessions);
+    const game = selectWarmupGame(sessions, warmupMode);
     setSelectedGame(game);
     setTimeLeft(WARMUP_DURATION);
     setResults(null);
@@ -293,8 +311,49 @@ export default function QuickWarmupPage() {
               <div style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6, marginBottom: 6 }}>
                 5 minutes. No setup. No choices.
               </div>
-              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 30 }}>
+              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 20 }}>
                 We&apos;ll auto-pick your weakest area and drill it.
+              </div>
+
+              {/* Warmup mode selector */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 24, justifyContent: 'center' }}>
+                {[
+                  { id: 'auto', label: 'Auto', desc: 'Weakest area', icon: '🎯' },
+                  { id: 'position', label: 'Positions', desc: 'BB/BTN focus', icon: '♠️' },
+                  { id: 'postflop', label: 'Postflop', desc: 'Flop-Turn-River', icon: '🃏' },
+                ].map((mode) => {
+                  const isActive = (warmupMode || 'auto') === mode.id;
+                  return (
+                    <motion.button
+                      key={mode.id}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setWarmupMode(mode.id)}
+                      style={{
+                        flex: 1,
+                        padding: '12px 8px',
+                        borderRadius: 10,
+                        border: `1px solid ${isActive ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                        background: isActive ? 'rgba(0,212,255,0.08)' : 'rgba(0,0,0,0.2)',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: 18, marginBottom: 4 }}>{mode.icon}</div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: isActive ? '#00d4ff' : '#94a3b8',
+                        }}
+                      >
+                        {mode.label}
+                      </div>
+                      <div style={{ fontSize: 9, color: '#475569', marginTop: 2 }}>
+                        {mode.desc}
+                      </div>
+                    </motion.button>
+                  );
+                })}
               </div>
 
               <motion.button

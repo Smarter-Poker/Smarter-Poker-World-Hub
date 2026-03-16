@@ -372,17 +372,8 @@ export const SmarterPokerWatchView = ({ onNavigate }) => {
                     throw new Error("No videos found");
                 }
             } catch (e) {
-                // Fallback Mock
-                setVideos([{
-                    id: 1,
-                    title: "Is this the SICKEST call in Poker History?",
-                    description: "Tom Dwan Faces a Massive Overbet on the River.",
-                    channelName: "PokerGO",
-                    channelAvatar: "",
-                    views: "1.2M",
-                    timeAgo: "2 hours ago",
-                    duration: "12:45"
-                }]);
+                // No videos available — show empty state
+                setVideos([]);
             } finally {
                 setLoading(false);
             }
@@ -430,6 +421,16 @@ export const SmarterPokerWatchView = ({ onNavigate }) => {
                             }} />
                         ))}
                         <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+                    </div>
+                ) : videos.length === 0 ? (
+                    <div style={{
+                        textAlign: 'center', padding: '60px 24px',
+                        background: SP_COLORS.bgWhite, borderRadius: 8,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                    }}>
+                        <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>📺</div>
+                        <h3 style={{ margin: '0 0 8px', color: SP_COLORS.textPrimary, fontSize: 20, fontWeight: 700 }}>No Videos Yet</h3>
+                        <p style={{ margin: 0, color: SP_COLORS.textSecondary, fontSize: 15 }}>Check back soon for poker content</p>
                     </div>
                 ) : (
                     videos.map(v => (

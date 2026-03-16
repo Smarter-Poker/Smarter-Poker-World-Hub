@@ -285,7 +285,7 @@ export default function BountyTrainerPage() {
       <div
         style={{
           minHeight: '100vh',
-          background: '#18191a',
+          background: '#0a0a1a',
           color: '#e4e6eb',
           fontFamily: "'Inter', -apple-system, sans-serif",
         }}

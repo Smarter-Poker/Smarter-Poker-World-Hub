@@ -14,6 +14,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 
 function analyzeData(sessions) {
   if (!sessions || sessions.length === 0) return null;
@@ -183,20 +184,8 @@ export default function WeaknessScannerPage() {
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           {loading && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                style={{
-                  width: 32,
-                  height: 32,
-                  margin: '0 auto 12px',
-                  border: '2px solid rgba(255,255,255,0.05)',
-                  borderTopColor: '#f87171',
-                  borderRadius: '50%',
-                }}
-              />
-              Scanning session data...
+            <div style={{ padding: '20px 0' }}>
+              <SkeletonLoader variant="card" count={2} />
             </div>
           )}
 
@@ -209,7 +198,7 @@ export default function WeaknessScannerPage() {
                   borderRadius: 16,
                   background: 'linear-gradient(135deg, rgba(248,113,113,0.1), rgba(0,0,0,0.2))',
                   border: '1px solid rgba(248,113,113,0.2)',
-                  marginBottom: 24,
+                  marginBottom: 16,
                 }}
               >
                 <div
@@ -250,6 +239,103 @@ export default function WeaknessScannerPage() {
                   areas where your decisions consistently deviate from GTO frequencies.
                 </div>
               </div>
+
+              {/* Severity Distribution Bar */}
+              {(() => {
+                const highCount = data.leaks.filter((l) => l.sev === 'High').length;
+                const medCount = data.leaks.filter((l) => l.sev === 'Medium').length;
+                const lowCount = data.leaks.filter((l) => l.sev === 'Low').length;
+                return (
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 8,
+                      marginBottom: 16,
+                    }}
+                  >
+                    {highCount > 0 && (
+                      <div
+                        style={{
+                          flex: highCount,
+                          padding: '8px 10px',
+                          borderRadius: 8,
+                          background: 'rgba(239,68,68,0.08)',
+                          border: '1px solid rgba(239,68,68,0.15)',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <div style={{ fontSize: 16, fontWeight: 900, color: '#ef4444' }}>
+                          {highCount}
+                        </div>
+                        <div style={{ fontSize: 8, color: '#f87171', textTransform: 'uppercase' }}>
+                          High
+                        </div>
+                      </div>
+                    )}
+                    {medCount > 0 && (
+                      <div
+                        style={{
+                          flex: medCount,
+                          padding: '8px 10px',
+                          borderRadius: 8,
+                          background: 'rgba(251,191,36,0.06)',
+                          border: '1px solid rgba(251,191,36,0.12)',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <div style={{ fontSize: 16, fontWeight: 900, color: '#fbbf24' }}>
+                          {medCount}
+                        </div>
+                        <div style={{ fontSize: 8, color: '#fbbf24', textTransform: 'uppercase' }}>
+                          Medium
+                        </div>
+                      </div>
+                    )}
+                    {lowCount > 0 && (
+                      <div
+                        style={{
+                          flex: lowCount,
+                          padding: '8px 10px',
+                          borderRadius: 8,
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <div style={{ fontSize: 16, fontWeight: 900, color: '#94a3b8' }}>
+                          {lowCount}
+                        </div>
+                        <div style={{ fontSize: 8, color: '#64748b', textTransform: 'uppercase' }}>
+                          Low
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Drill Weakest CTA */}
+              {data.leaks.length > 0 && data.leaks[0].sev !== 'Low' && (
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => router.push('/hub/training')}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: 12,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    color: '#fff',
+                    fontSize: 14,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 20px rgba(239,68,68,0.25)',
+                    marginBottom: 20,
+                  }}
+                >
+                  Drill Weakest Spot: {data.leaks[0].area}
+                </motion.button>
+              )}
 
               {/* Leaks List */}
               <div
@@ -356,7 +442,7 @@ export default function WeaknessScannerPage() {
 
                     <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                       <button
-                        onClick={() => router.push('/hub/training/coach-mode')}
+                        onClick={() => router.push('/hub/training')}
                         style={{
                           flex: 1,
                           padding: '10px',
@@ -372,7 +458,7 @@ export default function WeaknessScannerPage() {
                         Study Concept
                       </button>
                       <button
-                        onClick={() => router.push('/hub/training/spot-trainer')}
+                        onClick={() => router.push('/hub/training/quick-warmup')}
                         style={{
                           flex: 1,
                           padding: '10px',

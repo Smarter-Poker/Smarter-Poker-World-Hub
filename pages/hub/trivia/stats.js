@@ -27,6 +27,21 @@ export default function TriviaStats() {
         diamondsEarned: 0,
         gamesPlayed: 0
     });
+    const [categoryMastery, setCategoryMastery] = useState([]);
+
+    // Human-readable category labels and colors
+    const CATEGORY_META = {
+        poker_history: { label: 'Poker History', color: '#f97316' },
+        famous_hands: { label: 'Famous Hands', color: '#fbbf24' },
+        player_profiles: { label: 'Player Profiles', color: '#a855f7' },
+        tournament_facts: { label: 'Tournament Facts', color: '#ec4899' },
+        rule_knowledge: { label: 'Rules', color: '#3b82f6' },
+        gto_theory: { label: 'GTO Theory', color: '#22c55e' },
+        mtt_situations: { label: 'MTT Scenarios', color: '#ef4444' },
+        cash_game_situations: { label: 'Cash Game', color: '#14b8a6' },
+        icm_chip_ev: { label: 'ICM & Chip EV', color: '#8b5cf6' },
+        gto_scenarios: { label: 'GTO Scenarios', color: '#06b6d4' },
+    };
 
     useEffect(() => {
         async function loadStats() {
@@ -77,6 +92,17 @@ export default function TriviaStats() {
                         gamesPlayed: streakData.total_games_played || 0
                     }));
                 }
+
+                // Fetch category mastery data
+                const { data: mastery } = await supabase
+                    .from('trivia_category_mastery')
+                    .select('category, total_answered, correct_count, mastery_level')
+                    .eq('user_id', user.id)
+                    .order('total_answered', { ascending: false });
+
+                if (mastery && mastery.length > 0) {
+                    setCategoryMastery(mastery);
+                }
             } catch (error) {
                 console.error('Error loading stats:', error);
             }
@@ -101,6 +127,38 @@ export default function TriviaStats() {
             <div style={{ color: color || '#e4e6eb', fontSize: '32px', fontWeight: 'bold' }}>{value}</div>
         </div>
     );
+
+    const CategoryBar = ({ category, totalAnswered, correctCount, masteryLevel }) => {
+        const meta = CATEGORY_META[category] || { label: category, color: '#65676b' };
+        const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
+        const barWidth = Math.max(accuracy, 2); // Minimum 2% width for visibility
+        return (
+            <div style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ color: '#e4e6eb', fontSize: '14px', fontWeight: '500' }}>{meta.label}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: '#65676b', fontSize: '12px' }}>{correctCount}/{totalAnswered}</span>
+                        <span style={{ color: meta.color, fontSize: '14px', fontWeight: '700', minWidth: '40px', textAlign: 'right' }}>{accuracy}%</span>
+                    </div>
+                </div>
+                <div style={{ height: '8px', background: '#3a3b3c', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{
+                        height: '100%',
+                        width: `${barWidth}%`,
+                        background: `linear-gradient(90deg, ${meta.color}, ${meta.color}cc)`,
+                        borderRadius: '4px',
+                        transition: 'width 0.8s ease-out',
+                        boxShadow: `0 0 8px ${meta.color}40`,
+                    }} />
+                </div>
+                {masteryLevel > 1 && (
+                    <div style={{ color: '#65676b', fontSize: '11px', marginTop: '3px' }}>
+                        Mastery Level {masteryLevel}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <>
@@ -140,14 +198,40 @@ export default function TriviaStats() {
                                 Loading stats...
                             </div>
                         ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-                                <StatCard label="Games Played" value={stats.gamesPlayed.toLocaleString()} />
-                                <StatCard label="Total Questions" value={stats.totalQuestions.toLocaleString()} />
-                                <StatCard label="Accuracy" value={`${stats.accuracy}%`} color="#31a24c" />
-                                <StatCard label="Current Streak" value={stats.currentStreak} color="#e69500" />
-                                <StatCard label="Best Streak" value={stats.bestStreak} color="#2374e1" />
-                                <StatCard label="Diamonds Earned" value={stats.diamondsEarned.toLocaleString()} color="#2374e1" />
-                            </div>
+                            <>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+                                    <StatCard label="Games Played" value={stats.gamesPlayed.toLocaleString()} />
+                                    <StatCard label="Total Questions" value={stats.totalQuestions.toLocaleString()} />
+                                    <StatCard label="Accuracy" value={`${stats.accuracy}%`} color="#31a24c" />
+                                    <StatCard label="Current Streak" value={stats.currentStreak} color="#e69500" />
+                                    <StatCard label="Best Streak" value={stats.bestStreak} color="#2374e1" />
+                                    <StatCard label="Diamonds Earned" value={stats.diamondsEarned.toLocaleString()} color="#2374e1" />
+                                </div>
+
+                                {/* Category Mastery Breakdown */}
+                                {categoryMastery.length > 0 && (
+                                    <div style={{
+                                        marginTop: '30px',
+                                        padding: '24px',
+                                        background: '#242526',
+                                        border: '1px solid #4e4f50',
+                                        borderRadius: '12px',
+                                    }}>
+                                        <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#e4e6eb', marginBottom: '20px' }}>
+                                            Category Breakdown
+                                        </h2>
+                                        {categoryMastery.map((cat) => (
+                                            <CategoryBar
+                                                key={cat.category}
+                                                category={cat.category}
+                                                totalAnswered={cat.total_answered || 0}
+                                                correctCount={cat.correct_count || 0}
+                                                masteryLevel={cat.mastery_level || 1}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </>
                         )}
 
                         {!isLoading && stats.gamesPlayed === 0 && (

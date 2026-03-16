@@ -327,7 +327,7 @@ function gradeHand(hand) {
         color: GRADE_TIERS.CORRECT.color,
         evLoss: 0,
         tips: [{ text: 'Folded preflop — standard line', type: 'info' }],
-        position: 'UNK',
+        position: deriveHeroPosition(hand),
         street: 'preflop',
       };
     }
@@ -350,60 +350,73 @@ function gradeHand(hand) {
             ? 'flop'
             : 'preflop';
 
-    // RULE 1: Passive play leak (calls without raising)
+    // Derive hero position from hand data
+    const heroPos = deriveHeroPosition(hand);
+
+    // ── RULE 1: Passive play leak (calls without raising) ──────────
     if (calls > 2 && raises === 0) {
       tips.push({
-        text: 'Too passive — consider raising for value or as a bluff',
+        text: 'Too passive — calling station pattern detected. GTO requires balanced aggression with raises and re-raises',
         type: 'warning',
       });
       score -= 30;
       evLoss += potSize * 0.08;
     }
 
-    // RULE 2: Flatting preflop when 3-betting is better
+    // ── RULE 2: Flatting preflop when 3-betting is better ──────────
     if (raises > 0 && board.length === 0 && heroActions[0]?.action === 'calls') {
       const preRaise = actions.find(
         (a) => !a.isHero && (a.action === 'raises' || a.action === 'bets')
       );
       if (preRaise) {
-        tips.push({
-          text: 'Flatting vs raise — consider 3-betting for value or as a bluff',
-          type: 'warning',
-        });
-        score -= 15;
-        evLoss += potSize * 0.04;
+        const ipFlatOK = heroPos === 'BTN' || heroPos === 'CO';
+        if (!ipFlatOK) {
+          tips.push({
+            text: `Flatting vs raise from ${heroPos || 'OOP'} — consider 3-betting or folding. Flatting OOP leads to difficult postflop spots`,
+            type: 'warning',
+          });
+          score -= 20;
+          evLoss += potSize * 0.05;
+        } else {
+          tips.push({
+            text: 'Flatting in position — acceptable with suited connectors and pocket pairs, but 3-betting is often higher EV',
+            type: 'info',
+          });
+          score -= 5;
+          evLoss += potSize * 0.02;
+        }
       }
     }
 
-    // RULE 3: Oversized bets on dry boards
+    // ── RULE 3: Oversized bets on dry boards ──────────────────────
     const bigBets = heroActions.filter((a) => (a?.amount || 0) > potSize * 0.8);
     if (bigBets.length > 0 && board.length >= 3) {
       const betPct = Math.round(((bigBets[0].amount || 0) / potSize) * 100);
       tips.push({
-        text: `Overbetting ${betPct}% pot — consider 33-50% on dry textures`,
+        text: `Overbetting ${betPct}% pot — GTO uses 25-33% on dry/static boards and 66-75% on wet/dynamic textures`,
         type: 'info',
       });
       score -= 10;
       evLoss += potSize * 0.03;
     }
 
-    // RULE 4: Missed continuation bet
+    // ── RULE 4: Missed continuation bet ──────────────────────────
     const isPreRaiser = heroActions[0]?.action === 'raises' || heroActions[0]?.action === 'bets';
     if (isPreRaiser && checks > 0 && board.length >= 3) {
       tips.push({
-        text: 'Missed c-bet as preflop aggressor — GTO c-bets ~65% of flops',
+        text: 'Missed c-bet as preflop aggressor — solver c-bets ~60-70% IP and ~30-40% OOP on most textures',
         type: 'warning',
       });
       score -= 20;
       evLoss += potSize * 0.06;
     }
 
-    // RULE 5: Check-call river with no showdown value
+    // ── RULE 5: Check-call river with no showdown value ──────────
     if (board.length >= 5 && heroActions.length >= 3) {
       const lastAction = heroActions[heroActions.length - 1];
       if (lastAction?.action === 'calls' && hand?.result === 0) {
         tips.push({
-          text: 'Called river and lost — hero call may be a blunder at this frequency',
+          text: 'Called river and lost — check your blocker effects before hero-calling. Having a blocker to villain value hands improves call EV significantly',
           type: 'warning',
         });
         score -= 25;
@@ -411,11 +424,71 @@ function gradeHand(hand) {
       }
     }
 
-    // RULE 6: All-in preflop without premium
+    // ── RULE 6: All-in preflop consideration ──────────────────────
     const allins = heroActions.filter((a) => a.action === 'all-in');
     if (allins.length > 0 && board.length === 0) {
       score -= 5;
-      tips.push({ text: 'Preflop all-in — ensure this is +EV at your stack depth', type: 'info' });
+      tips.push({ text: 'Preflop all-in — verify this is +EV using push/fold charts for your stack depth and position', type: 'info' });
+    }
+
+    // ── RULE 7 (NEW): Min-raise / undersized bet detection ──────────
+    const smallBets = heroActions.filter((a) => {
+      const amt = a?.amount || 0;
+      return (a.action === 'raises' || a.action === 'bets') && amt > 0 && amt < potSize * 0.25;
+    });
+    if (smallBets.length > 0 && board.length >= 3) {
+      tips.push({
+        text: 'Undersized bet detected — min-betting gives villain great pot odds to continue. Use at least 25-33% pot sizing',
+        type: 'warning',
+      });
+      score -= 12;
+      evLoss += potSize * 0.04;
+    }
+
+    // ── RULE 8 (NEW): Multi-street call-down without aggression ──
+    if (calls >= 3 && raises === 0 && board.length >= 5) {
+      tips.push({
+        text: 'Call-call-call line across 3 streets — consider check-raising at least one street to build a balanced range and deny equity',
+        type: 'warning',
+      });
+      score -= 18;
+      evLoss += potSize * 0.07;
+    }
+
+    // ── RULE 9 (NEW): River fold after investing multiple streets ──
+    if (board.length >= 5 && heroActions.length >= 3) {
+      const lastAction = heroActions[heroActions.length - 1];
+      const previousCalls = heroActions.slice(0, -1).filter((a) => a.action === 'calls' || a.action === 'raises').length;
+      if (lastAction?.action === 'folds' && previousCalls >= 2) {
+        const riverBet = actions.filter((a) => !a.isHero && board.length >= 5).pop();
+        const riverBetSize = riverBet?.amount || 0;
+        const potOdds = riverBetSize > 0 ? Math.round((riverBetSize / (potSize + riverBetSize)) * 100) : 0;
+        tips.push({
+          text: `Folded river after calling 2+ streets — you needed ${potOdds}% equity to call. Verify you don't have enough showdown value or blockers`,
+          type: 'warning',
+        });
+        score -= 15;
+        evLoss += potSize * 0.05;
+      }
+    }
+
+    // ── RULE 10 (NEW): SB completing instead of raising or folding ──
+    if (heroPos === 'SB' && heroActions[0]?.action === 'calls' && board.length === 0) {
+      const isLimp = !actions.some((a) => !a.isHero && (a.action === 'raises' || a.action === 'bets'));
+      if (isLimp) {
+        tips.push({
+          text: 'Completing SB — GTO prefers raising or folding from SB. Limping creates an uncapped BB range and puts you OOP',
+          type: 'warning',
+        });
+        score -= 15;
+        evLoss += potSize * 0.04;
+      }
+    }
+
+    // ── RULE 11 (NEW): Multi-street aggression (positive) ──────────
+    if (raises >= 2 && board.length >= 4) {
+      tips.push({ text: 'Good multi-street aggression — applying pressure across streets is a key GTO principle', type: 'good' });
+      score += 8;
     }
 
     // Positive detection
@@ -457,7 +530,7 @@ function gradeHand(hand) {
       evLoss,
       tips,
       score,
-      position: 'UNK',
+      position: heroPos,
       street,
     };
   } catch (err) {
@@ -472,6 +545,38 @@ function gradeHand(hand) {
       position: 'UNK',
       street: 'preflop',
     };
+  }
+}
+
+// ── Helper: Derive hero position from seat data and button ──────────
+function deriveHeroPosition(hand) {
+  try {
+    const actions = Array.isArray(hand?.actions) ? hand.actions : [];
+    const heroName = hand?.hero || '';
+    if (!heroName) return 'UNK';
+
+    // Check if hero is first to act preflop (UTG indicator)
+    const preflopActions = actions.filter((a) => a && typeof a === 'object');
+    const heroIdx = preflopActions.findIndex((a) => a.isHero);
+    const totalPlayers = new Set(preflopActions.map((a) => a.player)).size;
+
+    if (totalPlayers <= 0) return 'UNK';
+
+    // Approximate position from action order and player count
+    // In standard poker, action order preflop: UTG → MP → CO → BTN → SB → BB
+    if (totalPlayers <= 3) {
+      if (heroIdx === 0) return 'BTN';
+      if (heroIdx === 1) return 'SB';
+      return 'BB';
+    }
+    if (totalPlayers <= 6) {
+      const posMap6 = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+      return posMap6[Math.min(heroIdx, posMap6.length - 1)] || 'UNK';
+    }
+    const posMap9 = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+    return posMap9[Math.min(heroIdx, posMap9.length - 1)] || 'UNK';
+  } catch (_) {
+    return 'UNK';
   }
 }
 

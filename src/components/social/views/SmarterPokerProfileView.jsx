@@ -773,25 +773,17 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
         }
     };
 
-    const posts = userPosts.length > 0 ? userPosts : [
-        {
-            id: 1,
-            user: user,
-            text: "Welcome To My Profile!",
-            createdAt: '1d ago',
-            likeCount: 0,
-            commentCount: 0
-        }
-    ];
+    // Show real posts only — no mock welcome post
+    const posts = userPosts;
 
     const pokerStats = {
-        lifetimeProfit: user.lifetimeProfit,
-        handsPlayed: user.handsPlayed,
-        winRate: 12,
-        bestHand: 'Royal Flush ♠️',
-        biggestPot: 4500,
-        streak: 12,
-        gtoMastery: 82
+        lifetimeProfit: user.lifetimeProfit || 0,
+        handsPlayed: user.handsPlayed || 0,
+        winRate: user.winRate || 0,
+        bestHand: user.bestHand || '—',
+        biggestPot: user.biggestPot || 0,
+        streak: user.streak || 0,
+        gtoMastery: user.gtoMastery || 0
     };
 
     return (

@@ -489,6 +489,116 @@ export function generateChipMathQuestion(): ChipMathQuestion {
     };
 }
 
+export interface ShowdownQuestion {
+    board: string[];
+    hands: [string, string][];
+    correctIndex: number;
+    handRanks: string[];
+    explanation: string;
+}
+
+export interface EVOrFoldQuestion {
+    scenario: string;
+    pot: number;
+    bet: number;
+    equity: number;
+    isPositiveEV: boolean;
+    options: string[];
+    correctIndex: number;
+    explanation: string;
+}
+
+export function generateShowdownQuestion(): ShowdownQuestion {
+    const deck = shuffleDeck(getFullDeck());
+    const board = deck.slice(0, 5);
+
+    // Generate 4 hands from remaining cards
+    const remaining = deck.slice(5);
+    const hands: [string, string][] = [];
+    for (let i = 0; i < 4; i++) {
+        hands.push([remaining[i * 2], remaining[i * 2 + 1]]);
+    }
+
+    // Evaluate all hands against the board
+    const evaluations = hands.map((hand, idx) => ({
+        idx,
+        eval: evaluateHand(hand, board)
+    }));
+
+    evaluations.sort((a, b) => b.eval.value - a.eval.value);
+    const correctIndex = evaluations[0].idx;
+    const handRanks = hands.map((hand) => getHandName(evaluateHand(hand, board).rank));
+
+    return {
+        board,
+        hands,
+        correctIndex,
+        handRanks,
+        explanation: `${getHandName(evaluations[0].eval.rank)} beats all other hands on this board`
+    };
+}
+
+export function generateEVOrFoldQuestion(): EVOrFoldQuestion {
+    const pots = [80, 100, 120, 150, 200, 250, 300, 400, 500, 600];
+    const pot = pots[Math.floor(Math.random() * pots.length)];
+
+    // Generate a bet size
+    const betMultipliers = [0.25, 0.33, 0.5, 0.66, 0.75, 1.0, 1.5];
+    const betMul = betMultipliers[Math.floor(Math.random() * betMultipliers.length)];
+    const bet = Math.round(pot * betMul);
+
+    // Calculate equity needed to call
+    const equityNeeded = bet / (pot + bet + bet); // risk / (pot + risk)
+
+    // Generate a random equity the player "has" (sometimes +EV, sometimes -EV)
+    const margin = Math.random() * 0.15; // 0-15% above or below break-even
+    const isPositiveEV = Math.random() > 0.45; // Slight bias toward +EV
+    const equity = isPositiveEV
+        ? equityNeeded + margin
+        : equityNeeded - margin;
+
+    const equityPct = Math.round(equity * 100);
+    const neededPct = Math.round(equityNeeded * 100);
+
+    const situations = [
+        `You hold a flush draw on the turn.`,
+        `You have top pair, weak kicker.`,
+        `You have an open-ended straight draw.`,
+        `You hold middle pair on a wet board.`,
+        `You have an overpair on a coordinated board.`,
+        `You hold a gutshot straight draw with a backdoor flush draw.`,
+        `You have second pair facing a pot-sized bet.`,
+        `You hold Ace-high on a low board.`,
+    ];
+    const scenario = situations[Math.floor(Math.random() * situations.length)];
+
+    const options = ['+EV (Call)', '-EV (Fold)'];
+    const correctIndex = isPositiveEV ? 0 : 1;
+
+    return {
+        scenario,
+        pot,
+        bet,
+        equity: equityPct,
+        isPositiveEV,
+        options,
+        correctIndex,
+        explanation: `You need ${neededPct}% equity to call. You have ${equityPct}% — ${isPositiveEV ? 'calling is +EV' : 'folding is correct'}.`
+    };
+}
+
+export function generateMysteryBoxQuestion(): HandSnapQuestion | BoardNutsQuestion | ChipMathQuestion | ShowdownQuestion | EVOrFoldQuestion {
+    const generators = [
+        generateHandSnapQuestion,
+        generateBoardNutsQuestion,
+        generateChipMathQuestion,
+        generateShowdownQuestion,
+        generateEVOrFoldQuestion,
+    ];
+    const gen = generators[Math.floor(Math.random() * generators.length)];
+    return gen();
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // MYSTERY BOX MULTIPLIERS
 // ═══════════════════════════════════════════════════════════════════════════

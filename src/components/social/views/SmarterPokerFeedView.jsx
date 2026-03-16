@@ -14,6 +14,7 @@ import { FriendsList } from '../SmarterPokerFriends';
 import { useSupabase } from '../../providers/SupabaseProvider';
 import { SocialService } from '../../services/SocialService';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
+import TrendingPosts from '../TrendingPosts';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📱 LEFT SIDEBAR (Shortcuts)
@@ -150,6 +151,11 @@ const FBRightSidebar = ({ onlineContacts = [], onMessage }) => (
 
         <div className="sidebar-divider" />
 
+        {/* Trending Posts Widget */}
+        <TrendingPosts limit={5} />
+
+        <div className="sidebar-divider" />
+
         <div className="sidebar-section">
             <div className="section-header">
                 <h4 className="section-heading">Contacts</h4>
@@ -261,24 +267,11 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
     const [loading, setLoading] = useState(true);
 
     // Mock Data for non-connected parts
-    const [stories] = useState([
-        { thumbnail: null, user: { firstName: 'Mike' }, viewed: false },
-        { thumbnail: null, user: { firstName: 'Sarah' }, viewed: false },
-        { thumbnail: null, user: { firstName: 'Jen' }, viewed: true },
-        { thumbnail: null, user: { firstName: 'Tom' }, viewed: true },
-    ]);
+    const [stories] = useState([]);
 
-    const [reels] = useState([
-        { thumbnail: null, description: 'Insane All-In Moment!', viewCount: '12K' },
-        { thumbnail: null, description: 'Poker Vlog #42', viewCount: '5K' },
-        { thumbnail: null, description: 'How to Play A-Ks', viewCount: '25K' },
-    ]);
+    const [reels] = useState([]);
 
-    const onlineContacts = [
-        { id: 101, name: 'John Shark', online: true, tier: 'shark' },
-        { id: 102, name: 'Sarah GTO', online: true, tier: 'gto_master' },
-        { id: 103, name: 'Mike Grinder', online: true, tier: 'grinder' },
-    ];
+    const onlineContacts = [];
 
     // ─────────────────────────────────────────────────────────────────────────
     // 🔄 DATA FETCHING
@@ -512,7 +505,7 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                         <SPPostCard
                             key={post.id}
                             post={post}
-                            user={post.user || post.author} // Handle both data shapes
+                            user={post.user || post.author}
                             onLike={handleLike}
                             onSubmitComment={handleComment}
                             onLoadComments={handleLoadComments}
@@ -520,6 +513,19 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
                             currentUserId={currentUser?.id}
                         />
                     ))
+                )}
+
+                {/* Empty state when no posts after loading */}
+                {!loading && posts.length === 0 && (
+                    <div style={{
+                        textAlign: 'center', padding: '48px 24px',
+                        background: SP_COLORS.bgWhite, borderRadius: 8,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginTop: 16
+                    }}>
+                        <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>📝</div>
+                        <h3 style={{ margin: '0 0 8px', color: SP_COLORS.textPrimary, fontSize: 20, fontWeight: 700 }}>No Posts Yet</h3>
+                        <p style={{ margin: 0, color: SP_COLORS.textSecondary, fontSize: 15 }}>Be the first to share something with the community</p>
+                    </div>
                 )}
             </main>
 
