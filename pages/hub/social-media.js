@@ -4589,23 +4589,7 @@ function SocialMediaPage() {
 
                         if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social] Profile loaded:', p ? `${p.username} (avatar: ${p.avatar_url ? 'YES' : 'NO'})` : 'NOT FOUND');
 
-                        // If no profile found by id, check if user owns another profile via owner_id
-                        if (!p) {
-                            try {
-                                const ownedProfileRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?owner_id=eq.${authUser.id}&select=id,username,full_name,display_name,skill_tier,avatar_url,role`, {
-                                    headers: {
-                                        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-                                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
-                                    }
-                                });
-                                if (ownedProfileRes.ok) {
-                                    const ownedProfiles = await ownedProfileRes.json();
-                                    if (ownedProfiles?.[0]) p = ownedProfiles[0];
-                                }
-                            } catch (ownedErr) {
-                                console.warn('[Social] Owner profile fetch failed:', ownedErr.message);
-                            }
-                        }
+                        // Profile not found is handled by the outer try/catch — user is set from authUser regardless
                     } catch (profileErr) {
                         console.warn('[Social] Profile fetch failed:', profileErr.message, '— using auth session data');
                     }
@@ -5605,10 +5589,9 @@ function SocialMediaPage() {
         let convId = c.conversationId;
         if (!convId && user?.id) {
             try {
-                const { data } = await supabase.rpc('fn_get_or_create_conversation', { user1_id: user.id, user2_id: c.id });
+                const { data } = await supabase.rpc('fn_get_or_create_conversation', { p_user_id: user.id, p_other_user_id: c.id, p_conversation_type: 'direct' });
                 convId = data;
             } catch (e) { console.error(e); }
-        setGlobalSearchLoading(false);
         }
         const chat = { id: c.id, name: c.name || c.username, avatar: null, online: false, conversationId: convId };
         setOpenChats(prev => [...prev.slice(-2), chat]);
