@@ -290,7 +290,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
         setLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
         try {
             const token = getAccessToken();
-            await fetch('/api/social/interactions', {
+            const res = await fetch('/api/social/interactions', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -298,6 +298,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                 },
                 body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'like' })
             });
+            if (!res.ok) throw new Error(`Like failed: ${res.status}`);
         } catch (e) {
             setLiked(wasLiked);
             setLikeCount(prev => wasLiked ? prev + 1 : Math.max(0, prev - 1));
@@ -572,6 +573,10 @@ export default function UserProfilePage() {
     const [currentUser, setCurrentUser] = useState(null);
     const [isFriend, setIsFriend] = useState(false);
     const [friendRequestSent, setFriendRequestSent] = useState(false);
+    const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
+    const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+    const [showReportInput, setShowReportInput] = useState(false);
+    const [reportReason, setReportReason] = useState('');
 
     // Stats and content
     const [stats, setStats] = useState({ friends: 0, following: 0, followers: 0, posts: 0 });
@@ -947,7 +952,7 @@ export default function UserProfilePage() {
             supabase.removeChannel(_ch);
             unsubCacheSync();
         };
-    }, [profile?.id, username]);
+    }, [profile?.id, username, currentUser?.id]);
 
     // Helper — invalidate profile cache + notify friends page cross-tab
     const invalidateProfileCache = () => {
@@ -1001,7 +1006,6 @@ export default function UserProfilePage() {
 
     const handleRemoveFriend = async () => {
         if (!currentUser || !profile) return;
-        if (!confirm(`Are you sure you want to unfriend ${profile.full_name || profile.username}?`)) return;
         try {
             await supabase.from('friendships').delete()
                 .eq('user_id', currentUser.id)
@@ -1012,6 +1016,7 @@ export default function UserProfilePage() {
 
             setIsFriend(false);
             setFriendRequestSent(false);
+            setShowUnfriendConfirm(false);
             setStats(prev => ({ ...prev, friends: Math.max(0, prev.friends - 1) }));
             invalidateProfileCache();
             notifyFriendsSync();
@@ -1259,7 +1264,7 @@ export default function UserProfilePage() {
                         ) : (
                             <>
                                 {isFriend ? (
-                                    <button onClick={handleRemoveFriend} title="Unfriend" style={{
+                                    <button onClick={() => setShowUnfriendConfirm(true)} title="Unfriend" style={{
                                         padding: '10px 20px', background: '#e4e6eb', color: C.text,
                                         borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14
                                     }}> ✓ Friends</button>
@@ -1309,41 +1314,18 @@ export default function UserProfilePage() {
                                                 fontSize: 14, color: C.text, borderRadius: 6, display: 'flex', gap: 10
                                             }}>↗️ Open In New Tab</button>
                                             <div style={{ height: 1, background: C.border, margin: '4px 0' }} />
-                                            <button onClick={async () => {
+                                            <button onClick={() => {
                                                 if (!currentUser) { setProfileMenuMsg('Log in to block'); return; }
-                                                const confirmed = confirm('Block ' + (profile?.full_name || profile?.username) + '? They won\'t be able to see your posts or message you.');
-                                                if (!confirmed) return;
-                                                try {
-                                                    await supabase.from('user_blocks').insert({
-                                                        blocker_id: currentUser.id,
-                                                        blocked_id: profile.id
-                                                    });
-                                                    setProfileMenuMsg('User blocked');
-                                                } catch (e) {
-                                                    setProfileMenuMsg('Already blocked or error');
-                                                }
-                                                setTimeout(() => setProfileMenuMsg(''), 2000);
+                                                setShowBlockConfirm(true);
                                                 setShowProfileMenu(false);
                                             }} style={{
                                                 width: '100%', padding: '10px 14px', background: 'transparent',
                                                 border: 'none', textAlign: 'left', cursor: 'pointer',
                                                 fontSize: 14, color: '#F02849', borderRadius: 6, display: 'flex', gap: 10
                                             }}>🚫 Block User</button>
-                                            <button onClick={async () => {
+                                            <button onClick={() => {
                                                 if (!currentUser) { setProfileMenuMsg('Log in to report'); return; }
-                                                const reason = prompt('Why are you reporting this user?');
-                                                if (!reason) return;
-                                                try {
-                                                    await supabase.from('user_reports').insert({
-                                                        reporter_id: currentUser.id,
-                                                        reported_id: profile.id,
-                                                        reason
-                                                    });
-                                                    setProfileMenuMsg('Report submitted');
-                                                } catch (e) {
-                                                    setProfileMenuMsg('Report failed');
-                                                }
-                                                setTimeout(() => setProfileMenuMsg(''), 2000);
+                                                setShowReportInput(true);
                                                 setShowProfileMenu(false);
                                             }} style={{
                                                 width: '100%', padding: '10px 14px', background: 'transparent',
@@ -1737,6 +1719,148 @@ export default function UserProfilePage() {
                 {/* Bottom padding */}
                 <div style={{ height: 80 }} />
             </div>
+
+            {/* Unfriend Confirmation Modal */}
+            {showUnfriendConfirm && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+                }} onClick={() => setShowUnfriendConfirm(false)}>
+                    <div style={{
+                        background: C.card, borderRadius: 12, padding: 24, maxWidth: 320, width: '100%',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Unfriend {profile?.full_name || profile?.username}?</div>
+                        <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
+                            Are you sure you want to remove this person from your friends list?
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                                onClick={() => setShowUnfriendConfirm(false)}
+                                style={{
+                                    flex: 1, padding: '10px 16px', background: '#e4e6eb', color: C.text,
+                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+                                }}
+                            >Cancel</button>
+                            <button
+                                onClick={handleRemoveFriend}
+                                style={{
+                                    flex: 1, padding: '10px 16px', background: '#F02849', color: 'white',
+                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+                                }}
+                            >Unfriend</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Block User Confirmation Modal */}
+            {showBlockConfirm && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+                }} onClick={() => setShowBlockConfirm(false)}>
+                    <div style={{
+                        background: C.card, borderRadius: 12, padding: 24, maxWidth: 320, width: '100%',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Block {profile?.full_name || profile?.username}?</div>
+                        <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>
+                            They won't be able to see your posts or message you.
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                                onClick={() => setShowBlockConfirm(false)}
+                                style={{
+                                    flex: 1, padding: '10px 16px', background: '#e4e6eb', color: C.text,
+                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+                                }}
+                            >Cancel</button>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        await supabase.from('user_blocks').insert({
+                                            blocker_id: currentUser.id,
+                                            blocked_id: profile.id
+                                        });
+                                        setProfileMenuMsg('User blocked');
+                                    } catch (e) {
+                                        setProfileMenuMsg('Already blocked or error');
+                                    }
+                                    setTimeout(() => setProfileMenuMsg(''), 2000);
+                                    setShowBlockConfirm(false);
+                                }}
+                                style={{
+                                    flex: 1, padding: '10px 16px', background: '#F02849', color: 'white',
+                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+                                }}
+                            >Block</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Report User Modal */}
+            {showReportInput && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
+                }} onClick={() => { setShowReportInput(false); setReportReason(''); }}>
+                    <div style={{
+                        background: C.card, borderRadius: 12, padding: 24, maxWidth: 360, width: '100%',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Report {profile?.full_name || profile?.username}</div>
+                        <div style={{ fontSize: 14, color: C.textSec, marginBottom: 12 }}>
+                            Why are you reporting this user?
+                        </div>
+                        <textarea
+                            value={reportReason}
+                            onChange={(e) => setReportReason(e.target.value)}
+                            placeholder="Describe the issue..."
+                            style={{
+                                width: '100%', minHeight: 80, padding: 12, border: `1px solid ${C.border}`,
+                                borderRadius: 8, fontSize: 14, resize: 'vertical', outline: 'none',
+                                fontFamily: 'inherit', marginBottom: 16, boxSizing: 'border-box'
+                            }}
+                            autoFocus
+                        />
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                                onClick={() => { setShowReportInput(false); setReportReason(''); }}
+                                style={{
+                                    flex: 1, padding: '10px 16px', background: '#e4e6eb', color: C.text,
+                                    border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+                                }}
+                            >Cancel</button>
+                            <button
+                                disabled={!reportReason.trim()}
+                                onClick={async () => {
+                                    try {
+                                        await supabase.from('user_reports').insert({
+                                            reporter_id: currentUser.id,
+                                            reported_id: profile.id,
+                                            reason: reportReason.trim()
+                                        });
+                                        setProfileMenuMsg('Report submitted');
+                                    } catch (e) {
+                                        setProfileMenuMsg('Report failed');
+                                    }
+                                    setTimeout(() => setProfileMenuMsg(''), 2000);
+                                    setShowReportInput(false);
+                                    setReportReason('');
+                                }}
+                                style={{
+                                    flex: 1, padding: '10px 16px', background: '#F02849', color: 'white',
+                                    border: 'none', borderRadius: 8, fontWeight: 600,
+                                    cursor: reportReason.trim() ? 'pointer' : 'not-allowed',
+                                    opacity: reportReason.trim() ? 1 : 0.5
+                                }}
+                            >Submit Report</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Article Reader Modal for HendonMob */}
             {articleReader.open && (

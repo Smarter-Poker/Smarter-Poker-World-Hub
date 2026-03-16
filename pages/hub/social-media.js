@@ -1546,8 +1546,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             if (!isCurrentlyLiked) {
                 const { error } = await supabase.from('social_comment_likes').insert({
                     comment_id: commentId,
-                    user_id: currentUserId,
-                    post_id: post.id
+                    user_id: currentUserId
                 });
                 if (error) throw error;
             } else {
@@ -1626,10 +1625,9 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     if (savedReplyingTo && savedReplyingTo.authorId !== currentUserId) {
                         await supabase.from('notifications').insert({
                             user_id: savedReplyingTo.authorId,
-                            actor_id: currentUserId,
                             type: 'reply',
-                            reference_id: post.id,
-                            message: `replied to your comment`
+                            message: `replied to your comment`,
+                            data: { actor_id: currentUserId, reference_id: post.id }
                         });
                     }
                     
@@ -1644,10 +1642,9 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 .filter(u => u.id !== currentUserId)
                                 .map(u => ({
                                     user_id: u.id,
-                                    actor_id: currentUserId,
                                     type: 'mention',
-                                    reference_id: post.id,
-                                    message: `mentioned you in a comment`
+                                    message: `mentioned you in a comment`,
+                                    data: { actor_id: currentUserId, reference_id: post.id }
                                 }));
                             if (notifications.length > 0) {
                                 await supabase.from('notifications').insert(notifications);
