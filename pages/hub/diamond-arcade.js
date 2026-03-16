@@ -1123,7 +1123,12 @@ export default function DiamondArcade() {
                                     {!['hand-snap', 'chip-math', 'board-nuts', 'showdown', 'ev-or-fold'].includes(activeGame.id) && (
                                         <>
                                             <p style={styles.questionText}>
-                                                {currentQuestion.question || currentQuestion.scenario || 'Which Hand Wins?'}
+                                                {currentQuestion.question
+                                                    || currentQuestion.scenario
+                                                    || (currentQuestion.pot && currentQuestion.bet && !currentQuestion.equity ? `Pot: ${currentQuestion.pot} — Bet: ${currentQuestion.bet}. What equity do you need to call?`
+                                                    : currentQuestion.hands ? 'Which Hand Wins This Showdown?'
+                                                    : currentQuestion.board ? "What's The Nuts?"
+                                                    : 'Answer This Question')}
                                             </p>
                                             {currentQuestion.board && (
                                                 <div style={styles.boardDisplay}>

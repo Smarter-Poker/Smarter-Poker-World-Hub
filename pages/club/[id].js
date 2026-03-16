@@ -5,7 +5,7 @@
  * UI: SmarterPoker color scheme, no emojis, Inter font
  */
 import Image from 'next/image';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import { getSafeUser } from '../../src/lib/authUtils';
@@ -393,6 +393,22 @@ export default function ClubPage() {
     checkFollowStatus();
   }, [id, user]);
 
+  // Refetch live data (games + tournaments) without resetting the whole page
+  const refetchLiveData = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/public/venue/${id}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success) {
+        setLiveGames(data.data.live_games || []);
+        setTournaments(data.data.upcoming_tournaments || []);
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') console.error('Live data refresh failed:', err);
+    }
+  }, [id]);
+
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
@@ -415,23 +431,20 @@ export default function ClubPage() {
 
           // Parallel: fetch posts + photos + reviews simultaneously
           const [postsRes, photosRes, reviewsRes] = await Promise.allSettled([
-            fetch(`/api/public/venue/${resolvedId}/posts?limit=10`, { signal }).catch(() => {}),
-            fetch(`/api/public/venue/${resolvedId}/photos?limit=20`, { signal }).catch(() => {}),
-            fetch(`/api/public/venue/${resolvedId}/reviews?limit=10`, { signal }).catch(() => {}),
+            fetch(`/api/public/venue/${resolvedId}/posts?limit=10`, { signal }),
+            fetch(`/api/public/venue/${resolvedId}/photos?limit=20`, { signal }),
+            fetch(`/api/public/venue/${resolvedId}/reviews?limit=10`, { signal }),
           ]);
 
-          if (postsRes.status === 'fulfilled') {
-            if (!value.ok) throw new Error(`Request failed (${value.status})`);
+          if (postsRes.status === 'fulfilled' && postsRes.value?.ok) {
             const postsData = await postsRes.value.json();
             if (postsData.success) setPosts(postsData.data?.posts || []);
           }
-          if (photosRes.status === 'fulfilled') {
-            if (!value.ok) throw new Error(`Request failed (${value.status})`);
+          if (photosRes.status === 'fulfilled' && photosRes.value?.ok) {
             const photosData = await photosRes.value.json();
             if (photosData.success) setPhotos(photosData.data?.photos || []);
           }
-          if (reviewsRes.status === 'fulfilled') {
-            if (!value.ok) throw new Error(`Request failed (${value.status})`);
+          if (reviewsRes.status === 'fulfilled' && reviewsRes.value?.ok) {
             const reviewsData = await reviewsRes.value.json();
             if (reviewsData.success) setReviews(reviewsData.data?.reviews || []);
           }
@@ -446,6 +459,36 @@ export default function ClubPage() {
     fetchVenueData();
     return () => controller.abort();
   }, [id]);
+
+  // Real-time: Supabase channel for live game + tournament updates
+  useEffect(() => {
+    if (!venue?.id) return;
+    const venueId = venue.id;
+
+    const channel = supabase
+      .channel(`club-page:${venueId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'commander_games',
+        filter: `venue_id=eq.${venueId}`
+      }, () => { refetchLiveData(); })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'commander_tournaments',
+        filter: `venue_id=eq.${venueId}`
+      }, () => { refetchLiveData(); })
+      .subscribe();
+
+    // Fallback polling every 30s for live data freshness
+    const pollInterval = setInterval(refetchLiveData, 30000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(pollInterval);
+    };
+  }, [venue?.id, refetchLiveData]);
 
   async function handleFollow() {
     // Use pre-loaded user if available, otherwise do inline auth check

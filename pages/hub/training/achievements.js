@@ -8,12 +8,12 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { useState, useEffect } from 'react';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 
 const RARITY_COLORS = {
   common: '#9ca3af',
@@ -33,7 +33,7 @@ const CATEGORY_ICONS = {
 export default function TrainingAchievements() {
   useTrainingBus('achievements');
 
-  busEmit.sessionEnd('achievements');
+  const { mutate } = useSWRConfig();
   const [user, setUser] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
 
@@ -52,6 +52,14 @@ export default function TrainingAchievements() {
       .then((d) => (d.success ? d.achievements || [] : []))
   );
   const achievements = swrData || [];
+
+  // Auto-refresh achievements when a training session completes
+  useEffect(() => {
+    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', () => {
+      mutate((key) => typeof key === 'string' && key.startsWith('/api/training/achievements'));
+    });
+    return unsub;
+  }, [mutate]);
 
   const categories = ['all', 'accuracy', 'streak', 'volume', 'mastery'];
 
