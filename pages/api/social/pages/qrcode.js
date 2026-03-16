@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
       // === Lookup page by referral code ===
       if (ref) {
-          const { data: page, error } = await supabase
+          const { data: page, error } = await getSupabase()
               .from('social_pages')
               .select('id, name, slug, avatar_url, cover_url, description, category, follower_count')
               .eq('metadata->>referral_code', ref)
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       }
 
       // Get page with referral code
-      const { data: page, error } = await supabase
+      const { data: page, error } = await getSupabase()
           .from('social_pages')
           .select('id, name, slug, metadata')
           .eq('id', page_id)
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
 
           // Save to metadata
           const newMeta = { ...page.metadata, referral_code: referralCode };
-          await supabase.from('social_pages').update({ metadata: newMeta }).eq('id', page_id);
+          await getSupabase().from('social_pages').update({ metadata: newMeta }).eq('id', page_id);
       }
 
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker';

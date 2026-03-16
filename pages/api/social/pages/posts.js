@@ -65,7 +65,7 @@ export default async function handler(req, res) {
           const authorIds = [...new Set((data || []).map(p => p.author_id))];
           let profiles = {};
           if (authorIds.length > 0) {
-              const { data: profileData } = await supabase
+              const { data: profileData } = await getSupabase()
                   .from('profiles')
                   .select('id, username, full_name, avatar_url')
                   .in('id', authorIds)
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
           let userLikes = new Set();
           if (user_id && data && data.length > 0) {
               const postIds = data.map(p => p.id);
-              const { data: likes } = await supabase
+              const { data: likes } = await getSupabase()
                   .from('social_page_post_likes')
                   .select('post_id')
                   .eq('user_id', user_id)
@@ -114,7 +114,7 @@ export default async function handler(req, res) {
           }
 
           // Check if page requires approval
-          const { data: page } = await supabase
+          const { data: page } = await getSupabase()
               .from('social_pages')
               .select('require_post_approval, owner_id, allow_member_posts, name, avatar_url, page_type')
               .eq('id', page_id)
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
           // Check if user can post
           if (!isOwner && !page.allow_member_posts) {
               // Check if admin/moderator
-              const { data: membership } = await supabase
+              const { data: membership } = await getSupabase()
                   .from('social_page_followers')
                   .select('role')
                   .eq('page_id', page_id)
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
               }
           }
 
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
               .from('social_page_posts')
               .insert({
                   page_id,
@@ -162,7 +162,7 @@ export default async function handler(req, res) {
           // Only mirror approved, public posts
           if (data && data.is_approved && (data.visibility === 'public' || !data.visibility)) {
               try {
-                  await supabase
+                  await getSupabase()
                       .from('social_posts')
                       .insert({
                           author_id: page.owner_id,
@@ -203,7 +203,7 @@ export default async function handler(req, res) {
           }
 
           // Verify ownership or admin status
-          const { data: post } = await supabase
+          const { data: post } = await getSupabase()
               .from('social_page_posts')
               .select('author_id, page_id')
               .eq('id', id)
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
           const isAuthor = post.author_id === author_id;
 
           // Always check page admin status (needed for pin permission)
-          const { data: page } = await supabase
+          const { data: page } = await getSupabase()
               .from('social_pages')
               .select('owner_id')
               .eq('id', post.page_id)
@@ -232,7 +232,7 @@ export default async function handler(req, res) {
           if (is_pinned !== undefined && isPageAdmin) updates.is_pinned = is_pinned;
           if (visibility !== undefined) updates.visibility = visibility;
 
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
               .from('social_page_posts')
               .update(updates)
               .eq('id', id)
@@ -248,7 +248,7 @@ export default async function handler(req, res) {
           if (!id) return res.status(400).json({ success: false, error: 'id required' });
 
           // Verify ownership
-          const { data: post } = await supabase
+          const { data: post } = await getSupabase()
               .from('social_page_posts')
               .select('author_id, page_id')
               .eq('id', id)
@@ -259,7 +259,7 @@ export default async function handler(req, res) {
           const isAuthor = post.author_id === author_id;
           let isPageOwner = false;
           if (!isAuthor) {
-              const { data: page } = await supabase
+              const { data: page } = await getSupabase()
                   .from('social_pages')
                   .select('owner_id')
                   .eq('id', post.page_id)
@@ -271,7 +271,7 @@ export default async function handler(req, res) {
               return res.status(403).json({ success: false, error: 'Not authorized' });
           }
 
-          const { error } = await supabase
+          const { error } = await getSupabase()
               .from('social_page_posts')
               .delete()
               .eq('id', id);

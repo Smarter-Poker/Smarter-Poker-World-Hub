@@ -62,7 +62,7 @@ export default async function handler(req, res) {
           let comments = [];
           if (!type || type === 'comment') {
               try {
-                  const { data: commentData, error: commentError } = await supabase
+                  const { data: commentData, error: commentError } = await getSupabase()
                       .from('social_comments')
                       .select('id, post_id, user_id, content, created_at, parent_id')
                       .eq('post_id', post_id)
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
                       // Enrich comments with user info
                       const userIds = [...new Set(commentData.map(c => c.user_id))];
                       if (userIds.length > 0) {
-                          const { data: profiles } = await supabase
+                          const { data: profiles } = await getSupabase()
                               .from('profiles')
                               .select('id, username, full_name, avatar_url')
                               .in('id', userIds)
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
 
           if (interaction_type === 'comment') {
               // Insert into social_comments table
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('social_comments')
                   .insert({
                       post_id,
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
               if (error) {
                   // If table doesn't exist, fall back to interactions table
                   if (error.code === '42P01') {
-                      const { data: fallback, error: fbError } = await supabase
+                      const { data: fallback, error: fbError } = await getSupabase()
                           .from('social_interactions')
                           .upsert({ post_id, user_id, interaction_type: 'comment' }, { onConflict: 'post_id,user_id' })
                           .select()
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
 
           } else if (interaction_type === 'like') {
               // Toggle like - check if already liked
-              const { data: existing } = await supabase
+              const { data: existing } = await getSupabase()
                   .from('social_interactions')
                   .select('id')
                   .eq('post_id', post_id)
@@ -197,7 +197,7 @@ export default async function handler(req, res) {
                   return res.status(200).json({ action: 'unliked', liked: false });
               } else {
                   // Like - insert
-                  const { error } = await supabase
+                  const { error } = await getSupabase()
                       .from('social_interactions')
                       .insert({ post_id, user_id, interaction_type: 'like' });
 
@@ -220,7 +220,7 @@ export default async function handler(req, res) {
 
           } else if (interaction_type === 'share') {
               // Record share
-              const { error } = await supabase
+              const { error } = await getSupabase()
                   .from('social_interactions')
                   .upsert({ post_id, user_id, interaction_type: 'share' }, { onConflict: 'post_id,user_id' });
 

@@ -50,7 +50,7 @@ export default async function handler(req, res) {
           // Internal server-to-server call — trust user_id from body
           verified_user_id = req.body.user_id;
       } else if (token) {
-          const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
           verified_user_id = authUser.id;
       } else {
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
           const mediaUrls = hasImage ? [media_url] : [];
 
           // Insert into social_posts (global feed)
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
               .from('social_posts')
               .insert({
                   author_id: user_id,

@@ -45,11 +45,11 @@ export default async function handler(req, res) {
 
           if (game_id) {
               // Single game with all seats
-              const { data: game, error: gErr } = await supabase
+              const { data: game, error: gErr } = await getSupabase()
                   .from('club_live_games').select('*').eq('id', game_id).maybeSingle();
               if (gErr || !game) return res.status(404).json({ success: false, error: 'Game not found' });
 
-              const { data: seats } = await supabase
+              const { data: seats } = await getSupabase()
                   .from('club_game_seats').select('*').eq('game_id', game_id)
                   .order('seat_number', { ascending: true, nullsFirst: false });
 
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
 
           if (page_id) {
               // All games for a page (open + running)
-              const { data: games, error } = await supabase
+              const { data: games, error } = await getSupabase()
                   .from('club_live_games').select('*')
                   .eq('page_id', page_id)
                   .in('status', ['open', 'running'])
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
               const gameIds = (games || []).map(g => g.id);
               let allSeats = [];
               if (gameIds.length > 0) {
-                  const { data: seatData } = await supabase
+                  const { data: seatData } = await getSupabase()
                       .from('club_game_seats').select('*').in('game_id', gameIds)
                       .order('seat_number', { ascending: true, nullsFirst: false })
                           .limit(100);
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
               let socialProfilePicMap = {};
               if (socialPlayerIds.length > 0) {
                   try {
-                      const { data: profiles } = await supabase
+                      const { data: profiles } = await getSupabase()
                           .from('profiles')
                           .select('id, avatar_url')
                           .in('id', socialPlayerIds)
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
 
               // If no club_live_games, bridge from Commander games via linked_venue_id
               if (enriched.length === 0) {
-                  const { data: pageData } = await supabase
+                  const { data: pageData } = await getSupabase()
                       .from('social_pages')
                       .select('linked_venue_id, metadata')
                       .eq('id', page_id)
@@ -113,7 +113,7 @@ export default async function handler(req, res) {
                   const rawVenueId = pageData?.linked_venue_id || pageData?.metadata?.linked_venue_id;
                   const venueId = rawVenueId ? parseInt(rawVenueId, 10) : null;
                   if (venueId && !isNaN(venueId)) {
-                      const { data: cmdGames } = await supabase
+                      const { data: cmdGames } = await getSupabase()
                           .from('commander_games')
                           .select('id, game_type, stakes, current_players, max_players, status, started_at, table_id')
                           .eq('venue_id', venueId)
@@ -123,7 +123,7 @@ export default async function handler(req, res) {
                       if (cmdGames && cmdGames.length > 0) {
                           // Fetch all commander_seats for these games in one batch
                           const cmdGameIds = cmdGames.map(g => g.id);
-                          const { data: cmdSeats } = await supabase
+                          const { data: cmdSeats } = await getSupabase()
                               .from('commander_seats')
                               .select('id, game_id, seat_number, player_name, player_id, status')
                               .in('game_id', cmdGameIds)
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
                           let profilePicMap = {};
                           if (playerIds.length > 0) {
                               try {
-                                  const { data: profiles } = await supabase
+                                  const { data: profiles } = await getSupabase()
                                       .from('profiles')
                                       .select('id, avatar_url')
                                       .in('id', playerIds)
@@ -149,7 +149,7 @@ export default async function handler(req, res) {
                           const tableIds = cmdGames.map(g => g.table_id).filter(Boolean);
                           let tableMap = {};
                           if (tableIds.length > 0) {
-                              const { data: tables } = await supabase
+                              const { data: tables } = await getSupabase()
                                   .from('commander_tables')
                                   .select('id, table_name, table_number')
                                   .in('id', tableIds)
@@ -160,7 +160,7 @@ export default async function handler(req, res) {
                           // Fetch venue type for timer mode
                           let venueType = 'texas';
                           try {
-                              const { data: venueSettings } = await supabase
+                              const { data: venueSettings } = await getSupabase()
                                   .from('commander_venue_settings')
                                   .select('venue_type')
                                   .eq('venue_id', venueId)
@@ -176,7 +176,7 @@ export default async function handler(req, res) {
                               try {
                                   // Query 1: by table_id (if rotations have it)
                                   if (tableIds.length > 0) {
-                                      const { data: rotById } = await supabase
+                                      const { data: rotById } = await getSupabase()
                                           .from('commander_dealer_rotations')
                                           .select('table_id, table_number, dealer_name, commander_dealers:dealer_id (id, name)')
                                           .in('table_id', tableIds)
@@ -188,7 +188,7 @@ export default async function handler(req, res) {
                                   }
                                   // Query 2: by table_number (if rotations only have table_number, no table_id)
                                   if (tableNumbers.length > 0) {
-                                      const { data: rotByNum } = await supabase
+                                      const { data: rotByNum } = await getSupabase()
                                           .from('commander_dealer_rotations')
                                           .select('table_id, table_number, dealer_name, commander_dealers:dealer_id (id, name)')
                                           .eq('venue_id', venueId)
@@ -212,7 +212,7 @@ export default async function handler(req, res) {
                           let allSessions = [];
                           if (tableNumbers.length > 0) {
                               try {
-                                  const { data: sessions } = await supabase
+                                  const { data: sessions } = await getSupabase()
                                       .from('commander_table_sessions')
                                       .select('*')
                                       .in('table_number', tableNumbers)
@@ -311,11 +311,11 @@ export default async function handler(req, res) {
           const checkFollowStatus = async (game_id, player_id) => {
               if (!player_id) return { allowed: false, reason: 'You must be logged in to join a game' };
               // Get the page_id for this game
-              const { data: game } = await supabase
+              const { data: game } = await getSupabase()
                   .from('club_live_games').select('page_id').eq('id', game_id).maybeSingle();
               if (!game) return { allowed: false, reason: 'Game not found' };
               // Check if player follows the page
-              const { data: follow } = await supabase
+              const { data: follow } = await getSupabase()
                   .from('social_page_followers')
                   .select('status')
                   .eq('page_id', game.page_id).eq('user_id', player_id)
@@ -339,7 +339,7 @@ export default async function handler(req, res) {
               }
 
               // Check seat is available
-              const { data: existing } = await supabase
+              const { data: existing } = await getSupabase()
                   .from('club_game_seats').select('id')
                   .eq('game_id', game_id).eq('seat_number', seat_number).maybeSingle();
 
@@ -348,7 +348,7 @@ export default async function handler(req, res) {
               }
 
               // Check player isn't already in this game
-              const { data: playerSeat } = await supabase
+              const { data: playerSeat } = await getSupabase()
                   .from('club_game_seats').select('id')
                   .eq('game_id', game_id).eq('player_name', player_name)
                   .neq('status', 'waitlist').maybeSingle();
@@ -357,7 +357,7 @@ export default async function handler(req, res) {
                   return res.status(409).json({ success: false, error: 'You already have a seat in this game', code: 'ALREADY_SEATED' });
               }
 
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('club_game_seats').insert({
                       game_id, seat_number, player_id: player_id || null,
                       player_name, status: 'reserved'
@@ -384,14 +384,14 @@ export default async function handler(req, res) {
               }
 
               // Get current max waitlist position
-              const { data: maxPos } = await supabase
+              const { data: maxPos } = await getSupabase()
                   .from('club_game_seats').select('waitlist_position')
                   .eq('game_id', game_id).eq('status', 'waitlist')
                   .order('waitlist_position', { ascending: false }).limit(1).maybeSingle();
 
               const nextPos = (maxPos?.waitlist_position || 0) + 1;
 
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('club_game_seats').insert({
                       game_id, seat_number: null, player_id: player_id || null,
                       player_name, status: 'waitlist', waitlist_position: nextPos
@@ -421,7 +421,7 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'page_id and game_name required' });
           }
 
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
               .from('club_live_games').insert({
                   page_id, game_name, game_type: game_type || 'NLH',
                   stakes: stakes || '1/2', max_seats: max_seats || 9,
@@ -455,7 +455,7 @@ export default async function handler(req, res) {
           if (notes !== undefined) updates.notes = notes;
           if (table_number !== undefined) updates.table_number = table_number;
 
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
               .from('club_live_games').update(updates).eq('id', id).select().maybeSingle();
 
           if (error || !data) return res.status(404).json({ success: false, error: 'Game not found' });

@@ -51,7 +51,7 @@ export default async function handler(req, res) {
           if (action === 'approve' || action === 'reject') {
               if (!follower_id) return res.status(400).json({ success: false, error: 'follower_id required' });
               if (action === 'approve') {
-                  const { data, error } = await supabase
+                  const { data, error } = await getSupabase()
                       .from('social_page_followers')
                       .update({ status: 'approved' })
                       .eq('page_id', page_id)
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
                   if (error) return res.status(500).json({ success: false, error: error.message });
                   return res.status(200).json({ success: true, data });
               } else {
-                  const { error } = await supabase
+                  const { error } = await getSupabase()
                       .from('social_page_followers')
                       .delete()
                       .eq('page_id', page_id)
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
           }
 
           if (action === 'unfollow') {
-              const { error } = await supabase
+              const { error } = await getSupabase()
                   .from('social_page_followers')
                   .delete()
                   .eq('page_id', page_id)
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
 
           // Determine if page requires approval (home_game type)
           let requiresApproval = false;
-          const { data: pageData } = await supabase
+          const { data: pageData } = await getSupabase()
               .from('social_pages').select('metadata').eq('id', page_id).maybeSingle();
           if (pageData?.metadata?.page_type === 'home_game') {
               requiresApproval = true;
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
           const followStatus = requiresApproval ? 'pending' : 'approved';
 
           // Follow
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
               .from('social_page_followers')
               .upsert({
                   page_id,
@@ -108,10 +108,10 @@ export default async function handler(req, res) {
 
           // Send push notification to page owner about new follower
           try {
-              const { data: ownerPage } = await supabase
+              const { data: ownerPage } = await getSupabase()
                   .from('social_pages').select('owner_id, name').eq('id', page_id).maybeSingle();
               if (ownerPage && ownerPage.owner_id !== user_id) {
-                  const { data: followerProfile } = await supabase
+                  const { data: followerProfile } = await getSupabase()
                       .from('profiles').select('username, full_name').eq('id', user_id).maybeSingle();
                   const followerName = followerProfile?.full_name || followerProfile?.username || 'Someone';
                   const notifTitle = requiresApproval ? '🔔 New Follow Request' : '🎉 New Follower';
@@ -151,7 +151,7 @@ export default async function handler(req, res) {
               if (error) return res.status(500).json({ success: false, error: error.message });
 
               // Determine if requester is page owner
-              const { data: pageInfo } = await supabase
+              const { data: pageInfo } = await getSupabase()
                   .from('social_pages').select('owner_id, is_public').eq('id', page_id).maybeSingle();
               const isOwner = requester_id && pageInfo && pageInfo.owner_id === requester_id;
               const isPublicPage = pageInfo?.is_public !== false; // default to public
@@ -162,7 +162,7 @@ export default async function handler(req, res) {
                   const userIds = approvedFollowers.map(f => f.user_id);
                   let profiles = {};
                   if (userIds.length > 0) {
-                      const { data: profileData } = await supabase
+                      const { data: profileData } = await getSupabase()
                           .from('profiles')
                           .select('id, username, full_name, avatar_url')
                           .in('id', userIds)
@@ -195,7 +195,7 @@ export default async function handler(req, res) {
 
           if (user_id) {
               // Get pages a user follows
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('social_page_followers')
                   .select('page_id, role, created_at')
                   .eq('user_id', user_id)
@@ -207,7 +207,7 @@ export default async function handler(req, res) {
               const pageIds = (data || []).map(f => f.page_id);
               let pages = {};
               if (pageIds.length > 0) {
-                  const { data: pageData } = await supabase
+                  const { data: pageData } = await getSupabase()
                       .from('social_pages')
                       .select('*')
                       .in('id', pageIds)

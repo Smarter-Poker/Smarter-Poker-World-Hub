@@ -456,7 +456,7 @@ async function postNewsLink(horse, horseIndex, newsType) {
 
         // Filter out already-posted articles
         const freshArticles = allArticles.filter(a => !usedLinks.has(a.link))
-            .limit(100);
+            .slice(0, 100);
 
         if (!freshArticles.length) {
             return { success: false, error: 'All articles already posted' };

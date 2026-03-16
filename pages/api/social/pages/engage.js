@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 
           if (action === 'like') {
               // Toggle like
-              const { data: existing } = await supabase
+              const { data: existing } = await getSupabase()
                   .from('social_page_post_likes')
                   .select('id')
                   .eq('post_id', post_id)
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
                   return res.status(400).json({ success: false, error: 'content required for comments' });
               }
 
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('social_page_post_comments')
                   .insert({
                       post_id,
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
               if (!data) return res.status(500).json({ success: false, error: 'Failed to create comment' });
 
               // Enrich with profile
-              const { data: profile } = await supabase
+              const { data: profile } = await getSupabase()
                   .from('profiles')
                   .select('id, username, full_name, avatar_url')
                   .eq('id', user_id)
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'post_id required' });
           }
 
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
               .from('social_page_post_comments')
               .select('*')
               .eq('post_id', post_id)
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
           const userIds = [...new Set((data || []).map(c => c.user_id))];
           let profiles = {};
           if (userIds.length > 0) {
-              const { data: profileData } = await supabase
+              const { data: profileData } = await getSupabase()
                   .from('profiles')
                   .select('id, username, full_name, avatar_url')
                   .in('id', userIds);
@@ -141,14 +141,14 @@ export default async function handler(req, res) {
           }
 
           if (type === 'comment') {
-              const { error } = await supabase
+              const { error } = await getSupabase()
                   .from('social_page_post_comments')
                   .delete()
                   .eq('id', id)
                   .eq('user_id', user_id);
               if (error) return res.status(500).json({ success: false, error: error.message });
           } else {
-              const { error } = await supabase
+              const { error } = await getSupabase()
                   .from('social_page_post_likes')
                   .delete()
                   .eq('id', id)

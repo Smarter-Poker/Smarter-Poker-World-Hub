@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 
           // Single page by ID
           if (id) {
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('social_pages')
                   .select('*')
                   .eq('id', id)
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
               // Get owner profile
               let owner = null;
               if (data.owner_id) {
-                  const { data: profile } = await supabase
+                  const { data: profile } = await getSupabase()
                       .from('profiles')
                       .select('id, username, full_name, avatar_url')
                       .eq('id', data.owner_id)
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
               // Check if user follows
               let is_following = false;
               if (user_id) {
-                  const { data: follow } = await supabase
+                  const { data: follow } = await getSupabase()
                       .from('social_page_followers')
                       .select('id')
                       .eq('page_id', id)
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
 
           // Single page by slug
           if (slug) {
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('social_pages')
                   .select('*')
                   .eq('slug', slug)
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
               // Enrich with owner profile (same as ID lookup)
               let owner = null;
               if (data.owner_id) {
-                  const { data: profile } = await supabase
+                  const { data: profile } = await getSupabase()
                       .from('profiles')
                       .select('id, username, full_name, avatar_url')
                       .eq('id', data.owner_id)
@@ -110,7 +110,7 @@ export default async function handler(req, res) {
               // Check if user follows
               let is_following = false;
               if (user_id) {
-                  const { data: follow } = await supabase
+                  const { data: follow } = await getSupabase()
                       .from('social_page_followers')
                       .select('id')
                       .eq('page_id', data.id)
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
 
           // Lookup by linked venue ID (returns matching social page for a venue)
           if (linked_venue_id) {
-              const { data, error } = await supabase
+              const { data, error } = await getSupabase()
                   .from('social_pages')
                   .select('*')
                   .eq('linked_venue_id', String(linked_venue_id))
@@ -152,7 +152,7 @@ export default async function handler(req, res) {
 
           // If followed_only, join with followers
           if (followed_only === 'true' && user_id) {
-              const { data: followedIds } = await supabase
+              const { data: followedIds } = await getSupabase()
                   .from('social_page_followers')
                   .select('page_id')
                   .eq('user_id', user_id)
@@ -178,7 +178,7 @@ export default async function handler(req, res) {
           let enriched = data || [];
           if (user_id && enriched.length > 0) {
               const pageIds = enriched.map(p => p.id);
-              const { data: follows } = await supabase
+              const { data: follows } = await getSupabase()
                   .from('social_page_followers')
                   .select('page_id')
                   .eq('user_id', user_id)
@@ -198,7 +198,7 @@ export default async function handler(req, res) {
           // Require JWT auth
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           const { name, page_type, description, category, avatar_url, cover_url,
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
           const slug = generateSlug(name);
           const referralCode = slug.substring(0, 20) + '-' + Math.random().toString(36).substring(2, 6);
 
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
               .from('social_pages')
               .insert({
                   owner_id,
@@ -245,7 +245,7 @@ export default async function handler(req, res) {
 
           // Auto-follow as owner
           // MEDIUM FIX: Add error check after auto-follow insert
-          const { error: followErr } = await supabase.from('social_page_followers').insert({
+          const { error: followErr } = await getSupabase().from('social_page_followers').insert({
               page_id: data.id,
               user_id: owner_id,
               role: 'owner',
@@ -294,7 +294,7 @@ export default async function handler(req, res) {
           // Require JWT auth
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           const { id, ...updates } = req.body;
@@ -305,7 +305,7 @@ export default async function handler(req, res) {
           }
 
           // Verify ownership and get existing data for change detection
-          const { data: existing } = await supabase
+          const { data: existing } = await getSupabase()
               .from('social_pages')
               .select('owner_id, name, avatar_url, cover_url, description, location_city, location_state, page_type, metadata')
               .eq('id', id)
@@ -315,7 +315,7 @@ export default async function handler(req, res) {
               return res.status(403).json({ success: false, error: 'Not authorized' });
           }
 
-          const { data, error } = await supabase
+          const { data, error } = await getSupabase()
               .from('social_pages')
               .update({ ...updates, updated_at: new Date().toISOString() })
               .eq('id', id)
@@ -383,7 +383,7 @@ export default async function handler(req, res) {
               if (updates.location_city) venueUpdates.city = updates.location_city;
               if (updates.location_state) venueUpdates.state = updates.location_state;
               if (Object.keys(venueUpdates).length > 0) {
-                  supabase.from('poker_venues')
+                  getSupabase().from('poker_venues')
                       .update(venueUpdates)
                       .eq('id', data.linked_venue_id)
                       .then(({ error: venueErr }) => {
@@ -400,7 +400,7 @@ export default async function handler(req, res) {
           // Require JWT auth
           const token = req.headers.authorization?.replace('Bearer ', '');
           if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
           const { id } = req.query;
@@ -408,7 +408,7 @@ export default async function handler(req, res) {
           if (!id) return res.status(400).json({ success: false, error: 'id is required' });
 
           // Verify ownership via JWT user
-          const { data: existing } = await supabase
+          const { data: existing } = await getSupabase()
               .from('social_pages')
               .select('owner_id')
               .eq('id', id)
@@ -418,7 +418,7 @@ export default async function handler(req, res) {
               return res.status(403).json({ success: false, error: 'Not authorized — only the page owner can delete' });
           }
 
-          const { error } = await supabase
+          const { error } = await getSupabase()
               .from('social_pages')
               .delete()
               .eq('id', id);
