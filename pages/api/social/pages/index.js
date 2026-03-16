@@ -138,7 +138,7 @@ export default async function handler(req, res) {
           }
 
           // List pages with filters
-          let query = supabase
+          let query = getSupabase()
               .from('social_pages')
               .select('*');
 
