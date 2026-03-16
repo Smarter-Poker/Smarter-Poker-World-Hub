@@ -437,6 +437,12 @@ export function generateBoardNutsQuestion(): BoardNutsQuestion {
     }));
 
     evaluations.sort((a, b) => b.eval.value - a.eval.value);
+
+    // Tie protection: if top two hands chop, regenerate to avoid unsolvable question
+    if (evaluations[0].eval.value === evaluations[1].eval.value) {
+        return generateBoardNutsQuestion();
+    }
+
     const correctIndex = evaluations[0].idx;
     const bestHand = evaluations[0].eval;
 

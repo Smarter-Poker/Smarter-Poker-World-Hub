@@ -108,6 +108,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     const retryCountRef = useRef(0);
     const heartbeatTimerRef = useRef(null);
     const resetHeartbeatTimerRef = useRef(null);
+    const lastHeartbeatRef = useRef(null); // FIX: Track last heartbeat timestamp for visibility race
     const loadStartTimeRef = useRef(null); // Performance telemetry
     const iframeLoadedRef = useRef(false); // FIX 1: Track whether iframe onLoad has fired
 
@@ -214,16 +215,27 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     }, []);
 
     /* ── Auto-retry: Recover automatically on tab focus or network return ── */
-    // When the Connection Problem overlay is showing and the user returns to
-    // the tab or comes back online, retry automatically instead of requiring
-    // a manual click. Max 3 auto-retries to prevent infinite retry loops.
+    // FIX: Added time-based reset so rapid visibility flips don't exhaust retries.
+    // Counter resets after 60s of being in error state, allowing fresh retries.
     const autoRetryCountRef = useRef(0);
+    const autoRetryResetTimerRef = useRef(null);
     useEffect(() => {
         if (loadState !== 'error') {
             autoRetryCountRef.current = 0; // Reset on successful load
+            clearTimeout(autoRetryResetTimerRef.current);
             return;
         }
         const MAX_AUTO_RETRIES = 3;
+        const AUTO_RETRY_RESET_MS = 60_000; // Reset counter after 60s
+
+        // FIX: Time-based counter reset — if we've been in error state for 60s,
+        // reset the counter so the user gets fresh auto-retries on next visibility change
+        autoRetryResetTimerRef.current = setTimeout(() => {
+            if (autoRetryCountRef.current >= MAX_AUTO_RETRIES) {
+                console.log('[ClubArenaEmbed] Auto-retry counter reset after timeout');
+                autoRetryCountRef.current = 0;
+            }
+        }, AUTO_RETRY_RESET_MS);
 
         const handleAutoRetry = () => {
             if (loadState !== 'error') return;
@@ -246,6 +258,7 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
         return () => {
             document.removeEventListener('visibilitychange', handleVisibility);
             window.removeEventListener('online', handleOnline);
+            clearTimeout(autoRetryResetTimerRef.current);
         };
     }, [loadState, handleRetry]);
 
@@ -374,15 +387,28 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
             if (!authAckedRef.current || !iframeRef.current?.contentWindow) return;
 
             const updatedSettings = readWorldHubSettings();
-            try {
-                iframeRef.current.contentWindow.postMessage({
-                    type: 'SMARTER_SETTINGS_UPDATE',
-                    settings: updatedSettings,
-                }, getTargetOrigin());
-                console.log(`[ClubArenaEmbed] Live settings push: ${event.key} changed`);
-            } catch (e) {
-                /* best effort — ignore postMessage errors */
-            }
+            const pushSettings = (retryCount = 0) => {
+                try {
+                    if (!iframeRef.current?.contentWindow) {
+                        if (retryCount < 2) {
+                            setTimeout(() => pushSettings(retryCount + 1), 2000);
+                        }
+                        return;
+                    }
+                    iframeRef.current.contentWindow.postMessage({
+                        type: 'SMARTER_SETTINGS_UPDATE',
+                        settings: updatedSettings,
+                    }, getTargetOrigin());
+                    console.log(`[ClubArenaEmbed] Live settings push: ${event.key} changed`);
+                } catch (e) {
+                    // FIX: Retry once on failure instead of silently dropping
+                    if (retryCount < 2) {
+                        console.warn(`[ClubArenaEmbed] Settings push failed, retrying in 2s:`, e);
+                        setTimeout(() => pushSettings(retryCount + 1), 2000);
+                    }
+                }
+            };
+            pushSettings();
         };
 
         window.addEventListener('storage', handleStorageChange);
@@ -466,6 +492,8 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
 
                 /* Heartbeat — SPA is alive, reset the dead-iframe timer */
                 case 'CLUB_ARENA_HEARTBEAT':
+                    // FIX: Track when we last received a heartbeat (for visibility race check)
+                    lastHeartbeatRef.current = Date.now();
                     // Use ref to always call the latest version of resetHeartbeatTimer
                     // (avoids stale closure since this useEffect has [] deps)
                     resetHeartbeatTimerRef.current?.();
@@ -506,11 +534,24 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
     }, [loadState, resetHeartbeatTimer]);
 
     // Pause/resume heartbeat when tab visibility changes
+    // FIX: Check if we received a heartbeat recently before blindly resetting.
+    // If SPA crashed while tab was hidden, we don't want to give it another 90s grace period.
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && loadState === 'ready' && authAckedRef.current) {
-                // Tab became visible again — reset heartbeat timer (gives SPA time to resume)
-                resetHeartbeatTimerRef.current?.();
+                // Tab became visible — check if SPA was alive recently
+                const lastHB = lastHeartbeatRef.current;
+                const timeSinceHeartbeat = lastHB ? Date.now() - lastHB : Infinity;
+
+                if (timeSinceHeartbeat > HEARTBEAT_TIMEOUT_MS) {
+                    // SPA hasn't sent a heartbeat in over 90s — likely dead
+                    console.warn(`[ClubArenaEmbed] SPA silent for ${Math.round(timeSinceHeartbeat / 1000)}s — triggering error`);
+                    setLoadState('error');
+                    setErrorMsg('Club Arena appears to have disconnected. Click Retry to reconnect.');
+                } else {
+                    // SPA was alive recently — reset timer with shorter initial check
+                    resetHeartbeatTimerRef.current?.();
+                }
             } else if (document.visibilityState === 'hidden') {
                 // Tab hidden — pause heartbeat timeout (background tabs don't fire timers)
                 clearTimeout(heartbeatTimerRef.current);

@@ -781,12 +781,17 @@ export default function ClubPage() {
         setReviewRating(0);
         setReviewTitle('');
         setReviewContent('');
-        // Refresh reviews
-        const reviewsRes = await fetch(`/api/public/venue/${resolvedId}/reviews?limit=10`);
-        if (!reviewsRes.ok) throw new Error(`Request failed (${reviewsRes.status})`);
-        const reviewsData = await reviewsRes.json();
-        if (reviewsData.success) {
-          setReviews(reviewsData.data?.reviews || []);
+        // Refresh reviews (non-critical — review is already saved)
+        try {
+          const reviewsRes = await fetch(`/api/public/venue/${resolvedId}/reviews?limit=10`);
+          if (reviewsRes.ok) {
+            const reviewsData = await reviewsRes.json();
+            if (reviewsData.success) {
+              setReviews(reviewsData.data?.reviews || []);
+            }
+          }
+        } catch (refreshErr) {
+          console.error('Review refresh failed (review was saved):', refreshErr);
         }
       } else {
         setReviewError(data.error || 'Failed to submit review');
