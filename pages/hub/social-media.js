@@ -5595,7 +5595,7 @@ function SocialMediaPage() {
         if (!convId && user?.id) {
             try {
                 const { data } = await supabase.rpc('fn_get_or_create_conversation', { p_user_id: user.id, p_other_user_id: c.id, p_conversation_type: 'direct' });
-                convId = data;
+                convId = data?.conversation_id || data; // RPC returns { created, conversation_id }
             } catch (e) { console.error(e); }
         }
         const chat = { id: c.id, name: c.name || c.username, avatar: null, online: false, conversationId: convId };

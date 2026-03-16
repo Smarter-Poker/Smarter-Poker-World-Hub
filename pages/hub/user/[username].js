@@ -8,7 +8,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import React from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
@@ -194,10 +194,12 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [liked, setLiked] = useState(false);
+    const [likeAnimating, setLikeAnimating] = useState(false);
     const [likeCount, setLikeCount] = useState(post.like_count || 0);
     const [commentCount, setCommentCount] = useState(post.comment_count || 0);
     const [showComments, setShowComments] = useState(false);
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
+    const likeThrottleRef = useRef(false);
 
     // Phase 28: Render @mentions as clickable links
     function renderMentions(text) {
@@ -285,8 +287,15 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
 
     const handleLike = async () => {
         if (!currentUserId) return;
+        // Debounce: prevent rapid-fire spam
+        if (likeThrottleRef.current) return;
+        likeThrottleRef.current = true;
+        setTimeout(() => { likeThrottleRef.current = false; }, 500);
+
         const wasLiked = liked;
         setLiked(!wasLiked);
+        setLikeAnimating(!wasLiked); // trigger animation on like (not unlike)
+        if (!wasLiked) setTimeout(() => setLikeAnimating(false), 600);
         setLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
         try {
             const token = getAccessToken();
@@ -301,6 +310,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
             if (!res.ok) throw new Error(`Like failed: ${res.status}`);
         } catch (e) {
             setLiked(wasLiked);
+            setLikeAnimating(false);
             setLikeCount(prev => wasLiked ? prev + 1 : Math.max(0, prev - 1));
         }
     };
@@ -484,7 +494,12 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId,
                 <span>{commentCount > 0 && `${commentCount} comments`}{shareMsg && ` · ${shareMsg}`}</span>
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
-                <button onClick={handleLike} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: liked ? C.blue : C.textSec, fontWeight: liked ? 700 : 500, fontSize: 13, transition: 'all 0.2s' }}>👍 {liked ? 'Liked' : 'Like'}</button>
+                <button onClick={handleLike} style={{
+                    flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer',
+                    color: liked ? C.blue : C.textSec, fontWeight: liked ? 700 : 500, fontSize: 13,
+                    transition: 'all 0.2s',
+                    transform: likeAnimating ? 'scale(1.3)' : 'scale(1)',
+                }}>👍 {liked ? 'Liked' : 'Like'}</button>
                 <button onClick={handleComment} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
                 <button onClick={handleShare} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}>↗️ Share</button>
             </div>
@@ -577,6 +592,8 @@ export default function UserProfilePage() {
     const [showBlockConfirm, setShowBlockConfirm] = useState(false);
     const [showReportInput, setShowReportInput] = useState(false);
     const [reportReason, setReportReason] = useState('');
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followLoading, setFollowLoading] = useState(false);
 
     // Stats and content
     const [stats, setStats] = useState({ friends: 0, following: 0, followers: 0, posts: 0 });
@@ -593,8 +610,10 @@ export default function UserProfilePage() {
 
     // Poker Activity state
     const [pokerCheckins, setPokerCheckins] = useState([]);
-    const [pokerReviews, setPokerReviews] = useState([]);
     const [pokerFollowing, setPokerFollowing] = useState([]);
+
+    // Refs
+    const profileMenuRef = useRef(null);
 
     // Tab state — persisted
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-user-profile', 'all');
@@ -726,7 +745,9 @@ export default function UserProfilePage() {
                     batch1Promises.push(
                         supabase.from('friendships').select('status').eq('user_id', user.id).eq('friend_id', data.id),
                         supabase.from('friendships').select('status').eq('user_id', data.id).eq('friend_id', user.id),
-                        supabase.from('friendships').select('user_id, friend_id').eq('status', 'accepted').or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+                        supabase.from('friendships').select('user_id, friend_id').eq('status', 'accepted').or(`user_id.eq.${user.id},friend_id.eq.${user.id}`),
+                        // Follow check
+                        supabase.from('follows').select('id').eq('follower_id', user.id).eq('following_id', data.id).maybeSingle()
                     );
                 }
 
@@ -744,10 +765,11 @@ export default function UserProfilePage() {
 
                 // Process friendship status
                 let myFriendIds = [];
-                if (user && authResults.length >= 3) {
+                if (user && authResults.length >= 4) {
                     const f1 = authResults[0];
                     const f2 = authResults[1];
                     const myFriendsRes = authResults[2];
+                    const followRes = authResults[3];
 
                     const allFriendships = [...(f1.data || []), ...(f2.data || [])];
                     if (allFriendships.some(f => f.status === 'accepted')) {
@@ -764,6 +786,11 @@ export default function UserProfilePage() {
                     if (myFriendsRes.data) {
                         myFriendIds = myFriendsRes.data.map(f => f.user_id === user.id ? f.friend_id : f.user_id);
                         setCurrentUserFriends(myFriendIds);
+                    }
+
+                    // Set follow status
+                    if (followRes?.data) {
+                        setIsFollowing(true);
                     }
                 }
 
@@ -960,24 +987,7 @@ export default function UserProfilePage() {
         try { localStorage.removeItem(cacheKey); } catch { /* noop */ }
         emitCacheInvalidation(cacheKey);
     };
-    // Write-through: update cache in-place with current React state
-    const writeThroughCache = () => {
-        try {
-            const cacheKey = `sp-profile-cache-${username}`;
-            const payload = {
-                _cachedAt: Date.now(),
-                profile: profile || null,
-                stats,
-                friends,
-                posts,
-                photos,
-                videos: [],
-                reels: [],
-            };
-            localStorage.setItem(cacheKey, JSON.stringify(payload));
-            emitCacheInvalidation(cacheKey, 'update');
-        } catch { /* quota exceeded */ }
-    };
+
     const notifyFriendsSync = () => {
         busEmit.dataMutated('friends');
         broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
@@ -985,19 +995,60 @@ export default function UserProfilePage() {
 
     const handleAddFriend = async () => {
         if (!currentUser || !profile) return;
+        // Optimistic update
+        setFriendRequestSent(true);
         try {
-            await supabase.from('friendships').insert({
+            const { error } = await supabase.from('friendships').insert({
                 user_id: currentUser.id,
                 friend_id: profile.id,
                 status: 'pending'
             });
-            setFriendRequestSent(true);
+            if (error) throw error;
             invalidateProfileCache();
             busEmit.friendRequestSent(profile.id);
             notifyFriendsSync();
         } catch (e) {
+            // Rollback on failure
+            setFriendRequestSent(false);
             console.error('Error sending friend request:', e);
         }
+    };
+
+    const handleFollowToggle = async () => {
+        if (!currentUser || !profile || followLoading) return;
+        setFollowLoading(true);
+        const wasFollowing = isFollowing;
+        // Optimistic update
+        setIsFollowing(!wasFollowing);
+        setStats(prev => ({
+            ...prev,
+            followers: wasFollowing ? Math.max(0, prev.followers - 1) : prev.followers + 1
+        }));
+        try {
+            if (wasFollowing) {
+                const { error } = await supabase.from('follows').delete()
+                    .eq('follower_id', currentUser.id)
+                    .eq('following_id', profile.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('follows').insert({
+                    follower_id: currentUser.id,
+                    following_id: profile.id
+                });
+                if (error) throw error;
+            }
+            invalidateProfileCache();
+            busEmit.dataMutated('follows');
+        } catch (e) {
+            // Rollback on failure
+            setIsFollowing(wasFollowing);
+            setStats(prev => ({
+                ...prev,
+                followers: wasFollowing ? prev.followers + 1 : Math.max(0, prev.followers - 1)
+            }));
+            console.error('Error toggling follow:', e);
+        }
+        setFollowLoading(false);
     };
 
     const handleMessage = () => {
@@ -1006,21 +1057,27 @@ export default function UserProfilePage() {
 
     const handleRemoveFriend = async () => {
         if (!currentUser || !profile) return;
+        // Optimistic update
+        const wasFriend = isFriend;
+        const prevStats = { ...stats };
+        setIsFriend(false);
+        setFriendRequestSent(false);
+        setShowUnfriendConfirm(false);
+        setStats(prev => ({ ...prev, friends: Math.max(0, prev.friends - 1) }));
         try {
-            await supabase.from('friendships').delete()
+            const { error: e1 } = await supabase.from('friendships').delete()
                 .eq('user_id', currentUser.id)
                 .eq('friend_id', profile.id);
+            if (e1) throw e1;
             await supabase.from('friendships').delete()
                 .eq('user_id', profile.id)
                 .eq('friend_id', currentUser.id);
-
-            setIsFriend(false);
-            setFriendRequestSent(false);
-            setShowUnfriendConfirm(false);
-            setStats(prev => ({ ...prev, friends: Math.max(0, prev.friends - 1) }));
             invalidateProfileCache();
             notifyFriendsSync();
         } catch (e) {
+            // Rollback on failure
+            setIsFriend(wasFriend);
+            setStats(prevStats);
             console.error('Error unfriending:', e);
         }
     };
@@ -1139,6 +1196,18 @@ export default function UserProfilePage() {
         router.prefetch('/hub/friends');
     }, [router]);
 
+    // Profile menu close-on-outside-click
+    useEffect(() => {
+        if (!showProfileMenu) return;
+        const handleClickOutside = (e) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+                setShowProfileMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showProfileMenu]);
+
     if (loading) {
         return <ProfileSkeleton />;
     }
@@ -1178,7 +1247,8 @@ export default function UserProfilePage() {
                         ? `url(${profile.cover_photo_url}) center/cover`
                         : 'linear-gradient(135deg, #0a1628 0%, #1a2a4a 30%, #0d2137 60%, #162d50 100%)',
                     position: 'relative',
-                    borderRadius: '0 0 12px 12px'
+                    borderRadius: '0 0 12px 12px',
+                    backgroundAttachment: profile.cover_photo_url ? 'fixed' : 'scroll',
                 }}>
                     {/* Dark overlay for better text visibility */}
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)', borderRadius: '0 0 12px 12px' }} />
@@ -1213,10 +1283,15 @@ export default function UserProfilePage() {
                         {/* Name & Stats */}
                         <div style={{ flex: 1, paddingBottom: 8 }}>
                             <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: C.text }}>{displayName}</h1>
-                            <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 4 }}>
-                                <span><strong>{stats.friends}</strong> Friends</span>
+                            {profile.bio && (
+                                <div style={{ fontSize: 14, color: C.textSec, marginTop: 4, lineHeight: 1.4 }}>{profile.bio}</div>
+                            )}
+                            <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 4, flexWrap: 'wrap' }}>
+                                <span><strong style={{ transition: 'all 0.3s', display: 'inline-block' }}>{stats.friends}</strong> Friends</span>
                                 <span>·</span>
-                                <span><strong>{stats.posts}</strong> Posts</span>
+                                <span><strong style={{ transition: 'all 0.3s', display: 'inline-block' }}>{stats.followers}</strong> Followers</span>
+                                <span>·</span>
+                                <span><strong style={{ transition: 'all 0.3s', display: 'inline-block' }}>{stats.posts}</strong> Posts</span>
                             </div>
                         </div>
                     </div>
@@ -1279,11 +1354,23 @@ export default function UserProfilePage() {
                                         borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14
                                     }}>➕ Add Friend</button>
                                 )}
+                                {currentUser && !isOwnProfile && (
+                                    <button onClick={handleFollowToggle} disabled={followLoading} style={{
+                                        padding: '10px 16px',
+                                        background: isFollowing ? '#e4e6eb' : 'transparent',
+                                        color: isFollowing ? C.text : C.blue,
+                                        borderRadius: 8,
+                                        border: isFollowing ? 'none' : `1px solid ${C.blue}`,
+                                        fontWeight: 600, cursor: 'pointer', fontSize: 14,
+                                        opacity: followLoading ? 0.6 : 1,
+                                        transition: 'all 0.2s'
+                                    }}>{isFollowing ? '✓ Following' : 'Follow'}</button>
+                                )}
                                 <button onClick={handleMessage} style={{
                                     flex: 1, padding: '10px 16px', background: C.blue, color: 'white',
                                     borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14
                                 }}> Message</button>
-                                <div style={{ position: 'relative' }}>
+                                <div style={{ position: 'relative' }} ref={profileMenuRef}>
                                     <button onClick={() => setShowProfileMenu(!showProfileMenu)} style={{
                                         padding: '10px 14px', background: '#e4e6eb', color: C.text,
                                         borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14
