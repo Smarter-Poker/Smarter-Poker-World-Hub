@@ -37,6 +37,7 @@ const UTC_SETTLEMENT_DAY = 1;  // Monday (0=Sun, 1=Mon)
 const UTC_SETTLEMENT_HOUR = 10; // 10:00 UTC
 
 export default async function handler(req, res) {
+  const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 

@@ -38,6 +38,7 @@ const ALLOWED_BODY_FIELDS = new Set(['transactionId', 'clubId', 'amount']);
 const MAX_BODY_SIZE = 512; // 512B payload limit
 
 export default async function handler(req, res) {
+  const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 

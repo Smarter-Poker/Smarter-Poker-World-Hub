@@ -36,6 +36,7 @@ const RETENTION_DEFAULTS = {
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
+  const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
       // Rate limit
       if (await applyRateLimit(req, res)) return;

@@ -447,11 +447,19 @@ export default function ClubArenaEmbed({ spaRoute = '', query = {}, style = {} }
                 /* URL Sync — SPA reports its current route */
                 case 'CLUB_ARENA_ROUTE_CHANGE':
                     if (data.route && typeof data.route === 'string') {
-                        const newPath = `/hub/club-arena/${data.route.replace(/^\//, '')}`;
+                        // FIX: Sanitize route to prevent path traversal (../) or injection
+                        const sanitizedRoute = data.route
+                            .replace(/^\/+/, '')       // strip leading slashes
+                            .replace(/\.\.\//g, '')    // strip path traversal sequences
+                            .replace(/\.\.$/g, '')     // strip trailing ..
+                            .split('?')[0]             // strip query params from SPA
+                            .split('#')[0];            // strip hash fragments
+                        if (!sanitizedRoute || sanitizedRoute.includes('..')) break; // extra safety
+                        const newPath = `/hub/club-arena/${sanitizedRoute}`;
                         try {
                             window.history.replaceState(null, '', newPath);
-                        } catch (_) {
-                            /* replaceState can throw if URL is invalid — safe to ignore */
+                        } catch (e) {
+                            console.warn('[ClubArenaEmbed] URL sync failed:', e);
                         }
                     }
                     break;

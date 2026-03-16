@@ -27,6 +27,7 @@ const VALID_VARIANTS = ['nlh', 'flh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_dec
 const VALID_GAME_TYPES = ['cash', 'tournament', 'sng'];
 
 export default async function handler(req, res) {
+  const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
       // ── E-13: Rate limiter ─────────────────────────────────────────────
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {

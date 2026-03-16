@@ -141,7 +141,10 @@ export default function PlayerWaitlistPage() {
         debounceRef.current = setTimeout(() => { fetchData(); }, 500);
       })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      supabase.removeChannel(ch);
+    };
   }, [venueId, fetchData]);
 
   // Commander Data Bus — instant sync when waitlist/games change

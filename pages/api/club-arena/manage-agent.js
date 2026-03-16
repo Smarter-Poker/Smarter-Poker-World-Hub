@@ -43,6 +43,7 @@ const MAX_BODY_SIZE = 4096;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function handler(req, res) {
+  const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
     if (!applyRateLimit(req, res, 'club-arena/manage-agent')) return;
