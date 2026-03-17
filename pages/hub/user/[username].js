@@ -210,6 +210,8 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
     const [commentCount, setCommentCount] = useState(post.comment_count || 0);
     const [showComments, setShowComments] = useState(false);
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editCommentText, setEditCommentText] = useState('');
 
     // Render post content with @mentions and #hashtags
     function renderContent(text) {
@@ -582,9 +584,55 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                 <div key={c.id || i} style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                                     <img src={c.author?.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} alt="User avatar" loading="lazy" />
                                     <div style={{ flex: 1, background: C.bg, borderRadius: 12, padding: '8px 12px' }}>
-                                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.author?.full_name || c.author?.username || 'User'}</div>
-                                        <div style={{ fontSize: 14, color: C.text, marginTop: 2 }}>{renderContent(c.content)}</div>
-                                        <div style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>{timeAgo(c.created_at)}</div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.author?.full_name || c.author?.username || 'User'}</div>
+                                            {c.author_id === currentUserId && editingCommentId !== c.id && (
+                                                <div style={{ display: 'flex', gap: 6 }}>
+                                                    <button onClick={() => { setEditingCommentId(c.id); setEditCommentText(c.content || ''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 11, padding: 0 }}>Edit</button>
+                                                    <button onClick={async () => {
+                                                        if (!confirm('Delete this comment?')) return;
+                                                        try {
+                                                            const { error } = await supabase.from('social_comments').delete().eq('id', c.id).eq('author_id', currentUserId);
+                                                            if (error) throw error;
+                                                            setComments(prev => prev.filter(cm => cm.id !== c.id));
+                                                            setCommentCount(prev => Math.max(0, prev - 1));
+                                                            busEmit.socialCommentAdded(post.id, currentUserId, { removed: true });
+                                                            supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(() => {});
+                                                            toast.success('Comment deleted');
+                                                        } catch (e) { console.error('Delete comment error:', e); toast.error('Could not delete comment'); }
+                                                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#F02849', fontSize: 11, padding: 0 }}>Delete</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {editingCommentId === c.id ? (
+                                            <div style={{ marginTop: 4 }}>
+                                                <textarea
+                                                    value={editCommentText}
+                                                    onChange={e => setEditCommentText(e.target.value)}
+                                                    onKeyDown={e => { if (e.key === 'Escape') setEditingCommentId(null); }}
+                                                    autoFocus
+                                                    style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 10px', fontSize: 14, outline: 'none', resize: 'vertical', minHeight: 40, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                                                />
+                                                <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
+                                                    <button onClick={() => setEditingCommentId(null)} style={{ padding: '4px 12px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>Cancel</button>
+                                                    <button onClick={async () => {
+                                                        if (!editCommentText.trim()) return;
+                                                        try {
+                                                            const { error } = await supabase.from('social_comments').update({ content: editCommentText.trim() }).eq('id', c.id).eq('author_id', currentUserId);
+                                                            if (error) throw error;
+                                                            setComments(prev => prev.map(cm => cm.id === c.id ? { ...cm, content: editCommentText.trim() } : cm));
+                                                            setEditingCommentId(null);
+                                                            toast.success('Comment updated');
+                                                        } catch (e) { console.error('Edit comment error:', e); toast.error('Could not update comment'); }
+                                                    }} disabled={!editCommentText.trim()} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: editCommentText.trim() ? 1 : 0.5 }}>Save</button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div style={{ fontSize: 14, color: C.text, marginTop: 2 }}>{renderContent(c.content)}</div>
+                                                <div style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>{timeAgo(c.created_at)}</div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             ))}
