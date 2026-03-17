@@ -4965,6 +4965,8 @@ function SocialMediaPage() {
         toast.success(`Posts from ${authorName || 'this user'} hidden`, 5000);
         try {
             await blockUser(user.id, authorId);
+            broadcastSync('smarter_poker_block_sync', { action: 'block', authorId });
+            busEmit.dataMutated('social');
         } catch (e) {
             console.error('[Social] Block failed:', e);
             // Revert on failure
@@ -5274,9 +5276,17 @@ function SocialMediaPage() {
             loadFeed(0, false);
         });
 
+        // Block sync: when user blocks someone in another tab, hide their posts here too
+        const cleanupBlockBc = listenBroadcast('smarter_poker_block_sync', (msg) => {
+            if (msg?.authorId) {
+                setBlockedUserIds(prev => new Set([...prev, msg.authorId]));
+            }
+        });
+
         return () => {
             cleanupSocialBc();
             cleanupFriendsBc();
+            cleanupBlockBc();
         };
     }, []);
 
@@ -6186,7 +6196,7 @@ function SocialMediaPage() {
         if (undoDeleteRef.current) clearTimeout(undoDeleteRef.current);
 
         // Show undo toast
-        toast.success('Post deleted. Tap to undo.', 5000);
+        toast.success('Post deleted', 5000);
 
         // Schedule actual deletion after 5s
         undoDeleteRef.current = setTimeout(async () => {
@@ -6229,7 +6239,7 @@ function SocialMediaPage() {
         }, 5000);
 
         // Expose undo: clicking anywhere before 5s restores the post
-        // The toast is clickable — user sees "Post deleted. Tap to undo."
+        // Post is removed from UI immediately. If the 5s timer completes, it's permanently deleted.
         // If they want to undo, they can re-navigate or refresh before 5s
     };
 
