@@ -5958,6 +5958,7 @@ function SocialMediaPage() {
                         content,
                         content_type: type,
                         media_urls: urls,
+                        visibility: visibility || 'public',
                         ...(linkPreview ? {
                             link_preview: {
                                 url: linkPreview.url || urls[0],
