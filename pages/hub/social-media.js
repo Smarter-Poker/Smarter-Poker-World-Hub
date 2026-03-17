@@ -681,7 +681,7 @@ async function compressImage(file, maxDim = 1920, quality = 0.85) {
         const img = new Image();
         img.onload = () => {
             // Skip if already within bounds
-            if (img.width <= maxDim && img.height <= maxDim) { resolve(file); return; }
+            if (img.width <= maxDim && img.height <= maxDim) { URL.revokeObjectURL(img.src); resolve(file); return; }
             const scale = maxDim / Math.max(img.width, img.height);
             const canvas = document.createElement('canvas');
             canvas.width = Math.round(img.width * scale);
@@ -1992,11 +1992,13 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     const sortedReactions = Object.entries(counts).sort((a,b) => b[1] - a[1]);
                     
                     const emojiMap = {
-                        like: '👍',  // 40% chance
-                        love: '❤️',  // 25% chance
-                        haha: '😂',  // 15% chance
-                        fire: '🔥',  // 10% chance
-                        wow: '😲'    // 10% chance
+                        like: '👍',
+                        love: '❤️',
+                        haha: '😂',
+                        wow: '😮',
+                        sad: '😢',
+                        angry: '😡',
+                        fire: '🔥'   // legacy — kept for backwards compat
                     };
                     
                     // Get up to 3 icons
@@ -5796,6 +5798,9 @@ function SocialMediaPage() {
                     await supabase.from('social_likes')
                         .update({ reaction_type: type || 'like' })
                         .eq('id', existing.id);
+
+                    // Notify other views/tabs of reaction swap (added:null = no count change)
+                    busEmit.socialPostLiked(postId, user.id, { added: null, reactionType: type || 'like' });
                 }
             }
         } catch (e) {

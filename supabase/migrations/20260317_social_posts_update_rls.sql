@@ -10,3 +10,12 @@ CREATE POLICY "Users can update own posts" ON social_posts
     FOR UPDATE TO authenticated
     USING (auth.uid() = author_id)
     WITH CHECK (auth.uid() = author_id);
+
+-- Enable UPDATE for own likes: allows users to change their reaction type
+-- Required for the Reaction Picker (change from 'like' to 'love', etc.)
+DROP POLICY IF EXISTS "Users can update own likes" ON social_likes;
+
+CREATE POLICY "Users can update own likes" ON social_likes
+    FOR UPDATE TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
