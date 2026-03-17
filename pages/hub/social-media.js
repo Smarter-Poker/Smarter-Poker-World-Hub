@@ -2117,15 +2117,40 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         const topLevel = comments.filter(c => !c.parentId);
                         const replies = comments.filter(c => c.parentId);
                         
-                        const renderCommentBlock = (c, isReply = false) => (
+                        const renderCommentBlock = (c, isReply = false) => {
+                            const [isEditingComment, setIsEditingComment] = React.useState(false);
+                            const [editCommentText, setEditCommentText] = React.useState(c.text || '');
+                            return (
                             <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: isReply ? 8 : 12, marginTop: isReply ? 8 : 0 }}>
                                 <Avatar src={c.authorAvatar} name={c.authorName} size={isReply ? 24 : 28} />
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ background: C.bg, borderRadius: 12, padding: '6px 10px', display: 'inline-block', minWidth: '80%' }}>
-                                        <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{c.authorName}</div>
-                                        <div style={{ fontSize: 14, color: C.text }}>{renderMentions(c.text)}</div>
-                                    </div>
-                                    {/* Comment Meta row: Time, Like, Reply, Count */}
+                                    {isEditingComment ? (
+                                        <div style={{ background: C.bg, borderRadius: 12, padding: '6px 10px' }}>
+                                            <textarea
+                                                value={editCommentText}
+                                                onChange={e => setEditCommentText(e.target.value)}
+                                                maxLength={2000}
+                                                style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 10px', fontSize: 14, outline: 'none', resize: 'vertical', minHeight: 40, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                                            />
+                                            <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
+                                                <button onClick={() => setIsEditingComment(false)} style={{ padding: '4px 12px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>Cancel</button>
+                                                <button onClick={async () => {
+                                                    if (!editCommentText.trim()) return;
+                                                    const { error } = await supabase.from('social_comments').update({ content: editCommentText.trim() }).eq('id', c.id).eq('author_id', currentUserId);
+                                                    if (!error) {
+                                                        setComments(prev => prev.map(cm => cm.id === c.id ? { ...cm, text: editCommentText.trim() } : cm));
+                                                        setIsEditingComment(false);
+                                                    }
+                                                }} disabled={!editCommentText.trim()} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: editCommentText.trim() ? 1 : 0.5 }}>Save</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ background: C.bg, borderRadius: 12, padding: '6px 10px', display: 'inline-block', minWidth: '80%' }}>
+                                            <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{c.authorName}</div>
+                                            <div style={{ fontSize: 14, color: C.text }}>{renderMentions(c.text)}</div>
+                                        </div>
+                                    )}
+                                    {/* Comment Meta row: Time, Like, Reply, Edit, Delete, Count */}
                                     <div style={{ display: 'flex', gap: 12, paddingLeft: 10, marginTop: 4, fontSize: 12, color: C.textSec, fontWeight: 600 }}>
                                         <span>{c.time}</span>
                                         <span 
@@ -2140,6 +2165,19 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                         >
                                             Reply
                                         </span>
+                                        {c.authorId === currentUserId && !isEditingComment && (
+                                            <>
+                                                <span style={{ cursor: 'pointer', color: C.textSec }} onClick={() => { setIsEditingComment(true); setEditCommentText(c.text || ''); }}>Edit</span>
+                                                <span style={{ cursor: 'pointer', color: '#FA383E' }} onClick={async () => {
+                                                    if (!confirm('Delete this comment?')) return;
+                                                    const { error } = await supabase.from('social_comments').delete().eq('id', c.id).eq('author_id', currentUserId);
+                                                    if (!error) {
+                                                        setComments(prev => prev.filter(cm => cm.id !== c.id));
+                                                        setCommentCount(prev => Math.max(0, prev - 1));
+                                                    }
+                                                }}>Delete</span>
+                                            </>
+                                        )}
                                         {c.likeCount > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👍 {c.likeCount}</span>}
                                     </div>
                                     
@@ -2157,6 +2195,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 </div>
                             </div>
                         );
+                        };
                         
                         return topLevel.map(c => renderCommentBlock(c, false));
                     })()}
@@ -2207,7 +2246,13 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             placeholder={replyingTo ? `Reply to ${replyingTo.name}...` : "Write a comment..."} 
                             style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} 
                             autoFocus={!!replyingTo}
+                            maxLength={2000}
                         />
+                        {newComment.length > 1800 && (
+                            <span style={{ fontSize: 11, color: newComment.length >= 2000 ? '#FA383E' : C.textSec, alignSelf: 'center', whiteSpace: 'nowrap' }}>
+                                {2000 - newComment.length}
+                            </span>
+                        )}
                         <button onClick={handleSubmitComment} disabled={!newComment.trim()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: newComment.trim() ? C.blue : C.textSec, fontWeight: 600, fontSize: 13 }}>Post</button>
                     </div>
                 </div>
