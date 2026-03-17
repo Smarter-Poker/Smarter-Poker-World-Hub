@@ -705,23 +705,29 @@ export default async function handler(req, res) {
             });
           }
           // Return chips to club treasury atomically
-          await getSupabase().rpc('fn_debit_chips', {
+          const { error: debitErr } = await getSupabase().rpc('fn_debit_chips', {
             p_club_id: clubId,
             p_user_id: targetUserId,
             p_amount: balance,
           });
-          await getSupabase().rpc('fn_credit_treasury', {
-            p_club_id: clubId,
-            p_amount: balance,
-          });
-          await getSupabase().from('chip_transactions').insert({
-            club_id: clubId,
-            from_user_id: targetUserId,
-            to_user_id: null,
-            amount: balance,
-            transaction_type: 'withdrawal',
-            notes: `Member removed — ${balance.toLocaleString()} chips returned to club treasury`,
-          });
+
+          if (debitErr) {
+            console.error('[manage-agent] Remove debit failed (possible race):', debitErr.message);
+            // Don't credit treasury — chips weren't debited
+          } else {
+            await getSupabase().rpc('fn_credit_treasury', {
+              p_club_id: clubId,
+              p_amount: balance,
+            });
+            await getSupabase().from('chip_transactions').insert({
+              club_id: clubId,
+              from_user_id: targetUserId,
+              to_user_id: null,
+              amount: balance,
+              transaction_type: 'withdrawal',
+              notes: `Member removed — ${balance.toLocaleString()} chips returned to club treasury`,
+            });
+          }
         }
 
         // If removing an agent, clear downline + deactivate agent record
