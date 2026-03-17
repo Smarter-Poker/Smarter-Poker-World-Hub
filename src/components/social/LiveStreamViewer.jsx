@@ -5,6 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { liveStreamService } from '../../services/LiveStreamService';
+import { busEmit } from '../../engine/EventBus';
 
 const C = {
     red: '#FA383E',
@@ -45,6 +46,9 @@ export function LiveStreamViewer({ stream, userId, onClose }) {
                     setIsConnecting(false);
                 });
 
+                // Notify other components that we joined a stream
+                busEmit.dataMutated?.('live_streams', 'viewer_joined', { streamId: stream.id, userId });
+
             } catch (err) {
                 console.error('Failed to join stream:', err);
                 setError(err.message || 'Failed to connect to stream');
@@ -68,6 +72,8 @@ export function LiveStreamViewer({ stream, userId, onClose }) {
 
     const handleLeave = async () => {
         await liveStreamService.leaveStream();
+        // Notify other components that we left the stream
+        busEmit.dataMutated?.('live_streams', 'viewer_left', { streamId: stream?.id, userId });
         onClose();
     };
 

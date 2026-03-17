@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { busEmit } from '../../engine/EventBus';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -78,6 +79,11 @@ export default function SharePostModal({ post, authorUsername, onClose, onShared
             if (platform.id === 'copy') {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
+            }
+            // Notify other views/tabs of share action
+            if (post?.id) {
+                busEmit.socialPostShared?.(post.id, platform.id) ||
+                    busEmit.dataMutated?.('social_posts', 'share', { postId: post.id, platform: platform.id });
             }
             onShared?.(platform.id);
         } catch (err) {
