@@ -45,6 +45,7 @@ export default function PrizeWheel({
     const [result, setResult] = useState(null);
     const [rotation, setRotation] = useState(0);
     const wheelRef = useRef(null);
+    const claimingRef = useRef(false);
 
     const spin = useCallback(() => {
         if (isSpinning) return;
@@ -78,6 +79,8 @@ export default function PrizeWheel({
     }, [isSpinning, rotation, streakMultiplier]);
 
     const handleClaim = async () => {
+        if (claimingRef.current) return;
+        claimingRef.current = true;
         if (onComplete && result) {
             // Emit EventBus for diamond rewards
             if (result.reward.type === 'diamonds' && result.reward.amount > 0) {

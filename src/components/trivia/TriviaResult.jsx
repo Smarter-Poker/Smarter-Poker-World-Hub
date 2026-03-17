@@ -71,9 +71,11 @@ export default function TriviaResult({
                 await navigator.share({ title: 'Smarter.Poker Trivia', text, url: 'https://smarter.poker/hub/trivia' });
             } catch (e) { /* user cancelled share */ }
         } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-            await navigator.clipboard.writeText(text);
-            setShareLabel('Copied!');
-            setTimeout(() => setShareLabel('Share Result'), 2000);
+            try {
+                await navigator.clipboard.writeText(text);
+                setShareLabel('Copied!');
+                setTimeout(() => setShareLabel('Share Result'), 2000);
+            } catch (e) { /* clipboard blocked — page may not have focus */ }
         }
     };
 
