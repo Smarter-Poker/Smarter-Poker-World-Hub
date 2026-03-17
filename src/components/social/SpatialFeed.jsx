@@ -158,32 +158,34 @@ export const SpatialFeed = ({
     const unsub1 = eventBus.on(EventType.SOCIAL_POST_CREATED, debouncedRefetch);
 
     // Update like counts locally without full refetch
+    // Skip events from current user — SocialCard already handled optimistic update
     const unsub2 = eventBus.on(EventType.SOCIAL_POST_LIKED, (event) => {
-      if (event?.postId) {
-        setFeedState(prev => ({
-          ...prev,
-          posts: prev.posts.map(p => {
-            if (p.id !== event.postId) return p;
-            const delta = event.added ? 1 : -1;
-            return {
-              ...p,
-              engagement: {
-                ...p.engagement,
-                likeCount: Math.max(0, (p.engagement?.likeCount || 0) + delta)
-              }
-            };
-          })
-        }));
-      }
+      const { postId, userId, added } = event?.payload || {};
+      if (!postId || userId === user?.id) return; // Skip self — already handled optimistically
+      setFeedState(prev => ({
+        ...prev,
+        posts: prev.posts.map(p => {
+          if (p.id !== postId) return p;
+          const delta = added ? 1 : -1;
+          return {
+            ...p,
+            engagement: {
+              ...p.engagement,
+              likeCount: Math.max(0, (p.engagement?.likeCount || 0) + delta)
+            }
+          };
+        })
+      }));
     });
 
     // Update comment counts locally without full refetch
     const unsub3 = eventBus.on(EventType.SOCIAL_COMMENT_ADDED, (event) => {
-      if (event?.postId) {
+      const { postId } = event?.payload || {};
+      if (postId) {
         setFeedState(prev => ({
           ...prev,
           posts: prev.posts.map(p =>
-            p.id === event.postId
+            p.id === postId
               ? { ...p, engagement: { ...p.engagement, commentCount: (p.engagement?.commentCount || 0) + 1 } }
               : p
           )

@@ -135,6 +135,7 @@ export default function DailyChallengePage() {
   const [alreadyCompleted, setAlreadyCompleted] = useState(false);
   const [completedDays, setCompletedDays] = useState([]);
   const [currentStreak, setCurrentStreak] = useState(0);
+  const [sharingResult, setSharingResult] = useState(false);
   const answered = useRef(false);
 
   // Fetch daily challenge
@@ -853,10 +854,13 @@ export default function DailyChallengePage() {
                           </motion.div>
                         )}
                         <button
+                          disabled={sharingResult}
                           onClick={async () => {
+                            if (sharingResult) return;
+                            setSharingResult(true);
                             try {
                               const user = getAuthUser();
-                              if (!user?.id) return;
+                              if (!user?.id) { setSharingResult(false); return; }
                               const res = await authedFetch('/api/training/share', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -873,6 +877,8 @@ export default function DailyChallengePage() {
                               if (d.success) alert('Result shared to your feed!');
                             } catch (err) {
                               console.error('Share error:', err);
+                            } finally {
+                              setSharingResult(false);
                             }
                           }}
                           style={{
@@ -883,10 +889,11 @@ export default function DailyChallengePage() {
                             color: '#a855f7',
                             fontSize: 12,
                             fontWeight: 700,
-                            cursor: 'pointer',
+                            cursor: sharingResult ? 'not-allowed' : 'pointer',
+                            opacity: sharingResult ? 0.5 : 1,
                           }}
                         >
-                          Share Result
+                          {sharingResult ? 'Sharing...' : 'Share Result'}
                         </button>
                       </div>
                     )}

@@ -820,11 +820,13 @@ export default function SessionDashboard() {
                       marginBottom: 10,
                     }}>Progress Report</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {entries.slice(0, 5).map((e, i) => (
-                        <div key={e.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: 6, background: i === 0 ? 'rgba(34,197,94,0.04)' : i === entries.length - 1 ? 'rgba(239,68,68,0.04)' : 'transparent' }}>
+                      {(() => {
+                        const displayEntries = entries.slice(0, 5);
+                        return displayEntries.map((e, i) => (
+                        <div key={e.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: 6, background: i === 0 ? 'rgba(34,197,94,0.04)' : i === displayEntries.length - 1 ? 'rgba(239,68,68,0.04)' : 'transparent' }}>
                           <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', flex: 1 }}>
                             {i === 0 && <span style={{ color: '#22c55e', marginRight: 4 }}>▲</span>}
-                            {i === entries.slice(0, 5).length - 1 && entries.length > 1 && <span style={{ color: '#ef4444', marginRight: 4 }}>▼</span>}
+                            {i === displayEntries.length - 1 && displayEntries.length > 1 && <span style={{ color: '#ef4444', marginRight: 4 }}>▼</span>}
                             {e.name}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -834,7 +836,8 @@ export default function SessionDashboard() {
                             </span>
                           </div>
                         </div>
-                      ))}
+                      ));
+                      })()}
                     </div>
                   </motion.div>
                 );
