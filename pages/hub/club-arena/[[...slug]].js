@@ -14,7 +14,6 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaEmbed from '../../../src/components/club-arena/ClubArenaEmbed';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 
 // Map route segments to page titles for SEO
 const ROUTE_TITLES = {
@@ -51,19 +50,25 @@ export default function ClubArenaCatchAll() {
 
     // Determine page title from the first segment
     const firstSegment = Array.isArray(slug) ? slug[0] : '';
-    const pageTitle = ROUTE_TITLES[firstSegment] || firstSegment
-        ? `${(ROUTE_TITLES[firstSegment] || firstSegment.charAt(0).toUpperCase() + firstSegment.slice(1))} | Smarter.Poker`
-        : 'Club Arena | Smarter.Poker';
+    const isIndex = !firstSegment;
+    const pageTitle = isIndex
+        ? 'Club Arena — Private Online Poker Clubs | Smarter.Poker'
+        : ROUTE_TITLES[firstSegment] || firstSegment
+            ? `${(ROUTE_TITLES[firstSegment] || firstSegment.charAt(0).toUpperCase() + firstSegment.slice(1))} | Smarter.Poker`
+            : 'Club Arena | Smarter.Poker';
+    const pageDescription = isIndex
+        ? 'Create or join private poker clubs. Play NLH, PLO, tournaments and more with friends.'
+        : undefined;
 
     // Pass query params through (excluding slug which is the route)
     const query = { ...router.query };
     delete query.slug;
 
     return (
-        <HubErrorBoundary name="Club Arena">
-            <SEOHead title={pageTitle} />
+        <>
+            <SEOHead title={pageTitle} description={pageDescription} />
             <UniversalHeader />
             <ClubArenaEmbed spaRoute={spaRoute} query={query} />
-        </HubErrorBoundary>
+        </>
     );
 }

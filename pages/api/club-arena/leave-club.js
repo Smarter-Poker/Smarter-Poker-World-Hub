@@ -25,262 +25,339 @@ const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/valida
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
 const { safeErrorResponse } = require('../../../src/lib/club-arena/sanitize');
 
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
-  const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
+  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+
+  // RED TEAM: Payload size + field allowlist
+  if (rejectBadPayload(req, res, ['clubId'])) return;
+
+  // CONCURRENCY: Idempotency guard — prevent double-tap leave race
+  if (checkIdempotency(req, res)) return;
+
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'No auth token' });
+
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+
+  const { clubId } = req.body;
+  // RED TEAM: Strict UUID validation
+  if (!isUUID(clubId)) return res.status(400).json({ error: 'Invalid clubId format' });
+
+  if (!applyRateLimit(req, res, 'club-arena/leave-club')) return;
+
   try {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+    // ═══════════════════════════════════════════════════════════════
+    // 1. GET MEMBERSHIP + CLUB INFO
+    // ═══════════════════════════════════════════════════════════════
+    const { data: member, error: memErr } = await supabaseAdmin
+      .from('club_members')
+      .select('id, user_id, role, chip_balance, held_chips, credit_used, credit_limit, agent_id, nickname, display_name')
+      .eq('club_id', clubId)
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-    // RED TEAM: Payload size + field allowlist
-    if (rejectBadPayload(req, res, ['clubId'])) return;
+    if (memErr || !member) {
+      return res.status(404).json({ error: 'You are not a member of this club' });
+    }
 
-    // CONCURRENCY: Idempotency guard — prevent double-tap leave race
-    if (checkIdempotency(req, res)) return;
+    const { data: club } = await supabaseAdmin
+      .from('clubs')
+      .select('id, name, owner_id')
+      .eq('id', clubId)
+      .maybeSingle();
 
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'No auth token' });
+    if (!club) return res.status(404).json({ error: 'Club not found' });
 
-    const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
-    if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+    // ═══════════════════════════════════════════════════════════════
+    // 2. BLOCK OWNER — Must transfer ownership first
+    // ═══════════════════════════════════════════════════════════════
+    if (member.role === 'owner' || club.owner_id === user.id) {
+      return res.status(403).json({
+        error: 'Club owners cannot leave. Transfer ownership first or delete the club.',
+      });
+    }
 
-    const { clubId } = req.body;
-    // RED TEAM: Strict UUID validation
-    if (!isUUID(clubId)) return res.status(400).json({ error: 'Invalid clubId format' });
+    // ═══════════════════════════════════════════════════════════════
+    // 3. SETTLEMENT LOCK CHECK
+    // ═══════════════════════════════════════════════════════════════
+    const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
+    if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
-    if (!applyRateLimit(req, res, 'club-arena/leave-club')) return;
+    // ═══════════════════════════════════════════════════════════════
+    // 3b. BLOCK IF SEATED AT TABLE — Chips locked in escrow would be lost
+    // ═══════════════════════════════════════════════════════════════
+    const { data: activeEscrow } = await supabaseAdmin
+      .from('chip_escrow')
+      .select('id, table_id, amount')
+      .eq('player_id', user.id)
+      .eq('status', 'locked')
+      .limit(5);
 
-    try {
-      // ═══════════════════════════════════════════════════════════════
-      // 1. GET MEMBERSHIP + CLUB INFO
-      // ═══════════════════════════════════════════════════════════════
-      const { data: member, error: memErr } = await getSupabase()
-        .from('club_members')
-        .select('id, user_id, role, chip_balance, held_chips, credit_used, credit_limit, agent_id, nickname, display_name')
+    // Filter to escrow records belonging to tables in THIS club
+    if (activeEscrow && activeEscrow.length > 0) {
+      const { data: clubTables } = await supabaseAdmin
+        .from('tables')
+        .select('id')
         .eq('club_id', clubId)
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .in('id', activeEscrow.map(e => e.table_id));
 
-      if (memErr || !member) {
-        return res.status(404).json({ error: 'You are not a member of this club' });
-      }
+      const lockedAtClubTables = (clubTables || []).map(t => t.id);
+      const clubEscrow = activeEscrow.filter(e => lockedAtClubTables.includes(e.table_id));
 
-      const { data: club } = await getSupabase()
-        .from('clubs')
-        .select('id, name, owner_id')
-        .eq('id', clubId)
-        .maybeSingle();
-
-      if (!club) return res.status(404).json({ error: 'Club not found' });
-
-      // ═══════════════════════════════════════════════════════════════
-      // 2. BLOCK OWNER — Must transfer ownership first
-      // ═══════════════════════════════════════════════════════════════
-      if (member.role === 'owner' || club.owner_id === user.id) {
-        return res.status(403).json({
-          error: 'Club owners cannot leave. Transfer ownership first or delete the club.',
+      if (clubEscrow.length > 0) {
+        const totalLocked = clubEscrow.reduce((s, e) => s + (e.amount || 0), 0);
+        return res.status(400).json({
+          success: false,
+          error: 'You are currently seated at a table. Stand up from all tables before leaving the club.',
+          lockedChips: totalLocked,
+          tables: clubEscrow.map(e => e.table_id),
         });
       }
+    }
 
-      // ═══════════════════════════════════════════════════════════════
-      // 3. SETTLEMENT LOCK CHECK
-      // ═══════════════════════════════════════════════════════════════
-      const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
-      if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
+    // ═══════════════════════════════════════════════════════════════
+    // 4. CANCEL PENDING CASHOUT REQUESTS
+    //    Return held_chips back to chip_balance first so we can
+    //    sweep everything to treasury in one shot.
+    // ═══════════════════════════════════════════════════════════════
+    const { data: pendingCashouts } = await supabaseAdmin
+      .from('cashout_requests')
+      .select('id, amount')
+      .eq('club_id', clubId)
+      .eq('player_id', user.id)
+      .eq('status', 'pending')
+      .limit(200);
 
-      // ═══════════════════════════════════════════════════════════════
-      // 3b. BLOCK IF SEATED AT TABLE — Chips locked in escrow would be lost
-      // ═══════════════════════════════════════════════════════════════
-      const { data: activeEscrow } = await getSupabase()
-        .from('chip_escrow')
-        .select('id, table_id, amount')
-        .eq('player_id', user.id)
-        .eq('status', 'locked')
-        .limit(5);
-
-      // Filter to escrow records belonging to tables in THIS club
-      if (activeEscrow && activeEscrow.length > 0) {
-        const { data: clubTables } = await getSupabase()
-          .from('tables')
-          .select('id')
-          .eq('club_id', clubId)
-          .in('id', activeEscrow.map(e => e.table_id));
-
-        const lockedAtClubTables = (clubTables || []).map(t => t.id);
-        const clubEscrow = activeEscrow.filter(e => lockedAtClubTables.includes(e.table_id));
-
-        if (clubEscrow.length > 0) {
-          const totalLocked = clubEscrow.reduce((s, e) => s + (e.amount || 0), 0);
-          return res.status(400).json({
-            success: false,
-            error: 'You are currently seated at a table. Stand up from all tables before leaving the club.',
-            lockedChips: totalLocked,
-            tables: clubEscrow.map(e => e.table_id),
-          });
-        }
-      }
-
-      // ═══════════════════════════════════════════════════════════════
-      // 4. IF AGENT — Clean up downline BEFORE membership is deleted by fn_leave_club_atomic
-      // ═══════════════════════════════════════════════════════════════
-      if (['agent', 'sub_agent', 'super_agent'].includes(member.role)) {
-        // Unassign all players under this agent
-        await getSupabase()
-          .from('club_members')
-          .update({ agent_id: null })
-          .eq('club_id', clubId)
-          .eq('agent_id', user.id);
-
-        // Deactivate agent record
-        await getSupabase()
-          .from('agents')
-          .update({ status: 'inactive', active_player_count: 0 })
-          .eq('user_id', user.id)
-          .eq('club_id', clubId);
-      }
-
-      // ═══════════════════════════════════════════════════════════════
-      // 5 & 6 & 7 & 8. ATOMIC SWEEP (Cancel cashouts + Sweep chips + Log credit + Delete membership)
-      // ═══════════════════════════════════════════════════════════════
-      const { data: sweepResult, error: sweepErr } = await getSupabase().rpc('fn_leave_club_atomic', {
+    let heldChipsReturned = 0;
+    for (const co of (pendingCashouts || [])) {
+      // Return held chips to player balance
+      await supabaseAdmin.rpc('fn_credit_chips', {
         p_club_id: clubId,
-        p_user_id: user.id
+        p_user_id: user.id,
+        p_amount: co.amount,
+      });
+      heldChipsReturned += co.amount;
+
+      // Cancel the request
+      await supabaseAdmin
+        .from('cashout_requests')
+        .update({
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString(),
+          agent_note: 'Auto-cancelled: player left club',
+        })
+        .eq('id', co.id);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 5. RETURN ALL CHIPS TO CLUB TREASURY
+    //    Re-read balance after cashout cancellation (may have changed)
+    // ═══════════════════════════════════════════════════════════════
+    const { data: freshMember } = await supabaseAdmin
+      .from('club_members')
+      .select('chip_balance')
+      .eq('club_id', clubId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const totalChips = freshMember?.chip_balance || 0;
+    let chipsReturnedToTreasury = 0;
+
+    if (totalChips > 0) {
+      // Debit player → credit treasury (atomic RPCs)
+      const { error: debitErr } = await supabaseAdmin.rpc('fn_debit_chips', {
+        p_club_id: clubId,
+        p_user_id: user.id,
+        p_amount: totalChips,
       });
 
-      if (sweepErr) {
-        throw sweepErr;
+      if (debitErr) {
+        console.error('[leave-club] Player debit failed (possible race):', debitErr.message);
+        // Don't credit treasury — chips weren't actually debited
+      } else {
+        await supabaseAdmin.rpc('fn_credit_treasury', {
+          p_club_id: clubId,
+          p_amount: totalChips,
+        });
+
+        chipsReturnedToTreasury = totalChips;
+
+        // Audit trail
+        await supabaseAdmin.from('chip_transactions').insert({
+          club_id: clubId,
+          from_user_id: user.id,
+          to_user_id: null,
+          amount: totalChips,
+          transaction_type: 'withdrawal',
+          notes: `Player left club — ${totalChips.toLocaleString()} chips returned to club treasury`,
+        });
       }
+    }
 
-      const heldChipsReturned = sweepResult?.held_chips_returned || 0;
-      const chipsReturnedToTreasury = sweepResult?.chips_returned || 0;
-      const creditUsed = sweepResult?.credit_written_off || 0;
-      const pendingCashoutsCount = 0; // Handled internally by RPC
-
-      // ═══════════════════════════════════════════════════════════════
-      // 9. UPDATE MEMBER COUNT
-      // ═══════════════════════════════════════════════════════════════
-      const { count } = await getSupabase()
-        .from('club_members')
-        .select('*', { count: 'exact', head: true })
-        .eq('club_id', clubId);
-
-      await getSupabase()
-        .from('clubs')
-        .update({ member_count: count || 0 })
-        .eq('id', clubId);
-
-      // ═══════════════════════════════════════════════════════════════
-      // 10. NOTIFY MANAGEMENT — Owner + Agent
-      // ═══════════════════════════════════════════════════════════════
-      const playerName = member.nickname || member.display_name || 'A player';
-      const notifTitle = `👋 ${playerName} left ${club.name}`;
-      const notifMessage = [
-        `${playerName} has voluntarily left the club.`,
-        chipsReturnedToTreasury > 0
-          ? `${chipsReturnedToTreasury.toLocaleString()} chips returned to club treasury.`
-          : 'Player had no chips.',
-        heldChipsReturned > 0
-          ? `${heldChipsReturned.toLocaleString()} held chips from pending cashout(s) were also returned.`
-          : null,
-        creditUsed > 0
-          ? `⚠️ ${creditUsed.toLocaleString()} outstanding credit was written off.`
-          : null,
-      ].filter(Boolean).join(' ');
-
-      const notifMetadata = {
+    // ═══════════════════════════════════════════════════════════════
+    // 6. LOG OUTSTANDING CREDIT (forgiven on leave)
+    // ═══════════════════════════════════════════════════════════════
+    const creditUsed = member.credit_used || 0;
+    if (creditUsed > 0) {
+      await supabaseAdmin.from('chip_transactions').insert({
         club_id: clubId,
-        player_id: user.id,
-        player_name: playerName,
-        chips_returned: chipsReturnedToTreasury,
-        held_chips_returned: heldChipsReturned,
-        credit_written_off: creditUsed,
-        role: member.role,
-      };
+        from_user_id: user.id,
+        to_user_id: null,
+        amount: creditUsed,
+        transaction_type: 'credit_forgiven',
+        notes: `Player left club with ${creditUsed.toLocaleString()} outstanding credit — written off`,
+      });
+    }
 
-      // Notify club owner (in-app)
-      await getSupabase().from('notifications').insert({
-        user_id: club.owner_id,
+    // ═══════════════════════════════════════════════════════════════
+    // 7. IF AGENT — Clean up downline
+    // ═══════════════════════════════════════════════════════════════
+    if (['agent', 'sub_agent', 'super_agent'].includes(member.role)) {
+      // Unassign all players under this agent
+      await supabaseAdmin
+        .from('club_members')
+        .update({ agent_id: null })
+        .eq('club_id', clubId)
+        .eq('agent_id', user.id);
+
+      // Deactivate agent record
+      await supabaseAdmin
+        .from('agents')
+        .update({ status: 'inactive', active_player_count: 0 })
+        .eq('user_id', user.id)
+        .eq('club_id', clubId);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 8. DELETE MEMBERSHIP
+    // ═══════════════════════════════════════════════════════════════
+    const { error: delErr } = await supabaseAdmin
+      .from('club_members')
+      .delete()
+      .eq('club_id', clubId)
+      .eq('user_id', user.id);
+
+    if (delErr) throw delErr;
+
+    // ═══════════════════════════════════════════════════════════════
+    // 9. UPDATE MEMBER COUNT
+    // ═══════════════════════════════════════════════════════════════
+    const { count } = await supabaseAdmin
+      .from('club_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('club_id', clubId)
+      .limit(500);
+
+    await supabaseAdmin
+      .from('clubs')
+      .update({ member_count: count || 0 })
+      .eq('id', clubId);
+
+    // ═══════════════════════════════════════════════════════════════
+    // 10. NOTIFY MANAGEMENT — Owner + Agent
+    // ═══════════════════════════════════════════════════════════════
+    const playerName = member.nickname || member.display_name || 'A player';
+    const notifTitle = `👋 ${playerName} left ${club.name}`;
+    const notifMessage = [
+      `${playerName} has voluntarily left the club.`,
+      chipsReturnedToTreasury > 0
+        ? `${chipsReturnedToTreasury.toLocaleString()} chips returned to club treasury.`
+        : 'Player had no chips.',
+      heldChipsReturned > 0
+        ? `${heldChipsReturned.toLocaleString()} held chips from pending cashout(s) were also returned.`
+        : null,
+      creditUsed > 0
+        ? `⚠️ ${creditUsed.toLocaleString()} outstanding credit was written off.`
+        : null,
+    ].filter(Boolean).join(' ');
+
+    const notifMetadata = {
+      club_id: clubId,
+      player_id: user.id,
+      player_name: playerName,
+      chips_returned: chipsReturnedToTreasury,
+      held_chips_returned: heldChipsReturned,
+      credit_written_off: creditUsed,
+      role: member.role,
+    };
+
+    // Notify club owner (in-app)
+    await supabaseAdmin.from('notifications').insert({
+      user_id: club.owner_id,
+      type: 'club_member_left',
+      title: notifTitle,
+      message: notifMessage,
+      data: notifMetadata,
+      read: false,
+    }).catch(e => console.error('[leave-club] Owner notification error:', e.message));
+
+    // Notify assigned agent (in-app) — if different from owner
+    if (member.agent_id && member.agent_id !== club.owner_id) {
+      await supabaseAdmin.from('notifications').insert({
+        user_id: member.agent_id,
         type: 'club_member_left',
         title: notifTitle,
         message: notifMessage,
         data: notifMetadata,
         read: false,
-      }).catch(e => console.error('[leave-club] Owner notification error:', e.message));
+      }).catch(e => console.error('[leave-club] Agent notification error:', e.message));
+    }
 
-      // Notify assigned agent (in-app) — if different from owner
+    // Push notifications — fire-and-forget
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
+
+    if (baseUrl) {
+      const pushPayload = {
+        title: notifTitle,
+        message: notifMessage,
+        url: '/hub/club-arena/admin?tab=members',
+      };
+
+      // Push to owner
+      fetch(`${baseUrl}/api/notifications/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
+        },
+        body: JSON.stringify({ ...pushPayload, userId: club.owner_id }),
+      }).catch(() => { });
+
+      // Push to agent
       if (member.agent_id && member.agent_id !== club.owner_id) {
-        await getSupabase().from('notifications').insert({
-          user_id: member.agent_id,
-          type: 'club_member_left',
-          title: notifTitle,
-          message: notifMessage,
-          data: notifMetadata,
-          read: false,
-        }).catch(e => console.error('[leave-club] Agent notification error:', e.message));
-      }
-
-      // Push notifications — fire-and-forget
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
-        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
-
-      if (baseUrl) {
-        const pushPayload = {
-          title: notifTitle,
-          message: notifMessage,
-          url: '/hub/club-arena/admin?tab=members',
-        };
-
-        // Push to owner
         fetch(`${baseUrl}/api/notifications/send`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
           },
-          body: JSON.stringify({ ...pushPayload, userId: club.owner_id }),
+          body: JSON.stringify({ ...pushPayload, userId: member.agent_id }),
         }).catch(() => { });
-
-        // Push to agent
-        if (member.agent_id && member.agent_id !== club.owner_id) {
-          fetch(`${baseUrl}/api/notifications/send`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '',
-            },
-            body: JSON.stringify({ ...pushPayload, userId: member.agent_id }),
-          }).catch(() => { });
-        }
       }
-
-      // ═══════════════════════════════════════════════════════════════
-      // RESPONSE
-      // ═══════════════════════════════════════════════════════════════
-      const responseBody = {
-        success: true,
-        message: `You have left ${club.name}`,
-        chipsReturned: chipsReturnedToTreasury,
-        pendingCashoutsCancelled: pendingCashoutsCount,
-        creditWrittenOff: creditUsed,
-      };
-      cacheResponse(req, 200, responseBody);
-      return res.status(200).json(responseBody);
-
-    } catch (err) {
-      console.error('[leave-club]', err);
-      return res.status(500).json(safeErrorResponse(err, 'Failed to leave club'));
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // RESPONSE
+    // ═══════════════════════════════════════════════════════════════
+    const responseBody = {
+      success: true,
+      message: `You have left ${club.name}`,
+      chipsReturned: chipsReturnedToTreasury,
+      pendingCashoutsCancelled: pendingCashouts?.length || 0,
+      creditWrittenOff: creditUsed,
+    };
+    cacheResponse(req, 200, responseBody);
+    return res.status(200).json(responseBody);
+
   } catch (err) {
-    console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    console.error('[leave-club]', err);
+    return res.status(500).json(safeErrorResponse(err, 'Failed to leave club'));
   }
 }

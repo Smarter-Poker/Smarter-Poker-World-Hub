@@ -492,6 +492,7 @@ export const UnionApplicationReviewSchema = z.object({
     action: z.enum(['approve', 'reject']),
     applicationId: UUID,
     reason: z.string().max(500).optional(),
+    commissionRate: CommissionRate.optional(),
 });
 
 export function validateUnionApplication(body: unknown) {
