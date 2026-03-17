@@ -1410,6 +1410,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [displayContent, setDisplayContent] = useState(post.content);
     const [editingCommentId, setEditingCommentId] = useState(null);
     const [editCommentText, setEditCommentText] = useState('');
+    const [deletingCommentId, setDeletingCommentId] = useState(null); // graceful delete confirm
+    const commentInputRef = useRef(null); // auto-focus on open
     const showCommentsRef = useRef(false);
     const commentsRef = useRef([]);
     const typingDebounceRef = useRef(null);
@@ -1643,7 +1645,11 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
 
     const handleToggleComments = () => {
         setShowComments(!showComments);
-        if (!showComments) loadComments();
+        if (!showComments) {
+            loadComments();
+            // Auto-focus comment input after opening
+            setTimeout(() => commentInputRef.current?.focus(), 200);
+        }
     };
 
     const handleLikeComment = async (commentId, isCurrentlyLiked) => {
@@ -2221,18 +2227,24 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                         {c.authorId === currentUserId && !isEditingComment && (
                                             <>
                                                 <span style={{ cursor: 'pointer', color: C.textSec }} onClick={() => { setEditingCommentId(c.id); setEditCommentText(c.text || ''); }}>Edit</span>
-                                                <span style={{ cursor: 'pointer', color: '#FA383E' }} onClick={async () => {
-                                                    if (!confirm('Delete this comment?')) return;
-                                                    const { error } = await supabase.from('social_comments').delete().eq('id', c.id).eq('author_id', currentUserId);
-                                                    if (!error) {
-                                                        setComments(prev => prev.filter(cm => cm.id !== c.id));
-                                                        setCommentCount(prev => Math.max(0, prev - 1));
-                                                        // Bus emission so other PostCards/views update comment count
-                                                        eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: post.id, removed: true }, 'CommentDelete');
-                                                        // Fire-and-forget: decrement denormalized comment_count
-                                                        supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(() => {});
-                                                    }
-                                                }}>Delete</span>
+                                                {deletingCommentId === c.id ? (
+                                                    <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                                                        <span style={{ fontSize: 11, color: C.textSec }}>Delete?</span>
+                                                        <span style={{ cursor: 'pointer', color: '#FA383E', fontWeight: 700 }} onClick={async () => {
+                                                            const { error } = await supabase.from('social_comments').delete().eq('id', c.id).eq('author_id', currentUserId);
+                                                            if (!error) {
+                                                                setComments(prev => prev.filter(cm => cm.id !== c.id));
+                                                                setCommentCount(prev => Math.max(0, prev - 1));
+                                                                eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: post.id, removed: true }, 'CommentDelete');
+                                                                supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(() => {});
+                                                            }
+                                                            setDeletingCommentId(null);
+                                                        }}>Yes</span>
+                                                        <span style={{ cursor: 'pointer', color: C.textSec }} onClick={() => setDeletingCommentId(null)}>No</span>
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ cursor: 'pointer', color: '#FA383E' }} onClick={() => setDeletingCommentId(c.id)}>Delete</span>
+                                                )}
                                             </>
                                         )}
                                         {c.likeCount > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👍 {c.likeCount}</span>}
@@ -2304,6 +2316,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             placeholder={replyingTo ? `Reply to ${replyingTo.name}...` : "Write a comment..."} 
                             style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} 
                             autoFocus={!!replyingTo}
+                            ref={commentInputRef}
                             maxLength={2000}
                         />
                         {newComment.length > 1800 && (
@@ -6652,6 +6665,7 @@ function SocialMediaPage() {
                                                 key={n.id}
                                                 onClick={() => {
                                                     setShowNotifications(false);
+                                                    // Smart routing: likes/comments go to post author profile, friend_request goes to actor profile
                                                     if (n.actor_username) {
                                                         router.push(`/hub/user/${n.actor_username}`);
                                                     }

@@ -90,20 +90,27 @@ export default function PrizeWheel({
                 try {
                     const user = getAuthUser();
                     if (user) {
-                        await supabase.rpc('exec_sql', {
-                            query: `INSERT INTO trivia_user_items (user_id, item_type, quantity)
-                                    VALUES ('${user.id}', '${result.reward.type}', ${result.reward.amount})
-                                    ON CONFLICT (user_id, item_type)
-                                    DO UPDATE SET quantity = trivia_user_items.quantity + ${result.reward.amount},
-                                                 updated_at = now()`
-                        }).then(() => {}).catch(() => {
-                            // Fallback: direct upsert (if exec_sql unavailable)
-                            supabase.from('trivia_user_items').upsert({
-                                user_id: user.id,
-                                item_type: result.reward.type,
-                                quantity: result.reward.amount
-                            }, { onConflict: 'user_id,item_type' }).then(() => {}).catch(() => {});
-                        });
+                        // Check if item already exists
+                        const { data: existing } = await supabase
+                            .from('trivia_user_items')
+                            .select('quantity')
+                            .eq('user_id', user.id)
+                            .eq('item_type', result.reward.type)
+                            .maybeSingle();
+
+                        if (existing) {
+                            // Increment existing quantity
+                            await supabase
+                                .from('trivia_user_items')
+                                .update({ quantity: existing.quantity + result.reward.amount, updated_at: new Date().toISOString() })
+                                .eq('user_id', user.id)
+                                .eq('item_type', result.reward.type);
+                        } else {
+                            // Insert new item
+                            await supabase
+                                .from('trivia_user_items')
+                                .insert({ user_id: user.id, item_type: result.reward.type, quantity: result.reward.amount });
+                        }
                     }
                 } catch (e) {
                     console.warn('[PrizeWheel] Failed to persist item:', e);

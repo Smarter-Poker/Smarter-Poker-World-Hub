@@ -281,18 +281,25 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const handleSubmitComment = async (e) => {
         if (e.key !== 'Enter' || !commentText.trim() || !authUser?.id || !currentReel?.id) return;
         const text = commentText.trim();
+        const tempId = Date.now();
         setCommentText('');
         setReelComments(prev => [...prev, {
-            id: Date.now(), content: text,
+            id: tempId, content: text,
             profiles: { username: 'You', avatar_url: null },
             created_at: new Date().toISOString()
         }]);
         try {
-            await supabase.from('social_comments').insert({
+            const { error } = await supabase.from('social_comments').insert({
                 post_id: currentReel.id, author_id: authUser.id, content: text
             });
+            if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, authUser.id);
-        } catch { /* optimistic stays */ }
+            // Fire-and-forget: sync denormalized comment_count
+            supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }).catch(() => {});
+        } catch {
+            // Rollback optimistic comment on failure
+            setReelComments(prev => prev.filter(c => c.id !== tempId));
+        }
     };
 
     // Reset comment drawer on reel change
