@@ -82,8 +82,7 @@ export default function SharePostModal({ post, authorUsername, onClose, onShared
             }
             // Notify other views/tabs of share action
             if (post?.id) {
-                busEmit.socialPostShared?.(post.id, platform.id) ||
-                    busEmit.dataMutated?.('social_posts', 'share', { postId: post.id, platform: platform.id });
+                busEmit.dataMutated?.('social_posts');
             }
             onShared?.(platform.id);
         } catch (err) {

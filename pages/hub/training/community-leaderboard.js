@@ -13,9 +13,11 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 import useSWR, { useSWRConfig } from 'swr';
 
@@ -67,7 +69,7 @@ export default function CommunityLeaderboardPage() {
   // Fetch real leaderboard data
   const swrKey = `/api/training/leaderboard?period=${period === 'weekly' ? 'weekly' : 'alltime'}&limit=50`;
   const { data: swrData, isLoading: loading, error: swrError, mutate: mutateLeaderboard } = useSWR(swrKey, (url) =>
-    fetch(url)
+    authedFetch(url)
       .then((r) => r.json())
       .then((data) => {
         if (!data.success) throw new Error('Failed to load leaderboard');
@@ -150,6 +152,8 @@ export default function CommunityLeaderboardPage() {
                 key={p}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setPeriod(p)}
+                aria-label={p === 'weekly' ? 'Show weekly rankings' : 'Show all-time rankings'}
+                aria-pressed={period === p}
                 style={{
                   flex: 1,
                   padding: '8px',
@@ -192,37 +196,10 @@ export default function CommunityLeaderboardPage() {
           </div>
 
           {/* Error State */}
-          {swrError && (
-            <div style={{
-              padding: '16px 20px',
-              borderRadius: 12,
-              background: 'rgba(239,68,68,0.06)',
-              border: '1px solid rgba(239,68,68,0.15)',
-              marginBottom: 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-            }}>
-              <div style={{ fontSize: 12, color: '#f87171' }}>Unable to load leaderboard data.</div>
-              <button
-                onClick={() => mutateLeaderboard()}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 6,
-                  border: '1px solid rgba(239,68,68,0.2)',
-                  background: 'rgba(239,68,68,0.08)',
-                  color: '#f87171',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-              >
-                Retry
-              </button>
-            </div>
-          )}
+          <ErrorBanner
+            message={swrError ? 'Unable to load leaderboard data.' : null}
+            onRetry={() => mutateLeaderboard()}
+          />
 
           {/* Top 3 Podium */}
           {!loading && topThree.length > 0 && (
@@ -404,6 +381,7 @@ export default function CommunityLeaderboardPage() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

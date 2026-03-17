@@ -232,7 +232,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
         });
         const cleanupComment = eventBus.on('SOCIAL_COMMENT_UPDATE', (payload) => {
             if (payload?.postId === post.id) {
-                setCommentCount(prev => prev + 1);
+                setCommentCount(prev => payload?.removed ? Math.max(0, prev - 1) : prev + 1);
             }
         });
         const cleanupTyping = eventBus.on('SOCIAL_TYPING_UPDATE', (payload) => {

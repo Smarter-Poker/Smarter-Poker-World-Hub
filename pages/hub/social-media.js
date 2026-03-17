@@ -1408,6 +1408,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [fullScreenVideo, setFullScreenVideo] = useState(null);
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
     const [displayContent, setDisplayContent] = useState(post.content);
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editCommentText, setEditCommentText] = useState('');
     const showCommentsRef = useRef(false);
     const commentsRef = useRef([]);
     const typingDebounceRef = useRef(null);
@@ -1426,6 +1428,10 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         });
         const cleanupComment = eventBus.on('SOCIAL_COMMENT_UPDATE', (payload) => {
             if (payload?.postId === post.id) {
+                if (payload.removed) {
+                    setCommentCount(prev => Math.max(0, prev - 1));
+                    return; // No injection needed for deletions
+                }
                 setCommentCount(prev => prev + 1);
                 // If comments are visible, inject the new comment in real-time
                 if (showCommentsRef.current && payload.commentId) {
@@ -1818,7 +1824,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     <Link href={`/hub/user/${post.author?.username || 'player'}`} style={{ fontWeight: 600, color: C.text, textDecoration: 'none' }}>
                         {post.author?.name || 'Player'}
                     </Link>
-                    <div style={{ fontSize: 12, color: C.textSec }}>{post.timeAgo}</div>
+                    <div style={{ fontSize: 12, color: C.textSec }}>{post.timeAgo}{post.visibility !== 'private' ? ' · 🌐' : ' · 🔒'}</div>
                 </div>
                 {(post.authorId === currentUserId || post.isGodMode) && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -1833,11 +1839,13 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 )}
             </div>
             {editing ? (
-                <div style={{ padding: '0 12px 12px' }}>
+                <div style={{ padding: '0 12px 12px', transition: 'opacity 0.2s ease', animationName: 'sp-fade-in', animationDuration: '0.2s' }}>
                     <textarea
                         value={editContent}
                         onChange={e => setEditContent(e.target.value)}
-                        style={{ width: '100%', minHeight: 60, padding: 8, borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 15, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
+                        onKeyDown={e => { if (e.key === 'Escape') setEditing(false); }}
+                        autoFocus
+                        style={{ width: '100%', minHeight: 60, padding: 8, borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 15, fontFamily: 'inherit', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
                     />
                     <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
                         <button onClick={() => setEditing(false)} style={{ padding: '6px 16px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>Cancel</button>
@@ -1851,6 +1859,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             } catch (e) { toast.error('Could not update post'); console.error('[Social] Edit error:', e); }
                         }} disabled={!editContent.trim()} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: editContent.trim() ? 1 : 0.5 }}>Save</button>
                     </div>
+                    <style>{`@keyframes sp-fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
                 </div>
             ) : displayContent && (
                 <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>
@@ -1867,18 +1876,28 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         // If content is empty after stripping URL, don't render this block
                         if (!displayText) return null;
 
+                        // See More: truncate at 300 chars unless expanded
+                        const TRUNCATE_LENGTH = 300;
+                        const needsTruncation = displayText.length > TRUNCATE_LENGTH && !expanded;
+                        const visibleText = needsTruncation ? displayText.slice(0, TRUNCATE_LENGTH) + '...' : displayText;
+
                         // Render with @mention highlighting
-                        return displayText.split(/(@\w+)/g).map((part, i) =>
+                        const rendered = visibleText.split(/(@\w+)/g).map((part, i) =>
                             part.startsWith('@') ?
                                 <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>{part}</span> :
                                 part
                         );
+                        return <>{rendered}{needsTruncation && <span onClick={() => setExpanded(true)} style={{ color: C.textSec, cursor: 'pointer', fontWeight: 600, marginLeft: 4 }}>See more</span>}</>;
                     })()}
                 </div>
             )}
             {/* Media Grid - supports up to 10 images/videos */}
             {post.mediaUrls?.length > 0 && (
                 <div style={{ padding: post.mediaUrls.length > 1 ? '0 2px 2px' : 0 }}>
+                    {/* Double-tap to like + heart animation overlay */}
+                    <div onClick={handleDoubleTap} style={{ position: 'relative', cursor: 'pointer' }}>
+                    {doubleTapHeart && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 5, fontSize: 64, pointerEvents: 'none', animation: 'sp-heart-pop 0.8s ease forwards' }}>❤️</div>}
+                    <style>{`@keyframes sp-heart-pop { 0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); } 40% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4); } }`}</style>
                     {post.mediaUrls.length === 1 ? (
                         // Single media - full width
                         post.contentType === 'video' ? (
@@ -1911,7 +1930,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 onClick={onOpenArticle}
                             />
                         ) : (
-                            <img src={post.mediaUrls[0]} loading="lazy" alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} onError={e => { e.target.style.display = 'none'; }} />
+                            <img src={post.mediaUrls[0]} loading="lazy" alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto', cursor: 'pointer' }} onClick={() => setLightboxUrl(post.mediaUrls[0])} onError={e => { e.target.style.display = 'none'; }} />
                         )
                     ) : post.mediaUrls.length === 2 ? (
                         // 2 media - side by side
@@ -1921,7 +1940,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                     {post.contentType === 'video' && i === 0 ? (
                                         <video controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} src={url} />
                                     ) : (
-                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightboxUrl(url)} onError={e => { e.target.style.display = 'none'; }} />
                                     )}
                                 </div>
                             ))}
@@ -1930,12 +1949,12 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         // 3 media - 1 large + 2 small
                         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 2 }}>
                             <div style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                <img src={post.mediaUrls[0]} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                                <img src={post.mediaUrls[0]} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightboxUrl(post.mediaUrls[0])} onError={e => { e.target.style.display = 'none'; }} />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 {post.mediaUrls.slice(1).map((url, i) => (
                                     <div key={i} style={{ flex: 1, overflow: 'hidden' }}>
-                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightboxUrl(url)} onError={e => { e.target.style.display = 'none'; }} />
                                     </div>
                                 ))}
                             </div>
@@ -1945,7 +1964,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                             {post.mediaUrls.map((url, i) => (
                                 <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                    <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                                    <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightboxUrl(url)} onError={e => { e.target.style.display = 'none'; }} />
                                 </div>
                             ))}
                         </div>
@@ -1955,14 +1974,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, marginBottom: 2 }}>
                                 {post.mediaUrls.slice(0, 2).map((url, i) => (
                                     <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightboxUrl(url)} onError={e => { e.target.style.display = 'none'; }} />
                                     </div>
                                 ))}
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
                                 {post.mediaUrls.slice(2, 5).map((url, i) => (
                                     <div key={i} style={{ aspectRatio: '1', overflow: 'hidden', position: 'relative' }}>
-                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightboxUrl(url)} onError={e => { e.target.style.display = 'none'; }} />
                                         {i === 2 && post.mediaUrls.length > 5 && (
                                             <div style={{
                                                 position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
@@ -1975,6 +1994,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             </div>
                         </div>
                     )}
+                </div>
                 </div>
             )}
             {/* 🔗 LINK PREVIEW for posts with link_url but NO media_urls (ghost fleet posts) */}
@@ -2012,9 +2032,9 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     
                     // Get up to 3 icons
                     const icons = sortedReactions.slice(0, 3).map(r => emojiMap[r[0]] || '👍').join('');
-                    return `${icons} ${likeCount}`;
+                    return `${icons} ${fmtCount(likeCount)}`;
                 })()}</span>
-                <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
+                <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${fmtCount(commentCount)} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
                 <div style={{ flex: 1, position: 'relative' }}>
@@ -2141,8 +2161,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         const replies = comments.filter(c => c.parentId);
                         
                         const renderCommentBlock = (c, isReply = false) => {
-                            const [isEditingComment, setIsEditingComment] = React.useState(false);
-                            const [editCommentText, setEditCommentText] = React.useState(c.text || '');
+                            const isEditingComment = editingCommentId === c.id;
                             return (
                             <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: isReply ? 8 : 12, marginTop: isReply ? 8 : 0 }}>
                                 <Avatar src={c.authorAvatar} name={c.authorName} size={isReply ? 24 : 28} />
@@ -2156,13 +2175,13 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                                 style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 10px', fontSize: 14, outline: 'none', resize: 'vertical', minHeight: 40, fontFamily: 'inherit', boxSizing: 'border-box' }}
                                             />
                                             <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
-                                                <button onClick={() => setIsEditingComment(false)} style={{ padding: '4px 12px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>Cancel</button>
+                                                <button onClick={() => setEditingCommentId(null)} style={{ padding: '4px 12px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>Cancel</button>
                                                 <button onClick={async () => {
                                                     if (!editCommentText.trim()) return;
                                                     const { error } = await supabase.from('social_comments').update({ content: editCommentText.trim() }).eq('id', c.id).eq('author_id', currentUserId);
                                                     if (!error) {
                                                         setComments(prev => prev.map(cm => cm.id === c.id ? { ...cm, text: editCommentText.trim() } : cm));
-                                                        setIsEditingComment(false);
+                                                        setEditingCommentId(null);
                                                     }
                                                 }} disabled={!editCommentText.trim()} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: editCommentText.trim() ? 1 : 0.5 }}>Save</button>
                                             </div>
@@ -2190,13 +2209,17 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                         </span>
                                         {c.authorId === currentUserId && !isEditingComment && (
                                             <>
-                                                <span style={{ cursor: 'pointer', color: C.textSec }} onClick={() => { setIsEditingComment(true); setEditCommentText(c.text || ''); }}>Edit</span>
+                                                <span style={{ cursor: 'pointer', color: C.textSec }} onClick={() => { setEditingCommentId(c.id); setEditCommentText(c.text || ''); }}>Edit</span>
                                                 <span style={{ cursor: 'pointer', color: '#FA383E' }} onClick={async () => {
                                                     if (!confirm('Delete this comment?')) return;
                                                     const { error } = await supabase.from('social_comments').delete().eq('id', c.id).eq('author_id', currentUserId);
                                                     if (!error) {
                                                         setComments(prev => prev.filter(cm => cm.id !== c.id));
                                                         setCommentCount(prev => Math.max(0, prev - 1));
+                                                        // Bus emission so other PostCards/views update comment count
+                                                        eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: post.id, removed: true }, 'CommentDelete');
+                                                        // Fire-and-forget: decrement denormalized comment_count
+                                                        supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(() => {});
                                                     }
                                                 }}>Delete</span>
                                             </>
@@ -2241,6 +2264,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             <span style={{ cursor: 'pointer', fontWeight: 600 }} onClick={() => setReplyingTo(null)}>Cancel</span>
                         </div>
                     )}
+                    <div ref={commentEndRef} />
                     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                         <Avatar src={currentUserAvatar} name={currentUserName} size={28} />
                         <input 
@@ -2315,6 +2339,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         })();
                     }}
                 />
+            )}
+
+            {/* Image Lightbox Modal */}
+            {lightboxUrl && (
+                <div onClick={() => setLightboxUrl(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
+                    <button onClick={() => setLightboxUrl(null)} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: 'white', fontSize: 32, cursor: 'pointer', zIndex: 10000 }}>×</button>
+                    <img src={lightboxUrl} alt="" style={{ maxWidth: '95vw', maxHeight: '95vh', objectFit: 'contain', borderRadius: 4 }} />
+                </div>
             )}
         </div>
     );

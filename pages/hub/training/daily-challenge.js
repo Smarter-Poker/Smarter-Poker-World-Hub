@@ -16,6 +16,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
 import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 
 const DAILY_CHALLENGE_DIAMOND_REWARD = 25;
@@ -1002,6 +1003,7 @@ export default function DailyChallengePage() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

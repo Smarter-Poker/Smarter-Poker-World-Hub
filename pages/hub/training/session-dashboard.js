@@ -13,6 +13,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG LINE CHART COMPONENT
@@ -577,62 +579,43 @@ export default function SessionDashboard() {
   const [fetchError, setFetchError] = useState(null);
   const [timeRange, setTimeRange] = useState('all'); // 'week' | 'month' | 'all'
 
-  // Fetch sessions from Supabase
-  useEffect(() => {
-    let cancelled = false;
-    const fetchSessions = async () => {
-      try {
-        const token = await getAccessToken();
-        if (!token) {
-          setLoading(false);
-          return;
-        }
-
-        const res = await authedFetch('/api/training/get-sessions?limit=100', {
-        });
-
-        if (cancelled) return;
-
-        if (res.ok) {
-          const data = await res.json();
-          const allSessions = Array.isArray(data.sessions) ? data.sessions : Array.isArray(data) ? data : [];
-          // Filter out nodelocking profile storage entries (not real training sessions)
-          setSessions(allSessions.filter((s) => (s.game_id || s.gameId) !== 'nodelocking_profile'));
-          setFetchError(null);
-        } else {
-          setFetchError(`Unable to load session data (${res.status}). Please try again.`);
-        }
-      } catch (e) {
-        console.warn('[Dashboard] Fetch failed:', e.message);
-        if (!cancelled) {
-          setFetchError('Unable to load session data. Please check your connection.');
-        }
+  // Shared fetch function — used by initial load, retry button, and EventBus
+  const fetchSessions = useCallback(async ({ silent = false } = {}) => {
+    try {
+      if (!silent) setFetchError(null);
+      const token = await getAccessToken();
+      if (!token) {
+        if (!silent) setLoading(false);
+        return;
       }
-      if (!cancelled) setLoading(false);
-    };
 
-    fetchSessions();
-    return () => { cancelled = true; };
+      const res = await authedFetch('/api/training/get-sessions?limit=100');
+
+      if (res.ok) {
+        const data = await res.json();
+        const allSessions = Array.isArray(data.sessions) ? data.sessions : Array.isArray(data) ? data : [];
+        setSessions(allSessions.filter((s) => (s.game_id || s.gameId) !== 'nodelocking_profile'));
+        if (!silent) setFetchError(null);
+      } else if (!silent) {
+        setFetchError(`Unable to load session data (${res.status}). Please try again.`);
+      }
+    } catch (e) {
+      console.warn('[Dashboard] Fetch failed:', e.message);
+      if (!silent) {
+        setFetchError('Unable to load session data. Please check your connection.');
+      }
+    }
+    if (!silent) setLoading(false);
   }, []);
 
-  // Listen for new sessions via EventBus
+  // Initial fetch on mount
   useEffect(() => {
-    const handler = () => {
-      const refetch = async () => {
-        try {
-          const token = await getAccessToken();
-          if (!token) return;
-          const res = await authedFetch('/api/training/get-sessions?limit=100', {
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const allSessions = Array.isArray(data.sessions) ? data.sessions : Array.isArray(data) ? data : [];
-            setSessions(allSessions.filter((s) => (s.game_id || s.gameId) !== 'nodelocking_profile'));
-          }
-        } catch (e) { /* silent */ }
-      };
-      refetch();
-    };
+    fetchSessions();
+  }, [fetchSessions]);
+
+  // Listen for new sessions via EventBus — silent refetch (no loading/error UI)
+  useEffect(() => {
+    const handler = () => fetchSessions({ silent: true });
 
     if (eventBus?.on) {
       eventBus.on(EventType?.SESSION_END || 'session:end', handler);
@@ -642,7 +625,7 @@ export default function SessionDashboard() {
         eventBus.off?.('training:session-complete', handler);
       };
     }
-  }, []);
+  }, [fetchSessions]);
 
   // Filter by time range
   const filteredSessions = useMemo(() => {
@@ -767,6 +750,8 @@ export default function SessionDashboard() {
               <button
                 key={t.key}
                 onClick={() => setTimeRange(t.key)}
+                aria-label={`Filter by ${t.label}`}
+                aria-pressed={timeRange === t.key}
                 style={{
                   padding: '5px 14px',
                   borderRadius: 8,
@@ -784,37 +769,7 @@ export default function SessionDashboard() {
           </div>
 
           {/* Error State */}
-          {fetchError && (
-            <div style={{
-              padding: '16px 20px',
-              borderRadius: 12,
-              background: 'rgba(239,68,68,0.06)',
-              border: '1px solid rgba(239,68,68,0.15)',
-              marginBottom: 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-            }}>
-              <div style={{ fontSize: 12, color: '#f87171' }}>{fetchError}</div>
-              <button
-                onClick={() => { setFetchError(null); setLoading(true); window.location.reload(); }}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 6,
-                  border: '1px solid rgba(239,68,68,0.2)',
-                  background: 'rgba(239,68,68,0.08)',
-                  color: '#f87171',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-              >
-                Retry
-              </button>
-            </div>
-          )}
+          <ErrorBanner message={fetchError} onRetry={() => { setLoading(true); fetchSessions(); }} />
 
           {loading ? (
             <div style={{ marginTop: 24 }}>
@@ -1004,7 +959,7 @@ export default function SessionDashboard() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }
-

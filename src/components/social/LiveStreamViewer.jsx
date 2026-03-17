@@ -47,7 +47,7 @@ export function LiveStreamViewer({ stream, userId, onClose }) {
                 });
 
                 // Notify other components that we joined a stream
-                busEmit.dataMutated?.('live_streams', 'viewer_joined', { streamId: stream.id, userId });
+                busEmit.dataMutated?.('live_streams');
 
             } catch (err) {
                 console.error('Failed to join stream:', err);
@@ -73,7 +73,7 @@ export function LiveStreamViewer({ stream, userId, onClose }) {
     const handleLeave = async () => {
         await liveStreamService.leaveStream();
         // Notify other components that we left the stream
-        busEmit.dataMutated?.('live_streams', 'viewer_left', { streamId: stream?.id, userId });
+        busEmit.dataMutated?.('live_streams');
         onClose();
     };
 
