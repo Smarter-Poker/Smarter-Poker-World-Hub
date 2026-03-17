@@ -33,19 +33,7 @@ import { getStreakTier, calculateRewardWithMultiplier } from '../../../src/confi
 // Phase 2 Enhancement Imports
 import DoubleOrNothing from '../../../src/components/trivia/DoubleOrNothing';
 import { Gem } from 'lucide-react';
-
-/** Shuffle answer options so correct answer isn't always A */
-function shuffleOptions(questions) {
-    return questions.map(q => {
-        const opts = [...q.options];
-        const correctText = opts[q.correct_index];
-        for (let i = opts.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [opts[i], opts[j]] = [opts[j], opts[i]];
-        }
-        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
-    });
-}
+import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 
 const CATEGORY_MAP = {
     daily: null,
@@ -74,7 +62,7 @@ const LOBBY_IMAGES = {
 };
 
 export default function TriviaModePage() {
-    const bus = useTrainingBus('trivia-mode');
+    useTrainingBus('trivia-mode');
     const router = useRouter();
     const { mode } = router.query;
     const { user: avatarUser, loading: authLoading } = useAvatar();

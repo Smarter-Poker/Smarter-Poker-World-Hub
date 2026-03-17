@@ -179,6 +179,8 @@ export default function TournamentPrepPlanner() {
           <div style={styles.main}>
             <div style={styles.tabs}>
               <button
+                aria-label="View Structure Flow"
+                aria-pressed={activeTab === 'structure'}
                 onClick={() => setActiveTab('structure')}
                 style={{
                   ...styles.tab,
@@ -190,6 +192,8 @@ export default function TournamentPrepPlanner() {
                 Structure Flow
               </button>
               <button
+                aria-label="View Push/Fold"
+                aria-pressed={activeTab === 'pushfold'}
                 onClick={() => setActiveTab('pushfold')}
                 style={{
                   ...styles.tab,

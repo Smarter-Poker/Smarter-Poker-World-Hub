@@ -765,6 +765,8 @@ function SolutionsBrowserInner({ setError }) {
             {GAME_TYPES.map((gt) => (
               <button
                 key={gt.value}
+                aria-label={`Filter by ${gt.label}`}
+                aria-pressed={gameType === gt.value}
                 onClick={() => setGameType(gt.value)}
                 style={{
                   padding: '6px 14px',
@@ -1293,6 +1295,8 @@ function SolutionsBrowserInner({ setError }) {
                     ].map((tab) => (
                       <button
                         key={tab.key}
+                        aria-label={`View ${tab.label}`}
+                        aria-pressed={activeTab === tab.key}
                         onClick={() => setActiveTab(tab.key)}
                         style={{
                           padding: '6px 14px',

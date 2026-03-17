@@ -55,6 +55,7 @@ export default function PostImageLightbox({ mediaUrls = [], initialIndex = 0, co
             {/* Close button */}
             <button
                 onClick={onClose}
+                aria-label="Close lightbox"
                 style={{
                     position: 'absolute', top: 16, right: 16, zIndex: 10,
                     width: 44, height: 44, borderRadius: '50%', border: 'none',
@@ -81,6 +82,7 @@ export default function PostImageLightbox({ mediaUrls = [], initialIndex = 0, co
             {canPrev && (
                 <button
                     onClick={(e) => { e.stopPropagation(); goPrev(); }}
+                    aria-label="Previous image"
                     style={{
                         position: 'absolute', left: 16, zIndex: 10,
                         width: 48, height: 48, borderRadius: '50%', border: 'none',
@@ -121,6 +123,7 @@ export default function PostImageLightbox({ mediaUrls = [], initialIndex = 0, co
             {canNext && (
                 <button
                     onClick={(e) => { e.stopPropagation(); goNext(); }}
+                    aria-label="Next image"
                     style={{
                         position: 'absolute', right: 16, zIndex: 10,
                         width: 48, height: 48, borderRadius: '50%', border: 'none',

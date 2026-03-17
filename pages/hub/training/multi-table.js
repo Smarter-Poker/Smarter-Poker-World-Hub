@@ -428,6 +428,8 @@ export default function MultiTablePage() {
                 {[2, 3, 4].map((n) => (
                   <motion.button
                     key={n}
+                    aria-label={`Select ${n} tables`}
+                    aria-pressed={tableCount === n}
                     onClick={() => setTableCount(n)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}

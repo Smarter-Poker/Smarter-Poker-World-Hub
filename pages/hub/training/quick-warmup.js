@@ -332,6 +332,8 @@ export default function QuickWarmupPage() {
                     <motion.button
                       key={mode.id}
                       whileTap={{ scale: 0.95 }}
+                      aria-label={`Select warmup: ${mode.label}`}
+                      aria-pressed={isActive}
                       onClick={() => setWarmupMode(mode.id)}
                       style={{
                         flex: 1,

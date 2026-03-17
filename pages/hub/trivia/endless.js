@@ -24,23 +24,12 @@ import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAu
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
+import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
-/** Shuffle answer options so correct answer isn't always A */
-function shuffleOptions(questions) {
-    return questions.map(q => {
-        const opts = [...q.options];
-        const correctText = opts[q.correct_index];
-        for (let i = opts.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [opts[i], opts[j]] = [opts[j], opts[i]];
-        }
-        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
-    });
-}
 
 export default function EndlessModePage() {
-    const bus = useTrainingBus('trivia-endless');
+    useTrainingBus('trivia-endless');
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
 

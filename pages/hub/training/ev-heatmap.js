@@ -180,6 +180,8 @@ export default function EvHeatmapPage() {
             {FILTERS.map((f) => (
               <button
                 key={f}
+                aria-label={`Filter by ${f}`}
+                aria-pressed={activeFilter === f}
                 onClick={() => setActiveFilter(f)}
                 style={{
                   padding: '8px 16px',

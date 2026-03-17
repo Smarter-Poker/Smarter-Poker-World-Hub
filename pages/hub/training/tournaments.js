@@ -159,6 +159,8 @@ export default function TournamentsPage() {
             {['live', 'upcoming', 'completed'].map((tab) => (
               <button
                 key={tab}
+                aria-label={`Filter by ${tab}`}
+                aria-pressed={activeTab === tab}
                 onClick={() => setActiveTab(tab)}
                 style={{
                   ...styles.tab,

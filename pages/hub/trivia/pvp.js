@@ -21,6 +21,7 @@ import {
     processMatchReward
 } from '../../../src/services/pvpMatchmaking';
 import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
+import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
@@ -33,22 +34,8 @@ import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 const STAKE_OPTIONS = [10, 25, 50, 100];
 
-/** Shuffle options for each question so correct answer isn't always A */
-function shuffleOptions(questions) {
-    return questions.map(q => {
-        const opts = [...q.options];
-        const correctText = opts[q.correct_index];
-        // Fisher-Yates shuffle
-        for (let i = opts.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [opts[i], opts[j]] = [opts[j], opts[i]];
-        }
-        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
-    });
-}
-
 export default function PvPPage() {
-    const bus = useTrainingBus('trivia-pvp');
+    useTrainingBus('trivia-pvp');
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [gameState, setGameState] = useState('lobby'); // lobby, searching, battle, waiting, result
@@ -115,6 +102,17 @@ export default function PvPPage() {
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);
+
+    // Visibility-based timer pause (when user leaves tab/app)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden && isTimerRunning) {
+                setIsTimerRunning(false);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isTimerRunning]);
 
     // Timer effect
     useEffect(() => {

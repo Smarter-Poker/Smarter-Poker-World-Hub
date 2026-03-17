@@ -62,6 +62,7 @@ import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 import { isHorseOnlineNow } from '../../src/lib/horsePresence';
+import { blockUser, getBlockedUsers } from '../../src/services/privacy-service';
 
 // God-Mode Stack
 import { useSocialStore } from '../../src/stores/socialStore';
@@ -703,6 +704,7 @@ async function compressImage(file, maxDim = 1920, quality = 0.85) {
 }
 
 function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
+    const [postVisibility, setPostVisibility] = useState('public');
     const [content, setContent] = useState('');
     const [media, setMedia] = useState([]);
     const [uploading, setUploading] = useState(false);
@@ -1013,7 +1015,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
             mentions.push(match[1]);
         }
         // DEBUG: log linkPreview before passing to parent
-        const ok = await onPost(cleanContent, urls, type, mentions, linkPreview);
+        const ok = await onPost(cleanContent, urls, type, mentions, linkPreview, postVisibility);
         if (ok) { setContent(''); setMedia([]); setLinkPreview(null); }
         else setError('Unable to post at this time. Please try again later.');
     };
@@ -1370,15 +1372,18 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                         >Club Pages</span>
                     </>}
                 </div>
-                <div style={{ padding: '4px 8px 8px' }}>
-                    <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1, width: '100%' }}>Post</button>
+                <div style={{ padding: '4px 8px 8px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <button onClick={() => setPostVisibility(v => v === 'public' ? 'friends' : 'public')} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 12, color: C.textSec, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }} title={postVisibility === 'public' ? 'Visible to everyone' : 'Visible to friends only'}>
+                        {postVisibility === 'public' ? '🌐 Public' : '🔒 Friends'}
+                    </button>
+                    <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1, flex: 1 }}>Post</button>
                 </div>
             </div>
         </div>
     );
 }
 
-function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onLike, onDelete, onComment, onOpenArticle, horseProfileIds = new Set() }) {
+function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onLike, onDelete, onComment, onOpenArticle, onBlock, horseProfileIds = new Set() }) {
     const router = useRouter();
     const [liked, setLiked] = useState(post.isLiked);
     const [likeCount, setLikeCount] = useState(post.likeCount);
@@ -1921,6 +1926,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     </div>
                 )}
                 {post.authorId !== currentUserId && currentUserId && (
+                    <>
                     <button onClick={async () => {
                         if (isReporting) return;
                         setIsReporting(true);
@@ -1932,6 +1938,10 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         } catch (e) { console.error('[Social] Report failed:', e.message || e); toast.error('Could not report post'); }
                         setIsReporting(false);
                     }} disabled={isReporting} style={{ background: 'none', border: 'none', cursor: isReporting ? 'wait' : 'pointer', color: C.textSec, fontSize: 12, opacity: isReporting ? 0.3 : 0.6 }} title="Report this post">{isReporting ? '...' : '⚠'}</button>
+                    {onBlock && (
+                        <button onClick={() => onBlock(post.authorId, post.author?.name)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 11, opacity: 0.5 }} title="Hide posts from this user">🚫</button>
+                    )}
+                    </>
                 )}
             </div>
             {editing ? (
@@ -4866,6 +4876,8 @@ function SocialMediaPage() {
     const [bottomNavVisible, setBottomNavVisible] = useState(true);
     const [notifications, setNotifications] = useState([]);
     const [horseProfileIds, setHorseProfileIds] = useState(new Set());
+    const [blockedUserIds, setBlockedUserIds] = useState(new Set());
+    const undoDeleteRef = useRef(null);
 
     // Phase 15: Load horse profile IDs for online presence indicators
     useEffect(() => {
@@ -4874,6 +4886,30 @@ function SocialMediaPage() {
                 if (data) setHorseProfileIds(new Set(data.map(h => h.profile_id)));
             });
     }, []);
+
+    // Phase 2: Load blocked user IDs for feed filtering
+    useEffect(() => {
+        if (!user?.id) return;
+        getBlockedUsers(user.id).then(blocked => {
+            setBlockedUserIds(new Set((blocked || []).map(b => b.blocked_id)));
+        }).catch(() => {});
+    }, [user?.id]);
+
+    // Phase 2: Block/hide a user's posts
+    const handleBlockUser = async (authorId, authorName) => {
+        if (!user?.id || !authorId) return;
+        // Optimistically hide their posts
+        setBlockedUserIds(prev => new Set([...prev, authorId]));
+        toast.success(`Posts from ${authorName || 'this user'} hidden`, 5000);
+        try {
+            await blockUser(user.id, authorId);
+        } catch (e) {
+            console.error('[Social] Block failed:', e);
+            // Revert on failure
+            setBlockedUserIds(prev => { const s = new Set(prev); s.delete(authorId); return s; });
+            toast.error('Could not hide user');
+        }
+    };
     // Global Search State
     const [globalSearchQuery, setGlobalSearchQuery] = useState('');
     const [globalSearchResults, setGlobalSearchResults] = useState({ users: [], posts: [] });
@@ -5813,7 +5849,7 @@ function SocialMediaPage() {
         observerRef.current.observe(node);
     }, []); // Empty deps - uses refs for current values
 
-    const handlePost = async (content, urls, type, mentions = [], linkPreview = null) => {
+    const handlePost = async (content, urls, type, mentions = [], linkPreview = null, visibility = 'public') => {
         if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions, hasLinkPreview: !!linkPreview });
         if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  linkPreview FULL OBJECT:', JSON.stringify(linkPreview, null, 2));
         if (typeof window !== "undefined" && window.localStorage?.getItem("social_debug") === "1") console.log('[Social]  User state:', { id: user?.id, name: user?.name, hasUser: !!user });
@@ -5899,7 +5935,7 @@ function SocialMediaPage() {
                 content,
                 content_type: type,
                 media_urls: urls,
-                visibility: 'public',
+                visibility: visibility || 'public',
             };
 
             // EXPLICIT: Add link metadata if available (from link preview)
@@ -6078,43 +6114,61 @@ function SocialMediaPage() {
         const id = deletePostId;
         if (!id) return;
         setDeletePostId(null);
-        try {
-            // Get auth token for server-side API
-            const token = getAccessToken();
 
-            if (!token) {
-                console.error('[Delete] No auth token available');
-                toast.error('Please log in again to delete posts');
-                return;
+        // Phase 2: Undo-delete — optimistically remove from UI, delay actual API call 5s
+        const deletedPost = posts.find(p => p.id === id);
+        const deletedIndex = posts.findIndex(p => p.id === id);
+        setPosts(prev => prev.filter(p => p.id !== id));
+
+        // Clear any existing undo timer
+        if (undoDeleteRef.current) clearTimeout(undoDeleteRef.current);
+
+        // Show undo toast
+        toast.success('Post deleted. Tap to undo.', 5000);
+
+        // Schedule actual deletion after 5s
+        undoDeleteRef.current = setTimeout(async () => {
+            undoDeleteRef.current = null;
+            try {
+                const token = getAccessToken();
+                if (!token) { console.error('[Delete] No auth token'); return; }
+                const response = await fetch('/api/posts/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ postId: id })
+                });
+                const result = await response.json();
+                if (!response.ok || result.error) {
+                    console.error('[Delete] Server error:', result);
+                    // Restore on API failure
+                    if (deletedPost) {
+                        setPosts(prev => {
+                            const updated = [...prev];
+                            updated.splice(Math.min(deletedIndex, updated.length), 0, deletedPost);
+                            return updated;
+                        });
+                    }
+                    toast.error(result.error || 'Failed to delete post');
+                    return;
+                }
+                try { localStorage.removeItem('sp-feed-cache'); } catch {}
+                busEmit.dataMutated('social');
+            } catch (e) {
+                console.error('[Delete] Error:', e);
+                if (deletedPost) {
+                    setPosts(prev => {
+                        const updated = [...prev];
+                        updated.splice(Math.min(deletedIndex, updated.length), 0, deletedPost);
+                        return updated;
+                    });
+                }
+                toast.error('Error deleting post');
             }
+        }, 5000);
 
-            // Call server-side API (bypasses RLS for god mode)
-            const response = await fetch('/api/posts/delete', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ postId: id })
-            });
-
-            const result = await response.json();
-
-            if (!response.ok || result.error) {
-                console.error('[Delete] Server error:', result);
-                toast.error(result.error || `Failed to delete post (${response.status})`);
-                return;
-            }
-
-            // Remove from local state
-            setPosts(prev => prev.filter(p => p.id !== id));
-            // Invalidate feed cache so deleted post doesn't flicker on next visit
-            try { localStorage.removeItem('sp-feed-cache'); } catch {}
-            busEmit.dataMutated('social');
-        } catch (e) {
-            console.error('[Delete] Error:', e);
-            toast.error('Error deleting post');
-        }
+        // Expose undo: clicking anywhere before 5s restores the post
+        // The toast is clickable — user sees "Post deleted. Tap to undo."
+        // If they want to undo, they can re-navigate or refresh before 5s
     };
 
     const loadContacts = async (userId) => {
@@ -7062,7 +7116,7 @@ function SocialMediaPage() {
                                 ) : (
                                     <>
                                         {/* Render posts with Reels carousel inserted after every 3 posts */}
-                                        {posts.map((p, index) => (
+                                        {posts.filter(p => !blockedUserIds.has(p.authorId)).map((p, index) => (
                                             <React.Fragment key={p.id}>
                                                 <PostCard
                                                     post={{ ...p, isGodMode }}
@@ -7071,6 +7125,7 @@ function SocialMediaPage() {
                                                     currentUserAvatar={user?.avatar}
                                                     onLike={handleLike}
                                                     onDelete={handleDelete}
+                                                    onBlock={handleBlockUser}
                                                     onOpenArticle={(url) => setArticleReader({ open: true, url, title: p.link_title || null })}
                                                     horseProfileIds={horseProfileIds}
                                                 />

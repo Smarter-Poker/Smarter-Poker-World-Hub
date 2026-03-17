@@ -32,7 +32,7 @@ const ACHIEVEMENTS = [
 ];
 
 export default function TriviaAchievements() {
-    const bus = useTrainingBus('trivia-achievements');
+    useTrainingBus('trivia-achievements');
     const router = useRouter();
     const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);

@@ -404,6 +404,8 @@ export default function RangeBuilder() {
             {POSITIONS.map((pos) => (
               <button
                 key={pos}
+                aria-label={`Select position ${pos}`}
+                aria-pressed={position === pos}
                 onClick={() => {
                   setPosition(pos);
                   setSelectedHands(new Set());

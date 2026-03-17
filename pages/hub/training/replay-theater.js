@@ -442,6 +442,8 @@ export default function ReplayTheaterPage() {
               <motion.button
                 key={p}
                 whileTap={{ scale: 0.95 }}
+                aria-label={`Filter by position ${p === 'all' ? 'All' : p}`}
+                aria-pressed={filter === p}
                 onClick={() => setFilter(p)}
                 style={{
                   padding: '6px 10px',
@@ -466,6 +468,8 @@ export default function ReplayTheaterPage() {
               <motion.button
                 key={s}
                 whileTap={{ scale: 0.95 }}
+                aria-label={`Filter by street ${s === 'all' ? 'All' : s}`}
+                aria-pressed={streetFilter === s}
                 onClick={() => setStreetFilter(s)}
                 style={{
                   padding: '6px 10px',

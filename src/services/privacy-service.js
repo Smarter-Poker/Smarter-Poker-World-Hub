@@ -221,6 +221,7 @@ export async function blockUser(blockerId, targetId) {
             .or(`and(user_id.eq.${blockerId},friend_id.eq.${targetId}),and(user_id.eq.${targetId},friend_id.eq.${blockerId})`);
 
         console.log('[Privacy] User blocked successfully');
+        return { success: true };
     } catch (error) {
         console.error('[Privacy] Error blocking user:', error);
         throw error;
@@ -243,6 +244,7 @@ export async function unblockUser(blockerId, targetId) {
         if (error) throw error;
 
         console.log('[Privacy] User unblocked successfully');
+        return { success: true };
     } catch (error) {
         console.error('[Privacy] Error unblocking user:', error);
         throw error;
@@ -256,18 +258,32 @@ export async function unblockUser(blockerId, targetId) {
  */
 export async function getBlockedUsers(userId) {
     try {
-        const { data, error } = await supabase
+        // Step 1: Get blocked user IDs
+        const { data: blockedRows, error } = await supabase
             .from('blocked_users')
-            .select(`
-                blocked_id,
-                created_at,
-                blocked:profiles!blocked_id(id, username, full_name, avatar_url)
-            `)
+            .select('blocked_id, created_at')
             .eq('blocker_id', userId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
-        return data || [];
+        if (!blockedRows?.length) return [];
+
+        // Step 2: Fetch profiles separately (avoids risky FK join syntax)
+        const blockedIds = blockedRows.map(r => r.blocked_id);
+        const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, username, full_name, avatar_url')
+            .in('id', blockedIds);
+
+        const profileMap = {};
+        (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+        // Step 3: Merge
+        return blockedRows.map(r => ({
+            blocked_id: r.blocked_id,
+            created_at: r.created_at,
+            blocked: profileMap[r.blocked_id] || { id: r.blocked_id, username: 'Unknown' }
+        }));
     } catch (error) {
         console.error('[Privacy] Error getting blocked users:', error);
         return [];

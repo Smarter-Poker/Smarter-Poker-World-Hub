@@ -815,6 +815,8 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
         ].map((tab) => (
           <button
             key={tab.key}
+            aria-label={`View ${tab.label.replace(/[^a-zA-Z ]/g, '').trim()}`}
+            aria-pressed={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key)}
             style={{
               padding: '6px 14px',

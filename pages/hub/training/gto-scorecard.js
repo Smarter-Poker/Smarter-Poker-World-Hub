@@ -473,6 +473,8 @@ export default function GTOScorecardPage() {
               <motion.button
                 key={key}
                 whileTap={{ scale: 0.95 }}
+                aria-label={`View stat: ${label}`}
+                aria-pressed={selectedStat === key}
                 onClick={() => setSelectedStat(key)}
                 style={{
                   padding: '6px 12px',

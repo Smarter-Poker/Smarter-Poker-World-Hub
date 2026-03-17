@@ -663,6 +663,8 @@ export default function NodelockingPage() {
               .map(([key, profile]) => (
                 <motion.button
                   key={key}
+                  aria-label={`Select villain profile: ${profile.name}`}
+                  aria-pressed={selectedProfile === key}
                   onClick={() => handleProfileChange(key)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}

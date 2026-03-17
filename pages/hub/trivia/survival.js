@@ -21,25 +21,14 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
-/** Shuffle answer options so correct answer isn't always A */
-function shuffleOptions(questions) {
-    return questions.map(q => {
-        const opts = [...q.options];
-        const correctText = opts[q.correct_index];
-        for (let i = opts.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [opts[i], opts[j]] = [opts[j], opts[i]];
-        }
-        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
-    });
-}
 
 const DAILY_DIAMOND_CAP = 10;
 
 export default function SurvivalModePage() {
-    const bus = useTrainingBus('trivia-survival');
+    useTrainingBus('trivia-survival');
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [gameState, setGameState] = useState('lobby'); // lobby, playing, complete

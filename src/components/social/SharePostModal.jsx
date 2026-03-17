@@ -118,6 +118,7 @@ export default function SharePostModal({ post, authorUsername, onClose, onShared
                     <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.text }}>Share Post</h3>
                     <button
                         onClick={onClose}
+                        aria-label="Close share modal"
                         style={{
                             width: 36, height: 36, borderRadius: '50%', border: 'none',
                             background: C.bg, cursor: 'pointer', fontSize: 18, color: C.textSec,
@@ -152,6 +153,7 @@ export default function SharePostModal({ post, authorUsername, onClose, onShared
                         <button
                             key={platform.id}
                             onClick={() => handlePlatformClick(platform)}
+                            aria-label={`Share via ${platform.label}`}
                             style={{
                                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                                 gap: 8, padding: '12px 4px', background: 'none', border: 'none',

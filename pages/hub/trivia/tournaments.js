@@ -13,6 +13,7 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
@@ -20,21 +21,8 @@ import HexButton from '../../../src/components/ui/HexButton';
 import { Trophy, Calendar, Clock, Gem, CheckCircle, XCircle, Medal, Award, Bell, Swords, AlertTriangle } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
-/** Shuffle options for each question so correct answer isn't always A */
-function shuffleOptions(questions) {
-    return questions.map(q => {
-        const opts = [...q.options];
-        const correctText = opts[q.correct_index];
-        for (let i = opts.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [opts[i], opts[j]] = [opts[j], opts[i]];
-        }
-        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
-    });
-}
-
 export default function TournamentsPage() {
-    const bus = useTrainingBus('trivia-tournaments');
+    useTrainingBus('trivia-tournaments');
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [userId, setUserId] = useState(null);
@@ -84,6 +72,17 @@ export default function TournamentsPage() {
             }
         };
     }, [avatarUser?.id, authLoading]);
+
+    // Visibility-based timer pause (when user leaves tab/app)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden && isTimerRunning) {
+                setIsTimerRunning(false);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isTimerRunning]);
 
     // Timer effect
     useEffect(() => {

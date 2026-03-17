@@ -217,6 +217,8 @@ export default function MentalJournalPage() {
             }}
           >
             <button
+              aria-label="New journal entry"
+              aria-pressed={view === 'add'}
               onClick={() => setView('add')}
               style={{
                 flex: 1,
@@ -233,6 +235,8 @@ export default function MentalJournalPage() {
               New Entry
             </button>
             <button
+              aria-label="Browse journal history"
+              aria-pressed={view === 'history'}
               onClick={() => setView('history')}
               style={{
                 flex: 1,

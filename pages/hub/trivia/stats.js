@@ -14,7 +14,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function TriviaStats() {
-    const bus = useTrainingBus('trivia-stats');
+    useTrainingBus('trivia-stats');
     const router = useRouter();
     const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);

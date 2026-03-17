@@ -17,7 +17,7 @@ import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/serv
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function TriviaHubPage() {
-    const bus = useTrainingBus('trivia-hub');
+    useTrainingBus('trivia-hub');
     const { user, loading: authLoading } = useAvatar();
     const userId = user?.id;
     const [userDiamonds, setUserDiamonds] = useState(0);

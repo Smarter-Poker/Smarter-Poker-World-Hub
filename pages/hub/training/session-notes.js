@@ -303,6 +303,8 @@ export default function SessionNotesPage() {
             <motion.button
               key={t.id}
               whileTap={{ scale: 0.97 }}
+              aria-label={`Tab: ${t.id === 'write' ? 'Write new note' : 'Browse notes'}`}
+              aria-pressed={tab === t.id}
               onClick={() => setTab(t.id)}
               style={{
                 flex: 1,

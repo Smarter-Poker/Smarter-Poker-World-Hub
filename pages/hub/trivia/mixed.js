@@ -24,20 +24,9 @@ import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
-/** Shuffle answer options so correct answer isn't always A */
-function shuffleOptions(questions) {
-    return questions.map(q => {
-        const opts = [...q.options];
-        const correctText = opts[q.correct_index];
-        for (let i = opts.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [opts[i], opts[j]] = [opts[j], opts[i]];
-        }
-        return { ...q, options: opts, correct_index: opts.indexOf(correctText) };
-    });
-}
 
 const CATEGORIES = [
     { id: 'poker_history', name: 'History', icon: Trophy, color: '#FFD700', dbCategories: ['poker_history', 'famous_hands', 'player_profiles', 'tournament_facts'] },
@@ -53,7 +42,7 @@ const CATEGORIES = [
 const QUESTIONS_PER_SESSION = 21; // 3 per category, 7 categories
 
 export default function MixedModePage() {
-    const bus = useTrainingBus('trivia-mixed');
+    useTrainingBus('trivia-mixed');
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [userId, setUserId] = useState(null);
@@ -158,6 +147,17 @@ export default function MixedModePage() {
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);
 
+    // Visibility-based timer pause (when user leaves tab/app)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden && isTimerRunning) {
+                setIsTimerRunning(false);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isTimerRunning]);
+
     // Shot clock effect
     useEffect(() => {
         if (!isTimerRunning || showResult) {
@@ -186,30 +186,24 @@ export default function MixedModePage() {
             // 60-day non-repeat: Get user's recently seen question IDs using shared utility
             const excludeIds = await getRecentlySeenIds(supabase, uid, 200, 'mixed');
 
-            // Load questions from all categories
-            const allQuestions = [];
 
-            for (const cat of CATEGORIES) {
-                let query = supabase
-                    .from('trivia_questions')
-                    .select('*')
-                    .in('category', cat.dbCategories)
-                    .limit(50);
-
-                const { data } = await query;
-
-                if (data) {
-                    // Filter out recently seen questions and shuffle using shared utility (unbiased)
-                    const available = filterAndShuffle(data, excludeIds, 5);
-
-                    // Tag with normalized category for tracking
-                    available.forEach(q => {
-                        q.displayCategory = cat.id;
-                    });
-
-                    allQuestions.push(...available);
-                }
-            }
+            // Load all categories in parallel (~5x faster than sequential)
+            const categoryResults = await Promise.all(
+                CATEGORIES.map(cat =>
+                    supabase
+                        .from('trivia_questions')
+                        .select('*')
+                        .in('category', cat.dbCategories)
+                        .limit(50)
+                        .then(({ data }) => {
+                            if (!data) return [];
+                            const available = filterAndShuffle(data, excludeIds, 5);
+                            available.forEach(q => { q.displayCategory = cat.id; });
+                            return available;
+                        })
+                )
+            );
+            const allQuestions = categoryResults.flat();
 
             // Interleave categories: H, R, P, H, R, P, H, R, P, H, R, P, H, R, P
             const interleaved = [];
