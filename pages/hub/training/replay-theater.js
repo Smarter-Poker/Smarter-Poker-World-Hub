@@ -215,23 +215,50 @@ function MistakeCard({ mistake, onPractice }) {
                   </div>
                 </div>
               </div>
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={() => onPractice(mistake)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(0,212,255,0.2)',
-                  background: 'rgba(0,212,255,0.06)',
-                  color: '#00d4ff',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Practice Similar Spots
-              </motion.button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onPractice(mistake)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(0,212,255,0.2)',
+                    background: 'rgba(0,212,255,0.06)',
+                    color: '#00d4ff',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Practice This Spot
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    const q = new URLSearchParams({
+                      position: mistake.position || '',
+                      street: mistake.street || '',
+                      action: mistake.yourAction || '',
+                      correct: mistake.correctAction || '',
+                    });
+                    window.location.href = `/hub/training/jarvis?context=mistake&${q.toString()}`;
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(168,85,247,0.2)',
+                    background: 'rgba(168,85,247,0.06)',
+                    color: '#a855f7',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Get GTO Coaching
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         )}
