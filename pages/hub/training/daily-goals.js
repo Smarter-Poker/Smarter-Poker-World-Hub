@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 function generateGoals(sessionsParams) {
   const today = new Date().toISOString().slice(0, 10);
@@ -104,6 +106,7 @@ export default function DailyGoalsPage() {
   const [streakDays, setStreakDays] = useState(0);
   const [prevComplete, setPrevComplete] = useState(0);
   const [dailyBonus, setDailyBonus] = useState(null); // { available, totalBonus, streakBonus, alreadyClaimed }
+  const [fetchError, setFetchError] = useState(null);
 
   // Load streak
   useEffect(() => {
@@ -179,6 +182,7 @@ export default function DailyGoalsPage() {
       }
     } catch (e) {
       console.error('[DailyGoals]', e);
+      setFetchError('Unable to load daily goals. Please try again.');
     }
     setLoading(false);
   }, [prevComplete, streakDays]);
@@ -246,6 +250,8 @@ export default function DailyGoalsPage() {
               <SkeletonLoader variant="rows" rows={4} />
             </div>
           )}
+
+          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchData(); }} />
 
           {!loading && (
             <>
@@ -509,6 +515,7 @@ export default function DailyGoalsPage() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

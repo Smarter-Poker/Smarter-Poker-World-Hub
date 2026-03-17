@@ -14,6 +14,8 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 const RARITY_COLORS = {
   common: '#9ca3af',
@@ -47,7 +49,7 @@ export default function TrainingAchievements() {
 
   // SWR-backed achievements fetch — only fires when user is known
   const swrKey = user ? `/api/training/achievements?userId=${user.id}` : null;
-  const { data: swrData, isLoading: loading } = useSWR(swrKey, (url) =>
+  const { data: swrData, isLoading: loading, error: swrError, mutate: mutateAchievements } = useSWR(swrKey, (url) =>
     authedFetch(url)
       .then((r) => r.json())
       .then((d) => (d.success ? d.achievements || [] : []))
@@ -109,11 +111,18 @@ export default function TrainingAchievements() {
                 key={cat}
                 style={activeCategory === cat ? styles.filterActive : styles.filterBtn}
                 onClick={() => setActiveCategory(cat)}
+                aria-label={`Filter by ${cat === 'all' ? 'all categories' : cat}`}
+                aria-pressed={activeCategory === cat}
               >
                 {cat === 'all' ? 'ALL' : `${CATEGORY_ICONS[cat]} ${cat.toUpperCase()}`}
               </button>
             ))}
           </div>
+
+          <ErrorBanner
+            message={swrError ? 'Unable to load achievements.' : null}
+            onRetry={() => mutateAchievements()}
+          />
 
           {/* Achievement List */}
           {loading ? (
@@ -214,6 +223,7 @@ export default function TrainingAchievements() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </PageTransition>
   );
 }

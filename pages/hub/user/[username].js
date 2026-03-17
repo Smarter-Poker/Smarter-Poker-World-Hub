@@ -492,6 +492,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                     onReact={(type) => {
                         const wasReacted = currentReaction !== null;
                         const isSameReaction = currentReaction === type;
+                        const prevReaction = currentReaction;
 
                         if (isSameReaction) {
                             // Toggle off — remove reaction
@@ -526,7 +527,15 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                     busEmit.socialPostLiked(post.id, currentUserId, { added: true, reactionType: type });
                                 }
                                 // Switch case: no bus emission needed — count doesn't change
-                            }).catch(() => {});
+                            }).catch(() => {
+                                // Revert optimistic update on failure
+                                setCurrentReaction(prevReaction);
+                                if (isSameReaction) {
+                                    setLikeCount(prev => prev + 1); // Undo the -1
+                                } else if (!wasReacted) {
+                                    setLikeCount(prev => Math.max(0, prev - 1)); // Undo the +1
+                                }
+                            });
                         }
                     }}
                 />

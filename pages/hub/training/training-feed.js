@@ -15,6 +15,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FEED EVENT TYPES
@@ -307,6 +309,7 @@ export default function TrainingFeedPage() {
   const [loading, setLoading] = useState(true);
   const [feedItems, setFeedItems] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [fetchError, setFetchError] = useState(null);
 
   const fetchFeed = useCallback(async () => {
     const user = getAuthUser();
@@ -323,6 +326,7 @@ export default function TrainingFeedPage() {
         setFeedItems(generateFeedItems([]));
       }
     } catch (e) {
+      setFetchError('Unable to load training feed. Please try again.');
       setFeedItems(generateFeedItems([]));
     }
     setLoading(false);
@@ -443,6 +447,8 @@ export default function TrainingFeedPage() {
               key={f.id}
               whileTap={{ scale: 0.97 }}
               onClick={() => setFilter(f.id)}
+              aria-label={`Show ${f.label.toLowerCase()} only`}
+              aria-pressed={filter === f.id}
               style={{
                 flex: 1,
                 padding: '7px',
@@ -461,6 +467,8 @@ export default function TrainingFeedPage() {
         </div>
 
         <div style={{ maxWidth: 600, margin: '0 auto' }}>
+          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchFeed(); }} />
+
           {/* Loading */}
           {loading && (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
@@ -510,6 +518,7 @@ export default function TrainingFeedPage() {
           </div>
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

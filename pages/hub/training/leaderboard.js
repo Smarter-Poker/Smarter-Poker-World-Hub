@@ -16,6 +16,8 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useSWRConfig } from 'swr';
 
 export default function TrainingLeaderboard() {
@@ -68,8 +70,8 @@ export default function TrainingLeaderboard() {
   // SWR-backed leaderboard fetch — cached 60s, instant on timeframe/category switch
   const categoryParam = view && view !== 'global' && view !== 'friends' ? `&category=${view}` : '';
   const swrKey = `/api/training/leaderboard?period=${period}&limit=100${categoryParam}`;
-  const { data: swrData, isLoading: loading } = useSWR(swrKey, (url) =>
-    fetch(url)
+  const { data: swrData, isLoading: loading, error: swrError, mutate: mutateLeaderboard } = useSWR(swrKey, (url) =>
+    authedFetch(url)
       .then((r) => r.json())
       .then((data) => {
         if (!data.success) throw new Error(data.error || 'Failed to load leaderboard');
@@ -112,18 +114,24 @@ export default function TrainingLeaderboard() {
               <button
                 style={timeframe === 'daily' ? styles.filterButtonActive : styles.filterButton}
                 onClick={() => setTimeframe('daily')}
+                aria-label="Show daily rankings"
+                aria-pressed={timeframe === 'daily'}
               >
                 Daily
               </button>
               <button
                 style={timeframe === 'weekly' ? styles.filterButtonActive : styles.filterButton}
                 onClick={() => setTimeframe('weekly')}
+                aria-label="Show weekly rankings"
+                aria-pressed={timeframe === 'weekly'}
               >
                 Weekly
               </button>
               <button
                 style={timeframe === 'all-time' ? styles.filterButtonActive : styles.filterButton}
                 onClick={() => setTimeframe('all-time')}
+                aria-label="Show all-time rankings"
+                aria-pressed={timeframe === 'all-time'}
               >
                 All Time
               </button>
@@ -144,12 +152,19 @@ export default function TrainingLeaderboard() {
                   key={cat.id}
                   style={view === cat.id ? styles.categoryButtonActive : styles.categoryButton}
                   onClick={() => setView(cat.id)}
+                  aria-label={`Show ${cat.label} category`}
+                  aria-pressed={view === cat.id}
                 >
                   {cat.label}
                 </button>
               ))}
             </div>
           </div>
+
+          <ErrorBanner
+            message={swrError ? 'Unable to load leaderboard data.' : null}
+            onRetry={() => mutateLeaderboard()}
+          />
 
           {/* User Rank */}
           {user && userRank && (
@@ -202,6 +217,7 @@ export default function TrainingLeaderboard() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </PageTransition>
   );
 }

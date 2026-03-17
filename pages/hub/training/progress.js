@@ -15,11 +15,14 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 export default function TrainingProgress() {
   useTrainingBus('training-progress');
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [stats, setStats] = useState({
     totalQuestions: 0,
     correctAnswers: 0,
@@ -167,6 +170,7 @@ export default function TrainingProgress() {
       setLoading(false);
     } catch (error) {
       console.error('Error loading progress:', error);
+      setFetchError('Unable to load progress data. Please try again.');
       setLoading(false);
     }
   };
@@ -209,6 +213,8 @@ export default function TrainingProgress() {
         <UniversalHeader pageDepth={2} />
 
         <div style={styles.content}>
+          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); loadProgress(); }} />
+
           <h1 style={styles.title}> Your Training Progress</h1>
 
           {/* Overall Stats */}
@@ -292,6 +298,7 @@ export default function TrainingProgress() {
           </div>
         </div>
       </div>
+      <ConnectionToast />
     </PageTransition>
   );
 }

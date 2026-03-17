@@ -17,6 +17,8 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // Milestone definitions (must match API)
 const STREAK_MILESTONES = [
@@ -68,6 +70,7 @@ export default function StreaksPage() {
   const {
     data: swrData,
     isLoading: loading,
+    error: swrError,
     mutate: refreshStreak,
   } = useSWR(swrKey, async (url) => {
     const [streakRes, { data: sessions }] = await Promise.all([
@@ -210,6 +213,11 @@ export default function StreaksPage() {
         <UniversalHeader pageDepth={2} />
 
         <div style={styles.content}>
+          <ErrorBanner
+            message={swrError ? 'Unable to load streak data.' : null}
+            onRetry={() => refreshStreak()}
+          />
+
           {/* At-Risk Warning */}
           {streak.currentStreak >= 3 && (() => {
             const today = new Date().toISOString().split('T')[0];
@@ -475,6 +483,7 @@ export default function StreaksPage() {
           </section>
         </div>
       </div>
+      <ConnectionToast />
     </PageTransition>
   );
 }

@@ -1517,14 +1517,16 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     { post_id: post.id, user_id: currentUserId, interaction_type: 'bookmark' }
                 );
                 if (error) throw error;
+                toast.success('Post saved');
             } else {
                 const { error } = await supabase.from('social_interactions').delete()
                     .eq('post_id', post.id)
                     .eq('user_id', currentUserId)
                     .eq('interaction_type', 'bookmark');
                 if (error) throw error;
+                toast.success('Removed from saved');
             }
-        } catch (e) { console.error('Bookmark error:', e); setBookmarked(!newBookmarked); }
+        } catch (e) { console.error('Bookmark error:', e); setBookmarked(!newBookmarked); toast.error('Could not save post'); }
     };
 
     const handleLike = async (reactionType) => {
@@ -1836,6 +1838,15 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         )}
                         <button onClick={() => onDelete(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 16 }}></button>
                     </div>
+                )}
+                {post.authorId !== currentUserId && currentUserId && (
+                    <button onClick={async () => {
+                        try {
+                            await supabase.from('social_interactions').delete().eq('post_id', post.id).eq('user_id', currentUserId).eq('interaction_type', 'report');
+                            await supabase.from('social_interactions').insert({ post_id: post.id, user_id: currentUserId, interaction_type: 'report' });
+                            toast.success('Post reported. We will review it shortly.');
+                        } catch (e) { toast.error('Could not report post'); }
+                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 12, opacity: 0.6 }} title="Report this post">⚠</button>
                 )}
             </div>
             {editing ? (
@@ -2363,6 +2374,23 @@ function ChatWindow({ chat, messages, currentUserId, onSend, onClose }) {
         setText('');
     };
 
+    // Group messages by date for timestamp labels
+    const getDateLabel = (msg, prevMsg) => {
+        if (!msg.createdAt) return null;
+        const d = new Date(msg.createdAt);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const dateStr = d.toDateString();
+        if (prevMsg) {
+            const prevD = new Date(prevMsg.createdAt);
+            if (prevD.toDateString() === dateStr) return null; // Same day, no label
+        }
+        if (dateStr === today.toDateString()) return 'Today';
+        if (dateStr === yesterday.toDateString()) return 'Yesterday';
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
     return (
         <div style={{ width: 328, height: 400, background: C.card, borderRadius: '8px 8px 0 0', boxShadow: '0 -2px 8px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', border: `1px solid ${C.border}` }}>
             <div style={{ padding: 8, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2371,11 +2399,17 @@ function ChatWindow({ chat, messages, currentUserId, onSend, onClose }) {
                 <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>×</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {messages.map((m, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: m.senderId === currentUserId ? 'flex-end' : 'flex-start' }}>
-                        <div style={{ maxWidth: '70%', padding: '6px 10px', borderRadius: 16, background: m.senderId === currentUserId ? C.blue : C.bg, color: m.senderId === currentUserId ? 'white' : C.text, fontSize: 14 }}>{m.text}</div>
-                    </div>
-                ))}
+                {messages.map((m, i) => {
+                    const label = getDateLabel(m, i > 0 ? messages[i - 1] : null);
+                    return (
+                        <React.Fragment key={i}>
+                            {label && <div style={{ textAlign: 'center', fontSize: 11, color: C.textSec, padding: '8px 0 4px', fontWeight: 600 }}>{label}</div>}
+                            <div style={{ display: 'flex', justifyContent: m.senderId === currentUserId ? 'flex-end' : 'flex-start' }}>
+                                <div style={{ maxWidth: '70%', padding: '6px 10px', borderRadius: 16, background: m.senderId === currentUserId ? C.blue : C.bg, color: m.senderId === currentUserId ? 'white' : C.text, fontSize: 14 }}>{m.text}</div>
+                            </div>
+                        </React.Fragment>
+                    );
+                })}
                 <div ref={endRef} />
             </div>
             <div style={{ padding: 8, borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8 }}>
@@ -4750,6 +4784,7 @@ function SocialMediaPage() {
     // LIVE STREAMING STATE
     const [liveStreams, setLiveStreams] = useState([]);
     const [watchingStream, setWatchingStream] = useState(null);
+    const [showScrollTop, setShowScrollTop] = useState(false); // Scroll-to-top FAB
 
     //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
@@ -4785,6 +4820,8 @@ function SocialMediaPage() {
             } else {
                 setBottomNavVisible(true);
             }
+            // Scroll-to-top FAB: show after scrolling down 500px
+            setShowScrollTop(currentScrollY > 500);
             lastScrollY.current = currentScrollY;
         };
 
@@ -6573,10 +6610,29 @@ function SocialMediaPage() {
                             {/* Header */}
                             <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                                 <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text }}>Notifications</h3>
-                                <button
-                                    onClick={() => setShowNotifications(false)}
-                                    style={{ background: C.bg, border: 'none', cursor: 'pointer', fontSize: 18, width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text }}
-                                >✕</button>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    {notifications.some(n => !n.read) && (
+                                        <button
+                                            onClick={async () => {
+                                                const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+                                                if (unreadIds.length === 0) return;
+                                                try {
+                                                    await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+                                                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                                                    broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
+                                                    eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadIds.length }, 'ManualMarkAllRead');
+                                                    busEmit.dataMutated('notifications');
+                                                    toast.success('All notifications marked as read');
+                                                } catch (e) { toast.error('Could not mark as read'); }
+                                            }}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.blue, fontWeight: 600, padding: '4px 8px' }}
+                                        >Mark all read</button>
+                                    )}
+                                    <button
+                                        onClick={() => setShowNotifications(false)}
+                                        style={{ background: C.bg, border: 'none', cursor: 'pointer', fontSize: 18, width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text }}
+                                    >✕</button>
+                                </div>
                             </div>
                             {/* Scrollable notification list */}
                             <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -7080,6 +7136,24 @@ function SocialMediaPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Scroll-to-top FAB */}
+            {showScrollTop && (
+                <button
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    style={{
+                        position: 'fixed', bottom: 80, right: 20, zIndex: 999,
+                        width: 44, height: 44, borderRadius: '50%',
+                        background: C.blue, color: 'white', border: 'none',
+                        cursor: 'pointer', fontSize: 20, fontWeight: 700,
+                        boxShadow: '0 3px 12px rgba(0,0,0,0.25)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'opacity 0.2s ease, transform 0.2s ease',
+                        opacity: 1
+                    }}
+                    title="Back to top"
+                >↑</button>
             )}
 
             {/* Invite Friends Modal */}
