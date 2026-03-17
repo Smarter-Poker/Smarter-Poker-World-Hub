@@ -108,7 +108,9 @@ export default function WeaknessScannerPage() {
   const router = useRouter();
   useTrainingBus('weakness-scanner');
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState(null);
+  const [rawSessions, setRawSessions] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
+  const [timeFilter, setTimeFilter] = useState('all');
 
   const fetchData = useCallback(async () => {
     const user = getAuthUser();
@@ -117,12 +119,14 @@ export default function WeaknessScannerPage() {
       return;
     }
     try {
+      setFetchError(null);
       const res = await authedFetch(`/api/training/get-sessions?limit=50`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const d = await res.json();
-      if (d.success && d.sessions) setData(analyzeData(d.sessions));
+      if (d.success && d.sessions) setRawSessions(d.sessions);
     } catch (e) {
       console.error('[Scanner]', e);
+      setFetchError('Unable to load session data. Please check your connection.');
     }
     setLoading(false);
   }, []);
@@ -135,6 +139,19 @@ export default function WeaknessScannerPage() {
     const unsub = eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
     return () => unsub();
   }, [fetchData]);
+
+  // Time-filtered analysis (computed at render-time so filter changes don't re-fetch)
+  const data = React.useMemo(() => {
+    if (!rawSessions) return null;
+    if (timeFilter === 'all') return analyzeData(rawSessions);
+    const now = Date.now();
+    const cutoffMs = timeFilter === '7d' ? 7 * 86400000 : 30 * 86400000;
+    const filtered = rawSessions.filter(s => {
+      const created = new Date(s.created_at || s.timestamp).getTime();
+      return now - created < cutoffMs;
+    });
+    return analyzeData(filtered);
+  }, [rawSessions, timeFilter]);
 
   return (
     <>
@@ -183,6 +200,62 @@ export default function WeaknessScannerPage() {
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+          {/* Time Filter */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+            {[{ id: '7d', label: 'Last 7 Days' }, { id: '30d', label: 'Last 30 Days' }, { id: 'all', label: 'All Time' }].map(f => (
+              <button
+                key={f.id}
+                onClick={() => setTimeFilter(f.id)}
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  borderRadius: 8,
+                  border: `1px solid ${timeFilter === f.id ? 'rgba(248,113,113,0.2)' : 'transparent'}`,
+                  background: timeFilter === f.id ? 'rgba(248,113,113,0.06)' : 'transparent',
+                  color: timeFilter === f.id ? '#f87171' : '#64748b',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Error State */}
+          {fetchError && (
+            <div style={{
+              padding: '16px 20px',
+              borderRadius: 12,
+              background: 'rgba(239,68,68,0.06)',
+              border: '1px solid rgba(239,68,68,0.15)',
+              marginBottom: 16,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}>
+              <div style={{ fontSize: 12, color: '#f87171' }}>{fetchError}</div>
+              <button
+                onClick={() => { setLoading(true); fetchData(); }}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 6,
+                  border: '1px solid rgba(239,68,68,0.2)',
+                  background: 'rgba(239,68,68,0.08)',
+                  color: '#f87171',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {loading && (
             <div style={{ padding: '20px 0' }}>
               <SkeletonLoader variant="card" count={2} />

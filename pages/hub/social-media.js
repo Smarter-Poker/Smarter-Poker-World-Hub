@@ -673,6 +673,34 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
 
 const MAX_MEDIA = 10;
 
+// ═══ Image Compression Utility — resize before upload to save bandwidth ═══
+async function compressImage(file, maxDim = 1920, quality = 0.85) {
+    // Skip GIFs (animation) and already-small files (<200KB)
+    if (file.type === 'image/gif' || file.size < 200 * 1024) return file;
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            // Skip if already within bounds
+            if (img.width <= maxDim && img.height <= maxDim) { resolve(file); return; }
+            const scale = maxDim / Math.max(img.width, img.height);
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+                if (blob && blob.size < file.size) {
+                    resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+                } else {
+                    resolve(file); // Original was smaller, keep it
+                }
+            }, 'image/jpeg', quality);
+        };
+        img.onerror = () => resolve(file); // On error, use original
+        img.src = URL.createObjectURL(file);
+    });
+}
+
 function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     const [content, setContent] = useState('');
     const [media, setMedia] = useState([]);
@@ -758,9 +786,10 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                     }
                     uploaded.push({ type: 'video', url: meta.publicUrl });
                 } else {
-                    // Keep existing API for images (small files, no issue)
+                    // Compress image before upload (skip GIFs, small files)
+                    const compressedFile = await compressImage(file);
                     const formData = new FormData();
-                    formData.append('file', file);
+                    formData.append('file', compressedFile);
                     formData.append('folder', folder);
                     formData.append('prefix', user.id);
                     const _imgToken = getAccessToken();
@@ -1348,6 +1377,9 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [likeCount, setLikeCount] = useState(post.likeCount);
     const [reactions, setReactions] = useState(post.reactions || []);
     const [replyingTo, setReplyingTo] = useState(null);
+    const [editing, setEditing] = useState(false);
+    const [editContent, setEditContent] = useState('');
+    const [showReactionPicker, setShowReactionPicker] = useState(false);
 
     // Phase 28: Render @mentions as clickable links
     function renderMentions(text) {
@@ -1374,6 +1406,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [hasMoreComments, setHasMoreComments] = useState(false);
     const [fullScreenVideo, setFullScreenVideo] = useState(null);
     const [typists, setTypists] = useState({}); // { [userId]: { name, avatar_url, timestamp } }
+    const [displayContent, setDisplayContent] = useState(post.content);
+    const showCommentsRef = useRef(false);
+    const commentsRef = useRef([]);
+    const typingDebounceRef = useRef(null);
+
+    // Keep refs in sync with state for real-time callbacks
+    useEffect(() => { showCommentsRef.current = showComments; }, [showComments]);
+    useEffect(() => { commentsRef.current = comments; }, [comments]);
 
     // 📡 Real-time sync for Likes & Comments (Broadcast from WebSocket)
     useEffect(() => {
@@ -1386,6 +1426,36 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         const cleanupComment = eventBus.on('SOCIAL_COMMENT_UPDATE', (payload) => {
             if (payload?.postId === post.id) {
                 setCommentCount(prev => prev + 1);
+                // If comments are visible, inject the new comment in real-time
+                if (showCommentsRef.current && payload.commentId) {
+                    const alreadyHave = commentsRef.current.some(c => c.id === payload.commentId);
+                    if (!alreadyHave) {
+                        // Fetch author profile for the new comment
+                        (async () => {
+                            try {
+                                const { data: author } = await supabase.from('profiles')
+                                    .select('id, username, full_name, avatar_url')
+                                    .eq('id', payload.authorId)
+                                    .maybeSingle();
+                                setComments(prev => {
+                                    if (prev.some(c => c.id === payload.commentId)) return prev;
+                                    return [...prev, {
+                                        id: payload.commentId,
+                                        text: payload.content || '',
+                                        authorId: payload.authorId,
+                                        parentId: payload.parentId || null,
+                                        authorName: author?.full_name || author?.username || 'Player',
+                                        authorAvatar: author?.avatar_url || null,
+                                        authorUsername: author?.username || null,
+                                        time: 'Just now',
+                                        likeCount: 0,
+                                        isLikedByMe: false
+                                    }];
+                                });
+                            } catch (e) { console.warn('[Social] Real-time comment inject failed:', e.message); }
+                        })();
+                    }
+                }
             }
         });
         const cleanupTyping = eventBus.on('SOCIAL_TYPING_UPDATE', (payload) => {
@@ -1420,6 +1490,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             if (cleanupComment) cleanupComment();
             if (cleanupTyping) cleanupTyping();
             clearInterval(typeInterval);
+            if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
         };
     }, [post.id]);
 
@@ -1727,32 +1798,54 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     <div style={{ fontSize: 12, color: C.textSec }}>{post.timeAgo}</div>
                 </div>
                 {(post.authorId === currentUserId || post.isGodMode) && (
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         {post.authorId !== currentUserId && post.isGodMode && (
                             <span style={{ fontSize: 10, background: '#FFD700', color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}> GOD</span>
+                        )}
+                        {post.authorId === currentUserId && !editing && (
+                            <button onClick={() => { setEditing(true); setEditContent(displayContent || ''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 14 }} title="Edit post">✎</button>
                         )}
                         <button onClick={() => onDelete(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 16 }}></button>
                     </div>
                 )}
             </div>
-            {post.content && (
+            {editing ? (
+                <div style={{ padding: '0 12px 12px' }}>
+                    <textarea
+                        value={editContent}
+                        onChange={e => setEditContent(e.target.value)}
+                        style={{ width: '100%', minHeight: 60, padding: 8, borderRadius: 8, border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 15, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
+                    />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
+                        <button onClick={() => setEditing(false)} style={{ padding: '6px 16px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>Cancel</button>
+                        <button onClick={async () => {
+                            try {
+                                const { error } = await supabase.from('social_posts').update({ content: editContent.trim() }).eq('id', post.id).eq('author_id', currentUserId);
+                                if (error) throw error;
+                                setDisplayContent(editContent.trim());
+                                setEditing(false);
+                                toast.success('Post updated');
+                            } catch (e) { toast.error('Could not update post'); console.error('[Social] Edit error:', e); }
+                        }} disabled={!editContent.trim()} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: editContent.trim() ? 1 : 0.5 }}>Save</button>
+                    </div>
+                </div>
+            ) : post.content && (
                 <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>
                     {(() => {
                         // For link-type posts, strip URLs from displayed content (SmarterPoker-style)
-                        let displayContent = post.content;
+                        let displayText = displayContent;
                         if (post.contentType === 'link' || post.contentType === 'video') {
-                            // Remove URLs from content - they'll be shown as clickable preview cards
-                            displayContent = displayContent
-                                .replace(/https?:\/\/[^\s]+/gi, '')  // Remove http/https URLs
-                                .replace(/🔗\s*/g, '')                // Remove link emoji prefix
+                            displayText = displayText
+                                .replace(/https?:\/\/[^\s]+/gi, '')
+                                .replace(/🔗\s*/g, '')
                                 .trim();
                         }
 
                         // If content is empty after stripping URL, don't render this block
-                        if (!displayContent) return null;
+                        if (!displayText) return null;
 
                         // Render with @mention highlighting
-                        return displayContent.split(/(@\w+)/g).map((part, i) =>
+                        return displayText.split(/(@\w+)/g).map((part, i) =>
                             part.startsWith('@') ?
                                 <span key={i} style={{ color: C.blue, fontWeight: 500, cursor: 'pointer' }}>{part}</span> :
                                 part
@@ -1899,7 +1992,45 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 <span style={{ cursor: 'pointer' }} onClick={handleToggleComments}>{commentCount > 0 && `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`}</span>
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
-                <button onClick={handleLike} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: liked ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}>👍 {liked ? 'Liked' : 'Like'}</button>
+                <div style={{ flex: 1, position: 'relative' }}>
+                    <button
+                        onClick={() => {
+                            if (!liked) {
+                                handleLike('like');
+                            } else {
+                                handleLike(null);
+                            }
+                        }}
+                        onMouseEnter={() => setShowReactionPicker(true)}
+                        onMouseLeave={() => setShowReactionPicker(false)}
+                        style={{ width: '100%', padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: liked ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}
+                    >{liked ? '👍 Liked' : '👍 Like'}</button>
+                    {showReactionPicker && (
+                        <div
+                            onMouseEnter={() => setShowReactionPicker(true)}
+                            onMouseLeave={() => setShowReactionPicker(false)}
+                            style={{
+                                position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
+                                background: C.card, borderRadius: 24, padding: '6px 8px', boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+                                display: 'flex', gap: 4, zIndex: 10, border: `1px solid ${C.border}`
+                            }}
+                        >
+                            {[['like','👍'],['love','❤️'],['haha','😂'],['wow','😮'],['sad','😢'],['angry','😡']].map(([type, emoji]) => (
+                                <button
+                                    key={type}
+                                    onClick={(e) => { e.stopPropagation(); handleLike(type); setShowReactionPicker(false); }}
+                                    style={{
+                                        background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: '4px 6px',
+                                        borderRadius: 8, transition: 'transform 0.15s',
+                                    }}
+                                    onMouseEnter={e => e.target.style.transform = 'scale(1.3)'}
+                                    onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                                    title={type}
+                                >{emoji}</button>
+                            ))}
+                        </div>
+                    )}
+                </div>
                 <button onClick={handleToggleComments} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
                 <button
                     onClick={() => {
@@ -2050,8 +2181,27 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         <Avatar src={currentUserAvatar} name={currentUserName} size={28} />
                         <input 
                             value={newComment} 
-                            onChange={e => setNewComment(e.target.value)} 
-                            onKeyPress={e => e.key === 'Enter' && handleSubmitComment()} 
+                            onChange={e => {
+                                setNewComment(e.target.value);
+                                // Broadcast typing indicator
+                                if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+                                try {
+                                    const ch = supabase.channel('social-feed');
+                                    ch.send({ type: 'broadcast', event: 'typing', payload: {
+                                        post_id: post.id, user_id: currentUserId,
+                                        name: currentUserName, avatar_url: currentUserAvatar, isTyping: true
+                                    }}).catch(() => {});
+                                } catch {}
+                                typingDebounceRef.current = setTimeout(() => {
+                                    try {
+                                        supabase.channel('social-feed').send({ type: 'broadcast', event: 'typing', payload: {
+                                            post_id: post.id, user_id: currentUserId,
+                                            name: currentUserName, avatar_url: currentUserAvatar, isTyping: false
+                                        }}).catch(() => {});
+                                    } catch {}
+                                }, 3000);
+                            }}
+                            onKeyDown={e => e.key === 'Enter' && handleSubmitComment()} 
                             placeholder={replyingTo ? `Reply to ${replyingTo.name}...` : "Write a comment..."} 
                             style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} 
                             autoFocus={!!replyingTo}
@@ -2127,7 +2277,7 @@ function ChatWindow({ chat, messages, currentUserId, onSend, onClose }) {
                 <div ref={endRef} />
             </div>
             <div style={{ padding: 8, borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8 }}>
-                <input value={text} onChange={e => setText(e.target.value)} onKeyPress={e => e.key === 'Enter' && send()} placeholder="Aa" style={{ flex: 1, padding: '6px 12px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} />
+                <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Aa" style={{ flex: 1, padding: '6px 12px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} />
                 <button onClick={send} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.blue, fontSize: 16 }}>➤</button>
             </div>
         </div>
@@ -4587,7 +4737,13 @@ function SocialMediaPage() {
                 if (payload.new && payload.new.post_id) {
                     // Skip self-comment events — handled optimistically in PostCard.handleSubmitComment
                     if (payload.new.author_id === user.id) return;
-                    eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: payload.new.post_id }, 'SocialRealtime');
+                    eventBus.emit('SOCIAL_COMMENT_UPDATE', {
+                        postId: payload.new.post_id,
+                        commentId: payload.new.id,
+                        content: payload.new.content,
+                        authorId: payload.new.author_id,
+                        parentId: payload.new.parent_id || null
+                    }, 'SocialRealtime');
                 }
             })
             .subscribe();

@@ -18,6 +18,7 @@ import Card from '../../../src/components/training/Card';
 import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
 
 
+const DAILY_CHALLENGE_DIAMOND_REWARD = 25;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COUNTDOWN TIMER
@@ -464,7 +465,7 @@ export default function DailyChallengePage() {
                   fontFamily: "'Orbitron', monospace",
                 }}
               >
-                25
+                {DAILY_CHALLENGE_DIAMOND_REWARD}
               </div>
               <div
                 style={{
@@ -849,7 +850,7 @@ export default function DailyChallengePage() {
                             }}
                           >
                             <div style={{ fontSize: 13, fontWeight: 800, color: '#eab308' }}>
-                              Perfect Score! +25 Diamonds
+                              Perfect Score! +{DAILY_CHALLENGE_DIAMOND_REWARD} Diamonds
                             </div>
                           </motion.div>
                         )}
@@ -978,7 +979,7 @@ export default function DailyChallengePage() {
                 </div>
                 <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
                   A new solver-verified GTO spot every day at midnight UTC. Answer correctly to
-                  extend your streak and earn 25 diamonds. Compete with players worldwide for the
+                  extend your streak and earn {DAILY_CHALLENGE_DIAMOND_REWARD} diamonds. Compete with players worldwide for the
                   fastest correct answer on the daily leaderboard.
                 </p>
               </div>

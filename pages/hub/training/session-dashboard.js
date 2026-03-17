@@ -400,9 +400,16 @@ function CoachingCard({ session }) {
   React.useEffect(() => {
     if (!session) return;
     const cacheKey = `coaching-${session.id || session.game_id || 'latest'}`;
+    const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
     try {
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) { setCoaching(JSON.parse(cached)); return; }
+      const raw = sessionStorage.getItem(cacheKey);
+      if (raw) {
+        const { data, ts } = JSON.parse(raw);
+        if (data && ts && (Date.now() - ts < CACHE_TTL_MS)) {
+          setCoaching(data);
+          return;
+        }
+      }
     } catch {}
 
     setLoadingCoach(true);
@@ -429,7 +436,7 @@ function CoachingCard({ session }) {
       .then(data => {
         if (data?.success && data.coaching) {
           setCoaching(data.coaching);
-          try { sessionStorage.setItem(cacheKey, JSON.stringify(data.coaching)); } catch {}
+          try { sessionStorage.setItem(cacheKey, JSON.stringify({ data: data.coaching, ts: Date.now() })); } catch {}
         } else { setError(true); }
       })
       .catch(() => setError(true))
@@ -567,6 +574,7 @@ export default function SessionDashboard() {
 
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [timeRange, setTimeRange] = useState('all'); // 'week' | 'month' | 'all'
 
   // Fetch sessions from Supabase
@@ -592,11 +600,9 @@ export default function SessionDashboard() {
           setSessions(allSessions.filter((s) => (s.game_id || s.gameId) !== 'nodelocking_profile'));
         }
       } catch (e) {
-        console.warn('[Dashboard] Fetch failed, using mock data');
-        // Provide mock data for UI development
+        console.warn('[Dashboard] Fetch failed:', e.message);
         if (!cancelled) {
-          const mockSessions = generateMockSessions();
-          setSessions(mockSessions);
+          setFetchError('Unable to load session data. Please check your connection.');
         }
       }
       if (!cancelled) setLoading(false);
@@ -773,6 +779,39 @@ export default function SessionDashboard() {
               </button>
             ))}
           </div>
+
+          {/* Error State */}
+          {fetchError && (
+            <div style={{
+              padding: '16px 20px',
+              borderRadius: 12,
+              background: 'rgba(239,68,68,0.06)',
+              border: '1px solid rgba(239,68,68,0.15)',
+              marginBottom: 16,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}>
+              <div style={{ fontSize: 12, color: '#f87171' }}>{fetchError}</div>
+              <button
+                onClick={() => { setFetchError(null); setLoading(true); window.location.reload(); }}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 6,
+                  border: '1px solid rgba(239,68,68,0.2)',
+                  background: 'rgba(239,68,68,0.08)',
+                  color: '#f87171',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           {loading ? (
             <div style={{ marginTop: 24 }}>
@@ -966,31 +1005,3 @@ export default function SessionDashboard() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MOCK DATA GENERATOR (fallback when API unavailable)
-// ═══════════════════════════════════════════════════════════════════════════
-
-function generateMockSessions() {
-  const games = [
-    'GTO Preflop Trainer',
-    'Pot Odds Quiz',
-    'Position Awareness',
-    'ICM Endgame',
-    'Bluff Catcher Drill',
-    'Play Mode Simulation',
-    'Range Construction',
-  ];
-
-  return Array.from({ length: 30 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - Math.floor(i * 1.2));
-    return {
-      game_id: games[i % games.length].toLowerCase().replace(/ /g, '_'),
-      game_name: games[i % games.length],
-      accuracy: 45 + Math.floor(Math.random() * 50),
-      hands_played: 5 + Math.floor(Math.random() * 20),
-      total_ev_loss: Math.random() * 8,
-      created_at: d.toISOString(),
-    };
-  });
-}

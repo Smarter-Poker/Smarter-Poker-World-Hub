@@ -267,6 +267,7 @@ export default function PerformanceHeatmapPage() {
   const router = useRouter();
   useTrainingBus('performance-heatmap');
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [gridData, setGridData] = useState({});
   const [selectedCell, setSelectedCell] = useState(null);
   const [timeFilter, setTimeFilter] = useState('all');
@@ -279,6 +280,7 @@ export default function PerformanceHeatmapPage() {
       return;
     }
     try {
+      setFetchError(null);
       const res = await authedFetch(`/api/training/get-sessions?limit=500`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -287,6 +289,7 @@ export default function PerformanceHeatmapPage() {
       }
     } catch (e) {
       console.error('[Heatmap] Fetch error:', e);
+      setFetchError('Unable to load heatmap data. Please check your connection.');
     }
     setLoading(false);
   }, [timeFilter]);
@@ -613,6 +616,39 @@ export default function PerformanceHeatmapPage() {
               </motion.button>
             ))}
           </div>
+
+          {/* Error State */}
+          {fetchError && (
+            <div style={{
+              padding: '16px 20px',
+              borderRadius: 12,
+              background: 'rgba(239,68,68,0.06)',
+              border: '1px solid rgba(239,68,68,0.15)',
+              marginBottom: 16,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}>
+              <div style={{ fontSize: 12, color: '#f87171' }}>{fetchError}</div>
+              <button
+                onClick={() => { setLoading(true); fetchData(); }}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 6,
+                  border: '1px solid rgba(239,68,68,0.2)',
+                  background: 'rgba(239,68,68,0.08)',
+                  color: '#f87171',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           {/* Quick Summary — Strongest & Weakest */}
           {Object.keys(gridData).length > 0 && (() => {
