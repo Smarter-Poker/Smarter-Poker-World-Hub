@@ -393,14 +393,17 @@ export default function FlashcardsPage() {
   const stats = useMemo(() => {
     let newCount = 0,
       learning = 0,
-      mastered = 0;
+      mastered = 0,
+      dueCount = 0;
+    const now = Date.now();
     CARDS.forEach((c) => {
       const s = sm2Data[c.id];
-      if (!s) newCount++;
+      if (!s) { newCount++; dueCount++; }
       else if (s.interval >= 21) mastered++;
       else learning++;
+      if (s && s.nextReview <= now) dueCount++;
     });
-    return { newCount, learning, mastered };
+    return { newCount, learning, mastered, dueCount };
   }, [sm2Data]);
 
   const current = sessionDeck[currentIdx];
@@ -498,6 +501,13 @@ export default function FlashcardsPage() {
               Mastered
             </div>
           </div>
+          <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#f97316' }}>{stats.dueCount}</div>
+            <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+              Due
+            </div>
+          </div>
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 500, margin: '0 auto' }}>
@@ -588,6 +598,20 @@ export default function FlashcardsPage() {
                   <span style={{ fontSize: 10, color: '#475569' }}>
                     {currentIdx + 1}/{sessionDeck.length} Today
                   </span>
+                  {(() => {
+                    const s = sm2Data[current.id];
+                    let label = 'New', bg = 'rgba(59,130,246,0.1)', clr = '#3b82f6';
+                    if (s) {
+                      if (s.interval >= 21) { label = 'Mastered'; bg = 'rgba(34,197,94,0.1)'; clr = '#4ade80'; }
+                      else if (s.interval >= 3) { label = 'Review'; bg = 'rgba(249,115,22,0.1)'; clr = '#f97316'; }
+                      else { label = 'Learning'; bg = 'rgba(251,191,36,0.1)'; clr = '#fbbf24'; }
+                    }
+                    return (
+                      <span style={{ padding: '2px 6px', borderRadius: 4, background: bg, color: clr, fontSize: 8, fontWeight: 700, textTransform: 'uppercase' }}>
+                        {label}
+                      </span>
+                    );
+                  })()}
                 </div>
                 {!flipped ? (
                   <>

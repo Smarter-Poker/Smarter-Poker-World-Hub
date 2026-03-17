@@ -782,6 +782,64 @@ export default function SessionDashboard() {
             <>
               {/* Coach's Notes — AI Coaching Card */}
               {latestSession && <CoachingCard session={latestSession} />}
+
+              {/* Progress Report — per-game accuracy breakdown */}
+              {filteredSessions.length >= 3 && (() => {
+                const gameMap = {};
+                filteredSessions.forEach(s => {
+                  const gId = s.game_id || s.gameId || 'unknown';
+                  const label = gId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                  if (!gameMap[label]) gameMap[label] = { hands: 0, correct: 0 };
+                  const q = Number(s.total_questions || s.hands_played || 0);
+                  const c = Number(s.correct_count || s.correct_answers || 0);
+                  if (q > 0) { gameMap[label].hands += q; gameMap[label].correct += c; }
+                });
+                const entries = Object.entries(gameMap)
+                  .filter(([, v]) => v.hands >= 3)
+                  .map(([name, v]) => ({ name, acc: Math.round((v.correct / v.hands) * 100), hands: v.hands }))
+                  .sort((a, b) => b.acc - a.acc);
+                if (entries.length < 2) return null;
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{
+                      marginBottom: 16,
+                      padding: '14px 16px',
+                      borderRadius: 12,
+                      background: 'rgba(0,0,0,0.25)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                  >
+                    <div style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      color: '#00d4ff',
+                      textTransform: 'uppercase',
+                      letterSpacing: 1,
+                      marginBottom: 10,
+                    }}>Progress Report</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {entries.slice(0, 5).map((e, i) => (
+                        <div key={e.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: 6, background: i === 0 ? 'rgba(34,197,94,0.04)' : i === entries.length - 1 ? 'rgba(239,68,68,0.04)' : 'transparent' }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', flex: 1 }}>
+                            {i === 0 && <span style={{ color: '#22c55e', marginRight: 4 }}>▲</span>}
+                            {i === entries.slice(0, 5).length - 1 && entries.length > 1 && <span style={{ color: '#ef4444', marginRight: 4 }}>▼</span>}
+                            {e.name}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 10, color: '#64748b' }}>{e.hands}h</span>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: e.acc >= 80 ? '#4ade80' : e.acc >= 60 ? '#fbbf24' : '#f87171' }}>
+                              {e.acc}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                );
+              })()}
+
               {/* Stat Tiles */}
               {stats && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
