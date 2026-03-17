@@ -8,6 +8,8 @@ import { Gem, Shield, Ticket, Gift, Star, Zap } from 'lucide-react';
 import HexButton from '../ui/HexButton';
 import MetalFrame from '../ui/MetalFrame';
 import { busEmit } from '../../engine/EventBus';
+import { supabase } from '../../lib/supabase';
+import { getAuthUser } from '../../lib/authUtils';
 
 // Prize pool configuration
 const PRIZES = [
@@ -75,13 +77,39 @@ export default function PrizeWheel({
         }, 4000);
     }, [isSpinning, rotation, streakMultiplier]);
 
-    const handleClaim = () => {
+    const handleClaim = async () => {
         if (onComplete && result) {
             // Emit EventBus for diamond rewards
             if (result.reward.type === 'diamonds' && result.reward.amount > 0) {
                 busEmit.diamondsEarned(result.reward.amount, 'Prize Wheel Spin');
                 busEmit.celebration('confetti');
             }
+
+            // Persist non-diamond items (streak_shield, arcade_ticket, mystery_box)
+            if (result.reward.type !== 'diamonds') {
+                try {
+                    const user = getAuthUser();
+                    if (user) {
+                        await supabase.rpc('exec_sql', {
+                            query: `INSERT INTO trivia_user_items (user_id, item_type, quantity)
+                                    VALUES ('${user.id}', '${result.reward.type}', ${result.reward.amount})
+                                    ON CONFLICT (user_id, item_type)
+                                    DO UPDATE SET quantity = trivia_user_items.quantity + ${result.reward.amount},
+                                                 updated_at = now()`
+                        }).then(() => {}).catch(() => {
+                            // Fallback: direct upsert (if exec_sql unavailable)
+                            supabase.from('trivia_user_items').upsert({
+                                user_id: user.id,
+                                item_type: result.reward.type,
+                                quantity: result.reward.amount
+                            }, { onConflict: 'user_id,item_type' }).then(() => {}).catch(() => {});
+                        });
+                    }
+                } catch (e) {
+                    console.warn('[PrizeWheel] Failed to persist item:', e);
+                }
+            }
+
             onComplete(result.reward);
         }
     };

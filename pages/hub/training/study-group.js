@@ -281,6 +281,7 @@ export default function StudyGroupRoom() {
           </div>
         )}
       </div>
+      <ConnectionToast />
     </PageTransition>
   );
 }

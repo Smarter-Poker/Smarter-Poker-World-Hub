@@ -391,6 +391,7 @@ export default function HandLabV2() {
           </div>
         </div>
       </div>
+      <ConnectionToast />
     </PageTransition>
   );
 }
