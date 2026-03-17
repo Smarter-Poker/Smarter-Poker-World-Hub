@@ -329,6 +329,8 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
             if (json.comment) {
                 setComments(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);
                 setCommentCount(prev => prev + 1);
+                // Notify other views/tabs of new comment
+                busEmit.socialCommentAdded(post.id, currentUserId);
             }
             setCommentText('');
         } catch (e) { console.error('Submit comment error:', e); }
@@ -513,6 +515,10 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
                                 body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: type })
+                            }).then(() => {
+                                // Notify other views/tabs of reaction change
+                                const added = !isSameReaction;
+                                busEmit.socialPostLiked(post.id, currentUserId, { added, reactionType: type });
                             }).catch(() => {});
                         }
                     }}

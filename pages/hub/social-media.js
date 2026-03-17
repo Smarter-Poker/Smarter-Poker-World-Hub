@@ -5513,7 +5513,10 @@ function SocialMediaPage() {
                     .eq('post_id', postId)
                     .eq('user_id', user.id);
                 if (error) throw new Error(error.message);
-                
+
+                // Notify other views/tabs of unlike
+                busEmit.socialPostLiked(postId, user.id, { added: false, reactionType: null });
+
                 // Sync denormalized like_count column (fire-and-forget)
                 supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' }).catch(async () => {
                     try {
@@ -5536,7 +5539,10 @@ function SocialMediaPage() {
                         reaction_type: type || 'like'
                     });
                     if (error) throw new Error(error.message);
-                    
+
+                    // Notify other views/tabs of new like
+                    busEmit.socialPostLiked(postId, user.id, { added: true, reactionType: type || 'like' });
+
                     // Sync denormalized like_count column (fire-and-forget)
                     supabase.rpc('increment_post_count', { p_post_id: postId, p_field: 'like_count' }).catch(async () => {
                         try {
