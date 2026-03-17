@@ -22,7 +22,7 @@ function getSupabase() {
 
 export default async function handler(req, res) {
   try {
-      if (await applyRateLimit(req, res)) return;
+      if (!applyRateLimit(req, res, 'club-arena/marketplace-items')) return;
       if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
 
       const token = req.headers.authorization?.replace('Bearer ', '');

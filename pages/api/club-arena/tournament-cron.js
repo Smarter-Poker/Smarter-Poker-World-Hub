@@ -18,7 +18,7 @@ const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
   try {
       // Rate limit
-      if (await applyRateLimit(req, res)) return;
+      if (!applyRateLimit(req, res, 'club-arena/tournament-cron')) return;
       // Only allow GET (cron) or POST with secret
       const cronSecret = process.env.CRON_SECRET;
       const authHeader = req.headers.authorization;

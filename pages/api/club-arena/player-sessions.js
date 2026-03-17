@@ -22,7 +22,7 @@ const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 export default async function handler(req, res) {
   try {
       // Rate limit
-      if (await applyRateLimit(req, res)) return;
+      if (!applyRateLimit(req, res, 'club-arena/player-sessions')) return;
       if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
       const token = req.headers.authorization?.replace('Bearer ', '');

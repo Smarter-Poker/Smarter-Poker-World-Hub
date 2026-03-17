@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   const supabaseAdmin = getSupabase(); // FIX: was undefined — alias to getSupabase() for settlement-lock, audit, velocity, notify
   try {
       // Rate limit
-      if (await applyRateLimit(req, res)) return;
+      if (!applyRateLimit(req, res, 'club-arena/player-retention')) return;
       if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
       const token = req.headers.authorization?.replace('Bearer ', '');
