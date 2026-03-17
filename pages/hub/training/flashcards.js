@@ -399,8 +399,12 @@ export default function FlashcardsPage() {
       return stats.nextReview <= now; // Due for review
     });
 
-    // Shuffle deck
-    setSessionDeck(deck.sort(() => Math.random() - 0.5));
+    // BUG-09 FIX: Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    setSessionDeck(deck);
     setCurrentIdx(0);
     setFlipped(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps

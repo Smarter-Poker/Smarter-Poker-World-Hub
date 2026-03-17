@@ -559,6 +559,7 @@ export default function EndlessModePage() {
         const finalIndex = currentIndexRef.current;
 
         try {
+            let actualAwarded = 0;
             // Phase 1: Award diamonds (only if not already awarded)
             if (savePhaseRef.current < 1) {
                 // Clamp to daily cap
@@ -575,6 +576,7 @@ export default function EndlessModePage() {
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsEarned(cappedDiamonds, 'Endless Mode');
+                    actualAwarded = cappedDiamonds;
                 }
                 savePhaseRef.current = 1;
             }
@@ -635,7 +637,7 @@ export default function EndlessModePage() {
                     score: finalStreak * 100,
                     correct_count: finalStreak,
                     total_questions: finalStreak + 1,
-                    diamonds_earned: finalDiamonds,
+                    diamonds_earned: actualAwarded,
                     play_date: today
                 });
                 savePhaseRef.current = 4;

@@ -17,21 +17,9 @@ import useWakeLock from '../../src/hooks/useWakeLock';
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../src/lib/commander/commanderFetch';
+import { formatPhone, titleCase } from '../../src/lib/commander/formatters';
 
-// Format phone to 555-555-5555 (internal display only)
-function formatPhone(raw) {
-  if (!raw) return '';
-  const d = raw.replace(/\D/g, '');
-  const digits = d.length === 11 && d[0] === '1' ? d.slice(1) : d;
-  if (digits.length !== 10) return raw;
-  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
-}
-
-// Capitalize first letter of every word
-function titleCase(str) {
-  if (!str) return '';
-  return str.replace(/\b\w/g, c => c.toUpperCase());
-}
+// formatPhone, titleCase imported from '@/lib/commander/formatters'
 
 // Live phone formatter: adds dashes as user types (XXX-XXX-XXXX)
 function liveFormatPhone(value) {

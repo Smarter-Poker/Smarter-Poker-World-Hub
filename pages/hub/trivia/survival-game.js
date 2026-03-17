@@ -654,6 +654,7 @@ export default function SurvivalGamePage() {
         if (!userId) return;
 
         try {
+            let actualAwarded = 0;
             // Phase 1: Award diamonds (only if not already awarded)
             if (savePhaseRef.current < 1) {
                 // Clamp to daily cap
@@ -672,6 +673,7 @@ export default function SurvivalGamePage() {
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsEarned(cappedDiamonds, `Survival Level ${level}`);
                     busEmit.celebration('confetti');
+                    actualAwarded = cappedDiamonds;
                 }
                 savePhaseRef.current = 1;
             }
@@ -726,7 +728,7 @@ export default function SurvivalGamePage() {
                     score: levelCorrect * 100,
                     correct_count: levelCorrect,
                     total_questions: QUESTIONS_PER_LEVEL,
-                    diamonds_earned: diamonds,
+                    diamonds_earned: actualAwarded,
                     play_date: today
                 });
                 savePhaseRef.current = 4;

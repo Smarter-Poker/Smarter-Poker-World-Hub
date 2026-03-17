@@ -364,6 +364,7 @@ export default function MixedModePage() {
         setDiamondsEarned(actualDiamonds);
 
         try {
+            let actualAwarded = 0;
             // Phase 1: Award diamonds (only if not already awarded)
             if (savePhaseRef.current < 1) {
                 // Clamp to daily cap
@@ -381,6 +382,7 @@ export default function MixedModePage() {
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                     busEmit.diamondsEarned(cappedDiamonds, 'Mixed Mode');
                     busEmit.celebration('confetti');
+                    actualAwarded = cappedDiamonds;
                 }
                 savePhaseRef.current = 1;
             }
@@ -470,7 +472,7 @@ export default function MixedModePage() {
                     score: actualCorrect * 100,
                     correct_count: actualCorrect,
                     total_questions: questions.length,
-                    diamonds_earned: actualDiamonds,
+                    diamonds_earned: actualAwarded,
                     play_date: new Date().toISOString().split('T')[0]
                 });
                 savePhaseRef.current = 4;

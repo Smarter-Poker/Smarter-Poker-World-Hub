@@ -5,13 +5,18 @@
 import { createClient } from '@supabase/supabase-js';
 import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
 
-// Safe fallbacks prevent crashes when this module is tree-shaken into the client bundle
-// (CommanderLayout imports constants from this file). Server-only env vars like
-// SUPABASE_SERVICE_ROLE_KEY are undefined in the browser.
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
-);
+// Lazy getter — prevents SSR crashes if client components import constants from this file.
+// Server-only env vars like SUPABASE_SERVICE_ROLE_KEY are undefined in the browser.
+let _supabase;
+function getSupabase() {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+    );
+  }
+  return _supabase;
+}
 
 /**
  * Get the authenticated user from request
@@ -62,7 +67,7 @@ export async function requireStaff(req, res, venueId, allowedRoles = null) {
   const user = await requireAuth(req, res);
   if (!user) return null;
 
-  const { data: staff, error } = await supabase
+  const { data: staff, error } = await getSupabase()
     .from('commander_staff')
     .select('*')
     .eq('venue_id', venueId)
@@ -121,7 +126,7 @@ export async function requireFloor(req, res, venueId) {
  * @returns {boolean} - True if user is staff somewhere
  */
 export async function isStaffAnywhere(userId) {
-  const { count, error } = await supabase
+  const { count, error } = await getSupabase()
     .from('commander_staff')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
@@ -136,7 +141,7 @@ export async function isStaffAnywhere(userId) {
  * @returns {object[]} - Array of venue staff records
  */
 export async function getStaffVenues(userId) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('commander_staff')
     .select(`
       *,
@@ -165,7 +170,7 @@ export async function getStaffVenues(userId) {
  * @returns {object|null} - Staff object or null
  */
 export async function verifyPin(venueId, pinCode) {
-  const { data: staff, error } = await supabase
+  const { data: staff, error } = await getSupabase()
     .from('commander_staff')
     .select(`
       *,
@@ -217,7 +222,7 @@ export async function verifyStaffSession(req) {
       return { error: { status: 401, code: 'SESSION_EXPIRED', message: 'PIN session expired — please re-enter your PIN' } };
     }
 
-    const { data: staff, error: staffError } = await supabase
+    const { data: staff, error: staffError } = await getSupabase()
       .from('commander_staff')
       .select('id, venue_id, role, is_active')
       .eq('id', sessionData.id)
@@ -234,7 +239,7 @@ export async function verifyStaffSession(req) {
   // Path 2: Owner login — session contains `user_id` + `role` + `venue_id`
   if (sessionData.user_id && sessionData.venue_id) {
     // First try: look up commander_staff row by user_id
-    const { data: staff } = await supabase
+    const { data: staff } = await getSupabase()
       .from('commander_staff')
       .select('id, venue_id, role, is_active')
       .eq('user_id', sessionData.user_id)
@@ -248,7 +253,7 @@ export async function verifyStaffSession(req) {
 
     // Fallback for owners: verify via subscription (owners may not have commander_staff rows)
     if (sessionData.role === 'owner') {
-      const { data: sub } = await supabase
+      const { data: sub } = await getSupabase()
         .from('commander_subscriptions')
         .select('id, venue_id, owner_id, status')
         .eq('owner_id', sessionData.user_id)

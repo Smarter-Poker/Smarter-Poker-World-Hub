@@ -3106,7 +3106,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                             },
                             body: JSON.stringify({ page_id: page.id, locations: unique }),
-                        }).catch(() => { }).catch(() => {});
+                        }).catch(() => { });
                     }
                 } catch (geoErr) {
                     console.warn('[ClubPage] Background geocoding failed:', geoErr);
@@ -5030,6 +5030,9 @@ function SocialMediaPage() {
     const pullStartY = useRef(0);
 
     // Pull-to-refresh: touch gesture at top of page
+    // BUG-01 FIX: Use ref to avoid stale closure — effect registers once on mount
+    const pullRefreshStateRef = useRef(pullRefreshState);
+    useEffect(() => { pullRefreshStateRef.current = pullRefreshState; }, [pullRefreshState]);
     useEffect(() => {
         let startY = 0;
         const onTouchStart = (e) => {
@@ -5039,10 +5042,10 @@ function SocialMediaPage() {
         const onTouchMove = (e) => {
             if (!startY || window.scrollY > 10) return;
             const dy = e.touches[0].clientY - startY;
-            if (dy > 60 && pullRefreshState === 'idle') setPullRefreshState('pulling');
+            if (dy > 60 && pullRefreshStateRef.current === 'idle') setPullRefreshState('pulling');
         };
         const onTouchEnd = async () => {
-            if (pullRefreshState === 'pulling') {
+            if (pullRefreshStateRef.current === 'pulling') {
                 setPullRefreshState('refreshing');
                 try { await loadFeed(0, false); } catch {}
                 setPullRefreshState('idle');
@@ -5057,7 +5060,7 @@ function SocialMediaPage() {
             window.removeEventListener('touchmove', onTouchMove);
             window.removeEventListener('touchend', onTouchEnd);
         };
-    }, [pullRefreshState]);
+    }, []);
 
     //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
@@ -5581,26 +5584,29 @@ function SocialMediaPage() {
     }, [showNotifications, user]);
 
     //  AUTO-MARK NOTIFICATIONS AS READ when dropdown opens
+    // BUG-04 FIX: Guard against unnecessary re-fires when notifications arrive while dropdown is open
+    const markReadFiredRef = useRef(false);
     useEffect(() => {
-        if (showNotifications && notifications.length > 0 && user) {
-            const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
-            if (unreadIds.length > 0) {
-                // Mark all as read IMMEDIATELY (with error boundary)
-                (async () => {
-                    try {
-                        await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
-                        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                    } catch (e) {
-                        console.error('[Social] Notification mark-read failed:', e);
-                    }
-                    // Sync: tell other tabs + header to update badge count
-                    // Fires regardless of DB success — header should re-fetch to get accurate count
-                    broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
-                    eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadIds.length }, 'SocialNotifDropdown');
-                    busEmit.dataMutated('notifications');
-                })();
+        // Reset the guard when dropdown closes
+        if (!showNotifications) { markReadFiredRef.current = false; return; }
+        if (!user || notifications.length === 0) return;
+        const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+        if (unreadIds.length === 0) return; // Nothing to mark — skip entirely
+        if (markReadFiredRef.current) return; // Already fired this open cycle
+        markReadFiredRef.current = true;
+        // Mark all as read IMMEDIATELY (with error boundary)
+        (async () => {
+            try {
+                await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+                setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+            } catch (e) {
+                console.error('[Social] Notification mark-read failed:', e);
             }
-        }
+            // Sync: tell other tabs + header to update badge count
+            broadcastSync('smarter_poker_notif_sync', 'refresh_notifications');
+            eventBus.emit(EventType.NOTIFICATIONS_READ, { count: unreadIds.length }, 'SocialNotifDropdown');
+            busEmit.dataMutated('notifications');
+        })();
     }, [showNotifications, notifications.length, user]);
 
     const loadFeed = async (offset = 0, append = false) => {
@@ -5653,7 +5659,7 @@ function SocialMediaPage() {
 
             // Define Supabase credentials for native fetch (needed for both posts and profiles)
             const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-            const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
             // Use native fetch directly to Supabase REST API
             try {
@@ -5980,7 +5986,7 @@ function SocialMediaPage() {
                     id: json.data?.id || Date.now(), authorId: user.id, content, contentType: type,
                     mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
                     reactions: [],
-                    timeAgo: 'Just now', isLiked: false, justPosted: true,
+                    timeAgo: 'Just now', isLiked: false, isBookmarked: false, justPosted: true,
                     // Link metadata for ArticleCard rendering
                     link_url: linkPreview?.url || null,
                     link_title: linkPreview?.title || null,
@@ -6039,7 +6045,7 @@ function SocialMediaPage() {
                 id: data.id, authorId: user.id, content, contentType: type,
                 mediaUrls: urls, likeCount: 0, commentCount: 0, shareCount: 0,
                 reactions: [],
-                timeAgo: 'Just now', isLiked: false, justPosted: true, // Mark as just posted for highlight
+                timeAgo: 'Just now', isLiked: false, isBookmarked: false, justPosted: true, // Mark as just posted for highlight
                 // Link metadata for ArticleCard rendering (parity with club page posts + loadFeed)
                 link_url: linkPreview?.url || null,
                 link_title: linkPreview?.title || null,

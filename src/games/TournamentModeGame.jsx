@@ -299,8 +299,12 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
             const opp = getSimulatedOpponent(playerElo);
             setOpponent(opp);
 
-            // Select random challenges for this match
-            const shuffled = [...TOURNAMENT_CHALLENGES].sort(() => Math.random() - 0.5);
+            // BUG-12 FIX: Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
+            const shuffled = [...TOURNAMENT_CHALLENGES];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
             matchRef.current = shuffled.slice(0, ROUNDS_PER_MATCH);
 
             setTimeout(() => {

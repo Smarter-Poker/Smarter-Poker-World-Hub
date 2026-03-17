@@ -24,22 +24,11 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import { getVenueId, getStaffData } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 import { useConfirmAction } from "../../../src/components/commander/shared/ConfirmModal";
+import { formatPhone, titleCase } from '../../../src/lib/commander/formatters';
+import { lighten, darken } from '../../../src/lib/commander/colorUtils';
 
-// Format phone to 555-555-5555 (internal display only)
-function formatPhone(raw) {
-  if (!raw) return '';
-  const d = raw.replace(/\D/g, '');
-  // Strip leading country code '1' if 11 digits
-  const digits = d.length === 11 && d[0] === '1' ? d.slice(1) : d;
-  if (digits.length !== 10) return raw; // fallback: return as-is if not 10 digits
-  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
-}
-
-// Capitalize first letter of every word
-function titleCase(str) {
-  if (!str) return '';
-  return str.replace(/\b\w/g, c => c.toUpperCase());
-}
+// formatPhone, titleCase imported from '@/lib/commander/formatters'
+// lighten, darken imported from '@/lib/commander/colorUtils'
 
 const GAMES_PER_PAGE = 4;
 const ROTATE_INTERVAL = 10000;
@@ -1590,22 +1579,7 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
   );
 }
 
-// ── STYLE HELPERS ──────────────────────────────────────────────────
-function lighten(hex, percent) {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = Math.min(255, (num >> 16) + Math.round(2.55 * percent));
-  const g = Math.min(255, ((num >> 8) & 0x00FF) + Math.round(2.55 * percent));
-  const b = Math.min(255, (num & 0x0000FF) + Math.round(2.55 * percent));
-  return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
-}
-
-function darken(hex, percent) {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = Math.max(0, (num >> 16) - Math.round(2.55 * percent));
-  const g = Math.max(0, ((num >> 8) & 0x00FF) - Math.round(2.55 * percent));
-  const b = Math.max(0, (num & 0x0000FF) - Math.round(2.55 * percent));
-  return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
-}
+// lighten, darken imported from '@/lib/commander/colorUtils'
 
 function makeBtn(c) {
   return {

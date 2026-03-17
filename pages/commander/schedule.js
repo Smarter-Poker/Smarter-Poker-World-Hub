@@ -19,6 +19,7 @@ import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCo
 import { busEmit } from '../../src/engine/EventBus';
 import { getStaffSession, getVenueId } from '../../src/lib/commander/clientAuth';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { titleCase } from '../../src/lib/commander/formatters';
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
@@ -76,11 +77,7 @@ const ROLE_FILTERS = [
   { value: 'dualrate', label: 'Dual Rate', color: '#0EA5E9' },
 ];
 
-// Title Case helper — capitalize first letter of every word
-function titleCase(str) {
-  if (!str) return '';
-  return str.replace(/\b\w/g, c => c.toUpperCase());
-}
+// titleCase imported from '@/lib/commander/formatters'
 
 const ROLE_COLORS = {
   owner: '#7C3AED', manager: '#2563EB', floor: '#059669',

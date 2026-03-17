@@ -94,7 +94,12 @@ const SHOT_CLOCK = 30;
 
 function generateGauntlet() {
   const qs = [];
-  const shuffled = [...GENERATORS, ...GENERATORS, ...GENERATORS].sort(() => Math.random() - 0.5);
+  // BUG-06 FIX: Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
+  const shuffled = [...GENERATORS, ...GENERATORS, ...GENERATORS];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
   for (let i = 0; i < TOTAL_Q; i++) qs.push(shuffled[i % shuffled.length]());
   return qs;
 }
@@ -663,7 +668,12 @@ export default function QuizGauntlet() {
                       { label: 'Accuracy', value: `${accuracy}%`, color: '#a855f7' },
                       {
                         label: 'Best Combo',
-                        value: `x${Math.min(4, 1 + Math.max(...history.map((_, i, a) => a.slice(0, i + 1).filter((e) => e.isCorrect).length)) * 0.5).toFixed(1)}`,
+                        // BUG-10 FIX: compute longest CONSECUTIVE correct streak, not cumulative count
+                        value: (() => {
+                          let maxStreak = 0, cur = 0;
+                          history.forEach(e => { if (e.isCorrect) { cur++; maxStreak = Math.max(maxStreak, cur); } else { cur = 0; } });
+                          return `x${Math.min(4, 1 + maxStreak * 0.5).toFixed(1)}`;
+                        })(),
                         color: '#f97316',
                       },
                     ].map((s) => (

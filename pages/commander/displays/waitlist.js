@@ -16,12 +16,10 @@ import useWakeLock from '../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../src/engine/EventBus';
 import { getVenueId, getStaffData } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
+import { titleCase } from '../../../src/lib/commander/formatters';
+import { lighten, darken } from '../../../src/lib/commander/colorUtils';
 
-// Capitalize first letter of every word
-function titleCase(str) {
-  if (!str) return '';
-  return str.replace(/\b\w/g, c => c.toUpperCase());
-}
+// titleCase imported from '@/lib/commander/formatters'
 
 const GAMES_PER_PAGE = 4;
 const ROTATE_INTERVAL = 10000;
@@ -395,19 +393,4 @@ const staffData = getStaffData();
   );
 }
 
-// ── STYLE HELPERS (same as desk.js) ────────────────────────────────
-function lighten(hex, percent) {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = Math.min(255, (num >> 16) + Math.round(2.55 * percent));
-  const g = Math.min(255, ((num >> 8) & 0x00FF) + Math.round(2.55 * percent));
-  const b = Math.min(255, (num & 0x0000FF) + Math.round(2.55 * percent));
-  return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
-}
-
-function darken(hex, percent) {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = Math.max(0, (num >> 16) - Math.round(2.55 * percent));
-  const g = Math.max(0, ((num >> 8) & 0x00FF) - Math.round(2.55 * percent));
-  const b = Math.max(0, (num & 0x0000FF) - Math.round(2.55 * percent));
-  return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
-}
+// lighten, darken imported from '@/lib/commander/colorUtils'

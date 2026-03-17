@@ -238,13 +238,24 @@ export default function SurvivalModePage() {
 
                 // Record question history for 60-day non-repeat
                 if (questions.length > 0) {
-                    const historyRecords = questions.slice(0, gameResult.correctCount + 1).map(q => ({
-                        user_id: userId,
-                        question_id: q.id,
-                        was_correct: true,
-                        seen_at: new Date().toISOString(),
-                        mode: 'survival'
-                    }));
+                    const correctQs = questions.slice(0, gameResult.correctCount);
+                    const wrongQ = questions[gameResult.correctCount]; // the question they got wrong
+                    const historyRecords = [
+                        ...correctQs.map(q => ({
+                            user_id: userId,
+                            question_id: q.id,
+                            was_correct: true,
+                            seen_at: new Date().toISOString(),
+                            mode: 'survival'
+                        })),
+                        ...(wrongQ ? [{
+                            user_id: userId,
+                            question_id: wrongQ.id,
+                            was_correct: false,
+                            seen_at: new Date().toISOString(),
+                            mode: 'survival'
+                        }] : [])
+                    ];
                     await supabase.from('trivia_user_question_history')
                         .upsert(historyRecords, { onConflict: 'user_id,question_id', ignoreDuplicates: false });
                 }

@@ -225,12 +225,19 @@ function generateDrill() {
   const s = DRILL_SCENARIOS[Math.floor(Math.random() * DRILL_SCENARIOS.length)];
   const spr = calcSPR(s.stack, s.pot);
   const cat = getSPRCategory(spr);
-  const options = ['Micro SPR', 'Low SPR', 'Medium SPR', 'High SPR', 'Very Deep']
-    .filter((o) => o !== cat.label)
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 2);
-  options.push(cat.label);
-  return { ...s, spr, cat, options: options.sort(() => Math.random() - 0.5) };
+  // BUG-08 FIX: Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
+  const wrongOptions = ['Micro SPR', 'Low SPR', 'Medium SPR', 'High SPR', 'Very Deep']
+    .filter((o) => o !== cat.label);
+  for (let i = wrongOptions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [wrongOptions[i], wrongOptions[j]] = [wrongOptions[j], wrongOptions[i]];
+  }
+  const options = [...wrongOptions.slice(0, 2), cat.label];
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+  return { ...s, spr, cat, options };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -91,7 +91,12 @@ function estimateEquity(heroCards, villainRange, boardCards = []) {
 function generateQuiz(round) {
   const deck = buildDeck();
   // Pick 2 random hero cards
-  const shuffle = [...deck].sort(() => Math.random() - 0.5);
+  // BUG-07 FIX: Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
+  const shuffle = [...deck];
+  for (let i = shuffle.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffle[i], shuffle[j]] = [shuffle[j], shuffle[i]];
+  }
   const hero = [shuffle[0], shuffle[1]];
   const isSuited = hero[0][1] === hero[1][1];
   const isPair = hero[0][0] === hero[1][0];
@@ -145,7 +150,12 @@ export default function ShortDeckTrainerPage() {
   // Random hero hand
   const randomHero = useCallback(() => {
     const deck = buildDeck();
-    const s = [...deck].sort(() => Math.random() - 0.5);
+    // BUG-07 FIX: Fisher-Yates shuffle
+    const s = [...deck];
+    for (let i = s.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [s[i], s[j]] = [s[j], s[i]];
+    }
     setHeroCards([s[0], s[1]]);
     setEquity(null);
   }, []);

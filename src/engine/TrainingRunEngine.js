@@ -393,8 +393,12 @@ class TrainingRunEngineClass {
             return null;
         }
 
-        // Shuffle questions for replay variety
-        const shuffled = [...this.questions].sort(() => Math.random() - 0.5);
+        // BUG-11 FIX: Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
+        const shuffled = [...this.questions];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
 
         return this.startRun(this.gameId, shuffled, this.difficulty, this.mode);
     }
