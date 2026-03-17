@@ -26,8 +26,10 @@ import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
+import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
+const DAILY_DIAMOND_CAP = 10;
 
 export default function EndlessModePage() {
     useTrainingBus('trivia-endless');
@@ -559,12 +561,15 @@ export default function EndlessModePage() {
         try {
             // Phase 1: Award diamonds (only if not already awarded)
             if (savePhaseRef.current < 1) {
-                if (finalDiamonds > 0) {
+                // Clamp to daily cap
+                const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'endless');
+                const cappedDiamonds = clampToCap(earnedToday, finalDiamonds, DAILY_DIAMOND_CAP);
+                if (cappedDiamonds > 0) {
                     await supabase.rpc('add_diamonds_to_balance', {
                         p_user_id: userId,
-                        p_amount: finalDiamonds,
+                        p_amount: cappedDiamonds,
                         p_type: 'endless_reward',
-                        p_description: `Endless mode — ${finalDiamonds}💎 (${finalStreak} streak)`,
+                        p_description: `Endless mode — ${cappedDiamonds}💎 (${finalStreak} streak)`,
                         p_reference_id: null
                     });
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();

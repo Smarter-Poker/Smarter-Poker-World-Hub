@@ -12,6 +12,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import { Target, BookOpen, Award, Trophy, Flame, Zap, Crown, CheckCircle, Gem, Gamepad2, Calendar, Star } from 'lucide-react';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
@@ -109,6 +110,7 @@ export default function TriviaAchievements() {
     }, []);
 
     return (
+        <TriviaErrorBoundary pageName="Achievements">
         <>
             <SEOHead
                 title="Trivia Achievements — Unlock Rewards"
@@ -220,5 +222,6 @@ export default function TriviaAchievements() {
                 </div>
             </PageTransition>
         </>
+        </TriviaErrorBoundary>
     );
 }

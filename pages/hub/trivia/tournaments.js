@@ -14,6 +14,7 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
+import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
@@ -611,6 +612,7 @@ export default function TournamentsPage() {
     const isEliminated = userEntry?.eliminated_round != null;
 
     return (
+        <TriviaErrorBoundary pageName="Tournaments">
         <PageTransition>
             <SEOHead
                 title="Trivia Tournaments — Compete For Prizes"
@@ -1759,6 +1761,7 @@ export default function TournamentsPage() {
                 }
             `}</style>
         </PageTransition>
+        </TriviaErrorBoundary>
     );
 }
 

@@ -30,8 +30,10 @@ import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
+import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
+const DAILY_DIAMOND_CAP = 10;
 
 // Level configuration: 10 levels, starting at 85%, +2% per level
 const LEVEL_CONFIG = [
@@ -654,11 +656,14 @@ export default function SurvivalGamePage() {
         try {
             // Phase 1: Award diamonds (only if not already awarded)
             if (savePhaseRef.current < 1) {
+                // Clamp to daily cap
+                const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'survival');
+                const cappedDiamonds = clampToCap(earnedToday, diamonds, DAILY_DIAMOND_CAP);
                 const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
                     p_user_id: userId,
-                    p_amount: diamonds,
+                    p_amount: cappedDiamonds,
                     p_type: 'survival_reward',
-                    p_description: `Survival Level ${level} — ${diamonds}💎`,
+                    p_description: `Survival Level ${level} — ${cappedDiamonds}💎`,
                     p_reference_id: null
                 });
                 if (rpcErr) console.error('[Survival] Reward RPC error:', rpcErr.message);

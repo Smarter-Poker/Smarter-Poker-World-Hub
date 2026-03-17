@@ -26,8 +26,10 @@ import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
+import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
+const DAILY_DIAMOND_CAP = 10;
 
 const CATEGORIES = [
     { id: 'poker_history', name: 'History', icon: Trophy, color: '#FFD700', dbCategories: ['poker_history', 'famous_hands', 'player_profiles', 'tournament_facts'] },
@@ -364,12 +366,15 @@ export default function MixedModePage() {
         try {
             // Phase 1: Award diamonds (only if not already awarded)
             if (savePhaseRef.current < 1) {
-                if (actualDiamonds > 0) {
+                // Clamp to daily cap
+                const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'mixed');
+                const cappedDiamonds = clampToCap(earnedToday, actualDiamonds, DAILY_DIAMOND_CAP);
+                if (cappedDiamonds > 0) {
                     await supabase.rpc('add_diamonds_to_balance', {
                         p_user_id: userId,
-                        p_amount: actualDiamonds,
+                        p_amount: cappedDiamonds,
                         p_type: 'mixed_reward',
-                        p_description: `Mixed mode — ${actualDiamonds}💎`,
+                        p_description: `Mixed mode — ${cappedDiamonds}💎`,
                         p_reference_id: null
                     });
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();

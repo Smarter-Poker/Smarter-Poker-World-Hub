@@ -16,12 +16,16 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import SurvivalGame from '../../../src/components/trivia/SurvivalGame';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
+import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { Gem, Target } from 'lucide-react';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
+import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
+import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 
@@ -123,16 +127,19 @@ export default function SurvivalModePage() {
     }
 
     async function loadQuestions() {
+        // 60-day non-repeat: exclude recently seen questions
+        const excludeIds = userId ? await getRecentlySeenIds(supabase, userId, 200, 'survival') : [];
+
         const { data, error } = await supabase
             .from('trivia_questions')
             .select('*')
             .order('id', { ascending: false })
-            .limit(50);
+            .limit(100);
 
         if (data) {
-            // Shuffle questions
-            const shuffled = data.sort(() => Math.random() - 0.5);
-            setQuestions(shuffleOptions(shuffled));
+            const filtered = filterAndShuffle(data, excludeIds, 50);
+            setQuestions(shuffleOptions(filtered));
+            return filtered;
         }
 
         return data || [];
@@ -212,16 +219,33 @@ export default function SurvivalModePage() {
                     time_survived: 0
                 });
 
-                // Award diamonds via audit-safe RPC
+                // Award diamonds via audit-safe RPC (capped to daily limit)
                 if (gameResult.diamondsEarned > 0) {
-                    await supabase.rpc('add_diamonds_to_balance', {
-                        p_user_id: userId,
-                        p_amount: gameResult.diamondsEarned,
-                        p_type: 'survival_reward',
-                        p_description: `Survival mode — ${gameResult.diamondsEarned}💎 (${gameResult.correctCount} survived)`,
-                        p_reference_id: null
-                    });
-                    busEmit.diamondsEarned(gameResult.diamondsEarned, 'Survival Mode');
+                    const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'survival');
+                    const cappedDiamonds = clampToCap(earnedToday, gameResult.diamondsEarned, DAILY_DIAMOND_CAP);
+                    if (cappedDiamonds > 0) {
+                        await supabase.rpc('add_diamonds_to_balance', {
+                            p_user_id: userId,
+                            p_amount: cappedDiamonds,
+                            p_type: 'survival_reward',
+                            p_description: `Survival mode — ${cappedDiamonds}💎 (${gameResult.correctCount} survived)`,
+                            p_reference_id: null
+                        });
+                        busEmit.diamondsEarned(cappedDiamonds, 'Survival Mode');
+                    }
+                }
+
+                // Record question history for 60-day non-repeat
+                if (questions.length > 0) {
+                    const historyRecords = questions.slice(0, gameResult.correctCount + 1).map(q => ({
+                        user_id: userId,
+                        question_id: q.id,
+                        was_correct: true,
+                        seen_at: new Date().toISOString(),
+                        mode: 'survival'
+                    }));
+                    await supabase.from('trivia_user_question_history')
+                        .upsert(historyRecords, { onConflict: 'user_id,question_id', ignoreDuplicates: false });
                 }
             } catch (e) {
                 console.error('[Survival] Save/reward failed:', e);
@@ -239,13 +263,10 @@ export default function SurvivalModePage() {
     }
 
 
-    if (pageLoading) return (
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400"></div>
-        </div>
-    );
+    if (pageLoading) return <TriviaSkeleton />;
 
     return (
+        <TriviaErrorBoundary pageName="Survival Mode">
         <PageTransition>
             <SEOHead
                 title="Survival Trivia — One Life Challenge"
@@ -621,5 +642,6 @@ export default function SurvivalModePage() {
                 }
             `}</style>
         </PageTransition>
+        </TriviaErrorBoundary>
     );
 }

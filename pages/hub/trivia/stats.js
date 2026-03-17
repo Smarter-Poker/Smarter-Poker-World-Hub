@@ -11,6 +11,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function TriviaStats() {
@@ -161,6 +162,7 @@ export default function TriviaStats() {
     };
 
     return (
+        <TriviaErrorBoundary pageName="Stats">
         <>
             <SEOHead
                 title="Trivia Stats — Your Performance"
@@ -266,5 +268,6 @@ export default function TriviaStats() {
                 </div>
             </PageTransition>
         </>
+        </TriviaErrorBoundary>
     );
 }

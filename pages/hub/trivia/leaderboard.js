@@ -11,6 +11,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
@@ -134,6 +135,7 @@ export default function TriviaLeaderboard() {
     }
 
     return (
+        <TriviaErrorBoundary pageName="Leaderboard">
         <>
             <SEOHead
                 title="Trivia Leaderboard — Top Players"
@@ -249,5 +251,6 @@ export default function TriviaLeaderboard() {
                 </div>
             </PageTransition>
         </>
+        </TriviaErrorBoundary>
     );
 }
