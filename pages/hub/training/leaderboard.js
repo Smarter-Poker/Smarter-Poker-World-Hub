@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -35,6 +35,22 @@ export default function TrainingLeaderboard() {
     const u = getAuthUser();
     if (u) setUser(u);
   }, []);
+
+  // Friends list for "Friends" tab
+  const [friendIds, setFriendIds] = useState(null);
+  useEffect(() => {
+    if (!user) return;
+    authedFetch('/api/friends?action=list')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.success && data.data?.friends) {
+          setFriendIds(data.data.friends.map(f => f.id));
+        } else {
+          setFriendIds([]);
+        }
+      })
+      .catch(() => setFriendIds([]));
+  }, [user]);
 
   // 🔌 Bus listener: auto-refresh leaderboard when a training session completes
   const { mutate } = useSWRConfig();
@@ -115,8 +131,9 @@ export default function TrainingLeaderboard() {
 
             {/* Category filter */}
             <div style={{ ...styles.filterGroup, marginTop: 8 }}>
-              {[
+            {[
                 { id: 'global', label: 'All Games' },
+                { id: 'friends', label: 'Friends' },
                 { id: 'mtt', label: 'MTT' },
                 { id: 'cash', label: 'Cash' },
                 { id: 'spins', label: 'Spins' },
@@ -147,23 +164,40 @@ export default function TrainingLeaderboard() {
             <SkeletonLoader variant="leaderboard" rows={8} style={{ padding: '0 8px' }} />
           ) : (
             <div style={styles.leaderboardList}>
-              {leaderboard.map((entry, index) => (
-                <LeaderboardEntry
-                  key={entry.userId}
-                  rank={index + 1}
-                  {...entry}
-                  isCurrentUser={user?.id === entry.userId}
-                />
-              ))}
-
-              {leaderboard.length === 0 && (
-                <div style={styles.emptyState}>
-                  <p>No Data Yet For This Timeframe</p>
-                  <Link href="/hub/training" style={styles.button}>
-                    Start Training
-                  </Link>
-                </div>
-              )}
+              {(() => {
+                const displayList = view === 'friends' && friendIds
+                  ? leaderboard.filter(e => friendIds.includes(e.userId))
+                  : leaderboard;
+                if (displayList.length === 0 && view === 'friends') {
+                  return (
+                    <div style={styles.emptyState}>
+                      <p>No Friends On The Leaderboard Yet</p>
+                      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Invite friends to train together and compete!</p>
+                      <Link href="/hub/friends" style={styles.button}>
+                        Find Friends
+                      </Link>
+                    </div>
+                  );
+                }
+                if (displayList.length === 0) {
+                  return (
+                    <div style={styles.emptyState}>
+                      <p>No Data Yet For This Timeframe</p>
+                      <Link href="/hub/training" style={styles.button}>
+                        Start Training
+                      </Link>
+                    </div>
+                  );
+                }
+                return displayList.map((entry, index) => (
+                  <LeaderboardEntry
+                    key={entry.userId}
+                    rank={index + 1}
+                    {...entry}
+                    isCurrentUser={user?.id === entry.userId}
+                  />
+                ));
+              })()}
             </div>
           )}
         </div>

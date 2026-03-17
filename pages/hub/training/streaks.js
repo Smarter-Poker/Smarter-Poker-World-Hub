@@ -33,6 +33,7 @@ export default function StreaksPage() {
   useTrainingBus('streaks');
   const [user, setUser] = useState(null);
   const [claiming, setClaiming] = useState(null);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     const _c = new AbortController();
@@ -209,6 +210,55 @@ export default function StreaksPage() {
         <UniversalHeader pageDepth={2} />
 
         <div style={styles.content}>
+          {/* At-Risk Warning */}
+          {streak.currentStreak >= 3 && (() => {
+            const today = new Date().toISOString().split('T')[0];
+            const trainedToday = trainingDays.includes(today);
+            if (trainedToday) return null;
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: 12,
+                  marginBottom: 16,
+                  background: 'linear-gradient(135deg, rgba(239,68,68,0.08), rgba(249,115,22,0.04))',
+                  border: '1px solid rgba(239,68,68,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444' }}>
+                    Your {streak.currentStreak}-Day Streak Is At Risk!
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                    Train today to keep it alive.
+                  </div>
+                </div>
+                <Link
+                  href="/hub/training"
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    background: 'rgba(239,68,68,0.12)',
+                    border: '1px solid rgba(239,68,68,0.3)',
+                    color: '#ef4444',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Start Training
+                </Link>
+              </motion.div>
+            );
+          })()}
+
           {/* Hero Section */}
           <motion.div
             style={styles.heroSection}
@@ -249,7 +299,10 @@ export default function StreaksPage() {
 
             {streak.currentStreak >= 3 && (
               <button
+                disabled={sharing}
                 onClick={async () => {
+                  if (sharing) return;
+                  setSharing(true);
                   try {
                     const res = await authedFetch('/api/training/share', {
                       method: 'POST',
@@ -265,15 +318,22 @@ export default function StreaksPage() {
                     if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const data = await res.json();
                     if (data.success) {
-                      alert('🔥 Streak shared to your feed!');
+                      alert('Streak shared to your feed!');
                     }
                   } catch (e) {
                     console.error('Share error:', e);
+                    alert('Failed to share streak. Please try again.');
+                  } finally {
+                    setSharing(false);
                   }
                 }}
-                style={styles.shareStreakBtn}
+                style={{
+                  ...styles.shareStreakBtn,
+                  opacity: sharing ? 0.6 : 1,
+                  cursor: sharing ? 'not-allowed' : 'pointer',
+                }}
               >
-                📢 Share Streak
+                {sharing ? 'Sharing...' : 'Share Streak'}
               </button>
             )}
 

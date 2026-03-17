@@ -388,6 +388,176 @@ function DashboardSkeleton() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// COACH'S NOTES — AI COACHING CARD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function CoachingCard({ session }) {
+  const [coaching, setCoaching] = React.useState(null);
+  const [loadingCoach, setLoadingCoach] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(false);
+  const [error, setError] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!session) return;
+    const cacheKey = `coaching-${session.id || session.game_id || 'latest'}`;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) { setCoaching(JSON.parse(cached)); return; }
+    } catch {}
+
+    setLoadingCoach(true);
+    const acc = Number(session.accuracy || session.gtow_score) || 0;
+    const hands = Number(session.hands_played || session.handsPlayed || session.total_questions) || 0;
+    const correct = Math.round((acc / 100) * hands);
+
+    authedFetch('/api/training/coaching-summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: session.game_id || session.gameId || 'training',
+        gameName: session.game_name || session.gameName || session.game_id || 'Training',
+        level: session.level || 1,
+        questionsAnswered: hands,
+        questionsCorrect: correct,
+        accuracy: acc,
+        streak: session.best_streak || 0,
+        timeSpentSeconds: session.time_spent || 0,
+        mistakes: [],
+      }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.success && data.coaching) {
+          setCoaching(data.coaching);
+          try { sessionStorage.setItem(cacheKey, JSON.stringify(data.coaching)); } catch {}
+        } else { setError(true); }
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoadingCoach(false));
+  }, [session]);
+
+  if (error || (!coaching && !loadingCoach)) return null;
+
+  const gradeColors = { A: '#22c55e', B: '#3b82f6', C: '#fbbf24', D: '#ef4444' };
+  const gradeColor = gradeColors[coaching?.overallGrade] || '#64748b';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        marginBottom: 16,
+        borderRadius: 12,
+        background: 'rgba(0,0,0,0.25)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        overflow: 'hidden',
+      }}
+    >
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          width: '100%',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            fontSize: 11,
+            fontWeight: 800,
+            color: '#a855f7',
+            fontFamily: "'Orbitron', monospace",
+            textTransform: 'uppercase',
+            letterSpacing: 1,
+          }}>
+            Coach&apos;s Notes
+          </div>
+          {coaching?.overallGrade && (
+            <span style={{
+              padding: '2px 8px',
+              borderRadius: 6,
+              background: `${gradeColor}15`,
+              border: `1px solid ${gradeColor}40`,
+              color: gradeColor,
+              fontSize: 12,
+              fontWeight: 800,
+            }}>
+              {coaching.overallGrade}
+            </span>
+          )}
+        </div>
+        <span style={{ color: '#64748b', fontSize: 14, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+          ▼
+        </span>
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{ padding: '0 16px 14px' }}>
+              {loadingCoach ? (
+                <div style={{ padding: '12px 0', color: '#64748b', fontSize: 11 }}>Loading coach&apos;s analysis...</div>
+              ) : coaching ? (
+                <div style={{ display: 'grid', gap: 10, fontSize: 12 }}>
+                  {coaching.headline && (
+                    <div style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 14 }}>{coaching.headline}</div>
+                  )}
+                  {coaching.detailedFeedback && (
+                    <div style={{ color: '#94a3b8', lineHeight: 1.5 }}>{coaching.detailedFeedback}</div>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {coaching.strengths?.length > 0 && (
+                      <div style={{ padding: 10, borderRadius: 8, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.1)' }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Strengths</div>
+                        {coaching.strengths.map((s, i) => (
+                          <div key={i} style={{ color: '#94a3b8', fontSize: 11, marginBottom: 3 }}>+ {s}</div>
+                        ))}
+                      </div>
+                    )}
+                    {coaching.areasToImprove?.length > 0 && (
+                      <div style={{ padding: 10, borderRadius: 8, background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.1)' }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: '#f97316', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Work On</div>
+                        {coaching.areasToImprove.map((s, i) => (
+                          <div key={i} style={{ color: '#94a3b8', fontSize: 11, marginBottom: 3 }}>- {s}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {coaching.recommendedDrill && (
+                    <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.1)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#00d4ff', textTransform: 'uppercase' }}>Next Drill:</span>
+                      <span style={{ color: '#e2e8f0', fontSize: 11, fontWeight: 600 }}>{coaching.recommendedDrill.name}</span>
+                    </div>
+                  )}
+
+                  {coaching.motivationalQuote && (
+                    <div style={{ color: '#475569', fontSize: 10, fontStyle: 'italic', textAlign: 'center', paddingTop: 4 }}>
+                      {coaching.motivationalQuote}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -602,6 +772,13 @@ export default function SessionDashboard() {
             </div>
           ) : (
             <>
+              {/* Coach's Notes — AI Coaching Card */}
+              {filteredSessions.length > 0 && (() => {
+                const latest = [...filteredSessions].sort((a, b) =>
+                  new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp)
+                )[0];
+                return <CoachingCard session={latest} />;
+              })()}
               {/* Stat Tiles */}
               {stats && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>

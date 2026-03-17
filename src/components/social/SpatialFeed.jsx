@@ -12,7 +12,7 @@ import { claimReward } from '../../lib/claimReward';
 import { useSupabase } from '../../providers/SupabaseProvider';
 import { SocialService } from '../../services/SocialService';
 import { FEED_FILTERS, initialFeedState } from '../../services/social-types';
-import { busEmit } from '../../engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📜 SPATIAL FEED COMPONENT
@@ -141,6 +141,57 @@ export const SpatialFeed = ({
 
     return unsubscribe;
   }, [socialService]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🔄 EVENT BUS LISTENERS — cross-component sync
+  // ─────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    let debounceTimer = null;
+    const debouncedRefetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        loadFeed(true);
+        debounceTimer = null;
+      }, 3000);
+    };
+
+    const unsub1 = eventBus.on(EventType.SOCIAL_POST_CREATED, debouncedRefetch);
+
+    // Update like counts locally without full refetch
+    const unsub2 = eventBus.on(EventType.SOCIAL_POST_LIKED, (event) => {
+      if (event?.postId) {
+        setFeedState(prev => ({
+          ...prev,
+          posts: prev.posts.map(p => {
+            if (p.id !== event.postId) return p;
+            const delta = event.added ? 1 : -1;
+            return { ...p, like_count: Math.max(0, (p.like_count || 0) + delta) };
+          })
+        }));
+      }
+    });
+
+    // Update comment counts locally without full refetch
+    const unsub3 = eventBus.on(EventType.SOCIAL_COMMENT_ADDED, (event) => {
+      if (event?.postId) {
+        setFeedState(prev => ({
+          ...prev,
+          posts: prev.posts.map(p =>
+            p.id === event.postId
+              ? { ...p, comment_count: (p.comment_count || 0) + 1 }
+              : p
+          )
+        }));
+      }
+    });
+
+    return () => {
+      unsub1?.();
+      unsub2?.();
+      unsub3?.();
+      if (debounceTimer) clearTimeout(debounceTimer);
+    };
+  }, [loadFeed]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // 💫 INTERACTION HANDLERS

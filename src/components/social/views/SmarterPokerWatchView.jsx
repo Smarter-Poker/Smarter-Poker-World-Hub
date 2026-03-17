@@ -386,18 +386,23 @@ export const SmarterPokerWatchView = ({ onNavigate }) => {
         fetchVideos();
     }, [fetchVideos]);
 
-    // EventBus: refresh videos when a new post is created (could be a video post)
+    // EventBus: refresh videos when posts are created, liked, or commented on
     useEffect(() => {
         let debounceTimer = null;
-        const unsub = eventBus.on(EventType.SOCIAL_POST_CREATED, () => {
+        const debouncedRefetch = () => {
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 fetchVideos();
                 debounceTimer = null;
             }, 3000);
-        });
+        };
+        const unsub1 = eventBus.on(EventType.SOCIAL_POST_CREATED, debouncedRefetch);
+        const unsub2 = eventBus.on(EventType.SOCIAL_POST_LIKED, debouncedRefetch);
+        const unsub3 = eventBus.on(EventType.SOCIAL_COMMENT_ADDED, debouncedRefetch);
         return () => {
-            if (unsub) unsub();
+            unsub1?.();
+            unsub2?.();
+            unsub3?.();
             if (debounceTimer) clearTimeout(debounceTimer);
         };
     }, [fetchVideos]);
