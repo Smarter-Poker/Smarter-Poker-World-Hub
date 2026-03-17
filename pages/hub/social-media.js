@@ -1631,6 +1631,9 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     parentId: data.parent_id || null,
                 } : c));
                 
+                // Emit EventBus for cross-component comment count updates
+                busEmit.socialCommentAdded(post.id, currentUserId);
+                
                 // Sync the denormalized comment_count column on social_posts (fire-and-forget)
                 supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(async () => {
                     // Fallback: manual increment if RPC doesn't exist

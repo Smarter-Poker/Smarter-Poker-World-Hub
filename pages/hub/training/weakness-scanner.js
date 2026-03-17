@@ -318,7 +318,11 @@ export default function WeaknessScannerPage() {
               {data.leaks.length > 0 && data.leaks[0].sev !== 'Low' && (
                 <motion.button
                   whileTap={{ scale: 0.97 }}
-                  onClick={() => router.push('/hub/training')}
+                  onClick={() => {
+                    const w = data.leaks[0];
+                    const params = new URLSearchParams({ game: w.area.toLowerCase().replace(/\s+/g, '-') });
+                    router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
+                  }}
                   style={{
                     width: '100%',
                     padding: '14px',
@@ -442,23 +446,10 @@ export default function WeaknessScannerPage() {
 
                     <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                       <button
-                        onClick={() => router.push('/hub/training')}
-                        style={{
-                          flex: 1,
-                          padding: '10px',
-                          borderRadius: 8,
-                          border: 'none',
-                          background: 'rgba(59,130,246,0.1)',
-                          color: '#3b82f6',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
+                        onClick={() => {
+                          const params = new URLSearchParams({ game: leak.area.toLowerCase().replace(/\s+/g, '-') });
+                          router.push(`/hub/training/arena/spot-trainer?${params.toString()}`);
                         }}
-                      >
-                        Study Concept
-                      </button>
-                      <button
-                        onClick={() => router.push('/hub/training/quick-warmup')}
                         style={{
                           flex: 1,
                           padding: '10px',
@@ -471,7 +462,31 @@ export default function WeaknessScannerPage() {
                           cursor: 'pointer',
                         }}
                       >
-                        Drill Spot
+                        Practice This Leak
+                      </button>
+                      <button
+                        onClick={() => {
+                          const q = new URLSearchParams({
+                            context: 'weakness',
+                            area: leak.area,
+                            accuracy: String(leak.acc),
+                            category: leak.cat,
+                          });
+                          window.location.href = `/hub/training/jarvis?${q.toString()}`;
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '10px',
+                          borderRadius: 8,
+                          border: 'none',
+                          background: 'rgba(168,85,247,0.1)',
+                          color: '#a855f7',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Get Coaching
                       </button>
                     </div>
                   </motion.div>

@@ -11,7 +11,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { Gem, ArrowLeft, Trophy, Zap, Target } from 'lucide-react';
 import { ARCADE_GAMES } from '../../../src/lib/arcade/arcadeEngine';
-import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function DiamondArcadePrizes() {

@@ -165,7 +165,13 @@ export const SpatialFeed = ({
           posts: prev.posts.map(p => {
             if (p.id !== event.postId) return p;
             const delta = event.added ? 1 : -1;
-            return { ...p, like_count: Math.max(0, (p.like_count || 0) + delta) };
+            return {
+              ...p,
+              engagement: {
+                ...p.engagement,
+                likeCount: Math.max(0, (p.engagement?.likeCount || 0) + delta)
+              }
+            };
           })
         }));
       }
@@ -178,7 +184,7 @@ export const SpatialFeed = ({
           ...prev,
           posts: prev.posts.map(p =>
             p.id === event.postId
-              ? { ...p, comment_count: (p.comment_count || 0) + 1 }
+              ? { ...p, engagement: { ...p.engagement, commentCount: (p.engagement?.commentCount || 0) + 1 } }
               : p
           )
         }));

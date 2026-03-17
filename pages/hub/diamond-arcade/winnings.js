@@ -103,7 +103,7 @@ export default function DiamondArcadeWinnings() {
 
                         {/* Summary Cards */}
                         {!isLoading && summary.totalWon + summary.totalSpent > 0 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '30px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '30px' }}>
                                 <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '12px', padding: '20px', textAlign: 'center' }}>
                                     <div style={{ color: '#9ca3af', fontSize: '12px', textTransform: 'uppercase', marginBottom: '6px' }}>Total Won</div>
                                     <div style={{ color: '#22c55e', fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>

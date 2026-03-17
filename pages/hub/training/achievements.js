@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 
@@ -36,6 +36,7 @@ export default function TrainingAchievements() {
   const { mutate } = useSWRConfig();
   const [user, setUser] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [sharingId, setSharingId] = useState(null);
 
   // Load auth user once
   useEffect(() => {
@@ -141,7 +142,48 @@ export default function TrainingAchievements() {
                   <div style={styles.reward}>
                     <span style={styles.diamonds}>{ach.diamond_reward}</span>
                     {ach.unlocked ? (
-                      <span style={styles.unlocked}>✓</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={styles.unlocked}>✓</span>
+                        <button
+                          disabled={sharingId === ach.id}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (sharingId) return;
+                            setSharingId(ach.id);
+                            try {
+                              const res = await authedFetch('/api/training/share', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  userId: user.id,
+                                  shareType: 'achievement',
+                                  data: { name: ach.name, description: ach.description },
+                                }),
+                              });
+                              const d = await res.json();
+                              if (d.success) alert('Achievement shared to your feed!');
+                            } catch (err) {
+                              console.error('Share error:', err);
+                              alert('Failed to share. Try again.');
+                            } finally {
+                              setSharingId(null);
+                            }
+                          }}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: 4,
+                            border: 'none',
+                            background: 'rgba(168,85,247,0.1)',
+                            color: '#a855f7',
+                            fontSize: 9,
+                            fontWeight: 700,
+                            cursor: sharingId === ach.id ? 'not-allowed' : 'pointer',
+                            opacity: sharingId === ach.id ? 0.5 : 1,
+                          }}
+                        >
+                          {sharingId === ach.id ? '...' : 'Share'}
+                        </button>
+                      </div>
                     ) : (
                       <div style={{
                         width: 48,

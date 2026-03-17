@@ -179,14 +179,20 @@ export default function NotificationFeed({ onClose }) {
         }
 
         // Listen for EventBus events
+        let likeDebounce = null;
         const unsubPost = eventBus.on(EventType.SOCIAL_POST_LIKED, () => {
             // Debounced reload
-            setTimeout(() => loadNotifications(), 2000);
+            if (likeDebounce) clearTimeout(likeDebounce);
+            likeDebounce = setTimeout(() => {
+                loadNotifications();
+                likeDebounce = null;
+            }, 2000);
         });
 
         return () => {
             subRef.current?.unsubscribe();
             unsubPost?.();
+            if (likeDebounce) clearTimeout(likeDebounce);
         };
     }, [loadNotifications]);
 
