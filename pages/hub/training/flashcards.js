@@ -7,7 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -367,19 +367,34 @@ export default function FlashcardsPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
 
+  // Track deck generation trigger — only category filter change should regenerate
+  const [deckGenKey, setDeckGenKey] = useState(0);
+  const sm2LoadedRef = useRef(false);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem('flashcard-sm2');
       if (saved) setSm2Data(JSON.parse(saved));
     } catch {}
+    // Trigger initial deck generation after sm2Data loads
+    sm2LoadedRef.current = true;
+    setDeckGenKey(k => k + 1);
   }, []);
+
+  // Regenerate deck when category changes (NOT on sm2Data changes from card ratings)
+  useEffect(() => {
+    if (!sm2LoadedRef.current) return; // Wait for initial sm2 load
+    setDeckGenKey(k => k + 1);
+  }, [catFilter]);
 
   // Generate today's review deck based on due date
   useEffect(() => {
+    if (deckGenKey === 0) return; // Skip initial render before sm2 load
     const now = Date.now();
+    const currentSm2 = sm2Data; // Read current sm2Data at generation time
     const deck = CARDS.filter((c) => {
       if (catFilter !== 'all' && c.cat !== catFilter) return false;
-      const stats = sm2Data[c.id];
+      const stats = currentSm2[c.id];
       if (!stats) return true; // New card
       return stats.nextReview <= now; // Due for review
     });
@@ -388,7 +403,8 @@ export default function FlashcardsPage() {
     setSessionDeck(deck.sort(() => Math.random() - 0.5));
     setCurrentIdx(0);
     setFlipped(false);
-  }, [catFilter, sm2Data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckGenKey]);
 
   const stats = useMemo(() => {
     let newCount = 0,

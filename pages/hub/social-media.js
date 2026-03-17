@@ -1256,9 +1256,9 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                 </div>
             )}
             {error && <div style={{ padding: '0 12px 8px', color: C.red, fontSize: 13 }}> {error}</div>}
-            <div style={{ borderTop: `1px solid ${C.border}`, padding: 8, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-                <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
-                    <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFiles} />
+            <div style={{ borderTop: `1px solid ${C.border}` }}>
+                <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFiles} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 8px 4px', gap: 4 }}>
                     <button
                         onClick={() => fileRef.current?.click()}
                         disabled={media.length >= MAX_MEDIA}
@@ -1266,7 +1266,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                             padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', cursor: media.length >= MAX_MEDIA ? 'not-allowed' : 'pointer',
                             color: media.length >= MAX_MEDIA ? '#ccc' : '#65676B', fontSize: 14, fontWeight: 600,
-                            transition: 'background 0.2s'
+                            transition: 'background 0.2s', whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -1278,7 +1278,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                             padding: '6px 8px', borderRadius: 6,
                             border: 'none', background: 'transparent', cursor: 'pointer',
                             color: '#65676B', fontSize: 14, fontWeight: 600,
-                            transition: 'background 0.2s'
+                            transition: 'background 0.2s', whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -1290,7 +1290,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                             padding: '6px 8px', borderRadius: 6,
                             background: 'transparent', textDecoration: 'none',
                             color: '#65676B', fontSize: 14, fontWeight: 600,
-                            transition: 'background 0.2s'
+                            transition: 'background 0.2s', whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -1302,7 +1302,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                             padding: '6px 8px', borderRadius: 6,
                             background: 'transparent', textDecoration: 'none',
                             color: '#65676B', fontSize: 14, fontWeight: 600,
-                            transition: 'background 0.2s'
+                            transition: 'background 0.2s', whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -1315,14 +1315,16 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                                 padding: '6px 8px', borderRadius: 6,
                                 background: 'transparent',
                                 color: '#65676B', fontSize: 14, fontWeight: 600,
-                                transition: 'background 0.2s', cursor: 'pointer'
+                                transition: 'background 0.2s', cursor: 'pointer', whiteSpace: 'nowrap'
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                         >Club Pages</span>
                     </>}
                 </div>
-                <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1, flexShrink: 0 }}>Post</button>
+                <div style={{ padding: '4px 8px 8px' }}>
+                    <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1, width: '100%' }}>Post</button>
+                </div>
             </div>
         </div>
     );

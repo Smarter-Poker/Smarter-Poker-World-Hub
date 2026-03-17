@@ -66,7 +66,7 @@ export default function TrainingLeaderboard() {
   const period = periodMap[timeframe] || 'alltime';
 
   // SWR-backed leaderboard fetch — cached 60s, instant on timeframe/category switch
-  const categoryParam = view && view !== 'global' ? `&category=${view}` : '';
+  const categoryParam = view && view !== 'global' && view !== 'friends' ? `&category=${view}` : '';
   const swrKey = `/api/training/leaderboard?period=${period}&limit=100${categoryParam}`;
   const { data: swrData, isLoading: loading } = useSWR(swrKey, (url) =>
     fetch(url)
