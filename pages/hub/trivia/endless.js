@@ -41,7 +41,6 @@ function shuffleOptions(questions) {
 
 export default function EndlessModePage() {
     const bus = useTrainingBus('trivia-endless');
-    useEffect(() => { busEmit.sessionStart('trivia-endless'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
 

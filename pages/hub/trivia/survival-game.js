@@ -61,7 +61,6 @@ const QUESTIONS_PER_LEVEL = 20;
 
 export default function SurvivalGamePage() {
     const bus = useTrainingBus('trivia-survival-game');
-    useEffect(() => { busEmit.sessionStart('trivia-survival-game'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
 

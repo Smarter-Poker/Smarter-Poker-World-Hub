@@ -35,7 +35,6 @@ function shuffleOptions(questions) {
 
 export default function TournamentsPage() {
     const bus = useTrainingBus('trivia-tournaments');
-    useEffect(() => { busEmit.sessionStart('trivia-tournaments'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [userId, setUserId] = useState(null);

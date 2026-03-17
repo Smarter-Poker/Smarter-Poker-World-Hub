@@ -40,7 +40,6 @@ const DAILY_DIAMOND_CAP = 10;
 
 export default function SurvivalModePage() {
     const bus = useTrainingBus('trivia-survival');
-    useEffect(() => { busEmit.sessionStart('trivia-survival'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [gameState, setGameState] = useState('lobby'); // lobby, playing, complete

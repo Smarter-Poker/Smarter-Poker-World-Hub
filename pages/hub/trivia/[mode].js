@@ -75,7 +75,6 @@ const LOBBY_IMAGES = {
 
 export default function TriviaModePage() {
     const bus = useTrainingBus('trivia-mode');
-    useEffect(() => { busEmit.sessionStart('trivia-mode'); }, []);
     const router = useRouter();
     const { mode } = router.query;
     const { user: avatarUser, loading: authLoading } = useAvatar();
