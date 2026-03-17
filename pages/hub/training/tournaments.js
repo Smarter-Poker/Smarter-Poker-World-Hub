@@ -17,6 +17,7 @@ import { getGameById } from '../../../src/data/TRAINING_LIBRARY';
 import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 export default function TournamentsPage() {
   useTrainingBus('tournaments');
@@ -135,6 +136,7 @@ export default function TournamentsPage() {
   };
 
   return (
+    <>
     <PageTransition>
       <SEOHead
         title="Training Tournaments — Compete & Learn"
@@ -272,6 +274,8 @@ export default function TournamentsPage() {
         </div>
       </div>
     </PageTransition>
+    <ConnectionToast />
+    </>
   );
 }
 

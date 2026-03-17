@@ -1415,9 +1415,18 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     // Phase 3: See More, lightbox, double-tap, comment scroll
     const [expanded, setExpanded] = useState(false);
     const [lightboxUrl, setLightboxUrl] = useState(null);
+    const [lightboxImages, setLightboxImages] = useState([]);
+    const [lightboxIndex, setLightboxIndex] = useState(0);
     const [doubleTapHeart, setDoubleTapHeart] = useState(false);
+    const [isReporting, setIsReporting] = useState(false);
+    const [submittingComment, setSubmittingComment] = useState(false);
+    const [collapsedThreads, setCollapsedThreads] = useState({});
     const lastTapRef = useRef(0);
     const commentEndRef = useRef(null);
+    const lightboxTouchRef = useRef({ startX: 0, startY: 0 });
+
+    // Haptic feedback utility (mobile vibration)
+    const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch {} };
     const showCommentsRef = useRef(false);
     const commentsRef = useRef([]);
     const typingDebounceRef = useRef(null);
@@ -1425,13 +1434,25 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     // Format large counts as "99+"
     const fmtCount = (n) => n > 99 ? '99+' : n;
 
-    // Lightbox: Escape key to close
+    // Lightbox: Escape key to close + Arrow keys to navigate
     useEffect(() => {
         if (!lightboxUrl) return;
-        const handler = (e) => { if (e.key === 'Escape') setLightboxUrl(null); };
+        const handler = (e) => {
+            if (e.key === 'Escape') { setLightboxUrl(null); setLightboxImages([]); }
+            if (e.key === 'ArrowRight' && lightboxImages.length > 1) {
+                const next = (lightboxIndex + 1) % lightboxImages.length;
+                setLightboxIndex(next);
+                setLightboxUrl(lightboxImages[next]);
+            }
+            if (e.key === 'ArrowLeft' && lightboxImages.length > 1) {
+                const prev = (lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length;
+                setLightboxIndex(prev);
+                setLightboxUrl(lightboxImages[prev]);
+            }
+        };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [lightboxUrl]);
+    }, [lightboxUrl, lightboxImages, lightboxIndex]);
 
     // Auto-scroll to newest comment when comments change
     useEffect(() => {
@@ -1531,6 +1552,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         if (!currentUserId) return;
         const newBookmarked = !bookmarked;
         setBookmarked(newBookmarked);
+        haptic(newBookmarked ? 15 : 5);
         try {
             if (newBookmarked) {
                 // social_interactions has no UNIQUE constraint, so upsert fails.
@@ -1678,9 +1700,10 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const handleDoubleTap = useCallback(() => {
         const now = Date.now();
         if (now - lastTapRef.current < 300) {
-            // Double tap detected — trigger like + heart animation
+            // Double tap detected — trigger like + heart animation + haptic
             if (!liked) handleLike('like');
             setDoubleTapHeart(true);
+            haptic(20);
             setTimeout(() => setDoubleTapHeart(false), 800);
         }
         lastTapRef.current = now;
@@ -1749,7 +1772,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     );
 
     const handleSubmitComment = async () => {
-        if (!newComment.trim() || !currentUserId) return;
+        if (!newComment.trim() || !currentUserId || submittingComment) return;
+        setSubmittingComment(true);
         
         // Stop typing indicator immediately on submit
         if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
@@ -1860,6 +1884,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             setCommentCount(prev => Math.max(0, prev - 1));
             console.error('[Social] Comment submit failed:', e);
         }
+        setSubmittingComment(false);
     };
 
     return (
@@ -1890,13 +1915,16 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 )}
                 {post.authorId !== currentUserId && currentUserId && (
                     <button onClick={async () => {
+                        if (isReporting) return;
+                        setIsReporting(true);
                         try {
                             await supabase.from('social_interactions').delete().eq('post_id', post.id).eq('user_id', currentUserId).eq('interaction_type', 'report');
                             const { error } = await supabase.from('social_interactions').insert({ post_id: post.id, user_id: currentUserId, interaction_type: 'report' });
                             if (error) throw error;
                             toast.success('Post reported. We will review it shortly.');
                         } catch (e) { console.error('[Social] Report failed:', e.message || e); toast.error('Could not report post'); }
-                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 12, opacity: 0.6 }} title="Report this post">⚠</button>
+                        setIsReporting(false);
+                    }} disabled={isReporting} style={{ background: 'none', border: 'none', cursor: isReporting ? 'wait' : 'pointer', color: C.textSec, fontSize: 12, opacity: isReporting ? 0.3 : 0.6 }} title="Report this post">{isReporting ? '...' : '⚠'}</button>
                 )}
             </div>
             {editing ? (
@@ -1994,7 +2022,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 onClick={onOpenArticle}
                             />
                         ) : (
-                            <img src={post.mediaUrls[0]} loading="lazy" alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto', cursor: 'pointer' }} onClick={() => setLightboxUrl(post.mediaUrls[0])} onError={e => { e.target.style.display = 'none'; }} />
+                            <img src={post.mediaUrls[0]} loading="lazy" alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto', cursor: 'pointer' }} onClick={() => { setLightboxImages(post.mediaUrls); setLightboxIndex(0); setLightboxUrl(post.mediaUrls[0]); }} onError={e => { e.target.style.display = 'none'; }} />
                         )
                     ) : post.mediaUrls.length === 2 ? (
                         // 2 media - side by side
@@ -2141,7 +2169,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         </div>
                     )}
                 </div>
-                <button onClick={handleToggleComments} style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
+                <button onClick={handleToggleComments} aria-label="Toggle comments" style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: showComments ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}> Comment</button>
                 <button
                     onClick={() => {
                         const shareUrl = `${window.location.origin}/hub/post/${post.id}`;
@@ -2372,6 +2400,10 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                     e.preventDefault();
                                     handleSubmitComment();
                                 }
+                                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                    e.preventDefault();
+                                    handleSubmitComment();
+                                }
                             }}
                             placeholder={replyingTo ? `Reply to ${replyingTo.name}...` : "Write a comment..."} 
                             style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none', fontFamily: 'inherit', resize: 'none', overflow: 'hidden', minHeight: 36, maxHeight: 120, lineHeight: 1.4, boxSizing: 'border-box' }} 
@@ -2386,7 +2418,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 {2000 - newComment.length}
                             </span>
                         )}
-                        <button onClick={handleSubmitComment} disabled={!newComment.trim()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: newComment.trim() ? C.blue : C.textSec, fontWeight: 600, fontSize: 13 }}>Post</button>
+                        <button onClick={handleSubmitComment} disabled={!newComment.trim() || submittingComment} style={{ background: 'none', border: 'none', cursor: 'pointer', color: newComment.trim() && !submittingComment ? C.blue : C.textSec, fontWeight: 600, fontSize: 13, opacity: submittingComment ? 0.5 : 1 }}>{submittingComment ? '...' : 'Post'}</button>
                     </div>
                 </div>
             )}
@@ -2429,9 +2461,32 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
 
             {/* Image Lightbox Modal */}
             {lightboxUrl && (
-                <div onClick={() => setLightboxUrl(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
-                    <button onClick={() => setLightboxUrl(null)} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: 'white', fontSize: 32, cursor: 'pointer', zIndex: 10000 }}>×</button>
-                    <img src={lightboxUrl} alt="" style={{ maxWidth: '95vw', maxHeight: '95vh', objectFit: 'contain', borderRadius: 4 }} />
+                <div onClick={(e) => { if (e.target === e.currentTarget) { setLightboxUrl(null); setLightboxImages([]); } }}
+                    onTouchStart={(e) => { lightboxTouchRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY }; }}
+                    onTouchEnd={(e) => {
+                        const dx = e.changedTouches[0].clientX - lightboxTouchRef.current.startX;
+                        const dy = e.changedTouches[0].clientY - lightboxTouchRef.current.startY;
+                        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) && lightboxImages.length > 1) {
+                            if (dx < 0) { const next = (lightboxIndex + 1) % lightboxImages.length; setLightboxIndex(next); setLightboxUrl(lightboxImages[next]); }
+                            else { const prev = (lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length; setLightboxIndex(prev); setLightboxUrl(lightboxImages[prev]); }
+                        }
+                    }}
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
+                    <button onClick={() => { setLightboxUrl(null); setLightboxImages([]); }} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: 'white', fontSize: 32, cursor: 'pointer', zIndex: 10000 }}>×</button>
+                    {lightboxImages.length > 1 && (
+                        <>
+                            <button onClick={(e) => { e.stopPropagation(); const prev = (lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length; setLightboxIndex(prev); setLightboxUrl(lightboxImages[prev]); }} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', fontSize: 28, cursor: 'pointer', zIndex: 10000, width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>‹</button>
+                            <button onClick={(e) => { e.stopPropagation(); const next = (lightboxIndex + 1) % lightboxImages.length; setLightboxIndex(next); setLightboxUrl(lightboxImages[next]); }} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', fontSize: 28, cursor: 'pointer', zIndex: 10000, width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>›</button>
+                        </>
+                    )}
+                    <img src={lightboxUrl} alt="" style={{ maxWidth: '95vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 4, userSelect: 'none' }} />
+                    {lightboxImages.length > 1 && (
+                        <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6 }}>
+                            {lightboxImages.map((_, i) => (
+                                <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: i === lightboxIndex ? 'white' : 'rgba(255,255,255,0.4)', transition: 'background 0.2s' }} />
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

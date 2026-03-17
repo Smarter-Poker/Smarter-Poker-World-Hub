@@ -16,6 +16,8 @@ import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
@@ -116,11 +118,13 @@ export default function QuickWarmupPage() {
   const [sessions, setSessions] = useState([]);
   const [warmupMode, setWarmupMode] = useState('auto');
   const timerRef = useRef(null);
+  const [fetchError, setFetchError] = useState(null);
 
   // Fetch user data for weakness detection
   const fetchSessions = useCallback(async () => {
     const user = getAuthUser();
     if (!user?.id) return;
+    setFetchError(null);
     try {
       const res = await authedFetch(`/api/training/get-sessions?limit=50`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -130,6 +134,7 @@ export default function QuickWarmupPage() {
       }
     } catch (e) {
       console.error('[QuickWarmup] Error:', e);
+      setFetchError('Failed to load session data. Please try again.');
     }
   }, []);
 
@@ -528,6 +533,8 @@ export default function QuickWarmupPage() {
           )}
         </div>
       </div>
+      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchSessions(); }} />}
+      <ConnectionToast />
     </>
   );
 }

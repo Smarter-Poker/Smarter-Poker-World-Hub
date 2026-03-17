@@ -17,6 +17,7 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 export default function ChallengesPage() {
   useTrainingBus('challenges');
@@ -106,6 +107,7 @@ export default function ChallengesPage() {
   }
 
   return (
+    <>
     <PageTransition>
       <Head>
         <title>Goals — Smarter.Poker</title>
@@ -207,6 +209,8 @@ export default function ChallengesPage() {
         </div>
       </div>
     </PageTransition>
+    <ConnectionToast />
+    </>
   );
 }
 

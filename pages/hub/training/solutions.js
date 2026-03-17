@@ -29,6 +29,8 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import Card from '../../../src/components/training/Card';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // Dynamic imports for new Phase 34 components (avoid SSR issues)
 const BlockerScorePanel = dynamic(
@@ -367,6 +369,7 @@ function SolutionsBrowserInner({ setError }) {
   const [totalSpots, setTotalSpots] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
   // Selected spot detail
   const [selectedSpot, setSelectedSpot] = useState(null);
@@ -534,6 +537,7 @@ function SolutionsBrowserInner({ setError }) {
   // Fetch spots list
   const fetchSpots = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const params = new URLSearchParams({
         gameType,
@@ -558,6 +562,7 @@ function SolutionsBrowserInner({ setError }) {
       }
     } catch (err) {
       console.error('[Solutions] Fetch error:', err);
+      setFetchError('Failed to load solutions. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -1687,6 +1692,8 @@ function SolutionsBrowserInner({ setError }) {
         deadCards={deadCards}
         title={spotDetail?.board?.length === 3 ? 'Select Turn Card' : 'Select River Card'}
       />
+      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchSpots(); }} />}
+      <ConnectionToast />
     </>
   );
 }

@@ -6,6 +6,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch } from '../../../src/lib/authUtils';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // Pseudo-MDF based bluff-catching scenarios
 const SCENARIOS = [
@@ -113,6 +114,7 @@ export default function BluffCatcherTrainer() {
     : 0;
 
   return (
+    <>
     <PageTransition>
       <Head>
         <title>Bluff-Catching Trainer | Smarter.Poker</title>
@@ -247,6 +249,8 @@ export default function BluffCatcherTrainer() {
         </div>
       </div>
     </PageTransition>
+    <ConnectionToast />
+    </>
   );
 }
 

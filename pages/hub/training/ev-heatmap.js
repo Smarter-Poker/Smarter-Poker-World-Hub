@@ -15,6 +15,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 const POSITIONS = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const STREETS = ['Preflop', 'Flop', 'Turn', 'River'];
@@ -421,6 +422,7 @@ export default function EvHeatmapPage() {
           </AnimatePresence>
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

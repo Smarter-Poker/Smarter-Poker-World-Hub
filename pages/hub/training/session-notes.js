@@ -15,6 +15,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 const MOOD_OPTIONS = [
   { id: 'focused', emoji: '🎯', label: 'Focused' },
@@ -81,6 +83,7 @@ export default function SessionNotesPage() {
   const [selectedTags, setSelectedTags] = useState([]);
   const [recentAccuracy, setRecentAccuracy] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [fetchError, setFetchError] = useState(null);
 
   useEffect(() => {
     try {
@@ -92,6 +95,7 @@ export default function SessionNotesPage() {
   const fetchRecentSession = useCallback(async () => {
     const user = getAuthUser();
     if (!user?.id) return;
+    setFetchError(null);
     try {
       const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
       if (!token) return;
@@ -107,6 +111,7 @@ export default function SessionNotesPage() {
       }
     } catch (e) {
       console.error('[SessionNotes]', e);
+      setFetchError('Failed to load session data. Please try again.');
     }
   }, []);
 
@@ -812,6 +817,8 @@ export default function SessionNotesPage() {
           )}
         </div>
       </div>
+      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchRecentSession(); }} />}
+      <ConnectionToast />
     </>
   );
 }

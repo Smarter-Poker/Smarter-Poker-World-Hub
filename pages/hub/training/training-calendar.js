@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 function buildHeatmap(sessions) {
   const dayMap = {};
@@ -96,6 +98,7 @@ export default function TrainingCalendarPage() {
   const [loading, setLoading] = useState(true);
   const [dayMap, setDayMap] = useState({});
   const [selectedDay, setSelectedDay] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
 
   const fetchData = useCallback(async () => {
     const user = getAuthUser();
@@ -104,6 +107,7 @@ export default function TrainingCalendarPage() {
       return;
     }
     try {
+      setFetchError(null);
       const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
       if (!token) { setLoading(false); return; }
       const res = await authedFetch('/api/training/get-sessions?limit=500', {
@@ -113,6 +117,7 @@ export default function TrainingCalendarPage() {
       if (data.success && data.sessions) setDayMap(buildHeatmap(data.sessions));
     } catch (e) {
       console.error('[Calendar]', e);
+      setFetchError('Failed to load training calendar. Please try again.');
     }
     setLoading(false);
   }, []);
@@ -478,6 +483,8 @@ export default function TrainingCalendarPage() {
           )}
         </div>
       </div>
+      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
+      <ConnectionToast />
     </>
   );
 }

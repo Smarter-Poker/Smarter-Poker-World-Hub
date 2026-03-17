@@ -12,6 +12,7 @@ import { validatePostContent } from '../../services/social-types';
 import toast from '../../stores/toastStore';
 import { claimReward } from '../../lib/claimReward';
 import { busEmit } from '../../engine/EventBus';
+import { broadcastSync, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
 
 // Simple file validation since MediaUploadService may not exist
 const validateFile = (file, mediaType) => {
@@ -305,6 +306,8 @@ export const EnhancedPostCreator = ({
 
       // Emit EventBus event for cross-page reactivity
       busEmit.socialPostCreated(newPost?.id, user.id);
+      // Cross-tab sync — refresh feed in other open tabs
+      broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
 
       // Show toast notification
       toast.success('Posted Successfully!', 2000);

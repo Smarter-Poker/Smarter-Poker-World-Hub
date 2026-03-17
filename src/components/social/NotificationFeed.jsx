@@ -18,6 +18,7 @@ import { supabase } from '../../lib/supabase';
 import { getAuthUser } from '../../lib/authUtils';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 import { isNotificationEnabled } from './NotificationPreferences';
+import toast from '../../stores/toastStore';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -49,7 +50,7 @@ function timeAgo(date) {
     return `${Math.floor(s / 604800)}w`;
 }
 
-export default function NotificationFeed({ onClose }) {
+export default function NotificationFeed({ onClose, onNavigate }) {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
@@ -197,13 +198,19 @@ export default function NotificationFeed({ onClose }) {
     }, [loadNotifications]);
 
     const handleMarkAllRead = () => {
+        const count = notifications.filter(n => !readIds.has(n.id)).length;
         setReadIds(new Set(notifications.map(n => n.id)));
-        busEmit.notificationsRead?.(notifications.filter(n => !readIds.has(n.id)).length);
+        busEmit.notificationsRead?.(count);
+        if (count > 0) toast.success(`${count} notification${count === 1 ? '' : 's'} marked as read`);
     };
 
     const handleNotifClick = (notif) => {
         if (!readIds.has(notif.id)) {
             setReadIds(prev => new Set([...prev, notif.id]));
+        }
+        // Navigate to the post if a handler is provided
+        if (onNavigate && notif.postId) {
+            onNavigate(notif.postId);
         }
     };
 
@@ -273,8 +280,17 @@ export default function NotificationFeed({ onClose }) {
             {/* List */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
                 {loading ? (
-                    <div style={{ padding: '40px 16px', textAlign: 'center', color: C.textSec }}>
-                        Loading notifications...
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '8px 16px' }}>
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                                <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#E4E6EB', flexShrink: 0, animation: 'notifShimmer 1.5s infinite' }} />
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ width: `${55 + i * 10}%`, height: 12, borderRadius: 6, background: '#E4E6EB', marginBottom: 6, animation: 'notifShimmer 1.5s infinite' }} />
+                                    <div style={{ width: `${25 + i * 5}%`, height: 10, borderRadius: 5, background: '#E4E6EB', animation: 'notifShimmer 1.5s infinite' }} />
+                                </div>
+                            </div>
+                        ))}
+                        <style>{`@keyframes notifShimmer { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
                     </div>
                 ) : filteredNotifs.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px 16px' }}>

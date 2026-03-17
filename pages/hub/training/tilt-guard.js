@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TILT DETECTION
@@ -255,6 +257,7 @@ export default function TiltGuardPage() {
   const [loading, setLoading] = useState(true);
   const [tiltData, setTiltData] = useState(null);
   const [showBreathing, setShowBreathing] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
   const fetchData = useCallback(async () => {
     const user = getAuthUser();
@@ -263,6 +266,7 @@ export default function TiltGuardPage() {
       return;
     }
     try {
+      setFetchError(null);
       const res = await authedFetch(`/api/training/get-sessions?limit=20`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
@@ -271,6 +275,7 @@ export default function TiltGuardPage() {
       }
     } catch (e) {
       console.error('[TiltGuard] Error:', e);
+      setFetchError('Failed to load tilt data. Please try again.');
     }
     setLoading(false);
   }, []);
@@ -589,6 +594,8 @@ export default function TiltGuardPage() {
           {showBreathing && <BreathingExercise onClose={() => setShowBreathing(false)} />}
         </div>
       </div>
+      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
+      <ConnectionToast />
     </>
   );
 }
