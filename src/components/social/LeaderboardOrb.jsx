@@ -325,6 +325,8 @@ export const LeaderboardOrb = ({
                                 className={`timeframe-btn ${timeframe === opt.key ? 'active' : ''}`}
                                 onClick={() => setTimeframe(opt.key)}
                                 title={opt.label}
+                                aria-label={`Timeframe: ${opt.label}`}
+                                aria-pressed={timeframe === opt.key}
                             >
                                 {opt.icon}
                             </button>
@@ -343,7 +345,7 @@ export const LeaderboardOrb = ({
                 ) : error ? (
                     <div className="error-state">
                         <span>⚠️ {error}</span>
-                        <button onClick={fetchLeaderboard}>Retry</button>
+                        <button onClick={fetchLeaderboard} aria-label="Retry loading leaderboard">Retry</button>
                     </div>
                 ) : entries.length === 0 ? (
                     <div className="empty-state">

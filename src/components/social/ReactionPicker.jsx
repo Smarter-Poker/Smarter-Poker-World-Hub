@@ -111,6 +111,7 @@ export default function ReactionPicker({ onReact, currentReaction, compact = fal
             {/* Trigger button */}
             <button
                 onClick={() => handleReaction(currentReaction ? currentReaction : 'like')}
+                aria-label={activeReaction ? `${activeReaction.label} reaction` : 'Like'}
                 style={{
                     flex: 1, padding: compact ? '6px 8px' : 10, border: 'none',
                     background: 'transparent', cursor: 'pointer',
@@ -148,6 +149,7 @@ export default function ReactionPicker({ onReact, currentReaction, compact = fal
                             onMouseEnter={() => setHoveredReaction(reaction.type)}
                             onMouseLeave={() => setHoveredReaction(null)}
                             title={reaction.label}
+                            aria-label={`React with ${reaction.label}`}
                             style={{
                                 width: 42, height: 42, border: 'none', padding: 0,
                                 background: 'transparent', borderRadius: '50%',

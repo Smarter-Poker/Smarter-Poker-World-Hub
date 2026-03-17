@@ -37,6 +37,8 @@ export default function FeedFilterTabs({ activeFilter = 'recent', onFilterChange
                     <button
                         key={key}
                         onClick={() => onFilterChange?.(key)}
+                        aria-label={`Filter: ${label}`}
+                        aria-pressed={active}
                         style={{
                             display: 'flex', alignItems: 'center', gap: 6,
                             padding: '8px 16px', border: 'none', borderRadius: 20,

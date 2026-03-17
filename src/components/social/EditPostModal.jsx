@@ -10,6 +10,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { busEmit } from '../../engine/EventBus';
+import { broadcastSync, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
 
 const MAX_CHARS = 2000;
 
@@ -88,6 +89,7 @@ export default function EditPostModal({ post, onClose, onSaved, supabase }) {
             });
             // Emit so feed views can refresh
             try { busEmit.socialPostEdited?.({ postId: post.id, content: trimmed }); } catch { /* non-critical */ }
+            broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
             onClose();
         } catch (err) {
             console.error('Edit post failed:', err);

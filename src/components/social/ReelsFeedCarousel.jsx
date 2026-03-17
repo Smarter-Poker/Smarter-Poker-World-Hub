@@ -337,6 +337,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             {/* Close button */}
             <button
                 onClick={onClose}
+                aria-label="Close reels"
                 style={{
                     position: 'absolute', top: 20, right: 20,
                     width: 44, height: 44, borderRadius: '50%',
@@ -350,6 +351,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             {currentIndex > 0 && (
                 <button
                     onClick={goPrev}
+                    aria-label="Previous reel"
                     style={{
                         position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)',
                         width: 48, height: 48, borderRadius: '50%',
@@ -361,6 +363,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             {currentIndex < reels.length - 1 && (
                 <button
                     onClick={goNext}
+                    aria-label="Next reel"
                     style={{
                         position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)',
                         width: 48, height: 48, borderRadius: '50%',
@@ -438,21 +441,23 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 }}>
                     <button
                         onClick={handleLike}
+                        aria-label={liked[currentReel.id] ? 'Unlike reel' : 'Like reel'}
                         style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}
                     >
                         <span style={{ fontSize: 28 }}>{liked[currentReel.id] ? '❤️' : '🤍'}</span>
                         <span style={{ color: 'white', fontSize: 12 }}>{currentReel.like_count || 0}</span>
                     </button>
-                    <button onClick={handleToggleComments} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                    <button onClick={handleToggleComments} aria-label="Toggle comments" style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                         <span style={{ fontSize: 28 }}>💬</span>
                         <span style={{ color: showComments ? '#1877F2' : 'white', fontSize: 12 }}>Comment</span>
                     </button>
-                    <button style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                    <button aria-label="Share reel" style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                         <span style={{ fontSize: 28 }}>📤</span>
                         <span style={{ color: 'white', fontSize: 12 }}>Share</span>
                     </button>
                     <button
                         onClick={() => setMuted(prev => !prev)}
+                        aria-label={muted ? 'Unmute' : 'Mute'}
                         style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}
                     >
                         <span style={{ fontSize: 24 }}>{muted ? '🔇' : '🔊'}</span>
