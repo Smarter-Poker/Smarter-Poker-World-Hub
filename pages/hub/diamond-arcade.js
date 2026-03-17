@@ -130,10 +130,10 @@ export default function DiamondArcade() {
     const userId = user?.id;
 
     const [mounted, setMounted] = useState(false);
-    const [balance, setBalance] = useState(1247);
-    const [streak, setStreak] = useState(3);
-    const [stats, setStats] = useState({ todayProfit: 127, gamesPlayed: 12, winRate: 62 });
-    const [jackpot, setJackpot] = useState(47832);
+    const [balance, setBalance] = useState(0);
+    const [streak, setStreak] = useState(0);
+    const [stats, setStats] = useState({ todayProfit: 0, gamesPlayed: 0, winRate: 0 });
+    const [jackpot, setJackpot] = useState(0);
     const [resetTime, setResetTime] = useState({ hours: 8, minutes: 42, seconds: 15 });
     const [activeGame, setActiveGame] = useState(null);
     const [gamePhase, setGamePhase] = useState('lobby');
@@ -252,18 +252,69 @@ export default function DiamondArcade() {
         };
     }, [user?.id]);
 
-    async function loadUserStats(userId) {
+    async function loadUserStats(uid) {
         try {
-            const { data, error } = await supabase.rpc('get_arcade_user_stats', { p_user_id: userId });
-            if (error) console.warn('[Arcade] loadUserStats RPC error:', error.message);
-            if (data) {
-                setBalance(data.balance || 0);
-                setStreak(data.current_streak || 0);
+            // 1. Real diamond balance from profiles
+            const { data: profile } = await supabase
+                .from('profiles').select('diamonds').eq('id', uid).maybeSingle();
+            if (profile) setBalance(profile.diamonds || 0);
+
+            // 2. Arcade stats from diamond_arena_events
+            const { data: completedEvents } = await supabase
+                .from('diamond_arena_events')
+                .select('won, prize_awarded, created_at')
+                .eq('user_id', uid)
+                .eq('event_type', 'game_complete')
+                .order('created_at', { ascending: false })
+                .limit(500);
+
+            const { data: startEvents } = await supabase
+                .from('diamond_arena_events')
+                .select('entry_fee, created_at')
+                .eq('user_id', uid)
+                .eq('event_type', 'game_start')
+                .order('created_at', { ascending: false })
+                .limit(500);
+
+            if (completedEvents) {
+                const gamesPlayed = completedEvents.length;
+                const wins = completedEvents.filter(e => e.won).length;
+                const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
+
+                // Today's profit: today's prizes - today's entry fees
+                const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+                const todayISO = todayStart.toISOString();
+                const todayPrizes = completedEvents
+                    .filter(e => e.created_at >= todayISO)
+                    .reduce((s, e) => s + (e.prize_awarded || 0), 0);
+                const todayFees = (startEvents || [])
+                    .filter(e => e.created_at >= todayISO)
+                    .reduce((s, e) => s + (e.entry_fee || 0), 0);
+
+                // Streak: consecutive wins from most recent
+                let currentStreak = 0;
+                for (const e of completedEvents) {
+                    if (e.won) currentStreak++;
+                    else break;
+                }
+
+                setStreak(currentStreak);
                 setStats({
-                    todayProfit: data.today?.profit || 0,
-                    gamesPlayed: data.total_games || 0,
-                    winRate: data.win_rate || 0
+                    todayProfit: todayPrizes - todayFees,
+                    gamesPlayed,
+                    winRate
                 });
+            }
+
+            // 3. Jackpot: sum of all entry fees (community pot)
+            const { data: jackpotData } = await supabase
+                .from('diamond_arena_events')
+                .select('entry_fee')
+                .eq('event_type', 'game_start')
+                .limit(2000);
+            if (jackpotData) {
+                const totalPool = jackpotData.reduce((s, e) => s + (e.entry_fee || 0), 0);
+                setJackpot(Math.round(totalPool * 0.05)); // 5% of all entry fees go to jackpot
             }
         } catch (e) {
             console.warn('[Arcade] loadUserStats failed:', e.message);
