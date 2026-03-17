@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GTO BASELINES — Optimal frequencies by position (6-max Cash, 100BB)
@@ -247,6 +249,7 @@ export default function GTOScorecardPage() {
   const [sessions, setSessions] = useState([]);
   const [selectedStat, setSelectedStat] = useState('vpip');
   const [sharing, setSharing] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
   const fetchData = useCallback(async () => {
     const user = getAuthUser();
@@ -254,6 +257,7 @@ export default function GTOScorecardPage() {
       setLoading(false);
       return;
     }
+    setFetchError(null);
     try {
       const res = await authedFetch(`/api/training/get-sessions?limit=500`);
       // HARDENED: Guard against non-OK responses and malformed JSON
@@ -274,6 +278,7 @@ export default function GTOScorecardPage() {
       if (data.success && Array.isArray(data.sessions)) setSessions(data.sessions);
     } catch (e) {
       console.error('[GTOScorecard] Error:', e);
+      setFetchError('Failed to load scorecard data. Please try again.');
     }
     setLoading(false);
   }, []);
@@ -692,6 +697,8 @@ export default function GTOScorecardPage() {
           )}
         </div>
       </div>
+      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
+      <ConnectionToast />
     </>
   );
 }

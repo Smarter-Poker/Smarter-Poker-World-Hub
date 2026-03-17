@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MISTAKE RECONSTRUCTION
@@ -278,6 +280,7 @@ export default function ReplayTheaterPage() {
   const [mistakes, setMistakes] = useState([]);
   const [filter, setFilter] = useState('all');
   const [streetFilter, setStreetFilter] = useState('all');
+  const [fetchError, setFetchError] = useState(null);
 
   const fetchData = useCallback(async () => {
     const user = getAuthUser();
@@ -285,6 +288,7 @@ export default function ReplayTheaterPage() {
       setLoading(false);
       return;
     }
+    setFetchError(null);
     try {
       const res = await authedFetch(`/api/training/get-sessions?limit=200`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -294,6 +298,7 @@ export default function ReplayTheaterPage() {
       }
     } catch (e) {
       console.error('[ReplayTheater] Error:', e);
+      setFetchError('Failed to load replay data. Please try again.');
     }
     setLoading(false);
   }, []);
@@ -558,6 +563,8 @@ export default function ReplayTheaterPage() {
           )}
         </div>
       </div>
+      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
+      <ConnectionToast />
     </>
   );
 }

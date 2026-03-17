@@ -15,6 +15,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 const TIERS = {
   Bronze: { color: '#cd7f32', bg: 'rgba(205,127,50,0.1)', reward: '+50 Diamonds' },
@@ -301,6 +303,7 @@ export default function MilestonesPage() {
   useTrainingBus('milestones');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
 
   const fetchData = useCallback(async () => {
     const user = getAuthUser();
@@ -308,6 +311,7 @@ export default function MilestonesPage() {
       setLoading(false);
       return;
     }
+    setFetchError(null);
     try {
       const res = await authedFetch(`/api/training/get-sessions?limit=500`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -316,6 +320,7 @@ export default function MilestonesPage() {
       else setStats(computeStats([]));
     } catch (e) {
       console.error('[Milestones] Error:', e);
+      setFetchError('Failed to load milestones. Please try again.');
       setStats(computeStats([]));
     }
     setLoading(false);
@@ -728,6 +733,8 @@ export default function MilestonesPage() {
           )}
         </div>
       </div>
+      {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
+      <ConnectionToast />
     </>
   );
 }

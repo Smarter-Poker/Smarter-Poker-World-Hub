@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -742,6 +743,7 @@ export default function RangeBuilder() {
           </div>
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

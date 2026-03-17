@@ -13,6 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 let _supabase = null;
 function getSupabase() {
@@ -651,6 +652,7 @@ export default function DrillBuilderPage() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

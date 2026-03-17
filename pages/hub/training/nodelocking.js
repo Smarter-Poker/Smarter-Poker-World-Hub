@@ -14,6 +14,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { DiamondEngine } from '../../../src/services/DiamondEngine';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VILLAIN PROFILES
@@ -342,6 +344,7 @@ export default function NodelockingPage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
   const [profileSaveStatus, setProfileSaveStatus] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
   const [showMyProfiles, setShowMyProfiles] = useState(false);
 
   // Load saved profiles on mount
@@ -407,6 +410,7 @@ export default function NodelockingPage() {
       setTimeout(() => setProfileSaveStatus(null), 3000);
     } catch (e) {
       console.error('[Nodelocking] Profile save error:', e);
+      setFetchError('Failed to load nodelocking data. Please try again.');
       setProfileSaveStatus('error');
       setTimeout(() => setProfileSaveStatus(null), 3000);
     }
@@ -1192,6 +1196,8 @@ export default function NodelockingPage() {
           </motion.div>
         ))}
       </div>
+      {fetchError && <ErrorBanner message={fetchError} onRetry={() => setFetchError(null)} />}
+      <ConnectionToast />
     </>
   );
 }

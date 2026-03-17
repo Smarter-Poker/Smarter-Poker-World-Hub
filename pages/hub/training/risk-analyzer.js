@@ -15,6 +15,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 export default function RiskAnalyzerPage() {
   const router = useRouter();
@@ -461,6 +462,7 @@ export default function RiskAnalyzerPage() {
           </div>
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

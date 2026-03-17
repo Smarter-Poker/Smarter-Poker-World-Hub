@@ -7,6 +7,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import dynamic from 'next/dynamic';
 import { authedFetch } from '../../../src/lib/authUtils';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 const AreaChart = dynamic(() => import('recharts').then(m => m.AreaChart), { ssr: false });
 const Area = dynamic(() => import('recharts').then(m => m.Area), { ssr: false });
@@ -64,6 +65,7 @@ export default function MixedStrategyLab() {
   }, [bluffFreq]);
 
   return (
+    <>
     <PageTransition>
       <Head>
         <title>Mixed Strategy Lab | Smarter.Poker</title>
@@ -181,6 +183,8 @@ export default function MixedStrategyLab() {
         </div>
       </div>
     </PageTransition>
+    <ConnectionToast />
+    </>
   );
 }
 

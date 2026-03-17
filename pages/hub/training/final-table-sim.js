@@ -6,6 +6,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch } from '../../../src/lib/authUtils';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 export default function FinalTableSimulator() {
   const router = useRouter();
@@ -91,6 +92,7 @@ export default function FinalTableSimulator() {
   const formatNumber = (val) => new Intl.NumberFormat('en-US').format(val);
 
   return (
+    <>
     <PageTransition>
       <Head>
         <title>Final Table Simulator | Smarter.Poker</title>
@@ -224,6 +226,8 @@ export default function FinalTableSimulator() {
         </div>
       </div>
     </PageTransition>
+    <ConnectionToast />
+    </>
   );
 }
 

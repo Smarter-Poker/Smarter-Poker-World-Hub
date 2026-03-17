@@ -14,6 +14,7 @@ import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // Dynamic import to avoid SSR issues with the Arena
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
@@ -717,6 +718,7 @@ export default function MultiTablePage() {
           </>
         )}
       </div>
+      <ConnectionToast />
     </>
   );
 }

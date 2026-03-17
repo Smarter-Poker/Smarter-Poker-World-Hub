@@ -17,6 +17,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import Card from '../../../src/components/training/Card';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HISTORIC FINAL TABLE DATABASE
@@ -888,6 +889,7 @@ export default function FamousFinalsPage() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }
