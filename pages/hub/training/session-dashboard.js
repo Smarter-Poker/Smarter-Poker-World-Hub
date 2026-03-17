@@ -650,6 +650,14 @@ export default function SessionDashboard() {
     });
   }, [sessions, timeRange]);
 
+  // Latest session for coaching card — memoized to prevent re-renders
+  const latestSession = useMemo(() => {
+    if (filteredSessions.length === 0) return null;
+    return [...filteredSessions].sort((a, b) =>
+      new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp)
+    )[0];
+  }, [filteredSessions]);
+
   // Chart data
   const accuracyChartData = useMemo(() => {
     const sorted = [...filteredSessions]
@@ -773,12 +781,7 @@ export default function SessionDashboard() {
           ) : (
             <>
               {/* Coach's Notes — AI Coaching Card */}
-              {filteredSessions.length > 0 && (() => {
-                const latest = [...filteredSessions].sort((a, b) =>
-                  new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp)
-                )[0];
-                return <CoachingCard session={latest} />;
-              })()}
+              {latestSession && <CoachingCard session={latestSession} />}
               {/* Stat Tiles */}
               {stats && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
