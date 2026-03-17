@@ -14,7 +14,8 @@ ALTER TABLE trivia_scores ADD CONSTRAINT trivia_scores_mode_check
     CHECK (mode IN (
         'daily', 'history', 'rules', 'pro', 'arcade',
         'mtt', 'cash', 'icm', 'gto',
-        'survival', 'endless', 'tournaments'
+        'survival', 'endless', 'tournaments',
+        'mixed', 'time-attack', 'pvp'
     ));
 
 -- ═══════════════════════════════════════════════════════════════════════════

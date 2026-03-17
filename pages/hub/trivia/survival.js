@@ -232,6 +232,7 @@ export default function SurvivalModePage() {
                             p_reference_id: null
                         });
                         busEmit.diamondsEarned(cappedDiamonds, 'Survival Mode');
+                        busEmit.celebration('confetti');
                     }
                 }
 
