@@ -1907,8 +1907,11 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 url: shareUrl,
                             }).catch(() => { });
                         } else {
-                            navigator.clipboard.writeText(shareUrl);
-                            toast.success('Link copied to clipboard!');
+                            navigator.clipboard.writeText(shareUrl).then(() => {
+                                toast.success('Link copied to clipboard!');
+                            }).catch(() => {
+                                toast.error('Could not copy link');
+                            });
                         }
                         // Sync denormalized share_count (fire-and-forget with manual fallback)
                         supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'share_count' }).catch(async () => {
@@ -2063,8 +2066,19 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         if (navigator.share) {
                             navigator.share({ title: 'Check out this video on Smarter.Poker', url: shareUrl }).catch(() => { });
                         } else {
-                            navigator.clipboard.writeText(shareUrl);
+                            navigator.clipboard.writeText(shareUrl).then(() => {
+                                toast.success('Link copied to clipboard!');
+                            }).catch(() => {
+                                toast.error('Could not copy link');
+                            });
                         }
+                        // Sync denormalized share_count (fire-and-forget with manual fallback)
+                        supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'share_count' }).catch(async () => {
+                            try {
+                                const { data: p } = await supabase.from('social_posts').select('share_count').eq('id', post.id).maybeSingle();
+                                if (p) await supabase.from('social_posts').update({ share_count: (p.share_count || 0) + 1 }).eq('id', post.id);
+                            } catch (e) { console.warn('[Social] share_count fallback failed:', e.message); }
+                        });
                     }}
                 />
             )}

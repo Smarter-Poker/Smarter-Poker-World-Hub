@@ -78,14 +78,14 @@ export default function CommunityLeaderboardPage() {
           sessions: entry.sessionsCompleted || 0,
           hands: entry.questionsCorrect || 0, // Approx
           streak: entry.bestStreak || 0,
-          score: category === 'streaks' ? entry.bestStreak || 0 : entry.accuracy || 0,
           avatarColor: getAvatarColor(entry.userId),
         }));
       })
   );
 
-  // Sort and rank entries
+  // Sort and rank entries — score computed at render-time so it reflects the current category tab
   const entries = (swrData || [])
+    .map((e) => ({ ...e, score: category === 'streaks' ? e.streak : e.accuracy }))
     .sort((a, b) => b.score - a.score)
     .map((e, i) => ({ ...e, rank: i + 1, isYou: user?.id === e.id }));
 
