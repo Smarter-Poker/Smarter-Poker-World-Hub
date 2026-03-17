@@ -691,6 +691,14 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     const mentionTimeout = useRef(null);
     const linkTimeout = useRef(null);
 
+    // Cleanup pending timeouts on unmount to prevent zombie timers
+    useEffect(() => {
+        return () => {
+            if (mentionTimeout.current) clearTimeout(mentionTimeout.current);
+            if (linkTimeout.current) clearTimeout(linkTimeout.current);
+        };
+    }, []);
+
     // Identity switching
     const { isClubMode, clubPage, hasClubPage, switchToPersonal, switchToClub, activeIdentity } = useActiveIdentity();
 
@@ -927,6 +935,8 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     // - author_id set from user.id
     // - Run /social-feed-protection workflow after changes
     const handlePost = async () => {
+        // Double-submit guard — prevents race condition before React re-renders disabled state
+        if (isPosting) return;
         // Allow posting if there's content, media, OR a link preview
         if (!content.trim() && !media.length && !linkPreview) return;
         setError('');
