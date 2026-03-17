@@ -6,6 +6,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 export default function StudyGroupRoom() {
   const router = useRouter();

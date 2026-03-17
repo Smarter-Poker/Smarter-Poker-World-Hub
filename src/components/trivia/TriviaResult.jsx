@@ -12,7 +12,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Zap, Gem, Target, Clock, Flame, RotateCcw, Home, ChevronRight, ChevronDown, ChevronUp, Crown, CheckCircle, XCircle, BookOpen } from 'lucide-react';
+import { Trophy, Zap, Gem, Target, Clock, Flame, RotateCcw, Home, ChevronRight, ChevronDown, ChevronUp, Crown, CheckCircle, XCircle, BookOpen, Share2 } from 'lucide-react';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -60,6 +60,22 @@ export default function TriviaResult({
     // Review mode state
     const [showReview, setShowReview] = useState(false);
     const canReview = questions && answers && questions.length > 0;
+
+    // Share state
+    const [shareLabel, setShareLabel] = useState('Share Result');
+
+    const handleShare = async () => {
+        const text = `Poker Trivia ${grade.letter} Grade! ${correctCount}/${totalQuestions} correct (${accuracy}%)${diamondsEarned > 0 ? ` — earned ${diamondsEarned} diamonds` : ''}${streak > 0 ? ` — ${streak} day streak` : ''} on smarter.poker`;
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            try {
+                await navigator.share({ title: 'Smarter.Poker Trivia', text, url: 'https://smarter.poker/hub/trivia' });
+            } catch (e) { /* user cancelled share */ }
+        } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            await navigator.clipboard.writeText(text);
+            setShareLabel('Copied!');
+            setTimeout(() => setShareLabel('Share Result'), 2000);
+        }
+    };
 
     // ══ Animated count-up ══
     const [displayDiamonds, setDisplayDiamonds] = useState(0);
@@ -344,6 +360,10 @@ export default function TriviaResult({
                         <Home size={18} />
                         Back to Trivia
                     </Link>
+                    <button className="action-btn share" onClick={handleShare}>
+                        <Share2 size={18} />
+                        {shareLabel}
+                    </button>
                     {!isArcade && mode !== 'daily' && (
                         <button className="action-btn primary" onClick={onPlayAgain}>
                             <RotateCcw size={18} />
@@ -671,6 +691,15 @@ export default function TriviaResult({
                 @keyframes doublePulse {
                     0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.4); }
                     50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.7); }
+                }
+                .action-btn.share {
+                    background: #3a3b3c;
+                    border: 1px solid #4e4f50;
+                    color: rgba(255, 255, 255, 0.8);
+                }
+                .action-btn.share:hover {
+                    background: #4e4f50;
+                    color: #fff;
                 }
                 /* ═══ REVIEW MODE ═══ */
                 .review-section {

@@ -656,10 +656,8 @@ function SolutionsBrowserInner({ setError }) {
     if (!spotDetail?.scenarioHash) return;
     setLoadingRunout(true);
     try {
-      const res = await fetch(
-        `/api/training/runout-report?scenarioHash=${spotDetail.scenarioHash}`,
-        {
-        }
+      const res = await authedFetch(
+        `/api/training/runout-report?scenarioHash=${spotDetail.scenarioHash}`
       );
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();

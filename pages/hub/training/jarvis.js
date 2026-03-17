@@ -11,15 +11,18 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 export default function JarvisDashboard() {
   useTrainingBus('jarvis-dashboard');
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
 
   useEffect(() => {
     const _c = new AbortController();
@@ -31,15 +34,12 @@ export default function JarvisDashboard() {
   const loadInsights = async (signal) => {
     try {
       setLoading(true);
+      setFetchError(null);
       const authUser = getAuthUser();
       setUser(authUser);
 
       if (authUser) {
-        const _jToken = getAccessToken();
-        const token = _jToken || '';
-        const response = await fetch(`/api/jarvis/user-insights`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await authedFetch(`/api/jarvis/user-insights`);
         if (!response.ok) throw new Error(`Request failed (${response.status})`);
         const data = await response.json();
 
@@ -50,6 +50,7 @@ export default function JarvisDashboard() {
       setLoading(false);
     } catch (error) {
       console.error('Error loading insights:', error);
+      setFetchError('Unable to load Jarvis insights. Please try again.');
       setLoading(false);
     }
   };
@@ -66,6 +67,7 @@ export default function JarvisDashboard() {
         <UniversalHeader pageDepth={2} />
 
         <div style={styles.content}>
+          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); loadInsights(); }} />
           <div style={styles.header}>
             <div style={styles.jarvisIcon}>🧠</div>
             <h1 style={styles.title}>JARVIS Dashboard</h1>
@@ -265,6 +267,7 @@ export default function JarvisDashboard() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </PageTransition>
   );
 }

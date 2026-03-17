@@ -7,6 +7,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];

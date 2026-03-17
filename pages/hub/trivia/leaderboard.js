@@ -113,9 +113,10 @@ export default function TriviaLeaderboard() {
     }
 
     function getDateDaysAgo(days) {
-        const date = new Date();
-        date.setDate(date.getDate() - days);
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const now = new Date();
+        const cst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+        cst.setDate(cst.getDate() - days);
+        return `${cst.getFullYear()}-${String(cst.getMonth() + 1).padStart(2, '0')}-${String(cst.getDate()).padStart(2, '0')}`;
     }
 
     function getRankLabel(rank) {
