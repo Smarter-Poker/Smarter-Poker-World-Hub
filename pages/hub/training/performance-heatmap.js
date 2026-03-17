@@ -614,6 +614,74 @@ export default function PerformanceHeatmapPage() {
             ))}
           </div>
 
+          {/* Quick Summary — Strongest & Weakest */}
+          {Object.keys(gridData).length > 0 && (() => {
+            const posStats = POSITIONS.map(pos => {
+              let hands = 0, correct = 0;
+              STREETS.forEach(st => {
+                const cell = gridData[`${pos}-${st}`];
+                if (cell) { hands += cell.handsPlayed; correct += cell.correct; }
+              });
+              return { pos, hands, accuracy: hands > 0 ? Math.round((correct / hands) * 100) : null };
+            }).filter(p => p.accuracy !== null && p.hands > 5);
+
+            if (posStats.length < 2) return null;
+
+            const sorted = [...posStats].sort((a, b) => b.accuracy - a.accuracy);
+            const strongest = sorted[0];
+            const weakest = sorted[sorted.length - 1];
+
+            // Most practiced street
+            const streetCounts = STREETS.map(st => {
+              let hands = 0;
+              POSITIONS.forEach(pos => {
+                const cell = gridData[`${pos}-${st}`];
+                if (cell) hands += cell.handsPlayed;
+              });
+              return { street: st, hands };
+            }).sort((a, b) => b.hands - a.hands);
+
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  marginBottom: 16,
+                  padding: '14px 16px',
+                  borderRadius: 12,
+                  background: 'rgba(0,0,0,0.25)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <div style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  color: '#a855f7',
+                  textTransform: 'uppercase',
+                  letterSpacing: 1,
+                  marginBottom: 10,
+                }}>Quick Summary</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.1)' }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Strongest</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#4ade80' }}>{strongest.pos}</div>
+                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{strongest.accuracy}% accuracy</div>
+                  </div>
+                  <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.1)' }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Weakest</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#f87171' }}>{weakest.pos}</div>
+                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{weakest.accuracy}% accuracy</div>
+                  </div>
+                </div>
+                {streetCounts[0]?.hands > 0 && (
+                  <div style={{ marginTop: 8, fontSize: 11, color: '#64748b' }}>
+                    Most practiced street: <span style={{ color: '#00d4ff', fontWeight: 600 }}>{streetCounts[0].street}</span> ({streetCounts[0].hands} hands)
+                  </div>
+                )}
+              </motion.div>
+            );
+          })()}
+
           {/* Overall Stats */}
           <div
             style={{
