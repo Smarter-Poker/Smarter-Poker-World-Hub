@@ -1694,6 +1694,15 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const handleSubmitComment = async () => {
         if (!newComment.trim() || !currentUserId) return;
         
+        // Stop typing indicator immediately on submit
+        if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+        try {
+            supabase.channel('social-feed').send({ type: 'broadcast', event: 'typing', payload: {
+                post_id: post.id, user_id: currentUserId,
+                name: currentUserName, avatar_url: currentUserAvatar, isTyping: false
+            }}).catch(() => {});
+        } catch {}
+
         // Capture values and clear input immediately for snappy UX
         const commentText = newComment.trim();
         const parentInfo = replyingTo;
