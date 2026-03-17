@@ -17,6 +17,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 
 const STATES = [
   { id: 'zone', label: 'In The Zone', color: '#4ade80', icon: '⚡' },
@@ -434,8 +435,16 @@ export default function MentalJournalPage() {
           {view === 'history' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {loadingHistory && (
-                <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
-                  Syncing DB History...
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16 }}>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 16 }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
+                        <SkeletonBox width={32} height={32} style={{ borderRadius: 8 }} />
+                        <SkeletonBox width={`${50 + i * 10}%`} height={14} />
+                      </div>
+                      <SkeletonBox width={`${70 + i * 5}%`} height={10} />
+                    </div>
+                  ))}
                 </div>
               )}
 

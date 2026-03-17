@@ -30,6 +30,7 @@ import { authedFetch } from '../../../src/lib/authUtils';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import Card from '../../../src/components/training/Card';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // Dynamic imports for new Phase 34 components (avoid SSR issues)
@@ -954,26 +955,16 @@ function SolutionsBrowserInner({ setError }) {
             }}
           >
             {loading ? (
-              <div style={{ padding: 40, textAlign: 'center' }}>
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    border: '3px solid rgba(0,212,255,0.2)',
-                    borderTop: '3px solid #00d4ff',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                    margin: '0 auto',
-                  }}
-                />
-                <p style={{ color: '#64748b', fontSize: 12, marginTop: 8 }}>Loading solutions...</p>
-                <style jsx>{`
-                  @keyframes spin {
-                    to {
-                      transform: rotate(360deg);
-                    }
-                  }
-                `}</style>
+              <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <SkeletonBox width={48} height={48} style={{ borderRadius: 8, flexShrink: 0 }} />
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <SkeletonBox width={`${60 + i * 8}%`} height={14} />
+                      <SkeletonBox width={`${40 + i * 5}%`} height={10} />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : spots.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center' }}>
