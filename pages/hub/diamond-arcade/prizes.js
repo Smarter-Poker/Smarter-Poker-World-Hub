@@ -11,6 +11,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { Gem, ArrowLeft, Trophy, Zap, Target } from 'lucide-react';
 import { ARCADE_GAMES } from '../../../src/lib/arcade/arcadeEngine';
+import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function DiamondArcadePrizes() {
@@ -62,6 +63,13 @@ export default function DiamondArcadePrizes() {
         }
 
         loadPrizeData();
+
+        // Realtime — refresh jackpot and winners when new games complete
+        const ch = supabase
+            .channel('arcade-prizes')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'diamond_arena_events' }, () => { loadPrizeData(); })
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
     }, []);
 
     const GAME_NAMES = {
