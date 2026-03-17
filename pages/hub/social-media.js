@@ -689,6 +689,7 @@ async function compressImage(file, maxDim = 1920, quality = 0.85) {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             canvas.toBlob((blob) => {
+                URL.revokeObjectURL(img.src); // Free the object URL
                 if (blob && blob.size < file.size) {
                     resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
                 } else {
@@ -696,7 +697,7 @@ async function compressImage(file, maxDim = 1920, quality = 0.85) {
                 }
             }, 'image/jpeg', quality);
         };
-        img.onerror = () => resolve(file); // On error, use original
+        img.onerror = () => { URL.revokeObjectURL(img.src); resolve(file); }; // On error, use original
         img.src = URL.createObjectURL(file);
     });
 }
@@ -1521,18 +1522,29 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     };
 
     const handleLike = async (reactionType) => {
-        // reactionType: 'like'|'love'|'haha'|'wow'|'sad'|'angry' to like, null/undefined to unlike
+        // 3 cases: (1) new like, (2) unlike, (3) change reaction on existing like
         const isUnlike = !reactionType;
+        const isChangeReaction = liked && !isUnlike; // already liked, picking a new reaction
         const newLiked = !isUnlike;
+        const prevLiked = liked;
+        const prevLikeCount = likeCount;
         const prevReactions = [...reactions];
-        setLiked(newLiked);
-        
-        if (newLiked) {
+
+        if (isChangeReaction) {
+            // Just swap the reaction type, no count change
+            setReactions(prev => {
+                const updated = [...prev];
+                if (updated.length > 0) updated[updated.length - 1] = reactionType;
+                else updated.push(reactionType);
+                return updated;
+            });
+        } else if (newLiked) {
+            setLiked(true);
             setLikeCount(prev => prev + 1);
-            setReactions(prev => [...prev, reactionType]); // optimistic with actual type
+            setReactions(prev => [...prev, reactionType]);
         } else {
+            setLiked(false);
             setLikeCount(prev => Math.max(0, prev - 1));
-            // Remove the first matching reaction for optimistic UI
             const idx = reactions.findIndex(r => r);
             if (idx > -1) {
                 const updated = [...reactions];
@@ -1545,8 +1557,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         } catch (e) {
             // Revert optimistic update on failure
             console.error('[PostCard] Like failed, reverting:', e);
-            setLiked(!newLiked);
-            setLikeCount(prev => newLiked ? Math.max(0, prev - 1) : prev + 1);
+            setLiked(prevLiked);
+            setLikeCount(prevLikeCount);
             setReactions(prevReactions);
         }
     };
@@ -1831,7 +1843,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         }} disabled={!editContent.trim()} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: editContent.trim() ? 1 : 0.5 }}>Save</button>
                     </div>
                 </div>
-            ) : post.content && (
+            ) : displayContent && (
                 <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>
                     {(() => {
                         // For link-type posts, strip URLs from displayed content (SmarterPoker-style)
@@ -5779,6 +5791,11 @@ function SocialMediaPage() {
                             } catch (e) { console.warn('[Social] like_count increment fallback failed:', e.message); }
                         }
                     })();
+                } else {
+                    // Change reaction type on existing like (no count change)
+                    await supabase.from('social_likes')
+                        .update({ reaction_type: type || 'like' })
+                        .eq('id', existing.id);
                 }
             }
         } catch (e) {

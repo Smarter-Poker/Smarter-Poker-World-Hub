@@ -568,11 +568,20 @@ export default function WeaknessScannerPage() {
             </>
           )}
 
-          {!loading && !data && (
+          {!loading && !data && !fetchError && (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>No data to scan</div>
-              <div style={{ fontSize: 11, marginTop: 4 }}>Play some training sessions first</div>
+              {rawSessions && rawSessions.length > 0 ? (
+                <>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>No data in this time range</div>
+                  <div style={{ fontSize: 11, marginTop: 4 }}>Try selecting a wider time range above</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>No data to scan</div>
+                  <div style={{ fontSize: 11, marginTop: 4 }}>Play some training sessions first</div>
+                </>
+              )}
             </div>
           )}
         </div>
