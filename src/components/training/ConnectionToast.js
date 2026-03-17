@@ -11,10 +11,11 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function ConnectionToast() {
   const [status, setStatus] = useState('online'); // 'online' | 'offline' | 'reconnected'
+  const timerRef = useRef(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -23,7 +24,8 @@ export default function ConnectionToast() {
     const handleOnline = () => {
       setStatus('reconnected');
       // Auto-dismiss "Back online" after 3 seconds
-      setTimeout(() => setStatus('online'), 3000);
+      clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setStatus('online'), 3000);
     };
 
     window.addEventListener('offline', handleOffline);
@@ -33,6 +35,7 @@ export default function ConnectionToast() {
     if (!navigator.onLine) setStatus('offline');
 
     return () => {
+      clearTimeout(timerRef.current);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('online', handleOnline);
     };

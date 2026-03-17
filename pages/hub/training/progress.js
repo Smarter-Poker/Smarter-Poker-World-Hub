@@ -82,6 +82,7 @@ export default function TrainingProgress() {
   }, []);
 
   const loadProgress = async () => {
+    setFetchError(null);
     try {
       const authUser = getAuthUser();
       setUser(authUser);

@@ -312,6 +312,7 @@ export default function TrainingFeedPage() {
   const [fetchError, setFetchError] = useState(null);
 
   const fetchFeed = useCallback(async () => {
+    setFetchError(null);
     const user = getAuthUser();
     try {
       if (user?.id) {

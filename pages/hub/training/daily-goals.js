@@ -135,6 +135,7 @@ export default function DailyGoalsPage() {
   }, []);
 
   const fetchData = useCallback(async () => {
+    setFetchError(null);
     const user = getAuthUser();
     if (!user?.id) {
       setLoading(false);
