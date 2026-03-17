@@ -217,6 +217,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [currentIndex, setCurrentIndex] = useState(startIndex);
     const [muted, setMuted] = useState(false); // Sound ON by default - user clicked to watch
     const [liked, setLiked] = useState({});
+    const [showComments, setShowComments] = useState(false);
+    const [reelComments, setReelComments] = useState([]);
+    const [commentText, setCommentText] = useState('');
+    const commentInputRef = useRef(null);
     const videoRef = useRef(null);
 
     const currentReel = reels[currentIndex];
@@ -255,17 +259,61 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
     };
 
+    // Toggle comment drawer and load comments
+    const handleToggleComments = async () => {
+        const opening = !showComments;
+        setShowComments(opening);
+        if (opening && currentReel?.id) {
+            try {
+                const { data } = await supabase
+                    .from('social_comments')
+                    .select('*, profiles:author_id (username, avatar_url)')
+                    .eq('post_id', currentReel.id)
+                    .order('created_at', { ascending: true })
+                    .limit(20);
+                setReelComments(data || []);
+            } catch { setReelComments([]); }
+            setTimeout(() => commentInputRef.current?.focus(), 100);
+        }
+    };
+
+    // Submit comment
+    const handleSubmitComment = async (e) => {
+        if (e.key !== 'Enter' || !commentText.trim() || !authUser?.id || !currentReel?.id) return;
+        const text = commentText.trim();
+        setCommentText('');
+        setReelComments(prev => [...prev, {
+            id: Date.now(), content: text,
+            profiles: { username: 'You', avatar_url: null },
+            created_at: new Date().toISOString()
+        }]);
+        try {
+            await supabase.from('social_comments').insert({
+                post_id: currentReel.id, author_id: authUser.id, content: text
+            });
+            busEmit.socialCommentAdded(currentReel.id, authUser.id);
+        } catch { /* optimistic stays */ }
+    };
+
+    // Reset comment drawer on reel change
+    useEffect(() => {
+        setShowComments(false);
+        setReelComments([]);
+        setCommentText('');
+    }, [currentIndex]);
+
     // Keyboard navigation
     useEffect(() => {
         const handleKey = (e) => {
+            if (showComments && e.target.tagName === 'INPUT') return; // Don't intercept when typing
             if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goNext();
             if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goPrev();
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape') { if (showComments) setShowComments(false); else onClose(); }
             if (e.key === 'm') setMuted(prev => !prev);
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, [currentIndex, onClose]);
+    }, [currentIndex, onClose, showComments]);
 
     if (!currentReel) return null;
 
@@ -388,9 +436,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         <span style={{ fontSize: 28 }}>{liked[currentReel.id] ? '❤️' : '🤍'}</span>
                         <span style={{ color: 'white', fontSize: 12 }}>{currentReel.like_count || 0}</span>
                     </button>
-                    <button style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                    <button onClick={handleToggleComments} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                         <span style={{ fontSize: 28 }}>💬</span>
-                        <span style={{ color: 'white', fontSize: 12 }}>Comment</span>
+                        <span style={{ color: showComments ? '#1877F2' : 'white', fontSize: 12 }}>Comment</span>
                     </button>
                     <button style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                         <span style={{ fontSize: 28 }}>📤</span>
@@ -411,6 +459,51 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 }}>
                     {currentIndex + 1} / {reels.length}
                 </div>
+
+                {/* Comment drawer */}
+                {showComments && (
+                    <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        maxHeight: '40vh', background: 'rgba(0,0,0,0.85)',
+                        borderTop: '1px solid rgba(255,255,255,0.15)',
+                        display: 'flex', flexDirection: 'column',
+                        backdropFilter: 'blur(12px)',
+                    }}>
+                        <div style={{ padding: '12px 16px', fontWeight: 600, color: 'white', fontSize: 14, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                            Comments ({reelComments.length})
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px' }}>
+                            {reelComments.length === 0 && (
+                                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', padding: 20 }}>No comments yet. Be the first!</p>
+                            )}
+                            {reelComments.map(c => (
+                                <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                                    <img src={c.profiles?.avatar_url || '/default-avatar.png'} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                                    <div>
+                                        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 600 }}>{c.profiles?.username || 'User'}</span>
+                                        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, margin: '2px 0 0' }}>{c.content}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ padding: '8px 16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: 8 }}>
+                            <input
+                                ref={commentInputRef}
+                                value={commentText}
+                                onChange={e => setCommentText(e.target.value)}
+                                onKeyDown={handleSubmitComment}
+                                placeholder="Add a comment..."
+                                style={{
+                                    flex: 1, padding: '8px 12px', borderRadius: 20,
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    background: 'rgba(255,255,255,0.1)',
+                                    color: 'white', fontSize: 13, outline: 'none',
+                                }}
+                                maxLength={2000}
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

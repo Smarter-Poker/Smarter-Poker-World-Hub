@@ -598,6 +598,9 @@ export default function SessionDashboard() {
           const allSessions = Array.isArray(data.sessions) ? data.sessions : Array.isArray(data) ? data : [];
           // Filter out nodelocking profile storage entries (not real training sessions)
           setSessions(allSessions.filter((s) => (s.game_id || s.gameId) !== 'nodelocking_profile'));
+          setFetchError(null);
+        } else {
+          setFetchError(`Unable to load session data (${res.status}). Please try again.`);
         }
       } catch (e) {
         console.warn('[Dashboard] Fetch failed:', e.message);

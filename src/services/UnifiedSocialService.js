@@ -148,18 +148,34 @@ export class UnifiedSocialService {
     // ═══════════════════════════════════════════════════════════════════════
 
     async toggleReaction(postId, userId, interactionType = 'like') {
-        const { data: existing } = await this.supabase
+        // Query ANY existing reaction by this user on this post (not filtered by type)
+        const { data: rows } = await this.supabase
             .from('social_interactions')
-            .select('id')
+            .select('id, interaction_type')
             .eq('post_id', postId)
             .eq('user_id', userId)
-            .eq('interaction_type', interactionType)
-            .maybeSingle();
+            .in('interaction_type', ['like', 'love', 'haha', 'wow', 'sad', 'angry'])
+            .limit(1);
+
+        const existing = rows?.[0] || null;
 
         if (existing) {
-            await this.supabase.from('social_interactions').delete().eq('id', existing.id);
-            return { added: false, type: interactionType };
+            if (existing.interaction_type === interactionType) {
+                // SAME type → toggle OFF (remove)
+                await this.supabase.from('social_interactions').delete().eq('id', existing.id);
+                return { added: false, type: interactionType };
+            } else {
+                // DIFFERENT type → SWAP (delete old, insert new — count unchanged)
+                await this.supabase.from('social_interactions').delete().eq('id', existing.id);
+                await this.supabase.from('social_interactions').insert({
+                    post_id: postId,
+                    user_id: userId,
+                    interaction_type: interactionType
+                });
+                return { added: null, type: interactionType };
+            }
         } else {
+            // No existing reaction → ADD new
             await this.supabase.from('social_interactions').insert({
                 post_id: postId,
                 user_id: userId,
