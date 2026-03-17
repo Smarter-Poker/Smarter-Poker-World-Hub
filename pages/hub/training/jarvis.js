@@ -31,6 +31,14 @@ export default function JarvisDashboard() {
     return () => _c.abort();
   }, []);
 
+  // Auto-refresh insights when a training session completes
+  useEffect(() => {
+    const unsub = eventBus.on(EventType?.SESSION_END || 'session:end', () => {
+      loadInsights();
+    });
+    return unsub;
+  }, []);
+
   const loadInsights = async (signal) => {
     try {
       setLoading(true);

@@ -1412,9 +1412,33 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [editCommentText, setEditCommentText] = useState('');
     const [deletingCommentId, setDeletingCommentId] = useState(null); // graceful delete confirm
     const commentInputRef = useRef(null); // auto-focus on open
+    // Phase 3: See More, lightbox, double-tap, comment scroll
+    const [expanded, setExpanded] = useState(false);
+    const [lightboxUrl, setLightboxUrl] = useState(null);
+    const [doubleTapHeart, setDoubleTapHeart] = useState(false);
+    const lastTapRef = useRef(0);
+    const commentEndRef = useRef(null);
     const showCommentsRef = useRef(false);
     const commentsRef = useRef([]);
     const typingDebounceRef = useRef(null);
+
+    // Format large counts as "99+"
+    const fmtCount = (n) => n > 99 ? '99+' : n;
+
+    // Lightbox: Escape key to close
+    useEffect(() => {
+        if (!lightboxUrl) return;
+        const handler = (e) => { if (e.key === 'Escape') setLightboxUrl(null); };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [lightboxUrl]);
+
+    // Auto-scroll to newest comment when comments change
+    useEffect(() => {
+        if (showComments && comments.length > 0) {
+            commentEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [comments.length, showComments]);
 
     // Keep refs in sync with state for real-time callbacks
     useEffect(() => { showCommentsRef.current = showComments; }, [showComments]);
@@ -1642,6 +1666,18 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const loadMoreComments = () => {
         loadComments(comments.length);
     };
+
+    // Phase 3: Double-tap to like handler
+    const handleDoubleTap = useCallback(() => {
+        const now = Date.now();
+        if (now - lastTapRef.current < 300) {
+            // Double tap detected — trigger like + heart animation
+            if (!liked) handleLike('like');
+            setDoubleTapHeart(true);
+            setTimeout(() => setDoubleTapHeart(false), 800);
+        }
+        lastTapRef.current = now;
+    }, [liked, handleLike]);
 
     const handleToggleComments = () => {
         setShowComments(!showComments);
