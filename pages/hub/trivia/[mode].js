@@ -83,6 +83,7 @@ export default function TriviaModePage() {
     const [result, setResult] = useState(null);
     const [leaderboard, setLeaderboard] = useState([]);
     const [userStreak, setUserStreak] = useState(0);
+    const [bestStreak, setBestStreak] = useState(0);
     const [userId, setUserId] = useState(null);
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [error, setError] = useState(null);
@@ -142,15 +143,16 @@ export default function TriviaModePage() {
                         setUserDiamonds(profile.diamonds || 0);
                     }
 
-                    // Get streak
+                    // Get streak (load both current and best for correct upsert)
                     const { data: streakData } = await supabase
                         .from('trivia_streaks')
-                        .select('current_streak')
+                        .select('current_streak, best_streak')
                         .eq('user_id', currentUserId)
                         .maybeSingle();
 
                     if (streakData) {
                         setUserStreak(streakData.current_streak || 0);
+                        setBestStreak(streakData.best_streak || 0);
                     }
 
                     // Check arcade diamonds
@@ -710,9 +712,11 @@ export default function TriviaModePage() {
                         await supabase.from('trivia_streaks').upsert({
                             user_id: userId,
                             current_streak: newStreak,
-                            best_streak: Math.max(newStreak, userStreak),
+                            best_streak: Math.max(newStreak, bestStreak),
                             last_play_date: today
                         });
+                        // Keep bestStreak state in sync
+                        if (newStreak > bestStreak) setBestStreak(newStreak);
                     }
                     savePhaseRef.current = 5;
                 }
