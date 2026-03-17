@@ -731,7 +731,10 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
         }));
         try {
             const { added, type } = await socialService.toggleReaction(postId, authUser.id, reactionType);
-            busEmit.socialPostLiked(postId, authUser.id, { added, reactionType: type });
+            // Only emit bus event when like_count changes (added=true/false). Skip swaps (added=null).
+            if (added !== null && added !== undefined) {
+                busEmit.socialPostLiked(postId, authUser.id, { added, reactionType: type });
+            }
         } catch {
             // Revert on failure
             setUserPosts(prev => prev.map(p => {

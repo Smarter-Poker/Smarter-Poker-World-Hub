@@ -250,7 +250,10 @@ export const EnhancedSpatialFeed = ({
 
         try {
             const { added, type } = await socialService.toggleReaction(postId, user.id, reactionType);
-            busEmit.socialPostLiked(postId, user.id, { added, reactionType: type });
+            // Only emit bus event when like_count changes (added=true/false). Skip swaps (added=null).
+            if (added !== null && added !== undefined) {
+                busEmit.socialPostLiked(postId, user.id, { added, reactionType: type });
+            }
         } catch (error) {
             console.error('Like error:', error);
             throw error;

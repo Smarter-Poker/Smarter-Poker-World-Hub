@@ -344,7 +344,7 @@ export class SocialService {
                     if (insErr) throw insErr;
 
                     // Swap = still liked, just different type. Count doesn't change.
-                    return { added: true, type: interactionType };
+                    return { added: null, type: interactionType };
                 }
             } else {
                 // NO existing reaction → ADD new

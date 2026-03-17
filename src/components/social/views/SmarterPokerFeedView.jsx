@@ -424,7 +424,10 @@ export const SmarterPokerFeedView = ({ onNavigate, onOpenChat }) => {
 
         try {
             const { added, type } = await socialService.toggleReaction(postId, currentUser.id, reactionType);
-            busEmit.socialPostLiked(postId, currentUser.id, { added, reactionType: type });
+            // Only emit bus event when like_count changes (added=true/false). Skip swaps (added=null).
+            if (added !== null && added !== undefined) {
+                busEmit.socialPostLiked(postId, currentUser.id, { added, reactionType: type });
+            }
         } catch (error) {
             console.error('Reaction failed:', error);
             // Revert optimistic update

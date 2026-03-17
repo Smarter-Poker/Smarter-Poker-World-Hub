@@ -626,7 +626,10 @@ export const SmarterPokerClubView = ({ onNavigate }) => {
         }));
         try {
             const { added, type } = await socialService.toggleReaction(postId, currentUser.id, reactionType);
-            busEmit.socialPostLiked(postId, currentUser.id, { added, reactionType: type });
+            // Only emit bus event when like_count changes (added=true/false). Skip swaps (added=null).
+            if (added !== null && added !== undefined) {
+                busEmit.socialPostLiked(postId, currentUser.id, { added, reactionType: type });
+            }
         } catch {
             // Revert on failure
             setPosts(prev => prev.map(p => {
