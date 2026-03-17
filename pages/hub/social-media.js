@@ -721,14 +721,67 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     const inputRef = useRef(null);
     const mentionTimeout = useRef(null);
     const linkTimeout = useRef(null);
+    const draftTimeout = useRef(null);
+
+    // Phase 3: Restore draft from localStorage on mount
+    useEffect(() => {
+        try {
+            const draft = localStorage.getItem('sp-post-draft');
+            if (draft && !content) setContent(draft);
+        } catch {}
+    }, []);
 
     // Cleanup pending timeouts on unmount to prevent zombie timers
     useEffect(() => {
         return () => {
             if (mentionTimeout.current) clearTimeout(mentionTimeout.current);
             if (linkTimeout.current) clearTimeout(linkTimeout.current);
+            if (draftTimeout.current) clearTimeout(draftTimeout.current);
         };
     }, []);
+
+    // Phase 3: Paste image handler — feeds into existing upload pipeline
+    const handlePaste = async (e) => {
+        const items = e.clipboardData?.items;
+        if (!items || !user?.id) return;
+        const imageFiles = [];
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (file) imageFiles.push(file);
+            }
+        }
+        if (!imageFiles.length) return;
+        e.preventDefault();
+        const remaining = MAX_MEDIA - media.length;
+        if (remaining <= 0) { setError(`Maximum ${MAX_MEDIA} images allowed`); return; }
+        setUploading(true);
+        const uploaded = [];
+        for (const file of imageFiles.slice(0, remaining)) {
+            try {
+                const compressedFile = await compressImage(file);
+                const formData = new FormData();
+                formData.append('file', compressedFile);
+                formData.append('folder', 'photos');
+                formData.append('prefix', user.id);
+                const token = getAccessToken();
+                const res = await fetch('/api/social/upload', {
+                    method: 'POST',
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                    body: formData,
+                });
+                if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+                const json = await res.json();
+                if (json.success && json.url) uploaded.push({ type: 'photo', url: json.url });
+                else setError('Paste upload failed: ' + (json.error || 'Unknown'));
+            } catch (err) { setError('Paste upload failed: ' + err.message); }
+        }
+        if (uploaded.length) {
+            setMedia(prev => [...prev, ...uploaded]);
+            toast.success(`${uploaded.length} image${uploaded.length > 1 ? 's' : ''} pasted!`);
+        }
+        setUploading(false);
+    };
 
     // Identity switching
     const { isClubMode, clubPage, hasClubPage, switchToPersonal, switchToClub, activeIdentity } = useActiveIdentity();
@@ -825,6 +878,12 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     const handleContentChange = (e) => {
         const value = e.target.value;
         const pos = e.target.selectionStart;
+
+        // Phase 3: Debounced draft save to localStorage
+        if (draftTimeout.current) clearTimeout(draftTimeout.current);
+        draftTimeout.current = setTimeout(() => {
+            try { if (value.trim()) localStorage.setItem('sp-post-draft', value); else localStorage.removeItem('sp-post-draft'); } catch {}
+        }, 2000);
 
         // 🔗 AUTO-DETECT URLs - SmarterPoker-style: remove URL and show preview card
         // ONLY trigger when URL is followed by a space (user finished typing the URL)
@@ -1016,7 +1075,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
         }
         // DEBUG: log linkPreview before passing to parent
         const ok = await onPost(cleanContent, urls, type, mentions, linkPreview, postVisibility);
-        if (ok) { setContent(''); setMedia([]); setLinkPreview(null); }
+        if (ok) { setContent(''); setMedia([]); setLinkPreview(null); try { localStorage.removeItem('sp-post-draft'); } catch {} }
         else setError('Unable to post at this time. Please try again later.');
     };
 
@@ -1137,6 +1196,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                         ref={inputRef}
                         value={content}
                         onChange={handleContentChange}
+                        onPaste={handlePaste}
                         placeholder={isClubMode ? `Post as ${clubPage?.name || 'Club'}...` : `What's on your mind, ${user?.name || 'Player'}?`}
                         style={{ width: '100%', background: C.bg, border: 'none', borderRadius: 20, padding: '10px 16px', fontSize: 16, outline: 'none', boxSizing: 'border-box', color: C.text }}
                         maxLength={5000}
@@ -1410,6 +1470,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         });
     }
     const [bookmarked, setBookmarked] = useState(post.isBookmarked || false);
+    const [bookmarkCount, setBookmarkCount] = useState(post.bookmarkCount || 0);
     const [showComments, setShowComments] = useState(false);
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
@@ -1563,6 +1624,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         if (!currentUserId) return;
         const newBookmarked = !bookmarked;
         setBookmarked(newBookmarked);
+        setBookmarkCount(prev => newBookmarked ? prev + 1 : Math.max(0, prev - 1));
         haptic(newBookmarked ? 15 : 5);
         try {
             if (newBookmarked) {
@@ -1585,7 +1647,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                 if (error) throw error;
                 toast.success('Removed from saved');
             }
-        } catch (e) { console.error('Bookmark error:', e); setBookmarked(!newBookmarked); toast.error('Could not save post'); }
+        } catch (e) { console.error('Bookmark error:', e); setBookmarked(!newBookmarked); setBookmarkCount(prev => newBookmarked ? Math.max(0, prev - 1) : prev + 1); toast.error('Could not save post'); }
     };
 
     const likeDebounceRef = useRef(false);
@@ -2223,7 +2285,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     onClick={handleBookmark}
                     style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: bookmarked ? '#FFB800' : C.textSec, fontWeight: 500, fontSize: 13 }}
                     aria-label={bookmarked ? 'Remove from saved' : 'Save this post'}
-                >{bookmarked ? '' : ''} Save</button>
+                >{bookmarked ? '' : ''} Save{bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}</button>
             </div>
             
             {/* Display Animated Typing Indicators (Phase 11) */}

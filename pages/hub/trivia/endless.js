@@ -25,6 +25,7 @@ import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBound
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
+import { shareResult } from '../../../src/lib/trivia/shareResult';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 
@@ -617,6 +618,22 @@ export default function EndlessModePage() {
                         });
                 }
                 savePhaseRef.current = 3;
+            }
+
+            // Phase 4: Record to unified trivia_scores (for leaderboard)
+            if (savePhaseRef.current < 4) {
+                const today = new Date().toISOString().split('T')[0];
+                await supabase.from('trivia_scores').insert({
+                    user_id: userId,
+                    username: avatarUser?.username || avatarUser?.display_name || null,
+                    mode: 'endless',
+                    score: finalStreak * 100,
+                    correct_count: finalStreak,
+                    total_questions: finalStreak + 1,
+                    diamonds_earned: finalDiamonds,
+                    play_date: today
+                });
+                savePhaseRef.current = 4;
             }
 
             // Success! Game saved — reset phase for next game
@@ -1320,7 +1337,7 @@ export default function EndlessModePage() {
                                         </div>
                                     )}
 
-                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
                                         <button
                                             onClick={playAgain}
                                             style={{
@@ -1335,6 +1352,23 @@ export default function EndlessModePage() {
                                             }}
                                         >
                                             Play Again
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                const r = await shareResult({ mode: 'Endless', score: streak, diamonds: diamondsEarned });
+                                                if (r === 'copied') alert('Result copied to clipboard!');
+                                            }}
+                                            style={{
+                                                padding: '16px 32px',
+                                                background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
+                                                border: 'none',
+                                                borderRadius: '12px',
+                                                color: 'white',
+                                                fontSize: '16px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Share Result
                                         </button>
                                         <button
                                             onClick={() => router.push('/hub/trivia')}

@@ -622,6 +622,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                                             if (error) throw error;
                                                             setComments(prev => prev.map(cm => cm.id === c.id ? { ...cm, content: editCommentText.trim() } : cm));
                                                             setEditingCommentId(null);
+                                                            busEmit.dataMutated?.('social_comments');
                                                             toast.success('Comment updated');
                                                         } catch (e) { console.error('Edit comment error:', e); toast.error('Could not update comment'); }
                                                     }} disabled={!editCommentText.trim()} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: editCommentText.trim() ? 1 : 0.5 }}>Save</button>
@@ -1107,6 +1108,11 @@ export default function UserProfilePage() {
                 // NOTE: social_comments uses 'author_id', NOT 'user_id'
                 if (payload.new && payload.new.post_id && payload.new.author_id !== myUserId) {
                     eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: payload.new.post_id }, 'SocialRealtime');
+                }
+            })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'social_comments' }, (payload) => {
+                if (payload.old && payload.old.post_id && payload.old.author_id !== myUserId) {
+                    eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: payload.old.post_id, removed: true }, 'SocialRealtime');
                 }
             })
             .subscribe();

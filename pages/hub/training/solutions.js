@@ -851,6 +851,8 @@ function SolutionsBrowserInner({ setError }) {
                 Position:
               </span>
               <button
+                aria-label="Filter by All positions"
+                aria-pressed={!position}
                 onClick={() => {
                   setPosition('');
                   setPage(1);
@@ -871,6 +873,8 @@ function SolutionsBrowserInner({ setError }) {
               {POSITIONS.map((p) => (
                 <button
                   key={p}
+                  aria-label={`Filter by position ${p}`}
+                  aria-pressed={position === p}
                   onClick={() => {
                     setPosition(p);
                     setPage(1);
@@ -993,6 +997,8 @@ function SolutionsBrowserInner({ setError }) {
                   }}
                 >
                   <button
+                    aria-label="Show all spots"
+                    aria-pressed={!showBookmarksOnly}
                     onClick={() => setShowBookmarksOnly(false)}
                     style={{
                       flex: 1,
@@ -1013,6 +1019,8 @@ function SolutionsBrowserInner({ setError }) {
                     ALL SPOTS
                   </button>
                   <button
+                    aria-label="Show bookmarked spots only"
+                    aria-pressed={showBookmarksOnly}
                     onClick={() => setShowBookmarksOnly(true)}
                     style={{
                       flex: 1,
@@ -1336,6 +1344,8 @@ function SolutionsBrowserInner({ setError }) {
                         ].map((mode) => (
                           <button
                             key={mode.key}
+                            aria-label={`Color by ${mode.label}`}
+                            aria-pressed={colorMode === mode.key}
                             onClick={() => setColorMode(mode.key)}
                             style={{
                               padding: '4px 10px',

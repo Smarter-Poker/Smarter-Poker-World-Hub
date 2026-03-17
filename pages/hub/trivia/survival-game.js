@@ -29,6 +29,7 @@ import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBound
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
+import { shareResult } from '../../../src/lib/trivia/shareResult';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 
@@ -705,6 +706,23 @@ export default function SurvivalGamePage() {
                         });
                 }
                 savePhaseRef.current = 3;
+            }
+
+            // Phase 4: Record to unified trivia_scores (for leaderboard)
+            if (savePhaseRef.current < 4) {
+                const today = new Date().toISOString().split('T')[0];
+                const levelCorrect = answersRef.current.filter(Boolean).length;
+                await supabase.from('trivia_scores').insert({
+                    user_id: userId,
+                    username: avatarUser?.username || avatarUser?.display_name || null,
+                    mode: 'survival',
+                    score: levelCorrect * 100,
+                    correct_count: levelCorrect,
+                    total_questions: QUESTIONS_PER_LEVEL,
+                    diamonds_earned: diamonds,
+                    play_date: today
+                });
+                savePhaseRef.current = 4;
             }
 
             // Success! Game saved — reset phase for next level/game
@@ -1550,6 +1568,23 @@ export default function SurvivalGamePage() {
                                             }}
                                         >
                                             Back to Trivia
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                const r = await shareResult({ mode: 'Survival', score: correctCount, total: QUESTIONS_PER_LEVEL, diamonds: totalDiamondsEarned });
+                                                if (r === 'copied') alert('Result copied to clipboard!');
+                                            }}
+                                            style={{
+                                                padding: '16px 32px',
+                                                background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
+                                                border: 'none',
+                                                borderRadius: '12px',
+                                                color: 'white',
+                                                fontSize: '16px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Share Result
                                         </button>
                                     </div>
                                 </div>

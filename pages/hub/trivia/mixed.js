@@ -25,6 +25,7 @@ import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQue
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
+import { shareResult } from '../../../src/lib/trivia/shareResult';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 
@@ -701,6 +702,12 @@ export default function MixedModePage() {
                                 <div className="result-actions">
                                     <HexButton onClick={startGame} variant="primary" size="md">
                                         <ArrowRight size={16} /> Play Again
+                                    </HexButton>
+                                    <HexButton onClick={async () => {
+                                        const r = await shareResult({ mode: 'Mixed', score: totalCorrect, total: questions.length, diamonds: diamondsEarned });
+                                        if (r === 'copied') alert('Result copied to clipboard!');
+                                    }} variant="secondary" size="md">
+                                        Share Result
                                     </HexButton>
                                     <HexButton onClick={() => router.push('/hub/trivia')} variant="secondary" size="md">
                                         Back to Trivia
