@@ -22,6 +22,7 @@ import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBound
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 /** Shuffle answer options so correct answer isn't always A */
@@ -40,6 +41,7 @@ function shuffleOptions(questions) {
 const DAILY_DIAMOND_CAP = 5;
 
 export default function TimeAttackPage() {
+    const bus = useTrainingBus('trivia-time-attack');
     useEffect(() => { busEmit.sessionStart('trivia-time-attack'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();

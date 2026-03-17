@@ -13,6 +13,7 @@ import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import { busEmit } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -73,6 +74,7 @@ const LOBBY_IMAGES = {
 };
 
 export default function TriviaModePage() {
+    const bus = useTrainingBus('trivia-mode');
     useEffect(() => { busEmit.sessionStart('trivia-mode'); }, []);
     const router = useRouter();
     const { mode } = router.query;

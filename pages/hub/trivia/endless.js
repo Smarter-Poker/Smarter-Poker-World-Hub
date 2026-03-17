@@ -19,6 +19,7 @@ import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
@@ -39,6 +40,7 @@ function shuffleOptions(questions) {
 }
 
 export default function EndlessModePage() {
+    const bus = useTrainingBus('trivia-endless');
     useEffect(() => { busEmit.sessionStart('trivia-endless'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();

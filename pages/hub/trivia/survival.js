@@ -20,6 +20,7 @@ import { Gem, Target } from 'lucide-react';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 /** Shuffle answer options so correct answer isn't always A */
@@ -38,6 +39,7 @@ function shuffleOptions(questions) {
 const DAILY_DIAMOND_CAP = 10;
 
 export default function SurvivalModePage() {
+    const bus = useTrainingBus('trivia-survival');
     useEffect(() => { busEmit.sessionStart('trivia-survival'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();

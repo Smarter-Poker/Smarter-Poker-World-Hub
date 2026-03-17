@@ -23,6 +23,7 @@ import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBound
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 /** Shuffle answer options so correct answer isn't always A */
@@ -52,6 +53,7 @@ const CATEGORIES = [
 const QUESTIONS_PER_SESSION = 21; // 3 per category, 7 categories
 
 export default function MixedModePage() {
+    const bus = useTrainingBus('trivia-mixed');
     useEffect(() => { busEmit.sessionStart('trivia-mixed'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();

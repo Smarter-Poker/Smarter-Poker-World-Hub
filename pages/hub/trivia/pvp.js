@@ -22,6 +22,7 @@ import {
 } from '../../../src/services/pvpMatchmaking';
 import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 import { busEmit } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -47,6 +48,7 @@ function shuffleOptions(questions) {
 }
 
 export default function PvPPage() {
+    const bus = useTrainingBus('trivia-pvp');
     useEffect(() => { busEmit.sessionStart('trivia-pvp'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();

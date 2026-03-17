@@ -12,6 +12,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { busEmit } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
@@ -33,6 +34,7 @@ function shuffleOptions(questions) {
 }
 
 export default function TournamentsPage() {
+    const bus = useTrainingBus('trivia-tournaments');
     useEffect(() => { busEmit.sessionStart('trivia-tournaments'); }, []);
     const router = useRouter();
     const { user: avatarUser, loading: authLoading } = useAvatar();
