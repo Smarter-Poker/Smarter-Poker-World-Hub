@@ -516,9 +516,16 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                 headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
                                 body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: type })
                             }).then(() => {
-                                // Notify other views/tabs of reaction change
-                                const added = !isSameReaction;
-                                busEmit.socialPostLiked(post.id, currentUserId, { added, reactionType: type });
+                                // Only emit bus event when like_count actually changes:
+                                // - toggle OFF (isSameReaction=true): count decreases → added=false
+                                // - new ADD (!wasReacted): count increases → added=true
+                                // - SWITCH (wasReacted && !isSameReaction): count unchanged → no emission
+                                if (isSameReaction) {
+                                    busEmit.socialPostLiked(post.id, currentUserId, { added: false, reactionType: null });
+                                } else if (!wasReacted) {
+                                    busEmit.socialPostLiked(post.id, currentUserId, { added: true, reactionType: type });
+                                }
+                                // Switch case: no bus emission needed — count doesn't change
                             }).catch(() => {});
                         }
                     }}
