@@ -830,6 +830,66 @@ export default function DailyChallengePage() {
                         {explanation}
                       </div>
                     )}
+
+                    {/* Share Result + Perfect Score Celebration */}
+                    {!alreadyCompleted && (
+                      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {selected === correctAnswer && (
+                          <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            style={{
+                              padding: '10px 14px',
+                              borderRadius: 8,
+                              background: 'linear-gradient(135deg, rgba(234,179,8,0.12), rgba(249,115,22,0.06))',
+                              border: '1px solid rgba(234,179,8,0.3)',
+                              textAlign: 'center',
+                            }}
+                          >
+                            <div style={{ fontSize: 13, fontWeight: 800, color: '#eab308' }}>
+                              Perfect Score! +25 Diamonds
+                            </div>
+                          </motion.div>
+                        )}
+                        <button
+                          onClick={async () => {
+                            try {
+                              const user = getAuthUser();
+                              if (!user?.id) return;
+                              const res = await authedFetch('/api/training/share', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  userId: user.id,
+                                  shareType: 'session_complete',
+                                  data: {
+                                    gameName: 'Daily GTO Challenge',
+                                    accuracy: selected === correctAnswer ? 100 : 0,
+                                  },
+                                }),
+                              });
+                              const d = await res.json();
+                              if (d.success) alert('Result shared to your feed!');
+                            } catch (err) {
+                              console.error('Share error:', err);
+                            }
+                          }}
+                          style={{
+                            padding: '10px',
+                            borderRadius: 8,
+                            border: '1px solid rgba(168,85,247,0.2)',
+                            background: 'rgba(168,85,247,0.06)',
+                            color: '#a855f7',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Share Result
+                        </button>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
