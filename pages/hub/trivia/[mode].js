@@ -593,6 +593,7 @@ export default function TriviaModePage() {
                 if (savePhaseRef.current < 1) {
                     await supabase.from('trivia_scores').insert({
                         user_id: userId,
+                        username: avatarUser?.username || avatarUser?.display_name || null,
                         mode,
                         score: correctCount * 100 + (timeRemaining || 0) * 2,
                         correct_count: correctCount,
