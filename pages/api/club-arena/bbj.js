@@ -157,9 +157,9 @@ export default async function handler(req, res) {
       if (checkIdempotency(req, res)) return;
 
       const { action, clubId, bbjEnabled } = req.body;
+      if (!clubId) return res.status(400).json({ error: 'clubId required' });
       // BUG-04 FIX: Validate UUID format
       if (!isUUID(clubId)) return res.status(400).json({ error: 'Invalid clubId format' });
-      if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
       // Verify caller is owner or admin of this club (or platform admin)
       const { data: member } = await getSupabase()

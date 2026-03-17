@@ -173,12 +173,13 @@ export default async function handler(req, res) {
                   const { notifyClubAdmins } = require('../../../src/lib/club-arena/notify');
                   const { data: profile } = await getSupabase().from('profiles').select('display_name, username').eq('id', user.id).maybeSingle();
                   const playerName = profile?.display_name || profile?.username || 'A new player';
-                  await notifyClubAdmins(supabaseAdmin, club.id, {
-                      type: 'join_request',
-                      title: '🙋 New Join Request',
-                      message: `${playerName} is requesting to join your club.`,
-                      data: { userId: user.id, clubId: club.id },
-                  });
+                   await notifyClubAdmins(supabaseAdmin, {
+                       clubId: club.id,
+                       type: 'join_request',
+                       title: '🙋 New Join Request',
+                       message: `${playerName} is requesting to join your club.`,
+                       data: { userId: user.id, clubId: club.id },
+                   });
               } catch (_) { /* non-fatal */ }
 
               return res.status(200).json({
