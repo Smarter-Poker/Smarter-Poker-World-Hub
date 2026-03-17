@@ -174,6 +174,10 @@ const nextConfig = {
           destination: 'https://club-arena.vercel.app/hub/club-arena/images/:path*',
         },
         {
+          source: '/hub/club-arena/cards/:path*',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/cards/:path*',
+        },
+        {
           source: '/hub/club-arena/sounds/:path*',
           destination: 'https://club-arena.vercel.app/hub/club-arena/sounds/:path*',
         }
