@@ -48,7 +48,7 @@ export default function TrainingAchievements() {
   // SWR-backed achievements fetch — only fires when user is known
   const swrKey = user ? `/api/training/achievements?userId=${user.id}` : null;
   const { data: swrData, isLoading: loading } = useSWR(swrKey, (url) =>
-    fetch(url)
+    authedFetch(url)
       .then((r) => r.json())
       .then((d) => (d.success ? d.achievements || [] : []))
   );

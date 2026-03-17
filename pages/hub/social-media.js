@@ -785,6 +785,8 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
         }
         setMedia(prev => [...prev, ...uploaded]);
         setUploading(false);
+        // Reset file input so the same file can be re-selected (browser won't re-fire onChange otherwise)
+        if (fileRef.current) fileRef.current.value = '';
     };
 
     // Handle @mention detection AND auto URL detection (SmarterPoker-style)
