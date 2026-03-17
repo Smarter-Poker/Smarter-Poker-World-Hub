@@ -27,13 +27,21 @@ export default function DiamondArcadeStats() {
             if (!user) { setIsLoading(false); return; }
 
             try {
+                // Query completed games for scores/wins
                 const { data, error } = await supabase
                     .from('diamond_arena_events')
-                    .select('game_type, score, correct_count, total_questions, won, prize_awarded, entry_fee, time_spent_ms, created_at')
+                    .select('game_type, score, correct_count, total_questions, won, prize_awarded, time_spent_ms, created_at')
                     .eq('user_id', user.id)
                     .eq('event_type', 'game_complete');
 
                 if (error || !data) { setIsLoading(false); return; }
+
+                // Query game_start events separately for entry fees (entry_fee is only on start events)
+                const { data: startData } = await supabase
+                    .from('diamond_arena_events')
+                    .select('entry_fee')
+                    .eq('user_id', user.id)
+                    .eq('event_type', 'game_start');
 
                 // Aggregate overall stats
                 const gamesPlayed = data.length;
@@ -42,7 +50,7 @@ export default function DiamondArcadeStats() {
                 const totalCorrect = data.reduce((s, e) => s + (e.correct_count || 0), 0);
                 const totalQuestions = data.reduce((s, e) => s + (e.total_questions || 0), 0);
                 const diamondsWon = data.reduce((s, e) => s + (e.prize_awarded || 0), 0);
-                const diamondsSpent = data.reduce((s, e) => s + (e.entry_fee || 0), 0);
+                const diamondsSpent = (startData || []).reduce((s, e) => s + (e.entry_fee || 0), 0);
                 const bestScore = data.length > 0 ? Math.max(...data.map(e => e.score || 0)) : 0;
 
                 setStats({

@@ -27,20 +27,35 @@ export default function DiamondArcadeWinnings() {
             if (!user) { setIsLoading(false); return; }
 
             try {
+                // History list (last 50 for display)
                 const { data, error } = await supabase
                     .from('diamond_arena_events')
-                    .select('game_type, score, correct_count, total_questions, won, prize_awarded, entry_fee, created_at')
+                    .select('game_type, score, correct_count, total_questions, won, prize_awarded, created_at')
                     .eq('user_id', user.id)
                     .eq('event_type', 'game_complete')
                     .order('created_at', { ascending: false })
                     .limit(50);
 
                 if (error || !data) { setIsLoading(false); return; }
-
-                const totalWon = data.reduce((s, e) => s + (e.prize_awarded || 0), 0);
-                const totalSpent = data.reduce((s, e) => s + (e.entry_fee || 0), 0);
-                setSummary({ totalWon, totalSpent, netProfit: totalWon - totalSpent });
                 setHistory(data);
+
+                // Lifetime totals — all winnings (no limit)
+                const { data: allWins } = await supabase
+                    .from('diamond_arena_events')
+                    .select('prize_awarded')
+                    .eq('user_id', user.id)
+                    .eq('event_type', 'game_complete');
+
+                // Entry fees are only on game_start events
+                const { data: startData } = await supabase
+                    .from('diamond_arena_events')
+                    .select('entry_fee')
+                    .eq('user_id', user.id)
+                    .eq('event_type', 'game_start');
+
+                const totalWon = (allWins || []).reduce((s, e) => s + (e.prize_awarded || 0), 0);
+                const totalSpent = (startData || []).reduce((s, e) => s + (e.entry_fee || 0), 0);
+                setSummary({ totalWon, totalSpent, netProfit: totalWon - totalSpent });
             } catch (err) {
                 console.error('Winnings error:', err);
             }
