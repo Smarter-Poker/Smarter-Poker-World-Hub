@@ -796,8 +796,8 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
 
         // 🔗 AUTO-DETECT URLs - SmarterPoker-style: remove URL and show preview card
         // ONLY trigger when URL is followed by a space (user finished typing the URL)
-        // Regex matches: http(s)://... followed by a space
-        const urlRegex = /(https?:\/\/\S+)\s/i;
+        // Regex matches: http(s)://... OR www.... followed by a space
+        const urlRegex = /((?:https?:\/\/|www\.)\S+)\s/i;
         const urlMatch = value.match(urlRegex);
 
         if (urlMatch && !linkPreview && !linkLoading) {
