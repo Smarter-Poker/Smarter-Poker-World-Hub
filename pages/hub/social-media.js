@@ -1555,7 +1555,13 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         } catch (e) { console.error('Bookmark error:', e); setBookmarked(!newBookmarked); toast.error('Could not save post'); }
     };
 
+    const likeDebounceRef = useRef(false);
     const handleLike = async (reactionType) => {
+        // Debounce: prevent rapid-fire like clicks
+        if (likeDebounceRef.current) return;
+        likeDebounceRef.current = true;
+        setTimeout(() => { likeDebounceRef.current = false; }, 300);
+
         // 3 cases: (1) new like, (2) unlike, (3) change reaction on existing like
         const isUnlike = !reactionType;
         const isChangeReaction = liked && !isUnlike; // already liked, picking a new reaction
@@ -1598,7 +1604,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     };
 
     const loadComments = async (offset = 0) => {
-        if (offset === 0 && comments.length > 0) return;
+        // Only skip when paginating forward AND we already have those pages
+        // On offset=0 (re-open), always re-fetch to avoid stale data
         setLoadingComments(true);
         try {
             // Step 1: Fetch comments and embedded likes
@@ -1885,9 +1892,10 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     <button onClick={async () => {
                         try {
                             await supabase.from('social_interactions').delete().eq('post_id', post.id).eq('user_id', currentUserId).eq('interaction_type', 'report');
-                            await supabase.from('social_interactions').insert({ post_id: post.id, user_id: currentUserId, interaction_type: 'report' });
+                            const { error } = await supabase.from('social_interactions').insert({ post_id: post.id, user_id: currentUserId, interaction_type: 'report' });
+                            if (error) throw error;
                             toast.success('Post reported. We will review it shortly.');
-                        } catch (e) { toast.error('Could not report post'); }
+                        } catch (e) { console.error('[Social] Report failed:', e.message || e); toast.error('Could not report post'); }
                     }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 12, opacity: 0.6 }} title="Report this post">⚠</button>
                 )}
             </div>
@@ -1909,6 +1917,9 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 setDisplayContent(editContent.trim());
                                 setEditing(false);
                                 toast.success('Post updated');
+                                // Notify other tabs/components of the edit
+                                busEmit.dataMutated?.('social_posts');
+                                broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
                             } catch (e) { toast.error('Could not update post'); console.error('[Social] Edit error:', e); }
                         }} disabled={!editContent.trim()} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: editContent.trim() ? 1 : 0.5 }}>Save</button>
                     </div>
@@ -2235,6 +2246,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                                     if (!error) {
                                                         setComments(prev => prev.map(cm => cm.id === c.id ? { ...cm, text: editCommentText.trim() } : cm));
                                                         setEditingCommentId(null);
+                                                    } else {
+                                                        toast.error('Could not update comment');
                                                     }
                                                 }} disabled={!editCommentText.trim()} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: editCommentText.trim() ? 1 : 0.5 }}>Save</button>
                                             </div>
