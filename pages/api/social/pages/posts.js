@@ -7,6 +7,7 @@
  * DELETE /api/social/pages/posts?id=<id>     - Delete a post
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { requireAuth } from '../../../../src/lib/auth-middleware';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
@@ -96,10 +97,8 @@ export default async function handler(req, res) {
 
       } else if (req.method === 'POST') {
           // Require JWT auth for creating posts
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
 
           const { page_id, content, content_type, media_urls,
               link_preview, visibility, is_pinned, metadata } = req.body;
@@ -197,10 +196,8 @@ export default async function handler(req, res) {
 
       } else if (req.method === 'PUT') {
           // Require JWT auth for updating posts
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
 
           const { id, content, media_urls, link_preview, is_pinned, visibility } = req.body;
           const author_id = authUser.id; // Use authenticated user, not request body
@@ -251,10 +248,8 @@ export default async function handler(req, res) {
 
       } else if (req.method === 'DELETE') {
           // Require JWT auth for deleting posts
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
 
           const { id } = req.query;
           const author_id = authUser.id; // Use authenticated user, not query param

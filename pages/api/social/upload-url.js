@@ -1,16 +1,17 @@
 /**
  * Social Media Signed Upload URL API — Direct-to-Supabase uploads
- * 
+ *
  * POST /api/social/upload-url
  *   Body JSON: { fileName, fileSize, mimeType, folder?, prefix? }
- * 
+ *
  * Returns: { success: true, signedUrl, token, publicUrl, path }
- * 
+ *
  * The client uses the signed URL to upload the file directly to Supabase Storage,
  * completely bypassing Vercel's serverless function body size limits.
  * This enables uploads of large video files (200MB+).
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { requireAuth } from '../../../src/lib/auth-middleware';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
@@ -53,10 +54,8 @@ export default async function handler(req, res) {
 
 
       // ── Auth: verify JWT identity ──
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      const user = await requireAuth(req, res);
+      if (!user) return;
 
       try {
           const { fileName, fileSize, mimeType, folder, prefix } = req.body || {};

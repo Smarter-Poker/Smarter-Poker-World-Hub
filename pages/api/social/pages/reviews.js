@@ -4,6 +4,7 @@
  * POST /api/social/pages/reviews - Submit a new review (auth required)
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { requireAuth } from '../../../../src/lib/auth-middleware';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
@@ -82,10 +83,8 @@ export default async function handler(req, res) {
 
           } else if (req.method === 'POST') {
               // Require JWT auth
-              const token = req.headers.authorization?.replace('Bearer ', '');
-              if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-              const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-              if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+              const authUser = await requireAuth(req, res);
+              if (!authUser) return;
 
               const { page_id, overall_rating, title, content } = req.body;
               const reviewer_id = authUser.id;

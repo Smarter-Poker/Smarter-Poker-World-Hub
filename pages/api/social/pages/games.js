@@ -1,17 +1,18 @@
 /**
  * Club Live Games API
- * 
+ *
  * GET    /api/social/pages/games?page_id=xxx           - List games for a page
  * GET    /api/social/pages/games?game_id=xxx            - Get single game with seats
  * POST   /api/social/pages/games                        - Create a live game (owner only)
  * PUT    /api/social/pages/games                        - Update game status/details
  * DELETE /api/social/pages/games?id=xxx&owner_id=xxx    - Delete a game
- * 
+ *
  * POST   /api/social/pages/games (action=take_seat)     - Reserve a seat
  * POST   /api/social/pages/games (action=join_waitlist) - Join waitlist
  * POST   /api/social/pages/games (action=leave)         - Leave seat/waitlist
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { requireAuth } from '../../../../src/lib/auth-middleware';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
@@ -298,10 +299,8 @@ export default async function handler(req, res) {
       // ===== POST =====
       if (req.method === 'POST') {
           // Require JWT auth for all game write operations
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
           const verified_user_id = authUser.id;
 
           const { action } = req.body;
@@ -479,10 +478,8 @@ export default async function handler(req, res) {
 
       // ===== PUT =====
       if (req.method === 'PUT') {
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
 
           const { id, status, game_name, stakes, max_seats, notes, table_number } = req.body;
           if (!id) return res.status(400).json({ success: false, error: 'id required' });
@@ -520,10 +517,8 @@ export default async function handler(req, res) {
 
       // ===== DELETE =====
       if (req.method === 'DELETE') {
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
 
           const { id } = req.query;
           if (!id) return res.status(400).json({ success: false, error: 'id required' });

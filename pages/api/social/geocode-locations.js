@@ -10,6 +10,7 @@
  * Returns: { success: true, geocoded: { "Chicago, IL": { lat, lng }, ... } }
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { requireAuth } from '../../../src/lib/auth-middleware';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
@@ -120,10 +121,8 @@ export default async function handler(req, res) {
 
       // BUG #282: No authentication — anyone could trigger external API calls
       // (Nominatim/Google) and write to social_pages.metadata without auth.
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      const user = await requireAuth(req, res);
+      if (!user) return;
 
       const { page_id, locations } = req.body;
 

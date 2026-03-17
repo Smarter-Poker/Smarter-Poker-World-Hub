@@ -5,6 +5,7 @@
  * GET  /api/social/pages/follow  - Get followers for a page or user's followed pages
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { requireAuth } from '../../../../src/lib/auth-middleware';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
@@ -35,10 +36,8 @@ export default async function handler(req, res) {
 
       if (req.method === 'POST') {
           // Require JWT auth for follow/unfollow
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
 
           const { page_id, action, follower_id } = req.body;
           const user_id = authUser.id;

@@ -6,6 +6,7 @@
  * DELETE /api/social/interactions?post_id=<id>&user_id=<id>
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { requireAuth } from '../../../src/lib/auth-middleware';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -129,10 +130,8 @@ export default async function handler(req, res) {
 
       } else if (req.method === 'POST') {
           // Require JWT auth for social interactions
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
 
           const { post_id, interaction_type, content } = req.body;
           const user_id = authUser.id;
@@ -289,10 +288,8 @@ export default async function handler(req, res) {
 
       } else if (req.method === 'DELETE') {
           // Require JWT auth for deleting interactions
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
 
           const { post_id, interaction_type } = req.query;
           const user_id = authUser.id;

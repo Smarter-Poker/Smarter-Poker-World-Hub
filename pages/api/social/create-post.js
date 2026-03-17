@@ -1,11 +1,12 @@
 /**
  * Create Social Post API
  * POST /api/social/create-post
- * 
+ *
  * Allows authenticated users to create a social post on their Smarter.Poker feed.
  * Used by tournament public page "Post to My Page" button.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { requireAuth } from '../../../src/lib/auth-middleware';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 let _supabase = null;
@@ -25,17 +26,8 @@ export default async function handler(req, res) {
       }
 
       // Authenticate user via Bearer token
-      const authHeader = req.headers.authorization;
-      if (!authHeader) {
-          return res.status(401).json({ success: false, error: 'Authentication required' });
-      }
-
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
-
-      if (authError || !user) {
-          return res.status(401).json({ success: false, error: 'Invalid or expired token' });
-      }
+      const user = await requireAuth(req, res);
+      if (!user) return;
 
       if (!applyRateLimit(req, res, LIMITS.write)) return;
 

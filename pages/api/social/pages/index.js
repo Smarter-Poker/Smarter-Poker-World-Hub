@@ -9,6 +9,7 @@
  * DELETE /api/social/pages?id=<id>    - Delete page
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { requireAuth } from '../../../../src/lib/auth-middleware';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
@@ -196,10 +197,8 @@ export default async function handler(req, res) {
 
       } else if (req.method === 'POST') {
           // Require JWT auth
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
 
           const { name, page_type, description, category, avatar_url, cover_url,
               website, contact_email, phone, location_city, location_state,
@@ -292,10 +291,8 @@ export default async function handler(req, res) {
 
       } else if (req.method === 'PUT') {
           // Require JWT auth
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
 
           const { id, ...updates } = req.body;
           const owner_id = authUser.id;
@@ -398,10 +395,8 @@ export default async function handler(req, res) {
 
       } else if (req.method === 'DELETE') {
           // Require JWT auth
-          const token = req.headers.authorization?.replace('Bearer ', '');
-          if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
-          const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
-          if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
 
           const { id } = req.query;
 

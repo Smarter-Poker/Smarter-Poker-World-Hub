@@ -1,16 +1,17 @@
 /**
  * Social Media Upload API — Server-side file upload proxy
- * 
+ *
  * POST /api/social/upload  (multipart/form-data)
  *   - file: The file to upload (image or video)
  *   - folder: Optional subfolder (e.g. 'photos', 'videos', 'club-posts', 'covers', 'logos')
  *   - prefix: Optional path prefix (e.g. user ID or page ID)
- * 
+ *
  * Returns: { success: true, url: '...public URL...' }
- * 
+ *
  * Uses the service role key to bypass RLS — the client never needs direct storage access.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { requireAuth } from '../../../src/lib/auth-middleware';
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 
@@ -61,10 +62,8 @@ export default async function handler(req, res) {
 
 
       // ── Auth: verify JWT identity (check BEFORE parsing large file body) ──
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-      const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
-      if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+      const user = await requireAuth(req, res);
+      if (!user) return;
 
       try {
           const form = new IncomingForm({
