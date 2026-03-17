@@ -228,6 +228,7 @@ export default function TimeAttackPage() {
                 if (savePhaseRef.current < 1) {
                     await supabase.from('trivia_scores').insert({
                         user_id: userId,
+                        username: avatarUser?.username || avatarUser?.display_name || null,
                         mode: 'time-attack',
                         score: gameResult.correctCount * 100,
                         correct_count: gameResult.correctCount,

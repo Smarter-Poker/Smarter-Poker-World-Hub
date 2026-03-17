@@ -465,6 +465,7 @@ export default function MixedModePage() {
             if (savePhaseRef.current < 4) {
                 await supabase.from('trivia_scores').insert({
                     user_id: userId,
+                    username: avatarUser?.username || avatarUser?.display_name || null,
                     mode: 'mixed',
                     score: actualCorrect * 100,
                     correct_count: actualCorrect,
