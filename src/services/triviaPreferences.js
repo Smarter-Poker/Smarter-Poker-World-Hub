@@ -1,9 +1,15 @@
 /**
  * Trivia Preferences Service
  * Manages user preferences for the Trivia page
+ * Uses localStorage with per-user keys for persistence
  */
 
-import { supabase } from '../lib/supabase';
+const DEFAULTS = { soundEffects: true, timerEnabled: true, hintsEnabled: false, difficulty: 'medium' };
+const STORAGE_KEY = 'sp-trivia-prefs';
+
+function getStorageKey(userId) {
+    return userId ? `${STORAGE_KEY}-${userId}` : STORAGE_KEY;
+}
 
 /**
  * Get user's trivia preferences
@@ -11,24 +17,16 @@ import { supabase } from '../lib/supabase';
  * @returns {Promise<Object>} Preferences object
  */
 export async function getTriviaPreferences(userId) {
-    if (!userId) {
-        return { soundEffects: true, timerEnabled: true, hintsEnabled: false };
-    }
-
     try {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('trivia_preferences')
-            .eq('id', userId)
-            .maybeSingle();
-
-        if (error) throw error;
-
-        return data?.trivia_preferences || { soundEffects: true, timerEnabled: true, hintsEnabled: false };
-    } catch (error) {
-        console.error('Error fetching trivia preferences:', error);
-        return { soundEffects: true, timerEnabled: true, hintsEnabled: false };
+        if (typeof window === 'undefined') return { ...DEFAULTS };
+        const raw = localStorage.getItem(getStorageKey(userId));
+        if (raw) {
+            return { ...DEFAULTS, ...JSON.parse(raw) };
+        }
+    } catch (e) {
+        // Corrupted localStorage — return defaults
     }
+    return { ...DEFAULTS };
 }
 
 /**
@@ -38,22 +36,14 @@ export async function getTriviaPreferences(userId) {
  * @returns {Promise<Object>} Updated preferences
  */
 export async function updateTriviaPreferences(userId, preferences) {
-    if (!userId) {
-        throw new Error('User ID is required');
-    }
-
     try {
-        const { data, error } = await supabase.rpc('update_page_preferences', {
-            p_user_id: userId,
-            p_column_name: 'trivia_preferences',
-            p_preferences: preferences,
-        });
-
-        if (error) throw error;
-
-        return data;
-    } catch (error) {
-        console.error('Error updating trivia preferences:', error);
-        throw error;
+        if (typeof window === 'undefined') return preferences;
+        const current = await getTriviaPreferences(userId);
+        const merged = { ...current, ...preferences };
+        localStorage.setItem(getStorageKey(userId), JSON.stringify(merged));
+        return merged;
+    } catch (e) {
+        console.error('[TriviaPrefs] Failed to save:', e);
+        throw e;
     }
 }
