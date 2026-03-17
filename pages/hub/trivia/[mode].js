@@ -787,7 +787,7 @@ export default function TriviaModePage() {
     }
 
     return (
-        <TriviaErrorBoundary pageName={`Trivia — ${modeName}`}>
+        <TriviaErrorBoundary pageName={`Trivia — ${modeConfig?.name || mode}`}>
             <SEOHead
                 title="Poker Trivia Game"
                 description="Play Poker Trivia On Smarter.Poker. Test Your Knowledge Across Multiple Game Modes."
