@@ -1137,7 +1137,13 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                         onChange={handleContentChange}
                         placeholder={isClubMode ? `Post as ${clubPage?.name || 'Club'}...` : `What's on your mind, ${user?.name || 'Player'}?`}
                         style={{ width: '100%', background: C.bg, border: 'none', borderRadius: 20, padding: '10px 16px', fontSize: 16, outline: 'none', boxSizing: 'border-box', color: C.text }}
+                        maxLength={5000}
                     />
+                    {content.length > 4500 && (
+                        <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: content.length > 4900 ? '#FA383E' : C.textSec }}>
+                            {5000 - content.length}
+                        </span>
+                    )}
                     {/* @Mention Dropdown */}
                     {showMentions && mentionResults.length > 0 && (
                         <div style={{
@@ -1583,6 +1589,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         if (likeDebounceRef.current) return;
         likeDebounceRef.current = true;
         setTimeout(() => { likeDebounceRef.current = false; }, 300);
+        haptic(reactionType ? 12 : 5);
 
         // 3 cases: (1) new like, (2) unlike, (3) change reaction on existing like
         const isUnlike = !reactionType;
@@ -1900,7 +1907,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     <Link href={`/hub/user/${post.author?.username || 'player'}`} style={{ fontWeight: 600, color: C.text, textDecoration: 'none' }}>
                         {post.author?.name || 'Player'}
                     </Link>
-                    <div style={{ fontSize: 12, color: C.textSec }}>{post.timeAgo}{post.visibility !== 'private' ? ' · 🌐' : ' · 🔒'}</div>
+                    <div style={{ fontSize: 12, color: C.textSec }}>{post.timeAgo}{post.visibility !== 'private' ? ' · 🌐' : ' · 🔒'}{post.viewCount > 0 ? ` · ${post.viewCount > 999 ? (post.viewCount / 1000).toFixed(1) + 'k' : post.viewCount} view${post.viewCount !== 1 ? 's' : ''}` : ''}</div>
                 </div>
                 {(post.authorId === currentUserId || post.isGodMode) && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -2032,7 +2039,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                     {post.contentType === 'video' && i === 0 ? (
                                         <video controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} src={url} />
                                     ) : (
-                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightboxUrl(url)} onError={e => { e.target.style.display = 'none'; }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => { setLightboxImages(post.mediaUrls); setLightboxIndex(post.mediaUrls.indexOf(url)); setLightboxUrl(url); }} onError={e => { e.target.style.display = 'none'; }} />
                                     )}
                                 </div>
                             ))}
@@ -2046,7 +2053,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 {post.mediaUrls.slice(1).map((url, i) => (
                                     <div key={i} style={{ flex: 1, overflow: 'hidden' }}>
-                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightboxUrl(url)} onError={e => { e.target.style.display = 'none'; }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => { setLightboxImages(post.mediaUrls); setLightboxIndex(post.mediaUrls.indexOf(url)); setLightboxUrl(url); }} onError={e => { e.target.style.display = 'none'; }} />
                                     </div>
                                 ))}
                             </div>
@@ -2056,7 +2063,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                             {post.mediaUrls.map((url, i) => (
                                 <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                    <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightboxUrl(url)} onError={e => { e.target.style.display = 'none'; }} />
+                                    <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => { setLightboxImages(post.mediaUrls); setLightboxIndex(post.mediaUrls.indexOf(url)); setLightboxUrl(url); }} onError={e => { e.target.style.display = 'none'; }} />
                                 </div>
                             ))}
                         </div>
@@ -2066,14 +2073,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, marginBottom: 2 }}>
                                 {post.mediaUrls.slice(0, 2).map((url, i) => (
                                     <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightboxUrl(url)} onError={e => { e.target.style.display = 'none'; }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => { setLightboxImages(post.mediaUrls); setLightboxIndex(post.mediaUrls.indexOf(url)); setLightboxUrl(url); }} onError={e => { e.target.style.display = 'none'; }} />
                                     </div>
                                 ))}
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
                                 {post.mediaUrls.slice(2, 5).map((url, i) => (
                                     <div key={i} style={{ aspectRatio: '1', overflow: 'hidden', position: 'relative' }}>
-                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => setLightboxUrl(url)} onError={e => { e.target.style.display = 'none'; }} />
+                                        <img src={url} loading="lazy" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} onClick={() => { setLightboxImages(post.mediaUrls); setLightboxIndex(post.mediaUrls.indexOf(url)); setLightboxUrl(url); }} onError={e => { e.target.style.display = 'none'; }} />
                                         {i === 2 && post.mediaUrls.length > 5 && (
                                             <div style={{
                                                 position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
@@ -2335,9 +2342,13 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                         if (isReply) return null;
                                         const childReplies = replies.filter(r => r.parentId === c.id);
                                         if (childReplies.length === 0) return null;
+                                        const isCollapsed = collapsedThreads[c.id];
                                         return (
                                             <div style={{ marginLeft: 36, borderLeft: `2px solid ${C.border}`, paddingLeft: 8, marginTop: 8 }}>
-                                                {childReplies.map(r => renderCommentBlock(r, true))}
+                                                <button onClick={() => setCollapsedThreads(prev => ({ ...prev, [c.id]: !prev[c.id] }))} style={{ background: 'none', border: 'none', color: C.blue, fontSize: 12, cursor: 'pointer', padding: '2px 0', fontWeight: 600, marginBottom: isCollapsed ? 0 : 4 }}>
+                                                    {isCollapsed ? `Show ${childReplies.length} ${childReplies.length === 1 ? 'reply' : 'replies'}` : `Hide ${childReplies.length === 1 ? 'reply' : 'replies'}`}
+                                                </button>
+                                                {!isCollapsed && childReplies.map(r => renderCommentBlock(r, true))}
                                             </div>
                                         );
                                     })()}
@@ -4915,6 +4926,38 @@ function SocialMediaPage() {
     const [liveStreams, setLiveStreams] = useState([]);
     const [watchingStream, setWatchingStream] = useState(null);
     const [showScrollTop, setShowScrollTop] = useState(false); // Scroll-to-top FAB
+    const [pullRefreshState, setPullRefreshState] = useState('idle'); // 'idle' | 'pulling' | 'refreshing'
+    const pullStartY = useRef(0);
+
+    // Pull-to-refresh: touch gesture at top of page
+    useEffect(() => {
+        let startY = 0;
+        const onTouchStart = (e) => {
+            if (window.scrollY < 10) startY = e.touches[0].clientY;
+            else startY = 0;
+        };
+        const onTouchMove = (e) => {
+            if (!startY || window.scrollY > 10) return;
+            const dy = e.touches[0].clientY - startY;
+            if (dy > 60 && pullRefreshState === 'idle') setPullRefreshState('pulling');
+        };
+        const onTouchEnd = async () => {
+            if (pullRefreshState === 'pulling') {
+                setPullRefreshState('refreshing');
+                try { await loadFeed(0, false); } catch {}
+                setPullRefreshState('idle');
+            }
+            startY = 0;
+        };
+        window.addEventListener('touchstart', onTouchStart, { passive: true });
+        window.addEventListener('touchmove', onTouchMove, { passive: true });
+        window.addEventListener('touchend', onTouchEnd);
+        return () => {
+            window.removeEventListener('touchstart', onTouchStart);
+            window.removeEventListener('touchmove', onTouchMove);
+            window.removeEventListener('touchend', onTouchEnd);
+        };
+    }, [pullRefreshState]);
 
     //  INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
@@ -6998,12 +7041,23 @@ function SocialMediaPage() {
                                     </div>
                                 )}
 
+                                {/* Pull-to-refresh indicator */}
+                                {pullRefreshState !== 'idle' && (
+                                    <div style={{ textAlign: 'center', padding: '12px 0', color: C.textSec, fontSize: 13, fontWeight: 500 }}>
+                                        {pullRefreshState === 'pulling' ? '\u2193 Release to refresh' : '\u21bb Refreshing...'}
+                                    </div>
+                                )}
+
                                 {/* Posts Feed */}
                                 {posts.length === 0 ? (
-                                    <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                                        <div style={{ fontSize: 48 }}></div>
-                                        <h3 style={{ color: C.text }}>No Posts Yet</h3>
-                                        <p>Be The First To Share Something!</p>
+                                    <div style={{ textAlign: 'center', padding: '48px 24px', color: C.textSec }}>
+                                        <div style={{ fontSize: 56, marginBottom: 12 }}>🎰</div>
+                                        <h3 style={{ color: C.text, fontSize: 18, marginBottom: 8 }}>Welcome to Smarter.Poker</h3>
+                                        <p style={{ marginBottom: 16, lineHeight: 1.5 }}>Your poker community feed is empty. Follow players, join clubs, or share your first hand to get started!</p>
+                                        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                                            <Link href="/hub/friends" style={{ padding: '8px 16px', background: C.blue, color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none', fontSize: 13 }}>Find Players</Link>
+                                            <span onClick={() => { const input = document.querySelector('[placeholder*="What\'s on your mind"]'); if (input) { input.scrollIntoView({ behavior: 'smooth' }); setTimeout(() => input.focus(), 400); } }} style={{ padding: '8px 16px', background: C.card, color: C.text, borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: 13, border: `1px solid ${C.border}` }}>Create a Post</span>
+                                        </div>
                                     </div>
                                 ) : (
                                     <>
