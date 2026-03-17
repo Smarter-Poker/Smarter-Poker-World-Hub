@@ -1,6 +1,6 @@
 /**
  * Trivia - Settings
- * Preferences are saved to Supabase via triviaPreferences service
+ * Preferences are saved to localStorage via triviaPreferences service
  * SmarterPoker Dark color schema
  */
 

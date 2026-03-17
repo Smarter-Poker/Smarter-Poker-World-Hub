@@ -33,7 +33,7 @@ export default function TriviaHubPage() {
         showHints: true
     });
 
-    // Load preferences from Supabase on mount
+    // Load preferences from localStorage on mount
     useEffect(() => {
         if (userId) {
             getTriviaPreferences(userId).then(setPreferences);
