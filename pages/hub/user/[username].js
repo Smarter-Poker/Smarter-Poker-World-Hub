@@ -15,6 +15,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
 import { broadcastSync, broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import { eventBus, busEmit } from '../../../src/engine/EventBus';
+import toast from '../../../src/stores/toastStore';
 
 // Components
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -333,7 +334,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                 busEmit.socialCommentAdded(post.id, currentUserId);
             }
             setCommentText('');
-        } catch (e) { console.error('Submit comment error:', e); }
+        } catch (e) { console.error('Submit comment error:', e); toast.error('Could not submit comment'); }
         setSubmittingComment(false);
     };
 
@@ -359,7 +360,10 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
             }).catch(() => { });
             fetch('/api/social/share-count', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ post_id: post.id })
             }).catch(() => { });
         }
@@ -371,6 +375,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
             await onDelete(post.id);
         } catch (e) {
             console.error('Delete failed:', e);
+            toast.error('Could not delete post');
         }
         setDeleting(false);
         setShowDeleteConfirm(false);
@@ -535,6 +540,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                 } else if (!wasReacted) {
                                     setLikeCount(prev => Math.max(0, prev - 1)); // Undo the +1
                                 }
+                                toast.error('Could not update reaction');
                             });
                         }
                     }}

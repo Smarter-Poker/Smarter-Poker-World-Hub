@@ -17,6 +17,7 @@ import PreflopChartStats from '../../../src/components/training/PreflopChartStat
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -724,6 +725,7 @@ export default function PreflopCharts() {
           </div>
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

@@ -5,18 +5,35 @@
  * Increments the share_count on social_posts when a user shares a post.
  * Fire-and-forget endpoint — non-critical if it fails.
  * 
- * BUG FIX: Replaced broken supabase.raw fallback with proper SQL increment.
+ * SECURITY: JWT auth required + rate limiting.
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) _supabase = createClient(supabaseUrl, supabaseKey);
+    return _supabase;
+}
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
+
+    // Rate limiting
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+
+    // JWT authentication
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    
+    const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     const { post_id } = req.body;
 
@@ -25,14 +42,12 @@ export default async function handler(req, res) {
     }
 
     try {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-
         // Try RPC first (if fn exists)
-        const { error: rpcError } = await supabase.rpc('increment_share_count', { p_post_id: post_id });
+        const { error: rpcError } = await getSupabase().rpc('increment_share_count', { p_post_id: post_id });
 
         if (rpcError) {
             // Fallback: read current count and increment by 1
-            const { data: post, error: readError } = await supabase
+            const { data: post, error: readError } = await getSupabase()
                 .from('social_posts')
                 .select('share_count')
                 .eq('id', post_id)
@@ -40,7 +55,7 @@ export default async function handler(req, res) {
 
             if (!readError && post) {
                 const newCount = (post.share_count || 0) + 1;
-                const { error: updateError } = await supabase
+                const { error: updateError } = await getSupabase()
                     .from('social_posts')
                     .update({ share_count: newCount })
                     .eq('id', post_id);

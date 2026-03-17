@@ -15,6 +15,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STAKES PRESETS
@@ -112,8 +114,10 @@ export default function BankrollCoachPage() {
   const [sessions, setSessions] = useState([]);
   const [selectedStake, setSelectedStake] = useState(STAKES[1]); // Default $1/$3
   const [impact, setImpact] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
 
   const fetchSessions = useCallback(async () => {
+    setFetchError(null);
     const user = getAuthUser();
     if (!user?.id) {
       setLoading(false);
@@ -128,6 +132,7 @@ export default function BankrollCoachPage() {
       }
     } catch (e) {
       console.error('[BankrollCoach] Fetch error:', e);
+      setFetchError('Unable to load session data. Please try again.');
     }
     setLoading(false);
   }, []);
@@ -201,6 +206,7 @@ export default function BankrollCoachPage() {
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchSessions(); }} />
           {/* Stakes Selector */}
           <div style={{ marginBottom: 20 }}>
             <div
@@ -569,6 +575,7 @@ export default function BankrollCoachPage() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

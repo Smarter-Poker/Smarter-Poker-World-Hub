@@ -2113,6 +2113,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         onMouseEnter={() => setShowReactionPicker(true)}
                         onMouseLeave={() => setShowReactionPicker(false)}
                         style={{ width: '100%', padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: liked ? C.blue : C.textSec, fontWeight: 500, fontSize: 13 }}
+                        aria-label={liked ? 'Unlike this post' : 'Like this post'}
                     >{liked ? '👍 Liked' : '👍 Like'}</button>
                     {showReactionPicker && (
                         <div
@@ -2171,10 +2172,12 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         })();
                     }}
                     style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: C.textSec, fontWeight: 500, fontSize: 13 }}
+                    aria-label="Share this post"
                 >↗️ Share</button>
                 <button
                     onClick={handleBookmark}
                     style={{ flex: 1, padding: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: bookmarked ? '#FFB800' : C.textSec, fontWeight: 500, fontSize: 13 }}
+                    aria-label={bookmarked ? 'Remove from saved' : 'Save this post'}
                 >{bookmarked ? '' : ''} Save</button>
             </div>
             
@@ -2339,10 +2342,13 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     <div ref={commentEndRef} />
                     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                         <Avatar src={currentUserAvatar} name={currentUserName} size={28} />
-                        <input 
+                        <textarea 
                             value={newComment} 
                             onChange={e => {
                                 setNewComment(e.target.value);
+                                // Auto-grow textarea
+                                e.target.style.height = 'auto';
+                                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
                                 // Broadcast typing indicator
                                 if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
                                 try {
@@ -2361,12 +2367,19 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                     } catch {}
                                 }, 3000);
                             }}
-                            onKeyDown={e => e.key === 'Enter' && handleSubmitComment()} 
+                            onKeyDown={e => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSubmitComment();
+                                }
+                            }}
                             placeholder={replyingTo ? `Reply to ${replyingTo.name}...` : "Write a comment..."} 
-                            style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none' }} 
+                            style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none', fontFamily: 'inherit', resize: 'none', overflow: 'hidden', minHeight: 36, maxHeight: 120, lineHeight: 1.4, boxSizing: 'border-box' }} 
                             autoFocus={!!replyingTo}
                             ref={commentInputRef}
                             maxLength={2000}
+                            rows={1}
+                            aria-label="Write a comment"
                         />
                         {newComment.length > 1800 && (
                             <span style={{ fontSize: 11, color: newComment.length >= 2000 ? '#FA383E' : C.textSec, alignSelf: 'center', whiteSpace: 'nowrap' }}>
@@ -4947,9 +4960,18 @@ function SocialMediaPage() {
                     }, 'SocialRealtime');
                 }
             })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'social_comments' }, (payload) => {
+                if (payload.old && payload.old.post_id) {
+                    // Skip self-delete events — handled optimistically in PostCard
+                    if (payload.old.author_id === user.id) return;
+                    eventBus.emit('SOCIAL_COMMENT_UPDATE', {
+                        postId: payload.old.post_id,
+                        commentId: payload.old.id,
+                        removed: true
+                    }, 'SocialRealtime');
+                }
+            })
             .subscribe();
-
-        // Separate channel matching the backend 'social-feed' for broadcast typing events
         const typingChannel = supabase
             .channel('social-feed')
             .on('broadcast', { event: 'typing' }, (payload) => {

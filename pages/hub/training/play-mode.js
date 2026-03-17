@@ -18,6 +18,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import HandReplayViewer from '../../../src/components/training/HandReplayViewer';
 import PositionStatsPanel from '../../../src/components/training/PositionStatsPanel';
 import EVGraph from '../../../src/components/training/EVGraph';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import DeckCard from '../../../src/components/training/Card';
 
@@ -1789,6 +1790,7 @@ export default function PlayModePage() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

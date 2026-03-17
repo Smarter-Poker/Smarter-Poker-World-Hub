@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SKILL TREE DATA
@@ -310,8 +312,10 @@ export default function SkillTreePage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({});
   const [totalXP, setTotalXP] = useState(0);
+  const [fetchError, setFetchError] = useState(null);
 
   const fetchData = useCallback(async () => {
+    setFetchError(null);
     const user = getAuthUser();
     if (!user?.id) {
       setLoading(false);
@@ -326,6 +330,7 @@ export default function SkillTreePage() {
       }
     } catch (e) {
       console.error('[SkillTree] Fetch error:', e);
+      setFetchError('Unable to load skill tree data. Please try again.');
     }
     setLoading(false);
   }, []);
@@ -419,6 +424,7 @@ export default function SkillTreePage() {
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchData(); }} />
           {/* Progress Overview */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -559,6 +565,7 @@ export default function SkillTreePage() {
             ))}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

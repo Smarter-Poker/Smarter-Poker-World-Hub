@@ -17,6 +17,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
@@ -194,8 +196,10 @@ export default function AutopilotPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [results, setResults] = useState([]);
   const [sharing, setSharing] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
   const fetchAndAnalyze = useCallback(async () => {
+    setFetchError(null);
     const user = getAuthUser();
     if (!user?.id) {
       setLoading(false);
@@ -211,6 +215,7 @@ export default function AutopilotPage() {
       }
     } catch (e) {
       console.error('[Autopilot] Fetch error:', e);
+      setFetchError('Unable to load autopilot data. Please try again.');
     }
     setLoading(false);
   }, []);
@@ -325,6 +330,7 @@ export default function AutopilotPage() {
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchAndAnalyze(); }} />
           {/* Loading */}
           {loading && (
             <div style={{ padding: '20px 0' }}>
@@ -666,6 +672,7 @@ export default function AutopilotPage() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

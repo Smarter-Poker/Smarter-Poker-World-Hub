@@ -15,6 +15,8 @@ import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import GTODeviationHeatmap from '../../../src/components/training/GTODeviationHeatmap';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION CONFIG
@@ -175,6 +177,7 @@ export default function GTOReports() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = usePersistedState('sp-filters-training-reports', 'all');
   const [userId, setUserId] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
 
   // Get user ID from auth on mount
   useEffect(() => {
@@ -196,6 +199,7 @@ export default function GTOReports() {
   const fetchReport = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
+    setFetchError(null);
     try {
       const res = await authedFetch(`/api/training/gto-reports?userId=${userId}&period=${period}`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -203,6 +207,7 @@ export default function GTOReports() {
       if (data.success) setReport(data.report);
     } catch (err) {
       console.error('[Reports] Fetch error:', err);
+      setFetchError('Unable to load GTO reports. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -315,6 +320,7 @@ export default function GTOReports() {
 
         {/* Content */}
         <div style={{ padding: '20px 24px', maxWidth: 800, margin: '0 auto' }}>
+          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchReport(); }} />
           {loading ? (
             <div style={{ textAlign: 'center', paddingTop: 80 }}>
               <div
@@ -786,6 +792,7 @@ export default function GTOReports() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

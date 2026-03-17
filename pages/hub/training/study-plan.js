@@ -16,6 +16,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TRAINING LIBRARY REFERENCE
@@ -435,12 +437,14 @@ export default function StudyPlanPage() {
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
   const [completedAreas, setCompletedAreas] = useState([]);
+  const [fetchError, setFetchError] = useState(null);
 
   // Get current day of week (0 = Monday)
   const today = new Date();
   const todayIdx = (today.getDay() + 6) % 7; // JS Sunday=0 → shift so Monday=0
 
   const fetchSessions = useCallback(async () => {
+    setFetchError(null);
     const user = getAuthUser();
     if (!user?.id) {
       setLoading(false);
@@ -455,6 +459,7 @@ export default function StudyPlanPage() {
       }
     } catch (e) {
       console.error('[StudyPlan] Fetch error:', e);
+      setFetchError('Unable to load study plan data. Please try again.');
     }
     setLoading(false);
   }, []);
@@ -598,6 +603,7 @@ export default function StudyPlanPage() {
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
+          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchSessions(); }} />
           {/* Progress Overview */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -832,6 +838,7 @@ export default function StudyPlanPage() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

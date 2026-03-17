@@ -15,6 +15,8 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 const STATES = [
   { id: 'zone', label: 'In The Zone', color: '#4ade80', icon: '⚡' },
@@ -49,6 +51,7 @@ export default function MentalJournalPage() {
   const [notes, setNotes] = useState('');
   const [savedToast, setSavedToast] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
   useEffect(() => {
     const h = () => {};
@@ -65,6 +68,7 @@ export default function MentalJournalPage() {
 
   const fetchHistory = async () => {
     setLoadingHistory(true);
+    setFetchError(null);
     try {
       const token = getAccessToken();
       if (!token) return;
@@ -94,6 +98,7 @@ export default function MentalJournalPage() {
       }
     } catch (e) {
       console.error('Failed to fetch journal history:', e);
+      setFetchError('Unable to load journal history. Please try again.');
     } finally {
       setLoadingHistory(false);
     }
@@ -200,6 +205,7 @@ export default function MentalJournalPage() {
         </div>
 
         <div style={{ padding: '20px', maxWidth: 600, margin: '0 auto' }}>
+          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); if (view === 'history') fetchHistory(); }} />
           {/* View Toggle */}
           <div
             style={{
@@ -531,6 +537,7 @@ export default function MentalJournalPage() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }

@@ -13,6 +13,8 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GTO BASELINE FREQUENCIES (6-Max Cash 100BB)
@@ -280,9 +282,11 @@ export default function GTOReportsPage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [drillDown, setDrillDown] = useState(null); // stat key being drilled into
+  const [fetchError, setFetchError] = useState(null);
 
   // Fetch user's training sessions from Supabase
   const fetchSessions = useCallback(async () => {
+    setFetchError(null);
     try {
       if (typeof window === 'undefined') {
         setLoading(false);
@@ -317,6 +321,7 @@ export default function GTOReportsPage() {
       }
     } catch (err) {
       console.error('[GTOReports] Fetch error:', err);
+      setFetchError('Unable to load GTO report data. Please try again.');
     }
     setLoading(false);
   }, []);
@@ -496,6 +501,7 @@ export default function GTOReportsPage() {
         </div>
 
         <div style={{ padding: '20px 16px', maxWidth: 700, margin: '0 auto' }}>
+          <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchSessions(); }} />
           {loading ? (
             <div style={{ textAlign: 'center', padding: 60, color: '#64748b' }}>
               Loading session data...
@@ -841,6 +847,7 @@ export default function GTOReportsPage() {
           )}
         </div>
       </div>
+      <ConnectionToast />
     </>
   );
 }
