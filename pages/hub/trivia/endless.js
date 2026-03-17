@@ -574,7 +574,7 @@ export default function EndlessModePage() {
                     });
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
-                    busEmit.diamondsEarned(finalDiamonds, 'Endless Mode');
+                    busEmit.diamondsEarned(cappedDiamonds, 'Endless Mode');
                 }
                 savePhaseRef.current = 1;
             }

@@ -379,7 +379,7 @@ export default function MixedModePage() {
                     });
                     const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
-                    busEmit.diamondsEarned(actualDiamonds, 'Mixed Mode');
+                    busEmit.diamondsEarned(cappedDiamonds, 'Mixed Mode');
                     busEmit.celebration('confetti');
                 }
                 savePhaseRef.current = 1;

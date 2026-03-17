@@ -659,18 +659,20 @@ export default function SurvivalGamePage() {
                 // Clamp to daily cap
                 const earnedToday = await getDailyDiamondsEarned(supabase, userId, 'survival');
                 const cappedDiamonds = clampToCap(earnedToday, diamonds, DAILY_DIAMOND_CAP);
-                const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
-                    p_user_id: userId,
-                    p_amount: cappedDiamonds,
-                    p_type: 'survival_reward',
-                    p_description: `Survival Level ${level} — ${cappedDiamonds}💎`,
-                    p_reference_id: null
-                });
-                if (rpcErr) console.error('[Survival] Reward RPC error:', rpcErr.message);
-                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
-                if (profile) setUserDiamonds(profile.diamonds || 0);
-                busEmit.diamondsEarned(diamonds, `Survival Level ${level}`);
-                busEmit.celebration('confetti');
+                if (cappedDiamonds > 0) {
+                    const { error: rpcErr } = await supabase.rpc('add_diamonds_to_balance', {
+                        p_user_id: userId,
+                        p_amount: cappedDiamonds,
+                        p_type: 'survival_reward',
+                        p_description: `Survival Level ${level} — ${cappedDiamonds}💎`,
+                        p_reference_id: null
+                    });
+                    if (rpcErr) console.error('[Survival] Reward RPC error:', rpcErr.message);
+                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    if (profile) setUserDiamonds(profile.diamonds || 0);
+                    busEmit.diamondsEarned(cappedDiamonds, `Survival Level ${level}`);
+                    busEmit.celebration('confetti');
+                }
                 savePhaseRef.current = 1;
             }
 
