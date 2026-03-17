@@ -11,7 +11,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { Trophy, ArrowLeft, Target, Zap, Crown, Flame, Gem, Gamepad2, Star, Award, CheckCircle, Swords, Timer, Shield } from 'lucide-react';
+import { Trophy, ArrowLeft, Target, Zap, Crown, Flame, Gem, Gamepad2, Star, Award, CheckCircle, Swords, Shield } from 'lucide-react';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const ACHIEVEMENTS = [
