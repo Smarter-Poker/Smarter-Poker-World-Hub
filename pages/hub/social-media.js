@@ -1520,18 +1520,20 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         } catch (e) { console.error('Bookmark error:', e); setBookmarked(!newBookmarked); }
     };
 
-    const handleLike = async () => {
-        const newLiked = !liked;
+    const handleLike = async (reactionType) => {
+        // reactionType: 'like'|'love'|'haha'|'wow'|'sad'|'angry' to like, null/undefined to unlike
+        const isUnlike = !reactionType;
+        const newLiked = !isUnlike;
         const prevReactions = [...reactions];
         setLiked(newLiked);
         
         if (newLiked) {
             setLikeCount(prev => prev + 1);
-            setReactions(prev => [...prev, 'like']); // optimistic default
+            setReactions(prev => [...prev, reactionType]); // optimistic with actual type
         } else {
             setLikeCount(prev => Math.max(0, prev - 1));
-            // We lazily remove one 'like' (if present) for optimistic UI
-            const idx = reactions.indexOf('like');
+            // Remove the first matching reaction for optimistic UI
+            const idx = reactions.findIndex(r => r);
             if (idx > -1) {
                 const updated = [...reactions];
                 updated.splice(idx, 1);
@@ -1539,7 +1541,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             }
         }
         try {
-            await onLike(post.id, newLiked ? 'like' : null);
+            await onLike(post.id, reactionType || null);
         } catch (e) {
             // Revert optimistic update on failure
             console.error('[PostCard] Like failed, reverting:', e);
