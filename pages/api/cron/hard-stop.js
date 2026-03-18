@@ -19,6 +19,7 @@ function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!key) return null;
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -58,8 +59,13 @@ export default async function handler(req, res) {
       }
 
       try {
+          const supabase = getSupabase();
+          if (!supabase) {
+              return res.status(200).json({ message: 'Hard stop skipped — no Supabase service key configured', triggered: 0 });
+          }
+
           // Get all venues with hard stop enabled
-          const { data: venues, error: fetchError } = await getSupabase()
+          const { data: venues, error: fetchError } = await supabase
               .from('commander_venue_settings')
               .select('venue_id, hard_stop_time, room_open, last_hard_stop_date, auto_comp_rate')
               .eq('hard_stop_enabled', true)
