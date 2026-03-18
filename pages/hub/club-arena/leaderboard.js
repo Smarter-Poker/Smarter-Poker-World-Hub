@@ -197,7 +197,7 @@ export default function ClubArenaLeaderboardPage() {
               <span className={s.unionCode}>{leaderboard.length} players</span>
             </div>
             <div className={s.headerActions}>
-              <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
+              <Link href="/hub/club-arena" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
               <button onClick={() => loadLeaderboard(clubId, mode)} className={s.btnGhost}>↻ Refresh</button>
             </div>
           </div>

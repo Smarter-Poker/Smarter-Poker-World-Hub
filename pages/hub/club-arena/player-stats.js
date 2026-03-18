@@ -270,7 +270,7 @@ export default function ClubArenaPlayerStatsPage() {
                 <div className={s.pageTitle}>📊 My Performance</div>
                 <div className={s.headerActions}>
                   <button onClick={refreshStats} className={s.btnGhost}>↻ Refresh</button>
-                  <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}>
+                  <Link href="/hub/club-arena" style={{ textDecoration: 'none' }}>
                     <button className={s.btnGhost}>🏠 Lobby</button>
                   </Link>
                 </div>

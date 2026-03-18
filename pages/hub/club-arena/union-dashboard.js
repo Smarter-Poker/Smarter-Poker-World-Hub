@@ -394,7 +394,7 @@ export default function UnionDashboardPage() {
             </div>
             <div className={s.headerActions}>
               <Link href="/hub/club-arena/union-games" style={{ textDecoration: 'none' }}><button className={s.btnPrimary}>🎮 Games</button></Link>
-              <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
+              <Link href="/hub/club-arena" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
               <button className={s.btnGhost} onClick={() => loadDashboard(unionId)} disabled={processing}>Refresh</button>
             </div>
           </div>

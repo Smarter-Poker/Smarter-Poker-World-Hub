@@ -396,7 +396,7 @@ export default function ClubArenaAntiCheatPage() {
               )}
             </div>
             <div className={s.headerActions}>
-              <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
+              <Link href="/hub/club-arena" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
               <Link href="/hub/club-arena/admin" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>⚙️ Admin</button></Link>
               <button onClick={() => { loadStats(clubId); setFlagsLoaded(false); setEventsLoaded(false); setCollusionLoaded(false); setAnomaliesLoaded(false); }} className={s.btnGhost}>↻ Refresh</button>
             </div>

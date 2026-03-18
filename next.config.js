@@ -148,6 +148,8 @@ const nextConfig = {
       { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
       // Poker Near Me — redirect old flat page to new 3D lobby
       { source: '/hub/poker-near-me', destination: '/hub/poker-near-me-lobby', permanent: false },
+      // Club Arena — /hub/club-arena IS the lobby (the SPA). The native lobby.js was removed.
+      { source: '/hub/club-arena/lobby', destination: '/hub/club-arena', permanent: true },
     ];
   },
 
@@ -158,8 +160,8 @@ const nextConfig = {
       // The browser sees smarter.poker URLs → same origin → shared localStorage
       // → shared Supabase auth session. No postMessage needed.
       //
-      // afterFiles runs AFTER checking Next.js pages, so the 15 native pages
-      // (lobby.js, tournaments.js, etc.) still take priority for their routes.
+      // afterFiles runs AFTER checking Next.js pages, so the 14 native pages
+      // (tournaments.js, cashier.js, etc.) still take priority for their routes.
       // Everything else (SPA routes + assets) is proxied to the Vite SPA.
       beforeFiles: [],
       afterFiles: [

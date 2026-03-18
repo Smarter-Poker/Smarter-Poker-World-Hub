@@ -143,7 +143,7 @@ export default function ClubArenaBottomNav({ clubId, activePage, userRole }) {
     if (!clubId) return null;
 
     const navItems = [
-        { key: 'lobby', label: 'Lobby', href: `/hub/club-arena/lobby?club=${clubId}`, Icon: LobbyIcon },
+        { key: 'lobby', label: 'Lobby', href: `/hub/club-arena?club=${clubId}`, Icon: LobbyIcon },
         { key: 'messages', label: 'Messages', href: `/hub/club-arena/messages?club=${clubId}`, Icon: MessagesIcon, badge: unreadCount },
         { key: 'players', label: 'Players', href: `/hub/club-arena/players?club=${clubId}`, Icon: PlayersIcon },
         { key: 'cashier', label: 'Cashier', href: `/hub/club-arena/cashier?club=${clubId}`, Icon: CashierIcon },

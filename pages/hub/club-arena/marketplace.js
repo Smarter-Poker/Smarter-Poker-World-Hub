@@ -270,7 +270,7 @@ export default function ClubArenaMarketplacePage() {
               </span>
             </div>
             <div className={s.headerActions}>
-              <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
+              <Link href="/hub/club-arena" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
               <button onClick={() => loadMarketplace(clubId)} className={s.btnGhost}>↻ Refresh</button>
             </div>
           </div>

@@ -30,8 +30,8 @@ c('GC buyinFee', () => fs.readFileSync('src/lib/poker-engine/GameController.js',
 c('Hand history int cards', () => fs.readFileSync('pages/hub/club-arena/hand-histories.js', 'utf8').includes('RANKS_INT'));
 c('Client 5 events', () => { const x = fs.readFileSync('src/hooks/useTableConnection.js', 'utf8'); return ['table_closed', 'waitlist_joined', 'waitlist_left', 'player_timed_out', 'player_invited'].every(e => x.includes("'" + e + "'")); });
 c('Token sync read', () => !fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes('Promise.resolve'));
-c('BottomNav club.id', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes('clubId={club.id}'));
-c('Lobby closed filter', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes("payload.new?.status !== 'closed'"));
+c('BottomNav club.id', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('clubId={club.id}'));
+c('Lobby closed filter', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes("payload.new?.status !== 'closed'"));
 c('GameCard pineapple', () => fs.readFileSync('src/components/club-arena/GameCard.jsx', 'utf8').includes("pineapple: { label:"));
 c('TableInfoBar variants', () => { const x = fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8'); return x.includes("pineapple: '") && x.includes("flo: 'FLO'"); });
 c('ActionPanel 9 vars', () => { const x = fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8'); const s = x.indexOf('function ActionPanel'); const e = x.indexOf('function ActionButton'); return ['canFold', 'canCheck', 'canCall', 'canRaise', 'canBet', 'canAllIn', 'betOrRaise', 'minBet', 'maxBet'].every(v => x.substring(s, e).includes('const ' + v)); });
@@ -40,13 +40,13 @@ c('Shark Club clubCode', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8'
 // FEATURES
 c('TOS modal', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('tosAccepted === false'));
 c('TOS error UI', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('tosError'));
-c('Zero-chips banner', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes('Welcome to'));
-c('Auto-nav Shark', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes("router.push('/hub/club-arena/lobby?club=25450')"));
-c('Auto-nav new table', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes("router.push(`/hub/club-arena/table/"));
+c('Zero-chips banner', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('Welcome to'));
+c('Auto-nav Shark', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes("router.push('/hub/club-arena?club=25450')"));
+c('Auto-nav new table', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes("router.push(`/hub/club-arena/table/"));
 c('Sitemap', () => fs.existsSync('pages/sitemap.xml.js'));
 c('JSON-LD', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('WebApplication'));
-c('Nav: Hand Histories', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes('Hand Histories'));
-c('Nav: Leaderboard', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes('Leaderboard'));
+c('Nav: Hand Histories', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('Hand Histories'));
+c('Nav: Leaderboard', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('Leaderboard'));
 c('Nav: View Full History', () => fs.readFileSync('pages/hub/club-arena/player-stats.js', 'utf8').includes('View Full History'));
 
 // HARDENING
@@ -62,7 +62,7 @@ c('Tourn unregister busEmit', () => { const x = fs.readFileSync('pages/hub/club-
 
 // BUS LISTENERS
 c('6 pages cashout_cancelled', () => ['admin', 'cashier', 'agent-dashboard', 'player-stats', 'players', 'union-dashboard'].every(p => fs.readFileSync('pages/hub/club-arena/' + p + '.js', 'utf8').includes("'cashout_cancelled'")));
-c('Lobby tournament_registration', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes("'tournament_registration'"));
+c('Lobby tournament_registration', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes("'tournament_registration'"));
 
 // RATE LIMITS
 c('Tournament API RL', () => fs.readFileSync('pages/api/club-arena/tournaments.js', 'utf8').includes("applyRateLimit(req, res"));
@@ -81,8 +81,8 @@ c('13 auth pages noindex', () => ['admin', 'cashier', 'hand-histories', 'player-
 c('Main page NOT noindex', () => !fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('noindex'));
 
 // NEW: Lobby bus handler routes table vs tournament events
-c('Lobby bus: table events trigger table refresh', () => { const x = fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8'); return x.includes("tableEntities.includes(entity)") && x.includes("setTables(data)"); });
-c('Lobby bus: tournament events trigger tournament refresh', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes("tournamentEntities.includes(entity)"));
+c('Lobby bus: table events trigger table refresh', () => { const x = fs.readFileSync('pages/hub/club-arena.js', 'utf8'); return x.includes("tableEntities.includes(entity)") && x.includes("setTables(data)"); });
+c('Lobby bus: tournament events trigger tournament refresh', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes("tournamentEntities.includes(entity)"));
 
 // BUILD: Table page SEOHead improvements
 c('Table page: club name in SEOHead', () => fs.readFileSync('pages/hub/club-arena/table/[tableId].js', 'utf8').includes('initialTable.clubName'));
@@ -111,12 +111,12 @@ c('Dealer chat: hand_start message', () => fs.readFileSync('src/hooks/useTableCo
 c('Dealer chat: hand_complete winner message', () => fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes("type: 'dealer'") && fs.readFileSync('src/hooks/useTableConnection.js', 'utf8').includes('wins'));
 c('ChatOverlay: renders dealer messages', () => fs.readFileSync('src/components/poker/LivePokerTable.jsx', 'utf8').includes("m.type === 'dealer'"));
 c('NotificationBell component exists', () => fs.existsSync('src/components/club-arena/NotificationBell.js'));
-c('NotificationBell wired to lobby', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes('<NotificationBell'));
+c('NotificationBell wired to lobby', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('<NotificationBell'));
 c('Mark-read API exists', () => fs.existsSync('pages/api/notifications/mark-read.js'));
 c('ClubChat component exists', () => fs.existsSync('src/components/club-arena/ClubChat.js'));
 c('ClubChat API exists', () => fs.existsSync('pages/api/club-arena/club-chat.js'));
 c('ClubChat API has rate limit', () => fs.readFileSync('pages/api/club-arena/club-chat.js', 'utf8').includes('applyRateLimit'));
-c('ClubChat wired to lobby', () => fs.readFileSync('pages/hub/club-arena/lobby.js', 'utf8').includes('<ClubChat'));
+c('ClubChat wired to lobby', () => fs.readFileSync('pages/hub/club-arena.js', 'utf8').includes('<ClubChat'));
 c('ClubChat SQL migration exists', () => fs.existsSync('supabase/migrations/20260310230000_club_chat.sql'));
 c('ClubChat SQL has RLS', () => fs.readFileSync('supabase/migrations/20260310230000_club_chat.sql', 'utf8').includes('ROW LEVEL SECURITY'));
 c('ClubChat SQL has realtime', () => fs.readFileSync('supabase/migrations/20260310230000_club_chat.sql', 'utf8').includes('supabase_realtime'));

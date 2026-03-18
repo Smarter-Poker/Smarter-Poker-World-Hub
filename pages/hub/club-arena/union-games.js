@@ -281,7 +281,7 @@ export default function UnionGamesPage() {
             <div className={s.pageTitle}>Union Games</div>
             <div className={s.headerActions}>
               <Link href="/hub/club-arena/union-dashboard" style={{ textDecoration: 'none' }}><button className={s.btnPrimary}>📊 Dashboard</button></Link>
-              <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
+              <Link href="/hub/club-arena" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
             </div>
           </div>
 

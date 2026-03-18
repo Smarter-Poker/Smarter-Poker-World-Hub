@@ -268,7 +268,7 @@ export default async function handler(req, res) {
               title: `🎲 New Table: ${tableName}`,
               message: `A new ${gv.toUpperCase()} ${sb}/${bb} cash game is now open!`,
               data: { tableId: table?.id, variant: gv, stakes: `${sb}/${bb}` },
-              pushUrl: `/hub/club-arena/lobby?club=${clubId}`,
+              pushUrl: `/hub/club-arena?club=${clubId}`,
               excludeUserId: user.id,
           }).catch(() => { });
 

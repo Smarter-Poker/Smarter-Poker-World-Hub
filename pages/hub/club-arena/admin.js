@@ -1314,7 +1314,7 @@ export default function ClubArenaAdminPage() {
               <div className={s.pageHeader}>
                 <div className={s.pageTitle}>⚙️ Admin & Operations</div>
                 <div className={s.headerActions}>
-                  <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}>
+                  <Link href="/hub/club-arena" style={{ textDecoration: 'none' }}>
                     <button className={s.btnGhost}>🏠 Lobby</button>
                   </Link>
                 </div>

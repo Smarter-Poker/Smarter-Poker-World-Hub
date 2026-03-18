@@ -356,7 +356,7 @@ export default function ClubArenaPlayersPage() {
               {summary && <span className={s.unionCode}>{fmt(summary.totalMembers)} members</span>}
             </div>
             <div className={s.headerActions}>
-              <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
+              <Link href="/hub/club-arena" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
               <button onClick={() => loadSessions(clubId)} className={s.btnGhost}>↻ Refresh</button>
             </div>
           </div>

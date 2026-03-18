@@ -199,7 +199,7 @@ export async function notifyClubMembers(supabaseAdmin, {
         body: JSON.stringify({
           title, message: message || title,
           externalUserIds: targets.slice(0, 2000), // OneSignal limit
-          url: pushUrl || `${BASE_URL}/hub/club-arena/lobby?club=${clubId}`,
+          url: pushUrl || `${BASE_URL}/hub/club-arena?club=${clubId}`,
           data: { ...data, source: 'club_arena', type },
         }),
       });

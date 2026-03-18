@@ -236,7 +236,7 @@ export default function ClubArenaXMTTPage() {
               <Link href="/hub/club-arena/tournaments" style={{ textDecoration: 'none' }}>
                 <button className={s.btnGhost}>📋 All Tournaments</button>
               </Link>
-              <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}>
+              <Link href="/hub/club-arena" style={{ textDecoration: 'none' }}>
                 <button className={s.btnGhost}>🏠 Lobby</button>
               </Link>
             </div>
@@ -267,7 +267,7 @@ export default function ClubArenaXMTTPage() {
                 <div className={s.emptyState} style={{ padding: '40px' }}>
                   <span className={s.emptyIcon}>🏆</span>
                   <span className={s.emptyText}>No MTT tournaments found for this filter.</span>
-                  <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none', marginTop: '12px' }}>
+                  <Link href="/hub/club-arena" style={{ textDecoration: 'none', marginTop: '12px' }}>
                     <button className={s.btnPrimary} style={{ padding: '8px 20px', fontSize: '13px' }}>🏠 Go to Lobby</button>
                   </Link>
                 </div>

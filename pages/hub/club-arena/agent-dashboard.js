@@ -401,7 +401,7 @@ export default function AgentDashboardPage() {
               <span className={s.unionCode}>{role.toUpperCase()}</span>
             </div>
             <div className={s.headerActions}>
-              <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
+              <Link href="/hub/club-arena" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
               <button onClick={() => setShowTransfer(true)} className={s.btnGhost}>💸 Transfer</button>
               <button onClick={() => loadDashboard(clubId)} className={s.btnGhost} disabled={processing}>↻ Refresh</button>
             </div>

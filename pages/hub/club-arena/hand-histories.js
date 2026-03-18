@@ -177,7 +177,7 @@ export default function ClubArenaHandHistoriesPage() {
               <div className={s.pageHeader}>
                 <div className={s.pageTitle}>🎬 My Hand Histories</div>
                 <div className={s.headerActions}>
-                  <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}>
+                  <Link href="/hub/club-arena" style={{ textDecoration: 'none' }}>
                     <button className={s.btnGhost}>🏠 Lobby</button>
                   </Link>
                   <button onClick={() => clubId && loadHands(clubId, 1)} className={s.btnGhost}>↻ Refresh</button>
@@ -212,7 +212,7 @@ export default function ClubArenaHandHistoriesPage() {
                   <div className={s.emptyState}>
                     <span className={s.emptyIcon}>🎬</span>
                     <span className={s.emptyText}>You haven't played any hands yet.</span>
-                    <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none', marginTop: '12px' }}>
+                    <Link href="/hub/club-arena" style={{ textDecoration: 'none', marginTop: '12px' }}>
                       <button className={s.btnPrimary} style={{ padding: '8px 20px', fontSize: '13px' }}>🏠 Join a Table</button>
                     </Link>
                   </div>

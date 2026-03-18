@@ -489,7 +489,7 @@ export default function ClubArenaTournamentsPage() {
               🏆 Tournaments
             </div>
             <div className={s.headerActions}>
-              <Link href="/hub/club-arena/lobby" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
+              <Link href="/hub/club-arena" style={{ textDecoration: 'none' }}><button className={s.btnGhost}>🏠 Lobby</button></Link>
               {isAdmin && !selectedTourn && (
                 <button onClick={() => setShowCreateModal(true)} className={s.btnPrimary} style={{ background: '#31A24C' }}>+ Create</button>
               )}
