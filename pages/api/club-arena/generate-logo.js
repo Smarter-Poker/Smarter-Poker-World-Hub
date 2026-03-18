@@ -1,0 +1,80 @@
+/**
+ * Generate Club Logo API — Server-side proxy to xAI Grok
+ * ═══════════════════════════════════════════════════════════════
+ * POST /api/club-arena/generate-logo
+ *
+ * Keeps the xAI API key server-side only. The client sends the
+ * prompt parameters, this route calls xAI and returns the result.
+ *
+ * Body: { clubName, style?, theme?, colorScheme? }
+ * Response: { success, logoUrl?, error? }
+ */
+
+const XAI_API_KEY = process.env.XAI_API_KEY || '';
+const XAI_API_URL = 'https://api.x.ai/v1/images/generations';
+const TARGET_LOGO_SIZE = 340;
+
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+
+    if (!XAI_API_KEY) {
+        return res.status(500).json({ success: false, error: 'AI image generation not configured on server.' });
+    }
+
+    const { clubName, style = 'modern', theme, colorScheme } = req.body || {};
+
+    if (!clubName || typeof clubName !== 'string') {
+        return res.status(400).json({ success: false, error: 'clubName is required' });
+    }
+
+    // Build prompt
+    let prompt = `${theme || 'poker club logo'}. `;
+    prompt += `High quality, professional design. Suitable for a poker club brand. Clean, modern aesthetic. NO TEXT, NO LETTERS, NO WORDS in the image. Premium, polished look.`;
+    if (colorScheme) {
+        prompt += ` Color scheme: ${colorScheme}`;
+    }
+
+    try {
+        const response = await fetch(XAI_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${XAI_API_KEY}`,
+            },
+            body: JSON.stringify({
+                model: 'grok-2-image-1212',
+                prompt: prompt.trim(),
+                n: 1,
+                response_format: 'b64_json',
+            }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('[generate-logo] Grok API error:', errorData);
+            return res.status(502).json({
+                success: false,
+                error: errorData.error?.message || `xAI API error: ${response.status}`,
+            });
+        }
+
+        const data = await response.json();
+        const base64Image = data.data?.[0]?.b64_json;
+
+        if (!base64Image) {
+            return res.status(502).json({ success: false, error: 'No image data received from API' });
+        }
+
+        const logoUrl = `data:image/png;base64,${base64Image}`;
+
+        return res.status(200).json({ success: true, logoUrl });
+    } catch (error) {
+        console.error('[generate-logo] Failed:', error);
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
+    }
+}
