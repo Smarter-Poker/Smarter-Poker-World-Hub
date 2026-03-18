@@ -219,3 +219,4 @@ const pwaConfig = process.env.NODE_ENV === 'development' ? nextConfig : withPWA(
 module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN && process.env.SENTRY_AUTH_TOKEN && process.env.NODE_ENV !== 'development'
   ? withSentryConfig(pwaConfig, sentryWebpackPluginOptions, sentryOptions)
   : pwaConfig;
+
