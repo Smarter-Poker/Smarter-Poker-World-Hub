@@ -22,6 +22,7 @@ export default function LoginPage() {
     const [message, setMessage] = useState(null);
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(true); // Default to checked
+    const [existingUser, setExistingUser] = useState(null); // Track if already signed in
 
     // Honor ?redirect= param from useRequireAuth() — send user back to the page they came from
     const getRedirectUrl = () => {
@@ -46,13 +47,27 @@ export default function LoginPage() {
         async function checkSession() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
-                // Set flag so hub plays intro animation
-                sessionStorage.setItem('just_authenticated', 'true');
-                router.push(getRedirectUrl());
+                // ONLY auto-redirect if user was bounced FROM a protected page (?redirect= param)
+                // If they explicitly navigated to /auth/login, let them see the form
+                if (router.query.redirect) {
+                    sessionStorage.setItem('just_authenticated', 'true');
+                    router.push(getRedirectUrl());
+                } else {
+                    // Show "already signed in" banner instead of auto-redirecting
+                    setExistingUser(session.user?.email || 'your account');
+                }
             }
         }
         checkSession();
     }, [router]);
+
+    // Handle switching accounts
+    const handleSwitchAccount = async () => {
+        setIsLoading(true);
+        await supabase.auth.signOut();
+        setExistingUser(null);
+        setIsLoading(false);
+    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -221,6 +236,49 @@ export default function LoginPage() {
                 {mode === 'login' ? 'Sign In To Continue' : 'Join The Smarter.Poker Community'}
             </p>
 
+            {/* Already signed in banner */}
+            {existingUser && (
+                <div style={{
+                    width: '100%',
+                    maxWidth: 360,
+                    padding: '16px 20px',
+                    background: 'rgba(24, 119, 242, 0.15)',
+                    border: '1px solid rgba(24, 119, 242, 0.4)',
+                    borderRadius: 12,
+                    marginBottom: 24,
+                    textAlign: 'center',
+                }}>
+                    <p style={{ fontSize: 14, color: '#fff', margin: '0 0 4px', fontWeight: 600 }}>
+                        You Are Already Signed In
+                    </p>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: '0 0 12px' }}>
+                        {existingUser}
+                    </p>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                        <button
+                            onClick={() => { sessionStorage.setItem('just_authenticated', 'true'); router.push('/hub'); }}
+                            style={{
+                                padding: '10px 20px', fontSize: 14, fontWeight: 600,
+                                background: 'linear-gradient(135deg, #1877F2, #0a5dc2)',
+                                color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer',
+                            }}
+                        >
+                            Continue To Hub
+                        </button>
+                        <button
+                            onClick={handleSwitchAccount}
+                            disabled={isLoading}
+                            style={{
+                                padding: '10px 20px', fontSize: 14, fontWeight: 600,
+                                background: 'transparent', color: 'rgba(255,255,255,0.7)',
+                                border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, cursor: 'pointer',
+                            }}
+                        >
+                            Switch Account
+                        </button>
+                    </div>
+                </div>
+            )}
             {/* Auth Form */}
             <form onSubmit={mode === 'login' ? handleLogin : handleSignup} autoComplete="off" style={{
                 width: '100%',

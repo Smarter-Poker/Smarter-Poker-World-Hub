@@ -153,36 +153,22 @@ const nextConfig = {
 
   async rewrites() {
     return {
-      beforeFiles: [
+      beforeFiles: [],
+      afterFiles: [
+        // Club Arena SPA fallback: any /hub/club-arena/* route that doesn't
+        // match a real file in public/ gets served the SPA's index.html.
+        // React Router inside the SPA handles client-side routing.
+        // Assets (JS/CSS/images) in public/hub/club-arena/ are served directly
+        // by Next.js BEFORE this rewrite fires (that's how afterFiles works).
+        {
+          source: '/hub/club-arena',
+          destination: '/hub/club-arena/index.html',
+        },
         {
           source: '/hub/club-arena/:path*',
-          has: [
-            {
-              type: 'query',
-              key: '_embed',
-              value: '1',
-            },
-          ],
-          destination: 'https://club-arena.vercel.app/hub/club-arena/:path*',
+          destination: '/hub/club-arena/index.html',
         },
-        {
-          source: '/hub/club-arena/assets/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/assets/:path*',
-        },
-        {
-          source: '/hub/club-arena/images/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/images/:path*',
-        },
-        {
-          source: '/hub/club-arena/cards/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/cards/:path*',
-        },
-        {
-          source: '/hub/club-arena/sounds/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/sounds/:path*',
-        }
       ],
-      afterFiles: [],
       fallback: [],
     };
   },
