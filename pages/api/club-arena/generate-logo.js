@@ -44,7 +44,7 @@ export default async function handler(req, res) {
                 Authorization: `Bearer ${XAI_API_KEY}`,
             },
             body: JSON.stringify({
-                model: 'grok-2-image-1212',
+                model: 'grok-imagine-image',
                 prompt: prompt.trim(),
                 n: 1,
                 response_format: 'b64_json',
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
             console.error('[generate-logo] Grok API error:', errorData);
             return res.status(502).json({
                 success: false,
-                error: errorData.error?.message || `xAI API error: ${response.status}`,
+                error: errorData.error?.message || errorData.error || `xAI API error: ${response.status}`,
             });
         }
 
