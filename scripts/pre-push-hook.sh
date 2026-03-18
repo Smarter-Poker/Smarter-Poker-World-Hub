@@ -3,7 +3,8 @@
 # SMARTER.POKER PRE-PUSH SAFETY GATE
 # ═══════════════════════════════════════════════════════════════════════════
 # This hook runs BEFORE every push. It catches the exact class of bugs
-# that caused the March 7, 2026 cascading build failure (14 failed deploys).
+# that caused the March 7, 2026 cascading build failure (14 failed deploys)
+# and the March 17, 2026 dead-code cleanup failure (7 failed deploys).
 #
 # What it checks:
 # 1. Hooks imported but never called (the ThreePillHeader bug)
@@ -13,6 +14,7 @@
 # 5. Basic syntax validation
 # 6. Auth route canonicalization (/auth/login not /auth/signin)
 # 7. Pages with /api/ fetch calls must import auth (getAccessToken/authedFetch)
+# 8. Broken imports — all import paths resolve to existing files
 #
 # INSTALL: Run `bash scripts/install-hooks.sh` from the project root
 # ═══════════════════════════════════════════════════════════════════════════
@@ -252,6 +254,49 @@ if command -v node &> /dev/null; then
     fi
 else
     echo -e "${YELLOW}  ⚠ Node.js not found. Skipping syntax validation.${NC}"
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════"
+
+# ─── CHECK 8: Broken imports — deleted/missing files ────────────────────
+echo ""
+echo "CHECK 8: Broken import resolution..."
+
+BROKEN_IMPORT_HITS=""
+for file in $JS_FILES; do
+    [ -f "$file" ] || continue
+    FILE_DIR=$(dirname "$file")
+
+    # Extract all relative import paths (from '../../foo' or require('../../foo'))
+    IMPORT_PATHS=$(grep -oE "(from|require\()\s*['\"](\./|\.\./)[^'\"]+['\"]" "$file" 2>/dev/null | grep -oE "['\"](\./|\.\./)[^'\"]+['\"]" | tr -d "'\"")
+
+    for imp in $IMPORT_PATHS; do
+        # Resolve relative path
+        RESOLVED="$FILE_DIR/$imp"
+
+        # Check if the file exists with common extensions
+        FOUND=0
+        for ext in "" ".js" ".jsx" ".ts" ".tsx" "/index.js" "/index.ts" "/index.jsx" "/index.tsx"; do
+            if [ -f "${RESOLVED}${ext}" ]; then
+                FOUND=1
+                break
+            fi
+        done
+
+        if [ $FOUND -eq 0 ]; then
+            echo -e "${RED}  ✗ BROKEN IMPORT: ${file}${NC}"
+            echo "    Cannot resolve: ${imp}"
+            echo "    Fix: Restore the file, update the import, or remove the dead import."
+            echo ""
+            ERRORS=$((ERRORS + 1))
+            BROKEN_IMPORT_HITS="found"
+        fi
+    done
+done
+
+if [ -z "$BROKEN_IMPORT_HITS" ]; then
+    echo -e "${GREEN}  ✓ All local imports resolve to existing files.${NC}"
 fi
 
 echo ""
