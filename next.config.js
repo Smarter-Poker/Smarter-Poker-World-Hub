@@ -153,20 +153,23 @@ const nextConfig = {
 
   async rewrites() {
     return {
+      // Club Arena — transparent same-origin proxy (NO iframe).
+      // All /hub/club-arena/* requests are proxied to club-arena.vercel.app.
+      // The browser sees smarter.poker URLs → same origin → shared localStorage
+      // → shared Supabase auth session. No postMessage needed.
+      //
+      // afterFiles runs AFTER checking Next.js pages, so the 15 native pages
+      // (lobby.js, tournaments.js, etc.) still take priority for their routes.
+      // Everything else (SPA routes + assets) is proxied to the Vite SPA.
       beforeFiles: [],
       afterFiles: [
-        // Club Arena SPA fallback: any /hub/club-arena/* route that doesn't
-        // match a real file in public/ gets served the SPA's index.html.
-        // React Router inside the SPA handles client-side routing.
-        // Assets (JS/CSS/images) in public/hub/club-arena/ are served directly
-        // by Next.js BEFORE this rewrite fires (that's how afterFiles works).
         {
           source: '/hub/club-arena',
-          destination: '/hub/club-arena/index.html',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/',
         },
         {
           source: '/hub/club-arena/:path*',
-          destination: '/hub/club-arena/index.html',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/:path*',
         },
       ],
       fallback: [],
