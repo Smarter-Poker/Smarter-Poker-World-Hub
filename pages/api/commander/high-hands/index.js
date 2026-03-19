@@ -40,8 +40,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (err) {
-    console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    console.error('[high-hands API Error]', err?.message || err, err?.code || '', err?.details || '', err?.hint || '');
+    if (!res.headersSent) return res.status(500).json({ success: false, error: err?.message || 'Internal server error', details: err?.details || null, hint: err?.hint || null });
   }
 }
 
