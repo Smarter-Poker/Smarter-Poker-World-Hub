@@ -166,7 +166,7 @@ const channelManager = {
                 clearTimeout(entry.reconnectTimer);
                 entry.reconnectTimer = null;
             }
-            this._disconnect(venueKey);
+            this._disconnect(key);
             delete this.venues[key];
         }
     },
