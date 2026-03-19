@@ -66,8 +66,7 @@ async function listHighHands(req, res) {
       .select(`
         *,
         profiles!player_id (id, display_name, avatar_url),
-        commander_promotions!promotion_id (id, name),
-        verifier:profiles!verified_by (id, display_name)
+        commander_promotions!promotion_id (id, name)
       `, { count: 'exact' })
       .eq('venue_id', venue_id)
       .order('created_at', { ascending: false })
