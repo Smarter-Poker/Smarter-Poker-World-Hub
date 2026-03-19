@@ -60,7 +60,7 @@ const TABLE_TO_ENTITY = {
     commander_games: 'games',
     commander_waitlist: 'waitlist',
     commander_floor_calls: 'floor_calls',
-    commander_seats: 'tables',       // Seat changes affect tables
+    // commander_seats excluded — lacks venue_id column (changes propagate via commander_games/commander_tables)
     commander_settings: 'settings',
     commander_staff: 'staff',
     commander_staff_shifts: 'staff', // Shift schedule changes affect staff views
@@ -70,7 +70,7 @@ const TABLE_TO_ENTITY = {
     commander_dealer_rotations: 'dealers',     // Rotation changes affect dealer views
     commander_table_sessions: 'tables',        // Session changes affect table views
     commander_tournaments: 'tournaments',
-    commander_tournament_entries: 'tournaments',  // Entry changes affect tournaments
+    // commander_tournament_entries excluded — lacks venue_id column (changes propagate via commander_tournaments)
     commander_incidents: 'incidents',
     commander_notifications: 'notifications',
     commander_club_announcements: 'announcements',

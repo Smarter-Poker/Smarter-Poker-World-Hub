@@ -58,16 +58,6 @@ export default function ActivityFeed() {
   const [filter, setFilter] = useState('all');
   const [now, setNow] = useState(new Date());
 
-  useEffect(() => {
-    fetchEvents();
-    const clock = setInterval(() => setNow(new Date()), 30000);
-    return () => {
-      clearInterval(clock);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Commander Data Bus config will be below fetchEvents
-
   const fetchEvents = useCallback(async () => {
     try {
       const staffSession = getStaffSession();
@@ -87,7 +77,7 @@ export default function ActivityFeed() {
       const allEvents = [];
 
       // Incidents → events
-      (incidents.data || []).slice(0, 20).forEach(i => {
+      (Array.isArray(incidents.data) ? incidents.data : []).slice(0, 20).forEach(i => {
         allEvents.push({
           id: `inc-${i.id}`,
           type: i.priority === 'high' ? 'incident' : 'floor_call',
@@ -99,7 +89,7 @@ export default function ActivityFeed() {
       });
 
       // Recent check-ins
-      (checkins.data || []).filter(m => m.last_visit).slice(0, 15).forEach(m => {
+      (Array.isArray(checkins.data) ? checkins.data : []).filter(m => m.last_visit).slice(0, 15).forEach(m => {
         allEvents.push({
           id: `ci-${m.id}`,
           type: 'check_in',
@@ -110,7 +100,7 @@ export default function ActivityFeed() {
       });
 
       // Time billing sessions
-      (sessions.data || []).slice(0, 15).forEach(s => {
+      (Array.isArray(sessions.data) ? sessions.data : []).slice(0, 15).forEach(s => {
         if (s.status === 'active') {
           allEvents.push({
             id: `sess-${s.id}`,
@@ -123,7 +113,7 @@ export default function ActivityFeed() {
       });
 
       // Waitlist
-      (waitlist.data || []).slice(0, 15).forEach(w => {
+      (Array.isArray(waitlist.data) ? waitlist.data : []).slice(0, 15).forEach(w => {
         allEvents.push({
           id: `wl-${w.id}`,
           type: w.status === 'called' ? 'waitlist_called' : 'waitlist_added',
@@ -142,6 +132,15 @@ export default function ActivityFeed() {
 
   // Commander Data Bus — sync activity feed across tabs
   useCommanderSync(getVenueId(), fetchEvents, { entities: ['members', 'tables', 'waitlist', 'incidents'] });
+
+  // Initial fetch + clock for relative timestamps
+  useEffect(() => {
+    fetchEvents();
+    const clock = setInterval(() => setNow(new Date()), 30000);
+    return () => {
+      clearInterval(clock);
+    };
+  }, [fetchEvents]);
 
   const filteredEvents = events.filter(e => {
     if (filter === 'all') return true;
