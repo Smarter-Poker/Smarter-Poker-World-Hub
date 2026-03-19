@@ -63,11 +63,7 @@ async function listHighHands(req, res) {
 
     let query = getSupabase()
       .from('commander_high_hands')
-      .select(`
-        *,
-        profiles!player_id (id, display_name, avatar_url),
-        commander_promotions!promotion_id (id, name)
-      `, { count: 'exact' })
+      .select('*', { count: 'exact' })
       .eq('venue_id', venue_id)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -88,10 +84,7 @@ async function listHighHands(req, res) {
     const today = new Date().toISOString().split('T')[0];
     const { data: currentHigh } = await getSupabase()
       .from('commander_high_hands')
-      .select(`
-        *,
-        profiles!player_id (id, display_name, avatar_url)
-      `)
+      .select('*')
       .eq('venue_id', venue_id)
       .gte('created_at', `${today}T00:00:00`)
       .not('verified_at', 'is', null)

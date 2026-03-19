@@ -59,12 +59,7 @@ async function getHighHand(req, res, id) {
   try {
     const { data: highHand, error } = await getSupabase()
       .from('commander_high_hands')
-      .select(`
-        *,
-        profiles!player_id (id, display_name, avatar_url),
-        commander_promotions!promotion_id (id, name, prize_type, prize_value),
-        commander_games!game_id (id, game_type, stakes)
-      `)
+      .select('*')
       .eq('id', id)
       .maybeSingle();
 
@@ -158,10 +153,7 @@ async function updateHighHand(req, res, id) {
       .from('commander_high_hands')
       .update(updates)
       .eq('id', id)
-      .select(`
-        *,
-        profiles!player_id (id, display_name, avatar_url)
-      `)
+      .select('*')
       .maybeSingle();
 
     if (error) throw error;
