@@ -147,39 +147,48 @@ Utilities:           src/lib/commander/
 ## Club Arena Integration
 
 ### Architecture Overview
-Club Arena is a **Vite + React SPA** served on smarter.poker via **transparent same-origin
-proxy rewrites** in `next.config.js`. There is NO iframe — the SPA is proxied from
-`club-arena.vercel.app` but appears to the browser as `smarter.poker/hub/club-arena/*`.
+Club Arena is a **Vite + React SPA** that lives 100% inside smarter.poker. All files
+(JS, CSS, HTML, images, cards, videos, logos) are in `public/hub/club-arena/` and served
+directly from smarter.poker. ZERO external requests. NO iframe. NO proxy.
 
 ```
 User visits smarter.poker/hub/club-arena/promotions
   → Next.js checks pages/ (no matching page for /promotions)
-  → afterFiles rewrite proxies to https://club-arena.vercel.app/hub/club-arena/promotions
-  → Club Arena SPA loads (same origin to browser = shared localStorage)
+  → Checks public/ (no exact file match)
+  → fallback rewrite serves public/hub/club-arena/index.html
+  → Club Arena SPA boots, React Router renders /promotions
   → Auth via shared Supabase session (storageKey: 'smarter-poker-auth')
 ```
 
-### Two Repos, Transparent Proxy
-| Component | Repo | Vercel Project | Domain |
-|-----------|------|----------------|--------|
-| World Hub (Next.js) | Smarter-Poker/Smarter-Poker-World-Hub | smarter-poker | smarter.poker |
-| Club Arena (Vite SPA) | Smarter-Poker/Smarter-Poker-Club-Arena | club-arena | club-arena.vercel.app (proxied) |
+### Single Repo, Single Deployment
+| Component | Location | Served From |
+|-----------|----------|-------------|
+| World Hub (Next.js) | pages/, src/ | smarter.poker |
+| Club Arena (Vite SPA) | public/hub/club-arena/ | smarter.poker |
+| Club Arena Source | Separate repo: Smarter-Poker-Club-Arena | Built with Vite, dist/ copied here |
 
 ### Deployment Pipeline
-- Push to `Smarter-Poker-Club-Arena` → auto-deploys to `club-arena.vercel.app` → changes appear on smarter.poker automatically (proxy serves at runtime)
-- Push to `Smarter-Poker-World-Hub` → auto-deploys to `smarter.poker`
-- Club Arena changes do NOT require a World Hub deploy
+```
+1. Change Club Arena source → build with Vite → copy dist/ to public/hub/club-arena/
+2. Push World Hub to GitHub → Vercel deploys smarter.poker with updated files
+3. Everything serves from smarter.poker — single deployment
+```
 
 ### Key Files
 ```
 World Hub side:
-  next.config.js                               — afterFiles proxy rewrites to club-arena.vercel.app
-  pages/hub/club-arena/lobby.js                — Native page (15 total, take priority over proxy)
-  pages/hub/club-arena/tournaments.js          — Native page
-  src/components/club-arena/                   — 21 native components (GameCard, CreateTableModal, etc.)
-  pages/api/club-arena/                        — 20+ API routes
+  public/hub/club-arena/              — ALL Club Arena files (618 files, 89MB)
+  public/hub/club-arena/index.html    — SPA entry point
+  public/hub/club-arena/assets/       — JS/CSS bundles
+  public/hub/club-arena/cards/        — Card PNGs
+  public/hub/club-arena/images/       — UI images
+  public/hub/club-arena/club-logos/   — Club logo gallery
+  next.config.js                      — fallback rewrite for SPA routing
+  pages/hub/club-arena/lobby.js       — Native page (14 total)
+  src/components/club-arena/          — 11 native components
+  pages/api/club-arena/               — 66 API routes
 
-Club Arena side (separate repo):
+Club Arena source (separate repo, built with Vite):
   src/App.tsx                    — React Router with 70+ routes
   src/pages/                     — All page components
   src/components/                — Shared components
@@ -187,22 +196,22 @@ Club Arena side (separate repo):
 ```
 
 ### Routing Rules
-1. Native pages (lobby.js, tournaments.js, etc.) take priority over the proxy
-2. All other `/hub/club-arena/*` routes are proxied to the SPA via `afterFiles` rewrites
-3. New routes added to the Club Arena SPA work immediately — no World Hub changes needed
-4. Static assets (JS/CSS/images) are also proxied transparently
+1. Native pages (lobby.js, tournaments.js, etc.) take priority
+2. Static files in public/hub/club-arena/ (JS/CSS/images) are served directly
+3. Unmatched routes fall through to index.html via `fallback` rewrite
+4. React Router inside the SPA handles client-side navigation
 
 ### Auth Flow
 1. User logs into smarter.poker (sets `smarter-poker-auth` in localStorage)
-2. Club Arena loads via proxy at same origin (smarter.poker)
+2. Club Arena loads from same origin (smarter.poker/hub/club-arena/)
 3. Club Arena reads Supabase session from shared localStorage
 4. No postMessage, no token relay, no handshake — just shared same-origin storage
 
 ### Rules
 - NO iframe code — do not add `window.parent` checks, `postMessage`, or `ClubArenaEmbed`
-- NO new `VITE_*` env vars in Club Arena — use `import.meta.env.VITE_*` only for existing ones
-- The proxy rewrites in `next.config.js` must stay in `afterFiles` (not `beforeFiles`) so native pages take priority
-- If Club Arena changes aren't showing, check the Club Arena Vercel deployment (not World Hub)
+- NO proxy rewrites to external domains — everything must be in public/hub/club-arena/
+- When updating Club Arena: build with Vite, copy dist/ (minus .map files) to public/hub/club-arena/
+- The SPA fallback rewrite must stay in `fallback` (not `afterFiles`) so public/ files take priority
 
 ---
 
