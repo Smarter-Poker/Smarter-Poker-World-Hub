@@ -37,6 +37,7 @@ export default function CommanderEffectsProvider({ children }) {
     const [shaking, setShaking] = useState(false);
     const shakeRef = useRef(null);
     const flashRef = useRef(null);
+    const confettiTimerRef = useRef(null);
 
     // ── Confetti Effect ──
     const triggerConfetti = useCallback(() => {
@@ -55,7 +56,12 @@ export default function CommanderEffectsProvider({ children }) {
         }
         setConfettiParticles(particles);
         setConfettiActive(true);
-        setTimeout(() => { setConfettiActive(false); setConfettiParticles([]); }, 3000);
+        if (confettiTimerRef.current) clearTimeout(confettiTimerRef.current);
+        confettiTimerRef.current = setTimeout(() => {
+            confettiTimerRef.current = null;
+            setConfettiActive(false);
+            setConfettiParticles([]);
+        }, 3000);
     }, []);
 
     // ── Screen Shake Effect ──
@@ -89,7 +95,12 @@ export default function CommanderEffectsProvider({ children }) {
                 triggerFlash(e.payload?.color, e.payload?.duration);
             }),
         ];
-        return () => unsubs.forEach(fn => fn());
+        return () => {
+            unsubs.forEach(fn => fn());
+            if (confettiTimerRef.current) clearTimeout(confettiTimerRef.current);
+            if (shakeRef.current) clearTimeout(shakeRef.current);
+            if (flashRef.current) clearTimeout(flashRef.current);
+        };
     }, [triggerConfetti, triggerShake, triggerFlash]);
 
     return (
