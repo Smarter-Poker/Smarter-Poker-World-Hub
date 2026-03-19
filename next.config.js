@@ -124,7 +124,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'diamond.smarter.poker' },            // Diamond assets
       { protocol: 'https', hostname: 'api.qrserver.com' },                 // QR code generation
       { protocol: 'https', hostname: 'img.youtube.com' },                  // YouTube thumbnails
-      { protocol: 'https', hostname: 'club-arena.vercel.app' },            // Club Arena tile images
+      // Club Arena images now served from public/hub/club-arena/ (native)
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [375, 640, 750, 828, 1080, 1200, 1920],
@@ -155,39 +155,14 @@ const nextConfig = {
 
   async rewrites() {
     return {
-      // Club Arena — NATIVE integration (no iframe, no full proxy).
-      // App code (JS/CSS/HTML) lives in public/hub/club-arena/ and is served
-      // directly from smarter.poker. Only heavy binary assets (images, cards,
-      // videos, sounds, club-logos) are proxied from the Club Arena CDN.
+      // Club Arena — 100% NATIVE. All files (JS/CSS/HTML/images/cards/videos)
+      // live in public/hub/club-arena/ and are served directly from smarter.poker.
+      // ZERO external requests to club-arena.vercel.app or any other domain.
       //
-      // beforeFiles proxies binary assets BEFORE Next.js checks pages/public.
-      // afterFiles handles SPA routing — serves index.html for unmatched routes.
-      beforeFiles: [
-        // Binary assets — proxy from Club Arena CDN (too large for public/)
-        {
-          source: '/hub/club-arena/images/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/images/:path*',
-        },
-        {
-          source: '/hub/club-arena/cards/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/cards/:path*',
-        },
-        {
-          source: '/hub/club-arena/club-logos/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/club-logos/:path*',
-        },
-        {
-          source: '/hub/club-arena/videos/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/videos/:path*',
-        },
-        {
-          source: '/hub/club-arena/sounds/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/sounds/:path*',
-        },
-      ],
+      // afterFiles handles SPA routing — serves index.html for routes that
+      // don't match a real file in public/ or a native Next.js page.
+      beforeFiles: [],
       afterFiles: [
-        // SPA fallback — serve index.html for routes not matching a file or page.
-        // JS/CSS/HTML in public/hub/club-arena/ are served BEFORE this fires.
         {
           source: '/hub/club-arena',
           destination: '/hub/club-arena/index.html',
