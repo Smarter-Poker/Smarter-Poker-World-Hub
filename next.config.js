@@ -155,23 +155,46 @@ const nextConfig = {
 
   async rewrites() {
     return {
-      // Club Arena — transparent same-origin proxy (NO iframe).
-      // All /hub/club-arena/* requests are proxied to club-arena.vercel.app.
-      // The browser sees smarter.poker URLs → same origin → shared localStorage
-      // → shared Supabase auth session. No postMessage needed.
+      // Club Arena — NATIVE integration (no iframe, no full proxy).
+      // App code (JS/CSS/HTML) lives in public/hub/club-arena/ and is served
+      // directly from smarter.poker. Only heavy binary assets (images, cards,
+      // videos, sounds, club-logos) are proxied from the Club Arena CDN.
       //
-      // afterFiles runs AFTER checking Next.js pages, so the 14 native pages
-      // (tournaments.js, cashier.js, etc.) still take priority for their routes.
-      // Everything else (SPA routes + assets) is proxied to the Vite SPA.
-      beforeFiles: [],
+      // beforeFiles proxies binary assets BEFORE Next.js checks pages/public.
+      // afterFiles handles SPA routing — serves index.html for unmatched routes.
+      beforeFiles: [
+        // Binary assets — proxy from Club Arena CDN (too large for public/)
+        {
+          source: '/hub/club-arena/images/:path*',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/images/:path*',
+        },
+        {
+          source: '/hub/club-arena/cards/:path*',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/cards/:path*',
+        },
+        {
+          source: '/hub/club-arena/club-logos/:path*',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/club-logos/:path*',
+        },
+        {
+          source: '/hub/club-arena/videos/:path*',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/videos/:path*',
+        },
+        {
+          source: '/hub/club-arena/sounds/:path*',
+          destination: 'https://club-arena.vercel.app/hub/club-arena/sounds/:path*',
+        },
+      ],
       afterFiles: [
+        // SPA fallback — serve index.html for routes not matching a file or page.
+        // JS/CSS/HTML in public/hub/club-arena/ are served BEFORE this fires.
         {
           source: '/hub/club-arena',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/',
+          destination: '/hub/club-arena/index.html',
         },
         {
           source: '/hub/club-arena/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/:path*',
+          destination: '/hub/club-arena/index.html',
         },
       ],
       fallback: [],
