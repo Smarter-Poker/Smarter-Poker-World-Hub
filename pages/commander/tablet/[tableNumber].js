@@ -104,8 +104,6 @@ export default function TabletDisplay() {
     /* ─── Data Fetching ─────────────────────────────────────────── */
 
     const fetchData = useCallback(async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!tableNumber) return;
         try {
             const url = `/api/commander/dealer/tablet-data?table=${tableNumber}${venueId ? `&venue_id=${venueId}` : ''}`;
@@ -158,8 +156,6 @@ export default function TabletDisplay() {
     useEffect(() => {
         let wakeLock = null;
         const requestWakeLock = async () => {
-            const controller = new AbortController();
-            const { signal } = controller;
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');

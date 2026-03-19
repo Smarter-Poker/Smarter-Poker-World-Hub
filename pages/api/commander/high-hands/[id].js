@@ -50,8 +50,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   } catch (err) {
-    console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    console.error('[high-hands/id API Error]', err?.message || err, err?.code || '', err?.details || '');
+    if (!res.headersSent) return res.status(500).json({ success: false, error: err?.message || 'Internal server error' });
   }
 }
 

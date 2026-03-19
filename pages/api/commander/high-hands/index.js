@@ -177,10 +177,7 @@ async function createHighHand(req, res) {
     const { data: highHand, error } = await getSupabase()
       .from('commander_high_hands')
       .insert(insertData)
-      .select(`
-        *,
-        profiles:player_id (id, display_name, avatar_url)
-      `)
+      .select('*')
       .maybeSingle();
 
     if (error) throw error;
@@ -189,7 +186,7 @@ async function createHighHand(req, res) {
 
     return res.status(201).json({ high_hand: highHand });
   } catch (error) {
-    console.error('Create high hand error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Create high hand error:', error?.message || error, error?.code || '', error?.details || '');
+    return res.status(500).json({ error: error?.message || 'Internal server error' });
   }
 }
