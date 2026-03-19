@@ -41,6 +41,10 @@ const SLIDES = [
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_30_profit_centers_1773925584027.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_31_financial_1773925618286.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_32_national_1773925629113.png' },
+    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_33_exit.png' },
+    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_34_milestones.png' },
+    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_35_why_now.png' },
+    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_36_the_ask.png' },
 ];
 
 // =========================================================================
