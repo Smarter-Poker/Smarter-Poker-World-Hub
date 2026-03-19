@@ -263,6 +263,9 @@ export default function ClubArenaCashierPage() {
     finally { setProcessing(false); }
   };
 
+  // Hook must be called before any early return (Rules of Hooks)
+  const availableForCashout = useMemo(() => balance - totalPending, [balance, totalPending]);
+
   // ── Loading / Login ────────────────────────────────────────
   if (loading) {
     return (
@@ -273,8 +276,6 @@ export default function ClubArenaCashierPage() {
       </HubErrorBoundary>
     );
   }
-
-  const availableForCashout = useMemo(() => balance - totalPending, [balance, totalPending]);
 
   // ── Player search for distribute ─────────────────────────────
   const searchPlayers = async (query) => {

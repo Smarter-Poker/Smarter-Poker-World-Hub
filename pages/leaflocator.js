@@ -10,8 +10,8 @@ import { FullImageSlide } from '../src/components/pitch/SlideLayouts';
 
 const SLIDES = [
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_01_title_1773925000534.png' },
-    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_02_problem_1773925012966.png' },
-    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_03_consumer_pain_1773925025276.png' },
+    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_02_problem_v2.png' },
+    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_03_consumer_pain_v2.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_04_dispensary_pain_1773925052800.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_05_logistics_1773925064937.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_06_solution_1773925075951.png' },
@@ -37,10 +37,10 @@ const SLIDES = [
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_26_legal_1773925508558.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_27_tech_stack_1_1773925523878.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_28_tech_stack_2_1773925558078.png' },
-    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_29_timeline_costs_1773925572042.png' },
+    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_29_timeline_v2.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_30_profit_centers_1773925584027.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_31_financial_1773925618286.png' },
-    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_32_national_1773925629113.png' },
+    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_32_zero_competition.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_33_exit.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_34_milestones.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_35_why_now.png' },
