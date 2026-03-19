@@ -59,7 +59,7 @@ export function DynamicQuickActions({ onActionClick }: DynamicQuickActionsProps)
         return [
             { id: 'go-to-training', label: 'Go To Training', icon: '🎯', navigate: '/hub/training' },
             { id: 'go-to-diamond-store', label: 'Diamond Store', icon: '💎', navigate: '/hub/diamond-store' },
-            { id: 'go-to-club-arena', label: 'Club Arena', icon: '♠️', navigate: 'https://club.smarter.poker' },
+            { id: 'go-to-club-arena', label: 'Club Arena', icon: '♠️', navigate: '/hub/club-arena' },
             { id: 'go-to-social', label: 'Social Hub', icon: '👥', navigate: '/hub/social-media' },
         ];
     };

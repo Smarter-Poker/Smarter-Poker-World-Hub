@@ -47,7 +47,7 @@ export function QuickActions({ onActionClick }: QuickActionsProps) {
             icon: '♠️',
             category: 'navigation',
             action: () => {
-                window.location.href = 'https://club.smarter.poker';
+                window.location.href = '/hub/club-arena';
                 onActionClick?.('go-to-club-arena');
             }
         },

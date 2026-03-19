@@ -87,6 +87,35 @@ export default function HamburgerMenu({
     const renderMenuItem = (item, index) => {
         switch (item.type) {
             case 'navigation':
+                // Club Arena is a full SPA served via getServerSideProps —
+                // needs <a> tag for full page load, not Next.js <Link> client nav
+                if (item.href === '/hub/club-arena') {
+                    return (
+                        <a
+                            key={index}
+                            href={item.href}
+                            onClick={() => {
+                                if (item.onClick) item.onClick();
+                                onClose();
+                            }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 12,
+                                padding: '12px 16px',
+                                textDecoration: 'none',
+                                color: colors.text,
+                                borderRadius: 8,
+                                transition: 'background 0.15s',
+                            }}
+                        >
+                            <span style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {item.icon}
+                            </span>
+                            <span style={{ fontSize: 15, fontWeight: 500 }}>{item.label}</span>
+                        </a>
+                    );
+                }
                 return (
                     <Link
                         key={index}
