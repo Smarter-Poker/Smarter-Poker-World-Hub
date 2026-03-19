@@ -162,7 +162,12 @@ const nextConfig = {
       // afterFiles handles SPA routing — serves index.html for routes that
       // don't match a real file in public/ or a native Next.js page.
       beforeFiles: [],
-      afterFiles: [
+      afterFiles: [],
+      // fallback rewrites run LAST — after pages AND public/ files.
+      // This ensures all static files (JS/CSS/images/cards/logos) in
+      // public/hub/club-arena/ are served directly. Only SPA routes
+      // (no matching file) fall through to index.html.
+      fallback: [
         {
           source: '/hub/club-arena',
           destination: '/hub/club-arena/index.html',
@@ -172,7 +177,6 @@ const nextConfig = {
           destination: '/hub/club-arena/index.html',
         },
       ],
-      fallback: [],
     };
   },
 };
