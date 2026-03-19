@@ -108,8 +108,8 @@ async function listHighHands(req, res) {
       offset
     });
   } catch (error) {
-    console.error('List high hands error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('List high hands error:', error?.message || error, error?.code || '', error?.details || '', error?.hint || '');
+    return res.status(500).json({ error: error?.message || 'Internal server error', details: error?.details || null, hint: error?.hint || null });
   }
 }
 
