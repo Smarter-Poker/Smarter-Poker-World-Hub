@@ -22,13 +22,7 @@ const ORB_METADATA = {
         color: '#ff4d4d',
         features: ['Friend Feed', 'Hand Sharing', 'Player Connections', 'Notifications', 'Messages'],
     },
-    'club-arena': {
-        title: 'Club Arena',
-        description: 'Join Poker Clubs, Compete in Club Tournaments, and Climb the Leaderboards',
-        emoji: '',
-        color: '#ff9900',
-        features: ['Club Discovery', 'Club Tournaments', 'Member Rankings', 'Club Chat', 'Club Wars'],
-    },
+    // club-arena: REMOVED — Club Arena is now served natively via pages/hub/club-arena/index.js
     'diamond-arena': {
         title: 'Diamond Arena',
         description: 'High-stakes Competitive Play with Diamond Entry Fees and Massive Prize Pools',
