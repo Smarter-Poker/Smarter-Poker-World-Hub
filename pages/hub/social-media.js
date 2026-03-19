@@ -6591,14 +6591,14 @@ function SocialMediaPage() {
                 <div style={{ padding: '0 16px', marginBottom: 24 }}>
                     <h4 style={{ fontSize: 14, fontWeight: 600, color: C.textSec, marginBottom: 12 }}>Your Shortcuts</h4>
                     <div style={{ display: 'flex', gap: 12 }}>
-                        <Link href="/hub/club-arena" onClick={() => setSidebarOpen(false)} style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
+                        <a href="/hub/club-arena" onClick={() => setSidebarOpen(false)} style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
                             <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none">
                                     <path d="M4 4h4v16H4V4zm6 0h4v16h-4V4zm6 0h4v16h-4V4z" />
                                 </svg>
                             </div>
                             <div style={{ fontSize: 11, marginTop: 4, color: C.textSec }}>Club Arena</div>
-                        </Link>
+                        </a>
                         <Link href="/hub" onClick={() => setSidebarOpen(false)} style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit' }}>
                             <div style={{ width: 56, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none">
@@ -6621,7 +6621,7 @@ function SocialMediaPage() {
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Friends</span>
                     </Link>
                     {/* Club Arena - Purple columns SVG (fallback) */}
-                    <Link href="/hub/club-arena" onClick={() => setSidebarOpen(false)} style={{
+                    <a href="/hub/club-arena" onClick={() => setSidebarOpen(false)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
@@ -6632,7 +6632,7 @@ function SocialMediaPage() {
                             <ellipse cx="12" cy="20" rx="10" ry="2" fill="#ddd6fe" opacity="0.5" />
                         </svg>
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Arena</span>
-                    </Link>
+                    </a>
                     {/* Diamond Store - Custom AI icon */}
                     <Link href="/hub/diamond-store" onClick={() => setSidebarOpen(false)} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',

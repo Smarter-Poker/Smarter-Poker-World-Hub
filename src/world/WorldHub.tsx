@@ -665,6 +665,12 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
             return;
         }
 
+        // Club Arena is a full SPA served via getServerSideProps — needs full page load
+        if (orbId === 'club-arena') {
+            window.location.href = '/hub/club-arena';
+            return;
+        }
+
         // Employee Portal removed — Work Schedule merged into Toke Tracker
 
         // Toke Tracker card routes to dedicated hub page with 4 icon cards
