@@ -79,13 +79,34 @@ export default function WaitlistStatus() {
 
   // Supabase Realtime — instant updates when waitlist changes
   const channelRef = useRef(null);
+  const reconnectsRef = useRef(0);
   useEffect(() => {
     if (!id) return;
-    const channel = supabase
-      .channel(`waitlist-status-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist', filter: `id=eq.${id}` }, () => fetchStatus())
-      .subscribe();
-    channelRef.current = channel;
+    const MAX_RECONNECT = 3;
+
+    function connectChannel() {
+      if (channelRef.current) {
+        try { supabase.removeChannel(channelRef.current); } catch { /* ignore */ }
+        channelRef.current = null;
+      }
+      const channel = supabase
+        .channel(`waitlist-status-${id}-${Date.now()}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist', filter: `id=eq.${id}` }, () => fetchStatus())
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            reconnectsRef.current = 0;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn(`[WaitlistStatus] Realtime channel error: ${status}`);
+            if (reconnectsRef.current < MAX_RECONNECT) {
+              reconnectsRef.current++;
+              setTimeout(connectChannel, 3000 * reconnectsRef.current);
+            }
+          }
+        });
+      channelRef.current = channel;
+    }
+
+    connectChannel();
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);

@@ -197,35 +197,52 @@ export default function TabletDisplay() {
 
     useEffect(() => {
         if (!supabase || !tableNumber || !venueId) return;
+        let reconnects = 0;
+        const MAX_RECONNECT = 3;
+        let currentChannel = null;
 
-        const channel = supabase
-            .channel(`tablet-${tableNumber}`)
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'commander_table_sessions',
-                filter: `table_number=eq.${tableNumber}` }, () => fetchData())
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'commander_dealer_rotations',
-                filter: `table_number=eq.${tableNumber}` }, () => fetchData())
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'commander_games',
-                filter: `venue_id=eq.${venueId}` }, () => fetchData())
-            .on('postgres_changes', {
-                // Tournament players moved by auto-break: new entrant has to_table = this table.
-                // Filter on table_number so only changes relevant to THIS seat appear.
-                event: '*',
-                schema: 'public',
-                table: 'commander_tournament_entries',
-                filter: `table_number=eq.${tableNumber}` }, () => fetchData())
-            .subscribe();
+        function connectChannel() {
+            if (currentChannel) {
+                try { supabase.removeChannel(currentChannel); } catch { /* ignore */ }
+            }
+            const channel = supabase
+                .channel(`tablet-${tableNumber}-${Date.now()}`)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'commander_table_sessions',
+                    filter: `table_number=eq.${tableNumber}` }, () => fetchData())
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'commander_dealer_rotations',
+                    filter: `table_number=eq.${tableNumber}` }, () => fetchData())
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'commander_games',
+                    filter: `venue_id=eq.${venueId}` }, () => fetchData())
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'commander_tournament_entries',
+                    filter: `table_number=eq.${tableNumber}` }, () => fetchData())
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        reconnects = 0;
+                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        console.warn(`[Tablet] Realtime channel error: ${status}`);
+                        if (reconnects < MAX_RECONNECT) {
+                            reconnects++;
+                            setTimeout(connectChannel, 3000 * reconnects);
+                        }
+                    }
+                });
+            currentChannel = channel;
+        }
 
-
-        return () => { supabase.removeChannel(channel); };
+        connectChannel();
+        return () => { if (currentChannel) supabase.removeChannel(currentChannel); };
     }, [tableNumber, venueId, fetchData]);
 
     /* ─── Computed Values ──────────────────────────────────────── */

@@ -95,12 +95,34 @@ export default function PromotionsDisplay() {
     const sbKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!sbUrl || !sbKey) return;
     const sb = createClient(sbUrl, sbKey);
-    const channel = sb.channel('display-promotions-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_promotions', filter: `venue_id=eq.${venueId}` },
-        () => { fetchData(); }
-      )
-      .subscribe();
-    return () => { sb.removeChannel(channel); };
+    let reconnects = 0;
+    const MAX_RECONNECT = 3;
+    let currentChannel = null;
+
+    function connectChannel() {
+      if (currentChannel) {
+        try { sb.removeChannel(currentChannel); } catch { /* ignore */ }
+      }
+      const channel = sb.channel(`display-promotions-realtime-${Date.now()}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_promotions', filter: `venue_id=eq.${venueId}` },
+          () => { fetchData(); }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            reconnects = 0;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn(`[PromoDisplay] Realtime channel error: ${status}`);
+            if (reconnects < MAX_RECONNECT) {
+              reconnects++;
+              setTimeout(connectChannel, 3000 * reconnects);
+            }
+          }
+        });
+      currentChannel = channel;
+    }
+
+    connectChannel();
+    return () => { if (currentChannel) sb.removeChannel(currentChannel); };
   }, [venueId, fetchData]);
 
   // Auto-rotate every 8 seconds

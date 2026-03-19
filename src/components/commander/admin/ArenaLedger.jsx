@@ -75,36 +75,63 @@ export default function ArenaLedger({ clubId }) {
     if (clubId) fetchLogs();
   }, [clubId, fetchLogs]);
 
-  // 2. Real-time Subscription via pg_changes
+  // 2. Real-time Subscription via pg_changes + polling fallback
   useEffect(() => {
     if (!clubId) return;
-    
-    const channel = supabase.channel(`arena-ledger-${clubId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'club_arena_audit_logs', filter: `club_id=eq.${clubId}` }, (payload) => {
-        const newLog = {
-          ...payload.new,
-          is_chat: false,
-          display_type: payload.new.action_type,
-          actor_name: payload.new.user_id ? `User ${payload.new.user_id.substring(0,6)}` : 'System'
-        };
-        setLogs(prev => [newLog, ...prev].slice(0, 300));
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'club_arena_messages', filter: `club_id=eq.${clubId}` }, (payload) => {
-        const newChat = {
-          ...payload.new,
-          is_chat: true,
-          display_type: 'chat_message',
-          action_type: 'chat_message',
-          actor_name: payload.new.player_name,
-          details: { message: payload.new.message },
-          amount: null
-        };
-        setLogs(prev => [newChat, ...prev].slice(0, 300));
-      })
-      .subscribe();
+    let reconnects = 0;
+    const MAX_RECONNECT = 3;
+    let currentChannel = null;
 
-    return () => { supabase.removeChannel(channel); };
-  }, [clubId]);
+    function connectChannel() {
+      if (currentChannel) {
+        try { supabase.removeChannel(currentChannel); } catch { /* ignore */ }
+      }
+      const channel = supabase.channel(`arena-ledger-${clubId}-${Date.now()}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'club_arena_audit_logs', filter: `club_id=eq.${clubId}` }, (payload) => {
+          const newLog = {
+            ...payload.new,
+            is_chat: false,
+            display_type: payload.new.action_type,
+            actor_name: payload.new.user_id ? `User ${payload.new.user_id.substring(0,6)}` : 'System'
+          };
+          setLogs(prev => [newLog, ...prev].slice(0, 300));
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'club_arena_messages', filter: `club_id=eq.${clubId}` }, (payload) => {
+          const newChat = {
+            ...payload.new,
+            is_chat: true,
+            display_type: 'chat_message',
+            action_type: 'chat_message',
+            actor_name: payload.new.player_name,
+            details: { message: payload.new.message },
+            amount: null
+          };
+          setLogs(prev => [newChat, ...prev].slice(0, 300));
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            reconnects = 0;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn(`[ArenaLedger] Realtime channel error: ${status}`);
+            if (reconnects < MAX_RECONNECT) {
+              reconnects++;
+              setTimeout(connectChannel, 3000 * reconnects);
+            }
+          }
+        });
+      currentChannel = channel;
+    }
+
+    connectChannel();
+
+    // Polling fallback — every 15s in case Realtime is down
+    const poll = setInterval(fetchLogs, 15000);
+
+    return () => {
+      clearInterval(poll);
+      if (currentChannel) supabase.removeChannel(currentChannel);
+    };
+  }, [clubId, fetchLogs]);
 
   const filteredLogs = logs.filter(log => {
     if (filterType === 'CHAT' && !log.is_chat) return false;

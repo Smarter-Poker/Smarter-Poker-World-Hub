@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../src/lib/supabase';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Gift, Plus, Clock, DollarSign, Edit, Trash2, ToggleLeft, ToggleRight, Trophy, Zap, Target, Loader2, X, Check, Award, CheckCircle, User, BarChart3, CheckSquare, Square, GripVertical } from 'lucide-react';
 import PromotionCard from '../../src/components/commander/promotions/PromotionCard';
@@ -464,16 +464,34 @@ const res = await fetch('/api/promo/admin-promo-codes', {
   // ── Supabase Realtime — auto-refresh on promotion changes ──
   useEffect(() => {
     if (!venueId) return;
-    const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const sbKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!sbUrl || !sbKey) return;
-    const sb = createClient(sbUrl, sbKey);
-    const channel = sb.channel('promotions-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_promotions', filter: `venue_id=eq.${venueId}` },
-        () => { fetchPromotions(); }
-      )
-      .subscribe();
-    return () => { sb.removeChannel(channel); };
+    let reconnects = 0;
+    const MAX_RECONNECT = 3;
+    let currentChannel = null;
+
+    function connectChannel() {
+      if (currentChannel) {
+        try { supabase.removeChannel(currentChannel); } catch { /* ignore */ }
+      }
+      const channel = supabase.channel(`promotions-realtime-${Date.now()}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_promotions', filter: `venue_id=eq.${venueId}` },
+          () => { fetchPromotions(); }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            reconnects = 0;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn(`[Promotions] Realtime channel error: ${status}`);
+            if (reconnects < MAX_RECONNECT) {
+              reconnects++;
+              setTimeout(connectChannel, 3000 * reconnects);
+            }
+          }
+        });
+      currentChannel = channel;
+    }
+
+    connectChannel();
+    return () => { if (currentChannel) supabase.removeChannel(currentChannel); };
   }, [venueId, fetchPromotions]);
 
   // ── Bulk selection state ──

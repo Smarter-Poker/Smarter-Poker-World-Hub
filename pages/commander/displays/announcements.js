@@ -130,14 +130,37 @@ export default function AnnouncementsDisplay() {
 
   // ─── Supabase Realtime ───
   useEffect(() => {
-    if (!venueId || !supabaseUrl || !supabaseAnonKey) return;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const channel = supabase.channel(`announcements-display-${venueId}`)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'commander_club_announcements',
-        filter: `venue_id=eq.${venueId}` }, () => { fetchData(); if (showPanel) fetchAllAnnouncements(); })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    if (!venueId) return;
+    const sb = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+    if (!sb) return;
+    let reconnects = 0;
+    const MAX_RECONNECT = 3;
+    let currentChannel = null;
+
+    function connectChannel() {
+      if (currentChannel) {
+        try { sb.removeChannel(currentChannel); } catch { /* ignore */ }
+      }
+      const channel = sb.channel(`announcements-display-${venueId}-${Date.now()}`)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'commander_club_announcements',
+          filter: `venue_id=eq.${venueId}` }, () => { fetchData(); if (showPanel) fetchAllAnnouncements(); })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            reconnects = 0;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn(`[Announcements] Realtime channel error: ${status}`);
+            if (reconnects < MAX_RECONNECT) {
+              reconnects++;
+              setTimeout(connectChannel, 3000 * reconnects);
+            }
+          }
+        });
+      currentChannel = channel;
+    }
+
+    connectChannel();
+    return () => { if (currentChannel) sb.removeChannel(currentChannel); };
   }, [venueId, fetchData, showPanel, fetchAllAnnouncements]);
 
   useCommanderSync(venueId, fetchData, { entities: ['settings'] });
