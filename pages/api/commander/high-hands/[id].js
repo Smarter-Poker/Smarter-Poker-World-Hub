@@ -61,10 +61,10 @@ async function getHighHand(req, res, id) {
       .from('commander_high_hands')
       .select(`
         *,
-        profiles:player_id (id, display_name, avatar_url),
-        commander_promotions:promotion_id (id, name, prize_type, prize_value),
-        verifier:verified_by (id, display_name),
-        commander_games:game_id (id, game_type, stakes)
+        profiles!player_id (id, display_name, avatar_url),
+        commander_promotions!promotion_id (id, name, prize_type, prize_value),
+        verifier:profiles!verified_by (id, display_name),
+        commander_games!game_id (id, game_type, stakes)
       `)
       .eq('id', id)
       .maybeSingle();
@@ -161,8 +161,8 @@ async function updateHighHand(req, res, id) {
       .eq('id', id)
       .select(`
         *,
-        profiles:player_id (id, display_name, avatar_url),
-        verifier:verified_by (id, display_name)
+        profiles!player_id (id, display_name, avatar_url),
+        verifier:profiles!verified_by (id, display_name)
       `)
       .maybeSingle();
 

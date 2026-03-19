@@ -65,9 +65,9 @@ async function listHighHands(req, res) {
       .from('commander_high_hands')
       .select(`
         *,
-        profiles:player_id (id, display_name, avatar_url),
-        commander_promotions:promotion_id (id, name),
-        verifier:verified_by (id, display_name)
+        profiles!player_id (id, display_name, avatar_url),
+        commander_promotions!promotion_id (id, name),
+        verifier:profiles!verified_by (id, display_name)
       `, { count: 'exact' })
       .eq('venue_id', venue_id)
       .order('created_at', { ascending: false })
@@ -91,7 +91,7 @@ async function listHighHands(req, res) {
       .from('commander_high_hands')
       .select(`
         *,
-        profiles:player_id (id, display_name, avatar_url)
+        profiles!player_id (id, display_name, avatar_url)
       `)
       .eq('venue_id', venue_id)
       .gte('created_at', `${today}T00:00:00`)
