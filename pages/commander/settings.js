@@ -2,7 +2,7 @@
  * Commander Settings Page - Venue and staff settings
  * Dark industrial sci-fi gaming theme
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Bell, Clock, Users, Save, Loader2, ChevronRight, DollarSign, Package, Image, Upload, X as XIcon, Shield } from 'lucide-react';
@@ -73,10 +73,10 @@ export default function CommanderSettingsPage() {
     const storedStaffData = getStaffSession();
     if (!storedStaffData) return;
     const controller = new AbortController();
-    const { signal } = controller;
     try {
       commanderFetch('/api/commander/settings', {
-        headers: { 'x-staff-session': storedStaffData }
+        headers: { 'x-staff-session': storedStaffData },
+        signal: controller.signal,
       })
         .then(r => r.json())
         .then(data => {
@@ -109,7 +109,7 @@ export default function CommanderSettingsPage() {
   }, [venueId]);
 
   // Cross-tab + cross-device real-time sync — reload settings when changed from other pages
-  useCommanderSync(venueId, () => {
+  const syncSettings = useCallback(() => {
     if (!venueId) return;
     const storedStaffData = getStaffSession();
     if (!storedStaffData) return;
@@ -136,7 +136,9 @@ export default function CommanderSettingsPage() {
         }
       })
       .catch(() => { });
-  }, { entities: ['settings'] });
+  }, [venueId]);
+
+  useCommanderSync(venueId, syncSettings, { entities: ['settings'] });
 
   async function handleSave() {
     setSaving(true);

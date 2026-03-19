@@ -78,8 +78,14 @@ const TABLE_TO_ENTITY = {
 };
 
 // ─── Entity → Supabase tables reverse map (Optimization 2) ────
+// NOTE: commander_seats and commander_tournament_entries are excluded because
+// they lack a venue_id column, so subscribing to them would cause cross-venue
+// noise (every venue tab sees every change across the entire platform).
+// Parent tables (commander_tables, commander_tournaments) pick up changes
+// through API-side cascading updates (game/waitlist mutations always update
+// the parent table's row or related entities that have venue_id).
 const ENTITY_TO_TABLES = {
-    tables: ['commander_tables', 'commander_seats', 'commander_table_sessions'],
+    tables: ['commander_tables', 'commander_table_sessions'],
     games: ['commander_games'],
     waitlist: ['commander_waitlist'],
     floor_calls: ['commander_floor_calls'],
@@ -87,7 +93,7 @@ const ENTITY_TO_TABLES = {
     staff: ['commander_staff', 'commander_staff_shifts', 'commander_time_clock'],
     members: ['commander_members'],
     dealers: ['commander_dealers', 'commander_dealer_rotations'],
-    tournaments: ['commander_tournaments', 'commander_tournament_entries'],
+    tournaments: ['commander_tournaments'],
     incidents: ['commander_incidents'],
     notifications: ['commander_notifications'],
     announcements: ['commander_club_announcements'],
@@ -124,6 +130,7 @@ const channelManager = {
                 subscribers: new Set(),
                 tables: new Set(tables),
                 reconnects: 0,
+                reconnectTimer: null,
             };
             this.venues[key].subscribers.add(callback);
             this._connect(key);
@@ -154,8 +161,12 @@ const channelManager = {
         entry.subscribers.delete(callback);
 
         if (entry.subscribers.size === 0) {
-            // Last subscriber gone — tear down the channel
-            this._disconnect(key);
+            // Last subscriber gone — tear down the channel and clear reconnect timer
+            if (entry.reconnectTimer) {
+                clearTimeout(entry.reconnectTimer);
+                entry.reconnectTimer = null;
+            }
+            this._disconnect(venueKey);
             delete this.venues[key];
         }
     },
@@ -183,8 +194,7 @@ const channelManager = {
                     event: '*',
                     schema: 'public',
                     table,
-                    // commander_seats and commander_tournament_entries do not have venue_id columns
-                    filter: ['commander_seats', 'commander_tournament_entries'].includes(table) ? undefined : `venue_id=eq.${venueKey}`,
+                    filter: `venue_id=eq.${venueKey}`,
                 },
                 () => {
                     // Map Supabase table name → entity name
@@ -204,7 +214,10 @@ const channelManager = {
                 if (entry.reconnects < MAX_RECONNECT) {
                     entry.reconnects++;
                     const delay = RECONNECT_DELAY * entry.reconnects;
-                    setTimeout(() => {
+                    // Clear any previous reconnect timer to avoid stacking
+                    if (entry.reconnectTimer) clearTimeout(entry.reconnectTimer);
+                    entry.reconnectTimer = setTimeout(() => {
+                        entry.reconnectTimer = null;
                         // Only reconnect if this entry still exists and channel hasn't changed
                         if (this.venues[venueKey] && this.venues[venueKey].channel === channel) {
                             this._connect(venueKey);

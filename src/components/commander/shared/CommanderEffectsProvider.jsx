@@ -12,7 +12,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { eventBus, EventType } from '../../../engine/EventBus';
 
 // ─── Confetti Particle Component ───────────────────────────────
-function ConfettiParticle({ x, delay, color, size }) {
+function ConfettiParticle({ x, delay, color, size, shape, duration }) {
     return (
         <div style={{
             position: 'fixed',
@@ -21,10 +21,10 @@ function ConfettiParticle({ x, delay, color, size }) {
             width: size,
             height: size,
             background: color,
-            borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+            borderRadius: shape === 'circle' ? '50%' : '2px',
             zIndex: 99999,
             pointerEvents: 'none',
-            animation: `cmd-confetti-fall ${1.5 + Math.random()}s ease-in ${delay}s forwards`,
+            animation: `cmd-confetti-fall ${duration}s ease-in ${delay}s forwards`,
             opacity: 0.9,
         }} />
     );
@@ -49,6 +49,8 @@ export default function CommanderEffectsProvider({ children }) {
                 delay: Math.random() * 0.4,
                 color: colors[Math.floor(Math.random() * colors.length)],
                 size: 6 + Math.random() * 6,
+                shape: Math.random() > 0.5 ? 'circle' : 'square',
+                duration: 1.5 + Math.random(),
             });
         }
         setConfettiParticles(particles);
@@ -96,7 +98,7 @@ export default function CommanderEffectsProvider({ children }) {
             <style jsx global>{`
         @keyframes cmd-confetti-fall {
           0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(100vh) rotate(${360 + Math.random() * 360}deg); opacity: 0; }
+          100% { transform: translateY(100vh) rotate(540deg); opacity: 0; }
         }
         @keyframes cmd-shake {
           0%, 100% { transform: translate(0, 0); }
@@ -124,7 +126,7 @@ export default function CommanderEffectsProvider({ children }) {
 
             {/* ── Confetti Layer ── */}
             {confettiActive && confettiParticles.map(p => (
-                <ConfettiParticle key={p.id} x={p.x} delay={p.delay} color={p.color} size={p.size} />
+                <ConfettiParticle key={p.id} x={p.x} delay={p.delay} color={p.color} size={p.size} shape={p.shape} duration={p.duration} />
             ))}
 
             {/* ── Flash Overlay ── */}

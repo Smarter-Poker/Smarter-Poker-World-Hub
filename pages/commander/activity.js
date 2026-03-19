@@ -13,7 +13,7 @@
  * 
  * Auto-refreshes, filterable by category.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { RefreshCw, Loader2, UserCheck, LogIn, LogOut, Clock, AlertTriangle, Users, DollarSign, Bell, Play, Pause, Timer, XCircle } from 'lucide-react';
@@ -59,35 +59,22 @@ export default function ActivityFeed() {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    let isMounted = true;
-    let pollTimeout;
-
-    const runPoll = async () => {
-      if (!isMounted) return;
-      await fetchEvents();
-      if (isMounted) {
-        pollTimeout = setTimeout(runPoll, 5000);
-      }
-    };
-
-    runPoll();
+    fetchEvents();
     const clock = setInterval(() => setNow(new Date()), 30000);
-
     return () => {
-      isMounted = false;
-      clearTimeout(pollTimeout);
       clearInterval(clock);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Commander Data Bus config will be below fetchEvents
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
-const staffSession = getStaffSession() || '';
+      const staffSession = getStaffSession();
+      if (!staffSession) return;
       let venueId = '';
       try { venueId = JSON.parse(staffSession).venue_id || ''; } catch (e) { /* silent */ }
-      const headers = { };
+      const headers = { 'x-staff-session': staffSession };
 
       // Aggregate from multiple sources for the activity feed
       const [incidents, checkins, sessions, waitlist] = await Promise.all([
@@ -151,7 +138,7 @@ const staffSession = getStaffSession() || '';
       setEvents(allEvents.slice(0, 50));
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  };
+  }, []);
 
   // Commander Data Bus — sync activity feed across tabs
   useCommanderSync(getVenueId(), fetchEvents, { entities: ['members', 'tables', 'waitlist', 'incidents'] });

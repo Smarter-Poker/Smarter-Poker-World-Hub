@@ -254,7 +254,8 @@ const venueId = staff?.venue_id;
   // Unified Real-Time Sync via Singleton WebSocket
   useCommanderSync(staff?.venue_id || null, fetchHardStop, { entities: ['settings'] });
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try { await supabase.auth.signOut(); } catch { /* non-critical */ }
     localStorage.removeItem('commander_staff');
     localStorage.removeItem('commander_venue');
     localStorage.removeItem('commander_subscription');
