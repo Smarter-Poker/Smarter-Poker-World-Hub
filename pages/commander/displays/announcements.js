@@ -5,7 +5,7 @@
  * SmarterPoker Dark theme • Supabase Realtime • Templates • Scheduling
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../src/lib/supabase';
 import { Plus, Edit3, Trash2, X, Send, Loader2, ChevronDown, Settings, Megaphone, RefreshCw } from 'lucide-react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
@@ -17,8 +17,7 @@ import { getVenueId } from '../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../src/lib/commander/commanderFetch';
 import { useConfirmAction } from "../../../src/components/commander/shared/ConfirmModal";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
 
 const PRIORITY_CONFIG = {
   urgent: { color: '#EF4444', label: 'Urgent', bg: 'rgba(239,68,68,0.15)', bgAlpha: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.5)', text: '#EF4444', pulse: true },
@@ -131,17 +130,16 @@ export default function AnnouncementsDisplay() {
   // ─── Supabase Realtime ───
   useEffect(() => {
     if (!venueId) return;
-    const sb = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
-    if (!sb) return;
+    if (!supabase) return;
     let reconnects = 0;
     const MAX_RECONNECT = 3;
     let currentChannel = null;
 
     function connectChannel() {
       if (currentChannel) {
-        try { sb.removeChannel(currentChannel); } catch { /* ignore */ }
+        try { supabase.removeChannel(currentChannel); } catch { /* ignore */ }
       }
-      const channel = sb.channel(`announcements-display-${venueId}-${Date.now()}`)
+      const channel = supabase.channel(`announcements-display-${venueId}-${Date.now()}`)
         .on('postgres_changes', {
           event: '*', schema: 'public', table: 'commander_club_announcements',
           filter: `venue_id=eq.${venueId}` }, () => { fetchData(); if (showPanel) fetchAllAnnouncements(); })
@@ -160,7 +158,7 @@ export default function AnnouncementsDisplay() {
     }
 
     connectChannel();
-    return () => { if (currentChannel) sb.removeChannel(currentChannel); };
+    return () => { if (currentChannel) supabase.removeChannel(currentChannel); };
   }, [venueId, fetchData, showPanel, fetchAllAnnouncements]);
 
   useCommanderSync(venueId, fetchData, { entities: ['settings'] });

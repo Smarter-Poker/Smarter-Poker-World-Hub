@@ -7,7 +7,7 @@
  * Real-time sync via Supabase + Commander Data Bus
  */
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../src/lib/supabase';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
@@ -90,20 +90,16 @@ export default function PromotionsDisplay() {
 
   // Supabase realtime
   useEffect(() => {
-    if (!venueId) return;
-    const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const sbKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!sbUrl || !sbKey) return;
-    const sb = createClient(sbUrl, sbKey);
+    if (!venueId || !supabase) return;
     let reconnects = 0;
     const MAX_RECONNECT = 3;
     let currentChannel = null;
 
     function connectChannel() {
       if (currentChannel) {
-        try { sb.removeChannel(currentChannel); } catch { /* ignore */ }
+        try { supabase.removeChannel(currentChannel); } catch { /* ignore */ }
       }
-      const channel = sb.channel(`display-promotions-realtime-${Date.now()}`)
+      const channel = supabase.channel(`display-promotions-realtime-${Date.now()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_promotions', filter: `venue_id=eq.${venueId}` },
           () => { fetchData(); }
         )
@@ -122,7 +118,7 @@ export default function PromotionsDisplay() {
     }
 
     connectChannel();
-    return () => { if (currentChannel) sb.removeChannel(currentChannel); };
+    return () => { if (currentChannel) supabase.removeChannel(currentChannel); };
   }, [venueId, fetchData]);
 
   // Auto-rotate every 8 seconds
