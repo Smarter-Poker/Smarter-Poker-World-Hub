@@ -60,7 +60,16 @@ export default function CommanderStaffPage() {
   const debouncedSearchQuery = useDebounce(searchTerm, 300);
 
   const [page, setPage] = useState(1);
+  const [toast, setToast] = useState(null);
+  const [error, setError] = useState('');
   const ITEMS_PER_PAGE = 50;
+
+  // ── Toast auto-dismiss ──
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => { setPage(1); }, [debouncedSearchQuery]);
 
