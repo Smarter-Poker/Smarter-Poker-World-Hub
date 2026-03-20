@@ -161,10 +161,10 @@ Violation of ANY rule = automatic rollback and investigation.
 6. **NEVER call `.limit()` on JavaScript arrays.** `.limit()` is a Supabase query builder
    method. Calling it on `.filter()`, `.map()`, or `.reduce()` results throws TypeError.
 
-7. **ALWAYS verify your changes.** After ANY code modification:
-   - Run `grep -rn '.single()' --include='*.js' --include='*.jsx' pages/ src/` to confirm no `.single()` leaked back
-   - Run `npm run build` to verify compilation passes
-   - After pushing: check Vercel deployment status within 5 minutes
+7. **ALWAYS verify your changes** per the Verification Protocol above (match to Task Tier).
+   - Tier 1-2: Browser-test only. The pre-push hook catches rules 1-2 automatically.
+   - Tier 3: Run `grep -rn '.single()' --include='*.js' --include='*.jsx' pages/ src/` + `npm run build`
+   - The CI/CD gate catches rules 1-4 on every push — no manual re-check needed for Tier 1-2.
 
 8. **NEVER use emoji characters anywhere in UI code, page text, button labels, modal titles,
    tab names, toast messages, admin panels, or any user-facing string in `.js`, `.jsx`, or
@@ -179,21 +179,10 @@ Violation of ANY rule = automatic rollback and investigation.
    Use plain text or Unicode symbols (arrows, dashes, bullets) instead.
    **Every agent and every session must scan for and strip any emoji before committing.**
 
-### Post-Push Verification Protocol:
-After EVERY push to main:
-1. Wait 5 minutes for Vercel deploy
-2. Check deployment status at https://vercel.com/team/hub-vanguard
-3. Verify site loads at https://smarter.poker
-4. If deployment FAILED: `git revert HEAD && git push` IMMEDIATELY
-5. The CI/CD workflow (build-safety-gate.yml) also runs automated post-deploy checks
-
-### Incident History:
-- **March 7, 2026**: One unused hook import → 14 failed deployments → all pages down.
-  Root cause: `.single()` + unused hooks + unpatched Supabase imports cascading.
-  Resolution: 1,491 `.single()` → `.maybeSingle()` conversions, pre-push hook, CI/CD gate.
-
-### The pre-push git hook (`.git/hooks/pre-push`) enforces rules 1-2 locally.
-### The GitHub Action (`.github/workflows/build-safety-gate.yml`) enforces rules 1-4 on every push.
+### Post-Push Protocol (Tier 3 only):
+After pushing Tier 3 changes: check Vercel deployment status within 5 minutes.
+If deployment FAILED: `git revert HEAD && git push` IMMEDIATELY.
+Tier 1-2 pushes are protected by pre-push hook + CI/CD — no manual post-push checks needed.
 
 ---
 
@@ -225,131 +214,21 @@ This is the Smarter.Poker platform - a comprehensive poker training and communit
 5. **Check API_REFERENCE.md** before creating/modifying endpoints
 6. **Use Inter font** for all text
 
-### Club Commander File Locations
-
-```
-Skill Documents:     .agent/skills/club-commander/
-API Routes:          pages/api/commander/
-Player UI:           pages/hub/commander/
-Staff UI:            pages/commander/
-Components:          src/components/commander/
-State:               src/stores/commanderStore.js
-Utilities:           src/lib/commander/
-```
-
-### Build Phases
-
-| Phase | Weeks | Focus |
-|-------|-------|-------|
-| 1 | 1-4 | Database + Waitlist MVP |
-| 2 | 5-8 | Cash Game Management |
-| 3 | 9-12 | Tournament System |
-| 4 | 13-16 | Home Games Module |
-| 5 | 17-20 | Promotions & Analytics |
-| 6 | 21-24 | Scale & Polish |
-
-### If Unsure
-
-1. Check `.agent/skills/club-commander/` first
-2. The spec is comprehensive - the answer is likely there
-3. If truly not covered, document the gap and ask
+File locations are in the **Scoped File Maps** section above. If unsure about Commander architecture, check `.agent/skills/club-commander/`.
 
 ## Club Arena Integration
 
-### Architecture Overview
-Club Arena is a **Vite + React SPA** that lives 100% inside smarter.poker. All files
-(JS, CSS, HTML, images, cards, videos, logos) are in `public/hub/club-arena/` and served
-directly from smarter.poker. ZERO external requests. NO iframe. NO proxy.
+Club Arena is a **Vite + React SPA** served from `public/hub/club-arena/` on smarter.poker. NO iframe, NO proxy.
 
-```
-User visits smarter.poker/hub/club-arena/promotions
-  → Next.js checks pages/ (no matching page for /promotions)
-  → Checks public/ (no exact file match)
-  → fallback rewrite serves public/hub/club-arena/index.html
-  → Club Arena SPA boots, React Router renders /promotions
-  → Auth via shared Supabase session (storageKey: 'smarter-poker-auth')
-```
-
-### Single Repo, Single Deployment
-| Component | Location | Served From |
-|-----------|----------|-------------|
-| World Hub (Next.js) | pages/, src/ | smarter.poker |
-| Club Arena (Vite SPA) | public/hub/club-arena/ | smarter.poker |
-| Club Arena Source | Separate repo: Smarter-Poker-Club-Arena | Built with Vite, dist/ copied here |
-
-### Deployment Pipeline
-```
-1. Change Club Arena source → build with Vite → copy dist/ to public/hub/club-arena/
-2. Push World Hub to GitHub → Vercel deploys smarter.poker with updated files
-3. Everything serves from smarter.poker — single deployment
-```
-
-### Key Files
-```
-World Hub side:
-  public/hub/club-arena/              — ALL Club Arena files (618 files, 89MB)
-  public/hub/club-arena/index.html    — SPA entry point
-  public/hub/club-arena/assets/       — JS/CSS bundles
-  public/hub/club-arena/cards/        — Card PNGs
-  public/hub/club-arena/images/       — UI images
-  public/hub/club-arena/club-logos/   — Club logo gallery
-  next.config.js                      — fallback rewrite for SPA routing
-  pages/hub/club-arena/lobby.js       — Native page (14 total)
-  src/components/club-arena/          — 11 native components
-  pages/api/club-arena/               — 66 API routes
-
-Club Arena source (separate repo, built with Vite):
-  src/App.tsx                    — React Router with 70+ routes
-  src/pages/                     — All page components
-  src/components/                — Shared components
-  src/services/                  — API service layer (Supabase)
-```
-
-### Routing Rules
-1. Native pages (lobby.js, tournaments.js, etc.) take priority
-2. Static files in public/hub/club-arena/ (JS/CSS/images) are served directly
-3. Unmatched routes fall through to index.html via `fallback` rewrite
-4. React Router inside the SPA handles client-side navigation
-
-### Auth Flow
-1. User logs into smarter.poker (sets `smarter-poker-auth` in localStorage)
-2. Club Arena loads from same origin (smarter.poker/hub/club-arena/)
-3. Club Arena reads Supabase session from shared localStorage
-4. No postMessage, no token relay, no handshake — just shared same-origin storage
-
-### Rules
-- NO iframe code — do not add `window.parent` checks, `postMessage`, or `ClubArenaEmbed`
-- NO proxy rewrites to external domains — everything must be in public/hub/club-arena/
-- When updating Club Arena: build with Vite, copy dist/ (minus .map files) to public/hub/club-arena/
-- The SPA fallback rewrite must stay in `fallback` (not `afterFiles`) so public/ files take priority
+- **Source repo:** `~/Documents/Smarter-Poker-Club-Arena/` — see **Scoped File Maps** above
+- **Rebuild workflow:** Run `/club-arena-rebuild` (see `.agent/workflows/club-arena-rebuild.md`)
+- **Auth:** Shared same-origin localStorage (`smarter-poker-auth`) — no postMessage or token relay
+- **Routing:** Static files served directly, unmatched routes fall through to `index.html` via fallback rewrite
+- **Rules:** NO iframe code, NO proxy rewrites, NO editing `public/hub/club-arena/` directly (always rebuild from source)
 
 ---
 
 ## General Project Info
 
-### Tech Stack
-- Next.js 14 (Pages Router)
-- React 18
-- Supabase (PostgreSQL + Auth + Realtime)
-- Tailwind CSS + DaisyUI
-- Zustand for state
-
-### Key Directories
-```
-/pages           # Next.js pages and API routes
-/src/components  # React components
-/src/lib         # Utilities and services
-/src/stores      # Zustand stores
-/supabase        # Migrations and seeds
-/.agent/skills   # Agent knowledge bases
-```
-
-### Database
-- Supabase PostgreSQL
-- Row-Level Security enabled
-- Real-time subscriptions available
-
-### Authentication
-- Supabase Auth
-- JWT tokens
-- Session storage key: 'smarter-poker-auth'
+**Stack:** Next.js 14 (Pages Router), React 18, Supabase (PostgreSQL + Auth + Realtime), Tailwind CSS + DaisyUI, Zustand.
+**Directories:** See **Scoped File Maps** above. Auth storage key: `smarter-poker-auth`.
