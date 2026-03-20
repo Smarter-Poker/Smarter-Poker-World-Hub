@@ -95,13 +95,12 @@ const nextConfig = {
         aggregateTimeout: 300, // Debounce rapid file saves
       };
 
-      // FIXED: Use memory-only cache in dev mode. Filesystem cache causes a race
-      // condition where stale .pack.gz entries corrupt vendor-chunks, producing
-      // "Cannot find module './chunks/vendor-chunks/next.js'" 500 errors.
-      // Memory cache is fast enough for dev and immune to on-disk corruption.
-      config.cache = {
-        type: 'memory',
-      };
+      // NOTE: Do NOT use memory-only cache (`config.cache = { type: 'memory' }`).
+      // Memory cache prevents vendor-chunks from being written to disk, causing
+      // "Cannot find module './chunks/vendor-chunks/next.js'" 500 crashes when
+      // _document.js tries to require() them. The default filesystem cache works
+      // correctly with the watchOptions.ignored config above (which prevents
+      // stale .pack.gz corruption by excluding .next from the watcher).
     }
     return config;
   },
