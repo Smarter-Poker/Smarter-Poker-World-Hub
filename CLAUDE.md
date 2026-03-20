@@ -100,11 +100,30 @@ Stores:             src/stores/
 - ONLY nuke `.next` if you get `vendor-chunks` or `MODULE_NOT_FOUND` errors
 - NEVER nuke `.next` while other agents are active — it crashes everyone
 
-### Concurrent Agent Safety
-- Do NOT run `rm -rf .next` if other agents are working — it kills all active compilations
-- Do NOT run `npm run build` for Tier 1-2 tasks — it blocks the dev server for minutes
-- If the dev server crashes, wait 10 seconds before restarting — another agent may be restarting it
-- Each agent should ONLY modify files in their scoped area — never touch shared files without Tier 3 classification
+### Agent Isolation Protocol (MANDATORY for all concurrent agents)
+
+**Multiple agents CAN work in the same area (e.g., 5 agents in Club Arena). Isolation is at the FILE level, not the area level.**
+
+**1. File-Level Ownership:**
+- At the start of your task, identify the SPECIFIC FILES you will modify
+- Do NOT modify any file that another agent is likely editing (e.g., if you were told "fix the lobby cards" and another agent was told "fix the marketplace," don't touch marketplace files)
+- If your task requires editing a shared file (e.g., a layout component used everywhere), mention it in your report so the user knows
+
+**2. Browser Isolation:**
+- Launch your OWN browser session — do NOT take over a browser window that is already open on a different page
+- If a browser is already open and navigated somewhere, open a NEW browser or a new tab — do not navigate away from an existing page
+- Close your browser session when done testing
+
+**3. Git Conflict Safety:**
+- After `git-safe-push.sh` completes, verify YOUR changes survived by checking the push output
+- If the push script reports "Accepting remote changes" during rebase, your changes may have been overwritten — re-apply them
+- Do NOT modify files outside your declared scope, even if you see bugs in them — report those bugs instead
+
+**4. Shared Resources — Do NOT Touch:**
+- `rm -rf .next` — kills ALL agents' active compilations. Only do this if the server is fully crashed for everyone
+- `npm run build` — blocks the dev server for minutes, stalling all other agents
+- `npm install` — modifies `node_modules` and `package-lock.json`, can crash other agents mid-compilation
+- Dev server restart — wait 10 seconds before restarting, another agent may already be restarting it
 
 ### KI & Artifact Policy
 - Do NOT read Knowledge Items for Tier 1 or Tier 2 tasks
