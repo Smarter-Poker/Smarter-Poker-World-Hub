@@ -188,6 +188,7 @@ export default function LeaguesAndFreerollsManagement() {
         setLeagueForm({ name: '', description: '', scoring_system: 'points', season_start: '', season_end: '', prize_pool: '' });
         fetchLeagues();
         broadcastChange('settings'); // notify other tabs
+        busEmit.celebration('confetti');
       } else {
         showToast('error', json.error?.message || 'Failed to create');
       }
@@ -247,6 +248,7 @@ export default function LeaguesAndFreerollsManagement() {
         });
         fetchFreerolls();
         broadcastChange('settings'); // notify other tabs
+        busEmit.celebration('confetti');
       } else {
         showToast('error', json.error?.message || 'Failed to create');
       }

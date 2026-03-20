@@ -97,6 +97,7 @@ export default function BreakManager() {
         setExecuted(json.data);
         setReceipts(json.data.receipts);
         broadcastChange('tournaments');
+        busEmit.screenShake('heavy');
       } else {
         setToast({ type: 'error', text: json.error || 'Break failed — please try again.' });
       }

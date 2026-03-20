@@ -1,7 +1,3 @@
-/**
- * Commander Announcements Page - Send broadcasts to players
- * Dark industrial sci-fi gaming theme
- */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';

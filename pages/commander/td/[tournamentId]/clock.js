@@ -203,7 +203,7 @@ ${receipts.map(r => `<div class="card">
           await fetchFloor();
           broadcastChange('tournaments');
         } else {
-          alert(json.error?.message || json.error || 'Clock action failed.');
+          setToast({ type: 'error', text: json.error?.message || json.error || 'Clock action failed. Please try again.' });
         }
       } else {
         setToast({ type: 'error', text: 'Clock action failed.' });
@@ -223,7 +223,7 @@ ${receipts.map(r => `<div class="card">
       if (res.ok) {
         const json = await res.json();
         if (!json.success) {
-          alert(json.error?.message || json.error || 'Failed to toggle Hand-for-Hand.');
+          setToast({ type: 'error', text: json.error?.message || json.error || 'Failed to toggle Hand-for-Hand. Please try again.' });
         } else {
           await fetchFloor();
           broadcastChange('tournaments');
@@ -245,7 +245,7 @@ ${receipts.map(r => `<div class="card">
       if (res.ok) {
         const json = await res.json();
         if (!json.success) {
-          alert(json.error?.message || json.error || 'Final table action failed.');
+          setToast({ type: 'error', text: json.error?.message || json.error || 'Final table action failed. Please try again.' });
         } else {
           await fetchFloor();
           broadcastChange('tournaments');
