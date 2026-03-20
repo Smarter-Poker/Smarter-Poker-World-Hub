@@ -46,3 +46,8 @@ logs/
 
 # Next.js build artifacts
 public/worker-*.js
+
+# Legacy one-off scripts, logs, SQL moved from root
+_legacy_scripts/
+_legacy_logs/
+_legacy_sql/

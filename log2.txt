@@ -1,3 +1,0 @@
-[dotenv@17.2.3] injecting env (27) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
-Insert err: null
-Result string query: { status: 'accepted' } Error: null
