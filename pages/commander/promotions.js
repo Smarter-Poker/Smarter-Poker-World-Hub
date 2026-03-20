@@ -374,7 +374,9 @@ const data = await commanderFetchJSON(`/api/commander/high-hands?venue_id=${venu
     setPromoCodesLoading(true);
     try {
       const token = getToken();
-const res = await fetch('/api/promo/admin-promo-codes', {});
+const res = await fetch('/api/promo/admin-promo-codes', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
       setPromoCodes(data.codes || []);
@@ -387,7 +389,9 @@ const res = await fetch('/api/promo/admin-promo-codes', {});
     try {
       const token = getToken();
 const res = await fetch('/api/promo/seed-premade', {
-        method: 'POST'});
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       if (data.success) {
@@ -405,7 +409,7 @@ const res = await fetch('/api/promo/seed-premade', {
       const token = getToken();
 const res = await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ id: code.id, is_active: !code.is_active })
       });
       if (res.ok) fetchPromoCodes();
@@ -417,7 +421,9 @@ const res = await fetch('/api/promo/admin-promo-codes', {
     try {
       const token = getToken();
 const res = await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
-        method: 'DELETE'});
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) fetchPromoCodes();
     } catch (err) { console.error('Delete promo code error:', err); setToast({ type: 'error', text: 'Action failed: Delete promo code. Please try again.' }); }
   };
@@ -433,7 +439,7 @@ const res = await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
       const token = getToken();
 const res = await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           id: editingPromoCode.id,
           code: editCodeForm.code,

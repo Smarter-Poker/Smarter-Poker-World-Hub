@@ -157,7 +157,7 @@ export default function ClockSetup() {
 
             if (!isNew) body.id = editing.id;
 
-            const res = await fetch(url, {
+            const res = await commanderFetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body) });

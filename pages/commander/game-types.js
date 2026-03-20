@@ -114,7 +114,7 @@ const json = await commanderFetchJSON('/api/commander/game-types?include_inactiv
 const url = editingId
         ? `/api/commander/game-types?id=${editingId}`
         : '/api/commander/game-types';
-      const res = await fetch(url, {
+      const res = await commanderFetch(url, {
         method: editingId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
