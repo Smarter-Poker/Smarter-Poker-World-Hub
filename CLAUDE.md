@@ -59,23 +59,22 @@ Stores:             src/stores/
 
 ### Verification Protocol (Match to Task Tier)
 
-**Test Account (use for ALL browser testing):**
+**Test Account (if browser testing is needed):**
 - Email: `daniel@bekavactrading.com` / Password: `Bek454545!!`
 - Has all features unlocked. Works on localhost and production.
-- Do NOT use temporary code bypasses — always log in with this account.
 
-**Tier 1 (CSS/Layout):**
-1. Browser-test the specific page with test account
-2. Screenshot the fix
-3. Deploy via `git-safe-push.sh`
-— No build verification. No route testing. No grep audits.
+**Tier 1 (CSS/Layout) — NO browser test required:**
+1. Make the fix
+2. Deploy via `git-safe-push.sh`
+3. Report what you changed
+— The pre-push hook + CI/CD gate catch real issues. Do NOT browser-test padding/color/text changes.
 
-**Tier 2 (Logic Changes):**
-1. Browser-test the affected feature with test account
-2. Check the dev server console for errors
-3. Deploy via `git-safe-push.sh`
+**Tier 2 (Logic Changes) — Browser test ONLY if unsure:**
+1. Deploy via `git-safe-push.sh`
+2. If confident in the change → done, report results
+3. If unsure about behavior → browser-test with test account, then report
 
-**Tier 3 (Architecture):**
+**Tier 3 (Architecture) — Full verification required:**
 1. `npm run build` to verify compilation
 2. Browser-test all affected features
 3. Run the 7 Immutable Rules grep checks
