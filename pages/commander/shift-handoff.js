@@ -133,7 +133,7 @@ const res = await commanderFetch('/api/commander/shift-handoff', {
         fetchHandoffs();
         broadcastChange('staff');
       }
-    } catch (err) { console.error(err); alert('Action failed. Please check your connection and try again.'); }
+    } catch (err) { console.error(err); setToast({ type: 'error', msg: 'Action failed. Please check your connection and try again.' }); }
     finally { setTimeout(() => setToast(null), 3000); }
   };
 

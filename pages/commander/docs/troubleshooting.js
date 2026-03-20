@@ -637,10 +637,7 @@ export default function TroubleshootingPage() {
                 </p>
                 <div className="space-y-2">
                   <p className="text-white">
-                    <strong>24/7 Phone:</strong> 1-800-XXX-XXXX
-                  </p>
-                  <p className="text-white">
-                    <strong>Email:</strong> emergency@smarter.poker
+                    <strong>Email:</strong> support@smarter.poker
                   </p>
                   <p className="text-white">
                     <strong>Status Page:</strong> status.smarter.poker

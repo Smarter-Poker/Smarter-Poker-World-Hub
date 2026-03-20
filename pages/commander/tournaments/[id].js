@@ -312,7 +312,7 @@ const json = await commanderFetchJSON(`/api/commander/tournaments/${tournament.i
                         fetchTournament();
                         broadcastChange('tournaments');
                       } else {
-                        alert(json.error?.message || 'Failed to close tournament');
+                        setToast({ type: 'error', text: 'Failed to close tournament. Please try again.' });
                       }
                     } catch (err) {
                       console.error(err);
