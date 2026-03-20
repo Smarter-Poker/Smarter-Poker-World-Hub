@@ -15,6 +15,7 @@ import { canAccessRoute, getUpgradeTier, getTierConfig } from '../../src/lib/com
 import { canRoleAccessRoute } from '../../src/lib/commander/auth';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 /* ─────────────────────────────────────────────────
    CARD DEFINITIONS — each card has sub-features
@@ -216,7 +217,7 @@ export default function CommanderDashboard() {
     try {
 const venueId = staff?.venue_id;
       if (!venueId) return;
-      fetch(`/api/commander/settings?venue_id=${venueId}`, {})
+      commanderFetch(`/api/commander/settings?venue_id=${venueId}`)
         .then(r => r.json())
         .then(data => {
           if (data?.data?.hard_stop_enabled && data.data.hard_stop_time) {

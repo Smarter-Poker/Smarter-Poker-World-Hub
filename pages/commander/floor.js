@@ -17,6 +17,7 @@ import { RefreshCw, Users, Loader2, Lock, Unlock, Save, AlertTriangle, Activity,
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { getStaffSession } from '../../src/lib/commander/clientAuth';
+import { commanderFetch } from '../../src/lib/commander/commanderFetch';
 
 const STATUS_CONFIG = {
   in_use: { color: '#31A24C', glow: '0 0 12px rgba(49,162,76,0.5)', label: 'Active' },
@@ -180,8 +181,8 @@ return { };
         const pos = positions[t.id];
         if (!pos) return Promise.resolve();
         const rot = rotations[t.id] || 0;
-        return fetch(`/api/commander/tables/${t.id}`, {
-          method: 'PATCH', headers,
+        return commanderFetch(`/api/commander/tables/${t.id}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ position_x: pos.x, position_y: pos.y, rotation: rot }) }).then(r => { if (!r.ok) throw new Error('fail'); return r; });
       }));
       setHasChanges(false);
