@@ -1,5 +1,88 @@
 # Claude Instructions for Smarter-Poker-World-Hub
 
+## SPEED MANDATE — All Agents (READ FIRST)
+
+You are graded on SPEED, ACCURACY, and EFFICIENCY. Unnecessary research = failure.
+Do NOT read Knowledge Items, skills, or workflows unless the task specifically requires them.
+Do NOT create implementation plans or ask for approval on Tier 1-2 tasks.
+
+### Task Classification (MANDATORY — Classify BEFORE Starting)
+
+**Tier 1: Quick Fix (5-10 min)** — NO plan, NO approval, NO artifacts
+- CSS/layout bugs, text changes, color/spacing fixes
+- Single-file edits where you KNOW the file
+- Adding/removing a class, adjusting padding/margin/overflow
+- **→ Go directly to the file. Fix it. Browser-test. Deploy.**
+
+**Tier 2: Feature Work (15-30 min)** — Brief inline plan, no approval wait
+- Multi-file edits within ONE component/area
+- New UI elements, wiring existing APIs, logic bug fixes
+- **→ State your approach in 3 lines. Execute. Verify. Deploy.**
+
+**Tier 3: Architecture (30+ min)** — Full plan, user approval required
+- Database migrations, new API routes, cross-component refactors
+- Anything touching payments, real-time, auth, or security
+- **→ Full implementation plan. Wait for approval. Execute. Verify.**
+
+### Scoped File Maps — Go DIRECTLY to the right files
+
+**Club Arena (Vite SPA — separate from World Hub):**
+```
+Source repo:        ~/Documents/Smarter-Poker-Club-Arena/
+Lobby:              src/pages/Lobby.tsx (in source repo)
+Components:         src/components/ (in source repo)
+Compiled output:    public/hub/club-arena/ (in World Hub — DO NOT edit directly)
+API routes:         pages/api/club-arena/ (in World Hub)
+Rebuild flow:       Edit source → Vite build → copy dist/ to public/hub/club-arena/
+```
+
+**Club Commander:**
+```
+Staff UI:           pages/commander/
+Player UI:          pages/hub/commander/
+API routes:         pages/api/commander/
+Components:         src/components/commander/
+State:              src/stores/commanderStore.js
+Utilities:          src/lib/commander/
+Skill docs:         .agent/skills/club-commander/
+```
+
+**World Hub Pages:**
+```
+Pages:              pages/hub/
+Components:         src/components/
+Shared libs:        src/lib/
+Stores:             src/stores/
+```
+
+**DO NOT search outside your scoped area. If your task is Club Arena, don't search pages/hub/. If your task is Commander, don't search src/components/club-arena/.**
+
+### Verification Protocol (Match to Task Tier)
+
+**Tier 1 (CSS/Layout):**
+1. Browser-test the specific page with test account
+2. Screenshot the fix
+3. Deploy via `git-safe-push.sh`
+— No build verification. No route testing. No grep audits.
+
+**Tier 2 (Logic Changes):**
+1. Browser-test the affected feature with test account
+2. Check the dev server console for errors
+3. Deploy via `git-safe-push.sh`
+
+**Tier 3 (Architecture):**
+1. `npm run build` to verify compilation
+2. Browser-test all affected features
+3. Run the 7 Immutable Rules grep checks
+4. Deploy and check Vercel status after push
+
+### KI & Artifact Policy
+- Do NOT read Knowledge Items for Tier 1 or Tier 2 tasks
+- Create `task.md` / `implementation_plan.md` / `walkthrough.md` ONLY for Tier 3 tasks
+- For Tier 1-2: just fix it, verify it, deploy it, report results
+
+---
+
 ## 🚨 MANDATORY: Git Push Protocol (ALL AGENTS)
 
 **NEVER run individual git commands (`git add`, `git commit`, `git push`, `git pull`).** 
