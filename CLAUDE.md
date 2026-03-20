@@ -59,6 +59,11 @@ Stores:             src/stores/
 
 ### Verification Protocol (Match to Task Tier)
 
+**Test Account (use for ALL browser testing):**
+- Email: `daniel@bekavactrading.com` / Password: `Bek454545!!`
+- Has all features unlocked. Works on localhost and production.
+- Do NOT use temporary code bypasses — always log in with this account.
+
 **Tier 1 (CSS/Layout):**
 1. Browser-test the specific page with test account
 2. Screenshot the fix
@@ -75,6 +80,32 @@ Stores:             src/stores/
 2. Browser-test all affected features
 3. Run the 7 Immutable Rules grep checks
 4. Deploy and check Vercel status after push
+
+### Common Bug Patterns — Check Here BEFORE Researching
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| UI "cut off" or clipped | `overflow: hidden` on parent, or conditional padding for admin vs regular user | Check parent container CSS, look for role-based style logic |
+| "Loading..." spinner hangs forever | Query param mismatch (`?club` vs `?club_id`) | Align URL params between link generators and receivers |
+| Server 500 on page load | Corrupted `.next` cache | `rm -rf .next && npm run dev` |
+| "Cannot access 'X' before initialization" | `useState` declared below a `useMemo` that references it | Hoist `useState` to the top of the component |
+| "Cannot find module vendor-chunks" | `.next` cache corruption | `rm -rf .next && npm run dev` |
+| Page works for admin but breaks for others | Hardcoded user ID or admin-only data path | Check for role/ID conditionals in the component |
+| Styles not updating after push | Browser cache / stale `.next` / Vercel CDN delay | Hard refresh (Cmd+Shift+R), check in incognito |
+| `.single()` crash (PGRST116) | Query returned 0 rows | Replace with `.maybeSingle()` |
+| Emoji in UI (rule violation) | Agent added emoji characters | Strip all emoji, use plain text only |
+
+### Dev Server Protocol
+- If port 3000 responds to `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/hub` → server is running, DO NOT restart
+- If not responding → `npm run dev` from project root
+- ONLY nuke `.next` if you get `vendor-chunks` or `MODULE_NOT_FOUND` errors
+- NEVER nuke `.next` while other agents are active — it crashes everyone
+
+### Concurrent Agent Safety
+- Do NOT run `rm -rf .next` if other agents are working — it kills all active compilations
+- Do NOT run `npm run build` for Tier 1-2 tasks — it blocks the dev server for minutes
+- If the dev server crashes, wait 10 seconds before restarting — another agent may be restarting it
+- Each agent should ONLY modify files in their scoped area — never touch shared files without Tier 3 classification
 
 ### KI & Artifact Policy
 - Do NOT read Knowledge Items for Tier 1 or Tier 2 tasks
@@ -174,20 +205,16 @@ This is the Smarter.Poker platform - a comprehensive poker training and communit
 
 **Club Commander** is a poker room management platform (competing with PokerAtlas).
 
-### MANDATORY: Before Working on Club Commander
+### Before Working on Club Commander
 
-**STOP. Read these files IN ORDER before writing any code:**
+**For Tier 1-2 tasks:** Go directly to the file. The scoped file map above tells you where everything is. You do NOT need to read the skill docs for CSS fixes or simple wiring.
 
+**For Tier 3 tasks ONLY** (new features, schema changes, new API routes): Read these files first:
 ```
-1. .agent/skills/club-commander/AGENT_INSTRUCTIONS.md  # ENFORCEMENT RULES - READ FIRST
-2. .agent/skills/club-commander/SKILL.md               # Overview
-3. .agent/skills/club-commander/IMPLEMENTATION_PHASES.md   # Step-by-step guide
-4. .agent/skills/club-commander/DATABASE_SCHEMA.sql    # Table structures
-5. .agent/skills/club-commander/API_REFERENCE.md       # Endpoint specs
-6. .agent/skills/club-commander/ENHANCEMENTS.md        # UI design system
+1. .agent/skills/club-commander/AGENT_INSTRUCTIONS.md  # ENFORCEMENT RULES
+2. .agent/skills/club-commander/DATABASE_SCHEMA.sql    # Table structures
+3. .agent/skills/club-commander/API_REFERENCE.md       # Endpoint specs
 ```
-
-**You MUST provide the confirmation from AGENT_INSTRUCTIONS.md before starting work.**
 
 ### Critical Rules for Club Commander
 
