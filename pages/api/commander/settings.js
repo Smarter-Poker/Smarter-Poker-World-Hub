@@ -4,7 +4,7 @@
  * PUT /api/commander/settings - Update venue settings (room_open, etc)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { guardManager } from '../../../src/lib/commander/auth';
+import { guardStaff, guardManager } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 let _supabase = null;
@@ -23,7 +23,11 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    const staff = await guardManager(req, res);
+    // GET: any staff can read settings (hard stop timer, security gate, etc.)
+    // PUT: only managers/owners can modify settings
+    const staff = req.method === 'GET'
+      ? await guardStaff(req, res)
+      : await guardManager(req, res);
     if (!staff) return;
 
     try {
