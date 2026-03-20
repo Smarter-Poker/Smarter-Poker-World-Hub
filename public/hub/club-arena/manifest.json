@@ -10,7 +10,7 @@
     "scope": "/",
     "icons": [
         {
-            "src": "/poker-chip-logo.png",
+            "src": "/hub/club-arena/poker-chip-logo.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any maskable"
