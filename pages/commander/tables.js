@@ -188,7 +188,7 @@ const headers = { };
   }, [venueId, fetchTables]);
 
   // Cross-tab + cross-device real-time sync
-  useCommanderSync(venueId, fetchTables);
+  useCommanderSync(venueId, fetchTables, { entities: ['tables', 'games', 'dealers'] });
 
   // Get the game running on a table
   const getGameForTable = (table) => {

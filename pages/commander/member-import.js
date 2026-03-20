@@ -14,6 +14,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 import { commanderFetch } from '../../src/lib/commander/commanderFetch';
+import { getVenueId } from '../../src/lib/commander/clientAuth';
 
 const REQUIRED_FIELDS = ['first_name', 'last_name'];
 const OPTIONAL_FIELDS = ['phone', 'email', 'member_number', 'membership_tier', 'notes', 'address', 'city', 'state', 'zip'];
@@ -58,7 +59,7 @@ function guessMapping(header) {
 }
 
 export default function MemberImport() {
-  useCommanderSync('member-import');
+  useCommanderSync(getVenueId(), () => {}, { entities: ['members'] });
   useEffect(() => { busEmit.sessionStart('commander-member-import'); }, []);
   const router = useRouter();
   const fileRef = useRef(null);
