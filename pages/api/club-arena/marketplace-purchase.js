@@ -144,10 +144,19 @@ export default async function handler(req, res) {
               notes: `Shop purchase: ${item.name || item.id}`,
           });
 
-          logAudit(supabaseAdmin, { actionType: 'marketplace_purchase', userId: user.id, clubId, amount: price, ip: extractIP(req), details: { itemId, itemName: item.name, itemType: item.item_type, newBalance: balance - price } });
+          logAudit(supabaseAdmin, { actionType: 'marketplace_purchase', userId: user.id, clubId, amount: price, ip: extractIP(req), details: { itemId, itemName: item.name, itemType: item.item_type } });
+
+          // Read actual post-deduction balance (avoids stale value from concurrent operations)
+          const { data: updatedMember } = await getSupabase()
+              .from('club_members')
+              .select('chip_balance')
+              .eq('club_id', clubId)
+              .eq('user_id', user.id)
+              .maybeSingle();
+
           return res.status(200).json({
               success: true,
-              newBalance: balance - price,
+              newBalance: updatedMember?.chip_balance ?? (balance - price),
               item: { name: item.name, type: item.item_type },
           });
       } catch (err) {
