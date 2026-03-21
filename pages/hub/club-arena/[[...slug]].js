@@ -32,11 +32,9 @@ const FALLBACK_HTML = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Club Arena | Smarter.Poker</title>
   <script>
-    // Dynamic loader: fetch the real index.html from public/ and replace this page
-    fetch('/hub/club-arena/index.html')
-      .then(r => r.text())
-      .then(html => { document.open(); document.write(html); document.close(); })
-      .catch(() => { document.body.innerHTML = '<p>Loading Club Arena...</p>'; window.location.reload(); });
+    // Fallback loader: redirect to the SPA index.html if SSR path resolution fails.
+    // Uses safe navigation instead of document.write() to avoid DOM XSS vectors.
+    window.location.replace('/hub/club-arena/' + window.location.search + window.location.hash);
   </script>
 </head>
 <body><div id="root"><p style="color:#fff;text-align:center;padding:40px">Loading Club Arena...</p></div></body>

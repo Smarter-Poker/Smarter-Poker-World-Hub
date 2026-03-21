@@ -1,28 +1,76 @@
 import { createClient } from '@supabase/supabase-js';
+const { sanitizeNote } = require('../../../src/lib/club-arena/sanitize');
+const { isUUID } = require('../../../src/lib/club-arena/validate');
 
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!key) {
+            console.error('[chat] SUPABASE_SERVICE_ROLE_KEY not set — refusing to start with anon key');
+            throw new Error('Server misconfiguration: missing service role key');
+        }
         _supabase = createClient(url, key);
     }
     return _supabase;
 }
 
+// ─── In-memory idempotency for chat POST (lightweight, no external dependency) ─
+const _chatIdemCache = new Map();
+const CHAT_IDEM_TTL = 5000; // 5 seconds — prevents rapid double-tap
+function isDuplicateChatPost(userId, clubId, message) {
+    const key = `${userId}:${clubId}:${message}`;
+    const now = Date.now();
+    if (_chatIdemCache.has(key) && now - _chatIdemCache.get(key) < CHAT_IDEM_TTL) {
+        return true;
+    }
+    _chatIdemCache.set(key, now);
+    // Lazy cleanup
+    if (_chatIdemCache.size > 500) {
+        for (const [k, ts] of _chatIdemCache) {
+            if (now - ts > CHAT_IDEM_TTL) _chatIdemCache.delete(k);
+        }
+    }
+    return false;
+}
+
 /**
  * Chat API — persists table chat messages to club_chat table.
- * 
- * POST: save a new message
- * GET: load last 50 messages for a table
+ *
+ * POST: save a new message (auth required, idempotency guard, input sanitized)
+ * GET:  load last 50 messages for a table (auth required, membership verified)
  */
 export default async function handler(req, res) {
   try {
-    const tableId = req.query.tableId || req.body?.tableId;
+    // ─── Auth: required for ALL methods ────────────────────────
+    const authHeader = req.headers.authorization;
+    let userId = null;
+    if (authHeader?.startsWith('Bearer ')) {
+        try {
+            const { data: { user } } = await getSupabase().auth.getUser(authHeader.split(' ')[1]);
+            userId = user?.id;
+        } catch (_) {}
+    }
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     if (req.method === 'GET') {
-      // Load last 50 messages for this table
+      const tableId = req.query.tableId;
       if (!tableId) return res.status(400).json({ error: 'tableId required' });
+
+      // Validate tableId format
+      if (!isUUID(tableId)) return res.status(400).json({ error: 'Invalid tableId format' });
+
+      // ─── Membership check: verify user belongs to this club ───
+      // The tableId is used as club_id in club_chat (table chat uses club scope)
+      const { data: member } = await getSupabase()
+          .from('club_members')
+          .select('id')
+          .eq('club_id', tableId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (!member) return res.status(403).json({ error: 'Not a member of this club' });
 
       try {
         const { data, error } = await getSupabase()
@@ -32,10 +80,10 @@ export default async function handler(req, res) {
           .order('created_at', { ascending: true })
           .limit(50);
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ error: 'Failed to load messages' });
         return res.status(200).json({ messages: data || [] });
       } catch (err) {
-        return res.status(500).json({ error: err.message });
+        return res.status(500).json({ error: 'Failed to load messages' });
       }
     }
 
@@ -43,17 +91,29 @@ export default async function handler(req, res) {
       const { message, displayName, clubId } = req.body;
       if (!message || !clubId) return res.status(400).json({ error: 'message and clubId required' });
 
-      // Get user from auth header
-      const authHeader = req.headers.authorization;
-      let userId = null;
-      if (authHeader?.startsWith('Bearer ')) {
-        try {
-          const { data: { user } } = await getSupabase().auth.getUser(authHeader.split(' ')[1]);
-          userId = user?.id;
-        } catch (_) {}
+      // Validate clubId format
+      if (!isUUID(clubId)) return res.status(400).json({ error: 'Invalid clubId format' });
+
+      // ─── Idempotency: prevent double-tap message spam ────────
+      const sanitizedMessage = sanitizeNote(message, 500);
+      if (!sanitizedMessage) return res.status(400).json({ error: 'Message cannot be empty' });
+
+      if (isDuplicateChatPost(userId, clubId, sanitizedMessage)) {
+          return res.status(200).json({ success: true, deduplicated: true });
       }
 
-      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+      // ─── Membership check: verify user belongs to this club ───
+      const { data: member } = await getSupabase()
+          .from('club_members')
+          .select('id')
+          .eq('club_id', clubId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (!member) return res.status(403).json({ error: 'Not a member of this club' });
+
+      // Sanitize display name
+      const safeDisplayName = sanitizeNote(displayName, 100) || 'Player';
 
       try {
         const { data, error } = await getSupabase()
@@ -61,24 +121,24 @@ export default async function handler(req, res) {
           .insert({
             club_id: clubId,
             user_id: userId,
-            display_name: displayName || 'Player',
-            message: message.slice(0, 500), // Enforce 500 char limit
+            display_name: safeDisplayName,
+            message: sanitizedMessage,
             message_type: 'message',
           })
           .select('id')
           .maybeSingle();
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ error: 'Failed to send message' });
         return res.status(200).json({ success: true, id: data?.id });
       } catch (err) {
-        return res.status(500).json({ error: err.message });
+        return res.status(500).json({ error: 'Failed to send message' });
       }
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (err) {
-    console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    console.error('[chat API Error]', err);
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
