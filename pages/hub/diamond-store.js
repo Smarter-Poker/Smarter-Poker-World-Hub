@@ -686,6 +686,21 @@ export default function DiamondStorePage() {
 
     const [user, setUser] = useState(null);
 
+    // ═══ Club Shop State ═══
+    const [clubShopItems, setClubShopItems] = useState([]);
+    const [clubShopPurchases, setClubShopPurchases] = useState([]);
+    const [clubChipBalance, setClubChipBalance] = useState(0);
+    const [clubShopLoading, setClubShopLoading] = useState(false);
+    const [clubShopLoaded, setClubShopLoaded] = useState(false);
+    const [clubShopBuyTarget, setClubShopBuyTarget] = useState(null);
+    const [clubShopProcessing, setClubShopProcessing] = useState(false);
+    const [clubShopCategory, setClubShopCategory] = useState('All');
+    const [clubShopSearch, setClubShopSearch] = useState('');
+    const [clubShopSubTab, setClubShopSubTab] = useState('store');
+    const [clubShopClubId, setClubShopClubId] = useState(null);
+    const [clubShopRole, setClubShopRole] = useState('player');
+    const [clubShopSuccess, setClubShopSuccess] = useState(null);
+
     // Check VIP status on mount
     useEffect(() => {
         const _c = new AbortController();
@@ -885,6 +900,90 @@ export default function DiamondStorePage() {
         alert('Merchandise store coming soon!');
     };
 
+    // ═══ Club Shop: Load items from marketplace API ═══
+    const loadClubShop = useCallback(async () => {
+        if (clubShopLoading) return;
+        setClubShopLoading(true);
+        try {
+            const token = getAccessToken();
+            if (!token) { setClubShopLoading(false); return; }
+            const authUser = getAuthUser();
+            if (!authUser?.id) { setClubShopLoading(false); return; }
+
+            // Find user's club
+            let targetClub = clubShopClubId;
+            if (!targetClub) {
+                const { data: mem } = await supabase
+                    .from('club_members')
+                    .select('club_id')
+                    .eq('user_id', authUser.id)
+                    .limit(1)
+                    .maybeSingle();
+                targetClub = mem?.club_id || null;
+                if (targetClub) setClubShopClubId(targetClub);
+            }
+            if (!targetClub) {
+                setClubShopLoading(false);
+                setClubShopLoaded(true);
+                return;
+            }
+
+            const response = await fetch(`/api/club-arena/marketplace-items?clubId=${targetClub}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) throw new Error(`Failed to load club shop (${response.status})`);
+            const data = await response.json();
+
+            setClubShopItems((data.items || []).map(i => ({
+                ...i,
+                club_id: targetClub,
+                is_active: true,
+                purchase_count: i.purchase_count || 0,
+            })));
+            setClubShopPurchases(data.purchases || []);
+            setClubChipBalance(data.balance || 0);
+            if (data.role) setClubShopRole(data.role);
+            setClubShopLoaded(true);
+        } catch (err) {
+            console.error('[Club Shop]', err);
+        } finally {
+            setClubShopLoading(false);
+        }
+    }, [clubShopClubId]);
+
+    // ═══ Club Shop: Purchase handler ═══
+    const handleClubPurchase = async () => {
+        if (!clubShopBuyTarget || !clubShopClubId) return;
+        setClubShopProcessing(true);
+        try {
+            const token = getAccessToken();
+            if (!token) throw new Error('Not authenticated');
+
+            const idempotencyKey = crypto.randomUUID();
+            const response = await fetch('/api/club-arena/marketplace-purchase', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'X-Idempotency-Key': idempotencyKey,
+                },
+                body: JSON.stringify({ clubId: clubShopClubId, itemId: clubShopBuyTarget.id }),
+            });
+            const responseData = await response.json().catch(() => ({ success: false, error: `HTTP ${response.status}` }));
+            if (!responseData.success) throw new Error(responseData.error || 'Purchase failed');
+
+            setClubShopSuccess(`Purchased ${clubShopBuyTarget.name}!`);
+            setTimeout(() => setClubShopSuccess(null), 2500);
+            setClubChipBalance(responseData.newBalance ?? (clubChipBalance - clubShopBuyTarget.price));
+            setClubShopBuyTarget(null);
+            loadClubShop();
+        } catch (err) {
+            alert(err.message || 'Purchase failed');
+        } finally {
+            setClubShopProcessing(false);
+        }
+    };
+
     // Pay with Diamonds handler — deducts from user's diamond balance
     const handlePayWithDiamonds = async (items) => {
         setIsProcessing(true);
@@ -1063,6 +1162,45 @@ export default function DiamondStorePage() {
                             onClick={() => { if (navigator?.vibrate) navigator.vibrate(50); setActiveTab('rewards'); }}
                             style={{ position: 'absolute', left: '75%', top: '62%', width: '23%', height: '34%', cursor: 'pointer' }}
                         />
+                    </div>
+
+                    {/* ═══ Club Shop Text Tab — Below Header Image ═══ */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: 8,
+                        padding: '12px 16px 0',
+                        background: 'rgba(0,0,0,0.6)',
+                        borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    }}>
+                        {['diamonds', 'vip', 'merch', 'rewards', 'club-shop'].map(tabId => {
+                            const labels = { diamonds: '💎 Diamonds', vip: '👑 VIP', merch: '🛍️ Merch', rewards: '🏆 Rewards', 'club-shop': '🎮 Club Shop' };
+                            const isActive = activeTab === tabId;
+                            return (
+                                <button
+                                    key={tabId}
+                                    onClick={() => {
+                                        if (navigator?.vibrate) navigator.vibrate(50);
+                                        setActiveTab(tabId);
+                                        if (tabId === 'club-shop' && !clubShopLoaded) loadClubShop();
+                                    }}
+                                    style={{
+                                        padding: '10px 16px',
+                                        background: isActive ? 'rgba(0,180,255,0.15)' : 'transparent',
+                                        border: 'none',
+                                        borderBottom: isActive ? '2px solid #00B4FF' : '2px solid transparent',
+                                        color: isActive ? '#00D4FF' : 'rgba(255,255,255,0.5)',
+                                        fontSize: 13,
+                                        fontWeight: isActive ? 700 : 500,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        whiteSpace: 'nowrap',
+                                    }}
+                                >
+                                    {labels[tabId]}
+                                </button>
+                            );
+                        })}
                     </div>
 
                     {/* ═══════════════════════════════════════════════════════ */}
@@ -1670,6 +1808,321 @@ export default function DiamondStorePage() {
                                             </div>
                                         </div>
                                     </div>
+                                )}
+                            </>
+                        )}
+
+                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {/* CLUB SHOP TAB — Chip-based marketplace items from user's club */}
+                        {/* ═══════════════════════════════════════════════════════════════════ */}
+                        {activeTab === 'club-shop' && (
+                            <>
+                                {/* Success Flash */}
+                                {clubShopSuccess && (
+                                    <div style={{
+                                        position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
+                                        background: 'linear-gradient(135deg, #00ff88, #00cc66)', color: '#000',
+                                        padding: '12px 28px', borderRadius: 12, fontWeight: 700, fontSize: 15,
+                                        zIndex: 9999, boxShadow: '0 4px 20px rgba(0,255,136,0.4)', animation: 'fadeIn 0.3s ease',
+                                    }}>
+                                        ✅ {clubShopSuccess}
+                                    </div>
+                                )}
+
+                                {/* Purchase Confirm Modal */}
+                                {clubShopBuyTarget && (
+                                    <div
+                                        onClick={() => !clubShopProcessing && setClubShopBuyTarget(null)}
+                                        style={{
+                                            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                                            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+                                        }}
+                                    >
+                                        <div onClick={e => e.stopPropagation()} style={{
+                                            background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.15)',
+                                            borderRadius: 16, padding: 28, maxWidth: 420, width: '90%',
+                                            boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+                                        }}>
+                                            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 16 }}>Confirm Purchase</h3>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                                                <div style={{
+                                                    width: 56, height: 56, borderRadius: 12,
+                                                    background: 'rgba(255,255,255,0.05)', display: 'flex',
+                                                    alignItems: 'center', justifyContent: 'center', fontSize: 28,
+                                                }}>
+                                                    {clubShopBuyTarget.image_url
+                                                        ? <img src={clubShopBuyTarget.image_url} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+                                                        : '🛒'}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB' }}>{clubShopBuyTarget.name}</div>
+                                                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{clubShopBuyTarget.description || ''}</div>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+                                                <div style={{
+                                                    flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: 10,
+                                                    padding: '12px 16px', textAlign: 'center',
+                                                }}>
+                                                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Item Price</div>
+                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#ff6b6b', marginTop: 4 }}>{clubShopBuyTarget.price.toLocaleString()}</div>
+                                                </div>
+                                                <div style={{
+                                                    flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: 10,
+                                                    padding: '12px 16px', textAlign: 'center',
+                                                }}>
+                                                    <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>Your Balance</div>
+                                                    <div style={{ fontSize: 20, fontWeight: 700, color: '#00ff88', marginTop: 4 }}>{clubChipBalance.toLocaleString()}</div>
+                                                </div>
+                                            </div>
+                                            {clubChipBalance < clubShopBuyTarget.price && (
+                                                <div style={{ color: '#ff6b6b', fontSize: 13, fontWeight: 600, marginBottom: 12, textAlign: 'center' }}>
+                                                    ⚠️ Insufficient chips. You need {(clubShopBuyTarget.price - clubChipBalance).toLocaleString()} more.
+                                                </div>
+                                            )}
+                                            <div style={{ display: 'flex', gap: 12 }}>
+                                                <button onClick={() => setClubShopBuyTarget(null)} disabled={clubShopProcessing}
+                                                    style={{
+                                                        flex: 1, padding: '12px', background: 'rgba(255,255,255,0.08)',
+                                                        border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10,
+                                                        color: '#B0B3B8', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                                                    }}>Cancel</button>
+                                                <button onClick={handleClubPurchase}
+                                                    disabled={clubShopProcessing || clubChipBalance < clubShopBuyTarget.price}
+                                                    style={{
+                                                        flex: 1, padding: '12px',
+                                                        background: clubShopProcessing || clubChipBalance < clubShopBuyTarget.price
+                                                            ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg, #1877F2, #4285F4)',
+                                                        border: 'none', borderRadius: 10, color: '#fff',
+                                                        fontSize: 14, fontWeight: 700, cursor: clubShopProcessing ? 'wait' : 'pointer',
+                                                    }}>
+                                                    {clubShopProcessing ? 'Purchasing...' : 'Confirm Purchase'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div style={styles.intro}>
+                                    <h2 style={{ ...styles.merchTitle, display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        🎮 Club Shop
+                                        <span style={{
+                                            fontSize: 14, fontWeight: 600,
+                                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                            color: '#000', padding: '4px 14px', borderRadius: 20,
+                                        }}>
+                                            💰 {clubChipBalance.toLocaleString()} Chips
+                                        </span>
+                                    </h2>
+                                    <p style={styles.introText}>
+                                        Purchase In-Game Items For Your Club With Chips — Time Banks, Table Skins, Throwables, Emotes & More.
+                                    </p>
+                                </div>
+
+                                {clubShopLoading && !clubShopLoaded ? (
+                                    <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}>
+                                        Loading club shop...
+                                    </div>
+                                ) : !clubShopClubId ? (
+                                    <div style={{ textAlign: 'center', padding: 40 }}>
+                                        <div style={{ fontSize: 48, marginBottom: 12 }}>🏠</div>
+                                        <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>No Club Found</div>
+                                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>Join a club to access the Club Shop.</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* Sub-tabs: Store / My Purchases */}
+                                        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                                            {['store', 'my-purchases'].map(st => (
+                                                <button key={st} onClick={() => setClubShopSubTab(st)}
+                                                    style={{
+                                                        padding: '8px 20px',
+                                                        background: clubShopSubTab === st ? 'rgba(0,180,255,0.15)' : 'rgba(255,255,255,0.05)',
+                                                        border: clubShopSubTab === st ? '1px solid rgba(0,180,255,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                                                        borderRadius: 10, color: clubShopSubTab === st ? '#00D4FF' : 'rgba(255,255,255,0.5)',
+                                                        fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                                    }}>
+                                                    {st === 'store' ? `🛍️ Store (${clubShopItems.length})` : `📦 My Purchases (${clubShopPurchases.length})`}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {clubShopSubTab === 'store' && (
+                                            <>
+                                                {/* Category Filters */}
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                                                    {['All', 'Time Banks', 'Table Skins', 'Throwables', 'Emotes', 'Avatars', 'Exclusive'].map(cat => (
+                                                        <button key={cat} onClick={() => setClubShopCategory(cat)}
+                                                            style={{
+                                                                padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                                                background: clubShopCategory === cat ? 'rgba(0,180,255,0.2)' : 'rgba(255,255,255,0.05)',
+                                                                border: clubShopCategory === cat ? '1px solid #00B4FF' : '1px solid rgba(255,255,255,0.1)',
+                                                                color: clubShopCategory === cat ? '#00D4FF' : 'rgba(255,255,255,0.5)',
+                                                                transition: 'all 0.2s ease',
+                                                            }}>
+                                                            {cat}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                {/* Search */}
+                                                <input
+                                                    type="text" placeholder="🔍 Search items..."
+                                                    value={clubShopSearch}
+                                                    onChange={e => setClubShopSearch(e.target.value)}
+                                                    style={{
+                                                        width: '100%', padding: '10px 16px', borderRadius: 10,
+                                                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                                                        color: '#E4E6EB', fontSize: 14, outline: 'none', marginBottom: 20, boxSizing: 'border-box',
+                                                    }}
+                                                />
+
+                                                {/* Item Grid */}
+                                                {(() => {
+                                                    const purchasedIds = new Set(clubShopPurchases.map(p => p.item_id));
+                                                    let filtered = [...clubShopItems];
+                                                    if (clubShopCategory !== 'All') {
+                                                        filtered = filtered.filter(i => (i.category || 'Time Banks').toLowerCase() === clubShopCategory.toLowerCase());
+                                                    }
+                                                    if (clubShopSearch.trim()) {
+                                                        const q = clubShopSearch.toLowerCase();
+                                                        filtered = filtered.filter(i => i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q));
+                                                    }
+
+                                                    if (filtered.length === 0) {
+                                                        return (
+                                                            <div style={{ textAlign: 'center', padding: 40 }}>
+                                                                <div style={{ fontSize: 48, marginBottom: 12 }}>🛍️</div>
+                                                                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+                                                                    {clubShopItems.length === 0 ? 'The shop is currently empty.' : 'No items match your filter.'}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <div style={{
+                                                            display: 'grid',
+                                                            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                                                            gap: 16,
+                                                        }}>
+                                                            {filtered.map(item => {
+                                                                const owned = purchasedIds.has(item.id);
+                                                                return (
+                                                                    <div key={item.id} style={{
+                                                                        background: 'rgba(255,255,255,0.05)',
+                                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                                        borderRadius: 14, overflow: 'hidden',
+                                                                        transition: 'border-color 0.2s, transform 0.2s',
+                                                                    }}
+                                                                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,180,255,0.3)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                                                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                                                                    >
+                                                                        <div style={{
+                                                                            height: 120, background: 'linear-gradient(135deg, rgba(0,180,255,0.08), rgba(138,43,226,0.08))',
+                                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                            position: 'relative',
+                                                                        }}>
+                                                                            {item.image_url
+                                                                                ? <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                                : <span style={{ fontSize: 40 }}>🎁</span>}
+                                                                            <span style={{
+                                                                                position: 'absolute', top: 8, right: 8,
+                                                                                background: 'rgba(0,0,0,0.7)', color: '#E4E6EB',
+                                                                                padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600,
+                                                                                textTransform: 'uppercase',
+                                                                            }}>{item.category || 'Time Banks'}</span>
+                                                                        </div>
+                                                                        <div style={{ padding: 14 }}>
+                                                                            <div style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB', marginBottom: 4 }}>{item.name}</div>
+                                                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 10, lineHeight: 1.4, minHeight: 30 }}>
+                                                                                {item.description || 'No description.'}
+                                                                            </div>
+                                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                                <div>
+                                                                                    <span style={{ fontSize: 16, fontWeight: 700, color: '#FFD700' }}>💰 {item.price.toLocaleString()}</span>
+                                                                                    {(item.purchase_count || 0) > 0 && (
+                                                                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{item.purchase_count} sold</div>
+                                                                                    )}
+                                                                                </div>
+                                                                                <button
+                                                                                    onClick={() => !owned && setClubShopBuyTarget(item)}
+                                                                                    disabled={owned}
+                                                                                    style={{
+                                                                                        padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: owned ? 'default' : 'pointer',
+                                                                                        background: owned ? 'rgba(0,255,136,0.15)' : 'linear-gradient(135deg, #1877F2, #4285F4)',
+                                                                                        border: owned ? '1px solid rgba(0,255,136,0.3)' : 'none',
+                                                                                        color: owned ? '#00ff88' : '#fff',
+                                                                                    }}>
+                                                                                    {owned ? '✓ Owned' : 'Buy'}
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </>
+                                        )}
+
+                                        {/* My Purchases Sub-Tab */}
+                                        {clubShopSubTab === 'my-purchases' && (
+                                            <>
+                                                {clubShopPurchases.length === 0 ? (
+                                                    <div style={{ textAlign: 'center', padding: 40 }}>
+                                                        <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
+                                                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>No purchases yet.</div>
+                                                        <button onClick={() => setClubShopSubTab('store')}
+                                                            style={{
+                                                                marginTop: 12, padding: '10px 24px', borderRadius: 10,
+                                                                background: 'linear-gradient(135deg, #1877F2, #4285F4)',
+                                                                border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                                                            }}>Browse Store</button>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ overflowX: 'auto' }}>
+                                                        <table style={{
+                                                            width: '100%', borderCollapse: 'collapse',
+                                                            background: 'rgba(255,255,255,0.03)', borderRadius: 12,
+                                                        }}>
+                                                            <thead>
+                                                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                                                                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Item</th>
+                                                                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Category</th>
+                                                                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Price Paid</th>
+                                                                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Date</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {clubShopPurchases.map(p => {
+                                                                    const itemData = clubShopItems.find(i => i.id === p.item_id);
+                                                                    const name = p.item_name || itemData?.name || 'Unknown Item';
+                                                                    const cat = p.item_category || itemData?.category || 'Time Banks';
+                                                                    const dateStr = p.created_at ? new Date(p.created_at).toLocaleDateString() : '';
+                                                                    return (
+                                                                        <tr key={p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                                                            <td style={{ padding: '12px 16px', fontSize: 14, fontWeight: 700, color: '#E4E6EB' }}>{name}</td>
+                                                                            <td style={{ padding: '12px 16px' }}>
+                                                                                <span style={{
+                                                                                    padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600,
+                                                                                    background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)',
+                                                                                }}>{cat}</span>
+                                                                            </td>
+                                                                            <td style={{ padding: '12px 16px', fontSize: 14, fontWeight: 800, color: '#FFD700' }}>{(p.price_paid || 0).toLocaleString()}</td>
+                                                                            <td style={{ padding: '12px 16px', fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{dateStr}</td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </>
                                 )}
                             </>
                         )}
