@@ -12,10 +12,17 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Lazy getter — prevents SSG/SSR crashes when env vars aren't available at module load time.
+let _supabase;
+function getSupabase() {
+    if (!_supabase) {
+        _supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+        );
+    }
+    return _supabase;
+}
 
 /**
  * Fisher-Yates random shuffle (in-place)
@@ -73,7 +80,7 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
         let venueCity = null;
         let venueState = null;
         if ((!venueName || !venueLogoUrl) && tournament.venue_id) {
-            const { data: venueRow } = await supabase
+            const { data: venueRow } = await getSupabase()
                 .from('venues')
                 .select('name, logo_url, city, state')
                 .eq('id', tournament.venue_id)
@@ -85,7 +92,7 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
         }
 
 
-        const { data: tables } = await supabase
+        const { data: tables } = await getSupabase()
             .from('commander_tables')
             .select('id, table_number, max_seats')
             .eq('venue_id', tournament.venue_id)
@@ -95,7 +102,7 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
         if (!tables || tables.length < 2) return null; // 1 table = final table, never auto-break
 
         // ── Fetch active entries with seat info ──
-        const { data: entries } = await supabase
+        const { data: entries } = await getSupabase()
             .from('commander_tournament_entries')
             .select('id, player_name, table_number, seat_number, current_chips')
             .eq('tournament_id', tournamentId)
@@ -144,7 +151,7 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
         //  between our read and our write)
         for (const t of otherTables) {
             if (t.open_seats.length === 0) continue;
-            const { data: liveOccupants } = await supabase
+            const { data: liveOccupants } = await getSupabase()
                 .from('commander_tournament_entries')
                 .select('seat_number')
                 .eq('tournament_id', tournamentId)
@@ -193,13 +200,13 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
 
         for (const a of assignments) {
             // Fetch current metadata to preserve it
-            const { data: currentEntry } = await supabase
+            const { data: currentEntry } = await getSupabase()
                 .from('commander_tournament_entries')
                 .select('metadata')
                 .eq('id', a.entry_id)
                 .maybeSingle();
 
-            const { error: uErr } = await supabase
+            const { error: uErr } = await getSupabase()
                 .from('commander_tournament_entries')
                 .update({
                     table_number: a.to_table,
@@ -222,7 +229,7 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
 
         // ── Release the broken table (ONLY if all players successfully moved) ──
         if (errors.length === 0) {
-            const { error: releaseErr } = await supabase
+            const { error: releaseErr } = await getSupabase()
                 .from('commander_tables')
                 .update({
                     mode: 'inactive',

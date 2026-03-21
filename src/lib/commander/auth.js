@@ -71,7 +71,7 @@ export async function requireStaff(req, res, venueId, allowedRoles = null) {
     .from('commander_staff')
     .select('*')
     .eq('venue_id', venueId)
-    .eq('user_id', user.id)
+    .eq('linked_user_id', user.id)
     .eq('is_active', true)
     .maybeSingle();
 
@@ -129,7 +129,7 @@ export async function isStaffAnywhere(userId) {
   const { count, error } = await getSupabase()
     .from('commander_staff')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
+    .eq('linked_user_id', userId)
     .eq('is_active', true);
 
   return !error && count > 0;
@@ -152,7 +152,7 @@ export async function getStaffVenues(userId) {
         state
       )
     `)
-    .eq('user_id', userId)
+    .eq('linked_user_id', userId)
     .eq('is_active', true);
 
   if (error) {
@@ -238,11 +238,11 @@ export async function verifyStaffSession(req) {
 
   // Path 2: Owner login — session contains `user_id` + `role` + `venue_id`
   if (sessionData.user_id && sessionData.venue_id) {
-    // First try: look up commander_staff row by user_id
+    // First try: look up commander_staff row by linked_user_id
     const { data: staff } = await getSupabase()
       .from('commander_staff')
       .select('id, venue_id, role, is_active')
-      .eq('user_id', sessionData.user_id)
+      .eq('linked_user_id', sessionData.user_id)
       .eq('venue_id', sessionData.venue_id)
       .eq('is_active', true)
       .maybeSingle();

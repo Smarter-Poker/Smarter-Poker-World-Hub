@@ -5,10 +5,17 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Lazy getter — prevents SSG/SSR crashes when env vars aren't available at module load time.
+let _supabase;
+function getSupabase() {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+    );
+  }
+  return _supabase;
+}
 
 /**
  * Log an audit event
@@ -34,7 +41,7 @@ export async function logAudit({
     const userAgent = req?.headers?.['user-agent'];
     const requestId = req?.headers?.['x-request-id'];
 
-    const { data, error } = await supabase.rpc('log_audit_event', {
+    const { data, error } = await getSupabase().rpc('log_audit_event', {
       p_venue_id: venueId ? parseInt(venueId) : null,
       p_user_id: userId || null,
       p_staff_id: staffId || null,
