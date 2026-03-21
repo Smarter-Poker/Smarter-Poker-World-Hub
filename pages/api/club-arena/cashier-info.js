@@ -21,7 +21,11 @@ let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!key) {
+            console.error('[cashier-info] SUPABASE_SERVICE_ROLE_KEY not set — refusing anon key fallback');
+            throw new Error('Server misconfiguration: missing service role key');
+        }
         _supabase = createClient(url, key);
     }
     return _supabase;
@@ -174,15 +178,33 @@ export default async function handler(req, res) {
                   .eq('id', clubId)
                   .maybeSingle();
 
-              const amounts = req.body.amounts || DEFAULT_PRESETS;
+              const rawAmounts = req.body.amounts || DEFAULT_PRESETS;
+
+              // Validate amounts: must be array of positive integers, capped at 10 presets
+              if (!Array.isArray(rawAmounts) || rawAmounts.length === 0) {
+                  return res.status(400).json({ error: 'amounts must be a non-empty array' });
+              }
+              const validAmounts = rawAmounts
+                  .slice(0, 10) // Max 10 presets
+                  .map(a => {
+                      const n = Number(a);
+                      if (!Number.isFinite(n) || n < 100 || n > 10_000_000 || !Number.isInteger(n)) return null;
+                      return n;
+                  })
+                  .filter(a => a !== null);
+
+              if (validAmounts.length === 0) {
+                  return res.status(400).json({ error: 'No valid amounts provided (must be integers 100–10,000,000)' });
+              }
+
               const currentSettings = club?.settings || {};
 
               await getSupabase()
                   .from('clubs')
-                  .update({ settings: { ...currentSettings, cashier_presets: amounts } })
+                  .update({ settings: { ...currentSettings, cashier_presets: validAmounts } })
                   .eq('id', clubId);
 
-              return res.status(200).json({ success: true, presets: amounts });
+              return res.status(200).json({ success: true, presets: validAmounts });
           } catch (err) {
               return res.status(500).json({ error: 'Presets update failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
           }
