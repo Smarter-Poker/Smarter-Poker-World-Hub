@@ -109,18 +109,18 @@ sw.addEventListener('fetch', (event) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const EVENT_LABELS = {
-    BALANCE_UPDATED: 'Balance Updated',
-    CLUB_JOINED: 'Club Joined',
-    CLUB_LEFT: 'Left Club',
-    TABLE_SEATED: 'Seated at Table',
-    TABLE_LEFT: 'Left Table',
+    BALANCE_UPDATED: '💰 Balance Updated',
+    CLUB_JOINED: '♠️ Club Joined',
+    CLUB_LEFT: '🚪 Left Club',
+    TABLE_SEATED: '🎯 Seated at Table',
+    TABLE_LEFT: '👋 Left Table',
 };
 
 sw.addEventListener('message', (event) => {
     if (event.data?.type !== 'BUS_EVENT') return;
 
     const { type: eventType, payload } = event.data.event || {};
-    const title = EVENT_LABELS[eventType] || eventType;
+    const title = EVENT_LABELS[eventType] || `🚌 ${eventType}`;
 
     // Only show notification if page is not visible
     // (clients.matchAll checks if any tab is focused)
