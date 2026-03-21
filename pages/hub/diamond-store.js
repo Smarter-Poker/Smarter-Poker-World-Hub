@@ -700,6 +700,17 @@ export default function DiamondStorePage() {
     const [clubShopClubId, setClubShopClubId] = useState(null);
     const [clubShopRole, setClubShopRole] = useState('player');
     const [clubShopSuccess, setClubShopSuccess] = useState(null);
+    const [clubShopSortMode, setClubShopSortMode] = useState('newest');
+    // Admin Manage state
+    const [clubShopAdminItems, setClubShopAdminItems] = useState([]);
+    const [clubShopAdminLoaded, setClubShopAdminLoaded] = useState(false);
+    const [clubShopNewName, setClubShopNewName] = useState('');
+    const [clubShopNewPrice, setClubShopNewPrice] = useState('');
+    const [clubShopNewDesc, setClubShopNewDesc] = useState('');
+    const [clubShopNewCategory, setClubShopNewCategory] = useState('Time Banks');
+    const [clubShopNewImage, setClubShopNewImage] = useState('');
+    const [clubShopLastCreate, setClubShopLastCreate] = useState(0);
+    const clubShopLoadingRef = useRef(false);
 
     // Check VIP status on mount
     useEffect(() => {
@@ -901,14 +912,15 @@ export default function DiamondStorePage() {
     };
 
     // ═══ Club Shop: Load items from marketplace API ═══
-    const loadClubShop = useCallback(async () => {
-        if (clubShopLoading) return;
-        setClubShopLoading(true);
+    const loadClubShop = useCallback(async (silent = false) => {
+        if (clubShopLoadingRef.current) return;
+        clubShopLoadingRef.current = true;
+        if (!silent) setClubShopLoading(true);
         try {
             const token = getAccessToken();
-            if (!token) { setClubShopLoading(false); return; }
+            if (!token) { clubShopLoadingRef.current = false; setClubShopLoading(false); return; }
             const authUser = getAuthUser();
-            if (!authUser?.id) { setClubShopLoading(false); return; }
+            if (!authUser?.id) { clubShopLoadingRef.current = false; setClubShopLoading(false); return; }
 
             // Find user's club
             let targetClub = clubShopClubId;
@@ -923,6 +935,7 @@ export default function DiamondStorePage() {
                 if (targetClub) setClubShopClubId(targetClub);
             }
             if (!targetClub) {
+                clubShopLoadingRef.current = false;
                 setClubShopLoading(false);
                 setClubShopLoaded(true);
                 return;
@@ -947,6 +960,7 @@ export default function DiamondStorePage() {
         } catch (err) {
             console.error('[Club Shop]', err);
         } finally {
+            clubShopLoadingRef.current = false;
             setClubShopLoading(false);
         }
     }, [clubShopClubId]);
@@ -975,14 +989,47 @@ export default function DiamondStorePage() {
             setClubShopSuccess(`Purchased ${clubShopBuyTarget.name}!`);
             setTimeout(() => setClubShopSuccess(null), 2500);
             setClubChipBalance(responseData.newBalance ?? (clubChipBalance - clubShopBuyTarget.price));
+            // Emit bus event so other components (cashier, etc.) update
+            broadcastSync('BALANCE_UPDATED', { source: 'club_shop_purchase', clubId: clubShopClubId });
             setClubShopBuyTarget(null);
-            loadClubShop();
+            clubShopLoadingRef.current = false;
+            loadClubShop(true);
         } catch (err) {
             alert(err.message || 'Purchase failed');
         } finally {
             setClubShopProcessing(false);
         }
     };
+
+    // ═══ Club Shop: Admin — load all items (active + hidden) ═══
+    const loadClubShopAdmin = useCallback(async () => {
+        if (!clubShopClubId) return;
+        try {
+            const { data } = await supabase
+                .from('club_shop_items')
+                .select('id, club_id, name, description, price, image_url, category, is_active')
+                .eq('club_id', clubShopClubId)
+                .order('created_at', { ascending: false });
+            let itemsWithCounts = (data || []).map(i => ({ ...i, purchase_count: 0 }));
+            if (itemsWithCounts.length > 0) {
+                const itemIds = itemsWithCounts.map(i => i.id);
+                const { data: countRows } = await supabase
+                    .from('club_shop_purchases')
+                    .select('item_id')
+                    .eq('club_id', clubShopClubId)
+                    .in('item_id', itemIds);
+                const counts = {};
+                (countRows || []).forEach(r => { counts[r.item_id] = (counts[r.item_id] || 0) + 1; });
+                itemsWithCounts = itemsWithCounts.map(i => ({ ...i, purchase_count: counts[i.id] || 0 }));
+            }
+            setClubShopAdminItems(itemsWithCounts);
+            setClubShopAdminLoaded(true);
+        } catch (err) {
+            console.error('[Club Shop Admin]', err);
+        }
+    }, [clubShopClubId]);
+
+    const clubShopIsAdmin = ['owner', 'admin'].includes(clubShopRole);
 
     // Pay with Diamonds handler — deducts from user's diamond balance
     const handlePayWithDiamonds = async (items) => {
@@ -1932,18 +1979,21 @@ export default function DiamondStorePage() {
                                     </div>
                                 ) : (
                                     <>
-                                        {/* Sub-tabs: Store / My Purchases */}
-                                        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                                            {['store', 'my-purchases'].map(st => (
-                                                <button key={st} onClick={() => setClubShopSubTab(st)}
+                                        {/* Sub-tabs: Store / My Purchases / Manage (admin) */}
+                                        <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                                            {[{ key: 'store', label: `🛍️ Store (${clubShopItems.length})` },
+                                              { key: 'my-purchases', label: `📦 My Purchases (${clubShopPurchases.length})` },
+                                              ...(clubShopIsAdmin ? [{ key: 'manage', label: '🛠️ Manage' }] : []),
+                                            ].map(st => (
+                                                <button key={st.key} onClick={() => { setClubShopSubTab(st.key); if (st.key === 'manage' && !clubShopAdminLoaded) loadClubShopAdmin(); }}
                                                     style={{
                                                         padding: '8px 20px',
-                                                        background: clubShopSubTab === st ? 'rgba(0,180,255,0.15)' : 'rgba(255,255,255,0.05)',
-                                                        border: clubShopSubTab === st ? '1px solid rgba(0,180,255,0.4)' : '1px solid rgba(255,255,255,0.1)',
-                                                        borderRadius: 10, color: clubShopSubTab === st ? '#00D4FF' : 'rgba(255,255,255,0.5)',
+                                                        background: clubShopSubTab === st.key ? 'rgba(0,180,255,0.15)' : 'rgba(255,255,255,0.05)',
+                                                        border: clubShopSubTab === st.key ? '1px solid rgba(0,180,255,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                                                        borderRadius: 10, color: clubShopSubTab === st.key ? '#00D4FF' : 'rgba(255,255,255,0.5)',
                                                         fontSize: 13, fontWeight: 600, cursor: 'pointer',
                                                     }}>
-                                                    {st === 'store' ? `🛍️ Store (${clubShopItems.length})` : `📦 My Purchases (${clubShopPurchases.length})`}
+                                                    {st.label}
                                                 </button>
                                             ))}
                                         </div>
@@ -1966,17 +2016,32 @@ export default function DiamondStorePage() {
                                                     ))}
                                                 </div>
 
-                                                {/* Search */}
-                                                <input
-                                                    type="text" placeholder="🔍 Search items..."
-                                                    value={clubShopSearch}
-                                                    onChange={e => setClubShopSearch(e.target.value)}
-                                                    style={{
-                                                        width: '100%', padding: '10px 16px', borderRadius: 10,
-                                                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                                                        color: '#E4E6EB', fontSize: 14, outline: 'none', marginBottom: 20, boxSizing: 'border-box',
-                                                    }}
-                                                />
+                                                {/* Search + Sort */}
+                                                <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                                                    <input
+                                                        type="text" placeholder="🔍 Search items..."
+                                                        value={clubShopSearch}
+                                                        onChange={e => setClubShopSearch(e.target.value)}
+                                                        style={{
+                                                            flex: 1, padding: '10px 16px', borderRadius: 10,
+                                                            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                                                            color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+                                                        }}
+                                                    />
+                                                    <select
+                                                        value={clubShopSortMode}
+                                                        onChange={e => setClubShopSortMode(e.target.value)}
+                                                        style={{
+                                                            padding: '10px 14px', borderRadius: 10,
+                                                            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                                                            color: '#E4E6EB', fontSize: 13, outline: 'none', cursor: 'pointer',
+                                                        }}>
+                                                        <option value="newest">Newest First</option>
+                                                        <option value="price-low">Price: Low → High</option>
+                                                        <option value="price-high">Price: High → Low</option>
+                                                        <option value="popular">Most Popular</option>
+                                                    </select>
+                                                </div>
 
                                                 {/* Item Grid */}
                                                 {(() => {
@@ -1988,6 +2053,13 @@ export default function DiamondStorePage() {
                                                     if (clubShopSearch.trim()) {
                                                         const q = clubShopSearch.toLowerCase();
                                                         filtered = filtered.filter(i => i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q));
+                                                    }
+                                                    // Sort
+                                                    switch (clubShopSortMode) {
+                                                        case 'price-low': filtered.sort((a, b) => a.price - b.price); break;
+                                                        case 'price-high': filtered.sort((a, b) => b.price - a.price); break;
+                                                        case 'popular': filtered.sort((a, b) => (b.purchase_count || 0) - (a.purchase_count || 0)); break;
+                                                        default: break; // newest = API order
                                                     }
 
                                                     if (filtered.length === 0) {
@@ -2118,6 +2190,152 @@ export default function DiamondStorePage() {
                                                                 })}
                                                             </tbody>
                                                         </table>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {/* Manage Sub-Tab (admin only) */}
+                                        {clubShopSubTab === 'manage' && clubShopIsAdmin && (
+                                            <>
+                                                {/* Admin Stats */}
+                                                {(() => {
+                                                    const total = clubShopAdminItems.length;
+                                                    const active = clubShopAdminItems.filter(i => i.is_active).length;
+                                                    const totalSold = clubShopAdminItems.reduce((s, i) => s + (i.purchase_count || 0), 0);
+                                                    const totalRev = clubShopAdminItems.reduce((s, i) => s + (i.purchase_count || 0) * i.price, 0);
+                                                    return (
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
+                                                            {[{ label: 'Total Items', val: total }, { label: 'Active', val: active },
+                                                              { label: 'Total Sold', val: totalSold }, { label: 'Revenue', val: totalRev.toLocaleString() + ' chips' },
+                                                            ].map(s => (
+                                                                <div key={s.label} style={{
+                                                                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                                                                    borderRadius: 12, padding: '16px 14px', textAlign: 'center',
+                                                                }}>
+                                                                    <div style={{ fontSize: 22, fontWeight: 800, color: '#00D4FF' }}>{s.val}</div>
+                                                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginTop: 4 }}>{s.label}</div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                })()}
+
+                                                {/* Create Item Form */}
+                                                <div style={{
+                                                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                                                    borderRadius: 14, padding: 20, marginBottom: 24,
+                                                }}>
+                                                    <h3 style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB', marginBottom: 14 }}>➕ Create Shop Item</h3>
+                                                    <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                                                        <input value={clubShopNewName} onChange={e => setClubShopNewName(e.target.value)}
+                                                            placeholder="Item name" maxLength={100}
+                                                            style={{ flex: 2, padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#E4E6EB', fontSize: 14, outline: 'none' }} />
+                                                        <input type="number" value={clubShopNewPrice} onChange={e => setClubShopNewPrice(e.target.value)}
+                                                            placeholder="Price (chips)" min="1"
+                                                            style={{ flex: 1, padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#E4E6EB', fontSize: 14, outline: 'none' }} />
+                                                    </div>
+                                                    <input value={clubShopNewDesc} onChange={e => setClubShopNewDesc(e.target.value)}
+                                                        placeholder="Description (optional)" maxLength={500}
+                                                        style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#E4E6EB', fontSize: 14, outline: 'none', marginBottom: 10, boxSizing: 'border-box' }} />
+                                                    <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                                                        <select value={clubShopNewCategory} onChange={e => setClubShopNewCategory(e.target.value)}
+                                                            style={{ flex: 1, padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#E4E6EB', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
+                                                            {['Time Banks', 'Table Skins', 'Throwables', 'Emotes', 'Avatars', 'Exclusive'].map(c => (
+                                                                <option key={c} value={c}>{c}</option>
+                                                            ))}
+                                                        </select>
+                                                        <input value={clubShopNewImage} onChange={e => setClubShopNewImage(e.target.value)}
+                                                            placeholder="Image URL (optional)"
+                                                            style={{ flex: 1, padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#E4E6EB', fontSize: 14, outline: 'none' }} />
+                                                    </div>
+                                                    <button
+                                                        disabled={clubShopProcessing || !clubShopNewName.trim() || !clubShopNewPrice}
+                                                        onClick={async () => {
+                                                            const now = Date.now();
+                                                            if (now - clubShopLastCreate < 3000) { alert('Please wait before creating another item'); return; }
+                                                            const price = Math.floor(Number(clubShopNewPrice));
+                                                            if (!price || price <= 0) { alert('Price must be a positive number'); return; }
+                                                            if (price > 1000000000) { alert('Price exceeds maximum'); return; }
+                                                            setClubShopProcessing(true);
+                                                            try {
+                                                                const { error } = await supabase.from('club_shop_items').insert({
+                                                                    club_id: clubShopClubId, name: clubShopNewName.trim(), price,
+                                                                    description: clubShopNewDesc.trim() || null, category: clubShopNewCategory,
+                                                                    image_url: clubShopNewImage.trim() || null, is_active: true,
+                                                                });
+                                                                if (error) throw error;
+                                                                setClubShopLastCreate(Date.now());
+                                                                setClubShopNewName(''); setClubShopNewPrice(''); setClubShopNewDesc(''); setClubShopNewImage(''); setClubShopNewCategory('Time Banks');
+                                                                loadClubShopAdmin();
+                                                                clubShopLoadingRef.current = false;
+                                                                loadClubShop(true);
+                                                            } catch (err) { alert(err.message); } finally { setClubShopProcessing(false); }
+                                                        }}
+                                                        style={{
+                                                            padding: '10px 28px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                                            background: 'linear-gradient(135deg, #1877F2, #4285F4)', border: 'none', color: '#fff',
+                                                            opacity: (!clubShopNewName.trim() || !clubShopNewPrice) ? 0.5 : 1,
+                                                        }}>
+                                                        {clubShopProcessing ? 'Creating...' : 'Create Item'}
+                                                    </button>
+                                                </div>
+
+                                                {/* Admin Item List */}
+                                                {clubShopAdminItems.length === 0 ? (
+                                                    <div style={{ textAlign: 'center', padding: 40 }}>
+                                                        <div style={{ fontSize: 48, marginBottom: 12 }}>🛠️</div>
+                                                        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>No shop items yet. Create one above.</div>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                                        {clubShopAdminItems.map(item => (
+                                                            <div key={item.id} style={{
+                                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
+                                                                borderRadius: 10, padding: '12px 16px',
+                                                            }}>
+                                                                <div>
+                                                                    <div style={{ fontWeight: 700, color: item.is_active ? '#E4E6EB' : '#6B7280', fontSize: 14 }}>{item.name}</div>
+                                                                    <div style={{ fontSize: 12, color: '#8b8d91', marginTop: 2 }}>
+                                                                        {item.price.toLocaleString()} chips • <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10, background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{item.category || 'Time Banks'}</span> • {item.purchase_count || 0} sold
+                                                                    </div>
+                                                                </div>
+                                                                <div style={{ display: 'flex', gap: 8 }}>
+                                                                    <button onClick={async () => {
+                                                                        try {
+                                                                            const { error } = await supabase.from('club_shop_items').update({ is_active: !item.is_active }).eq('id', item.id).eq('club_id', item.club_id);
+                                                                            if (error) throw error;
+                                                                            loadClubShopAdmin();
+                                                                            clubShopLoadingRef.current = false;
+                                                                            loadClubShop(true);
+                                                                        } catch (err) { alert(err.message); }
+                                                                    }} style={{
+                                                                        padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                                                        background: item.is_active ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.05)',
+                                                                        border: item.is_active ? '1px solid rgba(0,255,136,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                                                                        color: item.is_active ? '#00ff88' : 'rgba(255,255,255,0.4)',
+                                                                    }}>
+                                                                        {item.is_active ? '✓ Active' : 'Hidden'}
+                                                                    </button>
+                                                                    <button onClick={async () => {
+                                                                        if (!confirm(`Delete "${item.name}"?`)) return;
+                                                                        try {
+                                                                            const { error } = await supabase.from('club_shop_items').delete().eq('id', item.id).eq('club_id', item.club_id);
+                                                                            if (error) throw error;
+                                                                            loadClubShopAdmin();
+                                                                            clubShopLoadingRef.current = false;
+                                                                            loadClubShop(true);
+                                                                        } catch (err) { alert(err.message); }
+                                                                    }} style={{
+                                                                        padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                                                        background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', color: '#ff6b6b',
+                                                                    }}>
+                                                                        🗑️ Delete
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 )}
                                             </>
