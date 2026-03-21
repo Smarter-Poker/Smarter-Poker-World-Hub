@@ -46,30 +46,73 @@ export default async function handler(req, res) {
 
           if (!membership) return res.status(403).json({ error: 'Not a club member' });
 
-          // Fetch active items
+          // Fetch active items — BUG-10 FIX: sort by created_at desc (not price asc) for 'Newest First'
           const { data: items, error: itemsErr } = await getSupabase()
               .from('club_shop_items')
               .select('id, name, description, price, category, image_url, item_type')
               .eq('club_id', clubId)
               .eq('is_active', true)
-              .order('price', { ascending: true });
+              .order('created_at', { ascending: false });
+
+          // BUG-11 FIX: Compute purchase_count per item so 'Most Popular' sort and 'X sold' display work
+          let itemsWithCount = items || [];
+          if (itemsWithCount.length > 0) {
+              const itemIds = itemsWithCount.map(i => i.id);
+              const { data: countRows } = await getSupabase()
+                  .from('club_shop_purchases')
+                  .select('item_id')
+                  .eq('club_id', clubId)
+                  .in('item_id', itemIds);
+              const counts = {};
+              (countRows || []).forEach(r => { counts[r.item_id] = (counts[r.item_id] || 0) + 1; });
+              itemsWithCount = itemsWithCount.map(i => ({ ...i, purchase_count: counts[i.id] || 0 }));
+          }
 
           if (itemsErr) throw itemsErr;
 
-          // Fetch user's own purchases
-          const { data: purchases, error: purErr } = await getSupabase()
-              .from('club_shop_purchases')
-              .select('id, item_id, price_paid, created_at')
-              .eq('club_id', clubId)
-              .eq('buyer_id', user.id)
-              .order('created_at', { ascending: false });
+          // BUG-12 FIX: Join item name+category into purchases so My Items displays correct info
+          //             even if the item was later hidden or deleted from the store.
+          //             Falls back to basic query if FK join isn't available.
+          let flatPurchases = [];
+          try {
+              const { data: purchases, error: purErr } = await getSupabase()
+                  .from('club_shop_purchases')
+                  .select('id, item_id, price_paid, created_at, club_shop_items(name, category)')
+                  .eq('club_id', clubId)
+                  .eq('buyer_id', user.id)
+                  .order('created_at', { ascending: false });
 
-          if (purErr) throw purErr;
+              if (purErr) throw purErr;
+
+              // Flatten the joined item data into each purchase record
+              flatPurchases = (purchases || []).map(p => ({
+                  id: p.id,
+                  item_id: p.item_id,
+                  price_paid: p.price_paid,
+                  created_at: p.created_at,
+                  item_name: p.club_shop_items?.name || null,
+                  item_category: p.club_shop_items?.category || null,
+              }));
+          } catch (_joinErr) {
+              // FK join failed — fall back to basic query without item name enrichment
+              const { data: purchases, error: purErr } = await getSupabase()
+                  .from('club_shop_purchases')
+                  .select('id, item_id, price_paid, created_at')
+                  .eq('club_id', clubId)
+                  .eq('buyer_id', user.id)
+                  .order('created_at', { ascending: false });
+              if (purErr) throw purErr;
+              flatPurchases = (purchases || []).map(p => ({
+                  ...p,
+                  item_name: null,
+                  item_category: null,
+              }));
+          }
 
           return res.status(200).json({
               success: true,
-              items: items || [],
-              purchases: purchases || [],
+              items: itemsWithCount,
+              purchases: flatPurchases,
               balance: membership.chip_balance || 0,
               role: membership.role
           });
