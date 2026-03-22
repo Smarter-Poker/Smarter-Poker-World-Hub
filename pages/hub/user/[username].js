@@ -712,7 +712,11 @@ export default function UserProfilePage() {
     // Core state
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [currentUser, setCurrentUser] = useState(null);
+    const [currentUser, setCurrentUser] = useState(() => {
+        // Synchronous init so isOwnProfile resolves even with SWR cache hydration
+        if (typeof window === 'undefined') return null;
+        try { return getAuthUser(); } catch (_) { return null; }
+    });
     const [isFriend, setIsFriend] = useState(false);
     const [friendRequestSent, setFriendRequestSent] = useState(false);
     const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
