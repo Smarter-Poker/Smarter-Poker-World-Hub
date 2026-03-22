@@ -269,6 +269,22 @@ export default function UniversalHeader({
                                     avatar: profile.avatar_url,
                                     name: profile.full_name || profile.username
                                 }));
+                                // Cache the REST fallback data too
+                                try {
+                                    localStorage.setItem('sp-cached-header-user', JSON.stringify({
+                                        avatar: profile.avatar_url,
+                                        name: profile.full_name || profile.username,
+                                        username: profile.username || null,
+                                        diamonds: profile.diamonds || 0,
+                                        is_vip: false
+                                    }));
+                                } catch (_) { }
+                                // Update direct profile link
+                                if (profile.username) {
+                                    const directHref = `/hub/user/${profile.username}`;
+                                    setProfileHref(directHref);
+                                    router.prefetch(directHref);
+                                }
                                 console.log('[UniversalHeader] Direct REST fallback SUCCESS:', { diamonds: profile.diamonds });
                             }
                         } catch (e) {
@@ -433,6 +449,11 @@ export default function UniversalHeader({
                             is_vip: !!result.profile.is_vip
                         }));
                     } catch (_) { }
+                    // Update direct profile link if username changed
+                    if (result.profile.username) {
+                        const directHref = `/hub/user/${result.profile.username}`;
+                        setProfileHref(directHref);
+                    }
                     console.log('[UniversalHeader] 🚌 Profile refreshed via bus event');
                 }
             } catch (e) {

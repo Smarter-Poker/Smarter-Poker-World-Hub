@@ -314,6 +314,11 @@ export default function ThreePillHeader({
                             is_vip: !!result.profile.is_vip
                         }));
                     } catch (_) { }
+                    // Update direct profile link if username changed
+                    if (result.profile.username) {
+                        const directHref = `/hub/user/${result.profile.username}`;
+                        setProfileHref(directHref);
+                    }
                     console.log('[ThreePillHeader] 🚌 Profile refreshed via bus event');
                 }
             } catch (e) {
