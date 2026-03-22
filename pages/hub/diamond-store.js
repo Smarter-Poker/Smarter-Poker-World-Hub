@@ -1031,6 +1031,67 @@ export default function DiamondStorePage() {
 
     const clubShopIsAdmin = ['owner', 'admin'].includes(clubShopRole);
 
+    // ═══ Club Shop: 5-second loading timeout safety ═══
+    useEffect(() => {
+        if (!clubShopLoading) return;
+        const timeout = setTimeout(() => {
+            clubShopLoadingRef.current = false;
+            setClubShopLoading(false);
+        }, 5000);
+        return () => clearTimeout(timeout);
+    }, [clubShopLoading]);
+
+    // ═══ Club Shop: Real-time Supabase subscriptions ═══
+    useEffect(() => {
+        if (!clubShopClubId) return;
+        const channelKey = `dstore-club-shop-${clubShopClubId}`;
+        const channel = supabase.channel(channelKey)
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'club_shop_items',
+                filter: `club_id=eq.${clubShopClubId}`,
+            }, () => {
+                clubShopLoadingRef.current = false;
+                loadClubShop(true);
+                if (clubShopAdminLoaded) loadClubShopAdmin();
+            })
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'club_shop_purchases',
+                filter: `club_id=eq.${clubShopClubId}`,
+            }, () => {
+                clubShopLoadingRef.current = false;
+                loadClubShop(true);
+            })
+            .subscribe((status) => {
+                if (status === 'CHANNEL_ERROR') console.error('[Club Shop] Realtime channel error');
+            });
+        return () => { supabase.removeChannel(channel); };
+    }, [clubShopClubId, loadClubShop, clubShopAdminLoaded, loadClubShopAdmin]);
+
+    // ═══ Club Shop: Bus listeners for cross-component balance sync ═══
+    useEffect(() => {
+        if (!clubShopClubId) return;
+        const refresh = () => { clubShopLoadingRef.current = false; loadClubShop(true); };
+        const unsubs = [
+            listenBroadcast('BALANCE_UPDATED', refresh),
+            listenBroadcast('CHIPS_DISTRIBUTED', refresh),
+            listenBroadcast('CASHIER_BALANCE_CHANGED', refresh),
+        ];
+        return () => unsubs.forEach(u => u());
+    }, [clubShopClubId, loadClubShop]);
+
+    // ═══ Club Shop: Visibility refresh (tab re-focus) ═══
+    useEffect(() => {
+        if (!clubShopClubId) return;
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible' && activeTab === 'club-shop') {
+                clubShopLoadingRef.current = false;
+                loadClubShop(true);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
+    }, [clubShopClubId, loadClubShop, activeTab]);
+
     // Pay with Diamonds handler — deducts from user's diamond balance
     const handlePayWithDiamonds = async (items) => {
         setIsProcessing(true);
