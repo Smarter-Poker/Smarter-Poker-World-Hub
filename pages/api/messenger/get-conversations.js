@@ -75,52 +75,68 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: convError.message });
           }
 
-          // Step 3: For each conversation, get the other participant(s) and unread count
-          const enriched = await Promise.all(
-              conversations.map(async (conv) => {
-                  const participation = participations.find(p => p.conversation_id === conv.id);
+          // Step 3: BATCHED — get ALL other participants in ONE query
+          const { data: allOtherParticipants } = await getSupabase()
+              .from('social_conversation_participants')
+              .select('conversation_id, user_id')
+              .in('conversation_id', conversationIds)
+              .neq('user_id', userId);
 
-                  // Get other participants
-                  const { data: otherParticipants } = await getSupabase()
-                      .from('social_conversation_participants')
-                      .select('user_id')
-                      .eq('conversation_id', conv.id)
-                      .neq('user_id', userId)
-                      .limit(100);
+          // Build a map: conversation_id → other user_id
+          const convToOtherUser = {};
+          const otherUserIds = new Set();
+          (allOtherParticipants || []).forEach(p => {
+              if (!convToOtherUser[p.conversation_id]) {
+                  convToOtherUser[p.conversation_id] = p.user_id;
+                  otherUserIds.add(p.user_id);
+              }
+          });
 
-                  let otherUser = null;
-                  if (otherParticipants?.[0]?.user_id) {
-                      const { data: profile } = await getSupabase()
-                          .from('profiles')
-                          .select('id, username, display_name, avatar_url')
-                          .eq('id', otherParticipants[0].user_id)
-                          .maybeSingle();
-                      otherUser = profile;
-                  }
+          // Step 4: BATCHED — get ALL profiles in ONE query
+          let profilesMap = {};
+          if (otherUserIds.size > 0) {
+              const { data: profiles } = await getSupabase()
+                  .from('profiles')
+                  .select('id, username, display_name, avatar_url')
+                  .in('id', [...otherUserIds]);
+              (profiles || []).forEach(p => { profilesMap[p.id] = p; });
+          }
 
-                  // Count unread messages
-                  const { count } = await getSupabase()
-                      .from('social_messages')
-                      .select('id', { count: 'exact', head: true })
-                      .eq('conversation_id', conv.id)
-                      .neq('sender_id', userId)
-                      .gt('created_at', participation?.last_read_at || '1970-01-01');
+          // Step 5: BATCHED — get unread counts per conversation in ONE query
+          // Use individual counts but batch with Promise.all (unavoidable for per-conv counts)
+          const unreadCounts = {};
+          const participationMap = {};
+          participations.forEach(p => { participationMap[p.conversation_id] = p; });
 
+          // Batch unread counts in parallel (not sequential)
+          await Promise.all(conversationIds.map(async (convId) => {
+              const participation = participationMap[convId];
+              const { count } = await getSupabase()
+                  .from('social_messages')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('conversation_id', convId)
+                  .neq('sender_id', userId)
+                  .gt('created_at', participation?.last_read_at || '1970-01-01');
+              unreadCounts[convId] = count || 0;
+          }));
+
+          // Step 6: Assemble enriched conversations (no extra queries)
+          const validConversations = conversations
+              .map(conv => {
+                  const otherUserId = convToOtherUser[conv.id];
+                  const otherUser = otherUserId ? profilesMap[otherUserId] : null;
+                  if (!otherUser) return null;
                   return {
                       id: conv.id,
                       last_message_at: conv.last_message_at,
                       last_message_preview: conv.last_message_preview,
                       is_group: conv.is_group,
                       otherUser,
-                      unreadCount: count || 0,
-                      last_read_at: participation?.last_read_at,
+                      unreadCount: unreadCounts[conv.id] || 0,
+                      last_read_at: participationMap[conv.id]?.last_read_at,
                   };
               })
-          );
-
-          // Filter out conversations without other users and sort
-          const validConversations = enriched
-              .filter(c => c.otherUser)
+              .filter(Boolean)
               .sort((a, b) => {
                   const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
                   const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;

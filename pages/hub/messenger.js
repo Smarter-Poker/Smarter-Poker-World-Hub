@@ -1028,6 +1028,9 @@ function MessengerPage() {
     const setShowNewChat = useMessengerStore((s) => s.setShowNewChat);
     const showSearch = useMessengerStore((s) => s.showSearch);
     const setShowSearch = useMessengerStore((s) => s.setShowSearch);
+    const cachedConversations = useMessengerStore((s) => s.conversations);
+    const setCachedConversations = useMessengerStore((s) => s.setConversations);
+    const hasCachedConversations = useMessengerStore((s) => s.hasCachedConversations);
 
     // 🚌 EventBus session tracking + DATA_MUTATED listener
     useTrainingBus('messenger');
@@ -1059,8 +1062,8 @@ function MessengerPage() {
 
     // Local state (keep for data/session)
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [conversations, setConversations] = useState([]);
+    const [loading, setLoading] = useState(!hasCachedConversations());
+    const [conversations, setConversations] = useState(cachedConversations);
     const [activeConversation, setActiveConversation] = useState(null);
     const [messages, setMessages] = useState([]);
     const [loadingMessages, setLoadingMessages] = useState(false);
@@ -1147,25 +1150,34 @@ function MessengerPage() {
     }, []);
 
 
-    // Load user and conversations
+    // Load user and conversations — PARALLEL init with cache-first render
     useEffect(() => {
-        async function init(signal) {
+        async function init() {
             try {
                 // BULLETPROOF: Use authUtils instead of getSafeUser (avoids AbortError)
                 const authUser = getAuthUser();
 
                 if (authUser) {
-                    // Fetch profile through API-friendly approach
                     const token = getAccessToken();
                     const headers = { 'Authorization': 'Bearer ' + token };
 
-                    // Get profile data via header stats API (already proven working)
-                    const profileResp = await fetch('/api/user/get-header-stats', {
-                        method: 'POST',
-                        headers: { ...headers, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({})
-                    }).then(r => r.json()).catch(() => ({}));
+                    // PARALLEL: Fire all 3 independent API calls at once
+                    const [profileResult, convoResult, friendsResult] = await Promise.allSettled([
+                        // 1. Profile
+                        fetch('/api/user/get-header-stats', {
+                            method: 'POST',
+                            headers: { ...headers, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({})
+                        }).then(r => r.json()).catch(() => ({})),
+                        // 2. Conversations
+                        loadConversations(authUser.id),
+                        // 3. Friends
+                        fetch('/api/friends?action=list', { headers })
+                            .then(r => r.json()).catch(() => ({ data: { friends: [] } }))
+                    ]);
 
+                    // Process profile
+                    const profileResp = profileResult.status === 'fulfilled' ? profileResult.value : {};
                     setUser({
                         ...authUser,
                         username: profileResp.username || authUser.email?.split('@')[0],
@@ -1173,12 +1185,9 @@ function MessengerPage() {
                         is_vip: profileResp.is_vip
                     });
                     setIsVip(!!profileResp.is_vip);
-                    await loadConversations(authUser.id);
 
-                    // Load friends via API (service role, bypasses RLS)
-                    const friendsResp = await fetch('/api/friends?action=list', { headers })
-                        .then(r => r.json()).catch(() => ({ data: { friends: [] } }));
-
+                    // Process friends
+                    const friendsResp = friendsResult.status === 'fulfilled' ? friendsResult.value : {};
                     if (friendsResp?.data?.friends) {
                         setFriends(friendsResp.data.friends);
                     }

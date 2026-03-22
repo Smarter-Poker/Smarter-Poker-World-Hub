@@ -106,12 +106,14 @@ export default function ThreePillHeader({
         }
     };
 
-    // ── PREFETCH: Eagerly load profile + notifications JS bundles ──
+    // ── PREFETCH: Eagerly load all header-linked page JS bundles ──
     useEffect(() => {
         if (profileHref !== '/hub/profile') {
             router.prefetch(profileHref);
         }
         router.prefetch('/hub/notifications');
+        router.prefetch('/hub/settings');
+        router.prefetch('/hub/messenger');
     }, [profileHref, router]);
 
     useEffect(() => {
