@@ -75,12 +75,34 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: convError.message });
           }
 
-          // Step 3: BATCHED — get ALL other participants in ONE query
-          const { data: allOtherParticipants } = await getSupabase()
-              .from('social_conversation_participants')
-              .select('conversation_id, user_id')
-              .in('conversation_id', conversationIds)
-              .neq('user_id', userId);
+          // Steps 3-5: PARALLELIZED — run all 3 queries at once since they only need conversationIds
+          const earliestRead = participations.reduce((earliest, p) => {
+              const ts = p.last_read_at || '1970-01-01';
+              return ts < earliest ? ts : earliest;
+          }, participations[0].last_read_at || '1970-01-01');
+
+          const participationMap = {};
+          participations.forEach(p => { participationMap[p.conversation_id] = p; });
+
+          const [otherParticipantsResult, candidateMsgsResult] = await Promise.all([
+              // Step 3: Get ALL other participants
+              getSupabase()
+                  .from('social_conversation_participants')
+                  .select('conversation_id, user_id')
+                  .in('conversation_id', conversationIds)
+                  .neq('user_id', userId),
+              // Step 5: Get unread candidate messages
+              getSupabase()
+                  .from('social_messages')
+                  .select('conversation_id, created_at')
+                  .in('conversation_id', conversationIds)
+                  .neq('sender_id', userId)
+                  .eq('is_deleted', false)
+                  .gt('created_at', earliestRead)
+                  .limit(5000),
+          ]);
+
+          const allOtherParticipants = otherParticipantsResult.data;
 
           // Build a map: conversation_id → other user_id
           const convToOtherUser = {};
@@ -92,7 +114,7 @@ export default async function handler(req, res) {
               }
           });
 
-          // Step 4: BATCHED — get ALL profiles in ONE query
+          // Step 4: Get ALL profiles in ONE query (depends on step 3's otherUserIds)
           let profilesMap = {};
           if (otherUserIds.size > 0) {
               const { data: profiles } = await getSupabase()
@@ -102,28 +124,9 @@ export default async function handler(req, res) {
               (profiles || []).forEach(p => { profilesMap[p.id] = p; });
           }
 
-          // Step 5: BATCHED — get unread counts in ONE query (not per-conversation)
+          // Count unread per-conversation using each conversation's own last_read_at
           const unreadCounts = {};
-          const participationMap = {};
-          participations.forEach(p => { participationMap[p.conversation_id] = p; });
-
-          // Find earliest last_read_at as a floor filter to reduce result set
-          const earliestRead = participations.reduce((earliest, p) => {
-              const ts = p.last_read_at || '1970-01-01';
-              return ts < earliest ? ts : earliest;
-          }, participations[0].last_read_at || '1970-01-01');
-
-          const { data: candidateMsgs } = await getSupabase()
-              .from('social_messages')
-              .select('conversation_id, created_at')
-              .in('conversation_id', conversationIds)
-              .neq('sender_id', userId)
-              .eq('is_deleted', false)
-              .gt('created_at', earliestRead)
-              .limit(5000);
-
-          // Count per-conversation using each conversation's own last_read_at
-          (candidateMsgs || []).forEach(msg => {
+          (candidateMsgsResult.data || []).forEach(msg => {
               const participation = participationMap[msg.conversation_id];
               const lastRead = participation?.last_read_at || '1970-01-01';
               if (msg.created_at > lastRead) {

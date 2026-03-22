@@ -2007,7 +2007,7 @@ function MessengerPage() {
             });
             const sendResult = await sendResp.json();
             if (!sendResp.ok || !sendResult.success) throw new Error(sendResult.error || 'Send failed');
-            const data = sendResult.messageId;
+            const data = sendResult.msgId;
 
             // Replace optimistic message with real one
             setMessages(prev => prev.map(m =>
