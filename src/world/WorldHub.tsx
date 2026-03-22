@@ -623,6 +623,14 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
             return;
         }
 
+        // Club Arena is a standalone Vite SPA — MUST use full page navigation.
+        // Next.js router.push loads the HTML but type="module" scripts don't
+        // re-execute, leaving React unmounted (black screen bug).
+        if (cardId === 'club-arena') {
+            window.location.href = '/hub/club-arena';
+            return;
+        }
+
         // Intro video config - same as handleOrbSelect
         const introVideos: Record<string, string> = {
             'trivia': '/videos/trivia-intro.mp4',
