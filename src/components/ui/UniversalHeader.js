@@ -71,6 +71,12 @@ export default function UniversalHeader({
                 const { username } = JSON.parse(nameCache);
                 if (username) return `/hub/user/${username}`;
             }
+            // Fallback: extract username from header user cache
+            const headerCache = localStorage.getItem('sp-cached-header-user');
+            if (headerCache) {
+                const { username } = JSON.parse(headerCache);
+                if (username) return `/hub/user/${username}`;
+            }
         } catch (_) {}
         return '/hub/profile';
     });
@@ -91,6 +97,7 @@ export default function UniversalHeader({
                 if (cached) {
                     const data = JSON.parse(cached);
                     if (data) setUser(data);
+                    if (data.diamonds !== undefined) setStats({ diamonds: data.diamonds });
                     if (data.is_vip) setIsVip(true);
                 } else if (localStorage.getItem('sp-vip-status') === 'true') {
                     setIsVip(true);
@@ -198,6 +205,7 @@ export default function UniversalHeader({
                                     localStorage.setItem('sp-cached-header-user', JSON.stringify({
                                         avatar: avatar_url,
                                         name: full_name || username,
+                                        username: username || null,
                                         diamonds: diamonds || 0,
                                         is_vip: !!is_vip
                                     }));
@@ -420,6 +428,7 @@ export default function UniversalHeader({
                         localStorage.setItem('sp-cached-header-user', JSON.stringify({
                             avatar: result.profile.avatar_url,
                             name: result.profile.full_name || result.profile.username,
+                            username: result.profile.username || null,
                             diamonds: result.profile.diamonds || 0,
                             is_vip: !!result.profile.is_vip
                         }));

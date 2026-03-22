@@ -15,8 +15,8 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../../lib/supabase';
-import { listenBroadcast } from '../../lib/broadcastSync';
+import { supabase } from '../lib/supabase';
+import { listenBroadcast } from '../lib/broadcastSync';
 
 // ── Helper: read access token from localStorage ──
 function getAccessToken() {

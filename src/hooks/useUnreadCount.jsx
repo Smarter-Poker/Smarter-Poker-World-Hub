@@ -60,7 +60,8 @@ export function UnreadProvider({ children }) {
                 .in('conversation_id', conversationIds)
                 .neq('sender_id', userId)
                 .eq('is_deleted', false)
-                .gt('created_at', earliestRead);
+                .gt('created_at', earliestRead)
+                .limit(5000);
 
             // Count locally — only messages after the per-conversation last_read_at
             const readMap = new Map(participations.map(p => [p.conversation_id, p.last_read_at || '1970-01-01']));

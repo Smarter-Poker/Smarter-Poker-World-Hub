@@ -20,16 +20,9 @@ import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { useDiamondBalance } from '../../hooks/useDiamondBalance';
 import { listenBroadcast } from '../../lib/broadcastSync';
 import { eventBus, EventType } from '../../engine/EventBus';
-
-const formatCompact = (num) => {
-    if (num < 1000) return num.toString();
-    if (num < 10000) return (num / 1000).toFixed(1) + 'k';
-    if (num < 100000) return (num / 1000).toFixed(1) + 'k';
-    if (num < 1000000) return (num / 1000).toFixed(0) + 'k';
-    return (num / 1000000).toFixed(1) + 'M';
-};
 
 export default function ThreePillHeader({
     pageDepth = 1,
@@ -47,26 +40,16 @@ export default function ThreePillHeader({
         }
         return null;
     });
-    const [stats, setStats] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const cached = localStorage.getItem('sp-cached-header-user');
-                if (cached) {
-                    const data = JSON.parse(cached);
-                    return { diamonds: data.diamonds || 0 };
-                }
-            } catch (e) { }
-        }
-        return { diamonds: 0 };
-    });
     const [notificationCount, setNotificationCount] = useState(() => {
         if (typeof window === 'undefined') return 0;
         try { return parseInt(localStorage.getItem('sp-notif-count') || '0', 10); } catch (_) { return 0; }
     });
-    const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
     const [headerHeight, setHeaderHeight] = useState(80);
     const imgRef = useRef(null);
+
+    // ── Diamond balance: shared hook handles caching, realtime, cross-tab sync ──
+    const { balance: diamondBalance, setBalance: setDiamondBalance } = useDiamondBalance(user?.id);
 
     // ── INSTANT PROFILE LINK: Resolve cached username for direct navigation ──
     const [profileHref, setProfileHref] = useState(() => {
@@ -78,11 +61,11 @@ export default function ThreePillHeader({
                 const { username } = JSON.parse(nameCache);
                 if (username) return `/hub/user/${username}`;
             }
-            // Fallback: extract from header user cache
+            // Fallback: extract username from header user cache
             const headerCache = localStorage.getItem('sp-cached-header-user');
             if (headerCache) {
-                const { name } = JSON.parse(headerCache);
-                // name could be full_name, not username — check dedicated cache only
+                const { username } = JSON.parse(headerCache);
+                if (username) return `/hub/user/${username}`;
             }
         } catch (_) {}
         return '/hub/profile';
@@ -119,9 +102,7 @@ export default function ThreePillHeader({
     useEffect(() => {
         let mounted = true;
         let notifChannel = null;
-        let diamondChannel = null;
         let cleanupNotifSync = null;
-        let cleanupDiamondSync = null;
 
         const loadUser = async () => {
             try {
@@ -171,7 +152,7 @@ export default function ThreePillHeader({
 
                     if (result.success && result.profile && mounted) {
                         const { diamonds, avatar_url, full_name, username } = result.profile;
-                        setStats({ diamonds });
+                        setDiamondBalance(diamonds ?? 0);
                         setUser(prev => ({
                             ...prev,
                             avatar: avatar_url,
@@ -236,59 +217,14 @@ export default function ThreePillHeader({
                             }
                         });
 
-                        // TIER 1: Diamond Balance Realtime Sync
-                        const refreshDiamondBalance = async () => {
-                            try {
-                                const response = await fetch('/api/user/get-header-stats', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-                                    },
-                                    body: JSON.stringify({ userId: authUser.id }),
-                                });
-                                const result = await response.json();
-                                if (result.success && result.profile && mounted) {
-                                    setStats({ diamonds: result.profile.diamonds });
-                                    try {
-                                        const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
-                                        cached.diamonds = result.profile.diamonds;
-                                        localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
-                                    } catch (_) { }
-                                }
-                            } catch (e) {
-                                console.warn('[ThreePillHeader] Diamond sync refresh failed:', e.message);
-                            }
-                        };
-
-                        diamondChannel = supabase
-                            .channel(`diamonds:${authUser.id}`)
-                            .on('postgres_changes', {
-                                event: 'UPDATE',
-                                schema: 'public',
-                                table: 'profiles',
-                                filter: `id=eq.${authUser.id}`
-                            }, (payload) => {
-                                if (payload.new.diamonds !== undefined && mounted) {
-                                    setStats({ diamonds: payload.new.diamonds });
-                                    try {
-                                        const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
-                                        cached.diamonds = payload.new.diamonds;
-                                        localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
-                                    } catch (_) { }
-                                }
-                            })
-                            .subscribe();
-
-                        cleanupDiamondSync = listenBroadcast('smarter_poker_diamond_sync', () => {
-                            refreshDiamondBalance();
-                        });
+                        // TIER 1: Diamond Balance Realtime Sync — handled by useDiamondBalance hook
 
                         // 🛡️ INSTANT UI: Cache user data for next page load
                         try {
                             localStorage.setItem('sp-cached-header-user', JSON.stringify({
                                 avatar: avatar_url,
                                 name: full_name || username,
+                                username: username || null,
                                 diamonds: diamonds || 0,
                                 is_vip: !!result.profile.is_vip
                             }));
@@ -311,51 +247,11 @@ export default function ThreePillHeader({
         return () => {
             mounted = false;
             if (notifChannel) supabase.removeChannel(notifChannel);
-            if (diamondChannel) supabase.removeChannel(diamondChannel);
             if (cleanupNotifSync) cleanupNotifSync();
-            if (cleanupDiamondSync) cleanupDiamondSync();
         };
     }, []);
 
-    // ── Diamond balance auto-refresh when rewards are earned ──
-    useEffect(() => {
-        const refreshBalance = async () => {
-            if (!user?.id) return;
-            try {
-                // Get access token for JWT auth
-                let accessToken = null;
-                try {
-                    const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                    accessToken = authData?.access_token || null;
-                } catch (e) { }
-
-                const response = await fetch('/api/user/get-header-stats', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-                    },
-                    body: JSON.stringify({ userId: user.id }),
-                });
-                const result = await response.json();
-                if (result.success && result.profile) {
-                    setStats({ diamonds: result.profile.diamonds });
-                    // Update localStorage cache with new balance
-                    try {
-                        const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
-                        cached.diamonds = result.profile.diamonds;
-                        localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
-                    } catch (_) { }
-                    console.log('[ThreePillHeader] Diamond Balance refreshed:', result.profile.diamonds);
-                }
-            } catch (e) {
-                console.warn('[ThreePillHeader] Balance refresh failed:', e.message);
-            }
-        };
-
-        window.addEventListener('diamond-balance-refresh', refreshBalance);
-        return () => window.removeEventListener('diamond-balance-refresh', refreshBalance);
-    }, [user?.id]);
+    // ── Diamond balance: All refresh/realtime/cross-tab logic handled by useDiamondBalance hook ──
 
     // ── EventBus: Instant badge update when notifications are read (same-tab) ──
     useEffect(() => {
@@ -402,7 +298,7 @@ export default function ThreePillHeader({
                 });
                 const result = await response.json();
                 if (result.success && result.profile) {
-                    setStats({ diamonds: result.profile.diamonds });
+                    setDiamondBalance(result.profile.diamonds ?? 0);
                     setUser(prev => ({
                         ...prev,
                         avatar: result.profile.avatar_url || prev?.avatar,
@@ -413,6 +309,7 @@ export default function ThreePillHeader({
                         localStorage.setItem('sp-cached-header-user', JSON.stringify({
                             avatar: result.profile.avatar_url,
                             name: result.profile.full_name || result.profile.username,
+                            username: result.profile.username || null,
                             diamonds: result.profile.diamonds || 0,
                             is_vip: !!result.profile.is_vip
                         }));
@@ -724,6 +621,7 @@ export default function ThreePillHeader({
                 isOpen={isWalletOpen}
                 onClose={() => setIsWalletOpen(false)}
                 onBuyClick={() => router.push('/hub/diamond-store')}
+                initialBalance={diamondBalance}
             />
 
             {/* Live Help Panel — renders the full Geeves conversation interface */}

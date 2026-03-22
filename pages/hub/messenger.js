@@ -1389,6 +1389,7 @@ function MessengerPage() {
     }, [user, activeConversation]);
 
     // Typing indicator broadcast
+    const typingTimerRef = useRef(null);
     useEffect(() => {
         if (!user || !activeConversation) return;
 
@@ -1398,13 +1399,22 @@ function MessengerPage() {
                 // Someone else is typing
                 if (payload.payload.userId !== user.id) {
                     setOtherTyping(true);
-                    // Clear after 3 seconds
-                    setTimeout(() => setOtherTyping(false), 3000);
+                    // Clear previous timer to prevent accumulation
+                    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+                    typingTimerRef.current = setTimeout(() => setOtherTyping(false), 3000);
                 }
             })
             .subscribe();
 
-        return () => supabase.removeChannel(typingChannel);
+        return () => {
+            supabase.removeChannel(typingChannel);
+            // Clean up any pending typing timeout on conversation switch
+            if (typingTimerRef.current) {
+                clearTimeout(typingTimerRef.current);
+                typingTimerRef.current = null;
+            }
+            setOtherTyping(false);
+        };
     }, [user, activeConversation]);
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1684,7 +1694,8 @@ function MessengerPage() {
                     .in('conversation_id', conversationIds)
                     .neq('sender_id', userId)
                     .eq('is_deleted', false)
-                    .gt('created_at', earliestRead);
+                    .gt('created_at', earliestRead)
+                    .limit(5000);
 
                 // Count per-conversation using per-conversation last_read_at
                 const readMap = new Map(data.map(p => [p.conversation_id, p.last_read_at || '1970-01-01']));

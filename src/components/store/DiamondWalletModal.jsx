@@ -151,10 +151,10 @@ const SkeletonRow = () => (
 // ─────────────────────────────────────────────────────────────────────────────
 // Modal Component
 // ─────────────────────────────────────────────────────────────────────────────
-export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
+export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initialBalance }) {
     const [transactions, setTransactions] = useState([]);
-    // ── PERF-4: Initialize balance from header cache, not 0 ──
-    const [balance, setBalance] = useState(() => getCachedBalance());
+    // ── PERF-4: Initialize balance from prop (header cache) or localStorage ──
+    const [balance, setBalance] = useState(() => initialBalance ?? getCachedBalance());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [filter, setFilter] = useState('all');

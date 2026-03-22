@@ -119,7 +119,8 @@ export default async function handler(req, res) {
               .in('conversation_id', conversationIds)
               .neq('sender_id', userId)
               .eq('is_deleted', false)
-              .gt('created_at', earliestRead);
+              .gt('created_at', earliestRead)
+              .limit(5000);
 
           // Count per-conversation using each conversation's own last_read_at
           (candidateMsgs || []).forEach(msg => {
