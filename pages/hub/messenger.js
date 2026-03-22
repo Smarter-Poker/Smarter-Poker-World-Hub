@@ -1133,6 +1133,7 @@ function MessengerPage() {
     const typingTimeout = useRef(null);
     const messageSearchTimeout = useRef(null);
     const activeConversationRef = useRef(null);
+    const profileCacheRef = useRef(new Map()); // Cache sender profiles to avoid repeated fetches
 
     // Keep ref in sync so global RT channel can read it without re-subscribing
     useEffect(() => { activeConversationRef.current = activeConversation; }, [activeConversation]);
@@ -1355,12 +1356,17 @@ function MessengerPage() {
                 // Play sound for incoming message
                 playMessageSound();
 
-                // Fetch sender profile for enrichment
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('id, username, avatar_url, is_vip')
-                    .eq('id', newMsg.sender_id)
-                    .maybeSingle();
+                // Fetch sender profile (cached to avoid N queries for same sender)
+                let profile = profileCacheRef.current.get(newMsg.sender_id);
+                if (!profile) {
+                    const { data } = await supabase
+                        .from('profiles')
+                        .select('id, username, avatar_url, is_vip')
+                        .eq('id', newMsg.sender_id)
+                        .maybeSingle();
+                    profile = data;
+                    if (profile) profileCacheRef.current.set(newMsg.sender_id, profile);
+                }
 
                 setMessages(prev => {
                     // Check for duplicates
@@ -1986,13 +1992,22 @@ function MessengerPage() {
         });
 
         try {
-            const { data, error } = await supabase.rpc('fn_send_message', {
-                p_conversation_id: activeConversation.id,
-                p_sender_id: user.id,
-                p_content: content,
+            // Route through API for XSS sanitization, rate limiting, and auth verification
+            const sendToken = getAccessToken();
+            const sendResp = await fetch('/api/messenger/send-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(sendToken ? { Authorization: `Bearer ${sendToken}` } : {}),
+                },
+                body: JSON.stringify({
+                    conversationId: activeConversation.id,
+                    content: content,
+                }),
             });
-
-            if (error) throw error;
+            const sendResult = await sendResp.json();
+            if (!sendResp.ok || !sendResult.success) throw new Error(sendResult.error || 'Send failed');
+            const data = sendResult.messageId;
 
             // Replace optimistic message with real one
             setMessages(prev => prev.map(m =>

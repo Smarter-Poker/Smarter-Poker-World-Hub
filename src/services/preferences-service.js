@@ -15,38 +15,32 @@ import { supabase } from '../lib/supabase';
 export const messengerPreferences = {
     // Get preferences (localStorage first, then DB)
     async get(userId) {
-        try {
-            // Try localStorage first for instant UI
-            const local = {
-                notifications: localStorage.getItem('messenger-notifications') !== 'false',
-                readReceipts: localStorage.getItem('messenger-read-receipts') !== 'false',
-                activeStatus: localStorage.getItem('messenger-active-status') !== 'false',
-                messageSounds: localStorage.getItem('messenger-sounds') !== 'false'
-            };
+        // localStorage provides instant defaults
+        const local = {
+            notifications: localStorage.getItem('messenger-notifications') !== 'false',
+            readReceipts: localStorage.getItem('messenger-read-receipts') !== 'false',
+            activeStatus: localStorage.getItem('messenger-active-status') !== 'false',
+            messageSounds: localStorage.getItem('messenger-sounds') !== 'false'
+        };
 
-            // Fetch from DB in background
-            if (userId) {
-                const { data } = await supabase
+        // Try DB in background — silently fall back to local if column doesn't exist
+        if (userId) {
+            try {
+                const { data, error } = await supabase
                     .from('profiles')
                     .select('messenger_preferences')
                     .eq('id', userId)
                     .maybeSingle();
 
-                if (data?.messenger_preferences) {
+                if (!error && data?.messenger_preferences) {
                     return data.messenger_preferences;
                 }
+            } catch (_) {
+                // Column may not exist — use localStorage defaults silently
             }
-
-            return local;
-        } catch (error) {
-            console.error('[Preferences] Error getting messenger preferences:', error);
-            return {
-                notifications: true,
-                readReceipts: true,
-                activeStatus: true,
-                messageSounds: true
-            };
         }
+
+        return local;
     },
 
     // Update preferences (localStorage + DB)
