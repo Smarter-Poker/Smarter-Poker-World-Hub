@@ -1160,10 +1160,23 @@ function MessengerPage() {
         async function init() {
             try {
                 // BULLETPROOF: Use authUtils instead of getSafeUser (avoids AbortError)
-                const authUser = getAuthUser();
+                let authUser = getAuthUser();
+
+                // FALLBACK: If sync localStorage check fails, try async session check
+                // This catches browser restarts, stale tabs, and token refresh scenarios
+                if (!authUser) {
+                    try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (session?.user) {
+                            authUser = session.user;
+                        }
+                    } catch (_) {
+                        // Session check failed — user is genuinely not logged in
+                    }
+                }
 
                 if (authUser) {
-                    const token = getAccessToken();
+                    const token = getAccessToken() || (await supabase.auth.getSession()).data?.session?.access_token;
                     const headers = { 'Authorization': 'Bearer ' + token };
 
                     // PARALLEL: Fire all 3 independent API calls at once
