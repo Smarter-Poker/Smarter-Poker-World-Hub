@@ -1609,6 +1609,7 @@ function MessengerPage() {
 
             if (result.success && Array.isArray(result.conversations)) {
                 setConversations(result.conversations);
+                setCachedConversations(result.conversations); // Persist to cache for instant load
                 return;
             }
         } catch (apiErr) {

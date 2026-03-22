@@ -1012,7 +1012,7 @@ export default function UniversalHeader({
 
                     {/* Messages - Custom Metallic Messenger icon */}
                     <div className="orb-btn">
-                        <Link href="/hub/messenger" style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                        <Link href="/hub/messenger" prefetch={true} style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                             <img src="/images/header-messenger.png" alt="Messages" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {safeUnreadCount > 0 && (
                                 <span className="orb-badge">{safeUnreadCount > 99 ? '99+' : safeUnreadCount}</span>

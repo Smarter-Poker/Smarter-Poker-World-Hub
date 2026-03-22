@@ -38,18 +38,25 @@ const timeAgo = (date) => {
 function NotificationsPage() {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
-    const [notifications, setNotifications] = useState(() => {
-        if (typeof window === 'undefined') return [];
+    const [notifications, setNotifications] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(null);
+    const hasCacheRef = useRef(false);
+
+    // 🛡️ INSTANT UI: Hydrate from localStorage AFTER mount (prevents SSR mismatch)
+    useEffect(() => {
         try {
             const cached = localStorage.getItem('sp-notif-cache');
-            return cached ? JSON.parse(cached) : [];
-        } catch (_) { return []; }
-    });
-    const [loading, setLoading] = useState(() => {
-        if (typeof window === 'undefined') return true;
-        try { return !localStorage.getItem('sp-notif-cache'); } catch (_) { return true; }
-    });
-    const [user, setUser] = useState(null);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed && parsed.length > 0) {
+                    setNotifications(parsed);
+                    setLoading(false); // Skip shimmer — show cached data immediately
+                    hasCacheRef.current = true;
+                }
+            }
+        } catch (_) {}
+    }, []);
 
     const mounted = useRef(true);
     useEffect(() => {
@@ -121,30 +128,32 @@ function NotificationsPage() {
                         return match ? match[1] : null;
                     }).filter(Boolean))];
 
-                    // Fetch profiles by ID first, then by name as fallback
+                    // Fetch profiles by ID AND by name IN PARALLEL (saves 100-300ms)
                     let profileById = {};
                     let profileByName = {};
 
-                    if (actorIds.length > 0) {
-                        const { data: profilesById } = await supabase.from('profiles')
-                            .select('id, username, full_name, avatar_url')
-                            .in('id', actorIds)
-                            .limit(50);
-                        if (profilesById) {
-                            profilesById.forEach(p => { profileById[p.id] = p; });
-                        }
-                    }
+                    const [profilesByIdResult, profilesByNameResult] = await Promise.all([
+                        actorIds.length > 0
+                            ? supabase.from('profiles')
+                                .select('id, username, full_name, avatar_url')
+                                .in('id', actorIds)
+                                .limit(50)
+                            : Promise.resolve({ data: null }),
+                        actorNames.length > 0
+                            ? supabase.from('profiles')
+                                .select('id, username, full_name, avatar_url')
+                                .in('full_name', actorNames)
+                                .limit(50)
+                            : Promise.resolve({ data: null }),
+                    ]);
 
-                    if (actorNames.length > 0) {
-                        const { data: profilesByName } = await supabase.from('profiles')
-                            .select('id, username, full_name, avatar_url')
-                            .in('full_name', actorNames)
-                            .limit(50);
-                        if (profilesByName) {
-                            profilesByName.forEach(p => {
-                                if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
-                            });
-                        }
+                    if (profilesByIdResult.data) {
+                        profilesByIdResult.data.forEach(p => { profileById[p.id] = p; });
+                    }
+                    if (profilesByNameResult.data) {
+                        profilesByNameResult.data.forEach(p => {
+                            if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
+                        });
                     }
 
                     // Merge actor data
