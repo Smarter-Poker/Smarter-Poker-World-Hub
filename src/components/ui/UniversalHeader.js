@@ -97,7 +97,7 @@ export default function UniversalHeader({
                 if (cached) {
                     const data = JSON.parse(cached);
                     if (data) setUser(data);
-                    if (data.diamonds !== undefined) setStats({ diamonds: data.diamonds });
+                    if (data.diamonds !== undefined) setDiamondBalance(data.diamonds);
                     if (data.is_vip) setIsVip(true);
                 } else if (localStorage.getItem('sp-vip-status') === 'true') {
                     setIsVip(true);
@@ -263,7 +263,7 @@ export default function UniversalHeader({
                             const profile = profiles?.[0];
 
                             if (profile && mounted) {
-                                setStats({ diamonds: profile.diamonds || 0 });
+                                setDiamondBalance(profile.diamonds || 0);
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: profile.avatar_url,
