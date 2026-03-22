@@ -106,6 +106,19 @@ export default function UniversalHeader({
     const [isVip, setIsVip] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
 
+    // ── INSTANT PROFILE LINK: Resolve cached username for direct navigation ──
+    const [profileHref, setProfileHref] = useState(() => {
+        if (typeof window === 'undefined') return '/hub/profile';
+        try {
+            const nameCache = localStorage.getItem('sp-profile-username');
+            if (nameCache) {
+                const { username } = JSON.parse(nameCache);
+                if (username) return `/hub/user/${username}`;
+            }
+        } catch (_) {}
+        return '/hub/profile';
+    });
+
     // Global Avatar State (instant caching)
     const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
 
@@ -139,6 +152,13 @@ export default function UniversalHeader({
 
     // Live Help state
     const liveHelp = useLiveHelp();
+
+    // ── PREFETCH: Eagerly load the profile page JS bundle ──
+    useEffect(() => {
+        if (profileHref !== '/hub/profile') {
+            router.prefetch(profileHref);
+        }
+    }, [profileHref, router]);
 
     useEffect(() => {
         let mounted = true; // Prevent state updates after unmount
@@ -224,6 +244,13 @@ export default function UniversalHeader({
                                         is_vip: !!is_vip
                                     }));
                                 } catch (_) { }
+
+                                // Update direct profile link if we got the username
+                                if (username) {
+                                    const directHref = `/hub/user/${username}`;
+                                    setProfileHref(directHref);
+                                    router.prefetch(directHref);
+                                }
                                 return true; // Success
                             }
                             return false; // API returned error
@@ -969,7 +996,7 @@ export default function UniversalHeader({
                             } : {})
                         }}
                     >
-                        <Link href="/hub/profile" style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                        <Link href={profileHref} prefetch={profileHref !== '/hub/profile'} style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                             {!displayAvatar && '👤'}
                         </Link>
                     </div>

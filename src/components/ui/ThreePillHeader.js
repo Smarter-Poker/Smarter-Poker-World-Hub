@@ -65,6 +65,26 @@ export default function ThreePillHeader({
     const [headerHeight, setHeaderHeight] = useState(80);
     const imgRef = useRef(null);
 
+    // ── INSTANT PROFILE LINK: Resolve cached username for direct navigation ──
+    const [profileHref, setProfileHref] = useState(() => {
+        if (typeof window === 'undefined') return '/hub/profile';
+        try {
+            // Try dedicated username cache first
+            const nameCache = localStorage.getItem('sp-profile-username');
+            if (nameCache) {
+                const { username } = JSON.parse(nameCache);
+                if (username) return `/hub/user/${username}`;
+            }
+            // Fallback: extract from header user cache
+            const headerCache = localStorage.getItem('sp-cached-header-user');
+            if (headerCache) {
+                const { name } = JSON.parse(headerCache);
+                // name could be full_name, not username — check dedicated cache only
+            }
+        } catch (_) {}
+        return '/hub/profile';
+    });
+
     // Global Avatar State (instant caching)
     const { user: contextUser, avatar: contextAvatar } = useAvatar();
 
@@ -82,6 +102,13 @@ export default function ThreePillHeader({
             setHeaderHeight(imgRef.current.offsetHeight);
         }
     };
+
+    // ── PREFETCH: Eagerly load the profile page JS bundle ──
+    useEffect(() => {
+        if (profileHref !== '/hub/profile') {
+            router.prefetch(profileHref);
+        }
+    }, [profileHref, router]);
 
     useEffect(() => {
         let mounted = true;
@@ -257,6 +284,13 @@ export default function ThreePillHeader({
                                 is_vip: !!result.profile.is_vip
                             }));
                         } catch (_) { }
+
+                        // Update direct profile link if we got the username
+                        if (result.profile.username) {
+                            const directHref = `/hub/user/${result.profile.username}`;
+                            setProfileHref(directHref);
+                            router.prefetch(directHref);
+                        }
                     }
                 }
             } catch (e) {
@@ -586,7 +620,7 @@ export default function ThreePillHeader({
                         </button>
 
                         {/* Profile */}
-                        <Link href="/hub/profile" style={{ textDecoration: 'none' }}>
+                        <Link href={profileHref} style={{ textDecoration: 'none' }} prefetch={profileHref !== '/hub/profile'}>
                             <div style={{
                                 width: 44,
                                 height: 44,

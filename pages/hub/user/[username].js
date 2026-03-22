@@ -833,7 +833,7 @@ export default function UserProfilePage() {
 
         // --- PHASE 1: SWR CACHE HYDRATION (Instant Render) ---
         const CACHE_KEY = `sp-profile-cache-${username}`;
-        const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+        const CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours (SWR revalidates in background anyway)
         try {
             const cachedData = localStorage.getItem(CACHE_KEY);
             if (cachedData) {

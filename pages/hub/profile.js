@@ -59,8 +59,8 @@ export default function ProfileRedirect() {
                     const cached = localStorage.getItem(CACHE_KEY);
                     if (cached) {
                         const { userId, username, ts } = JSON.parse(cached);
-                        // Use cache if same user and less than 1 hour old
-                        if (userId === authUser.id && username && (Date.now() - ts) < 3600000) {
+                        // Use cache if same user and less than 24 hours old (username changes are rare)
+                        if (userId === authUser.id && username && (Date.now() - ts) < 86400000) {
                             router.replace(`/hub/user/${username}`);
                             return;
                         }
