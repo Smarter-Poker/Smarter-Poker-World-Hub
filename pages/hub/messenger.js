@@ -1315,7 +1315,7 @@ function MessengerPage() {
                         if (exists) {
                             updated = prev.map(c => 
                                 c.id === newMsg.conversation_id 
-                                    ? { ...c, last_message_preview: newMsg.content, last_message_at: newMsg.created_at, unread_count: (c.unread_count || 0) + 1 }
+                                    ? { ...c, last_message_preview: newMsg.content, last_message_at: newMsg.created_at, unreadCount: (c.unreadCount || 0) + 1 }
                                     : c
                             );
                         } else {
@@ -2288,6 +2288,14 @@ function MessengerPage() {
         setTotalUnreadCount(total);
     }, [conversations]);
 
+    // Sync local conversations state to Zustand/localStorage cache
+    // This ensures re-entry renders current data (RT updates, mark-read, sent messages)
+    useEffect(() => {
+        if (conversations.length > 0) {
+            setCachedConversations(conversations);
+        }
+    }, [conversations]);
+
     // 📲 Link OneSignal to user ID for push notifications
     useEffect(() => {
         if (user?.id && pushReady && setExternalUserId) {
@@ -2985,7 +2993,7 @@ function MessengerPage() {
                                         },
                                         last_message_preview: 'Your Poker AI Assistant',
                                         last_message_at: new Date().toISOString(),
-                                        unread_count: 0
+                                        unreadCount: 0
                                     })}
                                     style={{
                                         padding: '12px 16px',

@@ -358,18 +358,7 @@ export default function ThreePillHeader({
     }, []);
 
     // ── TIER 2: Club Arena Chip Balance Cross-Tab Sync ──
-    // Listen for chip balance changes from other Club Arena tabs
-    useEffect(() => {
-        const cleanup = listenBroadcast('smarter_poker_chips_sync', (msg) => {
-            if (msg === 'refresh') {
-                console.log('[ThreePillHeader] Chip/diamond balance refresh via BroadcastChannel');
-                // Refresh the diamond balance displayed in the header
-                window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
-            }
-        });
-
-        return cleanup;
-    }, []);
+    // Handled by useDiamondBalance hook
 
     const handleBack = () => {
         if (typeof window !== 'undefined' && window.history.length > 1) {

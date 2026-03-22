@@ -161,6 +161,25 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const [total, setTotal] = useState(0);
     const fetchedRef = useRef(false);
 
+    // ── GAP-2 FIX: Sync initialBalance prop when header gets realtime updates ──
+    useEffect(() => {
+        if (initialBalance !== undefined && initialBalance !== null) {
+            setBalance(initialBalance);
+        }
+    }, [initialBalance]);
+
+    // ── GAP-1 FIX: Update displayed balance in real time while modal is open ──
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleBalanceRefresh = () => {
+            // Re-read the latest cached balance (updated by useDiamondBalance hook)
+            const fresh = getCachedBalance();
+            if (fresh > 0) setBalance(fresh);
+        };
+        window.addEventListener('diamond-balance-refresh', handleBalanceRefresh);
+        return () => window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
+    }, [isOpen]);
+
     // ── BUG-1 FIX: Fetch once on open, filter purely client-side ──
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
