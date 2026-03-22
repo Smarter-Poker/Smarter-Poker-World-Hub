@@ -81,7 +81,15 @@ export default function SettingsPage() {
     const router = useRouter();
     useTrainingBus('settings');
     const { avatar, isVip, user: contextUser, initializing } = useAvatar();
-    const [userProfile, setUserProfile] = useState(null);
+    // SWR: Read cached profile from localStorage for instant UI (same pattern as UniversalHeader)
+    const [userProfile, setUserProfile] = useState(() => {
+        if (typeof window === 'undefined') return null;
+        try {
+            const cached = localStorage.getItem('sp-cached-settings-profile');
+            if (cached) return JSON.parse(cached);
+        } catch (_) {}
+        return null;
+    });
     const [localUser, setLocalUser] = useState(null); //  Fallback from localStorage
     const [activeSection, setActiveSection] = usePersistedState('sp-settings-active-section', 'account');
     const [saved, setSaved] = useState(false);
@@ -279,6 +287,10 @@ export default function SettingsPage() {
                 .then(({ data: profile }) => {
                     if (profile) {
                         setUserProfile(profile);
+                        // SWR: Cache for instant render on next visit
+                        try {
+                            localStorage.setItem('sp-cached-settings-profile', JSON.stringify(profile));
+                        } catch (_) {}
                     }
                 });
 
@@ -669,6 +681,9 @@ export default function SettingsPage() {
                 canonical="/hub/settings"
                 noindex={true}
             >
+                {/* Preconnect to Google Fonts for faster load, use font-display:swap to avoid FOIT */}
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
             </SEOHead>
 
