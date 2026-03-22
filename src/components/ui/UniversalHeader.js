@@ -100,7 +100,10 @@ export default function UniversalHeader({
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState({ diamonds: 0 });
     const [isLoading, setIsLoading] = useState(true);
-    const [notificationCount, setNotificationCount] = useState(0);
+    const [notificationCount, setNotificationCount] = useState(() => {
+        if (typeof window === 'undefined') return 0;
+        try { return parseInt(localStorage.getItem('sp-notif-count') || '0', 10); } catch (_) { return 0; }
+    });
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
     const [isVip, setIsVip] = useState(false);
@@ -153,11 +156,12 @@ export default function UniversalHeader({
     // Live Help state
     const liveHelp = useLiveHelp();
 
-    // ── PREFETCH: Eagerly load the profile page JS bundle ──
+    // ── PREFETCH: Eagerly load profile + notifications JS bundles ──
     useEffect(() => {
         if (profileHref !== '/hub/profile') {
             router.prefetch(profileHref);
         }
+        router.prefetch('/hub/notifications');
     }, [profileHref, router]);
 
     useEffect(() => {
@@ -317,7 +321,10 @@ export default function UniversalHeader({
                             .select('*', { count: 'exact', head: true })
                             .eq('user_id', authUser.id)
                             .eq('read', false);
-                        if (mounted) setNotificationCount(notifCount || 0);
+                        if (mounted) {
+                            setNotificationCount(notifCount || 0);
+                            try { localStorage.setItem('sp-notif-count', String(notifCount || 0)); } catch (_) {}
+                        }
                     };
                     await fetchUnreadCount();
 

@@ -38,8 +38,17 @@ const timeAgo = (date) => {
 function NotificationsPage() {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
-    const [notifications, setNotifications] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [notifications, setNotifications] = useState(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const cached = localStorage.getItem('sp-notif-cache');
+            return cached ? JSON.parse(cached) : [];
+        } catch (_) { return []; }
+    });
+    const [loading, setLoading] = useState(() => {
+        if (typeof window === 'undefined') return true;
+        try { return !localStorage.getItem('sp-notif-cache'); } catch (_) { return true; }
+    });
     const [user, setUser] = useState(null);
 
     const mounted = useRef(true);
@@ -162,6 +171,10 @@ function NotificationsPage() {
                     });
                     if (mounted.current) {
                         setNotifications(enriched);
+                        // Cache for instant load next time (keep last 30 for storage space)
+                        try {
+                            localStorage.setItem('sp-notif-cache', JSON.stringify(enriched.slice(0, 30)));
+                        } catch (_) {}
                     }
 
                     // Auto-mark social notifications as read (only social ones use supabase table)
@@ -170,7 +183,14 @@ function NotificationsPage() {
                         await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
                         if (mounted.current) {
                             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                            // Update cache with read status
+                            try {
+                                const updated = enriched.map(n => ({ ...n, read: true }));
+                                localStorage.setItem('sp-notif-cache', JSON.stringify(updated.slice(0, 30)));
+                            } catch (_) {}
                         }
+                        // Sync notification count to header badge cache
+                        try { localStorage.setItem('sp-notif-count', '0'); } catch (_) {}
                     }
                 }
             }

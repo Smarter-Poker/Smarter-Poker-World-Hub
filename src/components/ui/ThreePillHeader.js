@@ -59,7 +59,10 @@ export default function ThreePillHeader({
         }
         return { diamonds: 0 };
     });
-    const [notificationCount, setNotificationCount] = useState(0);
+    const [notificationCount, setNotificationCount] = useState(() => {
+        if (typeof window === 'undefined') return 0;
+        try { return parseInt(localStorage.getItem('sp-notif-count') || '0', 10); } catch (_) { return 0; }
+    });
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
     const [headerHeight, setHeaderHeight] = useState(80);
@@ -103,11 +106,12 @@ export default function ThreePillHeader({
         }
     };
 
-    // ── PREFETCH: Eagerly load the profile page JS bundle ──
+    // ── PREFETCH: Eagerly load profile + notifications JS bundles ──
     useEffect(() => {
         if (profileHref !== '/hub/profile') {
             router.prefetch(profileHref);
         }
+        router.prefetch('/hub/notifications');
     }, [profileHref, router]);
 
     useEffect(() => {
@@ -215,7 +219,10 @@ export default function ThreePillHeader({
                                 .select('*', { count: 'exact', head: true })
                                 .eq('user_id', authUser.id)
                                 .eq('read', false);
-                            if (mounted) setNotificationCount(notifCount || 0);
+                            if (mounted) {
+                                setNotificationCount(notifCount || 0);
+                                try { localStorage.setItem('sp-notif-count', String(notifCount || 0)); } catch (_) {}
+                            }
                         };
 
                         cleanupNotifSync = listenBroadcast('smarter_poker_notif_sync', (msg) => {
