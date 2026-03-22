@@ -171,10 +171,16 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // ── GAP-1 FIX: Update displayed balance in real time while modal is open ──
     useEffect(() => {
         if (!isOpen) return;
-        const handleBalanceRefresh = () => {
-            // Re-read the latest cached balance (updated by useDiamondBalance hook)
-            const fresh = getCachedBalance();
-            if (fresh > 0) setBalance(fresh);
+        const handleBalanceRefresh = (e) => {
+            // Read from event detail first (premiumFeatureGate, AvatarContext pass newBalance)
+            const fromEvent = e?.detail?.newBalance;
+            if (fromEvent !== undefined && fromEvent !== null) {
+                setBalance(fromEvent);
+            } else {
+                // Fallback: re-read cached balance
+                const fresh = getCachedBalance();
+                if (fresh > 0) setBalance(fresh);
+            }
         };
         window.addEventListener('diamond-balance-refresh', handleBalanceRefresh);
         return () => window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);

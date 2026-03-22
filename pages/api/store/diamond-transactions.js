@@ -79,7 +79,7 @@ export default async function handler(req, res) {
               success: true,
               transactions: data || [],
               total: count || 0,
-              balance: profile?.diamonds || 0,
+              balance: profile?.diamonds ?? 0,
               limit,
               offset,
           });
