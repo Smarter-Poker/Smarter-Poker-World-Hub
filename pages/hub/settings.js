@@ -169,13 +169,14 @@ export default function SettingsPage() {
         }
     }, [contextUser]);
 
-    // Settings State
-    const [settings, setSettings] = useState({
+    // Settings State — persisted to localStorage for cross-reload survival
+    const SETTINGS_DEFAULTS = {
         // Notifications
         emailNotifications: true,
         pushNotifications: true,
         soundEffects: true,
         tournamentAlerts: true,
+        bountyAlerts: true,
         friendActivity: false,
 
         // Privacy
@@ -196,6 +197,21 @@ export default function SettingsPage() {
         showBetSizing: true,
         confirmAllIn: true,
         timeBank: 30,
+
+        // Display & Sound
+        fontSize: 'medium',
+        animations: true,
+        reduceMotion: false,
+        notificationSounds: true,
+        masterVolume: 80,
+    };
+    const [settings, setSettings] = useState(() => {
+        if (typeof window === 'undefined') return SETTINGS_DEFAULTS;
+        try {
+            const cached = localStorage.getItem('sp-user-settings');
+            if (cached) return { ...SETTINGS_DEFAULTS, ...JSON.parse(cached) };
+        } catch (_) {}
+        return SETTINGS_DEFAULTS;
     });
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -434,19 +450,21 @@ export default function SettingsPage() {
     };
 
     const updateSetting = async (key, value) => {
-        setSettings(prev => ({ ...prev, [key]: value }));
+        const newSettings = { ...settings, [key]: value };
+        setSettings(newSettings);
 
-        // Only auto-save if it's a toggle (boolean value)
-        if (typeof value === 'boolean') {
-            if (user?.id) {
-                // Currently only display_name_preference is in DB, but if toggles are added:
-                // const { error } = await supabase.from('profiles').update({ [key]: value }).eq('id', user.id);
-                setSaved(true);
-                setTimeout(() => setSaved(false), 2000);
-            }
-        } else {
-            setSaved(false);
+        // Persist all settings to localStorage
+        try {
+            localStorage.setItem('sp-user-settings', JSON.stringify(newSettings));
+        } catch (_) {}
+
+        // If display_name_preference changed, also persist to DB (affects other users' views)
+        if (key === 'display_name_preference' && user?.id) {
+            await supabase.from('profiles').update({ display_name_preference: value }).eq('id', user.id);
         }
+
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
     };
 
     const saveSettings = async () => {
@@ -647,18 +665,18 @@ export default function SettingsPage() {
     };
 
     const sections = [
-        { id: 'account', label: 'Account', icon: '' },
-        { id: 'notifications', label: 'Notifications', icon: '' },
-        { id: 'privacy', label: 'Privacy', icon: '' },
-        { id: 'appearance', label: 'Appearance', icon: '' },
-        { id: 'display', label: 'Display & Sound', icon: '' },
-        { id: 'gameplay', label: 'Gameplay', icon: '' },
-        { id: 'club_arena', label: 'Club Arena', icon: '' },
-        { id: 'promos', label: 'Promo Codes', icon: '' },
-        { id: 'billing', label: 'Billing & Payments', icon: '' },
-        { id: 'blocked', label: 'Blocked Users', icon: '' },
-        { id: 'data', label: 'Data Export', icon: '' },
-        { id: 'delete', label: 'Delete Account', icon: '' },
+        { id: 'account', label: 'Account' },
+        { id: 'notifications', label: 'Notifications' },
+        { id: 'privacy', label: 'Privacy' },
+        { id: 'appearance', label: 'Appearance' },
+        { id: 'display', label: 'Display & Sound' },
+        { id: 'gameplay', label: 'Gameplay' },
+        { id: 'club_arena', label: 'Club Arena' },
+        { id: 'promos', label: 'Promo Codes' },
+        { id: 'billing', label: 'Billing & Payments' },
+        { id: 'blocked', label: 'Blocked Users' },
+        { id: 'data', label: 'Data Export' },
+        { id: 'delete', label: 'Delete Account' },
     ];
 
     return (
@@ -724,7 +742,6 @@ export default function SettingsPage() {
                                     ...(activeSection === section.id ? styles.sidebarItemActive : {}),
                                 }}
                             >
-                                <span style={styles.sidebarIcon}>{section.icon}</span>
                                 <span>{section.label}</span>
                             </button>
                         ))}

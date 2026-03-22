@@ -25,6 +25,7 @@ import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { useDiamondBalance } from '../../hooks/useDiamondBalance';
 import { eventBus, EventType } from '../../engine/EventBus';
 import { listenBroadcast } from '../../lib/broadcastSync';
 
@@ -39,54 +40,6 @@ const C = {
     textSec: 'rgba(255,255,255,0.6)'
 };
 
-// Format numbers compactly: 1.1k, 10.1k, 100.1k, 1.1M
-const formatCompact = (num) => {
-    if (num < 1000) return num.toString();
-    if (num < 10000) return (num / 1000).toFixed(1) + 'k';   // 1.1k - 9.9k
-    if (num < 100000) return (num / 1000).toFixed(1) + 'k'; // 10.1k - 99.9k
-    if (num < 1000000) return (num / 1000).toFixed(0) + 'k'; // 100k - 999k
-    return (num / 1000000).toFixed(1) + 'M'; // 1.1M+
-};
-
-// Neon orb icon button
-const OrbButton = ({ href, icon, badge = 0, onClick }) => {
-    const content = (
-        <div style={{
-            width: 44,
-            height: 44,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(0, 136, 255, 0.15) 0%, rgba(0, 245, 255, 0.08) 100%)',
-            border: '1px solid rgba(0, 245, 255, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 20,
-            cursor: 'pointer',
-            position: 'relative',
-            boxShadow: '0 0 15px rgba(0, 245, 255, 0.15), inset 0 0 10px rgba(0, 245, 255, 0.05)',
-            transition: 'all 0.2s'
-        }}>
-            {icon}
-            {badge > 0 && (
-                <span style={{
-                    position: 'absolute', top: -4, right: -4,
-                    background: '#ff3b3b', color: 'white',
-                    borderRadius: 10, padding: '2px 6px',
-                    fontSize: 10, fontWeight: 700, minWidth: 16, textAlign: 'center'
-                }}>{badge > 99 ? '99+' : badge}</span>
-            )}
-        </div>
-    );
-
-    if (onClick) {
-        return <button onClick={onClick} style={{ background: 'none', border: 'none', padding: 0 }}>{content}</button>;
-    }
-
-    return href ? (
-        <Link href={href} style={{ textDecoration: 'none' }}>{content}</Link>
-    ) : content;
-};
-
 export default function UniversalHeader({
     pageDepth = 1,  // 1 = major page (show Hub button), 2+ = nested (show Back)
     showSearch = false,
@@ -98,16 +51,16 @@ export default function UniversalHeader({
     // 🛡️ INSTANT UI: Read cached header user from localStorage on mount
     // This prevents "flash of missing data" before the API call completes
     const [user, setUser] = useState(null);
-    const [stats, setStats] = useState({ diamonds: 0 });
-    const [isLoading, setIsLoading] = useState(true);
     const [notificationCount, setNotificationCount] = useState(() => {
         if (typeof window === 'undefined') return 0;
         try { return parseInt(localStorage.getItem('sp-notif-count') || '0', 10); } catch (_) { return 0; }
     });
-    const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
     const [isVip, setIsVip] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
+
+    // ── Diamond balance: shared hook handles caching, realtime, cross-tab sync ──
+    const { balance: diamondBalance, setBalance: setDiamondBalance } = useDiamondBalance(user?.id);
 
     // ── INSTANT PROFILE LINK: Resolve cached username for direct navigation ──
     const [profileHref, setProfileHref] = useState(() => {
@@ -138,7 +91,6 @@ export default function UniversalHeader({
                 if (cached) {
                     const data = JSON.parse(cached);
                     if (data) setUser(data);
-                    if (data.diamonds !== undefined) setStats({ diamonds: data.diamonds });
                     if (data.is_vip) setIsVip(true);
                 } else if (localStorage.getItem('sp-vip-status') === 'true') {
                     setIsVip(true);
@@ -231,7 +183,7 @@ export default function UniversalHeader({
 
                             if (result.success && result.profile && mounted) {
                                 const { diamonds, full_name, username, avatar_url, is_vip } = result.profile;
-                                setStats({ diamonds });
+                                setDiamondBalance(diamonds ?? 0);
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: avatar_url,
@@ -383,7 +335,7 @@ export default function UniversalHeader({
             } catch (e) {
                 console.error('[UniversalHeader] Data fetch error:', e);
             } finally {
-                setIsLoading(false);
+                // loadUser complete
             }
         };
         loadUser();
@@ -404,112 +356,7 @@ export default function UniversalHeader({
         return () => unsub();
     }, []);
 
-    // ── Diamond balance auto-refresh when rewards are earned ──
-    useEffect(() => {
-        const refreshBalance = async () => {
-            if (!user?.id) return;
-            try {
-                // Get access token for JWT auth
-                let accessToken = null;
-                try {
-                    const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                    accessToken = authData?.access_token || null;
-                } catch (e) { }
-
-                const response = await fetch('/api/user/get-header-stats', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-                    },
-                    body: JSON.stringify({ userId: user.id }),
-                });
-                const result = await response.json();
-                if (result.success && result.profile) {
-                    setStats({ diamonds: result.profile.diamonds });
-                    // Update localStorage cache with new balance
-                    try {
-                        const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
-                        cached.diamonds = result.profile.diamonds;
-                        localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
-                    } catch (_) { }
-                    console.log('[UniversalHeader] Diamond Balance refreshed:', result.profile.diamonds);
-                }
-            } catch (e) {
-                console.warn('[UniversalHeader] Balance refresh failed:', e.message);
-            }
-        };
-
-        window.addEventListener('diamond-balance-refresh', refreshBalance);
-        return () => window.removeEventListener('diamond-balance-refresh', refreshBalance);
-    }, [user?.id]);
-
-    // ── TIER 1: Diamond Balance Realtime Sync ──
-    // Listens to profile updates on diamonds field and syncs across all tabs
-    useEffect(() => {
-        if (!user?.id) return;
-        let diamondChannel = null;
-
-        const refreshDiamondBalance = async () => {
-            try {
-                let accessToken = null;
-                try {
-                    const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                    accessToken = authData?.access_token || null;
-                } catch (e) { }
-
-                const response = await fetch('/api/user/get-header-stats', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-                    },
-                    body: JSON.stringify({ userId: user.id }),
-                });
-                const result = await response.json();
-                if (result.success && result.profile) {
-                    setStats({ diamonds: result.profile.diamonds });
-                    try {
-                        const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
-                        cached.diamonds = result.profile.diamonds;
-                        localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
-                    } catch (_) { }
-                }
-            } catch (e) {
-                console.warn('[UniversalHeader] Diamond sync refresh failed:', e.message);
-            }
-        };
-
-        // Supabase realtime: listen for profile updates on this user
-        diamondChannel = supabase
-            .channel(`diamonds:${user.id}`)
-            .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'profiles',
-                filter: `id=eq.${user.id}`
-            }, (payload) => {
-                if (payload.new.diamonds !== undefined) {
-                    setStats({ diamonds: payload.new.diamonds });
-                    try {
-                        const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
-                        cached.diamonds = payload.new.diamonds;
-                        localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
-                    } catch (_) { }
-                }
-            })
-            .subscribe();
-
-        // BroadcastChannel: cross-tab sync
-        const cleanupDiamondSync = listenBroadcast('smarter_poker_diamond_sync', () => {
-            refreshDiamondBalance();
-        });
-
-        return () => {
-            if (diamondChannel) supabase.removeChannel(diamondChannel);
-            cleanupDiamondSync();
-        };
-    }, [user?.id]);
+    // ── Diamond balance: All refresh/realtime/cross-tab logic handled by useDiamondBalance hook ──
 
     // ── TIER 2: Avatar Changes Cross-Tab Sync ──
     // Listen for avatar changes from AvatarContext and other tabs
@@ -528,18 +375,7 @@ export default function UniversalHeader({
     }, [user?.id]);
 
     // ── TIER 2: Club Arena Chip Balance Cross-Tab Sync ──
-    // Listen for chip balance changes from other Club Arena tabs
-    useEffect(() => {
-        const cleanup = listenBroadcast('smarter_poker_chips_sync', (msg) => {
-            if (msg === 'refresh') {
-                console.log('[UniversalHeader] Chip/diamond balance refresh via BroadcastChannel');
-                // Refresh the diamond balance displayed in the header
-                window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
-            }
-        });
-
-        return cleanup;
-    }, []);
+    // Now handled by useDiamondBalance hook
 
     // ── VIP status bus listener — updates VIP badge in real time ──
     // Triggered by PhoneVerifyVIPModal after successful phone verification
@@ -572,7 +408,7 @@ export default function UniversalHeader({
                 });
                 const result = await response.json();
                 if (result.success && result.profile) {
-                    setStats({ diamonds: result.profile.diamonds });
+                    setDiamondBalance(result.profile.diamonds ?? 0);
                     setIsVip(!!result.profile.is_vip);
                     setUser(prev => ({
                         ...prev,
@@ -1076,6 +912,7 @@ export default function UniversalHeader({
                 isOpen={isWalletOpen}
                 onClose={() => setIsWalletOpen(false)}
                 onBuyClick={() => router.push('/hub/diamond-store')}
+                initialBalance={diamondBalance}
             />
         </>
     );
