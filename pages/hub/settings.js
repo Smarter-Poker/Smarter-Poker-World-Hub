@@ -467,24 +467,6 @@ export default function SettingsPage() {
         setTimeout(() => setSaved(false), 2000);
     };
 
-    const saveSettings = async () => {
-        if (!user?.id) return;
-
-        const { error } = await supabase
-            .from('profiles')
-            .update({
-                display_name_preference: settings.display_name_preference
-            })
-            .eq('id', user.id);
-
-        if (error) {
-            console.error('Error saving settings:', error);
-            return;
-        }
-
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
-    };
 
     const handleLogout = async () => {
         try {
@@ -716,17 +698,18 @@ export default function SettingsPage() {
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                     <h1 style={styles.pageTitle}> Settings</h1>
-                    <button
-                        onClick={saveSettings}
-                        style={{
-                            ...styles.saveButton,
-                            background: saved
-                                ? 'linear-gradient(135deg, #00ff88, #00cc66)'
-                                : 'linear-gradient(135deg, #00D4FF, #0088cc)',
-                        }}
-                    >
-                        {saved ? ' Saved' : 'Save Changes'}
-                    </button>
+                    {saved && (
+                        <span style={{
+                            background: 'linear-gradient(135deg, #00ff88, #00cc66)',
+                            padding: '8px 20px',
+                            borderRadius: 8,
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: '#fff',
+                        }}>
+                            Saved
+                        </span>
+                    )}
                 </div>
 
                 {/* Layout */}
@@ -2830,16 +2813,7 @@ const styles = {
         fontWeight: 700,
         color: '#fff',
     },
-    saveButton: {
-        padding: '10px 20px',
-        border: 'none',
-        borderRadius: 8,
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 600,
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-    },
+
     layout: {
         display: 'flex',
         minHeight: 'calc(100vh - 80px)',
@@ -2870,9 +2844,7 @@ const styles = {
         background: 'rgba(0, 212, 255, 0.15)',
         color: '#00D4FF',
     },
-    sidebarIcon: {
-        fontSize: 18,
-    },
+
     sidebarDivider: {
         height: 1,
         background: 'rgba(255, 255, 255, 0.1)',
