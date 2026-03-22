@@ -148,19 +148,18 @@ export default function SettingsPage() {
                     const tokenData = JSON.parse(explicitAuth);
                     if (tokenData?.user) {
                         setLocalUser(tokenData.user);
+                        return; // found user, done
                     }
                 }
                 // Fallback to legacy sb-* keys
-                if (!localUser) {
-                    const sbKeys = Object.keys(localStorage).filter(
-                        k => k.startsWith('sb-') && k.endsWith('-auth-token')
-                    );
-                    if (sbKeys.length > 0) {
-                        let tokenData = {};
-                        try { tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}'); } catch { /* corrupted */ }
-                        if (tokenData?.user) {
-                            setLocalUser(tokenData.user);
-                        }
+                const sbKeys = Object.keys(localStorage).filter(
+                    k => k.startsWith('sb-') && k.endsWith('-auth-token')
+                );
+                if (sbKeys.length > 0) {
+                    let tokenData = {};
+                    try { tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}'); } catch { /* corrupted */ }
+                    if (tokenData?.user) {
+                        setLocalUser(tokenData.user);
                     }
                 }
             } catch (e) {
@@ -561,11 +560,11 @@ export default function SettingsPage() {
                     .from('union_admins').select('role, union_id, unions(name, code)').eq('user_id', user.id).limit(10);
                 setCaRoles({ agents: agentRows || [], members: memberRows || [], unionAdmins: unionRows || [] });
             } catch (e) {
-                setCaRolesLoading(false);
                 console.error('[settings club_arena]', e);
                 setCaRoles({ agents: [], members: [], unionAdmins: [] });
+            } finally {
+                setCaRolesLoading(false);
             }
-            setCaRolesLoading(false);
         };
         load();
     }, [activeSection, user?.id, caRoles]);
@@ -575,7 +574,7 @@ export default function SettingsPage() {
         if (!user?.id) return;
         setBillingLoading(true);
         try {
-            const headers = user?.id ? { 'Authorization': `Bearer ${getAccessToken()}` } : {};
+            const headers = { 'Authorization': `Bearer ${getAccessToken()}` };
 
             // Fetch orders, transactions, VIP sub, and profile in parallel
             const [ordersRes, txRes, vipRes, profileRes] = await Promise.allSettled([
@@ -614,13 +613,13 @@ export default function SettingsPage() {
 
     const redeemPromoCode = async () => {
         if (!promoCode.trim()) return;
+        if (!user?.id) {
+            setPromoResult({ success: false, message: 'Please Log In To Redeem A Promo Code.' });
+            return;
+        }
         setPromoLoading(true);
         setPromoResult(null);
         try {
-            if (!user?.id) {
-                setPromoResult({ success: false, message: 'Please Log In To Redeem A Promo Code.' });
-                return;
-            }
             const res = await fetch('/api/promo/redeem', {
                 method: 'POST',
                 headers: {
@@ -2295,16 +2294,24 @@ export default function SettingsPage() {
                                             onClick={async () => {
                                                 setCancelLoading(true);
                                                 try {
-                                                    await fetch('/api/store/cancel-vip', {
+                                                    const cancelRes = await fetch('/api/store/cancel-vip', {
                                                         method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
+                                                        headers: {
+                                                            'Content-Type': 'application/json',
+                                                            'Authorization': `Bearer ${getAccessToken()}`
+                                                        },
                                                         body: JSON.stringify({
                                                             userId: user?.id,
                                                             reason: cancelReason,
                                                             reasonText: cancelReason === 'other' ? cancelOtherText : '',
                                                         }),
                                                     });
-                                                    setCancelStep('confirmed');
+                                                    if (cancelRes.ok) {
+                                                        setCancelStep('confirmed');
+                                                    } else {
+                                                        const errData = await cancelRes.json().catch(() => ({}));
+                                                        alert(errData.error || 'Failed to cancel membership. Please try again.');
+                                                    }
                                                 } catch (err) {
                                                     console.error('Cancel VIP error:', err);
                                                     alert('Something went wrong. Please try again.');
