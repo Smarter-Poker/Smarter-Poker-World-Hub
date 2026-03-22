@@ -74,25 +74,9 @@ export async function shouldShowOnlineStatus(targetUserId) {
  * @returns {Promise<boolean>} - True if active status should be shown
  */
 export async function shouldShowActiveStatus(targetUserId) {
-    try {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('messenger_preferences')
-            .eq('id', targetUserId)
-            .maybeSingle();
-
-        if (error) {
-            console.error('[Privacy] Error checking active status visibility:', error);
-            return false;
-        }
-
-        if (!data?.messenger_preferences) return true;
-
-        return data.messenger_preferences.activeStatus !== false;
-    } catch (error) {
-        console.error('[Privacy] Exception checking active status:', error);
-        return false;
-    }
+    // messenger_preferences column not yet in DB — default to showing active status
+    // When column is added, restore the Supabase query here
+    return true;
 }
 
 /**
@@ -116,20 +100,8 @@ export async function canSendMessage(senderId, receiverId) {
             return { allowed: true, reason: 'friends' };
         }
 
-        // If not friends, check message request settings
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('messenger_preferences')
-            .eq('id', receiverId)
-            .maybeSingle();
-
-        if (profileError) {
-            console.error('[Privacy] Error checking message permission:', profileError);
-            return { allowed: true, reason: 'default' }; // Default to allowing
-        }
-
-        // For now, allow message requests if they're not explicitly blocked
-        // Can be extended to check a 'messageRequestsOnly' setting
+        // If not friends, allow message requests by default
+        // messenger_preferences column not yet in DB — skip the query
         return { allowed: true, reason: 'message_request' };
     } catch (error) {
         console.error('[Privacy] Exception checking message permission:', error);
@@ -146,7 +118,7 @@ export async function getBulkPrivacySettings(userIds) {
     try {
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, friend_preferences, messenger_preferences')
+            .select('id, friend_preferences')
             .in('id', userIds);
 
         if (error) {
@@ -159,8 +131,8 @@ export async function getBulkPrivacySettings(userIds) {
             privacyMap[profile.id] = {
                 allowFriendRequests: profile.friend_preferences?.allowRequests !== false,
                 showOnlineStatus: profile.friend_preferences?.showOnlineStatus !== false,
-                showActiveStatus: profile.messenger_preferences?.activeStatus !== false,
-                showReadReceipts: profile.messenger_preferences?.readReceipts !== false
+                showActiveStatus: true,   // messenger_preferences column not yet in DB
+                showReadReceipts: true     // messenger_preferences column not yet in DB
             };
         });
 

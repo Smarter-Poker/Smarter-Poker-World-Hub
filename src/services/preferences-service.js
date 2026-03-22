@@ -13,69 +13,31 @@ import { supabase } from '../lib/supabase';
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const messengerPreferences = {
-    // Get preferences (localStorage first, then DB)
+    // Get preferences (localStorage only — messenger_preferences column not yet in DB)
     async get(userId) {
-        // localStorage provides instant defaults
-        const local = {
+        return {
             notifications: localStorage.getItem('messenger-notifications') !== 'false',
             readReceipts: localStorage.getItem('messenger-read-receipts') !== 'false',
             activeStatus: localStorage.getItem('messenger-active-status') !== 'false',
             messageSounds: localStorage.getItem('messenger-sounds') !== 'false'
         };
-
-        // Try DB in background — silently fall back to local if column doesn't exist
-        if (userId) {
-            try {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('messenger_preferences')
-                    .eq('id', userId)
-                    .maybeSingle();
-
-                if (!error && data?.messenger_preferences) {
-                    return data.messenger_preferences;
-                }
-            } catch (_) {
-                // Column may not exist — use localStorage defaults silently
-            }
-        }
-
-        return local;
     },
 
-    // Update preferences (localStorage + DB)
+    // Update preferences (localStorage only — DB sync disabled until column exists)
     async update(userId, preferences) {
-        try {
-            // Update localStorage immediately for instant UI feedback
-            if (preferences.notifications !== undefined) {
-                localStorage.setItem('messenger-notifications', preferences.notifications.toString());
-            }
-            if (preferences.readReceipts !== undefined) {
-                localStorage.setItem('messenger-read-receipts', preferences.readReceipts.toString());
-            }
-            if (preferences.activeStatus !== undefined) {
-                localStorage.setItem('messenger-active-status', preferences.activeStatus.toString());
-            }
-            if (preferences.messageSounds !== undefined) {
-                localStorage.setItem('messenger-sounds', preferences.messageSounds.toString());
-            }
-
-            // Sync to DB in background
-            if (userId) {
-                const { data, error } = await supabase.rpc('update_messenger_preferences', {
-                    p_user_id: userId,
-                    p_preferences: preferences
-                });
-
-                if (error) throw error;
-                return data;
-            }
-
-            return preferences;
-        } catch (error) {
-            console.error('[Preferences] Error updating messenger preferences:', error);
-            throw error;
+        if (preferences.notifications !== undefined) {
+            localStorage.setItem('messenger-notifications', preferences.notifications.toString());
         }
+        if (preferences.readReceipts !== undefined) {
+            localStorage.setItem('messenger-read-receipts', preferences.readReceipts.toString());
+        }
+        if (preferences.activeStatus !== undefined) {
+            localStorage.setItem('messenger-active-status', preferences.activeStatus.toString());
+        }
+        if (preferences.messageSounds !== undefined) {
+            localStorage.setItem('messenger-sounds', preferences.messageSounds.toString());
+        }
+        return preferences;
     }
 };
 

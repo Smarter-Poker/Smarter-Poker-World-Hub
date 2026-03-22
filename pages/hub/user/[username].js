@@ -1410,8 +1410,8 @@ export default function UserProfilePage() {
     return (
         <PageTransition>
             <SEOHead
-                title="Player Profile"
-                description="View A Poker Player Profile, Stats, And Achievements On Smarter.Poker."
+                title={`${displayName} | Smarter.Poker`}
+                description={`View ${displayName}'s Poker Profile, Stats, And Achievements On Smarter.Poker.`}
                 noindex={true}
             />
 
@@ -1426,7 +1426,6 @@ export default function UserProfilePage() {
                         : 'linear-gradient(135deg, #0a1628 0%, #1a2a4a 30%, #0d2137 60%, #162d50 100%)',
                     position: 'relative',
                     borderRadius: '0 0 12px 12px',
-                    backgroundAttachment: profile.cover_photo_url ? 'fixed' : 'scroll',
                 }}>
                     {/* Dark overlay for better text visibility */}
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)', borderRadius: '0 0 12px 12px' }} />
@@ -1452,7 +1451,7 @@ export default function UserProfilePage() {
                     <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
                         {/* Avatar */}
                         <div style={{ position: 'relative', display: 'inline-block' }}>
-                            <Avatar src={profile.avatar_url} name={profile.username} size={120} />
+                            <Avatar src={profile.avatar_url} name={displayName} size={120} />
                             {horseProfileIds.has(profile.id) && isHorseOnlineNow(profile.id) && (
                                 <span style={{ position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, background: '#31a24c', border: '3px solid white', borderRadius: '50%', zIndex: 5 }} />
                             )}
@@ -1488,6 +1487,7 @@ export default function UserProfilePage() {
                             <div style={{ display: 'flex' }}>
                                 {friends.slice(0, 3).map((f, i) => (
                                     <img key={f.id} src={f.avatar_url || '/default-avatar.png'}
+                                        alt={f.full_name || f.username || 'Friend'}
                                         style={{
                                             width: 28, height: 28, borderRadius: '50%', objectFit: 'cover',
                                             border: '2px solid white', marginLeft: i > 0 ? -10 : 0
