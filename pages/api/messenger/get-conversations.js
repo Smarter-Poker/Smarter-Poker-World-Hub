@@ -102,23 +102,33 @@ export default async function handler(req, res) {
               (profiles || []).forEach(p => { profilesMap[p.id] = p; });
           }
 
-          // Step 5: BATCHED — get unread counts per conversation in ONE query
-          // Use individual counts but batch with Promise.all (unavoidable for per-conv counts)
+          // Step 5: BATCHED — get unread counts in ONE query (not per-conversation)
           const unreadCounts = {};
           const participationMap = {};
           participations.forEach(p => { participationMap[p.conversation_id] = p; });
 
-          // Batch unread counts in parallel (not sequential)
-          await Promise.all(conversationIds.map(async (convId) => {
-              const participation = participationMap[convId];
-              const { count } = await getSupabase()
-                  .from('social_messages')
-                  .select('id', { count: 'exact', head: true })
-                  .eq('conversation_id', convId)
-                  .neq('sender_id', userId)
-                  .gt('created_at', participation?.last_read_at || '1970-01-01');
-              unreadCounts[convId] = count || 0;
-          }));
+          // Find earliest last_read_at as a floor filter to reduce result set
+          const earliestRead = participations.reduce((earliest, p) => {
+              const ts = p.last_read_at || '1970-01-01';
+              return ts < earliest ? ts : earliest;
+          }, participations[0].last_read_at || '1970-01-01');
+
+          const { data: candidateMsgs } = await getSupabase()
+              .from('social_messages')
+              .select('conversation_id, created_at')
+              .in('conversation_id', conversationIds)
+              .neq('sender_id', userId)
+              .eq('is_deleted', false)
+              .gt('created_at', earliestRead);
+
+          // Count per-conversation using each conversation's own last_read_at
+          (candidateMsgs || []).forEach(msg => {
+              const participation = participationMap[msg.conversation_id];
+              const lastRead = participation?.last_read_at || '1970-01-01';
+              if (msg.created_at > lastRead) {
+                  unreadCounts[msg.conversation_id] = (unreadCounts[msg.conversation_id] || 0) + 1;
+              }
+          });
 
           // Step 6: Assemble enriched conversations (no extra queries)
           const validConversations = conversations
