@@ -1132,6 +1132,10 @@ function MessengerPage() {
     const searchInputRef = useRef(null);
     const typingTimeout = useRef(null);
     const messageSearchTimeout = useRef(null);
+    const activeConversationRef = useRef(null);
+
+    // Keep ref in sync so global RT channel can read it without re-subscribing
+    useEffect(() => { activeConversationRef.current = activeConversation; }, [activeConversation]);
 
     // Menu config with handlers
     const menuConfig = getMenuConfig('messenger', user, preferences, {
@@ -1279,6 +1283,7 @@ function MessengerPage() {
     }, [messages]);
 
     // 📡 GLOBAL Background Listener: Listen for messages in ANY conversation (to update sidebar/badges)
+    // Uses activeConversationRef instead of state to avoid re-subscribing on every conversation switch
     useEffect(() => {
         if (!user?.id) return;
         
@@ -1297,8 +1302,11 @@ function MessengerPage() {
                     eventBus.emit(EventType.MESSAGE_RECEIVED, { conversationId: newMsg.conversation_id, senderId: newMsg.sender_id }, 'FullMessenger');
                 }
 
+                // Read activeConversation from ref (stable — no re-subscribe on switch)
+                const currentActive = activeConversationRef.current;
+
                 // If it's NOT the active conversation, we need to manually update the conversation sidebar
-                if (!activeConversation || activeConversation.id !== newMsg.conversation_id) {
+                if (!currentActive || currentActive.id !== newMsg.conversation_id) {
                     playMessageSound();
                     
                     setConversations(prev => {
@@ -1326,7 +1334,7 @@ function MessengerPage() {
             .subscribe();
 
         return () => supabase.removeChannel(channel);
-    }, [user?.id, activeConversation]);
+    }, [user?.id]);
 
     // Subscribe to real-time messages for ACTIVE conversation
     useEffect(() => {
@@ -1645,72 +1653,74 @@ function MessengerPage() {
                 return;
             }
 
-            // Enrich with other participant info (with safeAsync to prevent crash)
-            const enriched = await Promise.all(
-                data.map(async (p) => {
-                    try {
-                        const { data: participants } = await supabase
-                            .from('social_conversation_participants')
-                            .select('user_id, profiles(id, username, avatar_url, is_vip)')
-                            .eq('conversation_id', p.conversation_id)
-                            .neq('user_id', userId);
+            // BATCHED ENRICHMENT: Fetch ALL other participants in ONE query (not per-conversation)
+            const conversationIds = data.map(p => p.conversation_id);
 
-                        // 🔒 FIX: Handle group chats vs 1-on-1 properly
-                        // For 1-on-1: exactly 1 other participant
-                        // For groups: multiple participants - can't call (would need to pick one)
-                        let otherUser = null;
-                        const otherParticipants = participants || [];
+            // Batch 1: All other participants across all conversations
+            const { data: allParticipants } = await supabase
+                .from('social_conversation_participants')
+                .select('conversation_id, user_id, profiles(id, username, avatar_url, is_vip)')
+                .in('conversation_id', conversationIds)
+                .neq('user_id', userId);
 
-                        if (otherParticipants.length === 1) {
-                            // 1-on-1 conversation - clear who to call
-                            otherUser = otherParticipants[0]?.profiles;
-                            if (!otherUser && otherParticipants[0]?.user_id) {
-                                const { data: directProfile } = await supabase
-                                    .from('profiles')
-                                    .select('id, username, avatar_url')
-                                    .eq('id', otherParticipants[0].user_id)
-                                    .maybeSingle();
-                                otherUser = directProfile || { id: otherParticipants[0].user_id, username: 'User', avatar_url: null };
-                            }
-                        } else if (otherParticipants.length > 1) {
-                            // Group chat - for display, show first user but mark as group
-                            otherUser = otherParticipants[0]?.profiles;
-                            if (otherUser) {
-                                otherUser = { ...otherUser, isGroupChat: true, participantCount: otherParticipants.length + 1 };
-                            }
-                        }
+            // Build lookup: conversationId → [participants]
+            const participantsByConvo = {};
+            (allParticipants || []).forEach(p => {
+                if (!participantsByConvo[p.conversation_id]) participantsByConvo[p.conversation_id] = [];
+                participantsByConvo[p.conversation_id].push(p);
+            });
 
-                        // Count unread (don't crash if this fails)
-                        let unreadCount = 0;
-                        try {
-                            const { count } = await supabase
-                                .from('social_messages')
-                                .select('id', { count: 'exact', head: true })
-                                .eq('conversation_id', p.conversation_id)
-                                .neq('sender_id', userId)
-                                .gt('created_at', p.last_read_at || '1970-01-01');
-                            unreadCount = count || 0;
-                        } catch (e) { console.error("[messenger.js]", e); }
+            // Batch 2: Unread counts — single query for ALL candidate messages
+            const earliestRead = data.reduce((earliest, p) => {
+                const ts = p.last_read_at || '1970-01-01';
+                return ts < earliest ? ts : earliest;
+            }, data[0].last_read_at || '1970-01-01');
 
-                        return {
-                            id: p.conversation_id,
-                            ...p.social_conversations,
-                            otherUser,
-                            unreadCount,
-                            last_read_at: p.last_read_at,
-                        };
-                    } catch (e) {
-                        // Individual enrichment failed - return partial data
-                        return {
-                            id: p.conversation_id,
-                            ...p.social_conversations,
-                            otherUser: null,
-                            unreadCount: 0,
-                            last_read_at: p.last_read_at,
-                        };
+            let unreadByConvo = {};
+            try {
+                const { data: unreadMsgs } = await supabase
+                    .from('social_messages')
+                    .select('conversation_id, created_at')
+                    .in('conversation_id', conversationIds)
+                    .neq('sender_id', userId)
+                    .eq('is_deleted', false)
+                    .gt('created_at', earliestRead);
+
+                // Count per-conversation using per-conversation last_read_at
+                const readMap = new Map(data.map(p => [p.conversation_id, p.last_read_at || '1970-01-01']));
+                (unreadMsgs || []).forEach(msg => {
+                    const lastRead = readMap.get(msg.conversation_id);
+                    if (lastRead && msg.created_at > lastRead) {
+                        unreadByConvo[msg.conversation_id] = (unreadByConvo[msg.conversation_id] || 0) + 1;
                     }
-                })
-            );
+                });
+            } catch (e) { console.error('[messenger.js] Unread batch failed:', e); }
+
+            // Assemble enriched conversations
+            const enriched = data.map(p => {
+                const otherParticipants = participantsByConvo[p.conversation_id] || [];
+                let otherUser = null;
+
+                if (otherParticipants.length === 1) {
+                    otherUser = otherParticipants[0]?.profiles;
+                    if (!otherUser && otherParticipants[0]?.user_id) {
+                        otherUser = { id: otherParticipants[0].user_id, username: 'User', avatar_url: null };
+                    }
+                } else if (otherParticipants.length > 1) {
+                    otherUser = otherParticipants[0]?.profiles;
+                    if (otherUser) {
+                        otherUser = { ...otherUser, isGroupChat: true, participantCount: otherParticipants.length + 1 };
+                    }
+                }
+
+                return {
+                    id: p.conversation_id,
+                    ...p.social_conversations,
+                    otherUser,
+                    unreadCount: unreadByConvo[p.conversation_id] || 0,
+                    last_read_at: p.last_read_at,
+                };
+            });
 
             // Sort and set - filter out conversations without other users
             const sorted = enriched

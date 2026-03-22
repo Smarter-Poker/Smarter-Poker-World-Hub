@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+const { getServerUser } = require('../../../src/lib/serverAuth');
 
 let _supabase = null;
 function getSupabase() {
@@ -24,40 +25,38 @@ export default async function handler(req, res) {
       }
 
       try {
-          // Authenticate user from Authorization header
-          const authHeader = req.headers.authorization;
-          if (!authHeader?.startsWith('Bearer ')) {
-              return res.status(401).json({ success: false, error: 'Authorization required' });
-          }
+          // ── PERF-1: Local JWT decode first (zero-latency), GoTrue fallback ──
+          const localUser = getServerUser(req);
+          let userId;
 
-          const token = authHeader.replace('Bearer ', '');
-          const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
-
-          if (authError || !user) {
-              return res.status(401).json({ success: false, error: 'Invalid session' });
+          if (localUser) {
+              userId = localUser.id;
+          } else {
+              // Fallback to GoTrue network call
+              const authHeader = req.headers.authorization;
+              if (!authHeader?.startsWith('Bearer ')) {
+                  return res.status(401).json({ success: false, error: 'Authorization required' });
+              }
+              const token = authHeader.replace('Bearer ', '');
+              const { data: { user }, error: authError } = await getSupabase().auth.getUser(token);
+              if (authError || !user) {
+                  return res.status(401).json({ success: false, error: 'Invalid session' });
+              }
+              userId = user.id;
           }
 
           // Parse query params
           const limit = Math.min(parseInt(req.query.limit) || 50, 100);
           const offset = parseInt(req.query.offset) || 0;
-          const type = req.query.type; // optional filter
 
-          // Build query
-          let query = getSupabase()
+          // ── BUG-1 FIX: Always fetch all types, client filters locally ──
+          // No server-side type filter — client handles all filtering
+          const query = getSupabase()
               .from('diamond_transactions')
               .select('*', { count: 'exact' })
-              .eq('user_id', user.id)
+              .eq('user_id', userId)
               .order('created_at', { ascending: false })
               .range(offset, offset + limit - 1);
-
-          if (type && type !== 'all') {
-              // BUG #270 FIX: Sanitize type to prevent PostgREST filter injection
-              const safeType = type.replace(/[,().]/g, '');
-              if (safeType) {
-                  query = query.or(`transaction_type.eq.${safeType},type.eq.${safeType}`)
-                      .limit(100);
-              }
-          }
 
           const { data, count, error } = await query;
 
@@ -70,8 +69,11 @@ export default async function handler(req, res) {
           const { data: profile } = await getSupabase()
               .from('profiles')
               .select('diamonds')
-              .eq('id', user.id)
+              .eq('id', userId)
               .maybeSingle();
+
+          // ── PERF-3: Allow browser to cache for 30s (rapid re-opens) ──
+          res.setHeader('Cache-Control', 'private, max-age=30');
 
           return res.status(200).json({
               success: true,

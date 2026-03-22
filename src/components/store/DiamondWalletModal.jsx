@@ -5,7 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getAuthUser } from '../../lib/authUtils';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,18 +74,97 @@ const EARNED_TYPES = [
     'hendonmob_link', 'venue_review', 'promo_code'
 ];
 
+// ── PERF-2: localStorage cache key for instant modal re-opens ──
+const CACHE_KEY = 'sp-cached-wallet-txns';
+const CACHE_TTL_MS = 60_000; // 60 seconds
+
+function getCachedTransactions() {
+    try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        const { transactions, balance, total, ts } = JSON.parse(raw);
+        if (Date.now() - ts > CACHE_TTL_MS) return null; // stale
+        return { transactions, balance, total };
+    } catch (_) { return null; }
+}
+
+function setCachedTransactions(transactions, balance, total) {
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+            transactions, balance, total, ts: Date.now()
+        }));
+    } catch (_) { /* quota exceeded — ignore */ }
+}
+
+// ── PERF-4: Read cached balance from header cache ──
+function getCachedBalance() {
+    try {
+        const raw = localStorage.getItem('sp-cached-header-user');
+        if (raw) {
+            const { diamonds } = JSON.parse(raw);
+            return diamonds ?? 0;
+        }
+    } catch (_) {}
+    return 0;
+}
+
+// ── Skeleton shimmer row ──
+const SkeletonRow = () => (
+    <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 16px',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+    }}>
+        <div style={{
+            width: 36, height: 36,
+            borderRadius: 10,
+            background: 'rgba(255, 255, 255, 0.06)',
+            animation: 'walletShimmer 1.2s ease-in-out infinite',
+            flexShrink: 0,
+        }} />
+        <div style={{ flex: 1 }}>
+            <div style={{
+                width: '60%', height: 12, borderRadius: 4,
+                background: 'rgba(255, 255, 255, 0.06)',
+                animation: 'walletShimmer 1.2s ease-in-out infinite',
+                marginBottom: 6,
+            }} />
+            <div style={{
+                width: '40%', height: 10, borderRadius: 4,
+                background: 'rgba(255, 255, 255, 0.04)',
+                animation: 'walletShimmer 1.2s ease-in-out infinite',
+                animationDelay: '0.2s',
+            }} />
+        </div>
+        <div style={{
+            width: 48, height: 14, borderRadius: 4,
+            background: 'rgba(255, 255, 255, 0.06)',
+            animation: 'walletShimmer 1.2s ease-in-out infinite',
+            animationDelay: '0.4s',
+            flexShrink: 0,
+        }} />
+    </div>
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Modal Component
 // ─────────────────────────────────────────────────────────────────────────────
 export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
     const [transactions, setTransactions] = useState([]);
-    const [balance, setBalance] = useState(0);
+    // ── PERF-4: Initialize balance from header cache, not 0 ──
+    const [balance, setBalance] = useState(() => getCachedBalance());
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [filter, setFilter] = useState('all');
     const [total, setTotal] = useState(0);
+    const fetchedRef = useRef(false);
 
+    // ── BUG-1 FIX: Fetch once on open, filter purely client-side ──
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
             const user = getAuthUser();
             if (!user) return;
@@ -93,40 +172,64 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
             const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             if (!session?.access_token) return;
 
-            const params = new URLSearchParams({ limit: '50' });
-            // For 'earned'/'spent' we fetch all and filter client-side
-            if (filter !== 'all' && filter !== 'earned' && filter !== 'spent') {
-                params.set('type', filter);
-            }
-
-            const res = await fetch(`/api/store/diamond-transactions?${params}`, {
+            const res = await fetch('/api/store/diamond-transactions?limit=50', {
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
 
             if (res.ok) {
                 const data = await res.json();
-                setTransactions(data.transactions || []);
-                setBalance(data.balance || 0);
-                setTotal(data.total || 0);
+                const txns = data.transactions || [];
+                const bal = data.balance ?? 0;
+                const tot = data.total || 0;
+                setTransactions(txns);
+                setBalance(bal);
+                setTotal(tot);
+                fetchedRef.current = true;
+                // ── PERF-2: Cache for instant re-opens ──
+                setCachedTransactions(txns, bal, tot);
+            } else {
+                throw new Error(`Server error ${res.status}`);
             }
         } catch (err) {
             console.error('Failed to load transactions:', err);
+            setError('Failed to load transactions. Please try again.');
         } finally {
             setLoading(false);
         }
-    }, [filter]);
+    }, []); // No filter dependency — fetch once, filter client-side
 
     useEffect(() => {
-        if (isOpen) fetchTransactions();
+        if (!isOpen) {
+            // Reset state when closing so next open starts fresh
+            fetchedRef.current = false;
+            setFilter('all');
+            return;
+        }
+
+        // ── PERF-2: Show cached data immediately, then refresh in background ──
+        const cached = getCachedTransactions();
+        if (cached) {
+            setTransactions(cached.transactions);
+            setBalance(cached.balance ?? getCachedBalance());
+            setTotal(cached.total);
+            setLoading(false);
+            // Still refresh in background for freshness
+            fetchTransactions();
+        } else {
+            // ── PERF-4: At least show the cached balance while loading ──
+            setBalance(getCachedBalance());
+            fetchTransactions();
+        }
     }, [isOpen, fetchTransactions]);
 
-    // Client-side filter for earned/spent groups
-    // NOTE: DB uses 'transaction_type' column, normalize for backward compat
+    // ── BUG-1 FIX: Client-side filter only — no re-fetch ──
     const filteredTx = transactions.filter(tx => {
         const txType = tx.transaction_type || tx.type;
         if (filter === 'all') return true;
         if (filter === 'earned') return EARNED_TYPES.includes(txType);
         if (filter === 'spent') return tx.amount < 0 && !['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
+        if (filter === 'refund') return ['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
+        if (filter === 'purchase') return ['purchase', 'feature_unlock', 'game_cost', 'arcade_entry'].includes(txType);
         return txType === filter;
     });
 
@@ -216,7 +319,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
                             color: '#00d4ff',
                             textShadow: '0 0 20px rgba(0, 212, 255, 0.4)',
                         }}>
-                            {loading ? '...' : balance.toLocaleString()}
+                            {/* ── PERF-4 + BUG-2: Show cached balance instantly, null-safe ── */}
+                            {(balance ?? 0).toLocaleString()}
                         </span>
                     </div>
 
@@ -287,14 +391,42 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
                     overflowY: 'auto',
                     padding: '4px 0',
                 }}>
-                    {loading ? (
+                    {/* ── BUG-3: Error state with retry button ── */}
+                    {error ? (
                         <div style={{
                             textAlign: 'center',
                             padding: 40,
                             color: 'rgba(255, 255, 255, 0.4)',
                         }}>
-                            Loading transactions...
+                            <div style={{ fontSize: 28, marginBottom: 10, opacity: 0.5 }}>⚠️</div>
+                            <div style={{ fontSize: 13, marginBottom: 14, color: 'rgba(255, 255, 255, 0.45)' }}>
+                                {error}
+                            </div>
+                            <button
+                                onClick={fetchTransactions}
+                                style={{
+                                    padding: '8px 20px',
+                                    background: 'rgba(0, 212, 255, 0.15)',
+                                    border: '1px solid rgba(0, 212, 255, 0.4)',
+                                    borderRadius: 16,
+                                    color: '#00d4ff',
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                Retry
+                            </button>
                         </div>
+                    ) : loading && transactions.length === 0 ? (
+                        /* ── POLISH-1: Skeleton shimmer rows ── */
+                        <>
+                            <SkeletonRow />
+                            <SkeletonRow />
+                            <SkeletonRow />
+                            <SkeletonRow />
+                            <SkeletonRow />
+                        </>
                     ) : filteredTx.length === 0 ? (
                         <div style={{
                             textAlign: 'center',
@@ -302,7 +434,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
                             color: 'rgba(255, 255, 255, 0.3)',
                         }}>
                             <div style={{ fontSize: 32, marginBottom: 8 }}>💎</div>
-                            No transactions yet
+                            {filter === 'all' ? 'No transactions yet' : `No ${FILTER_OPTIONS.find(o => o.value === filter)?.label?.toLowerCase() || ''} transactions`}
                         </div>
                     ) : (
                         filteredTx.map(tx => {
@@ -373,7 +505,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
                                             fontWeight: 700,
                                             color: isPositive ? '#4ade80' : '#f87171',
                                         }}>
-                                            {isPositive ? '+' : ''}{tx.amount.toLocaleString()}
+                                            {isPositive ? '+' : ''}{(tx.amount ?? 0).toLocaleString()}
                                         </span>
                                         {tx.balance_after != null && (
                                             <span style={{
@@ -422,6 +554,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
                 @keyframes walletFadeIn {
                     from { opacity: 0; }
                     to { opacity: 1; }
+                }
+                @keyframes walletShimmer {
+                    0% { opacity: 0.4; }
+                    50% { opacity: 0.8; }
+                    100% { opacity: 0.4; }
                 }
             `}</style>
         </>

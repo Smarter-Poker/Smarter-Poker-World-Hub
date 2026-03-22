@@ -316,8 +316,6 @@ export default function SettingsPage() {
         if (!user?.id) return;
 
         try {
-            const token = getAccessToken();
-            if (!session) return;
 
             await fetch('/api/auth/sessions/track', {
                 method: 'POST',
@@ -342,8 +340,6 @@ export default function SettingsPage() {
     const setup2FA = async () => {
         setLoadingMFA(true);
         try {
-            const token = getAccessToken();
-            if (!session) return;
 
             const response = await fetch('/api/auth/mfa/setup', {
                 method: 'POST',
@@ -375,8 +371,6 @@ export default function SettingsPage() {
 
         setLoadingMFA(true);
         try {
-            const token = getAccessToken();
-            if (!session) return;
 
             const response = await fetch('/api/auth/mfa/verify', {
                 method: 'POST',
@@ -413,8 +407,6 @@ export default function SettingsPage() {
 
         setLoadingMFA(true);
         try {
-            const token = getAccessToken();
-            if (!session) return;
 
             const response = await fetch('/api/auth/mfa/disable', {
                 method: 'POST',
@@ -500,8 +492,7 @@ export default function SettingsPage() {
 
     const handleDeleteAccount = async () => {
         try {
-            const token = getAccessToken();
-            if (!session) {
+            if (!user?.id) {
                 alert('Session expired. Please log in again.');
                 return;
             }
@@ -571,7 +562,7 @@ export default function SettingsPage() {
                     .from('union_admins').select('role, union_id, unions(name, code)').eq('user_id', user.id).limit(10);
                 setCaRoles({ agents: agentRows || [], members: memberRows || [], unionAdmins: unionRows || [] });
             } catch (e) {
-                setPromoHistoryLoading(false);
+                setCaRolesLoading(false);
                 console.error('[settings club_arena]', e);
                 setCaRoles({ agents: [], members: [], unionAdmins: [] });
             }
@@ -585,13 +576,12 @@ export default function SettingsPage() {
         if (!user?.id) return;
         setBillingLoading(true);
         try {
-            const token = getAccessToken();
-            const headers = session ? { 'Authorization': `Bearer ${getAccessToken()}` } : {};
+            const headers = user?.id ? { 'Authorization': `Bearer ${getAccessToken()}` } : {};
 
             // Fetch orders, transactions, VIP sub, and profile in parallel
             const [ordersRes, txRes, vipRes, profileRes] = await Promise.allSettled([
                 supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
-                session ? fetch(`/api/store/diamond-transactions?limit=10`, { headers }).then(r => r.json()) : Promise.resolve({ transactions: [] }),
+                user?.id ? fetch(`/api/store/diamond-transactions?limit=10`, { headers }).then(r => r.json()) : Promise.resolve({ transactions: [] }),
                 supabase.from('vip_subscriptions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
                 supabase.from('profiles').select('diamonds').eq('id', user.id).maybeSingle(),
             ]);
@@ -609,7 +599,6 @@ export default function SettingsPage() {
                 setBillingDiamonds(profileRes.value.data.diamonds || 0);
             }
         } catch (err) {
-            setCaRolesLoading(false);
             console.error('[Settings] Error loading billing data:', err);
         } finally {
             setBillingLoading(false);
@@ -629,8 +618,7 @@ export default function SettingsPage() {
         setPromoLoading(true);
         setPromoResult(null);
         try {
-            const token = getAccessToken();
-            if (!session) {
+            if (!user?.id) {
                 setPromoResult({ success: false, message: 'Please Log In To Redeem A Promo Code.' });
                 return;
             }
@@ -1139,8 +1127,7 @@ export default function SettingsPage() {
                                             setShowDevicesModal(true);
                                             // Load connected devices from API
                                             try {
-                                                const token = getAccessToken();
-                                                if (!session) return;
+                                                if (!user?.id) return;
 
                                                 const response = await fetch('/api/auth/sessions/list', {
                                                     method: 'GET',
@@ -2089,144 +2076,7 @@ export default function SettingsPage() {
                             </div>
                         )}
 
-                        {/* Original Data Export Section - keeping for backward compatibility */}
-                        {activeSection === 'data_old' && (
-                            <div style={styles.section}>
-                                <h2 style={styles.sectionTitle}>Data & Export</h2>
 
-                                <div style={styles.card}>
-                                    <div style={styles.dataRow}>
-                                        <div>
-                                            <h4 style={styles.dataTitle}>Export Hand History</h4>
-                                            <p style={styles.dataDesc}>Download All Your Hand Histories</p>
-                                        </div>
-                                        <button
-                                            style={styles.exportButton}
-                                            onClick={async () => {
-                                                if (!user?.id) { alert('Please log in to export data.'); return; }
-                                                try {
-                                                    const { data, error } = await supabase
-                                                        .from('hand_histories')
-                                                        .select('*')
-                                                        .eq('user_id', user.id);
-                                                    const rows = data || [];
-                                                    if (rows.length === 0) { alert('No hand history data found.'); return; }
-                                                    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
-                                                    const url = URL.createObjectURL(blob);
-                                                    const a = document.createElement('a');
-                                                    a.href = url; a.download = 'hand-history-export.json'; a.click();
-                                                    URL.revokeObjectURL(url);
-                                                } catch (err) {
-                                                    console.error('Export error:', err);
-                                                    alert('Export failed. Please try again.');
-                                                }
-                                            }}
-                                        >Export</button>
-                                    </div>
-                                    <div style={styles.dataRow}>
-                                        <div>
-                                            <h4 style={styles.dataTitle}>Export Statistics</h4>
-                                            <p style={styles.dataDesc}>Download Your Gameplay Statistics</p>
-                                        </div>
-                                        <button
-                                            style={styles.exportButton}
-                                            onClick={async () => {
-                                                if (!user?.id) { alert('Please log in to export data.'); return; }
-                                                try {
-                                                    const { data, error } = await supabase
-                                                        .from('user_stats')
-                                                        .select('*')
-                                                        .eq('user_id', user.id);
-                                                    const rows = data || [];
-                                                    if (rows.length === 0) { alert('No statistics data found.'); return; }
-                                                    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
-                                                    const url = URL.createObjectURL(blob);
-                                                    const a = document.createElement('a');
-                                                    a.href = url; a.download = 'statistics-export.json'; a.click();
-                                                    URL.revokeObjectURL(url);
-                                                } catch (err) {
-                                                    console.error('Export error:', err);
-                                                    alert('Export failed. Please try again.');
-                                                }
-                                            }}
-                                        >Export</button>
-                                    </div>
-                                    <div style={styles.dataRow}>
-                                        <div>
-                                            <h4 style={styles.dataTitle}>Export All Data</h4>
-                                            <p style={styles.dataDesc}>Full GDPR-Compliant Data Export</p>
-                                        </div>
-                                        <button
-                                            style={styles.exportButton}
-                                            onClick={async () => {
-                                                if (!user?.id) { alert('Please log in to export data.'); return; }
-                                                try {
-                                                    const allData = {};
-                                                    const tables = ['profiles', 'hand_histories', 'user_stats', 'user_settings'];
-                                                    for (const table of tables) {
-                                                        const { data } = await supabase.from(table).select('*').eq(table === 'profiles' ? 'id' : 'user_id', user.id);
-                                                        if (data && data.length > 0) allData[table] = data;
-                                                    }
-                                                    allData.email = user.email;
-                                                    allData.export_date = new Date().toISOString();
-                                                    const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
-                                                    const url = URL.createObjectURL(blob);
-                                                    const a = document.createElement('a');
-                                                    a.href = url; a.download = 'smarter-poker-full-export.json'; a.click();
-                                                    URL.revokeObjectURL(url);
-                                                } catch (err) {
-                                                    console.error('Export error:', err);
-                                                    alert('Export failed. Please try again.');
-                                                }
-                                            }}
-                                        >Request</button>
-                                    </div>
-                                </div>
-
-                                <div style={styles.dangerCard}>
-                                    <h3 style={styles.dangerTitle}> Danger Zone</h3>
-                                    <p style={styles.dangerDesc}>
-                                        These Actions Are Irreversible. Please Proceed With Caution.
-                                    </p>
-                                    <button
-                                        style={styles.dangerButton}
-                                        onClick={async () => {
-                                            if (!user?.id) { alert('Please log in first.'); return; }
-                                            const confirmed = confirm(
-                                                'Are you sure you want to delete your account?\n\n' +
-                                                'This action is PERMANENT and cannot be undone.\n' +
-                                                'All your data, avatars, and history will be deleted.'
-                                            );
-                                            if (!confirmed) return;
-                                            const doubleConfirm = confirm(
-                                                'This is your FINAL confirmation.\n\n' +
-                                                'Type OK to permanently delete your account and all associated data.'
-                                            );
-                                            if (!doubleConfirm) return;
-                                            try {
-                                                const token = getAccessToken();
-                                                if (!session) { alert('Session expired. Please log in again.'); return; }
-                                                const response = await fetch('/api/auth/delete-account', {
-                                                    method: 'DELETE',
-                                                    headers: { 'Authorization': 'Bearer ' + getAccessToken() }
-                                                });
-                                                if (response.ok) {
-                                                    await supabase.auth.signOut();
-                                                    alert('Your account has been scheduled for deletion.');
-                                                    window.location.href = '/';
-                                                } else {
-                                                    const err = await response.json().catch(() => ({}));
-                                                    alert(err.error || 'Failed to delete account. Please contact support.');
-                                                }
-                                            } catch (err) {
-                                                console.error('Delete account error:', err);
-                                                alert('An error occurred. Please try again or contact support.');
-                                            }
-                                        }}
-                                    >Delete Account</button>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
@@ -2837,8 +2687,7 @@ export default function SettingsPage() {
                                                 onClick={async () => {
                                                     if (confirm('Revoke access for this device?')) {
                                                         try {
-                                                            const token = getAccessToken();
-                                                            if (!session) return;
+                                                            if (!user?.id) return;
 
                                                             const response = await fetch('/api/auth/sessions/revoke', {
                                                                 method: 'POST',
@@ -3032,6 +2881,15 @@ const styles = {
         overflowY: 'auto',
     },
     section: {},
+    settingGroup: {
+        marginBottom: 24,
+    },
+    groupTitle: {
+        fontSize: 16,
+        fontWeight: 600,
+        color: '#fff',
+        marginBottom: 12,
+    },
     sectionTitle: {
         fontSize: 24,
         fontWeight: 700,

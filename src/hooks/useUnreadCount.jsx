@@ -6,7 +6,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
-import { eventBus, EventType } from '../engine/EventBus';
+// EventBus import removed — Supabase Realtime is the sole badge updater
 import { listenBroadcast, broadcastSync } from '../lib/broadcastSync';
 
 const UnreadContext = createContext({
@@ -113,14 +113,11 @@ export function UnreadProvider({ children }) {
                 })
                 .subscribe();
 
-            // ⚡ FAST-PATH FALLBACK: Listen to the global EventBus 
-            // This ensures if a page instantly gets a message via WS and emits, the badge updates BEFORE Supabase Realtime catches up
-            let offMsgReceived;
-            if (typeof window !== 'undefined' && eventBus) {
-                offMsgReceived = eventBus.on(EventType.MESSAGE_RECEIVED, () => {
-                    setUnreadCount(prev => prev + 1);
-                });
-            }
+            // NOTE: EventBus MESSAGE_RECEIVED listener was removed here.
+            // It caused double-counting: messenger.js emits MESSAGE_RECEIVED 
+            // from its own Supabase Realtime handler, AND this hook's Supabase 
+            // channel fires — both incrementing the badge for the same message.
+            // The Supabase Realtime channel above is the single source of truth.
 
             // BroadcastChannel for cross-tab sync (instantly updates other tabs when read)
             const cleanupUnreadSync = listenBroadcast('smarter_poker_unread_sync', (msg) => {
@@ -136,7 +133,6 @@ export function UnreadProvider({ children }) {
                 supabase.removeChannel(channel);
                 clearInterval(interval);
                 cleanupUnreadSync();
-                if (offMsgReceived) offMsgReceived();
             };
         }
     }, [userId]);
