@@ -154,7 +154,7 @@ export function AvatarProvider({ children }) {
                         // Dispatch VIP bus event so header updates immediately
                         window.dispatchEvent(new CustomEvent('vip-status-changed', { detail: { vipGranted: true } }));
                         // Hydrate diamond balance across the UI immediately
-                        window.dispatchEvent(new Event('diamond-balance-refresh'));
+                        window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
                     }
                 }
             } catch (err) {

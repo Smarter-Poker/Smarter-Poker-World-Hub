@@ -225,7 +225,7 @@ export default function ThreePillHeader({
                                 avatar: avatar_url,
                                 name: full_name || username,
                                 username: username || null,
-                                diamonds: diamonds || 0,
+                                diamonds: diamonds ?? 0,
                                 is_vip: !!result.profile.is_vip
                             }));
                         } catch (_) { }
@@ -310,7 +310,7 @@ export default function ThreePillHeader({
                             avatar: result.profile.avatar_url,
                             name: result.profile.full_name || result.profile.username,
                             username: result.profile.username || null,
-                            diamonds: result.profile.diamonds || 0,
+                            diamonds: result.profile.diamonds ?? 0,
                             is_vip: !!result.profile.is_vip
                         }));
                     } catch (_) { }
@@ -530,15 +530,18 @@ export default function ThreePillHeader({
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: 20,
+                                fontSize: 16,
+                                fontWeight: 700,
+                                color: 'white',
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                                 cursor: 'pointer',
+                                transition: 'transform 0.1s ease, opacity 0.15s ease',
                                 background: displayAvatar
                                     ? `url(${displayAvatar}) center/cover`
                                     : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)',
                             }}>
-                                {!displayAvatar && '👤'}
+                                {!displayAvatar && ((user?.name || '').charAt(0).toUpperCase() || '?')}
                             </div>
                         </Link>
 

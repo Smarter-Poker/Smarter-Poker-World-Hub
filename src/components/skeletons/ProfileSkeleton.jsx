@@ -3,9 +3,11 @@
  * ═══════════════════════════════════════════════════════════════════
  * Replaces the generic "Loading Profile..." spinner with a
  * Facebook-style shimmer that matches the profile page layout.
+ * Includes the UniversalHeader for seamless navigation during load.
  */
 
 import React from 'react';
+import UniversalHeader from '../ui/UniversalHeader';
 
 const shimmerKeyframes = `
 @keyframes sp-shimmer {
@@ -38,6 +40,9 @@ export default function ProfileSkeleton() {
         <div style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
             <style dangerouslySetInnerHTML={{ __html: shimmerKeyframes }} />
 
+            {/* Header — persists during loading for seamless transition */}
+            <UniversalHeader pageDepth={2} />
+
             {/* Cover Photo */}
             <ShimmerBlock width="100%" height={220} radius={0} style={{ borderRadius: '0 0 12px 12px' }} />
 
@@ -69,7 +74,7 @@ export default function ProfileSkeleton() {
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: 0, marginTop: 16, padding: '0 16px', borderBottom: '1px solid #DADDE1' }}>
-                {['All', 'Posts', 'Friends', 'Photos'].map((_, i) => (
+                {['All', 'Poker', 'Photos', 'Videos', 'Reels'].map((_, i) => (
                     <ShimmerBlock key={i} width={70} height={36} radius={0} style={{ margin: '0 4px' }} />
                 ))}
             </div>

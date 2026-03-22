@@ -206,7 +206,7 @@ export default function UniversalHeader({
                                         avatar: avatar_url,
                                         name: full_name || username,
                                         username: username || null,
-                                        diamonds: diamonds || 0,
+                                        diamonds: diamonds ?? 0,
                                         is_vip: !!is_vip
                                     }));
                                 } catch (_) { }
@@ -263,7 +263,7 @@ export default function UniversalHeader({
                             const profile = profiles?.[0];
 
                             if (profile && mounted) {
-                                setDiamondBalance(profile.diamonds || 0);
+                                setDiamondBalance(profile.diamonds ?? 0);
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: profile.avatar_url,
@@ -275,7 +275,7 @@ export default function UniversalHeader({
                                         avatar: profile.avatar_url,
                                         name: profile.full_name || profile.username,
                                         username: profile.username || null,
-                                        diamonds: profile.diamonds || 0,
+                                        diamonds: profile.diamonds ?? 0,
                                         is_vip: false
                                     }));
                                 } catch (_) { }
@@ -445,7 +445,7 @@ export default function UniversalHeader({
                             avatar: result.profile.avatar_url,
                             name: result.profile.full_name || result.profile.username,
                             username: result.profile.username || null,
-                            diamonds: result.profile.diamonds || 0,
+                            diamonds: result.profile.diamonds ?? 0,
                             is_vip: !!result.profile.is_vip
                         }));
                     } catch (_) { }
@@ -690,6 +690,17 @@ export default function UniversalHeader({
                     flex-shrink: 0;
                     background-size: cover;
                     background-position: center;
+                    transition: transform 0.1s ease, opacity 0.15s ease;
+                    cursor: pointer;
+                }
+
+                .profile-orb:hover {
+                    opacity: 0.85;
+                    transform: scale(1.08);
+                }
+
+                .profile-orb:active {
+                    transform: scale(0.92);
                 }
                 
                 /* MOBILE + TABLET: Compact layout with all icons visible */
@@ -871,8 +882,8 @@ export default function UniversalHeader({
                             } : {})
                         }}
                     >
-                        <Link href={profileHref} prefetch={profileHref !== '/hub/profile'} style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-                            {!displayAvatar && '👤'}
+                        <Link href={profileHref} prefetch={profileHref !== '/hub/profile'} style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>
+                            {!displayAvatar && (isMounted ? (user?.name || '').charAt(0).toUpperCase() || '?' : '')}
                         </Link>
                     </div>
 
