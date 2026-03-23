@@ -738,6 +738,8 @@ export default function UserProfilePage() {
     const [horseProfileIds, setHorseProfileIds] = useState(new Set());
     const [postContent, setPostContent] = useState('');
     const [showPostComposer, setShowPostComposer] = useState(false);
+    const [coverLoaded, setCoverLoaded] = useState(false);
+    const [shareCopied, setShareCopied] = useState(false);
 
     // Poker Activity state
     const [pokerCheckins, setPokerCheckins] = useState([]);
@@ -1438,11 +1440,26 @@ export default function UserProfilePage() {
                 <div style={{
                     height: 220,
                     background: profile.cover_photo_url
-                        ? `url(${profile.cover_photo_url}) center/cover`
+                        ? 'transparent'
                         : 'linear-gradient(135deg, #0a1628 0%, #1a2a4a 30%, #0d2137 60%, #162d50 100%)',
                     position: 'relative',
                     borderRadius: '0 0 12px 12px',
+                    overflow: 'hidden',
                 }}>
+                    {/* Cover Photo with fade-in */}
+                    {profile.cover_photo_url && (
+                        <img
+                            src={profile.cover_photo_url}
+                            alt="Cover photo"
+                            onLoad={() => setCoverLoaded(true)}
+                            style={{
+                                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                                objectFit: 'cover',
+                                opacity: coverLoaded ? 1 : 0,
+                                transition: 'opacity 0.5s ease-in-out',
+                            }}
+                        />
+                    )}
                     {/* Dark overlay for better text visibility */}
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)', borderRadius: '0 0 12px 12px' }} />
 
@@ -1480,13 +1497,12 @@ export default function UserProfilePage() {
                                 <div style={{ fontSize: 14, color: C.textSec, marginTop: 4, lineHeight: 1.4 }}>{profile.bio}</div>
                             )}
                             <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 4, flexWrap: 'wrap' }}>
-                                <span><strong style={{ transition: 'all 0.3s', display: 'inline-block' }}>{stats.friends}</strong> Friends</span>
-                                <span>·</span>
-                                <span><strong style={{ transition: 'all 0.3s', display: 'inline-block' }}>{stats.followers}</strong> Followers</span>
-                                <span>·</span>
-                                <span><strong style={{ transition: 'all 0.3s', display: 'inline-block' }}>{stats.following}</strong> Following</span>
-                                <span>·</span>
-                                <span><strong style={{ transition: 'all 0.3s', display: 'inline-block' }}>{stats.posts}</strong> Posts</span>
+                                {[{ val: stats.friends, label: 'Friends' }, { val: stats.followers, label: 'Followers' }, { val: stats.following, label: 'Following' }, { val: stats.posts, label: 'Posts' }].map((s, i) => (
+                                    <React.Fragment key={s.label}>
+                                        {i > 0 && <span>·</span>}
+                                        <span><strong style={{ display: 'inline-block', minWidth: 12, textAlign: 'center', transition: 'transform 0.3s ease, opacity 0.3s ease' }}>{s.val}</strong> {s.label}</span>
+                                    </React.Fragment>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -1531,23 +1547,38 @@ export default function UserProfilePage() {
                                     flex: 1, padding: '10px 16px', background: C.blue, color: 'white',
                                     borderRadius: 8, textDecoration: 'none', fontWeight: 600, textAlign: 'center', fontSize: 14
                                 }}>Social Feed</Link>
-                                <button onClick={() => {
+                                <button onClick={async () => {
                                     const url = `https://smarter.poker/hub/user/${profile.username}`;
-                                    if (navigator.clipboard) {
-                                        navigator.clipboard.writeText(url).then(() => toast.success('Profile link copied!')).catch(() => toast.error('Could not copy link'));
-                                    } else {
-                                        const input = document.createElement('input');
-                                        input.value = url;
-                                        document.body.appendChild(input);
-                                        input.select();
-                                        document.execCommand('copy');
-                                        document.body.removeChild(input);
-                                        toast.success('Profile link copied!');
+                                    // Try native Web Share API first (mobile)
+                                    if (navigator.share) {
+                                        try {
+                                            await navigator.share({ title: `${displayName} on Smarter.Poker`, url });
+                                            return;
+                                        } catch { /* User cancelled or not supported — fall through to clipboard */ }
+                                    }
+                                    // Clipboard copy with inline feedback
+                                    try {
+                                        if (navigator.clipboard) {
+                                            await navigator.clipboard.writeText(url);
+                                        } else {
+                                            const input = document.createElement('input');
+                                            input.value = url;
+                                            document.body.appendChild(input);
+                                            input.select();
+                                            document.execCommand('copy');
+                                            document.body.removeChild(input);
+                                        }
+                                        setShareCopied(true);
+                                        setTimeout(() => setShareCopied(false), 2000);
+                                    } catch {
+                                        toast.error('Could not copy link');
                                     }
                                 }} style={{
-                                    padding: '10px 16px', background: '#e4e6eb', color: C.text,
-                                    borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14
-                                }}>Share Profile</button>
+                                    padding: '10px 16px', background: shareCopied ? '#42B72A' : '#e4e6eb',
+                                    color: shareCopied ? 'white' : C.text,
+                                    borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14,
+                                    transition: 'all 0.3s ease',
+                                }}>{shareCopied ? 'Copied!' : 'Share Profile'}</button>
                             </>
                         ) : (
                             <>
@@ -1646,6 +1677,42 @@ export default function UserProfilePage() {
                         )}
                     </div>
                 </div>
+
+                {/* Profile Completion Indicator — own profile only */}
+                {isOwnProfile && (() => {
+                    const fields = [
+                        { label: 'Profile Photo', done: !!profile.avatar_url },
+                        { label: 'Bio', done: !!profile.bio },
+                        { label: 'Location', done: !!(profile.city || profile.state) },
+                        { label: 'Cover Photo', done: !!profile.cover_photo_url },
+                        { label: 'Display Name', done: !!profile.full_name },
+                    ];
+                    const completed = fields.filter(f => f.done).length;
+                    const pct = Math.round((completed / fields.length) * 100);
+                    if (pct >= 100) return null; // Hide when complete
+                    const missing = fields.filter(f => !f.done).map(f => f.label);
+                    return (
+                        <div style={{
+                            background: C.card, borderRadius: 10, padding: '14px 16px', margin: '12px 16px 0',
+                            border: `1px solid ${C.border}`,
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Profile Completion</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: pct >= 80 ? C.green : C.blue }}>{pct}%</span>
+                            </div>
+                            <div style={{ width: '100%', height: 6, background: '#e4e6eb', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{
+                                    width: `${pct}%`, height: '100%', borderRadius: 3,
+                                    background: pct >= 80 ? 'linear-gradient(90deg, #42B72A, #2d8c1f)' : 'linear-gradient(90deg, #1877F2, #42B72A)',
+                                    transition: 'width 0.6s ease',
+                                }} />
+                            </div>
+                            <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>
+                                Add: {missing.join(', ')}
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {/* TABS - All | Photos | Videos | Reels */}
                 <div style={{

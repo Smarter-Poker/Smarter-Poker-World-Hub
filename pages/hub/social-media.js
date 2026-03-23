@@ -5299,7 +5299,18 @@ function SocialMediaPage() {
     useEffect(() => {
         let debounceTimer = null;
         // Same-tab: profile-edit.js dispatches this after saving
-        const handleProfileUpdated = () => {
+        const handleProfileUpdated = (e) => {
+            // OPTIMISTIC: Instant UI update from event.detail (no network needed)
+            const d = e?.detail;
+            if (d && (d.full_name || d.avatar_url || d.username)) {
+                setUser(prev => ({
+                    ...prev,
+                    ...(d.full_name ? { name: d.full_name } : {}),
+                    ...(d.username ? { username: d.username } : {}),
+                    ...(d.avatar_url ? { avatar: d.avatar_url } : {}),
+                }));
+            }
+            // VERIFY: Debounced fetch confirms and fills remaining fields
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(async () => {
                 try {
