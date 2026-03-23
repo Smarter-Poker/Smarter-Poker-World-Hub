@@ -1584,6 +1584,12 @@ export default function UserProfilePage() {
                         {/* Name & Stats */}
                         <div style={{ flex: 1, paddingBottom: 8 }}>
                             <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: C.text }}>{displayName}</h1>
+                            {profile.created_at && (
+                                <div style={{ fontSize: 11, color: C.textSec, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    Member Since {new Date(profile.created_at).getFullYear()}
+                                </div>
+                            )}
                             {profile.bio && (
                                 <div style={{ fontSize: 14, color: C.textSec, marginTop: 4, lineHeight: 1.4 }}>
                                     {profile.bio.length > 150 && !bioExpanded
@@ -1607,7 +1613,7 @@ export default function UserProfilePage() {
                         {locationParts.length > 0 && <span> {locationParts.join(', ')}</span>}
                         {profile.occupation && <span>· 💼 {profile.occupation}</span>}
                         {profile.home_casino && <span>·  {profile.home_casino}</span>}
-                        {profile.instagram && <span>· 📸 @{profile.instagram.replace('@', '')}</span>}
+                        {profile.instagram && <a href={`https://instagram.com/${profile.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ color: C.textSec, textDecoration: 'none' }}>· 📸 @{profile.instagram.replace('@', '')}</a>}
                     </div>
 
                     {/* Friends Row - "Friends with..." */}
@@ -1819,7 +1825,9 @@ export default function UserProfilePage() {
                 {/* TABS - All | Photos | Videos | Reels */}
                 <div style={{
                     display: 'flex', borderBottom: `1px solid ${C.border}`,
-                    marginTop: 16, background: C.card, padding: '0 16px'
+                    marginTop: 16, background: C.card, padding: '0 16px',
+                    position: 'sticky', top: 0, zIndex: 50,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
                 }}>
                     {['all', 'poker', 'photos', 'videos', 'reels'].map(tab => (
                         <button
@@ -1891,32 +1899,48 @@ export default function UserProfilePage() {
                                     {profile.favorite_hand && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
                                             <span style={{ fontSize: 18 }}></span>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                                <span>Favorite Hand{profile.favorite_hand_type === 'plo' ? ' (PLO)' : ''}: </span>
-                                                {/* Render card PNGs if comma-separated codes, else show raw text */}
-                                                {profile.favorite_hand.includes('_') ? (
-                                                    <div style={{ display: 'flex', gap: 6 }}>
-                                                        {profile.favorite_hand.split(',').filter(Boolean).map((code, i) => (
-                                                            <img
-                                                                key={i}
-                                                                src={`/cards/${code}.png`}
-                                                                alt={code}
-                                                                style={{
-                                                                    width: 40, height: 56,
-                                                                    borderRadius: 5,
-                                                                    border: '2px solid #FFD700',
-                                                                    boxShadow: '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)',
-                                                                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                                                                }}
-                                                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.12) translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(255,215,0,0.5), 0 4px 12px rgba(0,0,0,0.3)'; }}
-                                                                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)'; }}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <strong>{profile.favorite_hand}</strong>
-                                                )}
+                                            <span>Favorite Hand:</span>
+                                            <div style={{ display: 'flex', gap: 4 }}>
+                                                {profile.favorite_hand.split(' ').map((card, idx) => (
+                                                    <img key={idx} src={`/hub/training/cards/${card}.svg`}
+                                                        alt={card}
+                                                        style={{
+                                                            width: 40, height: 56, borderRadius: 5,
+                                                            border: '2px solid #FFD700',
+                                                            boxShadow: '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)',
+                                                            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                                        }}
+                                                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(255,215,0,0.5)'; }}
+                                                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)'; }}
+                                                    />
+                                                ))}
                                             </div>
+                                        </div>
+                                    )}
+                                    {/* Social Media Links */}
+                                    {(profile.instagram || profile.twitter || profile.website) && (
+                                        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                            {profile.instagram && (
+                                                <a href={`https://instagram.com/${profile.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                                                    style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: C.blue, textDecoration: 'none' }}>
+                                                    <span style={{ fontSize: 18 }}>📸</span>
+                                                    <span>@{profile.instagram.replace('@', '')}</span>
+                                                </a>
+                                            )}
+                                            {profile.twitter && (
+                                                <a href={`https://x.com/${profile.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                                                    style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: C.blue, textDecoration: 'none' }}>
+                                                    <span style={{ fontSize: 18 }}>𝕏</span>
+                                                    <span>@{profile.twitter.replace('@', '')}</span>
+                                                </a>
+                                            )}
+                                            {profile.website && (
+                                                <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank" rel="noopener noreferrer"
+                                                    style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: C.blue, textDecoration: 'none' }}>
+                                                    <span style={{ fontSize: 18 }}>🌐</span>
+                                                    <span>{profile.website.replace(/^https?:\/\//, '')}</span>
+                                                </a>
+                                            )}
                                         </div>
                                     )}
                                 </div>
