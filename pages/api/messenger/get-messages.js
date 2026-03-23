@@ -66,13 +66,18 @@ export default async function handler(req, res) {
                   profiles:sender_id (id, username, avatar_url, is_vip)
               `)
               .eq('conversation_id', conversationId)
-              .eq('is_deleted', false)
-              .order('created_at', { ascending: true })
-              .limit(pageLimit);
+              .eq('is_deleted', false);
 
           // Pagination: load messages before a given timestamp
           if (before) {
-              query = query.lt('created_at', before);
+              // Backward pagination: descending to get the N most recent before cursor
+              query = query.lt('created_at', before)
+                  .order('created_at', { ascending: false })
+                  .limit(pageLimit);
+          } else {
+              // Initial load: get most recent N messages, ascending
+              query = query.order('created_at', { ascending: true })
+                  .limit(pageLimit);
           }
 
           const { data: messages, error } = await query;
@@ -82,10 +87,13 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: error.message });
           }
 
+          // Reverse backward-paginated results to ascending order for display
+          const sorted = before ? (messages || []).reverse() : (messages || []);
+
           return res.json({
               success: true,
-              messages: messages || [],
-              count: messages?.length || 0
+              messages: sorted,
+              count: sorted.length
           });
       } catch (e) {
           console.error('[ANTIGRAVITY] Exception:', e);
