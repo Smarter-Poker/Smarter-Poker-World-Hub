@@ -851,6 +851,9 @@ export default function UserProfilePage() {
 
     useEffect(() => {
         if (!username) return;
+        // Reset visual state when navigating between profiles
+        setCoverLoaded(false);
+        setShareCopied(false);
 
         // --- PHASE 1: SWR CACHE HYDRATION (Instant Render) ---
         const CACHE_KEY = `sp-profile-cache-${username}`;
