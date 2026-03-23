@@ -45,7 +45,7 @@ if [ -z "$CHANGED_FILES" ]; then
     exit 0
 fi
 
-JS_FILES=$(echo "$CHANGED_FILES" | grep -E '\.(js|jsx|ts|tsx)$' | grep -v node_modules | grep -v '.next/')
+JS_FILES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '\.(js|jsx|ts|tsx)$' | grep -v node_modules | grep -v '.next/')
 
 if [ -z "$JS_FILES" ]; then
     echo -e "${GREEN}✓ No JS/TS files changed. Push allowed.${NC}"

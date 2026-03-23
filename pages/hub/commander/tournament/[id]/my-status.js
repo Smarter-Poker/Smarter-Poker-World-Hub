@@ -18,6 +18,12 @@ import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils
 import useTrainingBus from '../../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../../src/engine/EventBus';
 
+const parseBlinds = (raw) => {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.length > 0) { try { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } catch {} }
+  return [];
+};
+
 export default function MyTournamentStatus() {
     const router = useRouter();
     const { id } = router.query;
@@ -63,7 +69,7 @@ export default function MyTournamentStatus() {
 
                 // Build clock from tournament data
                 const t = tResult.data;
-                const blindStructure = t.blind_structure || [];
+                const blindStructure = parseBlinds(t.blind_structure);
                 const currentLevel = t.current_level || 0;
                 const currentBlind = blindStructure[currentLevel] || null;
                 const settings = t.settings || {};

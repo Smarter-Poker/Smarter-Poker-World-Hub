@@ -28,6 +28,12 @@ import { busEmit } from '../../../../src/engine/EventBus';
 import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
+const parseBlinds = (raw) => {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.length > 0) { try { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } catch {} }
+  return [];
+};
+
 function formatClock(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
   const m = Math.floor(seconds / 60);
@@ -198,7 +204,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}/floor-view`, 
         } else if (cs?.remaining_seconds === 0 || cs?.remaining_seconds === undefined) {
           // Wait for next level to fetch
           if (cs?.status !== 'running') {
-            const blindStructure = json.data.tournament?.blind_structure || [];
+            const blindStructure = parseBlinds(json.data.tournament?.blind_structure);
             const currentLvl = json.data.clock?.current_level || 0;
             const levelData = blindStructure[currentLvl];
             if (levelData?.duration) {
@@ -273,7 +279,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}/floor-view`, 
   // Auto-advance level when timer hits 0
   useEffect(() => {
     if (seconds === 0 && isRunningRef.current && !actionLoading && data?.clock?.clock_state?.status === 'running') {
-      const blindStructure = data?.tournament?.blind_structure || [];
+      const blindStructure = parseBlinds(data?.tournament?.blind_structure);
       const currentLevelIdx = data?.clock?.current_level ?? 0;
       const isLastLevel = currentLevelIdx >= blindStructure.length - 1;
 
@@ -391,7 +397,7 @@ const res = await commanderFetch(`/api/commander/tournaments/${id}/clock`, {
   // Dynamic payouts — only show remaining positions for remaining players
   const remainingPayouts = payouts.filter((_, i) => i < playersIn);
 
-  const blindStructure = t.blind_structure || [];
+  const blindStructure = parseBlinds(t.blind_structure);
 
   // Calculate next break accurately: remaining seconds in current level + duration of future levels until break
   let nextBreakSec = clockState.next_break_seconds; // If API provided it, use it

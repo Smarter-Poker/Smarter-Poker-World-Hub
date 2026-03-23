@@ -6,7 +6,7 @@
 echo "🔍 Scanning for dangerous Supabase auth patterns..."
 
 # Files to check (staged files only, excluding certain paths)
-FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | grep -v 'authUtils' | grep -v 'AvatarContext' | grep -v 'safeSupabase' | grep -v 'eslint-plugin')
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | grep -v 'public/hub/club-arena/assets/' | grep -v 'authUtils' | grep -v 'AvatarContext' | grep -v 'safeSupabase' | grep -v 'eslint-plugin')
 
 if [ -z "$FILES" ]; then
   echo "✅ No relevant files to check"

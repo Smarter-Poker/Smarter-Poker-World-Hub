@@ -10,6 +10,12 @@ import { Users, Trophy, Clock, DollarSign } from 'lucide-react';
 import { useCommanderSync } from '../../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../../src/lib/supabase';
 
+const parseBlinds = (raw) => {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.length > 0) { try { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } catch {} }
+  return [];
+};
+
 export default function TournamentClockDisplay() {
   const router = useRouter();
   const { id } = router.query;
@@ -91,14 +97,16 @@ export default function TournamentClockDisplay() {
 
   // Get current blind level
   function getCurrentLevel() {
-    if (!tournament?.blind_structure) return null;
-    return tournament.blind_structure[clockState.currentLevel - 1] || null;
+    const bs = parseBlinds(tournament?.blind_structure);
+    if (!bs || bs.length === 0) return null;
+    return bs[clockState.currentLevel - 1] || null;
   }
 
   // Get next level
   function getNextLevel() {
-    if (!tournament?.blind_structure) return null;
-    return tournament.blind_structure[clockState.currentLevel] || null;
+    const bs = parseBlinds(tournament?.blind_structure);
+    if (!bs || bs.length === 0) return null;
+    return bs[clockState.currentLevel] || null;
   }
 
   const currentLevel = getCurrentLevel();

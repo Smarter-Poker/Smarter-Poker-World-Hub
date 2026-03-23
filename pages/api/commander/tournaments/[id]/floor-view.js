@@ -11,6 +11,7 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import { parseBlindStructure } from '../../../../../src/lib/parseBlindStructure';
 
 let _supabase = null;
 function getSupabase() {
@@ -158,7 +159,7 @@ export default async function handler(req, res) {
       const canBreakTable = tableNumbers.length > Math.ceil(activeEntries.length / avgMaxSeats);
 
       // Clock info
-      const blindStructure = tournament.blind_structure || [];
+      const blindStructure = parseBlindStructure(tournament.blind_structure);
       const currentLevel = tournament.current_level || 0;
       const currentBlinds = blindStructure[currentLevel] || {};
       const nextBlinds = blindStructure[currentLevel + 1] || null;

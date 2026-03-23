@@ -24,6 +24,12 @@ import { busEmit, eventBus, EventType } from '../../../../src/engine/EventBus';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { getAuthToken, getAuthData } from '../../../../src/lib/getAuthToken';
 
+const parseBlinds = (raw) => {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.length > 0) { try { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } catch {} }
+  return [];
+};
+
 // Prefer real name from profiles over manually typed player_name (alias)
 function getName(e) {
   return e?.profiles?.display_name || e?.player_name || 'Unknown';
@@ -236,7 +242,7 @@ export default function TournamentPublic() {
   const sc = STATUS_CONFIG[t.status] || STATUS_CONFIG.scheduled;
   const activeEntries = entries.filter(e => e.status === 'active' || e.status === 'playing' || e.status === 'registered');
   const eliminatedEntries = entries.filter(e => e.status === 'eliminated' || e.status === 'busted');
-  const blindStructure = t.blind_structure || [];
+  const blindStructure = parseBlinds(t.blind_structure);
   const payoutStructure = t.payout_structure || t.custom_payouts || [];
   const allEntries = entries.length || t.current_entries || 0;
   const prizePool = allEntries * (t.buyin_amount || 0);

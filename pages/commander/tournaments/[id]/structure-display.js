@@ -15,6 +15,12 @@ import useWakeLock from '../../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../../src/engine/EventBus';
 import { getToken, getStaffSession } from '../../../../src/lib/commander/clientAuth';
 
+const parseBlinds = (raw) => {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.length > 0) { try { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } catch {} }
+  return [];
+};
+
 export default function StructureDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-tournaments-id-structure-display'); }, []);
   const router = useRouter();
@@ -63,7 +69,7 @@ export default function StructureDisplay() {
 
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
-  const levels = tournament?.blind_structure || clockData?.levels || [];
+  const levels = parseBlinds(tournament?.blind_structure).length > 0 ? parseBlinds(tournament?.blind_structure) : (clockData?.levels || []);
   const currentLevel = clockData?.current_level ?? -1;
 
   let levelNum = 0;

@@ -12,6 +12,7 @@ import {
     sendPushNotification,
     isOneSignalConfigured
 } from '../../../../../src/lib/commander/pushNotifications';
+import { parseBlindStructure } from '../../../../../src/lib/parseBlindStructure';
 
 let _supabase = null;
 function getSupabase() {
@@ -196,7 +197,7 @@ function buildNotification(type, ctx) {
             };
 
         case 'level_up': {
-            const blinds = tournament?.blind_structure;
+            const blinds = parseBlindStructure(tournament?.blind_structure);
             const level = tournament?.current_level || 0;
             const current = blinds?.[level];
             return {

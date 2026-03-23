@@ -8,6 +8,7 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 import { requireAuth } from '../../../../../src/lib/commander/auth';
+import { parseBlindStructure } from '../../../../../src/lib/parseBlindStructure';
 
 let _supabase = null;
 function getSupabase() {
@@ -111,7 +112,7 @@ export default async function handler(req, res) {
               finishPosition: finish_position || entry?.finish_position,
               payoutAmount: payout_amount || entry?.payout_amount,
               level: tournament.current_level,
-              blinds: tournament.blind_structure?.[tournament.current_level]
+              blinds: parseBlindStructure(tournament.blind_structure)?.[tournament.current_level]
           });
 
           // Create story

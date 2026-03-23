@@ -10,6 +10,12 @@ import { Trophy, Calendar, Users, DollarSign, Clock, CheckCircle, Loader2, Alert
 import { supabase } from '../../../../../src/lib/supabase';
 import { getAccessToken } from '../../../../../src/lib/authUtils';
 
+const parseBlinds = (raw) => {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.length > 0) { try { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } catch {} }
+  return [];
+};
+
 export default function TournamentRegisterPage() {
   const router = useRouter();
   const { id } = router.query;
@@ -314,11 +320,11 @@ export default function TournamentRegisterPage() {
           </div>
 
           {/* Blind Structure Preview */}
-          {tournament.blind_structure && tournament.blind_structure.length > 0 && (
+          {parseBlinds(tournament.blind_structure) && parseBlinds(tournament.blind_structure).length > 0 && (
             <div className="mt-6 cmd-panel p-4">
               <h3 className="font-semibold text-white mb-3">Blind Structure</h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {tournament.blind_structure.slice(0, 10).map((level, idx) => (
+                {parseBlinds(tournament.blind_structure).slice(0, 10).map((level, idx) => (
                   <div
                     key={idx}
                     className={`flex items-center justify-between py-2 px-3 rounded-lg ${
@@ -335,9 +341,9 @@ export default function TournamentRegisterPage() {
                     </span>
                   </div>
                 ))}
-                {tournament.blind_structure.length > 10 && (
+                {parseBlinds(tournament.blind_structure).length > 10 && (
                   <p className="text-xs text-[#4A5E78] text-center pt-2">
-                    +{tournament.blind_structure.length - 10} more levels
+                    +{parseBlinds(tournament.blind_structure).length - 10} more levels
                   </p>
                 )}
               </div>

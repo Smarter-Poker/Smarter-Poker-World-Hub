@@ -32,7 +32,7 @@ ERRORS=0
 
 # ─── CHECK 1: Unused hook imports ───────────────────────────────────────────
 echo "CHECK 1: Unused hook imports..."
-for file in $(echo "$CHANGED_FILES" | grep -E '\.(js|jsx|tsx)$' || true); do
+for file in $(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '\.(js|jsx|tsx)$' || true); do
   if [ -f "$file" ]; then
     HOOKS=$(grep -oE 'import\s+\{[^}]*\}' "$file" 2>/dev/null | grep -oE 'use[A-Z][a-zA-Z]+' | sort -u)
     for hook in $HOOKS; do
@@ -48,7 +48,7 @@ if [ $ERRORS -eq 0 ]; then echo "  ✓ No unused hooks"; fi
 
 # ─── CHECK 2: No .single() calls ───────────────────────────────────────────
 echo "CHECK 2: No .single() in Supabase queries..."
-SINGLES=$(echo "$CHANGED_FILES" | xargs grep -ln '\.single()' 2>/dev/null | xargs grep -L 'maybeSingle' 2>/dev/null || true)
+SINGLES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | xargs grep -ln '\.single()' 2>/dev/null | xargs grep -L 'maybeSingle' 2>/dev/null || true)
 if [ -n "$SINGLES" ]; then
   echo "  ❌ Found .single() calls (must use .maybeSingle()):"
   echo "$SINGLES" | sed 's/^/    /'

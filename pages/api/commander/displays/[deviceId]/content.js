@@ -5,6 +5,7 @@
  */
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import { parseBlindStructure } from '../../../../../src/lib/parseBlindStructure';
 
 let _supabase = null;
 function getSupabase() {
@@ -176,7 +177,7 @@ async function getClockContent(venueId) {
     tournament_name: tournament.name,
     status: tournament.status,
     current_level: tournament.current_level,
-    blind_structure: tournament.blind_structure,
+    blind_structure: parseBlindStructure(tournament.blind_structure),
     is_on_break: tournament.is_on_break,
     players_remaining: tournament.players_remaining,
     total_entries: tournament.total_entries,

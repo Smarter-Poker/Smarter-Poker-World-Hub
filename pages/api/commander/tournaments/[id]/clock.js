@@ -16,6 +16,7 @@ import {
 import { checkAndExecuteAutoBreak } from '../../../../../src/lib/commander/tournamentAutoBreak';
 import { logAction } from '../../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import { parseBlindStructure } from '../../../../../src/lib/parseBlindStructure';
 
 
 let _supabase = null;
@@ -81,7 +82,7 @@ async function getClockState(req, res, tournamentId) {
       });
     }
 
-    const blindStructure = tournament.blind_structure || [];
+    const blindStructure = parseBlindStructure(tournament.blind_structure);
     const currentLevel = tournament.current_level || 0;
     const currentBlind = blindStructure[currentLevel] || null;
 
@@ -271,7 +272,7 @@ async function handleClockAction(req, res, tournamentId, staff) {
             error: { code: 'VALIDATION_ERROR', message: 'Tournament is not active' }
           });
         }
-        const blindStructure = tournament.blind_structure || [];
+        const blindStructure = parseBlindStructure(tournament.blind_structure);
         const nextLevel = (tournament.current_level || 0) + 1;
 
         if (nextLevel >= blindStructure.length) {
@@ -439,7 +440,7 @@ async function handleClockAction(req, res, tournamentId, staff) {
 
     // --- Push blinds to active tables if level changed ---
     if (updates.current_level !== undefined && updates.current_level !== tournament.current_level) {
-      const blindStructure = tournament.blind_structure || [];
+      const blindStructure = parseBlindStructure(tournament.blind_structure);
       const newLevel = blindStructure[updates.current_level];
       if (newLevel) {
         const sb = newLevel.small_blind || 0;

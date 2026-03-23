@@ -17,6 +17,12 @@ import { busEmit } from '../../../../src/engine/EventBus';
 import { getStaffSession } from '../../../../src/lib/commander/clientAuth';
 import { commanderFetch, commanderFetchJSON } from '../../../../src/lib/commander/commanderFetch';
 
+const parseBlinds = (raw) => {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.length > 0) { try { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } catch {} }
+  return [];
+};
+
 // ===== PRESET TEMPLATES =====
 // All templates use BB Ante (ante = Big-Blind) and 10-min breaks every ~2 hours
 // All templates support 40 levels to cover any tournament length
@@ -300,7 +306,7 @@ const json = await commanderFetchJSON(`/api/commander/tournaments/${id}`, {});
           setAddonChips(t.addon_chips || 15000);
           setLateRegLevels(t.late_reg_levels || 6);
           setClockColor(t.settings?.clock_color || t.clock_color || 'navy');
-          setLevels(t.blind_structure || STRUCTURE_TEMPLATES.standard.levels);
+          setLevels(parseBlinds(t.blind_structure).length > 0 ? parseBlinds(t.blind_structure) : STRUCTURE_TEMPLATES.standard.levels);
           if (t.payout_structure) setPayoutStructure(t.payout_structure);
           if (t.custom_payouts) setCustomPayouts(t.custom_payouts);
           if (t.entry_count) setEstimatedEntries(t.entry_count);

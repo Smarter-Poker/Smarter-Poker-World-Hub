@@ -37,6 +37,12 @@ import { resolveAvatarDisplay } from '../../lib/resolveAvatarDisplay';
 import { Z_INDEX } from '../../lib/zIndexAuthority';
 import TableMiniView from './TableMiniView';
 
+const parseBlinds = (raw) => {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.length > 0) { try { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } catch {} }
+  return [];
+};
+
 // ── Global keyframe injection (once, not per-card) ──────────────────
 let _kfInjected = false;
 function ensureLivePulse() {
@@ -510,8 +516,9 @@ function TournamentCard({ tournament: t, assetMap, onPress, onSpectate, onQuickR
   // Late Reg logic
   const lateRegLevels = t.late_reg_levels || t.settings?.late_registration_level || 0;
   let lateRegEndsAt = null;
-  if (isMTT && isLive && t.started_at && lateRegLevels > 0 && Array.isArray(t.blind_structure)) {
-      const lateRegMinutes = t.blind_structure.slice(0, lateRegLevels).reduce((sum, lvl) => sum + (lvl.duration || 0), 0);
+  const blindStructure = parseBlinds(t.blind_structure);
+  if (isMTT && isLive && t.started_at && lateRegLevels > 0 && blindStructure.length > 0) {
+      const lateRegMinutes = blindStructure.slice(0, lateRegLevels).reduce((sum, lvl) => sum + (lvl.duration || 0), 0);
       lateRegEndsAt = new Date(new Date(t.started_at).getTime() + lateRegMinutes * 60000).toISOString();
       if (new Date() > new Date(lateRegEndsAt)) lateRegEndsAt = null;
   }
