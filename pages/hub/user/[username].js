@@ -1899,30 +1899,41 @@ export default function UserProfilePage() {
                                             <span>Works As <strong>{profile.occupation}</strong></span>
                                         </div>
                                     )}
-                                    {profile.favorite_hand && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
-                                            <span>Favorite Hand{profile.favorite_hand_type === 'plo' ? ' (PLO)' : ''}:</span>
-                                            {profile.favorite_hand.includes('_') ? (
-                                                <div style={{ display: 'flex', gap: 4 }}>
-                                                    {profile.favorite_hand.split(',').filter(Boolean).map((code, idx) => (
-                                                        <img key={idx} src={`/cards/${code}.png`}
-                                                            alt={code}
-                                                            style={{
-                                                                width: 40, height: 56, borderRadius: 5,
-                                                                border: '2px solid #FFD700',
-                                                                boxShadow: '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)',
-                                                                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                                                            }}
-                                                            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(255,215,0,0.5)'; }}
-                                                            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)'; }}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <strong>{profile.favorite_hand}</strong>
-                                            )}
-                                        </div>
-                                    )}
+                                    {profile.favorite_hand && (() => {
+                                        const RANK_ORDER = { a: 14, k: 13, q: 12, j: 11, '10': 10, '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2 };
+                                        const getRank = (code) => { const r = code.split('_')[1]; return RANK_ORDER[r] || 0; };
+                                        const cards = profile.favorite_hand.split(',').filter(Boolean);
+                                        const sorted = [...cards].sort((a, b) => getRank(b) - getRank(a));
+                                        const isPlo = profile.favorite_hand_type === 'plo';
+                                        const tiltAngles = isPlo ? [-6, -2, 2, 6] : [-5, 5];
+                                        return (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
+                                                <span>Favorite Hand{isPlo ? ' (PLO)' : ''}:</span>
+                                                {profile.favorite_hand.includes('_') ? (
+                                                    <div style={{ display: 'flex', gap: 0, position: 'relative', paddingLeft: 4, paddingRight: 4 }}>
+                                                        {sorted.map((code, idx) => (
+                                                            <img key={idx} src={`/cards/${code}.png`}
+                                                                alt={code}
+                                                                style={{
+                                                                    width: 40, height: 56, borderRadius: 5,
+                                                                    border: '2px solid #FFD700',
+                                                                    boxShadow: '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)',
+                                                                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                                                    transform: `rotate(${tiltAngles[idx] || 0}deg)`,
+                                                                    marginLeft: idx > 0 ? -6 : 0,
+                                                                    zIndex: idx,
+                                                                }}
+                                                                onMouseEnter={e => { e.currentTarget.style.transform = `rotate(${tiltAngles[idx] || 0}deg) scale(1.12)`; e.currentTarget.style.boxShadow = '0 0 16px rgba(255,215,0,0.5)'; e.currentTarget.style.zIndex = 10; }}
+                                                                onMouseLeave={e => { e.currentTarget.style.transform = `rotate(${tiltAngles[idx] || 0}deg) scale(1)`; e.currentTarget.style.boxShadow = '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)'; e.currentTarget.style.zIndex = idx; }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <strong>{profile.favorite_hand}</strong>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                     {/* Social Media Links */}
                                     {(profile.instagram || profile.twitter || profile.website) && (
                                         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>

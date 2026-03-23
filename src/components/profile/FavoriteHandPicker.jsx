@@ -95,67 +95,77 @@ export default function FavoriteHandPicker({ value = '', type = 'holdem', onChan
         ))}
       </div>
 
-      {/* Selected Cards Display */}
-      <div style={{
-        display: 'flex', gap: 8, marginBottom: 16, padding: 16,
-        background: 'linear-gradient(135deg, #0a0e1a, #1a1a3e)',
-        borderRadius: 12, minHeight: 90, alignItems: 'center', justifyContent: 'center',
-        border: '1px solid rgba(255,215,0,0.2)',
-        boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.4)',
-      }}>
-        {Array.from({ length: maxCards }).map((_, i) => {
-          const card = selectedCards[i];
-          return (
-            <div
-              key={i}
-              onClick={() => card && toggleCard(card)}
-              style={{
-                width: 60, height: 84,
-                borderRadius: 6,
-                background: card ? 'transparent' : 'rgba(255,255,255,0.06)',
-                border: card
-                  ? '2px solid #FFD700'
-                  : '2px dashed rgba(255,255,255,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: card ? 'pointer' : 'default',
-                transition: 'all 0.2s ease',
-                boxShadow: card ? '0 0 12px rgba(255,215,0,0.3)' : 'none',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-              title={card ? 'Click to remove' : `Select card ${i + 1}`}
-            >
-              {card ? (
-                <>
-                  <img
-                    src={getCardPath(card)}
-                    alt={card}
-                    style={{
-                      width: '100%', height: '100%', objectFit: 'cover',
-                      borderRadius: 4,
-                    }}
-                  />
-                  {/* Remove indicator on hover */}
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    background: 'rgba(220,38,38,0.7)',
+      {(() => {
+        const RANK_ORDER = { a: 14, k: 13, q: 12, j: 11, '10': 10, '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2 };
+        const getRank = (code) => { const r = code.split('_')[1]; return RANK_ORDER[r] || 0; };
+        const sorted = [...selectedCards].sort((a, b) => getRank(b) - getRank(a));
+        const tiltAngles = maxCards === 4 ? [-6, -2, 2, 6] : [-5, 5];
+        return (
+          <div style={{
+            display: 'flex', gap: 0, marginBottom: 16, padding: 16,
+            background: 'linear-gradient(135deg, #0a0e1a, #1a1a3e)',
+            borderRadius: 12, minHeight: 90, alignItems: 'center', justifyContent: 'center',
+            border: '1px solid rgba(255,215,0,0.2)',
+            boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.4)',
+          }}>
+            {Array.from({ length: maxCards }).map((_, i) => {
+              const card = sorted[i];
+              return (
+                <div
+                  key={i}
+                  onClick={() => card && toggleCard(card)}
+                  style={{
+                    width: 60, height: 84,
+                    borderRadius: 6,
+                    background: card ? 'transparent' : 'rgba(255,255,255,0.06)',
+                    border: card
+                      ? '2px solid #FFD700'
+                      : '2px dashed rgba(255,255,255,0.15)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    opacity: 0, transition: 'opacity 0.2s ease',
-                    borderRadius: 4, fontSize: 18, color: 'white', fontWeight: 700,
+                    cursor: card ? 'pointer' : 'default',
+                    transition: 'all 0.2s ease',
+                    boxShadow: card ? '0 0 12px rgba(255,215,0,0.3)' : 'none',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    transform: card ? `rotate(${tiltAngles[i] || 0}deg)` : 'none',
+                    marginLeft: i > 0 ? -8 : 0,
+                    zIndex: i,
                   }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                    onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
-                  >
-                    ✕
-                  </div>
-                </>
-              ) : (
-                <span style={{ fontSize: 24, color: 'rgba(255,255,255,0.15)' }}>+</span>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                  title={card ? 'Click to remove' : `Select card ${i + 1}`}
+                >
+                  {card ? (
+                    <>
+                      <img
+                        src={getCardPath(card)}
+                        alt={card}
+                        style={{
+                          width: '100%', height: '100%', objectFit: 'cover',
+                          borderRadius: 4,
+                        }}
+                      />
+                      {/* Remove indicator on hover */}
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        background: 'rgba(220,38,38,0.7)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        opacity: 0, transition: 'opacity 0.2s ease',
+                        borderRadius: 4, fontSize: 18, color: 'white', fontWeight: 700,
+                      }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
+                      >
+                        ✕
+                      </div>
+                    </>
+                  ) : (
+                    <span style={{ fontSize: 24, color: 'rgba(255,255,255,0.15)' }}>+</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Instruction */}
       <p style={{ fontSize: 12, color: '#65676B', margin: '0 0 12px', textAlign: 'center' }}>
