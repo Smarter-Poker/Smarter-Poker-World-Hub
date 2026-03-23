@@ -54,6 +54,9 @@ function Toggle({ value, onChange, label, description }) {
             </div>
             <button
                 onClick={() => onChange(!value)}
+                role="switch"
+                aria-checked={!!value}
+                aria-label={label}
                 style={{
                     ...styles.toggle,
                     background: value
@@ -80,6 +83,7 @@ function Select({ value, onChange, options, label }) {
             <select
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
+                aria-label={label}
                 style={{ ...styles.select, colorScheme: 'dark' }}
             >
                 {options.map(opt => (
@@ -147,6 +151,10 @@ export default function SettingsPage() {
     const [backupCodesCopied, setBackupCodesCopied] = useState(false);
     // Phase 2: Promo history dedup guard
     const [promoHistoryLoaded, setPromoHistoryLoaded] = useState(false);
+    // Phase 3: Separate state for referral link copy vs code copy
+    const [linkCopied, setLinkCopied] = useState(false);
+    // Phase 3: Delete modal inline feedback
+    const [deleteFeedback, setDeleteFeedback] = useState(null);
 
     // Delete Account Modal State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -428,6 +436,8 @@ export default function SettingsPage() {
         if (show2FAModal && !twoFactorEnabled && !qrCode) {
             setup2FA();
         }
+        // Phase 3: Clear MFA feedback when modal opens fresh
+        if (show2FAModal) setMfaFeedback(null);
     }, [show2FAModal]);
 
     const setup2FA = async () => {
@@ -589,6 +599,8 @@ export default function SettingsPage() {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            setExportFeedback({ type: 'success', message: 'Data Exported Successfully!' });
+            setTimeout(() => setExportFeedback(null), 4000);
         } catch (error) {
             console.error('Error exporting data:', error);
             setExportFeedback({ type: 'error', message: 'Failed To Export Data. Please Try Again.' });
@@ -600,7 +612,7 @@ export default function SettingsPage() {
     const handleDeleteAccount = async () => {
         try {
             if (!user?.id) {
-                setExportFeedback({ type: 'error', message: 'Session Expired. Please Log In Again.' });
+                setDeleteFeedback({ type: 'error', message: 'Session Expired. Please Log In Again.' });
                 return;
             }
 
@@ -614,11 +626,11 @@ export default function SettingsPage() {
                 window.location.href = '/';
             } else {
                 const err = await response.json().catch(() => ({}));
-                setExportFeedback({ type: 'error', message: err.error || err.details || 'Failed To Delete Account. Contact Support.' });
+                setDeleteFeedback({ type: 'error', message: err.error || err.details || 'Failed To Delete Account. Contact Support.' });
             }
         } catch (error) {
             console.error('Error deleting account:', error);
-            setExportFeedback({ type: 'error', message: 'An Error Occurred. Please Try Again Or Contact Support.' });
+            setDeleteFeedback({ type: 'error', message: 'An Error Occurred. Please Try Again Or Contact Support.' });
         }
     };
 
@@ -1962,7 +1974,7 @@ export default function SettingsPage() {
                                             animation: 'fadeIn 0.3s ease',
                                         }}>
                                             <span style={{ fontSize: 24 }}>
-                                                {promoResult.success ? '' : ''}
+                                                {promoResult.success ? '✅' : '❌'}
                                             </span>
                                             <div>
                                                 <div style={{

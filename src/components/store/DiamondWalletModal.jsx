@@ -147,7 +147,7 @@ function getDateGroup(dateStr) {
 // ── ENH-7: Export CSV helper ──
 function exportTransactionsCSV(filteredTx) {
     const headers = ['Date', 'Type', 'Description', 'Amount', 'Balance After'];
-    const rows = transactions.map(tx => {
+    const rows = filteredTx.map(tx => {
         const txType = tx.transaction_type || tx.type;
         const config = TX_TYPES[txType] || TX_TYPES.adjustment;
         const dt = new Date(tx.created_at);
