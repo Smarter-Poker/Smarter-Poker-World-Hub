@@ -99,7 +99,7 @@ export function useDiamondBalance(userId) {
                 table: 'profiles',
                 filter: `id=eq.${userId}`
             }, (payload) => {
-                if (payload.new.diamonds !== undefined && mountedRef.current) {
+                if (payload.new?.diamonds !== undefined && mountedRef.current) {
                     setBalance(payload.new.diamonds);
                     updateCachedBalance(payload.new.diamonds);
                 }

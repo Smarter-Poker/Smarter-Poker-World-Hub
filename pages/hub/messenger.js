@@ -3598,6 +3598,7 @@ function MessengerPage() {
 
                                 {/* Messages */}
                                 <div
+                                    ref={messagesContainerRef}
                                     onScroll={(e) => {
                                         // Infinite scroll — load older messages when near top
                                         if (e.target.scrollTop < 100 && hasMoreMessages && !loadingOlderMessages) {

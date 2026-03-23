@@ -135,7 +135,7 @@ function getDateGroup(dateStr) {
 }
 
 // ── ENH-7: Export CSV helper ──
-function exportTransactionsCSV(transactions) {
+function exportTransactionsCSV(filteredTx) {
     const headers = ['Date', 'Type', 'Description', 'Amount', 'Balance After'];
     const rows = transactions.map(tx => {
         const txType = tx.transaction_type || tx.type;
@@ -482,24 +482,24 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px 0' }}>
                     {/* ENH-7: Export CSV button */}
                     <button
-                        onClick={() => exportTransactionsCSV(transactions)}
-                        disabled={transactions.length === 0}
+                        onClick={() => exportTransactionsCSV(filteredTx)}
+                        disabled={filteredTx.length === 0}
                         style={{
                             background: 'rgba(255, 255, 255, 0.06)',
                             border: '1px solid rgba(255, 255, 255, 0.08)',
                             borderRadius: 8,
-                            color: transactions.length > 0 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)',
+                            color: filteredTx.length > 0 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)',
                             fontSize: 11,
                             fontWeight: 600,
                             padding: '6px 12px',
-                            cursor: transactions.length > 0 ? 'pointer' : 'default',
+                            cursor: filteredTx.length > 0 ? 'pointer' : 'default',
                             display: 'flex',
                             alignItems: 'center',
                             gap: 4,
                             transition: 'all 0.15s',
                         }}
-                        onMouseEnter={e => { if (transactions.length > 0) { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'; e.currentTarget.style.color = 'white'; } }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.color = transactions.length > 0 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)'; }}
+                        onMouseEnter={e => { if (filteredTx.length > 0) { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'; e.currentTarget.style.color = 'white'; } }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.color = filteredTx.length > 0 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)'; }}
                     >
                         Export CSV
                     </button>
