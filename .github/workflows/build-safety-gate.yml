@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: ['**']
 
+# Cancel previous runs on same branch (saves GitHub Actions minutes)
+concurrency:
+  group: safety-gate-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   safety-checks:
     name: Pre-Deploy Safety Checks
@@ -193,8 +198,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Wait for Vercel deployment
-        run: sleep 180  # 3 minutes for Vercel build + deploy
+      - name: Wait for Vercel propagation
+        run: sleep 60  # Deploy job already waited for Vercel build
 
       - name: Verify deployment is live
         run: |
