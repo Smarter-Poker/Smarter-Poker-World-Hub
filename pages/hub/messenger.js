@@ -2885,6 +2885,10 @@ function MessengerPage() {
                         0%, 60%, 100% { transform: translateY(0); }
                         30% { transform: translateY(-4px); }
                     }
+                    @keyframes shimmer {
+                        0% { background-position: 200% 0; }
+                        100% { background-position: -200% 0; }
+                    }
                 `}</style>
             </Head>
 
