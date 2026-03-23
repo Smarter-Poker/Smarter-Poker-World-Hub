@@ -3411,7 +3411,7 @@ function MessengerPage() {
                                                 </React.Fragment>
                                             );
                                         })
-                                    ); })()
+                                    ); })()}
                                     {/* Typing indicator */}
                                     {otherTyping && <TypingIndicator name={otherUser?.username} />}
                                     <div ref={messagesEndRef} />
