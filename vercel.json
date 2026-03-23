@@ -19,7 +19,34 @@
       ]
     },
     {
-      "source": "/hub/(.*)",
+      "source": "/hub/:orb*/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/hub/:orb*/images/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=3600"
+        }
+      ]
+    },
+    {
+      "source": "/hub/:orb*/videos/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=3600"
+        }
+      ]
+    },
+    {
+      "source": "/hub/((?!.*?/assets/)(?!.*?/images/)(?!.*?/videos/).*)",
       "headers": [
         {
           "key": "Cache-Control",
