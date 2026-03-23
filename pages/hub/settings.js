@@ -729,6 +729,9 @@ export default function SettingsPage() {
                 {/* Background */}
                 <div style={styles.bgGrid} />
 
+                {/* Shared shimmer animation for loading skeletons */}
+                <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+
                 {/* Header - Universal Header */}
                 <UniversalHeader
                     pageDepth={2}
@@ -1502,7 +1505,7 @@ export default function SettingsPage() {
                                                 </div>
                                             </div>
                                         ))}
-                                        <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
