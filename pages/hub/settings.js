@@ -777,7 +777,7 @@ export default function SettingsPage() {
                                                             src={defaultPlaceholder}
                                                             alt="Default Avatar"
                                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                            onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = ''; }}
+                                                            onError={(e) => { e.target.style.display = 'none'; }}
                                                         />
                                                     )}
                                                 </div>
