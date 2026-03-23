@@ -51,7 +51,7 @@ export function GoalTracker({ onAskJarvis, onClose }: GoalTrackerProps) {
                     setUserId(user.id);
                     // Load from Supabase
                     const { data, error } = await supabase
-                        .from('poker_goals')
+                        .from('poker_goals' as any)
                         .select('*')
                         .eq('user_id', user.id)
                         .order('created_at', { ascending: false });
@@ -99,7 +99,7 @@ export function GoalTracker({ onAskJarvis, onClose }: GoalTrackerProps) {
         try {
             // Upsert all goals
             for (const goal of goalsToSave) {
-                await supabase.from('poker_goals').upsert({
+                await supabase.from('poker_goals' as any).upsert({
                     id: goal.id,
                     user_id: userId,
                     title: goal.title,

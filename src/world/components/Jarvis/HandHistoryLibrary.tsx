@@ -79,7 +79,7 @@ export function HandHistoryLibrary({ onAskJarvis, onClose }: HandHistoryLibraryP
                 setUserId(user.id);
 
                 const { data, error } = await supabase
-                    .from('hand_history')
+                    .from('hand_history' as any)
                     .select('*')
                     .eq('user_id', user.id)
                     .order('created_at', { ascending: false })
@@ -120,7 +120,7 @@ export function HandHistoryLibrary({ onAskJarvis, onClose }: HandHistoryLibraryP
         }
 
         try {
-            await supabase.from('hand_history').upsert({
+            await supabase.from('hand_history' as any).upsert({
                 id: hand.id,
                 user_id: userId,
                 title: hand.title,
@@ -170,7 +170,7 @@ export function HandHistoryLibrary({ onAskJarvis, onClose }: HandHistoryLibraryP
     const deleteHand = async (id: string) => {
         setHands(hands.filter(h => h.id !== id));
         if (userId) {
-            await supabase.from('hand_history').delete().eq('id', id);
+            await supabase.from('hand_history' as any).delete().eq('id', id);
         } else {
             localStorage.setItem('jarvis_hand_history', JSON.stringify(hands.filter(h => h.id !== id)));
         }

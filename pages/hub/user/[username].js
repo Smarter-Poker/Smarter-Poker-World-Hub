@@ -101,7 +101,7 @@ function FriendAvatar({ friend, currentUserFriends = [] }) {
                 {friend.full_name?.split(' ').slice(0, 2).join(' ') || friend.username}
             </div>
             <div style={{ fontSize: 11, color: C.textSec }}>
-                {mutualCount > 0 ? `${mutualCount} mutual friends` : ''}
+                {mutualCount > 0 ? `${mutualCount} mutual` : ''}
             </div>
         </Link>
     );
@@ -766,30 +766,32 @@ export default function UserProfilePage() {
 
     // ── Animated Stat Counters: count-up from 0 when stats load ──
     useEffect(() => {
-        if (statsAnimated) return;
         const target = stats;
         const hasData = target.friends > 0 || target.followers > 0 || target.following > 0 || target.posts > 0;
         if (!hasData) { setAnimatedStats(target); return; }
+        // If already animated AND values match, skip re-animation
+        if (statsAnimated && animatedStats.friends === target.friends && animatedStats.followers === target.followers && animatedStats.following === target.following && animatedStats.posts === target.posts) return;
         setStatsAnimated(true);
         const duration = 600; // ms
         const steps = 30;
         const interval = duration / steps;
         let step = 0;
+        const startVals = { ...animatedStats };
         const timer = setInterval(() => {
             step++;
             const progress = Math.min(step / steps, 1);
             // Ease-out cubic
             const ease = 1 - Math.pow(1 - progress, 3);
             setAnimatedStats({
-                friends: Math.round(target.friends * ease),
-                following: Math.round(target.following * ease),
-                followers: Math.round(target.followers * ease),
-                posts: Math.round(target.posts * ease),
+                friends: Math.round(startVals.friends + (target.friends - startVals.friends) * ease),
+                following: Math.round(startVals.following + (target.following - startVals.following) * ease),
+                followers: Math.round(startVals.followers + (target.followers - startVals.followers) * ease),
+                posts: Math.round(startVals.posts + (target.posts - startVals.posts) * ease),
             });
             if (step >= steps) clearInterval(timer);
         }, interval);
         return () => clearInterval(timer);
-    }, [stats, statsAnimated]);
+    }, [stats]);
 
     // ── Pull-to-Refresh: mobile gesture handler ──
     useEffect(() => {
@@ -1523,7 +1525,7 @@ export default function UserProfilePage() {
                 {/* COVER PHOTO */}
                 <div style={{
                     height: 220,
-                    background: 'linear-gradient(135deg, #0a1628 0%, #1a2a4a 30%, #0d2137 60%, #162d50 100%)',
+                    background: 'linear-gradient(135deg, #0a0e1a 0%, #0d1f3c 25%, #1a3a5c 50%, #0f2847 75%, #0a1628 100%)',
                     position: 'relative',
                     borderRadius: '0 0 12px 12px',
                     overflow: 'hidden',
@@ -1875,18 +1877,21 @@ export default function UserProfilePage() {
                                                 <span>Favorite Hand{profile.favorite_hand_type === 'plo' ? ' (PLO)' : ''}: </span>
                                                 {/* Render card PNGs if comma-separated codes, else show raw text */}
                                                 {profile.favorite_hand.includes('_') ? (
-                                                    <div style={{ display: 'flex', gap: 4 }}>
+                                                    <div style={{ display: 'flex', gap: 6 }}>
                                                         {profile.favorite_hand.split(',').filter(Boolean).map((code, i) => (
                                                             <img
                                                                 key={i}
                                                                 src={`/cards/${code}.png`}
                                                                 alt={code}
                                                                 style={{
-                                                                    width: 36, height: 50,
-                                                                    borderRadius: 4,
-                                                                    border: '1px solid #DADDE1',
-                                                                    boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                                                                    width: 40, height: 56,
+                                                                    borderRadius: 5,
+                                                                    border: '2px solid #FFD700',
+                                                                    boxShadow: '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)',
+                                                                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                                                                 }}
+                                                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.12) translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(255,215,0,0.5), 0 4px 12px rgba(0,0,0,0.3)'; }}
+                                                                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)'; }}
                                                             />
                                                         ))}
                                                     </div>
@@ -2052,7 +2057,7 @@ export default function UserProfilePage() {
                                                         }}>{typeLabel.charAt(0)}</div>
                                                         <div style={{ flex: 1, minWidth: 0 }}>
                                                             <div style={{ fontWeight: 600, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                {f.page_name || f.page_id}
+                                                                {f.page_name || (f.page_id && f.page_id.length > 20 ? `${typeLabel} Page` : f.page_id)}
                                                             </div>
                                                             <div style={{ fontSize: 12, color: C.textSec }}>{typeLabel}</div>
                                                         </div>

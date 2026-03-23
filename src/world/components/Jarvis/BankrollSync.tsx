@@ -45,7 +45,7 @@ export function BankrollSync({ onAskJarvis, onClose }: BankrollSyncProps) {
                 if (user) {
                     setUserId(user.id);
                     const { data, error } = await supabase
-                        .from('bankroll_history')
+                        .from('bankroll_history' as any)
                         .select('*')
                         .eq('user_id', user.id)
                         .order('created_at', { ascending: false })
@@ -84,7 +84,7 @@ export function BankrollSync({ onAskJarvis, onClose }: BankrollSyncProps) {
         if (!userId) return;
 
         try {
-            await supabase.from('bankroll_history').upsert({
+            await supabase.from('bankroll_history' as any).upsert({
                 id: `${userId}_bankroll`,
                 user_id: userId,
                 current_amount: data.current,
