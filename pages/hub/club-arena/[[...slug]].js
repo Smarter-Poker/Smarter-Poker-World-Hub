@@ -60,7 +60,7 @@ export async function getServerSideProps({ res }) {
     }
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'public, s-maxage=0, must-revalidate');
     res.write(spaHtml);
     res.end();
     return { props: {} };
