@@ -182,6 +182,14 @@ export default function SettingsPage() {
         }
     }, [contextUser]);
 
+    // Mobile responsive listener
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     // Settings State — persisted to localStorage for cross-reload survival
     const SETTINGS_DEFAULTS = {
         // Notifications
@@ -755,31 +763,61 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Layout */}
-                <div style={styles.layout}>
+                <div style={{
+                    ...styles.layout,
+                    flexDirection: isMobile ? 'column' : 'row',
+                }}>
                     {/* Sidebar */}
-                    <nav style={styles.sidebar}>
+                    <nav style={{
+                        ...styles.sidebar,
+                        ...(isMobile ? {
+                            width: '100%',
+                            borderRight: 'none',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                            padding: '12px 16px',
+                            display: 'flex',
+                            overflowX: 'auto',
+                            gap: 8,
+                            WebkitOverflowScrolling: 'touch',
+                            msOverflowStyle: 'none',
+                            scrollbarWidth: 'none',
+                        } : {}),
+                    }} role="tablist" aria-label="Settings sections">
                         {sections.map(section => (
                             <button
                                 key={section.id}
                                 onClick={() => setActiveSection(section.id)}
+                                role="tab"
+                                aria-selected={activeSection === section.id}
+                                aria-controls={`settings-panel-${section.id}`}
                                 style={{
                                     ...styles.sidebarItem,
                                     ...(activeSection === section.id ? styles.sidebarItemActive : {}),
+                                    ...(isMobile ? {
+                                        whiteSpace: 'nowrap',
+                                        padding: '8px 16px',
+                                        borderRadius: 20,
+                                        marginBottom: 0,
+                                        fontSize: 13,
+                                        flexShrink: 0,
+                                    } : {}),
                                 }}
                             >
                                 <span>{section.label}</span>
                             </button>
                         ))}
 
-                        <div style={styles.sidebarDivider} />
+                        {!isMobile && <div style={styles.sidebarDivider} />}
 
-                        <button onClick={handleLogout} style={styles.logoutButton}>
-                            <span>Log Out</span>
-                        </button>
+                        {!isMobile && (
+                            <button onClick={handleLogout} style={styles.logoutButton}>
+                                <span>Log Out</span>
+                            </button>
+                        )}
                     </nav>
 
                     {/* Content */}
-                    <div style={styles.content}>
+                    <div style={styles.content} role="tabpanel" id={`settings-panel-${activeSection}`}>
                         {activeSection === 'account' && (
                             <div style={styles.section}>
                                 <h2 style={styles.sectionTitle}>Account Settings</h2>
@@ -1429,8 +1467,42 @@ export default function SettingsPage() {
                                 <h2 style={styles.sectionTitle}>Billing & Payments</h2>
 
                                 {billingLoading ? (
-                                    <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                                        <div style={{ fontSize: 14, color: '#65676b' }}>Loading Billing Information...</div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                                        {[1, 2, 3].map(i => (
+                                            <div key={i} style={{
+                                                background: '#242526',
+                                                border: '1px solid #3a3b3c',
+                                                borderRadius: 12,
+                                                padding: 28,
+                                                overflow: 'hidden',
+                                            }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                                    <div style={{
+                                                        height: 16, width: i === 1 ? '60%' : i === 2 ? '40%' : '70%',
+                                                        background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
+                                                        backgroundSize: '200% 100%',
+                                                        animation: 'shimmer 1.5s infinite',
+                                                        borderRadius: 8,
+                                                    }} />
+                                                    <div style={{
+                                                        height: 12, width: i === 1 ? '40%' : i === 2 ? '55%' : '30%',
+                                                        background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
+                                                        backgroundSize: '200% 100%',
+                                                        animation: 'shimmer 1.5s infinite',
+                                                        borderRadius: 8,
+                                                    }} />
+                                                    {i === 3 && <div style={{
+                                                        height: 40, width: '100%',
+                                                        background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
+                                                        backgroundSize: '200% 100%',
+                                                        animation: 'shimmer 1.5s infinite',
+                                                        borderRadius: 8,
+                                                        marginTop: 4,
+                                                    }} />}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -1910,7 +1982,42 @@ export default function SettingsPage() {
                                 </p>
 
                                 {caRolesLoading && (
-                                    <div style={{ textAlign: 'center', padding: 30, color: '#B0B3B8', fontSize: 13 }}>Loading your Club Arena roles...</div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                        {[1, 2].map(i => (
+                                            <div key={i} style={{
+                                                background: '#242526',
+                                                border: '1px solid #3a3b3c',
+                                                borderRadius: 12,
+                                                padding: 20,
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{
+                                                            height: 16, width: i === 1 ? '50%' : '65%',
+                                                            background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
+                                                            backgroundSize: '200% 100%',
+                                                            animation: 'shimmer 1.5s infinite',
+                                                            borderRadius: 8, marginBottom: 8,
+                                                        }} />
+                                                        <div style={{
+                                                            height: 12, width: '30%',
+                                                            background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
+                                                            backgroundSize: '200% 100%',
+                                                            animation: 'shimmer 1.5s infinite',
+                                                            borderRadius: 8,
+                                                        }} />
+                                                    </div>
+                                                    <div style={{
+                                                        height: 28, width: 80,
+                                                        background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
+                                                        backgroundSize: '200% 100%',
+                                                        animation: 'shimmer 1.5s infinite',
+                                                        borderRadius: 14,
+                                                    }} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
 
                                 {caRoles && !caRolesLoading && (
@@ -2051,16 +2158,21 @@ export default function SettingsPage() {
 
                                 <div style={styles.settingGroup}>
                                     <p style={styles.infoText}>
-                                        Download A Copy Of Your Smarter.Poker Data Including Your Profile, Posts, Messages, And Training History.
+                                        Download A Copy Of Your Smarter.Poker Data Including Your Profile, Settings, Promo History, And Avatars.
                                     </p>
                                     <button
                                         onClick={exportData}
-                                        style={styles.exportButton}
+                                        disabled={exportLoading}
+                                        style={{
+                                            ...styles.exportButton,
+                                            opacity: exportLoading ? 0.6 : 1,
+                                            cursor: exportLoading ? 'wait' : 'pointer',
+                                        }}
                                     >
-                                        Request Data Export
+                                        {exportLoading ? 'Compiling Data...' : 'Download My Data'}
                                     </button>
                                     <p style={styles.helperText}>
-                                        You'll Receive An Email With A Download Link When Your Data Is Ready (Usually Within 24 Hours).
+                                        Your data will be downloaded as a JSON file immediately.
                                     </p>
                                 </div>
                             </div>
@@ -2105,14 +2217,8 @@ export default function SettingsPage() {
 
                                     <button
                                         onClick={() => {
-                                            if (confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.\n\nType DELETE in the next prompt to confirm.')) {
-                                                const confirmation = prompt('Type DELETE to confirm account deletion:');
-                                                if (confirmation === 'DELETE') {
-                                                    handleDeleteAccount();
-                                                } else {
-                                                    alert('Account deletion cancelled.');
-                                                }
-                                            }
+                                            setShowDeleteModal(true);
+                                            setDeleteConfirmText('');
                                         }}
                                         style={styles.deleteButton}
                                     >
@@ -2809,6 +2915,134 @@ export default function SettingsPage() {
                 onClose={() => setShowInviteModal(false)}
                 user={user}
             />
+
+            {/* Delete Account Confirmation Modal */}
+            {showDeleteModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.9)',
+                    zIndex: 1000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 20,
+                }}>
+                    <div style={{
+                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                        borderRadius: 16,
+                        padding: 32,
+                        maxWidth: 480,
+                        width: '100%',
+                        border: '1px solid rgba(255, 71, 87, 0.3)',
+                        boxShadow: '0 20px 60px rgba(255, 71, 87, 0.15)',
+                    }}>
+                        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                            <div style={{
+                                width: 64, height: 64, borderRadius: '50%',
+                                background: 'rgba(255, 71, 87, 0.15)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                margin: '0 auto 16px',
+                                border: '2px solid rgba(255, 71, 87, 0.3)',
+                            }}>
+                                <span style={{ fontSize: 28, color: '#ff4757' }}>X</span>
+                            </div>
+                            <h2 style={{ color: '#ff4757', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
+                                Delete Your Account?
+                            </h2>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, lineHeight: 1.6 }}>
+                                This action is permanent and cannot be undone. All your data, posts, training progress, diamonds, and VIP status will be permanently erased.
+                            </p>
+                        </div>
+
+                        <div style={{
+                            background: 'rgba(255, 71, 87, 0.08)',
+                            border: '1px solid rgba(255, 71, 87, 0.2)',
+                            borderRadius: 10,
+                            padding: 16,
+                            marginBottom: 20,
+                        }}>
+                            <label style={{ display: 'block', fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
+                                Type <strong style={{ color: '#ff4757' }}>DELETE</strong> to confirm:
+                            </label>
+                            <input
+                                type="text"
+                                value={deleteConfirmText}
+                                onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
+                                placeholder="Type DELETE here"
+                                autoFocus
+                                style={{
+                                    width: '100%',
+                                    padding: '12px 16px',
+                                    background: 'rgba(0, 0, 0, 0.3)',
+                                    border: deleteConfirmText === 'DELETE'
+                                        ? '2px solid #ff4757'
+                                        : '1px solid rgba(255, 255, 255, 0.1)',
+                                    borderRadius: 8,
+                                    color: '#fff',
+                                    fontSize: 16,
+                                    fontFamily: 'Orbitron, monospace',
+                                    letterSpacing: 4,
+                                    textAlign: 'center',
+                                    outline: 'none',
+                                    boxSizing: 'border-box',
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button
+                                onClick={async () => {
+                                    if (deleteConfirmText !== 'DELETE') return;
+                                    setDeleteLoading(true);
+                                    await handleDeleteAccount();
+                                    setDeleteLoading(false);
+                                }}
+                                disabled={deleteConfirmText !== 'DELETE' || deleteLoading}
+                                style={{
+                                    flex: 1,
+                                    padding: '14px 24px',
+                                    background: deleteConfirmText === 'DELETE' && !deleteLoading
+                                        ? '#ff4757'
+                                        : 'rgba(255, 71, 87, 0.2)',
+                                    border: 'none',
+                                    borderRadius: 8,
+                                    color: deleteConfirmText === 'DELETE' && !deleteLoading
+                                        ? '#fff'
+                                        : 'rgba(255,255,255,0.4)',
+                                    fontSize: 14,
+                                    fontWeight: 700,
+                                    cursor: deleteConfirmText === 'DELETE' && !deleteLoading
+                                        ? 'pointer'
+                                        : 'not-allowed',
+                                    transition: 'all 0.2s ease',
+                                }}
+                            >
+                                {deleteLoading ? 'Deleting...' : 'Delete Permanently'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeleteConfirmText('');
+                                }}
+                                style={{
+                                    flex: 1,
+                                    padding: '14px 24px',
+                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                                    borderRadius: 8,
+                                    color: '#fff',
+                                    fontSize: 14,
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </PageTransition>
     );
 }
