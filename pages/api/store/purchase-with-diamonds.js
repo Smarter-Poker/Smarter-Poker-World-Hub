@@ -106,7 +106,7 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: 'Failed to fetch profile' });
           }
 
-          const currentBalance = profile.diamonds || 0;
+          const currentBalance = profile.diamonds ?? 0;
 
           if (currentBalance < diamondCost) {
               return res.status(400).json({

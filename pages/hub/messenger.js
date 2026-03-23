@@ -479,6 +479,203 @@ function TypingIndicator({ name }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 💀 SKELETON LOADING COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ConversationSkeleton({ count = 6 }) {
+    return (
+        <div style={{ padding: '8px 0' }}>
+            {Array.from({ length: count }).map((_, i) => (
+                <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 16px',
+                }}>
+                    {/* Avatar skeleton */}
+                    <div style={{
+                        width: 50, height: 50, borderRadius: '50%',
+                        background: `linear-gradient(110deg, ${C.bg} 8%, ${C.border} 18%, ${C.bg} 33%)`,
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 1.5s infinite',
+                        flexShrink: 0,
+                    }} />
+                    <div style={{ flex: 1 }}>
+                        {/* Name skeleton */}
+                        <div style={{
+                            width: 100 + Math.random() * 60, height: 14, borderRadius: 7,
+                            background: `linear-gradient(110deg, ${C.bg} 8%, ${C.border} 18%, ${C.bg} 33%)`,
+                            backgroundSize: '200% 100%',
+                            animation: 'shimmer 1.5s infinite',
+                            marginBottom: 8,
+                        }} />
+                        {/* Message preview skeleton */}
+                        <div style={{
+                            width: 140 + Math.random() * 80, height: 12, borderRadius: 6,
+                            background: `linear-gradient(110deg, ${C.bg} 8%, ${C.border} 18%, ${C.bg} 33%)`,
+                            backgroundSize: '200% 100%',
+                            animation: 'shimmer 1.5s infinite',
+                        }} />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 😀 EMOJI PICKER PANEL
+// ═══════════════════════════════════════════════════════════════════════════
+
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🎯', '💎', '♠️', '♥️'];
+
+function EmojiPickerPanel({ onSelect, position = 'above' }) {
+    return (
+        <div style={{
+            position: 'absolute',
+            [position === 'above' ? 'bottom' : 'top']: '100%',
+            left: '50%', transform: 'translateX(-50%)',
+            background: C.card,
+            borderRadius: 20, padding: '6px 8px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+            border: `1px solid ${C.border}`,
+            display: 'flex', gap: 2,
+            zIndex: 100,
+            whiteSpace: 'nowrap',
+        }}>
+            {REACTION_EMOJIS.map(emoji => (
+                <button
+                    key={emoji}
+                    onClick={() => onSelect(emoji)}
+                    style={{
+                        background: 'transparent', border: 'none',
+                        fontSize: 20, cursor: 'pointer',
+                        padding: '4px 5px', borderRadius: 8,
+                        transition: 'transform 0.15s, background 0.15s',
+                    }}
+                    onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.3)'; e.currentTarget.style.background = C.bg; }}
+                    onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'transparent'; }}
+                >{emoji}</button>
+            ))}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📭 EMPTY CONVERSATION STATE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function EmptyConversationState() {
+    return (
+        <div style={{
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            padding: '60px 24px', textAlign: 'center',
+        }}>
+            <div style={{
+                width: 80, height: 80, borderRadius: '50%',
+                background: `linear-gradient(135deg, ${C.blue}22, ${C.blue}11)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 36, marginBottom: 20,
+                border: `2px dashed ${C.blue}44`,
+            }}>💬</div>
+            <h3 style={{ margin: '0 0 8px', color: C.text, fontSize: 18, fontWeight: 600 }}>
+                No Conversations Yet
+            </h3>
+            <p style={{ margin: '0 0 20px', color: C.textSec, fontSize: 14, lineHeight: 1.5 }}>
+                Add friends and start chatting! Your poker network is waiting.
+            </p>
+            <Link href="/hub/friends" style={{
+                padding: '10px 24px', background: C.blue,
+                color: 'white', borderRadius: 20,
+                fontWeight: 600, fontSize: 14,
+                textDecoration: 'none',
+                transition: 'opacity 0.2s',
+            }}>Find Friends</Link>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 FAVICON BADGE UTILITY
+// ═══════════════════════════════════════════════════════════════════════════
+
+function updateFaviconBadge(count) {
+    if (typeof document === 'undefined') return;
+    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    link.type = 'image/x-icon';
+    link.rel = 'shortcut icon';
+    
+    if (count <= 0) {
+        // Restore original favicon
+        link.href = '/favicon.ico';
+        document.head.appendChild(link);
+        return;
+    }
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = 32; canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    
+    const img = new window.Image();
+    img.onload = () => {
+        ctx.drawImage(img, 0, 0, 32, 32);
+        // Draw red badge circle
+        ctx.beginPath();
+        ctx.arc(24, 8, 9, 0, 2 * Math.PI);
+        ctx.fillStyle = '#E41E3F';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // Draw count text
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(count > 9 ? '9+' : String(count), 24, 8.5);
+        link.href = canvas.toDataURL('image/png');
+        document.head.appendChild(link);
+    };
+    img.src = '/favicon.ico';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔗 LINK PREVIEW DETECTION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+
+function MessageContent({ content }) {
+    if (!content || typeof content !== 'string') return <span>{content}</span>;
+    
+    const parts = content.split(URL_REGEX);
+    if (parts.length === 1) return <span>{content}</span>;
+    
+    return (
+        <span>
+            {parts.map((part, i) => {
+                if (URL_REGEX.test(part)) {
+                    URL_REGEX.lastIndex = 0; // Reset regex state
+                    return (
+                        <a
+                            key={i}
+                            href={part}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                color: '#58a6ff',
+                                textDecoration: 'underline',
+                                wordBreak: 'break-all',
+                            }}
+                        >{part}</a>
+                    );
+                }
+                return <span key={i}>{part}</span>;
+            })}
+        </span>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  MESSAGE BUBBLE COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 

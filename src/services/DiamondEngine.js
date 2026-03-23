@@ -53,7 +53,7 @@ class DiamondEngineSupabase {
             }
 
             if (!data) return this._getLocalBalance();
-            const balance = data?.diamonds || 0;
+            const balance = data?.diamonds ?? 0;
             this._cachedBalance = balance;
             return balance;
         } catch (err) {
@@ -289,7 +289,7 @@ class DiamondEngineSupabase {
 
             if (!profile) return { success: false, error: 'Profile not found' };
 
-            const current = profile?.diamonds || 0;
+            const current = profile?.diamonds ?? 0;
             if (current < amount) {
                 return { success: false, error: 'Insufficient diamonds', balance: current };
             }
@@ -343,7 +343,7 @@ class DiamondEngineSupabase {
                 return this._awardLocal(amount);
             }
 
-            const newBalance = (profile?.diamonds || 0) + amount;
+            const newBalance = (profile?.diamonds ?? 0) + amount;
             this._cachedBalance = newBalance;
             busEmit.diamondsEarned(amount, `${source} (fallback)`);
             return newBalance;

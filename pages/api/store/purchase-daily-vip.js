@@ -54,7 +54,7 @@ export default async function handler(req, res) {
           }
 
           // Validation
-          const currentBalance = profile.diamonds || 0;
+          const currentBalance = profile.diamonds ?? 0;
           if (currentBalance < COST) {
               return res.status(400).json({
                   success: false,
