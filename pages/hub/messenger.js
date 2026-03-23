@@ -485,7 +485,10 @@ function TypingIndicator({ name }) {
 function ConversationSkeleton({ count = 6 }) {
     return (
         <div style={{ padding: '8px 0' }}>
-            {Array.from({ length: count }).map((_, i) => (
+            {Array.from({ length: count }).map((_, i) => {
+                const nameW = 100 + ((i * 37) % 60);
+                const prevW = 140 + ((i * 53) % 80);
+                return (
                 <div key={i} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '10px 16px',
@@ -501,7 +504,7 @@ function ConversationSkeleton({ count = 6 }) {
                     <div style={{ flex: 1 }}>
                         {/* Name skeleton */}
                         <div style={{
-                            width: 100 + Math.random() * 60, height: 14, borderRadius: 7,
+                            width: nameW, height: 14, borderRadius: 7,
                             background: `linear-gradient(110deg, ${C.bg} 8%, ${C.border} 18%, ${C.bg} 33%)`,
                             backgroundSize: '200% 100%',
                             animation: 'shimmer 1.5s infinite',
@@ -509,14 +512,15 @@ function ConversationSkeleton({ count = 6 }) {
                         }} />
                         {/* Message preview skeleton */}
                         <div style={{
-                            width: 140 + Math.random() * 80, height: 12, borderRadius: 6,
+                            width: prevW, height: 12, borderRadius: 6,
                             background: `linear-gradient(110deg, ${C.bg} 8%, ${C.border} 18%, ${C.bg} 33%)`,
                             backgroundSize: '200% 100%',
                             animation: 'shimmer 1.5s infinite',
                         }} />
                     </div>
                 </div>
-            ))}
+                );
+            })}
         </div>
     );
 }
@@ -653,8 +657,8 @@ function MessageContent({ content }) {
     return (
         <span>
             {parts.map((part, i) => {
+                URL_REGEX.lastIndex = 0; // Reset BEFORE test to prevent alternate-skip
                 if (URL_REGEX.test(part)) {
-                    URL_REGEX.lastIndex = 0; // Reset regex state
                     return (
                         <a
                             key={i}
@@ -2030,6 +2034,8 @@ function MessengerPage() {
         if (!activeConversation || loadingOlderMessages || !hasMoreMessages || messages.length === 0) return;
         setLoadingOlderMessages(true);
         try {
+            const container = messagesContainerRef.current;
+            const prevScrollHeight = container?.scrollHeight || 0;
             const oldestMsg = messages[0];
             const msgToken = getAccessToken();
             const response = await fetch('/api/messenger/get-messages', {
@@ -2050,6 +2056,12 @@ function MessengerPage() {
             if (result.success && result.messages?.length > 0) {
                 setMessages(prev => [...result.messages, ...prev]);
                 setHasMoreMessages(result.messages.length >= 50);
+                // Preserve scroll position after prepending older messages
+                requestAnimationFrame(() => {
+                    if (container) {
+                        container.scrollTop = container.scrollHeight - prevScrollHeight;
+                    }
+                });
             } else {
                 setHasMoreMessages(false);
             }
@@ -2925,10 +2937,7 @@ function MessengerPage() {
                         0%, 60%, 100% { transform: translateY(0); }
                         30% { transform: translateY(-4px); }
                     }
-                    @keyframes shimmer {
-                        0% { background-position: 200% 0; }
-                        100% { background-position: -200% 0; }
-                    }
+                    /* shimmer defined in loading fallback */
                 `}</style>
             </Head>
 
