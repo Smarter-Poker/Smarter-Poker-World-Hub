@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SETTINGS PAGE — User Preferences & Account Management
    Configure your Smarter.Poker experience
-   Last Updated: 2026-03-23 - 13 improvements: dead styles, backup codes UI, mobile logout, billing dedup, URL deep-link, inline feedback, dark select, scroll-lock
+   Last Updated: 2026-03-23 - Phase 2: +10 improvements (inline MFA/VIP/export feedback, keyboard 2FA submit, copy backup codes, dead styles, promo dedup, aria labels, sections hoist, keyframe dedup)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRouter } from 'next/router';
@@ -121,6 +121,16 @@ export default function SettingsPage() {
     const [passwordResetStatus, setPasswordResetStatus] = useState(null); // 'sent' | 'error' | null
     // Improvement: Devices loading indicator
     const [devicesLoading, setDevicesLoading] = useState(false);
+    // Phase 2: MFA inline feedback (replaces remaining alert() calls)
+    const [mfaFeedback, setMfaFeedback] = useState(null); // { type: 'success'|'error', message }
+    // Phase 2: VIP cancel inline feedback
+    const [cancelFeedback, setCancelFeedback] = useState(null); // { type: 'success'|'error', message }
+    // Phase 2: Data export inline feedback
+    const [exportFeedback, setExportFeedback] = useState(null); // { type: 'success'|'error', message }
+    // Phase 2: Backup codes copied state
+    const [backupCodesCopied, setBackupCodesCopied] = useState(false);
+    // Phase 2: Promo history dedup guard
+    const [promoHistoryLoaded, setPromoHistoryLoaded] = useState(false);
 
     // Delete Account Modal State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -146,6 +156,7 @@ export default function SettingsPage() {
     const [promoLoading, setPromoLoading] = useState(false);
     const [promoResult, setPromoResult] = useState(null); // { success, message, reward }
     const [promoHistory, setPromoHistory] = useState([]);
+    // NOTE: promoHistoryLoaded is declared above (Phase 2 block)
     const [promoHistoryLoading, setPromoHistoryLoading] = useState(false);
 
     // Billing State
