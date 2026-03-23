@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SETTINGS PAGE — User Preferences & Account Management
    Configure your Smarter.Poker experience
-   Last Updated: 2026-01-29 - Avatar race condition fix deployed
+   Last Updated: 2026-03-23 - 13 improvements: dead styles, backup codes UI, mobile logout, billing dedup, URL deep-link, inline feedback, dark select, scroll-lock
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRouter } from 'next/router';
@@ -113,6 +113,15 @@ export default function SettingsPage() {
     const [connectedDevices, setConnectedDevices] = useState([]);
     const [loadingMFA, setLoadingMFA] = useState(false);
 
+    // Improvement: 2FA disable confirmation modal (replaces native confirm)
+    const [showDisable2FAConfirm, setShowDisable2FAConfirm] = useState(false);
+    // Improvement: Device revoke confirmation (replaces native confirm)
+    const [revokeDeviceTarget, setRevokeDeviceTarget] = useState(null); // device object to revoke
+    // Improvement: Password reset inline feedback (replaces alert)
+    const [passwordResetStatus, setPasswordResetStatus] = useState(null); // 'sent' | 'error' | null
+    // Improvement: Devices loading indicator
+    const [devicesLoading, setDevicesLoading] = useState(false);
+
     // Delete Account Modal State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -145,6 +154,7 @@ export default function SettingsPage() {
     const [billingVipSub, setBillingVipSub] = useState(null);
     const [billingDiamonds, setBillingDiamonds] = useState(0);
     const [billingLoading, setBillingLoading] = useState(false);
+    const [billingLoaded, setBillingLoaded] = useState(false); // Dedup guard
 
     //  Use context user or localStorage fallback
     const user = contextUser || localUser;
@@ -181,6 +191,25 @@ export default function SettingsPage() {
             }
         }
     }, [contextUser]);
+
+    // ── URL Deep-Link: Sync activeSection with ?section= query param ──
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const sectionParam = params.get('section');
+        const validSections = ['account','notifications','privacy','appearance','display','gameplay','club_arena','promos','billing','blocked','data','delete'];
+        if (sectionParam && validSections.includes(sectionParam)) {
+            setActiveSection(sectionParam);
+        }
+    }, []);
+
+    // Update URL when section changes (without page reload)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('section', activeSection);
+        window.history.replaceState({}, '', url.toString());
+    }, [activeSection]);
 
     // Mobile responsive listener
     useEffect(() => {
@@ -421,9 +450,9 @@ export default function SettingsPage() {
             if (response.ok) {
                 const data = await response.json();
                 setTwoFactorEnabled(true);
-                setBackupCodes(data.backupCodes);
+                setBackupCodes(data.backupCodes || []);
                 setVerificationCode('');
-                alert('2FA successfully enabled! Save your backup codes in a safe place.');
+                // Backup codes are now displayed in the modal UI instead of alert
             } else {
                 const error = await response.json().catch(() => ({}));
                 alert(error.error || 'Invalid verification code');
@@ -437,9 +466,8 @@ export default function SettingsPage() {
     };
 
     const disable2FA = async () => {
-        if (!confirm('Are you sure you want to disable 2FA? This will make your account less secure.')) {
-            return;
-        }
+        // Now triggered by showDisable2FAConfirm confirmation UI instead of confirm()
+        setShowDisable2FAConfirm(false);
 
         setLoadingMFA(true);
         try {
@@ -653,16 +681,17 @@ export default function SettingsPage() {
             console.error('[Settings] Error loading billing data:', err);
         } finally {
             setBillingLoading(false);
+            setBillingLoaded(true);
         }
     };
 
-    // Auto-load billing data when section is opened
+    // Auto-load billing data when section is opened (with dedup guard)
     useEffect(() => {
-        if (activeSection === 'billing' && user?.id) {
+        if (activeSection === 'billing' && user?.id && !billingLoaded) {
             loadBillingData();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeSection, user?.id]);
+    }, [activeSection, user?.id, billingLoaded]);
 
     const redeemPromoCode = async () => {
         if (!promoCode.trim()) return;
@@ -812,11 +841,21 @@ export default function SettingsPage() {
 
                         {!isMobile && <div style={styles.sidebarDivider} />}
 
-                        {!isMobile && (
-                            <button onClick={handleLogout} style={styles.logoutButton}>
-                                <span>Log Out</span>
-                            </button>
-                        )}
+                        <button onClick={handleLogout} style={{
+                            ...styles.logoutButton,
+                            ...(isMobile ? {
+                                padding: '10px 16px',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                borderRadius: 8,
+                                border: '1px solid rgba(255, 71, 87, 0.3)',
+                                background: 'rgba(255, 71, 87, 0.1)',
+                                whiteSpace: 'nowrap',
+                                minWidth: 'auto',
+                            } : {}),
+                        }}>
+                            <span>Log Out</span>
+                        </button>
                     </nav>
 
                     {/* Content */}
@@ -1194,15 +1233,26 @@ export default function SettingsPage() {
                                                 redirectTo: `${window.location.origin}/hub/reset-auth`
                                             });
                                             if (error) {
-                                                alert('Error Sending Password Reset Email: ' + error.message);
+                                                setPasswordResetStatus('error');
                                             } else {
-                                                alert('Password Reset Email Sent! Check Your Inbox.');
+                                                setPasswordResetStatus('sent');
                                             }
+                                            setTimeout(() => setPasswordResetStatus(null), 5000);
                                         }}
                                         style={styles.secondaryButton}
                                     >
                                         Change Password
                                     </button>
+                                    {passwordResetStatus === 'sent' && (
+                                        <div style={{ padding: '8px 12px', marginBottom: 8, background: 'rgba(49, 162, 76, 0.15)', border: '1px solid rgba(49, 162, 76, 0.3)', borderRadius: 8, color: '#31A24C', fontSize: 13 }}>
+                                            Password Reset Email Sent! Check Your Inbox.
+                                        </div>
+                                    )}
+                                    {passwordResetStatus === 'error' && (
+                                        <div style={{ padding: '8px 12px', marginBottom: 8, background: 'rgba(255, 71, 87, 0.15)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: 8, color: '#ff4757', fontSize: 13 }}>
+                                            Error Sending Password Reset Email. Please Try Again.
+                                        </div>
+                                    )}
                                     <button
                                         onClick={() => setShow2FAModal(true)}
                                         style={styles.secondaryButton}
@@ -1212,6 +1262,7 @@ export default function SettingsPage() {
                                     <button
                                         onClick={async () => {
                                             setShowDevicesModal(true);
+                                            setDevicesLoading(true);
                                             // Load connected devices from API
                                             try {
                                                 if (!user?.id) return;
@@ -1229,6 +1280,8 @@ export default function SettingsPage() {
                                                 }
                                             } catch (err) {
                                                 console.error('Error loading devices:', err);
+                                            } finally {
+                                                setDevicesLoading(false);
                                             }
                                         }}
                                         style={styles.secondaryButton}
@@ -2585,6 +2638,7 @@ export default function SettingsPage() {
                     overflow: 'auto',
                     padding: '40px 20px'
                 }}>
+                    <style>{`body { overflow: hidden; }`}</style>
                     <button
                         onClick={() => setShowAvatarBuilder(false)}
                         style={{
@@ -2735,6 +2789,25 @@ export default function SettingsPage() {
                                         Cancel
                                     </button>
                                 </div>
+
+                                {/* Backup Codes Display — shown after successful 2FA verify */}
+                                {backupCodes.length > 0 && (
+                                    <div style={{
+                                        background: 'rgba(0, 212, 255, 0.08)',
+                                        border: '1px solid rgba(0, 212, 255, 0.25)',
+                                        borderRadius: 12,
+                                        padding: 20,
+                                        marginTop: 16,
+                                    }}>
+                                        <h4 style={{ color: '#00D4FF', fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Backup Codes</h4>
+                                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 12 }}>Save these codes in a safe place. Each can be used once if you lose access to your authenticator app.</p>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                                            {backupCodes.map((code, i) => (
+                                                <div key={i} style={{ padding: '6px 10px', background: 'rgba(0,0,0,0.3)', borderRadius: 6, color: '#fff', fontSize: 13, fontFamily: 'monospace', textAlign: 'center' }}>{code}</div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </>
                         ) : (
                             <>
@@ -2753,24 +2826,38 @@ export default function SettingsPage() {
                                     </p>
                                 </div>
 
-                                <button
-                                    onClick={disable2FA}
-                                    disabled={loadingMFA}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px 24px',
-                                        background: loadingMFA ? '#999' : '#ff4757',
-                                        border: 'none',
-                                        borderRadius: 8,
-                                        color: '#fff',
-                                        fontSize: 14,
-                                        fontWeight: 600,
-                                        cursor: loadingMFA ? 'not-allowed' : 'pointer',
-                                        marginBottom: 12
-                                    }}
-                                >
-                                    {loadingMFA ? 'Disabling...' : 'Disable 2FA'}
-                                </button>
+                                {!showDisable2FAConfirm ? (
+                                    <button
+                                        onClick={() => setShowDisable2FAConfirm(true)}
+                                        disabled={loadingMFA}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 24px',
+                                            background: loadingMFA ? '#999' : '#ff4757',
+                                            border: 'none',
+                                            borderRadius: 8,
+                                            color: '#fff',
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            cursor: loadingMFA ? 'not-allowed' : 'pointer',
+                                            marginBottom: 12
+                                        }}
+                                    >
+                                        {loadingMFA ? 'Disabling...' : 'Disable 2FA'}
+                                    </button>
+                                ) : (
+                                    <div style={{ background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: 10, padding: 16, marginBottom: 12 }}>
+                                        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginBottom: 12 }}>Are you sure? This will make your account less secure.</p>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button onClick={disable2FA} disabled={loadingMFA} style={{ flex: 1, padding: '10px', background: '#ff4757', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                                                {loadingMFA ? 'Disabling...' : 'Yes, Disable'}
+                                            </button>
+                                            <button onClick={() => setShowDisable2FAConfirm(false)} style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                                                Keep Enabled
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <button
                                     onClick={() => setShow2FAModal(false)}
@@ -2796,27 +2883,13 @@ export default function SettingsPage() {
 
             {/* Connected Devices Modal */}
             {showDevicesModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.9)',
-                    zIndex: 1000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
                 <div
                     onClick={(e) => { if (e.target === e.currentTarget) setShowDevicesModal(false); }}
                     onKeyDown={(e) => { if (e.key === 'Escape') setShowDevicesModal(false); }}
                     tabIndex={-1}
                     style={{
                     position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
+                    top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0, 0, 0, 0.9)',
                     zIndex: 1000,
                     display: 'flex',
@@ -2824,6 +2897,11 @@ export default function SettingsPage() {
                     justifyContent: 'center',
                     padding: 20
                 }}>
+                    <div style={{
+                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                        borderRadius: 16,
+                        padding: 32,
+                        maxWidth: 600,
                         width: '100%',
                         maxHeight: '80vh',
                         overflow: 'auto',
@@ -2834,7 +2912,13 @@ export default function SettingsPage() {
                             Manage Devices That Have Access To Your Account
                         </p>
 
-                        {connectedDevices.length === 0 ? (
+                        {devicesLoading ? (
+                            <div style={{ textAlign: 'center', padding: 40 }}>
+                                <div style={{ width: 40, height: 40, border: '3px solid rgba(0, 212, 255, 0.2)', borderTop: '3px solid #00D4FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>Loading Devices...</p>
+                                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                            </div>
+                        ) : connectedDevices.length === 0 ? (
                             <div style={{
                                 background: 'rgba(255, 255, 255, 0.05)',
                                 borderRadius: 12,

@@ -11,6 +11,15 @@
  *  5. Dynamic skeleton count based on viewport
  *  6. Running balance sparkline chart
  *  7. Export/download CSV
+ *
+ *  ENHANCEMENTS (R6):
+ *  A. Animated balance counter (count up/down)
+ *  B. Expandable transaction rows (click for details)
+ *  C. Empty state diamond illustration
+ *  D. Keyboard accessibility (Escape, aria-labels)
+ *  E. Pull-to-refresh on mobile
+ *  F. Filter persistence (localStorage)
+ *  G. Transaction analytics stats panel
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
@@ -87,6 +96,7 @@ const EARNED_TYPES = [
 const CACHE_KEY = 'sp-cached-wallet-txns';
 const CACHE_TTL_MS = 60_000; // 60 seconds
 const PAGE_SIZE = 50;
+const FILTER_CACHE_KEY = 'sp-wallet-last-filter';
 
 function getCachedTransactions() {
     try {
@@ -265,6 +275,37 @@ const SkeletonRow = () => (
 // ─────────────────────────────────────────────────────────────────────────────
 // Modal Component
 // ─────────────────────────────────────────────────────────────────────────────
+// ── ENH-A: Animated balance counter hook ──
+function useAnimatedCounter(target, duration = 600) {
+    const [display, setDisplay] = useState(target);
+    const prevRef = useRef(target);
+    const rafRef = useRef(null);
+
+    useEffect(() => {
+        const from = prevRef.current;
+        const to = target;
+        if (from === to) return;
+        prevRef.current = to;
+        const diff = to - from;
+        const start = performance.now();
+
+        const tick = (now) => {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease-out cubic
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setDisplay(Math.round(from + diff * eased));
+            if (progress < 1) {
+                rafRef.current = requestAnimationFrame(tick);
+            }
+        };
+        rafRef.current = requestAnimationFrame(tick);
+        return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    }, [target, duration]);
+
+    return display;
+}
+
 export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initialBalance }) {
     const [transactions, setTransactions] = useState([]);
     // ── PERF-4: Initialize balance from prop (header cache) or localStorage ──
@@ -272,12 +313,24 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(null);
-    const [filter, setFilter] = useState('all');
+    // ── ENH-F: Restore last filter from localStorage ──
+    const [filter, setFilter] = useState(() => {
+        try { return localStorage.getItem(FILTER_CACHE_KEY) || 'all'; } catch (_) { return 'all'; }
+    });
     const [total, setTotal] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
+    const [expandedTxId, setExpandedTxId] = useState(null); // ENH-B
+    const [showStats, setShowStats] = useState(false); // ENH-G
+    const [pullDistance, setPullDistance] = useState(0); // ENH-E
+    const [isRefreshing, setIsRefreshing] = useState(false); // ENH-E
     const fetchedRef = useRef(false);
     const fetchInFlightRef = useRef(false);
     const skeletonCount = useRef(getSkeletonCount());
+    const touchStartY = useRef(0); // ENH-E
+    const scrollContainerRef = useRef(null); // ENH-E
+
+    // ── ENH-A: Animated balance counter ──
+    const animatedBalance = useAnimatedCounter(balance ?? 0);
 
     // ── GAP-2 FIX: Sync initialBalance prop when header gets realtime updates ──
     useEffect(() => {
@@ -372,12 +425,57 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         }
     }, [getSession]);
 
+    // ── ENH-D: Keyboard accessibility — Escape to close ──
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
+    // ── ENH-F: Persist filter selection ──
+    const handleFilterChange = useCallback((value) => {
+        setFilter(value);
+        try { localStorage.setItem(FILTER_CACHE_KEY, value); } catch (_) {}
+    }, []);
+
+    // ── ENH-E: Pull-to-refresh on mobile ──
+    const handleTouchStart = useCallback((e) => {
+        if (scrollContainerRef.current?.scrollTop === 0) {
+            touchStartY.current = e.touches[0].clientY;
+        } else {
+            touchStartY.current = 0;
+        }
+    }, []);
+
+    const handleTouchMove = useCallback((e) => {
+        if (!touchStartY.current) return;
+        const delta = e.touches[0].clientY - touchStartY.current;
+        if (delta > 0 && delta < 120) {
+            setPullDistance(delta);
+        }
+    }, []);
+
+    const handleTouchEnd = useCallback(async () => {
+        if (pullDistance > 60 && !fetchInFlightRef.current) {
+            setIsRefreshing(true);
+            await fetchTransactions();
+            setIsRefreshing(false);
+        }
+        setPullDistance(0);
+        touchStartY.current = 0;
+    }, [pullDistance, fetchTransactions]);
+
     useEffect(() => {
         if (!isOpen) {
             // Reset state when closing so next open starts fresh
             fetchedRef.current = false;
-            setFilter('all');
             setSearchQuery('');
+            setExpandedTxId(null);
+            setShowStats(false);
+            setPullDistance(0);
             return;
         }
 
@@ -450,6 +548,37 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // ── ENH-3: Can load more? ──
     const canLoadMore = transactions.length < total;
 
+    // ── ENH-G: Transaction analytics stats (computed from loaded transactions) ──
+    const stats = useMemo(() => {
+        if (!transactions.length) return null;
+        let totalEarned = 0, totalSpent = 0;
+        const sourceMap = {};
+        const now = new Date();
+        const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+        let weekEarned = 0, weekSpent = 0;
+
+        transactions.forEach(tx => {
+            const amt = tx.amount ?? 0;
+            const txType = tx.transaction_type || tx.type;
+            const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+            if (amt >= 0) {
+                totalEarned += amt;
+                if (new Date(tx.created_at) >= weekAgo) weekEarned += amt;
+            } else {
+                totalSpent += Math.abs(amt);
+                if (new Date(tx.created_at) >= weekAgo) weekSpent += Math.abs(amt);
+            }
+            sourceMap[config.label] = (sourceMap[config.label] || 0) + Math.abs(amt);
+        });
+
+        // Top 5 sources
+        const topSources = Object.entries(sourceMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+
+        return { totalEarned, totalSpent, weekEarned, weekSpent, topSources };
+    }, [transactions]);
+
     if (!isOpen) return null;
 
     return (
@@ -467,6 +596,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
             {/* Modal — Full Screen */}
             <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Diamond Wallet"
                 style={{
                     position: 'fixed',
                     top: 0, left: 0, right: 0, bottom: 0,
@@ -560,8 +692,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             color: '#00d4ff',
                             textShadow: '0 0 20px rgba(0, 212, 255, 0.4)',
                         }}>
-                            {/* ── PERF-4 + BUG-2: Show cached balance instantly, null-safe ── */}
-                            {(balance ?? 0).toLocaleString()}
+                            {/* ── ENH-A: Animated counter display ── */}
+                            {(animatedBalance ?? 0).toLocaleString()}
                         </span>
                     </div>
 
@@ -645,18 +777,19 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     </div>
                 </div>
 
-                {/* Filter Bar */}
+                {/* Filter Bar + Stats Toggle */}
                 <div style={{
                     display: 'flex',
                     gap: 6,
                     padding: '8px 16px',
                     overflowX: 'auto',
                     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                    alignItems: 'center',
                 }}>
                     {FILTER_OPTIONS.map(opt => (
                         <button
                             key={opt.value}
-                            onClick={() => setFilter(opt.value)}
+                            onClick={() => handleFilterChange(opt.value)}
                             style={{
                                 padding: '6px 14px',
                                 borderRadius: 16,
@@ -677,14 +810,103 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             {opt.label}
                         </button>
                     ))}
+                    {/* ENH-G: Stats toggle */}
+                    <button
+                        onClick={() => setShowStats(v => !v)}
+                        style={{
+                            marginLeft: 'auto',
+                            padding: '6px 10px',
+                            borderRadius: 16,
+                            border: showStats
+                                ? '1px solid rgba(168, 85, 247, 0.6)'
+                                : '1px solid rgba(255, 255, 255, 0.08)',
+                            background: showStats
+                                ? 'rgba(168, 85, 247, 0.15)'
+                                : 'rgba(255, 255, 255, 0.04)',
+                            color: showStats ? '#a855f7' : 'rgba(255, 255, 255, 0.4)',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            transition: 'all 0.15s',
+                            flexShrink: 0,
+                        }}
+                    >
+                        Stats
+                    </button>
                 </div>
 
+                {/* ENH-G: Analytics Stats Panel */}
+                {showStats && stats && (
+                    <div style={{
+                        padding: '12px 16px',
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                        background: 'rgba(168, 85, 247, 0.04)',
+                        animation: 'walletFadeIn 0.2s ease',
+                    }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                            <div style={{ background: 'rgba(74, 222, 128, 0.08)', borderRadius: 8, padding: '8px 10px' }}>
+                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Total Earned</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: '#4ade80', fontFamily: 'Orbitron, monospace' }}>+{stats.totalEarned.toLocaleString()}</div>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>This week: +{stats.weekEarned.toLocaleString()}</div>
+                            </div>
+                            <div style={{ background: 'rgba(248, 113, 113, 0.08)', borderRadius: 8, padding: '8px 10px' }}>
+                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Total Spent</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: '#f87171', fontFamily: 'Orbitron, monospace' }}>-{stats.totalSpent.toLocaleString()}</div>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>This week: -{stats.weekSpent.toLocaleString()}</div>
+                            </div>
+                        </div>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>Top Sources</div>
+                        {stats.topSources.map(([name, amount], i) => (
+                            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                                <div style={{
+                                    flex: 1, height: 4, borderRadius: 2,
+                                    background: 'rgba(255,255,255,0.06)',
+                                    overflow: 'hidden',
+                                }}>
+                                    <div style={{
+                                        width: `${(amount / stats.topSources[0][1]) * 100}%`,
+                                        height: '100%',
+                                        borderRadius: 2,
+                                        background: `hsl(${200 + i * 30}, 70%, 55%)`,
+                                    }} />
+                                </div>
+                                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', minWidth: 80 }}>
+                                    {name}: {amount.toLocaleString()}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* ENH-E: Pull-to-refresh indicator */}
+                {pullDistance > 0 && (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: `${Math.min(pullDistance / 2, 30)}px 0`,
+                        color: pullDistance > 60 ? '#00d4ff' : 'rgba(255,255,255,0.3)',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        transition: pullDistance === 0 ? 'all 0.2s' : 'none',
+                    }}>
+                        {isRefreshing ? 'Refreshing...' : pullDistance > 60 ? 'Release to refresh' : 'Pull down to refresh'}
+                    </div>
+                )}
+
                 {/* Transaction List */}
-                <div style={{
-                    flex: 1,
-                    overflowY: 'auto',
-                    padding: '4px 0',
-                }}>
+                <div
+                    ref={scrollContainerRef}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    role="list"
+                    aria-label="Diamond transactions"
+                    style={{
+                        flex: 1,
+                        overflowY: 'auto',
+                        padding: '4px 0',
+                        WebkitOverflowScrolling: 'touch',
+                    }}>
                     {/* ── BUG-3: Error state with retry button ── */}
                     {error ? (
                         <div style={{
@@ -722,16 +944,33 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     ) : groupedTx.length === 0 ? (
                         <div style={{
                             textAlign: 'center',
-                            padding: 40,
+                            padding: '30px 40px',
                             color: 'rgba(255, 255, 255, 0.3)',
                         }}>
-                            <div style={{ fontSize: 32, marginBottom: 8 }}>&#x1F48E;</div>
-                            {searchQuery
-                                ? `No results for "${searchQuery}"`
-                                : filter === 'all'
-                                    ? 'No transactions yet'
-                                    : `No ${FILTER_OPTIONS.find(o => o.value === filter)?.label?.toLowerCase() || ''} transactions`
-                            }
+                            {/* ENH-C: Premium diamond illustration for empty state */}
+                            <img
+                                src="/images/diamond-empty-state.png"
+                                alt="No transactions"
+                                style={{
+                                    width: 80, height: 80,
+                                    marginBottom: 12,
+                                    opacity: 0.6,
+                                    filter: 'drop-shadow(0 0 12px rgba(0, 212, 255, 0.3))',
+                                }}
+                            />
+                            <div style={{ fontSize: 13, fontWeight: 500 }}>
+                                {searchQuery
+                                    ? `No results for "${searchQuery}"`
+                                    : filter === 'all'
+                                        ? 'No transactions yet'
+                                        : `No ${FILTER_OPTIONS.find(o => o.value === filter)?.label?.toLowerCase() || ''} transactions`
+                                }
+                            </div>
+                            {filter === 'all' && !searchQuery && (
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 6 }}>
+                                    Earn diamonds through daily logins, trivia, and more
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <>
@@ -763,88 +1002,129 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 const isPositive = tx.amount >= 0;
                                 const dt = new Date(tx.created_at);
 
+                                const isExpanded = expandedTxId === tx.id;
+
                                 return (
                                     <div
                                         key={tx.id}
+                                        role="listitem"
+                                        aria-label={`${config.label}: ${isPositive ? '+' : ''}${tx.amount ?? 0} diamonds`}
+                                        onClick={() => setExpandedTxId(isExpanded ? null : tx.id)}
                                         style={{
+                                            cursor: 'pointer',
+                                            borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                                            transition: 'background 0.15s',
+                                            background: isExpanded ? 'rgba(0, 212, 255, 0.03)' : 'transparent',
+                                        }}
+                                        onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'; }}
+                                        onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.background = 'transparent'; }}
+                                    >
+                                        <div style={{
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: 12,
                                             padding: '12px 16px',
-                                            borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
-                                            transition: 'background 0.15s',
-                                        }}
-                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'}
-                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                    >
-                                        {/* Icon */}
-                                        <div style={{
-                                            width: 36, height: 36,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            borderRadius: 10,
-                                            background: `${config.color}15`,
-                                            fontSize: 18,
-                                            flexShrink: 0,
                                         }}>
-                                            {config.icon}
-                                        </div>
-
-                                        {/* Details */}
-                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            {/* Icon */}
                                             <div style={{
-                                                fontSize: 13,
-                                                fontWeight: 600,
-                                                color: '#e2e8f0',
-                                                marginBottom: 2,
+                                                width: 36, height: 36,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                borderRadius: 10,
+                                                background: `${config.color}15`,
+                                                fontSize: 18,
+                                                flexShrink: 0,
                                             }}>
-                                                {config.label}
+                                                {config.icon}
                                             </div>
-                                            <div style={{
-                                                fontSize: 11,
-                                                color: 'rgba(255, 255, 255, 0.35)',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap',
-                                            }}>
-                                                {tx.description || config.label}
-                                            </div>
-                                        </div>
 
-                                        {/* Amount + Time */}
-                                        <div style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'flex-end',
-                                            flexShrink: 0,
-                                        }}>
-                                            <span style={{
-                                                fontFamily: 'Orbitron, monospace',
-                                                fontSize: 14,
-                                                fontWeight: 700,
-                                                color: isPositive ? '#4ade80' : '#f87171',
+                                            {/* Details */}
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{
+                                                    fontSize: 13,
+                                                    fontWeight: 600,
+                                                    color: '#e2e8f0',
+                                                    marginBottom: 2,
+                                                }}>
+                                                    {config.label}
+                                                </div>
+                                                <div style={{
+                                                    fontSize: 11,
+                                                    color: 'rgba(255, 255, 255, 0.35)',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    whiteSpace: 'nowrap',
+                                                }}>
+                                                    {tx.description || config.label}
+                                                </div>
+                                            </div>
+
+                                            {/* Amount + Time */}
+                                            <div style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'flex-end',
+                                                flexShrink: 0,
                                             }}>
-                                                {isPositive ? '+' : ''}{(tx.amount ?? 0).toLocaleString()}
-                                            </span>
-                                            {tx.balance_after != null && (
+                                                <span style={{
+                                                    fontFamily: 'Orbitron, monospace',
+                                                    fontSize: 14,
+                                                    fontWeight: 700,
+                                                    color: isPositive ? '#4ade80' : '#f87171',
+                                                }}>
+                                                    {isPositive ? '+' : ''}{(tx.amount ?? 0).toLocaleString()}
+                                                </span>
+                                                {tx.balance_after != null && (
+                                                    <span style={{
+                                                        fontSize: 10,
+                                                        color: 'rgba(255, 255, 255, 0.25)',
+                                                    }}>
+                                                        Bal: {tx.balance_after.toLocaleString()}
+                                                    </span>
+                                                )}
                                                 <span style={{
                                                     fontSize: 10,
-                                                    color: 'rgba(255, 255, 255, 0.25)',
+                                                    color: 'rgba(255, 255, 255, 0.2)',
+                                                    marginTop: 2,
                                                 }}>
-                                                    Bal: {tx.balance_after.toLocaleString()}
+                                                    {dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                    {' '}
+                                                    {dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
-                                            )}
-                                            <span style={{
-                                                fontSize: 10,
-                                                color: 'rgba(255, 255, 255, 0.2)',
-                                                marginTop: 2,
-                                            }}>
-                                                {dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                {' '}
-                                                {dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
+                                            </div>
                                         </div>
+
+                                        {/* ENH-B: Expanded transaction details */}
+                                        {isExpanded && (
+                                            <div style={{
+                                                padding: '0 16px 12px 64px',
+                                                animation: 'walletFadeIn 0.15s ease',
+                                            }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', fontSize: 11 }}>
+                                                    <div>
+                                                        <span style={{ color: 'rgba(255,255,255,0.3)' }}>Type: </span>
+                                                        <span style={{ color: 'rgba(255,255,255,0.6)' }}>{txType}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span style={{ color: 'rgba(255,255,255,0.3)' }}>Date: </span>
+                                                        <span style={{ color: 'rgba(255,255,255,0.6)' }}>{dt.toLocaleString()}</span>
+                                                    </div>
+                                                    {tx.reference_id && (
+                                                        <div style={{ gridColumn: '1 / -1' }}>
+                                                            <span style={{ color: 'rgba(255,255,255,0.3)' }}>Ref: </span>
+                                                            <span style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', fontSize: 10 }}>{tx.reference_id}</span>
+                                                        </div>
+                                                    )}
+                                                    {tx.description && tx.description !== config.label && (
+                                                        <div style={{ gridColumn: '1 / -1' }}>
+                                                            <span style={{ color: 'rgba(255,255,255,0.3)' }}>Details: </span>
+                                                            <span style={{ color: 'rgba(255,255,255,0.6)' }}>{tx.description}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}

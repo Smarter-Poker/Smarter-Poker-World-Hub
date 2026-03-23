@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { getServerUser } = require('../../../src/lib/serverAuth');
 
 let _supabase = null;
@@ -23,6 +24,9 @@ export default async function handler(req, res) {
       if (req.method !== 'GET') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
+
+      // ENH-H: Rate limit to prevent abuse
+      if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       try {
           // ── PERF-1: Local JWT decode first (zero-latency), GoTrue fallback ──
