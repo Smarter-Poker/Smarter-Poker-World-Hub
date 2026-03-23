@@ -75,8 +75,8 @@ export default async function handler(req, res) {
                   .order('created_at', { ascending: false })
                   .limit(pageLimit);
           } else {
-              // Initial load: get most recent N messages, ascending
-              query = query.order('created_at', { ascending: true })
+              // Initial load: descending to get newest N, then reverse for display
+              query = query.order('created_at', { ascending: false })
                   .limit(pageLimit);
           }
 
@@ -87,8 +87,8 @@ export default async function handler(req, res) {
               return res.status(500).json({ success: false, error: error.message });
           }
 
-          // Reverse backward-paginated results to ascending order for display
-          const sorted = before ? (messages || []).reverse() : (messages || []);
+          // Both paths use descending — reverse to ascending for display
+          const sorted = (messages || []).reverse();
 
           return res.json({
               success: true,

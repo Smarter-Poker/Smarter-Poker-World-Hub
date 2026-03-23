@@ -441,7 +441,7 @@ function Toast({ toast, onDismiss }) {
             alignItems: 'center',
             gap: 8,
         }}>
-            <span>{toast.type === 'error' ? '' : ''}</span>
+            <span>{toast.type === 'error' ? '!' : toast.type === 'success' ? '>' : 'i'}</span>
             <span>{toast.message}</span>
             <button
                 onClick={onDismiss}
@@ -531,37 +531,7 @@ function ConversationSkeleton({ count = 6 }) {
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🎯', '💎', '♠️', '♥️'];
 
-function EmojiPickerPanel({ onSelect, position = 'above' }) {
-    return (
-        <div style={{
-            position: 'absolute',
-            [position === 'above' ? 'bottom' : 'top']: '100%',
-            left: '50%', transform: 'translateX(-50%)',
-            background: C.card,
-            borderRadius: 20, padding: '6px 8px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
-            border: `1px solid ${C.border}`,
-            display: 'flex', gap: 2,
-            zIndex: 100,
-            whiteSpace: 'nowrap',
-        }}>
-            {REACTION_EMOJIS.map(emoji => (
-                <button
-                    key={emoji}
-                    onClick={() => onSelect(emoji)}
-                    style={{
-                        background: 'transparent', border: 'none',
-                        fontSize: 20, cursor: 'pointer',
-                        padding: '4px 5px', borderRadius: 8,
-                        transition: 'transform 0.15s, background 0.15s',
-                    }}
-                    onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.3)'; e.currentTarget.style.background = C.bg; }}
-                    onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'transparent'; }}
-                >{emoji}</button>
-            ))}
-        </div>
-    );
-}
+// EmojiPickerPanel removed — reaction picker is inline in MessageBubble
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📭 EMPTY CONVERSATION STATE
@@ -702,10 +672,10 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
             >⚠</span>
         );
         if (status === 'read' || message.is_read) {
-            return <span style={{ color: '#0084FF', fontSize: 10 }} title="Read"></span>;
+            return <span style={{ color: '#0084FF', fontSize: 10 }} title="Read">{'\u2713\u2713'}</span>;
         }
         // Delivered/sent
-        return <span style={{ color: '#31A24C', fontSize: 10 }} title="Delivered"></span>;
+        return <span style={{ color: '#31A24C', fontSize: 10 }} title="Delivered">{'\u2713'}</span>;
     };
 
     const handleReaction = async (emoji) => {
@@ -2620,6 +2590,13 @@ function MessengerPage() {
         }
         // Update favicon with red badge
         updateFaviconBadge(total);
+        // Cleanup: reset favicon and title when leaving messenger
+        return () => {
+            if (typeof document !== 'undefined') {
+                document.title = 'Smarter.Poker';
+                updateFaviconBadge(0);
+            }
+        };
     }, [conversations]);
 
     // Sync local conversations state to Zustand/localStorage cache
