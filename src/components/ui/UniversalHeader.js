@@ -693,6 +693,16 @@ export default function UniversalHeader({
                     background-position: center;
                     transition: transform 0.1s ease, opacity 0.15s ease;
                     cursor: pointer;
+                    animation: pulse-orb 2s ease-in-out infinite;
+                }
+
+                .profile-orb[style*="url("] {
+                    animation: none;
+                }
+
+                @keyframes pulse-orb {
+                    0%, 100% { box-shadow: 0 0 12px rgba(0, 245, 255, 0.3); }
+                    50% { box-shadow: 0 0 18px rgba(0, 245, 255, 0.6), 0 0 4px rgba(0, 245, 255, 0.2); }
                 }
 
                 .profile-orb:hover {
