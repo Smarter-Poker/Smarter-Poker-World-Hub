@@ -18,7 +18,8 @@
     "push": "bash scripts/git-safe-push.sh",
     "verify": "node scripts/verify-deploy.js",
     "postinstall": "bash scripts/install-hooks.sh 2>/dev/null || true",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prepare": "husky"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -104,6 +105,7 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.35",
     "eslint-plugin-unused-imports": "^4.4.1",
+    "husky": "^9.1.7",
     "postcss": "^8.5.6",
     "tailwindcss-3d": "^1.1.0",
     "ts-node": "^10.9.2",
