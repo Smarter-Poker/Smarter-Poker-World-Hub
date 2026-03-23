@@ -2041,6 +2041,13 @@ function MessengerPage() {
         }
     };
 
+    // Retry handler for failed messages — removes failed msg and re-sends
+    const handleRetryMessage = (failedMsg) => {
+        if (!failedMsg?.content) return;
+        setMessages(prev => prev.filter(m => m.id !== failedMsg.id));
+        handleSendMessage(failedMsg.content);
+    };
+
     // Handle message reaction
     const handleReaction = async (messageId, emoji) => {
         if (!user) return;
@@ -2314,6 +2321,10 @@ function MessengerPage() {
     useEffect(() => {
         const total = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
         setTotalUnreadCount(total);
+        // Update browser tab title with unread badge
+        if (typeof document !== 'undefined') {
+            document.title = total > 0 ? `(${total}) Messenger | Smarter.Poker` : 'Messenger | Smarter.Poker';
+        }
     }, [conversations]);
 
     // Sync local conversations state to Zustand/localStorage cache
@@ -3350,19 +3361,51 @@ function MessengerPage() {
                                             const showAvatar = !prevMsg || prevMsg.sender_id !== msg.sender_id;
                                             const isLastInGroup = !nextMsg || nextMsg.sender_id !== msg.sender_id;
 
+                                            // Date divider — show between messages on different days
+                                            const msgDate = new Date(msg.created_at);
+                                            const prevDate = prevMsg ? new Date(prevMsg.created_at) : null;
+                                            const showDateDivider = !prevDate ||
+                                                msgDate.toDateString() !== prevDate.toDateString();
+
+                                            const today = new Date();
+                                            const yesterday = new Date(today);
+                                            yesterday.setDate(today.getDate() - 1);
+                                            let dateLabel = '';
+                                            if (showDateDivider) {
+                                                if (msgDate.toDateString() === today.toDateString()) dateLabel = 'Today';
+                                                else if (msgDate.toDateString() === yesterday.toDateString()) dateLabel = 'Yesterday';
+                                                else dateLabel = msgDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: msgDate.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+                                            }
+
                                             return (
-                                                <MessageBubble
-                                                    key={msg.id}
-                                                    message={msg}
-                                                    isOwn={isOwn}
-                                                    showAvatar={showAvatar}
-                                                    sender={msg.profiles}
-                                                    showTime={isLastInGroup}
-                                                    isLastInGroup={isLastInGroup}
-                                                    onReact={handleReaction}
-                                                    onDelete={handleDeleteMessage}
-                                                    currentUserId={user.id}
-                                                />
+                                                <React.Fragment key={msg.id}>
+                                                    {showDateDivider && (
+                                                        <div style={{
+                                                            display: 'flex', alignItems: 'center', gap: 12,
+                                                            padding: '12px 16px', margin: '4px 0',
+                                                        }}>
+                                                            <div style={{ flex: 1, height: 1, background: C.border }} />
+                                                            <span style={{
+                                                                fontSize: 11, fontWeight: 600,
+                                                                color: C.textSec, whiteSpace: 'nowrap',
+                                                                letterSpacing: '0.3px',
+                                                            }}>{dateLabel}</span>
+                                                            <div style={{ flex: 1, height: 1, background: C.border }} />
+                                                        </div>
+                                                    )}
+                                                    <MessageBubble
+                                                        message={msg}
+                                                        isOwn={isOwn}
+                                                        showAvatar={showAvatar}
+                                                        sender={msg.profiles}
+                                                        showTime={isLastInGroup}
+                                                        isLastInGroup={isLastInGroup}
+                                                        onRetry={handleRetryMessage}
+                                                        onReact={handleReaction}
+                                                        onDelete={handleDeleteMessage}
+                                                        currentUserId={user.id}
+                                                    />
+                                                </React.Fragment>
                                             );
                                         })
                                     )}
