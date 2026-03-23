@@ -736,7 +736,7 @@ export default function DiamondStorePage() {
         const _ch = supabase
             .channel(`dstore:${user?.id}`)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, (payload) => {
-                if (payload.new && payload.new.is_vip !== undefined) {
+                if (payload.new?.is_vip !== undefined) {
                     setIsVip(!!payload.new.is_vip);
                 }
             })
@@ -1110,7 +1110,7 @@ export default function DiamondStorePage() {
                 .eq('id', user.id)
                 .maybeSingle();
 
-            const userDiamonds = profile?.diamonds || 0;
+            const userDiamonds = profile?.diamonds ?? 0;
 
             // Calculate total diamond cost (diamond items use their diamond count as the cost)
             const totalDiamondCost = items.reduce((sum, item) => {
@@ -1139,7 +1139,7 @@ export default function DiamondStorePage() {
             clearCart();
 
             // Notify listeners (UniversalHeader, etc.) to refresh diamond balance immediately
-            window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
+            window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { source: 'diamond-store-purchase' } }));
 
             // Broadcast across tabs — diamond balance + chips changed
             broadcastSync('smarter_poker_diamond_sync', 'refresh');
@@ -1325,6 +1325,36 @@ export default function DiamondStorePage() {
                                 style={{ width: '100%', height: 'auto', display: 'block' }}
                                 draggable={false}
                                 loading="lazy" />
+
+                            {/* ── BUG-S3: Corrected text overlay to fix image typos ── */}
+                            <div style={{
+                                position: 'absolute',
+                                top: '6%',
+                                left: '5%',
+                                right: '5%',
+                                textAlign: 'center',
+                                fontFamily: "'Cinzel', 'Times New Roman', serif",
+                                fontStyle: 'italic',
+                                fontWeight: 700,
+                                color: '#c0d8f0',
+                                textShadow: '0 0 8px rgba(0,180,255,0.4), 0 1px 2px rgba(0,0,0,0.8)',
+                                pointerEvents: 'none',
+                                zIndex: 2,
+                                lineHeight: 1.35,
+                            }}>
+                                <div style={{ fontSize: 'clamp(11px, 2.8vw, 16px)' }}>
+                                    Use Diamonds For Cash Games & Tournaments,
+                                </div>
+                                <div style={{ fontSize: 'clamp(11px, 2.8vw, 16px)' }}>
+                                    Playing, Training, Access To Special Features &
+                                </div>
+                                <div style={{ fontSize: 'clamp(11px, 2.8vw, 16px)' }}>
+                                    Upgrades For Smarter.Poker And More!
+                                </div>
+                                <div style={{ fontSize: 'clamp(12px, 3vw, 17px)', marginTop: 6, fontWeight: 800, color: '#e0f0ff' }}>
+                                    5% Bonus On $100+ Purchases!
+                                </div>
+                            </div>
 
 
 
