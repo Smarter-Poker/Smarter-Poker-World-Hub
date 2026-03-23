@@ -3597,11 +3597,24 @@ function MessengerPage() {
                                 }
 
                                 {/* Messages */}
-                                <div style={{
+                                <div
+                                    onScroll={(e) => {
+                                        // Infinite scroll — load older messages when near top
+                                        if (e.target.scrollTop < 100 && hasMoreMessages && !loadingOlderMessages) {
+                                            loadOlderMessages();
+                                        }
+                                    }}
+                                    style={{
                                     flex: 1,
                                     overflowY: 'auto',
                                     padding: '16px 0',
                                 }}>
+                                    {/* Loading older messages indicator */}
+                                    {loadingOlderMessages && (
+                                        <div style={{ textAlign: 'center', padding: '12px 0', color: C.textSec, fontSize: 13 }}>
+                                            Loading older messages...
+                                        </div>
+                                    )}
                                     {/* User info header */}
                                     <div style={{ textAlign: 'center', marginBottom: 24, padding: '0 20px' }}>
                                         <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={80} showOnline={false} />
