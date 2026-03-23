@@ -99,7 +99,7 @@ export function GoalTracker({ onAskJarvis, onClose }: GoalTrackerProps) {
         try {
             // Upsert all goals
             for (const goal of goalsToSave) {
-                await supabase.from('poker_goals' as any).upsert({
+                await (supabase.from('poker_goals' as any) as any).upsert({
                     id: goal.id,
                     user_id: userId,
                     title: goal.title,

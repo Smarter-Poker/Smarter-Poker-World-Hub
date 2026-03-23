@@ -52,7 +52,7 @@ export function BankrollSync({ onAskJarvis, onClose }: BankrollSyncProps) {
                         .limit(1);
 
                     if (!error && data && data.length > 0) {
-                        const record = data[0];
+                        const record = data[0] as any;
                         setBankroll({
                             current: record.current_amount,
                             history: record.history || [],
@@ -84,7 +84,7 @@ export function BankrollSync({ onAskJarvis, onClose }: BankrollSyncProps) {
         if (!userId) return;
 
         try {
-            await supabase.from('bankroll_history' as any).upsert({
+            await (supabase.from('bankroll_history' as any) as any).upsert({
                 id: `${userId}_bankroll`,
                 user_id: userId,
                 current_amount: data.current,

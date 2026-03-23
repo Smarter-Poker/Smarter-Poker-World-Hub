@@ -88,7 +88,7 @@ export function HandHistoryLibrary({ onAskJarvis, onClose }: HandHistoryLibraryP
                 if (error) {
                     console.error('Error loading hand history:', error);
                 } else if (data) {
-                    setHands(data.map(row => ({
+                    setHands((data as any[]).map((row: any) => ({
                         id: row.id,
                         title: row.title,
                         hand: row.hand,
@@ -120,7 +120,7 @@ export function HandHistoryLibrary({ onAskJarvis, onClose }: HandHistoryLibraryP
         }
 
         try {
-            await supabase.from('hand_history' as any).upsert({
+            await (supabase.from('hand_history' as any) as any).upsert({
                 id: hand.id,
                 user_id: userId,
                 title: hand.title,
@@ -170,7 +170,7 @@ export function HandHistoryLibrary({ onAskJarvis, onClose }: HandHistoryLibraryP
     const deleteHand = async (id: string) => {
         setHands(hands.filter(h => h.id !== id));
         if (userId) {
-            await supabase.from('hand_history' as any).delete().eq('id', id);
+            await (supabase.from('hand_history' as any) as any).delete().eq('id', id);
         } else {
             localStorage.setItem('jarvis_hand_history', JSON.stringify(hands.filter(h => h.id !== id)));
         }
