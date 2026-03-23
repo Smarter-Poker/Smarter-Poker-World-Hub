@@ -715,12 +715,30 @@ const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 
 function MessageContent({ content }) {
     if (!content || typeof content !== 'string') return <span>{content}</span>;
+
+    // GIF message: [GIF](url)
+    const gifMatch = content.match(/^\[GIF\]\((.+?)\)$/);
+    if (gifMatch) {
+        return (
+            <img
+                src={gifMatch[1]}
+                alt="GIF"
+                style={{ maxWidth: 260, maxHeight: 260, borderRadius: 8, display: 'block' }}
+                loading="lazy"
+            />
+        );
+    }
+
+    // Forwarded message prefix
+    const isForwarded = content.startsWith('[Forwarded] ');
+    const displayContent = isForwarded ? content.slice(12) : content;
     
-    const parts = content.split(URL_REGEX);
-    if (parts.length === 1) return <span>{content}</span>;
+    const parts = displayContent.split(URL_REGEX);
+    if (parts.length === 1 && !isForwarded) return <span>{content}</span>;
     
     return (
         <span>
+            {isForwarded && <span style={{ display: 'block', fontSize: 11, color: '#58a6ff', marginBottom: 4, fontStyle: 'italic' }}>Forwarded</span>}
             {parts.map((part, i) => {
                 URL_REGEX.lastIndex = 0; // Reset BEFORE test to prevent alternate-skip
                 if (URL_REGEX.test(part)) {
@@ -2191,7 +2209,9 @@ function MessengerPage() {
             const result = await response.json();
 
             if (result.success && result.messages) {
-                setMessages(result.messages);
+                // Filter out hidden messages (delete-for-me persistence)
+                const filtered = result.messages.filter(m => !hiddenMessageIds.has(m.id));
+                setMessages(filtered);
                 setHasMoreMessages(result.messages.length >= 50);
             } else {
                 setMessages([]);
@@ -2212,6 +2232,16 @@ function MessengerPage() {
             } catch (e) {
                 console.error('Mark read failed:', e);
             }
+
+            // Broadcast read receipt so the sender sees ✓✓
+            try {
+                const typingCh = supabase.channel(`typing:${conversationId}`);
+                typingCh.send({
+                    type: 'broadcast',
+                    event: 'read_receipt',
+                    payload: { readerId: user.id, conversationId },
+                }).catch(() => {});
+            } catch { /* non-critical */ }
 
             //  Immediately refresh global unread count to clear header badge
             if (refreshUnread) refreshUnread();

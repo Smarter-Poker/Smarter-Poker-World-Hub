@@ -1,3 +1,5 @@
+![Build Safety Gate](https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/actions/workflows/build-safety-gate.yml/badge.svg)
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
