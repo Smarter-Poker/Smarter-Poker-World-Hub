@@ -46,7 +46,34 @@
       ]
     },
     {
-      "source": "/hub/((?!.*?/assets/)(?!.*?/images/)(?!.*?/videos/).*)",
+      "source": "/hub/:orb*/cards/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=3600"
+        }
+      ]
+    },
+    {
+      "source": "/hub/:orb*/sounds/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=3600"
+        }
+      ]
+    },
+    {
+      "source": "/hub/:orb*/club-logos/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, stale-while-revalidate=600"
+        }
+      ]
+    },
+    {
+      "source": "/hub/((?!.*?/assets/)(?!.*?/images/)(?!.*?/videos/)(?!.*?/cards/)(?!.*?/sounds/)(?!.*?/club-logos/).*)",
       "headers": [
         {
           "key": "Cache-Control",
