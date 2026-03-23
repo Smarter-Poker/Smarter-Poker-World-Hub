@@ -1335,6 +1335,7 @@ function MessengerPage() {
     const messageSearchTimeout = useRef(null);
     const activeConversationRef = useRef(null);
     const profileCacheRef = useRef(new Map()); // Cache sender profiles to avoid repeated fetches
+    const messagesContainerRef = useRef(null); // Scroll container for pagination position preservation
 
     // Keep ref in sync so global RT channel can read it without re-subscribing
     useEffect(() => { activeConversationRef.current = activeConversation; }, [activeConversation]);
