@@ -1,14 +1,8 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { sanitizeMessage } from '../../../src/utils/messageSanitizer';
 
 const EDIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
-
-function sanitizeMessage(text) {
-    if (!text) return text;
-    let clean = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '[Removed Malicious Code]');
-    clean = clean.replace(/on\w+\s*=/gi, 'data-blocked=');
-    return clean;
-}
 
 let _supabase = null;
 function getSupabase() {

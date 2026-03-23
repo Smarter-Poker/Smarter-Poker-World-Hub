@@ -1482,11 +1482,14 @@ function MessengerPage() {
     useEffect(() => {
         if (!user?.id) return;
 
+        const ac = new AbortController();
+
         async function checkPendingCalls(signal) {
             try {
                 const pendingToken = getAccessToken();
                 const res = await fetch(`/api/calls/pending?userId=${user.id}`, {
                     headers: pendingToken ? { Authorization: `Bearer ${pendingToken}` } : {},
+                    signal,
                 });
                 if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 const result = await res.json();
@@ -1511,10 +1514,12 @@ function MessengerPage() {
                     }
                 }
             } catch (e) {
+                if (e.name !== 'AbortError') console.error('[Pending calls]', e);
             }
         }
 
-        checkPendingCalls();
+        checkPendingCalls(ac.signal);
+        return () => ac.abort();
     }, [user?.id]);
 
     // Scroll to bottom when messages change
@@ -2415,6 +2420,7 @@ function MessengerPage() {
             sender_id: user.id,
             status: 'sending',
             profiles: { id: user.id, username: user.user_metadata?.username, avatar_url: user.user_metadata?.avatar_url },
+            _blobUrl: mediaPreview, // Track for cleanup
         };
         setMessages(prev => [...prev, tempMessage]);
         setToast({ type: 'success', message: 'Uploading...' });
@@ -2468,6 +2474,9 @@ function MessengerPage() {
                     ? { ...m, id: data, content, media_url: urlData.publicUrl, status: 'sent' }
                     : m
             ));
+
+            // Revoke blob URL to prevent memory leak
+            URL.revokeObjectURL(mediaPreview);
 
             setToast({ type: 'success', message: `${isImage ? 'Photo' : 'Video'} sent!` });
         } catch (e) {

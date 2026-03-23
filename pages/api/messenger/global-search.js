@@ -1,5 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { escapeLikeQuery } from '../../../src/utils/messageSanitizer';
 
 let _supabase = null;
 function getSupabase() {
@@ -37,15 +38,28 @@ export default async function handler(req, res) {
           const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-          // Search messages — only from conversations the user is part of
-          const { data: messages, error: searchErr } = await getSupabase()
-              .from('social_messages')
-              .select('id, content, created_at, sender_id, conversation_id, is_deleted')
-              .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-              .ilike('content', `%${query}%`)
-              .eq('is_deleted', false)
-              .order('created_at', { ascending: false })
-              .limit(30);
+           // Search messages — only from conversations the user participates in
+           // Step 1: Get user's conversation IDs
+           const { data: participations } = await getSupabase()
+               .from('social_conversation_participants')
+               .select('conversation_id')
+               .eq('user_id', user.id);
+
+           const convIds = (participations || []).map(p => p.conversation_id);
+           if (convIds.length === 0) {
+               return res.json({ success: true, results: [] });
+           }
+
+           // Step 2: Search messages in those conversations (escaped LIKE)
+           const escapedQuery = escapeLikeQuery(query);
+           const { data: messages, error: searchErr } = await getSupabase()
+               .from('social_messages')
+               .select('id, content, created_at, sender_id, conversation_id, is_deleted')
+               .in('conversation_id', convIds)
+               .ilike('content', `%${escapedQuery}%`)
+               .eq('is_deleted', false)
+               .order('created_at', { ascending: false })
+               .limit(30);
 
           if (searchErr) throw searchErr;
 

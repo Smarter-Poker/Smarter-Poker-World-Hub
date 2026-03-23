@@ -1,13 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-
-// XSS Neutralizer
-function sanitizeMessage(text) {
-    if (!text) return text;
-    let clean = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '[Removed]');
-    clean = clean.replace(/on\w+\s*=/gi, 'data-blocked=');
-    return clean;
-}
+import { sanitizeMessage } from '../../../src/utils/messageSanitizer';
 
 let _supabase = null;
 function getSupabase() {
@@ -73,22 +66,29 @@ export default async function handler(req, res) {
               return res.json({ success: true, sent: 0, message: 'No conversations to broadcast to' });
           }
 
-          let sent = 0;
-          const errors = [];
-
-          for (const conv of conversations) {
-              try {
-                  const { error } = await getSupabase().rpc('fn_send_message', {
+          // Send to all conversations in parallel for speed
+          const results = await Promise.allSettled(
+              conversations.map(conv =>
+                  getSupabase().rpc('fn_send_message', {
                       p_conversation_id: conv.conversation_id,
                       p_sender_id: user.id,
                       p_content: content,
-                  });
-                  if (!error) sent++;
-                  else errors.push({ conv: conv.conversation_id, error: error.message });
-              } catch (e) {
-                  errors.push({ conv: conv.conversation_id, error: e.message });
+                  })
+              )
+          );
+
+          let sent = 0;
+          const errors = [];
+          results.forEach((result, i) => {
+              if (result.status === 'fulfilled' && !result.value.error) {
+                  sent++;
+              } else {
+                  const errMsg = result.status === 'rejected'
+                      ? result.reason?.message
+                      : result.value?.error?.message;
+                  errors.push({ conv: conversations[i].conversation_id, error: errMsg });
               }
-          }
+          });
 
           return res.json({ success: true, sent, total: conversations.length, errors: errors.length > 0 ? errors : undefined });
       } catch (e) {

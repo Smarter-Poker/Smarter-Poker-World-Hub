@@ -1,15 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-
-// XSS Neutralizer (strips out <script> and dangerous attributes simply)
-function sanitizeMessage(text) {
-    if (!text) return text;
-    // Strip <script> tags and their contents
-    let clean = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '[Removed Malicious Code]');
-    // Strip inline event handlers like onerror=
-    clean = clean.replace(/on\w+\s*=/gi, 'data-blocked=');
-    return clean;
-}
+import { sanitizeMessage } from '../../../src/utils/messageSanitizer';
 
 let _supabase = null;
 function getSupabase() {
