@@ -276,6 +276,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const [total, setTotal] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const fetchedRef = useRef(false);
+    const fetchInFlightRef = useRef(false);
     const skeletonCount = useRef(getSkeletonCount());
 
     // ── GAP-2 FIX: Sync initialBalance prop when header gets realtime updates ──
@@ -299,7 +300,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 setBalance(fresh);
             }
             // ENH-4: Also re-fetch transaction list so new transactions appear
-            fetchTransactions();
+            // BUG-R2: Skip if fetch already in-flight (race condition guard)
+            if (!fetchInFlightRef.current) {
+                fetchTransactions();
+            }
         };
         window.addEventListener('diamond-balance-refresh', handleBalanceRefresh);
         return () => window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
@@ -314,6 +318,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
     // ── BUG-1 FIX: Fetch once on open, filter purely client-side ──
     const fetchTransactions = useCallback(async (offset = 0) => {
+        // BUG-R2: Guard against concurrent fetches
+        if (fetchInFlightRef.current) return;
+        fetchInFlightRef.current = true;
         if (offset === 0) {
             setLoading(true);
         } else {
@@ -359,6 +366,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 setError('Failed to load transactions. Please try again.');
             }
         } finally {
+            fetchInFlightRef.current = false;
             setLoading(false);
             setLoadingMore(false);
         }
