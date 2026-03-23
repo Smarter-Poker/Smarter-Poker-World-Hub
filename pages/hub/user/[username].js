@@ -1427,7 +1427,8 @@ export default function UserProfilePage() {
             <SEOHead
                 title={`${displayName} — Player Profile`}
                 description={`View ${displayName}'s poker profile, stats, and achievements on Smarter.Poker.`}
-                noindex={true}
+                ogImage={profile.avatar_url || profile.cover_photo_url || undefined}
+                canonical={`/hub/user/${profile.username}`}
             />
 
             <div className="sp-profile-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
@@ -1483,6 +1484,8 @@ export default function UserProfilePage() {
                                 <span>·</span>
                                 <span><strong style={{ transition: 'all 0.3s', display: 'inline-block' }}>{stats.followers}</strong> Followers</span>
                                 <span>·</span>
+                                <span><strong style={{ transition: 'all 0.3s', display: 'inline-block' }}>{stats.following}</strong> Following</span>
+                                <span>·</span>
                                 <span><strong style={{ transition: 'all 0.3s', display: 'inline-block' }}>{stats.posts}</strong> Posts</span>
                             </div>
                         </div>
@@ -1523,11 +1526,28 @@ export default function UserProfilePage() {
                                 <Link href="/hub/profile-edit" style={{
                                     flex: 1, padding: '10px 16px', background: '#e4e6eb', color: C.text,
                                     borderRadius: 8, textDecoration: 'none', fontWeight: 600, textAlign: 'center', fontSize: 14
-                                }}>✏️ Edit Profile</Link>
+                                }}>Edit Profile</Link>
                                 <Link href="/hub/social-media" style={{
                                     flex: 1, padding: '10px 16px', background: C.blue, color: 'white',
                                     borderRadius: 8, textDecoration: 'none', fontWeight: 600, textAlign: 'center', fontSize: 14
                                 }}>Social Feed</Link>
+                                <button onClick={() => {
+                                    const url = `https://smarter.poker/hub/user/${profile.username}`;
+                                    if (navigator.clipboard) {
+                                        navigator.clipboard.writeText(url).then(() => toast.success('Profile link copied!')).catch(() => toast.error('Could not copy link'));
+                                    } else {
+                                        const input = document.createElement('input');
+                                        input.value = url;
+                                        document.body.appendChild(input);
+                                        input.select();
+                                        document.execCommand('copy');
+                                        document.body.removeChild(input);
+                                        toast.success('Profile link copied!');
+                                    }
+                                }} style={{
+                                    padding: '10px 16px', background: '#e4e6eb', color: C.text,
+                                    borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14
+                                }}>Share Profile</button>
                             </>
                         ) : (
                             <>
@@ -1785,8 +1805,15 @@ export default function UserProfilePage() {
                                     posts.map(post => <PostCard key={post.id} post={post} author={profile} isOwnProfile={isOwnProfile} onDelete={handleDeletePost} currentUserId={currentUser?.id} horseProfileIds={horseProfileIds} />)
                                 ) : (
                                     <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
-                                        <div style={{ fontSize: 32, marginBottom: 12 }}></div>
-                                        <p>No Posts Yet</p>
+                                        <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.6 }}>📝</div>
+                                        <p style={{ fontWeight: 600, fontSize: 16, margin: '0 0 4px', color: C.text }}>
+                                            {isOwnProfile ? 'Share Your First Post' : 'No Posts Yet'}
+                                        </p>
+                                        <p style={{ fontSize: 13, margin: 0 }}>
+                                            {isOwnProfile
+                                                ? 'Tell the poker community what you\'re up to!'
+                                                : `${displayName} hasn't shared any posts yet.`}
+                                        </p>
                                     </div>
                                 )}
                             </div>
