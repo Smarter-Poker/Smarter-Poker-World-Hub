@@ -40,10 +40,11 @@ jobs:
         continue-on-error: true
         run: |
           echo "Running TypeScript check (advisory — does not block deploy)..."
-          TS_ERRORS=$(npx tsc --noEmit 2>&1 | grep "error TS" | wc -l)
+          npx tsc --noEmit 2>&1 | grep "error TS" > /tmp/ts-errors.txt || true
+          TS_ERRORS=$(wc -l < /tmp/ts-errors.txt | tr -d ' ')
           if [ "$TS_ERRORS" -gt 0 ]; then
             echo "::warning::TypeScript found $TS_ERRORS type error(s) — review recommended"
-            npx tsc --noEmit 2>&1 | grep "error TS" | head -20
+            head -20 /tmp/ts-errors.txt
             echo ""
             echo "⚠️ $TS_ERRORS type errors found (advisory only — deploy NOT blocked)"
             echo "   Real build failures are caught by CHECK 5 (Next.js build)"
