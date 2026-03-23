@@ -436,8 +436,11 @@ export default function SettingsPage() {
         if (show2FAModal && !twoFactorEnabled && !qrCode) {
             setup2FA();
         }
-        // Phase 3: Clear MFA feedback when modal opens fresh
-        if (show2FAModal) setMfaFeedback(null);
+        // Phase 3: Clear MFA feedback and disable-confirm when modal opens fresh
+        if (show2FAModal) {
+            setMfaFeedback(null);
+            setShowDisable2FAConfirm(false);
+        }
     }, [show2FAModal]);
 
     const setup2FA = async () => {
@@ -2955,8 +2958,8 @@ export default function SettingsPage() {
             {/* Connected Devices Modal */}
             {showDevicesModal && (
                 <div
-                    onClick={(e) => { if (e.target === e.currentTarget) setShowDevicesModal(false); }}
-                    onKeyDown={(e) => { if (e.key === 'Escape') setShowDevicesModal(false); }}
+                    onClick={(e) => { if (e.target === e.currentTarget) { setShowDevicesModal(false); setRevokeDeviceTarget(null); } }}
+                    onKeyDown={(e) => { if (e.key === 'Escape') { setShowDevicesModal(false); setRevokeDeviceTarget(null); } }}
                     tabIndex={-1}
                     style={{
                     position: 'fixed',
@@ -3083,7 +3086,7 @@ export default function SettingsPage() {
                         )}
 
                         <button
-                            onClick={() => setShowDevicesModal(false)}
+                            onClick={() => { setShowDevicesModal(false); setRevokeDeviceTarget(null); }}
                             style={{
                                 width: '100%',
                                 padding: '12px 24px',
