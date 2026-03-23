@@ -123,7 +123,7 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
                         background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 24, boxShadow: '0 2px 10px rgba(255, 215, 0, 0.4)'
-                    }}>Trophy</div>
+                    }}>🏆</div>
                     <div>
                         <div style={{ fontWeight: 700, fontSize: 20, letterSpacing: 0.5 }}>POKER RESUME</div>
                         <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>HendonMob Stats</div>

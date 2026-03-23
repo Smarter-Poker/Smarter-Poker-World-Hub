@@ -68,14 +68,15 @@ export default function FavoriteHandPicker({ value = '', type = 'holdem', onChan
       {/* Hold'em / PLO Toggle */}
       <div style={{
         display: 'flex', gap: 0, marginBottom: 16, borderRadius: 10,
-        overflow: 'hidden', border: '2px solid #DADDE1', width: 'fit-content',
+        overflow: 'hidden', border: '2px solid #DADDE1', width: 240,
       }}>
         {['holdem', 'plo'].map(t => (
           <button
             key={t}
             onClick={() => handleTypeChange(t)}
             style={{
-              padding: '10px 28px',
+              flex: 1,
+              padding: '10px 0',
               background: type === t
                 ? 'linear-gradient(135deg, #1877F2, #0d47a1)'
                 : '#ffffff',
