@@ -579,7 +579,7 @@ export default function SettingsPage() {
             // Fetch orders, transactions, VIP sub, and profile in parallel
             const [ordersRes, txRes, vipRes, profileRes] = await Promise.allSettled([
                 supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
-                user?.id ? fetch(`/api/store/diamond-transactions?limit=10`, { headers }).then(r => r.json()) : Promise.resolve({ transactions: [] }),
+                fetch(`/api/store/diamond-transactions?limit=10`, { headers }).then(r => r.json()),
                 supabase.from('vip_subscriptions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
                 supabase.from('profiles').select('diamonds').eq('id', user.id).maybeSingle(),
             ]);
@@ -822,7 +822,7 @@ export default function SettingsPage() {
                                     <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
                                         {[0, 1, 2, 3, 4].map((index) => {
                                             const avatarData = customAvatars[index];
-                                            const isActive = avatar && avatarData && avatar === avatarData.image_url;
+                                            const isActive = avatar && avatarData && avatar?.imageUrl === avatarData.image_url;
                                             const canCreate = isVip ? customAvatars.length < 5 : customAvatars.length < 1;
 
                                             return (
@@ -1014,7 +1014,7 @@ export default function SettingsPage() {
                                             </div>
                                             <button
                                                 onClick={() => {
-                                                    navigator.clipboard.writeText(String(userProfile.player_number));
+                                                    try { navigator.clipboard.writeText(String(userProfile.player_number)); } catch (_) { /* clipboard denied */ }
                                                     setReferralCopied(true);
                                                     setTimeout(() => setReferralCopied(false), 2000);
                                                 }}
@@ -1038,7 +1038,7 @@ export default function SettingsPage() {
                                         <button
                                             onClick={() => {
                                                 const link = `https://smarter.poker/auth/signup?ref=${userProfile.player_number}`;
-                                                navigator.clipboard.writeText(link);
+                                                try { navigator.clipboard.writeText(link); } catch (_) { /* clipboard denied */ }
                                                 setReferralCopied(true);
                                                 setTimeout(() => setReferralCopied(false), 2000);
                                             }}
