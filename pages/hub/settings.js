@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SETTINGS PAGE — User Preferences & Account Management
    Configure your Smarter.Poker experience
-   Last Updated: 2026-03-23 - Phase 2: +10 improvements (inline MFA/VIP/export feedback, keyboard 2FA submit, copy backup codes, dead styles, promo dedup, aria labels, sections hoist, keyframe dedup)
+   Last Updated: 2026-03-23 - Phase 3: +8 improvements (Toggle role=switch, Select aria-label, promo icons, export success feedback, mfaFeedback clear, deleteFeedback, linkCopied isolation, modal cleanup on close)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRouter } from 'next/router';
@@ -1194,13 +1194,13 @@ export default function SettingsPage() {
                                             onClick={() => {
                                                 const link = `https://smarter.poker/auth/signup?ref=${userProfile.player_number}`;
                                                 try { navigator.clipboard.writeText(link); } catch (_) { /* clipboard denied */ }
-                                                setReferralCopied(true);
-                                                setTimeout(() => setReferralCopied(false), 2000);
+                                                setLinkCopied(true);
+                                                setTimeout(() => setLinkCopied(false), 2000);
                                             }}
                                             style={{
                                                 width: '100%',
                                                 padding: '14px 20px',
-                                                background: 'linear-gradient(135deg, #1877F2, #166FE5)',
+                                                background: linkCopied ? 'linear-gradient(135deg, #31A24C, #2A8E42)' : 'linear-gradient(135deg, #1877F2, #166FE5)',
                                                 border: 'none',
                                                 borderRadius: 10,
                                                 color: '#fff',
@@ -1215,7 +1215,7 @@ export default function SettingsPage() {
                                                 transition: 'all 0.3s ease',
                                             }}
                                         >
-                                            Copy Referral Link
+                                            {linkCopied ? 'Link Copied!' : 'Copy Referral Link'}
                                         </button>
                                         {/* Invite Friends Button */}
                                         <button
@@ -2325,8 +2325,8 @@ export default function SettingsPage() {
             {/* VIP Cancellation Modal */}
             {showCancelModal && (
                 <div
-                    onClick={(e) => { if (e.target === e.currentTarget) setShowCancelModal(false); }}
-                    onKeyDown={(e) => { if (e.key === 'Escape') setShowCancelModal(false); }}
+                    onClick={(e) => { if (e.target === e.currentTarget) { setShowCancelModal(false); setCancelFeedback(null); } }}
+                    onKeyDown={(e) => { if (e.key === 'Escape') { setShowCancelModal(false); setCancelFeedback(null); } }}
                     tabIndex={-1}
                     style={{
                     position: 'fixed',
@@ -2704,8 +2704,8 @@ export default function SettingsPage() {
             {/* 2FA Setup Modal */}
             {show2FAModal && (
                 <div
-                    onClick={(e) => { if (e.target === e.currentTarget) { setShow2FAModal(false); setVerificationCode(''); } }}
-                    onKeyDown={(e) => { if (e.key === 'Escape') { setShow2FAModal(false); setVerificationCode(''); } }}
+                    onClick={(e) => { if (e.target === e.currentTarget) { setShow2FAModal(false); setVerificationCode(''); setMfaFeedback(null); } }}
+                    onKeyDown={(e) => { if (e.key === 'Escape') { setShow2FAModal(false); setVerificationCode(''); setMfaFeedback(null); } }}
                     tabIndex={-1}
                     style={{
                     position: 'fixed',
@@ -3109,8 +3109,8 @@ export default function SettingsPage() {
             {/* Delete Account Confirmation Modal */}
             {showDeleteModal && (
                 <div
-                    onClick={(e) => { if (e.target === e.currentTarget) { setShowDeleteModal(false); setDeleteConfirmText(''); } }}
-                    onKeyDown={(e) => { if (e.key === 'Escape') { setShowDeleteModal(false); setDeleteConfirmText(''); } }}
+                    onClick={(e) => { if (e.target === e.currentTarget) { setShowDeleteModal(false); setDeleteConfirmText(''); setDeleteFeedback(null); } }}
+                    onKeyDown={(e) => { if (e.key === 'Escape') { setShowDeleteModal(false); setDeleteConfirmText(''); setDeleteFeedback(null); } }}
                     tabIndex={-1}
                     style={{
                     position: 'fixed',
@@ -3184,6 +3184,12 @@ export default function SettingsPage() {
                             />
                         </div>
 
+                        {deleteFeedback && (
+                            <div style={{ padding: '8px 12px', marginBottom: 12, background: 'rgba(255, 71, 87, 0.15)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: 8, color: '#ff4757', fontSize: 13 }}>
+                                {deleteFeedback.message}
+                            </div>
+                        )}
+
                         <div style={{ display: 'flex', gap: 12 }}>
                             <button
                                 onClick={async () => {
@@ -3222,6 +3228,7 @@ export default function SettingsPage() {
                                 onClick={() => {
                                     setShowDeleteModal(false);
                                     setDeleteConfirmText('');
+                                    setDeleteFeedback(null);
                                 }}
                                 style={{
                                     flex: 1,

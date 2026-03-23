@@ -740,6 +740,7 @@ export default function UserProfilePage() {
     const [showPostComposer, setShowPostComposer] = useState(false);
     const [coverLoaded, setCoverLoaded] = useState(false);
     const [shareCopied, setShareCopied] = useState(false);
+    const shareCopiedTimer = useRef(null);
 
     // Poker Activity state
     const [pokerCheckins, setPokerCheckins] = useState([]);
@@ -1442,19 +1443,18 @@ export default function UserProfilePage() {
                 {/* COVER PHOTO */}
                 <div style={{
                     height: 220,
-                    background: profile.cover_photo_url
-                        ? 'transparent'
-                        : 'linear-gradient(135deg, #0a1628 0%, #1a2a4a 30%, #0d2137 60%, #162d50 100%)',
+                    background: 'linear-gradient(135deg, #0a1628 0%, #1a2a4a 30%, #0d2137 60%, #162d50 100%)',
                     position: 'relative',
                     borderRadius: '0 0 12px 12px',
                     overflow: 'hidden',
                 }}>
-                    {/* Cover Photo with fade-in */}
+                    {/* Cover Photo with fade-in + error fallback */}
                     {profile.cover_photo_url && (
                         <img
                             src={profile.cover_photo_url}
                             alt="Cover photo"
                             onLoad={() => setCoverLoaded(true)}
+                            onError={() => setCoverLoaded(false)}
                             style={{
                                 position: 'absolute', inset: 0, width: '100%', height: '100%',
                                 objectFit: 'cover',
@@ -1571,8 +1571,9 @@ export default function UserProfilePage() {
                                             document.execCommand('copy');
                                             document.body.removeChild(input);
                                         }
+                                        clearTimeout(shareCopiedTimer.current);
                                         setShareCopied(true);
-                                        setTimeout(() => setShareCopied(false), 2000);
+                                        shareCopiedTimer.current = setTimeout(() => setShareCopied(false), 2000);
                                     } catch {
                                         toast.error('Could not copy link');
                                     }
