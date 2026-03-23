@@ -14,6 +14,7 @@ import {
 } from '../../../../../src/lib/commander/pushNotifications';
 import { checkAndExecuteAutoBreak } from '../../../../../src/lib/commander/tournamentAutoBreak';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import { parsePayoutStructure } from '../../../../../src/lib/parseBlindStructure';
 
 
 let _supabase = null;
@@ -94,7 +95,7 @@ export default async function handler(req, res) {
       const finishPosition = remainingCount;
 
       // Calculate payout if in the money
-      const payoutStructure = tournament.payout_structure || [];
+      const payoutStructure = parsePayoutStructure(tournament.payout_structure);
       let payoutAmount = 0;
       let payoutPosition = null;
 
