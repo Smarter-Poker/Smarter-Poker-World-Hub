@@ -793,10 +793,25 @@ export default function UserProfilePage() {
                 });
         });
 
+        // Same-tab profile-updated — invalidate SWR cache so fresh data is fetched
+        const handleProfileUpdated = () => {
+            try {
+                localStorage.removeItem(`sp-profile-cache-${username}`);
+            } catch (_) {}
+            // Re-fetch profile from Supabase
+            supabase.from('profiles').select('*')
+                .eq('username', username).maybeSingle()
+                .then(({ data }) => {
+                    if (data) setProfile(data);
+                });
+        };
+        window.addEventListener('profile-updated', handleProfileUpdated);
+
         return () => {
             cleanupAvatar();
             cleanupSocial();
             cleanupFriends();
+            window.removeEventListener('profile-updated', handleProfileUpdated);
         };
     }, [username, profile?.id]);
 
