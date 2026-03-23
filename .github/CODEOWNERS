@@ -1,0 +1,12 @@
+# World Hub CODEOWNERS
+# These owners are automatically requested for review on PRs
+
+# CI/CD and deployment
+/.github/                    @Smarter-Poker/admin
+vercel.json                  @Smarter-Poker/admin
+.husky/                      @Smarter-Poker/admin
+
+# Core architecture
+/src/lib/                    @Smarter-Poker/admin
+/pages/api/                  @Smarter-Poker/admin
+/src/config/                 @Smarter-Poker/admin

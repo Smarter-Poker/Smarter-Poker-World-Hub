@@ -1,0 +1,21 @@
+## Description
+<!-- Brief description of what this PR does -->
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Performance improvement
+- [ ] CI/CD improvement
+- [ ] Documentation update
+
+## Checklist
+- [ ] TypeScript compiles without errors (`npx tsc --noEmit`)
+- [ ] Build succeeds (`npm run build`)
+- [ ] Tested locally on smarter.poker
+- [ ] No console errors introduced
+- [ ] No new `alert()` calls (use toast system)
+- [ ] Supabase queries use `.maybeSingle()` not `.single()`
+- [ ] No raw `createClient()` at module scope (use `getSupabase()`)
+
+## Screenshots
+<!-- If UI changes, paste screenshots here -->

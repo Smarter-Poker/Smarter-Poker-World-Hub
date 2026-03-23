@@ -13,6 +13,22 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    # Block major version bumps on critical packages — these require manual migration
+    ignore:
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@react-three/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@pinecone-database/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "three"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -22,3 +38,11 @@ updates:
     open-pull-requests-limit: 3
     labels:
       - "ci"
+    # Block major version bumps on actions — these can break CI
+    ignore:
+      - dependency-name: "actions/checkout"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "actions/setup-node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "actions/upload-artifact"
+        update-types: ["version-update:semver-major"]
