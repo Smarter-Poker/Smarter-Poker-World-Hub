@@ -7,6 +7,7 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import { parsePayoutStructure } from '../../../../../src/lib/parseBlindStructure';
 
 let _supabase = null;
 function getSupabase() {
@@ -74,7 +75,7 @@ async function handleGetPayouts(req, res, tournamentId) {
 
     // If calculate mode, compute auto payouts from payout_structure
     if (mode === 'calculate') {
-      const structure = tournament.payout_structure || [];
+      const structure = parsePayoutStructure(tournament.payout_structure);
       const calculated = structure.map((slot, idx) => {
         const percent = slot.percentage || slot.percent || 0;
         const amount = Math.round(prizePool * (percent / 100));
@@ -315,4 +316,3 @@ async function awardLeaderboardPoints(leaderboardId, tournamentId, entry) {
     console.error('Award points error:', err);
   }
 }
-
