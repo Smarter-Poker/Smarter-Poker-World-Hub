@@ -64,10 +64,10 @@ function Select({ value, onChange, options, label }) {
             <select
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                style={styles.select}
+                style={{ ...styles.select, colorScheme: 'dark' }}
             >
                 {options.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value} style={{ background: '#1a1a2e', color: '#fff' }}>{opt.label}</option>
                 ))}
             </select>
         </div>
@@ -2953,32 +2953,7 @@ export default function SettingsPage() {
                                                 </div>
                                             </div>
                                             <button
-                                                onClick={async () => {
-                                                    if (confirm('Revoke access for this device?')) {
-                                                        try {
-                                                            if (!user?.id) return;
-
-                                                            const response = await fetch('/api/auth/sessions/revoke', {
-                                                                method: 'POST',
-                                                                headers: {
-                                                                    'Content-Type': 'application/json',
-                                                                    'Authorization': `Bearer ${getAccessToken()}`
-                                                                },
-                                                                body: JSON.stringify({ sessionId: device.id })
-                                                            });
-
-                                                            if (response.ok) {
-                                                                setConnectedDevices(prev => prev.filter(d => d.id !== device.id));
-                                                                alert('Device access revoked');
-                                                            } else {
-                                                                alert('Failed to revoke device access');
-                                                            }
-                                                        } catch (err) {
-                                                            console.error('Error revoking session:', err);
-                                                            alert('Error revoking device access');
-                                                        }
-                                                    }
-                                                }}
+                                                onClick={() => setRevokeDeviceTarget(device)}
                                                 style={{
                                                     padding: '8px 16px',
                                                     background: '#ff4757',
@@ -2995,6 +2970,45 @@ export default function SettingsPage() {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        )}
+
+                        {/* Device Revoke Confirmation */}
+                        {revokeDeviceTarget && (
+                            <div style={{ background: 'rgba(255, 71, 87, 0.1)', border: '1px solid rgba(255, 71, 87, 0.3)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
+                                <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginBottom: 12 }}>
+                                    Revoke access for <strong style={{ color: '#fff' }}>{revokeDeviceTarget.device_name || 'this device'}</strong>?
+                                </p>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                if (!user?.id) return;
+                                                const response = await fetch('/api/auth/sessions/revoke', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getAccessToken()}` },
+                                                    body: JSON.stringify({ sessionId: revokeDeviceTarget.id })
+                                                });
+                                                if (response.ok) {
+                                                    setConnectedDevices(prev => prev.filter(d => d.id !== revokeDeviceTarget.id));
+                                                }
+                                            } catch (err) {
+                                                console.error('Error revoking session:', err);
+                                            } finally {
+                                                setRevokeDeviceTarget(null);
+                                            }
+                                        }}
+                                        style={{ flex: 1, padding: '10px', background: '#ff4757', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                                    >
+                                        Yes, Revoke
+                                    </button>
+                                    <button
+                                        onClick={() => setRevokeDeviceTarget(null)}
+                                        style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                         )}
 
@@ -3187,31 +3201,8 @@ const styles = {
         backgroundSize: '60px 60px',
         pointerEvents: 'none',
     },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '16px 24px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        position: 'sticky',
-        top: 0,
-        background: 'rgba(10, 22, 40, 0.95)',
-        backdropFilter: 'blur(10px)',
-        zIndex: 100,
-    },
-    backButton: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '10px 16px',
-        background: 'rgba(0, 212, 255, 0.1)',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: 8,
-        color: '#00D4FF',
-        fontSize: 14,
-        fontWeight: 500,
-        cursor: 'pointer',
-    },
+    header: {},
+    backButton: {},
     pageTitle: {
         fontFamily: 'Orbitron, sans-serif',
         fontSize: 24,
@@ -3358,16 +3349,7 @@ const styles = {
         alignItems: 'center',
         gap: 16,
     },
-    profileAvatar: {
-        width: 64,
-        height: 64,
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, #00D4FF, #8a2be2)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 32,
-    },
+    profileAvatar: {},
     profileInfo: {
         flex: 1,
         display: 'flex',
@@ -3406,24 +3388,9 @@ const styles = {
         marginBottom: 8,
         textAlign: 'left',
     },
-    dataRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '16px 0',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-    },
-    dataTitle: {
-        fontSize: 15,
-        fontWeight: 500,
-        color: '#fff',
-        margin: '0 0 4px',
-    },
-    dataDesc: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.5)',
-        margin: 0,
-    },
+    dataRow: {},
+    dataTitle: {},
+    dataDesc: {},
     exportButton: {
         padding: '8px 20px',
         background: 'rgba(0, 212, 255, 0.15)',
@@ -3434,33 +3401,10 @@ const styles = {
         fontWeight: 500,
         cursor: 'pointer',
     },
-    dangerCard: {
-        background: 'rgba(255, 71, 87, 0.1)',
-        border: '1px solid rgba(255, 71, 87, 0.3)',
-        borderRadius: 16,
-        padding: 24,
-    },
-    dangerTitle: {
-        fontSize: 18,
-        fontWeight: 600,
-        color: '#ff4757',
-        marginBottom: 8,
-    },
-    dangerDesc: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.7)',
-        marginBottom: 16,
-    },
-    dangerButton: {
-        padding: '12px 24px',
-        background: '#ff4757',
-        border: 'none',
-        borderRadius: 8,
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 600,
-        cursor: 'pointer',
-    },
+    dangerCard: {},
+    dangerTitle: {},
+    dangerDesc: {},
+    dangerButton: {},
     // New styles for added sections
     slider: {
         flex: 1,
@@ -3504,28 +3448,10 @@ const styles = {
         paddingLeft: 24,
         margin: 0,
     },
-    vipBadge: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-        padding: 16,
-        background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1))',
-        border: '1px solid rgba(255, 215, 0, 0.3)',
-        borderRadius: 12,
-    },
-    vipIcon: {
-        fontSize: 32,
-    },
-    vipTitle: {
-        fontSize: 16,
-        fontWeight: 600,
-        color: '#FFD700',
-        marginBottom: 4,
-    },
-    vipSubtitle: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.6)',
-    },
+    vipBadge: {},
+    vipIcon: {},
+    vipTitle: {},
+    vipSubtitle: {},
     dangerZone: {
         background: 'rgba(255, 71, 87, 0.05)',
         border: '1px solid rgba(255, 71, 87, 0.2)',
@@ -3568,25 +3494,7 @@ const styles = {
         transition: 'all 0.2s',
     },
     // ── Billing Styles ──
-    billingStatCard: {
-        padding: 20,
-        background: 'rgba(0, 0, 0, 0.25)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: 12,
-    },
-    transactionRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '10px 12px',
-        borderRadius: 8,
-        background: 'rgba(0, 0, 0, 0.15)',
-        marginBottom: 2,
-    },
-    billingOrderCard: {
-        padding: '16px 18px',
-        background: 'rgba(0, 0, 0, 0.2)',
-        border: '1px solid rgba(255, 255, 255, 0.06)',
-        borderRadius: 10,
-    },
+    billingStatCard: {},
+    transactionRow: {},
+    billingOrderCard: {},
 };
