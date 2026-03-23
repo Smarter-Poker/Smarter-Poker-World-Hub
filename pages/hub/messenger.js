@@ -952,9 +952,8 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                 margin: '-4px -8px',
                             } : {}}>
                                 {parts.map((part, i) => {
+                                    urlRegex.lastIndex = 0; // Reset BEFORE test to prevent alternate-skip
                                     if (urlRegex.test(part)) {
-                                        // Reset regex lastIndex
-                                        urlRegex.lastIndex = 0;
                                         return (
                                             <a
                                                 key={i}

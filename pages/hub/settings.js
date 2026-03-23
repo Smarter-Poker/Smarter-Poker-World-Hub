@@ -2243,6 +2243,11 @@ export default function SettingsPage() {
                                     >
                                         {exportLoading ? 'Compiling Data...' : 'Download My Data'}
                                     </button>
+                                    {exportFeedback && (
+                                        <div style={{ padding: '8px 12px', marginTop: 8, background: exportFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.15)' : 'rgba(255, 71, 87, 0.15)', border: `1px solid ${exportFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.3)' : 'rgba(255, 71, 87, 0.3)'}`, borderRadius: 8, color: exportFeedback.type === 'success' ? '#31A24C' : '#ff4757', fontSize: 13 }}>
+                                            {exportFeedback.message}
+                                        </div>
+                                    )}
                                     <p style={styles.helperText}>
                                         Your data will be downloaded as a JSON file immediately.
                                     </p>
