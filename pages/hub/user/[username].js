@@ -853,6 +853,7 @@ export default function UserProfilePage() {
     useEffect(() => {
         if (!username) return;
         // Reset visual state when navigating between profiles
+        clearTimeout(shareCopiedTimer.current);
         setCoverLoaded(false);
         setShareCopied(false);
 

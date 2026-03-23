@@ -2365,7 +2365,7 @@ export default function SettingsPage() {
                                 {cancelStep === 'retained' && 'Welcome Back!'}
                             </h3>
                             <button
-                                onClick={() => setShowCancelModal(false)}
+                                onClick={() => { setShowCancelModal(false); setCancelFeedback(null); }}
                                 style={{
                                     background: 'none',
                                     border: 'none',
@@ -2447,7 +2447,7 @@ export default function SettingsPage() {
 
                                     <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
                                         <button
-                                            onClick={() => setShowCancelModal(false)}
+                                            onClick={() => { setShowCancelModal(false); setCancelFeedback(null); }}
                                             style={{
                                                 flex: 1,
                                                 padding: '14px 20px',
@@ -2608,7 +2608,7 @@ export default function SettingsPage() {
                                         You Can Re-Subscribe Anytime From The Diamond Store.
                                     </p>
                                     <button
-                                        onClick={() => setShowCancelModal(false)}
+                                        onClick={() => { setShowCancelModal(false); setCancelFeedback(null); }}
                                         style={{
                                             padding: '14px 40px',
                                             background: 'linear-gradient(135deg, #1877F2, #166FE5)',
@@ -2639,7 +2639,7 @@ export default function SettingsPage() {
                                         Thank You For Staying With Us! Enjoy Your Premium Benefits.
                                     </p>
                                     <button
-                                        onClick={() => setShowCancelModal(false)}
+                                        onClick={() => { setShowCancelModal(false); setCancelFeedback(null); }}
                                         style={{
                                             padding: '14px 40px',
                                             background: 'linear-gradient(135deg, #1877F2, #166FE5)',
@@ -2815,6 +2815,7 @@ export default function SettingsPage() {
                                         onClick={() => {
                                             setShow2FAModal(false);
                                             setVerificationCode('');
+                                            setMfaFeedback(null);
                                         }}
                                         style={{
                                             flex: 1,
