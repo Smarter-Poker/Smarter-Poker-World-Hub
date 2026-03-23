@@ -769,24 +769,21 @@ export default function UserProfilePage() {
         const target = stats;
         const hasData = target.friends > 0 || target.followers > 0 || target.following > 0 || target.posts > 0;
         if (!hasData) { setAnimatedStats(target); return; }
-        // If already animated AND values match, skip re-animation
-        if (statsAnimated && animatedStats.friends === target.friends && animatedStats.followers === target.followers && animatedStats.following === target.following && animatedStats.posts === target.posts) return;
-        setStatsAnimated(true);
+        // Always animate from 0 → target to avoid stale closure bugs
         const duration = 600; // ms
         const steps = 30;
         const interval = duration / steps;
         let step = 0;
-        const startVals = { ...animatedStats };
         const timer = setInterval(() => {
             step++;
             const progress = Math.min(step / steps, 1);
             // Ease-out cubic
             const ease = 1 - Math.pow(1 - progress, 3);
             setAnimatedStats({
-                friends: Math.round(startVals.friends + (target.friends - startVals.friends) * ease),
-                following: Math.round(startVals.following + (target.following - startVals.following) * ease),
-                followers: Math.round(startVals.followers + (target.followers - startVals.followers) * ease),
-                posts: Math.round(startVals.posts + (target.posts - startVals.posts) * ease),
+                friends: Math.round(target.friends * ease),
+                following: Math.round(target.following * ease),
+                followers: Math.round(target.followers * ease),
+                posts: Math.round(target.posts * ease),
             });
             if (step >= steps) clearInterval(timer);
         }, interval);
