@@ -9,7 +9,7 @@ import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
@@ -3381,7 +3381,7 @@ function MessengerPage() {
                                             }
 
                                             return (
-                                                <React.Fragment key={msg.id}>
+                                                <Fragment key={msg.id}>
                                                     {showDateDivider && (
                                                         <div style={{
                                                             display: 'flex', alignItems: 'center', gap: 12,
@@ -3408,7 +3408,7 @@ function MessengerPage() {
                                                         onDelete={handleDeleteMessage}
                                                         currentUserId={user.id}
                                                     />
-                                                </React.Fragment>
+                                                </Fragment>
                                             );
                                         })
                                     ); })()}
