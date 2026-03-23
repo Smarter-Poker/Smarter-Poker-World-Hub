@@ -250,7 +250,7 @@ export default function UniversalHeader({
                             } catch (e) { }
 
                             const response = await fetch(
-                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds`,
+                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds,is_vip`,
                                 {
                                     headers: {
                                         'apikey': SUPABASE_ANON_KEY,
@@ -264,6 +264,7 @@ export default function UniversalHeader({
 
                             if (profile && mounted) {
                                 setDiamondBalance(profile.diamonds ?? 0);
+                                setIsVip(!!profile.is_vip);
                                 setUser(prev => ({
                                     ...prev,
                                     avatar: profile.avatar_url,
@@ -276,7 +277,7 @@ export default function UniversalHeader({
                                         name: profile.full_name || profile.username,
                                         username: profile.username || null,
                                         diamonds: profile.diamonds ?? 0,
-                                        is_vip: false
+                                        is_vip: !!profile.is_vip
                                     }));
                                 } catch (_) { }
                                 // Update direct profile link

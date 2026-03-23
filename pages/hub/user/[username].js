@@ -1425,8 +1425,8 @@ export default function UserProfilePage() {
     return (
         <PageTransition>
             <SEOHead
-                title={`${displayName} | Smarter.Poker`}
-                description={`View ${displayName}'s Poker Profile, Stats, And Achievements On Smarter.Poker.`}
+                title={`${displayName} — Player Profile`}
+                description={`View ${displayName}'s poker profile, stats, and achievements on Smarter.Poker.`}
                 noindex={true}
             />
 

@@ -3355,7 +3355,11 @@ function MessengerPage() {
                                             <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
                                             Say hi to start the conversation!
                                         </div>
-                                    ) : (
+                                    ) : (() => {
+                                        const _today = new Date();
+                                        const _yesterday = new Date(_today);
+                                        _yesterday.setDate(_today.getDate() - 1);
+                                        return (
                                         messages.map((msg, i) => {
                                             const isOwn = msg.sender_id === user.id;
                                             const prevMsg = messages[i - 1];
@@ -3369,14 +3373,11 @@ function MessengerPage() {
                                             const showDateDivider = !prevDate ||
                                                 msgDate.toDateString() !== prevDate.toDateString();
 
-                                            const today = new Date();
-                                            const yesterday = new Date(today);
-                                            yesterday.setDate(today.getDate() - 1);
                                             let dateLabel = '';
                                             if (showDateDivider) {
-                                                if (msgDate.toDateString() === today.toDateString()) dateLabel = 'Today';
-                                                else if (msgDate.toDateString() === yesterday.toDateString()) dateLabel = 'Yesterday';
-                                                else dateLabel = msgDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: msgDate.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+                                                if (msgDate.toDateString() === _today.toDateString()) dateLabel = 'Today';
+                                                else if (msgDate.toDateString() === _yesterday.toDateString()) dateLabel = 'Yesterday';
+                                                else dateLabel = msgDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: msgDate.getFullYear() !== _today.getFullYear() ? 'numeric' : undefined });
                                             }
 
                                             return (
@@ -3410,7 +3411,7 @@ function MessengerPage() {
                                                 </React.Fragment>
                                             );
                                         })
-                                    )}
+                                    ); })()
                                     {/* Typing indicator */}
                                     {otherTyping && <TypingIndicator name={otherUser?.username} />}
                                     <div ref={messagesEndRef} />
