@@ -80,7 +80,7 @@ function Select({ value, onChange, options, label }) {
 export default function SettingsPage() {
     const router = useRouter();
     useTrainingBus('settings');
-    const { avatar, isVip, user: contextUser, initializing } = useAvatar();
+    const { avatar, isVip, user: contextUser, initializing, setActiveAvatar } = useAvatar();
     // SWR: Read cached profile from localStorage for instant UI (same pattern as UniversalHeader)
     const [userProfile, setUserProfile] = useState(() => {
         if (typeof window === 'undefined') return null;
@@ -112,6 +112,20 @@ export default function SettingsPage() {
     const [backupCodes, setBackupCodes] = useState([]);
     const [connectedDevices, setConnectedDevices] = useState([]);
     const [loadingMFA, setLoadingMFA] = useState(false);
+
+    // Delete Account Modal State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [deleteLoading, setDeleteLoading] = useState(false);
+
+    // Mobile Responsive State
+    const [isMobile, setIsMobile] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return window.innerWidth < 768;
+    });
+
+    // Data Export State
+    const [exportLoading, setExportLoading] = useState(false);
 
     // Hamburger Menu State
     const [menuOpen, setMenuOpen] = useState(false);
@@ -479,12 +493,43 @@ export default function SettingsPage() {
     };
 
     const exportData = async () => {
+        if (!user?.id) {
+            alert('Please log in to export your data.');
+            return;
+        }
+        setExportLoading(true);
         try {
-            // TODO: Implement data export API endpoint
-            alert('Data export requested! You will receive an email when your data is ready.');
+            const [profileRes, settingsData, promoRes, avatarRes] = await Promise.allSettled([
+                supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+                Promise.resolve(settings),
+                supabase.from('promo_code_redemptions').select('*, promo_codes(code, description, reward_type, reward_value)').eq('user_id', user.id).order('redeemed_at', { ascending: false }),
+                supabase.from('user_avatars').select('*').eq('user_id', user.id),
+            ]);
+
+            const exportPayload = {
+                exported_at: new Date().toISOString(),
+                user_id: user.id,
+                email: user.email,
+                profile: profileRes.status === 'fulfilled' ? profileRes.value.data : null,
+                settings: settingsData.status === 'fulfilled' ? settingsData.value : settings,
+                promo_history: promoRes.status === 'fulfilled' ? promoRes.value.data : [],
+                avatars: avatarRes.status === 'fulfilled' ? avatarRes.value.data : [],
+            };
+
+            const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `smarter-poker-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         } catch (error) {
-            console.error('Error requesting data export:', error);
-            alert('Failed to request data export. Please try again.');
+            console.error('Error exporting data:', error);
+            alert('Failed to export data. Please try again.');
+        } finally {
+            setExportLoading(false);
         }
     };
 
@@ -828,10 +873,14 @@ export default function SettingsPage() {
                                             return (
                                                 <div
                                                     key={index}
-                                                    onClick={() => {
-                                                        if (avatarData) {
-                                                            // Could implement select as active here
-                                                        } else if (canCreate) {
+                                                    onClick={async () => {
+                                                        if (avatarData && !isActive) {
+                                                            const result = await setActiveAvatar(avatarData.image_url, 'custom');
+                                                            if (result.success) {
+                                                                setSaved(true);
+                                                                setTimeout(() => setSaved(false), 2000);
+                                                            }
+                                                        } else if (!avatarData && canCreate) {
                                                             setShowAvatarBuilder(true);
                                                         }
                                                     }}

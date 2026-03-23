@@ -1419,7 +1419,7 @@ export default function UserProfilePage() {
     }
 
     const isOwnProfile = currentUser?.id === profile.id;
-    const displayName = profile.full_name || profile.username;
+    const displayName = profile.full_name || profile.username || 'Player';
     const locationParts = [profile.city, profile.state, profile.country].filter(Boolean);
 
     return (

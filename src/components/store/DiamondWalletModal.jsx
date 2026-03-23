@@ -2,10 +2,19 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  *  DIAMOND WALLET MODAL — Transaction History Popup
  *  Opens when user clicks the diamond balance in the header
+ *
+ *  ENHANCEMENTS (R3):
+ *  1. Date grouping (Today, Yesterday, This Week, Earlier)
+ *  2. Transaction search bar
+ *  3. "Load More" pagination (beyond 50 limit)
+ *  4. Auto-refresh transaction list while modal is open
+ *  5. Dynamic skeleton count based on viewport
+ *  6. Running balance sparkline chart
+ *  7. Export/download CSV
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getAuthUser } from '../../lib/authUtils';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,6 +86,7 @@ const EARNED_TYPES = [
 // ── PERF-2: localStorage cache key for instant modal re-opens ──
 const CACHE_KEY = 'sp-cached-wallet-txns';
 const CACHE_TTL_MS = 60_000; // 60 seconds
+const PAGE_SIZE = 50;
 
 function getCachedTransactions() {
     try {
@@ -106,6 +116,110 @@ function getCachedBalance() {
         }
     } catch (_) {}
     return 0;
+}
+
+// ── ENH-1: Date grouping helper ──
+function getDateGroup(dateStr) {
+    const now = new Date();
+    const dt = new Date(dateStr);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    if (dt >= today) return 'Today';
+    if (dt >= yesterday) return 'Yesterday';
+    if (dt >= weekAgo) return 'This Week';
+    return 'Earlier';
+}
+
+// ── ENH-7: Export CSV helper ──
+function exportTransactionsCSV(transactions) {
+    const headers = ['Date', 'Type', 'Description', 'Amount', 'Balance After'];
+    const rows = transactions.map(tx => {
+        const txType = tx.transaction_type || tx.type;
+        const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+        const dt = new Date(tx.created_at);
+        return [
+            dt.toISOString().slice(0, 19).replace('T', ' '),
+            config.label,
+            (tx.description || config.label).replace(/,/g, ';'),
+            tx.amount ?? 0,
+            tx.balance_after ?? ''
+        ].join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `diamond-wallet-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ── ENH-6: Sparkline SVG component ──
+const BalanceSparkline = ({ transactions }) => {
+    // Extract balance_after from the last 20 transactions (reversed to chronological order)
+    const points = useMemo(() => {
+        const withBalance = transactions
+            .filter(tx => tx.balance_after != null)
+            .slice(0, 20)
+            .reverse();
+        if (withBalance.length < 2) return null;
+        return withBalance.map(tx => tx.balance_after);
+    }, [transactions]);
+
+    if (!points) return null;
+
+    const width = 200;
+    const height = 32;
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const range = max - min || 1;
+    const padding = 2;
+
+    const pathData = points.map((val, i) => {
+        const x = padding + (i / (points.length - 1)) * (width - padding * 2);
+        const y = padding + (1 - (val - min) / range) * (height - padding * 2);
+        return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }).join(' ');
+
+    // Determine trend color
+    const isUp = points[points.length - 1] >= points[0];
+    const lineColor = isUp ? '#4ade80' : '#f87171';
+
+    return (
+        <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+            <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ opacity: 0.7 }}>
+                <defs>
+                    <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={lineColor} stopOpacity="0.3" />
+                        <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+                    </linearGradient>
+                </defs>
+                {/* Fill area */}
+                <path
+                    d={`${pathData} L ${(width - padding).toFixed(1)} ${height} L ${padding} ${height} Z`}
+                    fill="url(#sparkGrad)"
+                />
+                {/* Line */}
+                <path d={pathData} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span style={{ fontSize: 10, color: isUp ? '#4ade80' : '#f87171', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                {isUp ? '▲' : '▼'} {Math.abs(points[points.length - 1] - points[0]).toLocaleString()}
+            </span>
+        </div>
+    );
+};
+
+// ── ENH-5: Dynamic skeleton row count ──
+function getSkeletonCount() {
+    if (typeof window === 'undefined') return 5;
+    // Each skeleton row is ~60px. Available space = viewport - header(~220px) - filter(~48px)
+    const available = window.innerHeight - 268;
+    return Math.max(3, Math.min(10, Math.floor(available / 60)));
 }
 
 // ── Skeleton shimmer row ──
@@ -156,10 +270,13 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // ── PERF-4: Initialize balance from prop (header cache) or localStorage ──
     const [balance, setBalance] = useState(() => initialBalance ?? getCachedBalance());
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(null);
     const [filter, setFilter] = useState('all');
     const [total, setTotal] = useState(0);
+    const [searchQuery, setSearchQuery] = useState('');
     const fetchedRef = useRef(false);
+    const skeletonCount = useRef(getSkeletonCount());
 
     // ── GAP-2 FIX: Sync initialBalance prop when header gets realtime updates ──
     useEffect(() => {
@@ -168,7 +285,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         }
     }, [initialBalance]);
 
-    // ── GAP-1 FIX: Update displayed balance in real time while modal is open ──
+    // ── GAP-1 FIX + ENH-4: Update balance AND refetch transactions in real time while modal is open ──
     useEffect(() => {
         if (!isOpen) return;
         const handleBalanceRefresh = (e) => {
@@ -181,23 +298,36 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 const fresh = getCachedBalance();
                 setBalance(fresh);
             }
+            // ENH-4: Also re-fetch transaction list so new transactions appear
+            fetchTransactions();
         };
         window.addEventListener('diamond-balance-refresh', handleBalanceRefresh);
         return () => window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
-    }, [isOpen]);
+    }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ── Helper: get auth session for API calls ──
+    const getSession = useCallback(() => {
+        try {
+            return { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+        } catch (_) { return null; }
+    }, []);
 
     // ── BUG-1 FIX: Fetch once on open, filter purely client-side ──
-    const fetchTransactions = useCallback(async () => {
-        setLoading(true);
-        setError(null);
+    const fetchTransactions = useCallback(async (offset = 0) => {
+        if (offset === 0) {
+            setLoading(true);
+        } else {
+            setLoadingMore(true);
+        }
+        if (offset === 0) setError(null);
         try {
             const user = getAuthUser();
             if (!user) return;
 
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const session = getSession();
             if (!session?.access_token) return;
 
-            const res = await fetch('/api/store/diamond-transactions?limit=50', {
+            const res = await fetch(`/api/store/diamond-transactions?limit=${PAGE_SIZE}&offset=${offset}`, {
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
 
@@ -206,28 +336,40 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 const txns = data.transactions || [];
                 const bal = data.balance ?? 0;
                 const tot = data.total || 0;
-                setTransactions(txns);
+
+                if (offset === 0) {
+                    setTransactions(txns);
+                } else {
+                    // ENH-3: Append for "Load More"
+                    setTransactions(prev => [...prev, ...txns]);
+                }
                 setBalance(bal);
                 setTotal(tot);
                 fetchedRef.current = true;
-                // ── PERF-2: Cache for instant re-opens ──
-                setCachedTransactions(txns, bal, tot);
+                // ── PERF-2: Cache first page for instant re-opens ──
+                if (offset === 0) {
+                    setCachedTransactions(txns, bal, tot);
+                }
             } else {
                 throw new Error(`Server error ${res.status}`);
             }
         } catch (err) {
             console.error('Failed to load transactions:', err);
-            setError('Failed to load transactions. Please try again.');
+            if (offset === 0) {
+                setError('Failed to load transactions. Please try again.');
+            }
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
-    }, []); // No filter dependency — fetch once, filter client-side
+    }, [getSession]);
 
     useEffect(() => {
         if (!isOpen) {
             // Reset state when closing so next open starts fresh
             fetchedRef.current = false;
             setFilter('all');
+            setSearchQuery('');
             return;
         }
 
@@ -247,16 +389,58 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         }
     }, [isOpen, fetchTransactions]);
 
-    // ── BUG-1 FIX: Client-side filter only — no re-fetch ──
-    const filteredTx = transactions.filter(tx => {
-        const txType = tx.transaction_type || tx.type;
-        if (filter === 'all') return true;
-        if (filter === 'earned') return EARNED_TYPES.includes(txType);
-        if (filter === 'spent') return tx.amount < 0 && !['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
-        if (filter === 'refund') return ['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
-        if (filter === 'purchase') return ['purchase', 'feature_unlock', 'game_cost', 'arcade_entry'].includes(txType);
-        return txType === filter;
-    });
+    // ── BUG-1 FIX: Client-side filter + ENH-2: search ──
+    const filteredTx = useMemo(() => {
+        let result = transactions;
+
+        // Apply type filter
+        if (filter !== 'all') {
+            result = result.filter(tx => {
+                const txType = tx.transaction_type || tx.type;
+                if (filter === 'earned') return EARNED_TYPES.includes(txType);
+                if (filter === 'spent') return tx.amount < 0 && !['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
+                if (filter === 'refund') return ['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
+                if (filter === 'purchase') return ['purchase', 'feature_unlock', 'game_cost', 'arcade_entry'].includes(txType);
+                return txType === filter;
+            });
+        }
+
+        // Apply search filter
+        if (searchQuery.trim()) {
+            const q = searchQuery.trim().toLowerCase();
+            result = result.filter(tx => {
+                const txType = tx.transaction_type || tx.type;
+                const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+                return (
+                    config.label.toLowerCase().includes(q) ||
+                    (tx.description || '').toLowerCase().includes(q) ||
+                    String(tx.amount).includes(q)
+                );
+            });
+        }
+
+        return result;
+    }, [transactions, filter, searchQuery]);
+
+    // ── ENH-1: Group filtered transactions by date ──
+    const groupedTx = useMemo(() => {
+        const groups = [];
+        let currentGroup = null;
+
+        filteredTx.forEach(tx => {
+            const group = getDateGroup(tx.created_at);
+            if (group !== currentGroup) {
+                groups.push({ type: 'header', label: group });
+                currentGroup = group;
+            }
+            groups.push({ type: 'tx', data: tx });
+        });
+
+        return groups;
+    }, [filteredTx]);
+
+    // ── ENH-3: Can load more? ──
+    const canLoadMore = transactions.length < total;
 
     if (!isOpen) return null;
 
@@ -286,8 +470,32 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     fontFamily: "'Inter', -apple-system, sans-serif",
                 }}
             >
-                {/* Close button */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px 0' }}>
+                {/* Close button + Export button */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px 0' }}>
+                    {/* ENH-7: Export CSV button */}
+                    <button
+                        onClick={() => exportTransactionsCSV(transactions)}
+                        disabled={transactions.length === 0}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.06)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: 8,
+                            color: transactions.length > 0 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: '6px 12px',
+                            cursor: transactions.length > 0 ? 'pointer' : 'default',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { if (transactions.length > 0) { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'; e.currentTarget.style.color = 'white'; } }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.color = transactions.length > 0 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)'; }}
+                    >
+                        Export CSV
+                    </button>
+                    {/* Close button */}
                     <button
                         onClick={onClose}
                         style={{
@@ -310,9 +518,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     </button>
                 </div>
 
-                {/* Header — Balance Display */}
+                {/* Header — Balance Display + Sparkline */}
                 <div style={{
-                    padding: '16px 20px 20px',
+                    padding: '12px 20px 16px',
                     borderBottom: '1px solid rgba(0, 212, 255, 0.12)',
                     textAlign: 'center',
                 }}>
@@ -321,7 +529,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         color: 'rgba(255, 255, 255, 0.5)',
                         textTransform: 'uppercase',
                         letterSpacing: '1.5px',
-                        marginBottom: 8,
+                        marginBottom: 6,
                     }}>
                         Diamond Wallet
                     </div>
@@ -349,10 +557,13 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         </span>
                     </div>
 
+                    {/* ENH-6: Balance sparkline */}
+                    <BalanceSparkline transactions={transactions} />
+
                     <button
                         onClick={() => { onClose(); onBuyClick?.(); }}
                         style={{
-                            marginTop: 12,
+                            marginTop: 8,
                             padding: '8px 24px',
                             background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 255, 0.2))',
                             border: '1px solid rgba(0, 212, 255, 0.5)',
@@ -376,11 +587,61 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     </button>
                 </div>
 
+                {/* ENH-2: Search Bar */}
+                <div style={{ padding: '8px 16px 4px' }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: 10,
+                        padding: '6px 12px',
+                    }}>
+                        <span style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.3)' }}>&#x1F50D;</span>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            placeholder="Search transactions..."
+                            style={{
+                                flex: 1,
+                                background: 'transparent',
+                                border: 'none',
+                                outline: 'none',
+                                color: '#e2e8f0',
+                                fontSize: 13,
+                                fontFamily: "'Inter', -apple-system, sans-serif",
+                            }}
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    width: 18, height: 18,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'rgba(255, 255, 255, 0.5)',
+                                    fontSize: 10,
+                                    cursor: 'pointer',
+                                    flexShrink: 0,
+                                }}
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                </div>
+
                 {/* Filter Bar */}
                 <div style={{
                     display: 'flex',
                     gap: 6,
-                    padding: '12px 16px',
+                    padding: '8px 16px',
                     overflowX: 'auto',
                     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                 }}>
@@ -423,12 +684,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             padding: 40,
                             color: 'rgba(255, 255, 255, 0.4)',
                         }}>
-                            <div style={{ fontSize: 28, marginBottom: 10, opacity: 0.5 }}>⚠️</div>
+                            <div style={{ fontSize: 28, marginBottom: 10, opacity: 0.5 }}>&#x26A0;&#xFE0F;</div>
                             <div style={{ fontSize: 13, marginBottom: 14, color: 'rgba(255, 255, 255, 0.45)' }}>
                                 {error}
                             </div>
                             <button
-                                onClick={fetchTransactions}
+                                onClick={() => fetchTransactions()}
                                 style={{
                                     padding: '8px 20px',
                                     background: 'rgba(0, 212, 255, 0.15)',
@@ -444,128 +705,185 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             </button>
                         </div>
                     ) : loading && transactions.length === 0 ? (
-                        /* ── POLISH-1: Skeleton shimmer rows ── */
+                        /* ── ENH-5 + POLISH-1: Dynamic skeleton rows ── */
                         <>
-                            <SkeletonRow />
-                            <SkeletonRow />
-                            <SkeletonRow />
-                            <SkeletonRow />
-                            <SkeletonRow />
+                            {Array.from({ length: skeletonCount.current }, (_, i) => (
+                                <SkeletonRow key={i} />
+                            ))}
                         </>
-                    ) : filteredTx.length === 0 ? (
+                    ) : groupedTx.length === 0 ? (
                         <div style={{
                             textAlign: 'center',
                             padding: 40,
                             color: 'rgba(255, 255, 255, 0.3)',
                         }}>
-                            <div style={{ fontSize: 32, marginBottom: 8 }}>💎</div>
-                            {filter === 'all' ? 'No transactions yet' : `No ${FILTER_OPTIONS.find(o => o.value === filter)?.label?.toLowerCase() || ''} transactions`}
+                            <div style={{ fontSize: 32, marginBottom: 8 }}>&#x1F48E;</div>
+                            {searchQuery
+                                ? `No results for "${searchQuery}"`
+                                : filter === 'all'
+                                    ? 'No transactions yet'
+                                    : `No ${FILTER_OPTIONS.find(o => o.value === filter)?.label?.toLowerCase() || ''} transactions`
+                            }
                         </div>
                     ) : (
-                        filteredTx.map(tx => {
-                            const txType = tx.transaction_type || tx.type;
-                            const config = TX_TYPES[txType] || TX_TYPES.adjustment;
-                            const isPositive = tx.amount >= 0;
-                            const dt = new Date(tx.created_at);
-
-                            return (
-                                <div
-                                    key={tx.id}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 12,
-                                        padding: '12px 16px',
-                                        borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
-                                        transition: 'background 0.15s',
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                >
-                                    {/* Icon */}
-                                    <div style={{
-                                        width: 36, height: 36,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        borderRadius: 10,
-                                        background: `${config.color}15`,
-                                        fontSize: 18,
-                                        flexShrink: 0,
-                                    }}>
-                                        {config.icon}
-                                    </div>
-
-                                    {/* Details */}
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{
-                                            fontSize: 13,
-                                            fontWeight: 600,
-                                            color: '#e2e8f0',
-                                            marginBottom: 2,
-                                        }}>
-                                            {config.label}
+                        <>
+                            {groupedTx.map((item, idx) => {
+                                // ── ENH-1: Date group header ──
+                                if (item.type === 'header') {
+                                    return (
+                                        <div
+                                            key={`header-${idx}`}
+                                            style={{
+                                                padding: '10px 16px 4px',
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                color: 'rgba(0, 212, 255, 0.5)',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '1px',
+                                                borderTop: idx > 0 ? '1px solid rgba(255, 255, 255, 0.04)' : 'none',
+                                            }}
+                                        >
+                                            {item.label}
                                         </div>
-                                        <div style={{
-                                            fontSize: 11,
-                                            color: 'rgba(255, 255, 255, 0.35)',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap',
-                                        }}>
-                                            {tx.description || config.label}
-                                        </div>
-                                    </div>
+                                    );
+                                }
 
-                                    {/* Amount + Time */}
-                                    <div style={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'flex-end',
-                                        flexShrink: 0,
-                                    }}>
-                                        <span style={{
-                                            fontFamily: 'Orbitron, monospace',
-                                            fontSize: 14,
-                                            fontWeight: 700,
-                                            color: isPositive ? '#4ade80' : '#f87171',
+                                // Transaction row
+                                const tx = item.data;
+                                const txType = tx.transaction_type || tx.type;
+                                const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+                                const isPositive = tx.amount >= 0;
+                                const dt = new Date(tx.created_at);
+
+                                return (
+                                    <div
+                                        key={tx.id}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 12,
+                                            padding: '12px 16px',
+                                            borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                                            transition: 'background 0.15s',
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        {/* Icon */}
+                                        <div style={{
+                                            width: 36, height: 36,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderRadius: 10,
+                                            background: `${config.color}15`,
+                                            fontSize: 18,
+                                            flexShrink: 0,
                                         }}>
-                                            {isPositive ? '+' : ''}{(tx.amount ?? 0).toLocaleString()}
-                                        </span>
-                                        {tx.balance_after != null && (
+                                            {config.icon}
+                                        </div>
+
+                                        {/* Details */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{
+                                                fontSize: 13,
+                                                fontWeight: 600,
+                                                color: '#e2e8f0',
+                                                marginBottom: 2,
+                                            }}>
+                                                {config.label}
+                                            </div>
+                                            <div style={{
+                                                fontSize: 11,
+                                                color: 'rgba(255, 255, 255, 0.35)',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                            }}>
+                                                {tx.description || config.label}
+                                            </div>
+                                        </div>
+
+                                        {/* Amount + Time */}
+                                        <div style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'flex-end',
+                                            flexShrink: 0,
+                                        }}>
+                                            <span style={{
+                                                fontFamily: 'Orbitron, monospace',
+                                                fontSize: 14,
+                                                fontWeight: 700,
+                                                color: isPositive ? '#4ade80' : '#f87171',
+                                            }}>
+                                                {isPositive ? '+' : ''}{(tx.amount ?? 0).toLocaleString()}
+                                            </span>
+                                            {tx.balance_after != null && (
+                                                <span style={{
+                                                    fontSize: 10,
+                                                    color: 'rgba(255, 255, 255, 0.25)',
+                                                }}>
+                                                    Bal: {tx.balance_after.toLocaleString()}
+                                                </span>
+                                            )}
                                             <span style={{
                                                 fontSize: 10,
-                                                color: 'rgba(255, 255, 255, 0.25)',
+                                                color: 'rgba(255, 255, 255, 0.2)',
+                                                marginTop: 2,
                                             }}>
-                                                Bal: {tx.balance_after.toLocaleString()}
+                                                {dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                {' '}
+                                                {dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
-                                        )}
-                                        <span style={{
-                                            fontSize: 10,
-                                            color: 'rgba(255, 255, 255, 0.2)',
-                                            marginTop: 2,
-                                        }}>
-                                            {dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                            {' '}
-                                            {dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+                                        </div>
                                     </div>
+                                );
+                            })}
+
+                            {/* ENH-3: Load More button */}
+                            {canLoadMore && (
+                                <div style={{ textAlign: 'center', padding: '12px 16px' }}>
+                                    <button
+                                        onClick={() => fetchTransactions(transactions.length)}
+                                        disabled={loadingMore}
+                                        style={{
+                                            padding: '8px 24px',
+                                            background: loadingMore ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 212, 255, 0.1)',
+                                            border: '1px solid rgba(0, 212, 255, 0.3)',
+                                            borderRadius: 16,
+                                            color: '#00d4ff',
+                                            fontSize: 12,
+                                            fontWeight: 600,
+                                            cursor: loadingMore ? 'default' : 'pointer',
+                                            transition: 'all 0.15s',
+                                            opacity: loadingMore ? 0.5 : 1,
+                                        }}
+                                    >
+                                        {loadingMore ? 'Loading...' : `Load More (${transactions.length} of ${total})`}
+                                    </button>
                                 </div>
-                            );
-                        })
+                            )}
+                        </>
                     )}
                 </div>
 
                 {/* Footer */}
-                {!loading && total > 50 && (
+                {!loading && total > 0 && (
                     <div style={{
                         textAlign: 'center',
-                        padding: '10px 16px',
+                        padding: '8px 16px',
                         borderTop: '1px solid rgba(255, 255, 255, 0.05)',
                         fontSize: 11,
                         color: 'rgba(255, 255, 255, 0.3)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: 12,
                     }}>
-                        Showing latest 50 of {total} transactions
+                        <span>{total.toLocaleString()} total transactions</span>
+                        {filteredTx.length !== transactions.length && (
+                            <span>| {filteredTx.length} shown</span>
+                        )}
                     </div>
                 )}
             </div>
