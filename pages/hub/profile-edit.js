@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import FavoriteHandPicker from '../../src/components/profile/FavoriteHandPicker';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { claimReward } from '../../src/lib/claimReward';
@@ -29,15 +30,7 @@ const C = {
     border: '#DADDE1', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A', gold: '#FFD700',
 };
 
-// Auto-format hand notation: 4s5s → 4s5s, AsKh → AsKh
-function formatFavoriteHand(input) {
-    if (!input) return input;
-    return input
-        .replace(/([AKQJT2-9])s/gi, '$1s')
-        .replace(/([AKQJT2-9])h/gi, '$1h')
-        .replace(/([AKQJT2-9])d/gi, '$1d')
-        .replace(/([AKQJT2-9])c/gi, '$1c');
-}
+// formatFavoriteHand removed — replaced by visual FavoriteHandPicker component
 
 function Avatar({ src, size = 120, onUpload }) {
     const fileRef = useRef(null);
@@ -291,6 +284,7 @@ export default function ProfilePage() {
         hendon_url: '',
         favorite_game: '',
         favorite_hand: '',
+        favorite_hand_type: 'holdem',
         home_casino: '',
         birth_year: '',
         avatar_url: '',
@@ -679,6 +673,7 @@ export default function ProfilePage() {
                 hendon_url: profile.hendon_url,
                 favorite_game: profile.favorite_game,
                 favorite_hand: profile.favorite_hand,
+                favorite_hand_type: profile.favorite_hand_type || 'holdem',
                 home_casino: profile.home_casino,
                 birth_year: profile.birth_year,
                 avatar_url: profile.avatar_url,
@@ -1118,10 +1113,15 @@ export default function ProfilePage() {
                         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>Poker Info</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                             <ProfileField label="Favorite Game" value={profile.favorite_game} onChange={updateField('favorite_game')} placeholder="No Limit Hold'em" icon="" />
-                            <ProfileField label="Favorite Hand" value={profile.favorite_hand} onChange={(val) => updateField('favorite_hand')(formatFavoriteHand(val))} placeholder="As Ks Or Type AsKs" icon="" />
                             <ProfileField label="Home Casino" value={profile.home_casino} onChange={updateField('home_casino')} placeholder="Bellagio" icon="🏨" />
                             <ProfileField label="Birth Year" value={profile.birth_year} onChange={updateField('birth_year')} placeholder="1990" icon="🎂" />
                         </div>
+                        <FavoriteHandPicker
+                            value={profile.favorite_hand}
+                            type={profile.favorite_hand_type || 'holdem'}
+                            onChangeValue={updateField('favorite_hand')}
+                            onChangeType={updateField('favorite_hand_type')}
+                        />
                     </div>
 
                     {/* HendonMob Integration / Poker Resume */}

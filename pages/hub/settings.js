@@ -549,7 +549,12 @@ export default function SettingsPage() {
 
         // If display_name_preference changed, also persist to DB (affects other users' views)
         if (key === 'display_name_preference' && user?.id) {
-            await supabase.from('profiles').update({ display_name_preference: value }).eq('id', user.id);
+            const { error } = await supabase.from('profiles').update({ display_name_preference: value }).eq('id', user.id);
+            if (error) {
+                console.error('[Settings] Failed to save display name preference:', error);
+                // Revert optimistic update on failure
+                setSettings(prev => ({ ...prev, display_name_preference: prev.display_name_preference }));
+            }
         }
 
         setSaved(true);
@@ -1922,7 +1927,7 @@ export default function SettingsPage() {
                                             type="text"
                                             value={promoCode}
                                             onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                                            onKeyDown={(e) => e.key === 'Enter' && redeemPromoCode()}
+                                            onKeyDown={(e) => e.key === 'Enter' && !promoLoading && redeemPromoCode()}
                                             placeholder="ENTER CODE"
                                             maxLength={30}
                                             style={{
@@ -3064,6 +3069,8 @@ export default function SettingsPage() {
                                                 });
                                                 if (response.ok) {
                                                     setConnectedDevices(prev => prev.filter(d => d.id !== revokeDeviceTarget.id));
+                                                } else {
+                                                    console.error('Failed to revoke session');
                                                 }
                                             } catch (err) {
                                                 console.error('Error revoking session:', err);

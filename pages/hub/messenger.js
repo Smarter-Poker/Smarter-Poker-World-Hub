@@ -204,12 +204,17 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
 //  MESSAGE INPUT COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
+function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) {
     const [text, setText] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
+    const [showGifPicker, setShowGifPicker] = useState(false);
+    const [gifSearchQuery, setGifSearchQuery] = useState('');
+    const [gifs, setGifs] = useState([]);
+    const [loadingGifs, setLoadingGifs] = useState(false);
     const [uploading, setUploading] = useState(false);
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
+    const gifSearchTimer = useRef(null);
 
     const emojis = ['😀', '😂', '❤️', '👍', '🔥', '😮', '😎', '🤔', '👏', '💯', '♠️', '♥️', '♦️', '♣️', '🃏', '🎰'];
 
@@ -234,6 +239,42 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
         if (onTyping && e.target.value.length > 0) {
             onTyping();
         }
+    };
+
+    // GIF picker functions
+    const loadTrendingGifs = async () => {
+        setLoadingGifs(true);
+        try {
+            const resp = await fetch('/api/messenger/gif-search?limit=20');
+            const data = await resp.json();
+            if (data.success) setGifs(data.gifs);
+        } catch (e) { console.error('GIF load error:', e); }
+        setLoadingGifs(false);
+    };
+
+    const searchGifs = (query) => {
+        if (gifSearchTimer.current) clearTimeout(gifSearchTimer.current);
+        setGifSearchQuery(query);
+        if (!query || query.length < 2) {
+            loadTrendingGifs();
+            return;
+        }
+        gifSearchTimer.current = setTimeout(async () => {
+            setLoadingGifs(true);
+            try {
+                const resp = await fetch(`/api/messenger/gif-search?q=${encodeURIComponent(query)}&limit=20`);
+                const data = await resp.json();
+                if (data.success) setGifs(data.gifs);
+            } catch (e) { console.error('GIF search error:', e); }
+            setLoadingGifs(false);
+        }, 300);
+    };
+
+    const handleGifToggle = () => {
+        const opening = !showGifPicker;
+        setShowGifPicker(opening);
+        setShowEmoji(false);
+        if (opening) loadTrendingGifs();
     };
 
     return (
@@ -289,9 +330,10 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
 
             {/* GIF button */}
             <button
+                onClick={handleGifToggle}
                 style={{
                     width: 32, height: 32, borderRadius: '50%', border: 'none',
-                    background: 'transparent', cursor: 'pointer', display: 'flex',
+                    background: showGifPicker ? C.bg : 'transparent', cursor: 'pointer', display: 'flex',
                     alignItems: 'center', justifyContent: 'center', padding: 0,
                 }}
                 title="Send GIF"
@@ -301,6 +343,59 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
                     <text x="12" y="14" textAnchor="middle" fontSize="7" fontWeight="bold" fill={C.blue}>GIF</text>
                 </svg>
             </button>
+
+            {/* GIF Picker Panel */}
+            {showGifPicker && (
+                <div style={{
+                    position: 'absolute', bottom: '100%', left: 0, right: 0,
+                    marginBottom: 4, background: C.card, borderRadius: 12,
+                    boxShadow: '0 -4px 16px rgba(0,0,0,0.15)', zIndex: 200,
+                    maxHeight: 340, display: 'flex', flexDirection: 'column',
+                }}>
+                    <div style={{ padding: '8px 12px', borderBottom: `1px solid ${C.border}` }}>
+                        <input
+                            type="text" value={gifSearchQuery}
+                            onChange={e => searchGifs(e.target.value)}
+                            placeholder="Search GIFs..."
+                            style={{
+                                width: '100%', border: 'none', background: C.bg,
+                                borderRadius: 20, padding: '8px 12px', fontSize: 14,
+                                outline: 'none', color: C.text,
+                            }}
+                            autoFocus
+                        />
+                    </div>
+                    <div style={{
+                        flex: 1, overflowY: 'auto', padding: 8,
+                        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: 8, maxHeight: 280,
+                    }}>
+                        {loadingGifs ? (
+                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 20, color: C.textSec }}>Loading...</div>
+                        ) : gifs.length === 0 ? (
+                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 20, color: C.textSec }}>No GIFs found</div>
+                        ) : gifs.map(gif => (
+                            <img
+                                key={gif.id} src={gif.preview || gif.url} alt={gif.title}
+                                onClick={() => {
+                                    onGifSend?.(gif.url);
+                                    setShowGifPicker(false);
+                                    setGifSearchQuery('');
+                                }}
+                                style={{
+                                    width: '100%', height: 120, objectFit: 'cover',
+                                    borderRadius: 8, cursor: 'pointer',
+                                    background: C.bg, border: `1px solid ${C.border}`,
+                                }}
+                                loading="lazy"
+                            />
+                        ))}
+                    </div>
+                    <div style={{ padding: '4px 12px', textAlign: 'center', fontSize: 10, color: C.textSec, borderTop: `1px solid ${C.border}` }}>
+                        Powered by GIPHY
+                    </div>
+                </div>
+            )}
 
             {/* Input wrapper */}
             <div style={{
@@ -332,7 +427,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
                 />
 
                 <button
-                    onClick={() => setShowEmoji(!showEmoji)}
+                    onClick={() => { setShowEmoji(!showEmoji); setShowGifPicker(false); }}
                     style={{
                         border: 'none',
                         background: 'transparent',
@@ -654,7 +749,7 @@ function MessageContent({ content }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 
-function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onReact, onDelete, currentUserId }) {
+function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onReact, onDelete, onEdit, onForward, currentUserId }) {
     const senderIsVip = sender?.is_vip || false;
     const [showReactions, setShowReactions] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
@@ -819,6 +914,48 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >Delete For Me</button>
+                        {isOwn && !message.is_deleted && (Date.now() - new Date(message.created_at).getTime()) < 300000 && (
+                            <button
+                                onClick={() => {
+                                    onEdit?.(message);
+                                    setShowMenu(false);
+                                }}
+                                style={{
+                                    display: 'block',
+                                    width: '100%',
+                                    padding: '10px 16px',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    color: C.text,
+                                    fontSize: 14,
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >Edit Message</button>
+                        )}
+                        {!message.is_deleted && (
+                            <button
+                                onClick={() => {
+                                    onForward?.(message);
+                                    setShowMenu(false);
+                                }}
+                                style={{
+                                    display: 'block',
+                                    width: '100%',
+                                    padding: '10px 16px',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    color: C.blue,
+                                    fontSize: 14,
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >Forward</button>
+                        )}
                         <button
                             onClick={() => {
                                 onDelete(message.id, 'for_everyone');

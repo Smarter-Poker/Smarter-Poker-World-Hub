@@ -1788,7 +1788,29 @@ export default function UserProfilePage() {
                                     {profile.favorite_hand && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
                                             <span style={{ fontSize: 18 }}></span>
-                                            <span>Favorite Hand: <strong>{profile.favorite_hand}</strong></span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                                <span>Favorite Hand{profile.favorite_hand_type === 'plo' ? ' (PLO)' : ''}: </span>
+                                                {/* Render card PNGs if comma-separated codes, else show raw text */}
+                                                {profile.favorite_hand.includes('_') ? (
+                                                    <div style={{ display: 'flex', gap: 4 }}>
+                                                        {profile.favorite_hand.split(',').filter(Boolean).map((code, i) => (
+                                                            <img
+                                                                key={i}
+                                                                src={`/cards/${code}.png`}
+                                                                alt={code}
+                                                                style={{
+                                                                    width: 36, height: 50,
+                                                                    borderRadius: 4,
+                                                                    border: '1px solid #DADDE1',
+                                                                    boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                                                                }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <strong>{profile.favorite_hand}</strong>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
