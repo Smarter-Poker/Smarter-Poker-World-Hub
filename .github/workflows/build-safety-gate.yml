@@ -257,6 +257,22 @@ jobs:
 
           echo "✓ API is responsive (HTTP $API_CODE)"
 
+      - name: Verify Security Headers
+        continue-on-error: true
+        run: |
+          SITE_URL="${{ secrets.SITE_URL || 'https://smarter.poker' }}"
+          HEADERS=$(curl -sI "$SITE_URL")
+          echo "## 🔒 Security Headers" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          for HEADER in "x-content-type-options" "x-frame-options" "referrer-policy" "permissions-policy" "x-xss-protection"; do
+            if echo "$HEADERS" | grep -qi "$HEADER"; then
+              echo "✅ $HEADER present" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ $HEADER MISSING" >> $GITHUB_STEP_SUMMARY
+              echo "::warning::Security header $HEADER is missing from $SITE_URL"
+            fi
+          done
+
   # ═══════════════════════════════════════════════════════════════════
   # FAILURE NOTIFICATION — Auto-create GitHub Issue on pipeline failure
   # ═══════════════════════════════════════════════════════════════════
