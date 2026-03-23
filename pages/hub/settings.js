@@ -2922,7 +2922,7 @@ export default function SettingsPage() {
                                 )}
 
                                 <button
-                                    onClick={() => setShow2FAModal(false)}
+                                    onClick={() => { setShow2FAModal(false); setMfaFeedback(null); }}
                                     style={{
                                         width: '100%',
                                         padding: '12px 24px',
