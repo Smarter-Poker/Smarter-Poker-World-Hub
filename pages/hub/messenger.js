@@ -2496,6 +2496,8 @@ function MessengerPage() {
             setMessages(prev => prev.map(m =>
                 m.id === tempId ? { ...m, status: 'failed' } : m
             ));
+            // Revoke blob URL on failure too to prevent memory leak
+            URL.revokeObjectURL(mediaPreview);
             setToast({ type: 'error', message: `Upload failed: ${e.message || 'Unknown error'}` });
         }
     };
