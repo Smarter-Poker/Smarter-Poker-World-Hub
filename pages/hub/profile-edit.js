@@ -927,11 +927,42 @@ export default function ProfilePage() {
                 <div style={{ maxWidth: 800, margin: '80px auto 40px', padding: '0 16px' }}>
                     {message && (
                         <div style={{
-                            padding: 12, borderRadius: 8, marginBottom: 16, textAlign: 'center',
-                            background: message.includes('Error') ? '#ffebee' : '#e8f5e9',
-                            color: message.includes('Error') ? '#c62828' : '#2e7d32'
-                        }}>
-                            {message}
+                            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                            background: 'rgba(0,0,0,0.5)', zIndex: 9999,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: 16,
+                        }} onClick={() => setMessage('')}>
+                            <div style={{
+                                background: message.includes('Error') ? '#1a1a2e' : '#1a2e1a',
+                                border: message.includes('Error')
+                                    ? '2px solid #c62828'
+                                    : '2px solid #42B72A',
+                                borderRadius: 16, padding: 28, maxWidth: 400, width: '100%',
+                                textAlign: 'center',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                            }} onClick={e => e.stopPropagation()}>
+                                <div style={{
+                                    fontSize: 40, marginBottom: 12,
+                                }}>{message.includes('Error') ? '⚠️' : '✅'}</div>
+                                <div style={{
+                                    fontSize: 16, fontWeight: 600, marginBottom: 12,
+                                    color: message.includes('Error') ? '#ff6b6b' : '#42B72A',
+                                }}>{message.includes('Error') ? 'Save Error' : 'Success'}</div>
+                                <div style={{
+                                    fontSize: 14, color: '#ccc', lineHeight: 1.5,
+                                    marginBottom: 20, wordBreak: 'break-word',
+                                }}>{message}</div>
+                                <button
+                                    onClick={() => setMessage('')}
+                                    style={{
+                                        padding: '10px 32px', borderRadius: 8,
+                                        border: 'none', fontWeight: 600, fontSize: 14,
+                                        cursor: 'pointer',
+                                        background: message.includes('Error') ? '#c62828' : '#42B72A',
+                                        color: 'white',
+                                    }}
+                                >Dismiss</button>
+                            </div>
                         </div>
                     )}
 
