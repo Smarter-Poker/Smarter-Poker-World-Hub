@@ -15,6 +15,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
 import { broadcastSync, broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import { eventBus, busEmit } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import toast from '../../../src/stores/toastStore';
 
 // Components
@@ -707,6 +708,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
 
 export default function UserProfilePage() {
     const router = useRouter();
+    useTrainingBus('user-profile');
     const { username } = router.query;
 
     // Core state
