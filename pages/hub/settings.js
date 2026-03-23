@@ -26,6 +26,22 @@ import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
 
+// Phase 2: Hoisted to module scope — static array, no need to re-create on every render
+const SETTINGS_SECTIONS = [
+    { id: 'account', label: 'Account' },
+    { id: 'notifications', label: 'Notifications' },
+    { id: 'privacy', label: 'Privacy' },
+    { id: 'appearance', label: 'Appearance' },
+    { id: 'display', label: 'Display & Sound' },
+    { id: 'gameplay', label: 'Gameplay' },
+    { id: 'club_arena', label: 'Club Arena' },
+    { id: 'promos', label: 'Promo Codes' },
+    { id: 'billing', label: 'Billing & Payments' },
+    { id: 'blocked', label: 'Blocked Users' },
+    { id: 'data', label: 'Data Export' },
+    { id: 'delete', label: 'Delete Account' },
+];
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
@@ -429,12 +445,13 @@ export default function SettingsPage() {
                 const data = await response.json();
                 setQrCode(data.qrCode);
                 setManualEntryKey(data.manualEntryKey);
+                setMfaFeedback(null);
             } else {
-                alert('Failed to setup 2FA. Please try again.');
+                setMfaFeedback({ type: 'error', message: 'Failed To Setup 2FA. Please Try Again.' });
             }
         } catch (error) {
             console.error('Error setting up 2FA:', error);
-            alert('Error setting up 2FA');
+            setMfaFeedback({ type: 'error', message: 'Error Setting Up 2FA. Check Your Connection.' });
         } finally {
             setLoadingMFA(false);
         }
@@ -442,7 +459,7 @@ export default function SettingsPage() {
 
     const verify2FA = async () => {
         if (verificationCode.length !== 6) {
-            alert('Please enter a valid 6-digit code');
+            setMfaFeedback({ type: 'error', message: 'Please Enter A Valid 6-Digit Code.' });
             return;
         }
 
@@ -463,14 +480,15 @@ export default function SettingsPage() {
                 setTwoFactorEnabled(true);
                 setBackupCodes(data.backupCodes || []);
                 setVerificationCode('');
+                setMfaFeedback({ type: 'success', message: '2FA Enabled Successfully!' });
                 // Backup codes are now displayed in the modal UI instead of alert
             } else {
                 const error = await response.json().catch(() => ({}));
-                alert(error.error || 'Invalid verification code');
+                setMfaFeedback({ type: 'error', message: error.error || 'Invalid Verification Code.' });
             }
         } catch (error) {
             console.error('Error verifying 2FA:', error);
-            alert('Error verifying 2FA');
+            setMfaFeedback({ type: 'error', message: 'Error Verifying 2FA. Please Try Again.' });
         } finally {
             setLoadingMFA(false);
         }
@@ -495,14 +513,13 @@ export default function SettingsPage() {
                 setQrCode('');
                 setManualEntryKey('');
                 setBackupCodes([]);
-                setShow2FAModal(false);
-                alert('2FA has been disabled');
+                setMfaFeedback({ type: 'success', message: '2FA Has Been Disabled.' });
             } else {
-                alert('Failed to disable 2FA');
+                setMfaFeedback({ type: 'error', message: 'Failed To Disable 2FA. Please Try Again.' });
             }
         } catch (error) {
             console.error('Error disabling 2FA:', error);
-            alert('Error disabling 2FA');
+            setMfaFeedback({ type: 'error', message: 'Error Disabling 2FA. Check Your Connection.' });
         } finally {
             setLoadingMFA(false);
         }
@@ -541,7 +558,7 @@ export default function SettingsPage() {
 
     const exportData = async () => {
         if (!user?.id) {
-            alert('Please log in to export your data.');
+            setExportFeedback({ type: 'error', message: 'Please Log In To Export Your Data.' });
             return;
         }
         setExportLoading(true);
@@ -574,7 +591,7 @@ export default function SettingsPage() {
             URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Error exporting data:', error);
-            alert('Failed to export data. Please try again.');
+            setExportFeedback({ type: 'error', message: 'Failed To Export Data. Please Try Again.' });
         } finally {
             setExportLoading(false);
         }
@@ -583,7 +600,7 @@ export default function SettingsPage() {
     const handleDeleteAccount = async () => {
         try {
             if (!user?.id) {
-                alert('Session expired. Please log in again.');
+                setExportFeedback({ type: 'error', message: 'Session Expired. Please Log In Again.' });
                 return;
             }
 
@@ -594,15 +611,14 @@ export default function SettingsPage() {
 
             if (response.ok) {
                 await supabase.auth.signOut();
-                alert('Your account has been permanently deleted.');
                 window.location.href = '/';
             } else {
                 const err = await response.json().catch(() => ({}));
-                alert(err.error || err.details || 'Failed to delete account. Please contact support.');
+                setExportFeedback({ type: 'error', message: err.error || err.details || 'Failed To Delete Account. Contact Support.' });
             }
         } catch (error) {
             console.error('Error deleting account:', error);
-            alert('An error occurred. Please try again or contact support.');
+            setExportFeedback({ type: 'error', message: 'An Error Occurred. Please Try Again Or Contact Support.' });
         }
     };
 
@@ -626,11 +642,11 @@ export default function SettingsPage() {
 
     // Auto-load promo history when section is opened
     useEffect(() => {
-        if (activeSection === 'promos' && user?.id) {
-            loadPromoHistory();
+        if (activeSection === 'promos' && user?.id && !promoHistoryLoaded) {
+            loadPromoHistory().then(() => setPromoHistoryLoaded(true));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeSection, user?.id]);
+    }, [activeSection, user?.id, promoHistoryLoaded]);
 
     // ── CLUB ARENA DATA (agent roles + commission rates) ──
     const [caRoles, setCaRoles] = useState(null);
@@ -736,20 +752,7 @@ export default function SettingsPage() {
         }
     };
 
-    const sections = [
-        { id: 'account', label: 'Account' },
-        { id: 'notifications', label: 'Notifications' },
-        { id: 'privacy', label: 'Privacy' },
-        { id: 'appearance', label: 'Appearance' },
-        { id: 'display', label: 'Display & Sound' },
-        { id: 'gameplay', label: 'Gameplay' },
-        { id: 'club_arena', label: 'Club Arena' },
-        { id: 'promos', label: 'Promo Codes' },
-        { id: 'billing', label: 'Billing & Payments' },
-        { id: 'blocked', label: 'Blocked Users' },
-        { id: 'data', label: 'Data Export' },
-        { id: 'delete', label: 'Delete Account' },
-    ];
+    const sections = SETTINGS_SECTIONS;
 
     return (
         <PageTransition>
@@ -1237,7 +1240,7 @@ export default function SettingsPage() {
                                     <button
                                         onClick={async () => {
                                             if (!user?.email) {
-                                                alert('No Email Found. Please Log In Again.');
+                                                setPasswordResetStatus('error');
                                                 return;
                                             }
                                             const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
@@ -1521,6 +1524,8 @@ export default function SettingsPage() {
                                             value={settings.masterVolume || 50}
                                             onChange={(e) => updateSetting('masterVolume', parseInt(e.target.value))}
                                             style={styles.slider}
+                                            aria-label="Master Volume"
+                                            aria-valuetext={`${settings.masterVolume || 50}%`}
                                         />
                                         <span style={styles.volumeLabel}>{settings.masterVolume || 50}%</span>
                                     </div>
@@ -2536,11 +2541,11 @@ export default function SettingsPage() {
                                                         setCancelStep('confirmed');
                                                     } else {
                                                         const errData = await cancelRes.json().catch(() => ({}));
-                                                        alert(errData.error || 'Failed to cancel membership. Please try again.');
+                                                        setCancelFeedback({ type: 'error', message: errData.error || 'Failed To Cancel Membership. Please Try Again.' });
                                                     }
                                                 } catch (err) {
                                                     console.error('Cancel VIP error:', err);
-                                                    alert('Something went wrong. Please try again.');
+                                                    setCancelFeedback({ type: 'error', message: 'Something Went Wrong. Please Try Again.' });
                                                 } finally {
                                                     setCancelLoading(false);
                                                 }
@@ -2562,6 +2567,13 @@ export default function SettingsPage() {
                                             {cancelLoading ? 'Cancelling...' : 'Cancel Anyway'}
                                         </button>
                                     </div>
+
+                                    {/* Phase 2: VIP cancel inline feedback */}
+                                    {cancelFeedback && (
+                                        <div style={{ padding: '8px 12px', marginTop: 12, background: cancelFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.15)' : 'rgba(255, 71, 87, 0.15)', border: `1px solid ${cancelFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.3)' : 'rgba(255, 71, 87, 0.3)'}`, borderRadius: 8, color: cancelFeedback.type === 'success' ? '#31A24C' : '#ff4757', fontSize: 13 }}>
+                                            {cancelFeedback.message}
+                                        </div>
+                                    )}
                                 </>
                             )}
 
@@ -2748,6 +2760,8 @@ export default function SettingsPage() {
                                     placeholder="Enter 6-digit Code"
                                     value={verificationCode}
                                     onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' && verificationCode.length === 6) verify2FA(); }}
+                                    autoFocus
                                     style={{
                                         width: '100%',
                                         padding: '12px 16px',
@@ -2801,6 +2815,13 @@ export default function SettingsPage() {
                                     </button>
                                 </div>
 
+                                {/* Phase 2: MFA inline feedback banner */}
+                                {mfaFeedback && (
+                                    <div style={{ padding: '8px 12px', marginTop: 12, background: mfaFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.15)' : 'rgba(255, 71, 87, 0.15)', border: `1px solid ${mfaFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.3)' : 'rgba(255, 71, 87, 0.3)'}`, borderRadius: 8, color: mfaFeedback.type === 'success' ? '#31A24C' : '#ff4757', fontSize: 13 }}>
+                                        {mfaFeedback.message}
+                                    </div>
+                                )}
+
                                 {/* Backup Codes Display — shown after successful 2FA verify */}
                                 {backupCodes.length > 0 && (
                                     <div style={{
@@ -2810,7 +2831,19 @@ export default function SettingsPage() {
                                         padding: 20,
                                         marginTop: 16,
                                     }}>
-                                        <h4 style={{ color: '#00D4FF', fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Backup Codes</h4>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                            <h4 style={{ color: '#00D4FF', fontSize: 14, fontWeight: 700, margin: 0 }}>Backup Codes</h4>
+                                            <button
+                                                onClick={() => {
+                                                    try { navigator.clipboard.writeText(backupCodes.join('\n')); } catch (_) {}
+                                                    setBackupCodesCopied(true);
+                                                    setTimeout(() => setBackupCodesCopied(false), 2000);
+                                                }}
+                                                style={{ padding: '4px 12px', background: backupCodesCopied ? 'rgba(49, 162, 76, 0.2)' : 'rgba(0, 212, 255, 0.15)', border: `1px solid ${backupCodesCopied ? 'rgba(49, 162, 76, 0.4)' : 'rgba(0, 212, 255, 0.3)'}`, borderRadius: 6, color: backupCodesCopied ? '#31A24C' : '#00D4FF', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                                            >
+                                                {backupCodesCopied ? 'Copied!' : 'Copy All'}
+                                            </button>
+                                        </div>
                                         <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 12 }}>Save these codes in a safe place. Each can be used once if you lose access to your authenticator app.</p>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                                             {backupCodes.map((code, i) => (
@@ -2886,6 +2919,13 @@ export default function SettingsPage() {
                                 >
                                     Close
                                 </button>
+
+                                {/* Phase 2: MFA inline feedback (enabled state) */}
+                                {mfaFeedback && (
+                                    <div style={{ padding: '8px 12px', marginTop: 12, background: mfaFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.15)' : 'rgba(255, 71, 87, 0.15)', border: `1px solid ${mfaFeedback.type === 'success' ? 'rgba(49, 162, 76, 0.3)' : 'rgba(255, 71, 87, 0.3)'}`, borderRadius: 8, color: mfaFeedback.type === 'success' ? '#31A24C' : '#ff4757', fontSize: 13 }}>
+                                        {mfaFeedback.message}
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>
@@ -2927,7 +2967,6 @@ export default function SettingsPage() {
                             <div style={{ textAlign: 'center', padding: 40 }}>
                                 <div style={{ width: 40, height: 40, border: '3px solid rgba(0, 212, 255, 0.2)', borderTop: '3px solid #00D4FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
                                 <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>Loading Devices...</p>
-                                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                             </div>
                         ) : connectedDevices.length === 0 ? (
                             <div style={{
