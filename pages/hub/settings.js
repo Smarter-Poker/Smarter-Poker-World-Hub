@@ -2918,7 +2918,11 @@ export default function SettingsPage() {
 
             {/* Delete Account Confirmation Modal */}
             {showDeleteModal && (
-                <div style={{
+                <div
+                    onClick={(e) => { if (e.target === e.currentTarget) { setShowDeleteModal(false); setDeleteConfirmText(''); } }}
+                    onKeyDown={(e) => { if (e.key === 'Escape') { setShowDeleteModal(false); setDeleteConfirmText(''); } }}
+                    tabIndex={-1}
+                    style={{
                     position: 'fixed',
                     top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0, 0, 0, 0.9)',
@@ -2995,8 +2999,12 @@ export default function SettingsPage() {
                                 onClick={async () => {
                                     if (deleteConfirmText !== 'DELETE') return;
                                     setDeleteLoading(true);
-                                    await handleDeleteAccount();
-                                    setDeleteLoading(false);
+                                    try {
+                                        await handleDeleteAccount();
+                                    } finally {
+                                        // Only reached on error — success navigates away
+                                        setDeleteLoading(false);
+                                    }
                                 }}
                                 disabled={deleteConfirmText !== 'DELETE' || deleteLoading}
                                 style={{
