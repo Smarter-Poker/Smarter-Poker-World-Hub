@@ -1509,6 +1509,15 @@ export default function UserProfilePage() {
             <div className="sp-profile-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 <UniversalHeader pageDepth={2} />
 
+                {/* Pull-to-Refresh Indicator */}
+                {pullRefreshing && (
+                    <div style={{ textAlign: 'center', padding: '10px 0', background: C.bg, color: C.blue, fontSize: 13, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>
+                        <span style={{ display: 'inline-block', animation: 'spin 0.8s linear infinite', marginRight: 6, fontSize: 16 }}>⟳</span>
+                        Refreshing...
+                        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                    </div>
+                )}
+
                 {/* COVER PHOTO */}
                 <div style={{
                     height: 220,
@@ -1650,11 +1659,11 @@ export default function UserProfilePage() {
                                     } catch {
                                         toast.error('Could not copy link');
                                     }
-                                }} style={{
+                                }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.target.click(); }}} style={{
                                     padding: '10px 16px', background: shareCopied ? '#42B72A' : '#e4e6eb',
                                     color: shareCopied ? 'white' : C.text,
                                     borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14,
-                                    transition: 'all 0.3s ease',
+                                    transition: 'all 0.3s ease', outline: 'none',
                                 }}>{shareCopied ? 'Copied!' : 'Share Profile'}</button>
                             </>
                         ) : (
@@ -1889,7 +1898,7 @@ export default function UserProfilePage() {
                             </div>
 
                             {/* Friends Section */}
-                            {friends.length > 0 && (
+                            {(friends.length > 0 || loading) && (
                                 <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                                         <div>
@@ -1899,10 +1908,30 @@ export default function UserProfilePage() {
                                         <Link href="/hub/friends" style={{ color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>See All</Link>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                                        {friends.slice(0, 8).map(friend => (
-                                            <FriendAvatar key={friend.id} friend={friend} />
-                                        ))}
+                                        {friends.length > 0
+                                            ? friends.slice(0, 8).map(friend => (
+                                                <FriendAvatar key={friend.id} friend={friend} />
+                                            ))
+                                            : /* Shimmer skeleton placeholders */
+                                            Array.from({ length: 8 }).map((_, i) => (
+                                                <div key={`shimmer-${i}`} style={{ textAlign: 'center' }}>
+                                                    <div style={{
+                                                        width: '100%', paddingBottom: '100%', borderRadius: '50%',
+                                                        background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                                                        backgroundSize: '200% 100%',
+                                                        animation: 'shimmer 1.5s infinite',
+                                                    }} />
+                                                    <div style={{
+                                                        height: 10, borderRadius: 5, marginTop: 8, width: '70%', margin: '8px auto 0',
+                                                        background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                                                        backgroundSize: '200% 100%',
+                                                        animation: 'shimmer 1.5s infinite',
+                                                    }} />
+                                                </div>
+                                            ))
+                                        }
                                     </div>
+                                    <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
                                 </div>
                             )}
 
@@ -2121,8 +2150,18 @@ export default function UserProfilePage() {
                                 </div>
                             ) : (
                                 <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
-                                    <div style={{ fontSize: 32, marginBottom: 12 }}>📷</div>
-                                    <p>No Photos Yet</p>
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4, marginBottom: 12 }}>
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                                    </svg>
+                                    <p style={{ fontWeight: 600, fontSize: 16, margin: '0 0 4px', color: C.text }}>
+                                        {isOwnProfile ? 'Share Your First Photo' : 'No Photos Yet'}
+                                    </p>
+                                    <p style={{ fontSize: 13, margin: '0 0 12px' }}>
+                                        {isOwnProfile ? 'Post photos to build your poker portfolio!' : `${displayName} hasn't shared any photos yet.`}
+                                    </p>
+                                    {isOwnProfile && (
+                                        <Link href="/hub/social-media" style={{ display: 'inline-block', padding: '8px 20px', background: C.blue, color: 'white', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>Create a Post</Link>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -2148,8 +2187,18 @@ export default function UserProfilePage() {
                                 </div>
                             ) : (
                                 <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
-                                    <div style={{ fontSize: 32, marginBottom: 12 }}>🎥</div>
-                                    <p>No Videos Yet</p>
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4, marginBottom: 12 }}>
+                                        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                                    </svg>
+                                    <p style={{ fontWeight: 600, fontSize: 16, margin: '0 0 4px', color: C.text }}>
+                                        {isOwnProfile ? 'Upload Your First Video' : 'No Videos Yet'}
+                                    </p>
+                                    <p style={{ fontSize: 13, margin: '0 0 12px' }}>
+                                        {isOwnProfile ? 'Share hand replays, vlogs, and poker content!' : `${displayName} hasn't shared any videos yet.`}
+                                    </p>
+                                    {isOwnProfile && (
+                                        <Link href="/hub/social-media" style={{ display: 'inline-block', padding: '8px 20px', background: C.blue, color: 'white', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>Create a Post</Link>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -2181,8 +2230,18 @@ export default function UserProfilePage() {
                                 </div>
                             ) : (
                                 <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
-                                    <div style={{ fontSize: 32, marginBottom: 12 }}></div>
-                                    <p>No Reels Yet</p>
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4, marginBottom: 12 }}>
+                                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
+                                    </svg>
+                                    <p style={{ fontWeight: 600, fontSize: 16, margin: '0 0 4px', color: C.text }}>
+                                        {isOwnProfile ? 'Create Your First Reel' : 'No Reels Yet'}
+                                    </p>
+                                    <p style={{ fontSize: 13, margin: '0 0 12px' }}>
+                                        {isOwnProfile ? 'Short-form poker content gets more engagement!' : `${displayName} hasn't created any reels yet.`}
+                                    </p>
+                                    {isOwnProfile && (
+                                        <Link href="/hub/social-media" style={{ display: 'inline-block', padding: '8px 20px', background: C.blue, color: 'white', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>Create a Reel</Link>
+                                    )}
                                 </div>
                             )}
                         </div>

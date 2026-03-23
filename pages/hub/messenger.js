@@ -2338,6 +2338,25 @@ function MessengerPage() {
         setConversations(prev => prev.map(c =>
             c.id === conversation.id ? { ...c, unreadCount: 0 } : c
         ));
+
+        // Check online presence of the other user
+        if (conversation.otherUser?.id) {
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('last_seen_at')
+                    .eq('id', conversation.otherUser.id)
+                    .single();
+                if (profile?.last_seen_at) {
+                    const diff = Date.now() - new Date(profile.last_seen_at).getTime();
+                    setOtherUserLastSeen(profile.last_seen_at);
+                    setOtherUserStatus(diff < 120000 ? 'online' : 'offline'); // 2 min threshold
+                } else {
+                    setOtherUserStatus('offline');
+                    setOtherUserLastSeen(null);
+                }
+            } catch { setOtherUserStatus('offline'); }
+        }
     };
 
     const handleSendMessage = async (content) => {
@@ -3295,6 +3314,51 @@ function MessengerPage() {
                 bottomLinks={menuConfig.bottomLinks}
             />
 
+            {/* Forward Message Modal */}
+            {forwardingMessage && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.5)', zIndex: 2000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }} onClick={() => setForwardingMessage(null)}>
+                    <div style={{
+                        background: C.card, borderRadius: 12, width: 360, maxHeight: 480,
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)', overflow: 'hidden',
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, fontWeight: 600, fontSize: 16 }}>
+                            Forward Message
+                            <button onClick={() => setForwardingMessage(null)} style={{
+                                float: 'right', background: 'none', border: 'none', cursor: 'pointer',
+                                color: C.textSec, fontSize: 20,
+                            }}>×</button>
+                        </div>
+                        <div style={{ padding: '8px 0', maxHeight: 360, overflowY: 'auto' }}>
+                            {conversations.filter(c => c.id !== activeConversation?.id && !c.isJarvis).map(conv => (
+                                <button
+                                    key={conv.id}
+                                    onClick={() => handleForwardSend(conv)}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: 12,
+                                        width: '100%', padding: '10px 16px', border: 'none',
+                                        background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <Avatar src={conv.otherUser?.avatar_url} name={conv.otherUser?.username} size={36} />
+                                    <div>
+                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{conv.otherUser?.username || conv.otherUser?.full_name}</div>
+                                    </div>
+                                </button>
+                            ))}
+                            {conversations.filter(c => c.id !== activeConversation?.id && !c.isJarvis).length === 0 && (
+                                <div style={{ textAlign: 'center', padding: 20, color: C.textSec }}>No other conversations to forward to</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Toast Notifications */}
             <Toast toast={toast} onDismiss={() => setToast(null)} />
 
@@ -3728,9 +3792,11 @@ function MessengerPage() {
                                     const otherUsername = conv.otherUser?.username?.toLowerCase() || '';
                                     return otherName.includes(q) || otherUsername.includes(q);
                                 }).sort((a, b) => {
-                                    // Pinned conversations always sort to top
-                                    if (a.is_pinned && !b.is_pinned) return -1;
-                                    if (!a.is_pinned && b.is_pinned) return 1;
+                                    // Pinned conversations always sort to top (using localStorage-backed state)
+                                    const aPinned = pinnedConvoIds.includes(a.id);
+                                    const bPinned = pinnedConvoIds.includes(b.id);
+                                    if (aPinned && !bPinned) return -1;
+                                    if (!aPinned && bPinned) return 1;
                                     return 0; // Preserve existing chronological order
                                 }).map(conv => (
                                     <ConversationItem

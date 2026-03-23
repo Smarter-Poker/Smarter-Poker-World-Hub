@@ -79,8 +79,8 @@ export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps
                 setUserId(user.id);
 
                 // Load from Supabase
-                const { data, error } = await supabase
-                    .from('opponent_profiles')
+                const { data, error } = await (supabase
+                    .from('opponent_profiles') as any)
                     .select('*')
                     .eq('user_id', user.id)
                     .order('created_at', { ascending: false });
@@ -94,7 +94,7 @@ export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps
                     }
                 } else if (data && data.length > 0) {
                     // Convert from DB format to local format
-                    const loaded: OpponentProfile[] = data.map(row => ({
+                    const loaded: OpponentProfile[] = (data as any[]).map((row: any) => ({
                         id: row.id,
                         name: row.name,
                         position: row.position || 'Unknown',
@@ -124,8 +124,8 @@ export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps
         }
 
         try {
-            const { error } = await supabase
-                .from('opponent_profiles')
+            const { error } = await (supabase
+                .from('opponent_profiles') as any)
                 .upsert({
                     id: profile.id,
                     user_id: userId,

@@ -24,6 +24,8 @@ import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
+import { showStoreToast } from '../../src/components/store/StoreToast';
+const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 
 
 
@@ -809,7 +811,7 @@ export default function DiamondStorePage() {
             const token = getAccessToken();
 
             if (!token) {
-                alert('Please sign in to complete your purchase');
+                showStoreToast('error', 'Please sign in to complete your purchase');
                 setIsProcessing(false);
                 return;
             }
@@ -845,7 +847,7 @@ export default function DiamondStorePage() {
 
         } catch (error) {
             console.error('Checkout error:', error);
-            alert(error.message || 'Failed to start checkout. Please try again.');
+            showStoreToast('error', error.message || 'Failed to start checkout. Please try again.');
             setIsProcessing(false);
         }
     };
@@ -863,7 +865,7 @@ export default function DiamondStorePage() {
         if (plan.isDiamondCost) {
             const token = getAccessToken();
             if (!token || !user?.id) {
-                alert('Please sign in to purchase VIP.');
+                showStoreToast('error', 'Please sign in to purchase VIP.');
                 return;
             }
             if (confirm(`Purchase 1-Day VIP Access for ${plan.price} Diamonds?`)) {
@@ -876,15 +878,15 @@ export default function DiamondStorePage() {
                     if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const data = await res.json();
                     if (data.success) {
-                        alert('VIP Daily Pass Activated! 💎');
+                        showStoreToast('success', 'VIP Daily Pass Activated! Enjoy your premium features.');
                         setIsVip(true);
                         broadcastSync('smarter_poker_vip_sync', 'refresh_vip');
                         broadcastSync('smarter_poker_diamond_sync', 'refresh');
                     } else {
-                        alert(`Failed: ${data.error}`);
+                        showStoreToast('error', `VIP purchase failed: ${data.error}`);
                     }
                 } catch (e) {
-                    alert('Error purchasing VIP pass: ' + e.message);
+                    showStoreToast('error', 'Error purchasing VIP pass: ' + e.message);
                 } finally {
                     setIsProcessing(false);
                 }
@@ -908,7 +910,7 @@ export default function DiamondStorePage() {
     };
 
     const handleMerchPurchase = (itemId) => {
-        alert('Merchandise store coming soon!');
+        showStoreToast('info', 'Merchandise store coming soon!');
     };
 
     // ═══ Club Shop: Load items from marketplace API ═══
@@ -995,7 +997,7 @@ export default function DiamondStorePage() {
             clubShopLoadingRef.current = false;
             loadClubShop(true);
         } catch (err) {
-            alert(err.message || 'Purchase failed');
+            showStoreToast('error', err.message || 'Purchase failed');
         } finally {
             setClubShopProcessing(false);
         }
@@ -1098,7 +1100,7 @@ export default function DiamondStorePage() {
         try {
             const token = getAccessToken();
             if (!token || !user?.id) {
-                alert('Please sign in to pay with diamonds');
+                showStoreToast('error', 'Please sign in to pay with diamonds');
                 setIsProcessing(false);
                 return;
             }
@@ -1118,7 +1120,7 @@ export default function DiamondStorePage() {
             }, 0);
 
             if (userDiamonds < totalDiamondCost) {
-                alert(`Not enough diamonds. You have ${userDiamonds.toLocaleString()} but need ${totalDiamondCost.toLocaleString()}.`);
+                showStoreToast('warning', `Not enough diamonds. You have ${userDiamonds.toLocaleString()} but need ${totalDiamondCost.toLocaleString()}.`);
                 setIsProcessing(false);
                 return;
             }
@@ -1133,7 +1135,9 @@ export default function DiamondStorePage() {
 
             if (error) throw error;
 
-            alert(`Purchase complete! ${totalDiamondCost.toLocaleString()} diamonds deducted.`);
+            showStoreToast('success', `Purchase complete! ${totalDiamondCost.toLocaleString()} diamonds deducted.`);
+            // Play success sound
+            try { new Audio('/sounds/purchase-success.mp3').play().catch(() => {}); } catch (_) {}
             // Clear cart after successful purchase
             const { clearCart } = useCartStore.getState();
             clearCart();
@@ -1147,7 +1151,7 @@ export default function DiamondStorePage() {
 
         } catch (error) {
             console.error('Diamond payment error:', error);
-            alert(error.message || 'Failed to complete diamond payment. Please try again.');
+            showStoreToast('error', error.message || 'Failed to complete diamond payment. Please try again.');
         } finally {
             setIsProcessing(false);
         }
@@ -1158,6 +1162,7 @@ export default function DiamondStorePage() {
 
     return (
         <>
+            <StoreToast />
             <PageTransition>
                 {/* 🎬 INTRO VIDEO OVERLAY - Plays while page loads behind it */}
                 {showIntro && (
@@ -2315,10 +2320,10 @@ export default function DiamondStorePage() {
                                                         disabled={clubShopProcessing || !clubShopNewName.trim() || !clubShopNewPrice}
                                                         onClick={async () => {
                                                             const now = Date.now();
-                                                            if (now - clubShopLastCreate < 3000) { alert('Please wait before creating another item'); return; }
+                                                            if (now - clubShopLastCreate < 3000) { showStoreToast('warning', 'Please wait before creating another item'); return; }
                                                             const price = Math.floor(Number(clubShopNewPrice));
-                                                            if (!price || price <= 0) { alert('Price must be a positive number'); return; }
-                                                            if (price > 1000000000) { alert('Price exceeds maximum'); return; }
+                                                            if (!price || price <= 0) { showStoreToast('error', 'Price must be a positive number'); return; }
+                                                            if (price > 1000000000) { showStoreToast('error', 'Price exceeds maximum'); return; }
                                                             setClubShopProcessing(true);
                                                             try {
                                                                 const { error } = await supabase.from('club_shop_items').insert({
@@ -2332,7 +2337,7 @@ export default function DiamondStorePage() {
                                                                 loadClubShopAdmin();
                                                                 clubShopLoadingRef.current = false;
                                                                 loadClubShop(true);
-                                                            } catch (err) { alert(err.message); } finally { setClubShopProcessing(false); }
+                                                            } catch (err) { showStoreToast('error', err.message); } finally { setClubShopProcessing(false); }
                                                         }}
                                                         style={{
                                                             padding: '10px 28px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
@@ -2371,7 +2376,7 @@ export default function DiamondStorePage() {
                                                                             loadClubShopAdmin();
                                                                             clubShopLoadingRef.current = false;
                                                                             loadClubShop(true);
-                                                                        } catch (err) { alert(err.message); }
+                                                                        } catch (err) { showStoreToast('error', err.message); }
                                                                     }} style={{
                                                                         padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer',
                                                                         background: item.is_active ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.05)',
@@ -2388,7 +2393,7 @@ export default function DiamondStorePage() {
                                                                             loadClubShopAdmin();
                                                                             clubShopLoadingRef.current = false;
                                                                             loadClubShop(true);
-                                                                        } catch (err) { alert(err.message); }
+                                                                        } catch (err) { showStoreToast('error', err.message); }
                                                                     }} style={{
                                                                         padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer',
                                                                         background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', color: '#ff6b6b',
