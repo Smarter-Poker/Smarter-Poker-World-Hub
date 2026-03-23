@@ -1164,11 +1164,13 @@ function MessengerPage() {
 
                 // FALLBACK: If sync localStorage check fails, try async session check
                 // This catches browser restarts, stale tabs, and token refresh scenarios
+                let fallbackSession = null;
                 if (!authUser) {
                     try {
                         const { data: { session } } = await supabase.auth.getSession();
                         if (session?.user) {
                             authUser = session.user;
+                            fallbackSession = session;
                         }
                     } catch (_) {
                         // Session check failed — user is genuinely not logged in
@@ -1176,7 +1178,7 @@ function MessengerPage() {
                 }
 
                 if (authUser) {
-                    const token = getAccessToken() || (await supabase.auth.getSession()).data?.session?.access_token;
+                    const token = getAccessToken() || fallbackSession?.access_token;
                     const headers = { 'Authorization': 'Bearer ' + token };
 
                     // PARALLEL: Fire all 3 independent API calls at once
