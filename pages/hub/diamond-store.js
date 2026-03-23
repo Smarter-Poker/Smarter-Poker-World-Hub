@@ -1329,9 +1329,14 @@ export default function DiamondStorePage() {
                             {/* ── BUG-S3: Corrected text overlay to fix image typos ── */}
                             <div style={{
                                 position: 'absolute',
-                                top: '6%',
-                                left: '5%',
-                                right: '5%',
+                                top: '3.5%',
+                                left: '3%',
+                                right: '3%',
+                                bottom: '76%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                                 textAlign: 'center',
                                 fontFamily: "'Cinzel', 'Times New Roman', serif",
                                 fontStyle: 'italic',
@@ -1341,6 +1346,9 @@ export default function DiamondStorePage() {
                                 pointerEvents: 'none',
                                 zIndex: 2,
                                 lineHeight: 1.35,
+                                background: 'linear-gradient(180deg, rgba(20,35,60,0.97) 0%, rgba(15,25,50,0.97) 50%, rgba(20,35,60,0.97) 100%)',
+                                borderRadius: 4,
+                                padding: '8px 12px',
                             }}>
                                 <div style={{ fontSize: 'clamp(11px, 2.8vw, 16px)' }}>
                                     Use Diamonds For Cash Games & Tournaments,
