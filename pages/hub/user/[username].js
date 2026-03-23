@@ -1898,23 +1898,26 @@ export default function UserProfilePage() {
                                     )}
                                     {profile.favorite_hand && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
-                                            <span style={{ fontSize: 18 }}></span>
-                                            <span>Favorite Hand:</span>
-                                            <div style={{ display: 'flex', gap: 4 }}>
-                                                {profile.favorite_hand.split(' ').map((card, idx) => (
-                                                    <img key={idx} src={`/hub/training/cards/${card}.svg`}
-                                                        alt={card}
-                                                        style={{
-                                                            width: 40, height: 56, borderRadius: 5,
-                                                            border: '2px solid #FFD700',
-                                                            boxShadow: '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)',
-                                                            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                                                        }}
-                                                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(255,215,0,0.5)'; }}
-                                                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)'; }}
-                                                    />
-                                                ))}
-                                            </div>
+                                            <span>Favorite Hand{profile.favorite_hand_type === 'plo' ? ' (PLO)' : ''}:</span>
+                                            {profile.favorite_hand.includes('_') ? (
+                                                <div style={{ display: 'flex', gap: 4 }}>
+                                                    {profile.favorite_hand.split(',').filter(Boolean).map((code, idx) => (
+                                                        <img key={idx} src={`/cards/${code}.png`}
+                                                            alt={code}
+                                                            style={{
+                                                                width: 40, height: 56, borderRadius: 5,
+                                                                border: '2px solid #FFD700',
+                                                                boxShadow: '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)',
+                                                                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(255,215,0,0.5)'; }}
+                                                            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 0 10px rgba(255,215,0,0.35), 0 2px 6px rgba(0,0,0,0.2)'; }}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <strong>{profile.favorite_hand}</strong>
+                                            )}
                                         </div>
                                     )}
                                     {/* Social Media Links */}
