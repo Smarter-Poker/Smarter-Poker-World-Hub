@@ -2346,7 +2346,7 @@ function MessengerPage() {
                     .from('profiles')
                     .select('last_seen_at')
                     .eq('id', conversation.otherUser.id)
-                    .single();
+                    .maybeSingle();
                 if (profile?.last_seen_at) {
                     const diff = Date.now() - new Date(profile.last_seen_at).getTime();
                     setOtherUserLastSeen(profile.last_seen_at);
