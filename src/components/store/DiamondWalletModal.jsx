@@ -20,6 +20,15 @@
  *  E. Pull-to-refresh on mobile
  *  F. Filter persistence (localStorage)
  *  G. Transaction analytics stats panel
+ *
+ *  ENHANCEMENTS (R7):
+ *  H1. Transaction receipt copy
+ *  H2. Filter badge counts
+ *  H3. Enhanced empty state CTA
+ *  H4. Optimistic balance update
+ *  H5. Stats skeleton loading
+ *  H6. Confetti on first purchase
+ *  H7. Diamond transfer to friends (with anti-abuse)
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
@@ -69,6 +78,9 @@ const TX_TYPES = {
     hendonmob_link: { icon: '🔗', label: 'HendonMob Link', color: '#10b981' },
     venue_review: { icon: '📍', label: 'Venue Review', color: '#f59e0b' },
     promo_code: { icon: '🎟️', label: 'Promo Code', color: '#a855f7' },
+    // Gifts / Transfers
+    diamond_gift_sent: { icon: '🎁', label: 'Gift Sent', color: '#f97316' },
+    diamond_gift_received: { icon: '🎁', label: 'Gift Received', color: '#22c55e' },
     // Other
     refund: { icon: '🔄', label: 'Refund', color: '#94a3b8' },
     adjustment: { icon: '⚙️', label: 'Adjustment', color: '#94a3b8' },
@@ -89,8 +101,41 @@ const EARNED_TYPES = [
     'vip_reward', 'vip_stipend',
     'social_post', 'follow', 'reaction', 'comment', 'share', 'referral',
     'profile_complete', 'profile_pic', 'video_watch', 'video_favorite',
-    'hendonmob_link', 'venue_review', 'promo_code'
+    'hendonmob_link', 'venue_review', 'promo_code',
+    'diamond_gift_received'
 ];
+
+const SPENT_TYPES_EXCLUDE = ['refund', 'tournament_refund', 'pvp_refund'];
+
+// ── H1: Copy receipt to clipboard ──
+function copyReceiptToClipboard(tx) {
+    const txType = tx.transaction_type || tx.type;
+    const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+    const dt = new Date(tx.created_at);
+    const receipt = `Smarter.Poker Diamond Receipt\nRef: ${tx.id || 'N/A'}\nType: ${config.label}\nAmount: ${tx.amount >= 0 ? '+' : ''}${tx.amount}💎\nBalance After: ${tx.balance_after ?? 'N/A'}💎\nDate: ${dt.toLocaleString()}`;
+    try {
+        navigator.clipboard.writeText(receipt);
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+// ── H6: Confetti CSS animation helper ──
+function showConfettiAnimation() {
+    const container = document.createElement('div');
+    container.id = 'wallet-confetti';
+    container.style.cssText = 'position:fixed;inset:0;z-index:99999;pointer-events:none;overflow:hidden;';
+    const colors = ['#00d4ff', '#4ade80', '#f59e0b', '#a855f7', '#f43f5e', '#FFD700'];
+    for (let i = 0; i < 60; i++) {
+        const p = document.createElement('div');
+        const c = colors[i % colors.length];
+        p.style.cssText = `position:absolute;width:${6+Math.random()*6}px;height:${6+Math.random()*6}px;background:${c};border-radius:${Math.random()>0.5?'50%':'2px'};left:${Math.random()*100}%;top:-10%;opacity:0.9;animation:confettiFall ${1.5+Math.random()*2}s ease-out ${Math.random()*0.5}s forwards;`;
+        container.appendChild(p);
+    }
+    document.body.appendChild(container);
+    setTimeout(() => { container.remove(); }, 4000);
+}
 
 // ── PERF-2: localStorage cache key for instant modal re-opens ──
 const CACHE_KEY = 'sp-cached-wallet-txns';
@@ -329,6 +374,18 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const touchStartY = useRef(0); // ENH-E
     const scrollContainerRef = useRef(null); // ENH-E
 
+    // ── H1: Receipt copy feedback ──
+    const [copiedTxId, setCopiedTxId] = useState(null);
+    // ── H7: Transfer state ──
+    const [showTransfer, setShowTransfer] = useState(false);
+    const [transferFriends, setTransferFriends] = useState([]);
+    const [transferLoading, setTransferLoading] = useState(false);
+    const [transferRecipient, setTransferRecipient] = useState(null);
+    const [transferAmount, setTransferAmount] = useState('');
+    const [transferError, setTransferError] = useState('');
+    const [transferSuccess, setTransferSuccess] = useState('');
+    const [friendsLoading, setFriendsLoading] = useState(false);
+
     // ── ENH-A: Animated balance counter ──
     const animatedBalance = useAnimatedCounter(balance ?? 0);
 
@@ -343,7 +400,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     useEffect(() => {
         if (!isOpen) return;
         const handleBalanceRefresh = (e) => {
-            // Read from event detail first (premiumFeatureGate, AvatarContext pass newBalance)
+            // H4: Read from event detail first (premiumFeatureGate, AvatarContext pass newBalance)
             const fromEvent = e?.detail?.newBalance;
             if (fromEvent !== undefined && fromEvent !== null) {
                 setBalance(fromEvent);
@@ -351,6 +408,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 // Fallback: re-read cached balance
                 const fresh = getCachedBalance();
                 setBalance(fresh);
+            }
+            // H6: Confetti on first purchase
+            if (e?.detail?.source === 'diamond-store-purchase') {
+                try {
+                    if (!localStorage.getItem('sp-first-purchase-celebrated')) {
+                        localStorage.setItem('sp-first-purchase-celebrated', '1');
+                        showConfettiAnimation();
+                    }
+                } catch (_) {}
             }
             // ENH-4: Also re-fetch transaction list so new transactions appear
             // BUG-R2: Skip if fetch already in-flight (race condition guard)
@@ -468,6 +534,76 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         touchStartY.current = 0;
     }, [pullDistance, fetchTransactions]);
 
+    // ── H7: Fetch friends list when transfer panel opens ──
+    const fetchFriends = useCallback(async () => {
+        setFriendsLoading(true);
+        try {
+            const session = getSession();
+            if (!session?.access_token) return;
+            const res = await fetch('/api/friends?action=list', {
+                headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setTransferFriends(data.data?.friends || []);
+            }
+        } catch (_) {}
+        setFriendsLoading(false);
+    }, [getSession]);
+
+    // ── H7: Send diamonds to friend ──
+    const handleTransfer = useCallback(async () => {
+        if (!transferRecipient || !transferAmount) return;
+        const amount = parseInt(transferAmount);
+        if (isNaN(amount) || amount < 10) {
+            setTransferError('Minimum transfer is 10 diamonds');
+            return;
+        }
+        if (amount > 100) {
+            setTransferError('Maximum 100 diamonds per transfer');
+            return;
+        }
+        if (amount > (balance ?? 0)) {
+            setTransferError('Insufficient diamond balance');
+            return;
+        }
+        setTransferLoading(true);
+        setTransferError('');
+        setTransferSuccess('');
+        try {
+            const session = getSession();
+            const res = await fetch('/api/store/diamond-transfer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({
+                    recipientId: transferRecipient.id,
+                    amount
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setTransferSuccess(`Sent ${amount} diamonds to ${transferRecipient.display_name || transferRecipient.username}!`);
+                setTransferAmount('');
+                setTransferRecipient(null);
+                // Update balance optimistically
+                setBalance(prev => (prev ?? 0) - amount);
+                // Dispatch refresh event
+                window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { source: 'diamond-transfer' } }));
+                // Refetch transactions
+                if (!fetchInFlightRef.current) fetchTransactions();
+                setTimeout(() => setTransferSuccess(''), 4000);
+            } else {
+                setTransferError(data.error || 'Transfer failed');
+            }
+        } catch (err) {
+            setTransferError(err.message || 'Transfer failed');
+        }
+        setTransferLoading(false);
+    }, [transferRecipient, transferAmount, balance, getSession, fetchTransactions]);
+
     useEffect(() => {
         if (!isOpen) {
             // Reset state when closing so next open starts fresh
@@ -476,6 +612,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             setExpandedTxId(null);
             setShowStats(false);
             setPullDistance(0);
+            setShowTransfer(false);
+            setTransferError('');
+            setTransferSuccess('');
             return;
         }
 
@@ -527,6 +666,19 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
         return result;
     }, [transactions, filter, searchQuery]);
+
+    // ── H2: Filter badge counts ──
+    const filterCounts = useMemo(() => {
+        const counts = { all: transactions.length, purchase: 0, earned: 0, spent: 0, refund: 0 };
+        transactions.forEach(tx => {
+            const txType = tx.transaction_type || tx.type;
+            if (EARNED_TYPES.includes(txType)) counts.earned++;
+            if (tx.amount < 0 && !SPENT_TYPES_EXCLUDE.includes(txType)) counts.spent++;
+            if (['refund', 'tournament_refund', 'pvp_refund'].includes(txType)) counts.refund++;
+            if (['purchase', 'feature_unlock', 'game_cost', 'arcade_entry'].includes(txType)) counts.purchase++;
+        });
+        return counts;
+    }, [transactions]);
 
     // ── ENH-1: Group filtered transactions by date ──
     const groupedTx = useMemo(() => {
@@ -700,31 +852,61 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     {/* ENH-6: Balance sparkline */}
                     <BalanceSparkline transactions={transactions} />
 
-                    <button
-                        onClick={() => { onClose(); onBuyClick?.(); }}
-                        style={{
-                            marginTop: 8,
-                            padding: '8px 24px',
-                            background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 255, 0.2))',
-                            border: '1px solid rgba(0, 212, 255, 0.5)',
-                            borderRadius: 20,
-                            color: '#00d4ff',
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                        }}
-                        onMouseEnter={e => {
-                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.35), rgba(0, 150, 255, 0.35))';
-                            e.currentTarget.style.transform = 'scale(1.03)';
-                        }}
-                        onMouseLeave={e => {
-                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 255, 0.2))';
-                            e.currentTarget.style.transform = 'scale(1)';
-                        }}
-                    >
-                        + Buy Diamonds
-                    </button>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'center' }}>
+                        <button
+                            onClick={() => { onClose(); onBuyClick?.(); }}
+                            style={{
+                                padding: '8px 20px',
+                                background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 255, 0.2))',
+                                border: '1px solid rgba(0, 212, 255, 0.5)',
+                                borderRadius: 20,
+                                color: '#00d4ff',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.35), rgba(0, 150, 255, 0.35))';
+                                e.currentTarget.style.transform = 'scale(1.03)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 150, 255, 0.2))';
+                                e.currentTarget.style.transform = 'scale(1)';
+                            }}
+                        >
+                            + Buy Diamonds
+                        </button>
+                        {/* H7: Send Diamonds button */}
+                        <button
+                            onClick={() => { setShowTransfer(v => !v); if (!showTransfer) fetchFriends(); }}
+                            style={{
+                                padding: '8px 20px',
+                                background: showTransfer
+                                    ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(234, 88, 12, 0.25))'
+                                    : 'linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(234, 88, 12, 0.12))',
+                                border: `1px solid ${showTransfer ? 'rgba(249, 115, 22, 0.6)' : 'rgba(249, 115, 22, 0.35)'}`,
+                                borderRadius: 20,
+                                color: '#f97316',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.3))';
+                                e.currentTarget.style.transform = 'scale(1.03)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.background = showTransfer
+                                    ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(234, 88, 12, 0.25))'
+                                    : 'linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(234, 88, 12, 0.12))';
+                                e.currentTarget.style.transform = 'scale(1)';
+                            }}
+                        >
+                            Send Diamonds
+                        </button>
+                    </div>
                 </div>
 
                 {/* ENH-2: Search Bar */}
@@ -807,7 +989,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 transition: 'all 0.15s',
                             }}
                         >
-                            {opt.label}
+                            {/* H2: Show filter badge counts */}
+                            {opt.label}{transactions.length > 0 ? ` (${filterCounts[opt.value] ?? 0})` : ''}
                         </button>
                     ))}
                     {/* ENH-G: Stats toggle */}
@@ -836,6 +1019,123 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     </button>
                 </div>
 
+                {/* H7: Diamond Transfer Panel */}
+                {showTransfer && (
+                    <div style={{
+                        padding: '12px 16px',
+                        borderBottom: '1px solid rgba(249, 115, 22, 0.15)',
+                        background: 'rgba(249, 115, 22, 0.04)',
+                        animation: 'walletFadeIn 0.2s ease',
+                    }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#f97316', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Send Diamonds to a Friend
+                        </div>
+                        {/* Anti-abuse info */}
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 8, lineHeight: 1.4 }}>
+                            Limits: 10-100 per transfer | 500/day max | Friends only | 60s cooldown
+                        </div>
+                        {/* Friend picker */}
+                        <div style={{ marginBottom: 8 }}>
+                            {friendsLoading ? (
+                                <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Loading friends...</div>
+                            ) : transferFriends.length === 0 ? (
+                                <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>No friends found. Add friends first.</div>
+                            ) : (
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                    {transferFriends.slice(0, 12).map(f => (
+                                        <button
+                                            key={f.id}
+                                            onClick={() => setTransferRecipient(transferRecipient?.id === f.id ? null : f)}
+                                            style={{
+                                                padding: '5px 10px',
+                                                borderRadius: 14,
+                                                border: transferRecipient?.id === f.id
+                                                    ? '1px solid rgba(249, 115, 22, 0.6)'
+                                                    : '1px solid rgba(255,255,255,0.08)',
+                                                background: transferRecipient?.id === f.id
+                                                    ? 'rgba(249, 115, 22, 0.15)'
+                                                    : 'rgba(255,255,255,0.04)',
+                                                color: transferRecipient?.id === f.id ? '#f97316' : 'rgba(255,255,255,0.6)',
+                                                fontSize: 11,
+                                                fontWeight: 500,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 5,
+                                                transition: 'all 0.15s',
+                                            }}
+                                        >
+                                            {f.avatar_url && (
+                                                <img src={f.avatar_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' }} />
+                                            )}
+                                            {f.display_name || f.username || 'User'}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        {/* Amount + Send */}
+                        {transferRecipient && (
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <div style={{
+                                    flex: 1, display: 'flex', alignItems: 'center', gap: 6,
+                                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                                    borderRadius: 10, padding: '6px 12px',
+                                }}>
+                                    <span style={{ fontSize: 14 }}>💎</span>
+                                    <input
+                                        type="number"
+                                        min="10" max="100"
+                                        value={transferAmount}
+                                        onChange={e => setTransferAmount(e.target.value)}
+                                        placeholder="10-100"
+                                        style={{
+                                            flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                                            color: '#e2e8f0', fontSize: 14, fontWeight: 600,
+                                            fontFamily: "'Inter', sans-serif", width: 60,
+                                        }}
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleTransfer}
+                                    disabled={transferLoading || !transferAmount}
+                                    style={{
+                                        padding: '8px 16px',
+                                        background: transferLoading ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.3))',
+                                        border: '1px solid rgba(249, 115, 22, 0.5)',
+                                        borderRadius: 10, color: '#f97316', fontSize: 12, fontWeight: 700,
+                                        cursor: transferLoading ? 'default' : 'pointer',
+                                        opacity: transferLoading || !transferAmount ? 0.5 : 1,
+                                        transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                    }}
+                                >
+                                    {transferLoading ? 'Sending...' : `Send to ${transferRecipient.display_name || transferRecipient.username}`}
+                                </button>
+                            </div>
+                        )}
+                        {/* Error / Success feedback */}
+                        {transferError && (
+                            <div style={{ marginTop: 6, fontSize: 11, color: '#f87171', padding: '4px 8px', background: 'rgba(248,113,113,0.08)', borderRadius: 6 }}>
+                                {transferError}
+                            </div>
+                        )}
+                        {transferSuccess && (
+                            <div style={{ marginTop: 6, fontSize: 11, color: '#4ade80', padding: '4px 8px', background: 'rgba(74,222,128,0.08)', borderRadius: 6 }}>
+                                {transferSuccess}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* H5: Stats skeleton when loading */}
+                {showStats && !stats && (
+                    <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(168,85,247,0.04)' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, height: 60, animation: 'walletShimmer 1.2s ease-in-out infinite' }} />
+                            <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, height: 60, animation: 'walletShimmer 1.2s ease-in-out infinite', animationDelay: '0.2s' }} />
+                        </div>
+                    </div>
+                )}
                 {/* ENH-G: Analytics Stats Panel */}
                 {showStats && stats && (
                     <div style={{
@@ -967,9 +1267,32 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 }
                             </div>
                             {filter === 'all' && !searchQuery && (
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 6 }}>
-                                    Earn diamonds through daily logins, trivia, and more
-                                </div>
+                                <>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 6 }}>
+                                        Earn diamonds through daily logins, trivia, and more
+                                    </div>
+                                    {/* H3: Enhanced empty state CTA */}
+                                    {(balance ?? 0) === 0 && (
+                                        <button
+                                            onClick={() => { onClose(); onBuyClick?.(); }}
+                                            style={{
+                                                marginTop: 16,
+                                                padding: '10px 28px',
+                                                background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(0, 150, 255, 0.25))',
+                                                border: '1px solid rgba(0, 212, 255, 0.6)',
+                                                borderRadius: 20,
+                                                color: '#00d4ff',
+                                                fontSize: 14,
+                                                fontWeight: 700,
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                                textShadow: '0 0 10px rgba(0,212,255,0.3)',
+                                            }}
+                                        >
+                                            Get Your First Diamonds
+                                        </button>
+                                    )}
+                                </>
                             )}
                         </div>
                     ) : (
@@ -1123,6 +1446,30 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                         </div>
                                                     )}
                                                 </div>
+                                                {/* H1: Copy receipt button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (copyReceiptToClipboard(tx)) {
+                                                            setCopiedTxId(tx.id);
+                                                            setTimeout(() => setCopiedTxId(null), 2000);
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        marginTop: 6,
+                                                        padding: '3px 10px',
+                                                        background: copiedTxId === tx.id ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.04)',
+                                                        border: `1px solid ${copiedTxId === tx.id ? 'rgba(74,222,128,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                                                        borderRadius: 6,
+                                                        color: copiedTxId === tx.id ? '#4ade80' : 'rgba(255,255,255,0.4)',
+                                                        fontSize: 10,
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s',
+                                                    }}
+                                                >
+                                                    {copiedTxId === tx.id ? 'Copied!' : 'Copy Receipt'}
+                                                </button>
                                             </div>
                                         )}
                                     </div>
@@ -1190,6 +1537,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     0% { opacity: 0.4; }
                     50% { opacity: 0.8; }
                     100% { opacity: 0.4; }
+                }
+                @keyframes confettiFall {
+                    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+                    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
                 }
             `}</style>
         </>
