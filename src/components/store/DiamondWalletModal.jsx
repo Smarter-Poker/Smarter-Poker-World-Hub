@@ -179,7 +179,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             } else {
                 // Fallback: re-read cached balance
                 const fresh = getCachedBalance();
-                if (fresh > 0) setBalance(fresh);
+                setBalance(fresh);
             }
         };
         window.addEventListener('diamond-balance-refresh', handleBalanceRefresh);

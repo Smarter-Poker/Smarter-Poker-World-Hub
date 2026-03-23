@@ -104,7 +104,7 @@ export default async function handler(req, res) {
                   username: profile.username,
                   full_name: profile.full_name,
                   avatar_url: profile.avatar_url,
-                  diamonds: profile.diamonds || 0,
+                  diamonds: profile.diamonds ?? 0,
                   is_vip: profile.is_vip || false
               },
               notificationCount: notificationCount || 0,
