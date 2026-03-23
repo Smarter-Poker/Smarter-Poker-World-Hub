@@ -1343,13 +1343,16 @@ export default function UserProfilePage() {
         setShowUnfriendConfirm(false);
         setStats(prev => ({ ...prev, friends: Math.max(0, prev.friends - 1) }));
         try {
-            const { error: e1 } = await supabase.from('friendships').delete()
-                .eq('user_id', currentUser.id)
-                .eq('friend_id', profile.id);
-            if (e1) throw e1;
-            await supabase.from('friendships').delete()
-                .eq('user_id', profile.id)
-                .eq('friend_id', currentUser.id);
+            // Delete both directions in parallel to avoid orphan records
+            const [res1, res2] = await Promise.all([
+                supabase.from('friendships').delete()
+                    .eq('user_id', currentUser.id)
+                    .eq('friend_id', profile.id),
+                supabase.from('friendships').delete()
+                    .eq('user_id', profile.id)
+                    .eq('friend_id', currentUser.id),
+            ]);
+            if (res1.error && res2.error) throw res1.error; // Both failed — rollback
             invalidateProfileCache();
             notifyFriendsSync();
         } catch (e) {
@@ -2049,7 +2052,7 @@ export default function UserProfilePage() {
 
                                 {/* Posts Feed */}
                                 {posts.length > 0 ? (
-                                    posts.map(post => <PostCard key={post.id} post={post} author={profile} isOwnProfile={isOwnProfile} onDelete={handleDeletePost} currentUserId={currentUser?.id} horseProfileIds={horseProfileIds} />)
+                                    posts.map(post => <PostCard key={post.id} post={post} author={profile} isOwnProfile={isOwnProfile} onDelete={handleDeletePost} onPostEdited={(updatedPost) => { setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p)); invalidateProfileCache(); }} currentUserId={currentUser?.id} horseProfileIds={horseProfileIds} />)
                                 ) : (
                                     <div style={{ background: C.card, borderRadius: 12, padding: 40, textAlign: 'center', color: C.textSec }}>
                                         <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.6 }}>📝</div>
@@ -2370,6 +2373,7 @@ export default function UserProfilePage() {
                             >Cancel</button>
                             <button
                                 onClick={async () => {
+                                    if (!currentUser?.id || !profile?.id) { setProfileMenuMsg('Please log in'); setTimeout(() => setProfileMenuMsg(''), 2000); setShowBlockConfirm(false); return; }
                                     try {
                                         await supabase.from('user_blocks').insert({
                                             blocker_id: currentUser.id,
@@ -2428,6 +2432,7 @@ export default function UserProfilePage() {
                             <button
                                 disabled={!reportReason.trim()}
                                 onClick={async () => {
+                                    if (!currentUser?.id || !profile?.id) { setProfileMenuMsg('Please log in'); setTimeout(() => setProfileMenuMsg(''), 2000); setShowReportInput(false); setReportReason(''); return; }
                                     try {
                                         await supabase.from('user_reports').insert({
                                             reporter_id: currentUser.id,
