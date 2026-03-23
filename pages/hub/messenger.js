@@ -1374,13 +1374,15 @@ function MessengerPage() {
 
                     // Process profile
                     const profileResp = profileResult.status === 'fulfilled' ? profileResult.value : {};
+                    const prof = profileResp?.profile || {};
                     setUser({
                         ...authUser,
-                        username: profileResp.username || authUser.email?.split('@')[0],
-                        avatar_url: profileResp.avatar_url,
-                        is_vip: profileResp.is_vip
+                        username: prof.username || authUser.email?.split('@')[0],
+                        avatar_url: prof.avatar_url,
+                        full_name: prof.full_name,
+                        is_vip: prof.is_vip
                     });
-                    setIsVip(!!profileResp.is_vip);
+                    setIsVip(!!prof.is_vip);
 
                     // Process friends
                     const friendsResp = friendsResult.status === 'fulfilled' ? friendsResult.value : {};
@@ -1410,12 +1412,13 @@ function MessengerPage() {
                     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                     body: JSON.stringify({})
                 }).then(r => r.json()).catch(() => ({}));
-                if (resp?.username || resp?.avatar_url) {
+                const p = resp?.profile;
+                if (p?.username || p?.avatar_url) {
                     setUser(prev => ({
                         ...prev,
-                        username: resp.username || prev?.username,
-                        avatar_url: resp.avatar_url ?? prev?.avatar_url,
-                        full_name: resp.full_name || prev?.full_name,
+                        username: p.username || prev?.username,
+                        avatar_url: p.avatar_url ?? prev?.avatar_url,
+                        full_name: p.full_name || prev?.full_name,
                     }));
                 }
             } catch { /* non-critical */ }
