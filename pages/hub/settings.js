@@ -1651,6 +1651,7 @@ export default function SettingsPage() {
                                                                 setCancelStep('reason');
                                                                 setCancelReason('');
                                                                 setCancelOtherText('');
+                                                                setCancelFeedback(null);
                                                             }}
                                                             style={{
                                                                 marginTop: 20, padding: '10px 20px',
@@ -2308,6 +2309,7 @@ export default function SettingsPage() {
                                         onClick={() => {
                                             setShowDeleteModal(true);
                                             setDeleteConfirmText('');
+                                            setDeleteFeedback(null);
                                         }}
                                         style={styles.deleteButton}
                                     >

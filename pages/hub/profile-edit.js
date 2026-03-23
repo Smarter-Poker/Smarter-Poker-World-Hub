@@ -576,11 +576,19 @@ export default function ProfilePage() {
             setProfile(prev => ({ ...prev, cover_photo_url: publicUrl }));
             setMessage('Cover photo saved!');
 
-            // ── CACHE: Invalidate profile cache ──
+            // ── CRITICAL: Dispatch bus event so profile page updates in real-time ──
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('profile-updated', {
+                    detail: { cover_photo_url: publicUrl }
+                }));
+            }
+
+            // ── CACHE: Invalidate profile cache + notify other tabs ──
             try {
                 const cacheKey = `sp-profile-cache-${profile.username}`;
                 localStorage.removeItem(cacheKey);
                 broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
+                broadcastSync('smarter_poker_avatar_sync', 'refresh');
             } catch { /* noop */ }
         } catch (error) {
             setMessage('Error uploading cover photo: ' + error.message);
@@ -633,11 +641,19 @@ export default function ProfilePage() {
         setProfile(prev => ({ ...prev, cover_photo_url: null }));
         setMessage('Cover photo removed!');
 
-        // ── CACHE: Invalidate profile cache ──
+        // ── CRITICAL: Dispatch bus event so profile page updates in real-time ──
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('profile-updated', {
+                detail: { cover_photo_url: null }
+            }));
+        }
+
+        // ── CACHE: Invalidate profile cache + notify other tabs ──
         try {
             const cacheKey = `sp-profile-cache-${profile.username}`;
             localStorage.removeItem(cacheKey);
             broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
+            broadcastSync('smarter_poker_avatar_sync', 'refresh');
         } catch { /* noop */ }
     };
 
