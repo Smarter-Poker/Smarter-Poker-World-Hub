@@ -134,11 +134,40 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
   # ═══════════════════════════════════════════════════════════════════
-  # POST-DEPLOY VERIFICATION (runs 5 minutes after deploy)
+  # DEPLOY TO VERCEL (only after ALL safety checks pass)
+  # Git auto-deploy disabled via vercel.json git.deploymentEnabled: false
+  # This is the ONLY way code reaches production.
+  # ═══════════════════════════════════════════════════════════════════
+  deploy:
+    name: Deploy to Vercel
+    needs: safety-checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Vercel Production
+        run: |
+          npm install -g vercel
+          vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Report Deploy Failure
+        if: failure()
+        run: |
+          echo "::error::Vercel deployment FAILED after all safety checks passed"
+          echo "Check Vercel dashboard for build details"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # POST-DEPLOY VERIFICATION (runs after deploy completes)
   # ═══════════════════════════════════════════════════════════════════
   post-deploy-check:
     name: Post-Deploy Verification
-    needs: safety-checks
+    needs: deploy
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
