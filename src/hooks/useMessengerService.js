@@ -658,6 +658,37 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                 .in('id', convIds)
                 .order('last_message_at', { ascending: false });
 
+            // Fetch ALL participants for these conversations (with profiles)
+            const { data: allParticipants } = await supabase
+                .from('messenger_participants')
+                .select('conversation_id, user_id, role')
+                .in('conversation_id', convIds);
+
+            // Batch-fetch unique profile IDs
+            const uniqueUserIds = [...new Set((allParticipants || []).map(p => p.user_id))];
+            let profileMap = {};
+            if (uniqueUserIds.length > 0) {
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url, full_name, is_vip')
+                    .in('id', uniqueUserIds);
+                (profiles || []).forEach(p => { profileMap[p.id] = p; });
+            }
+
+            // Build participants array per conversation
+            const participantsByConvo = {};
+            (allParticipants || []).forEach(p => {
+                if (!participantsByConvo[p.conversation_id]) participantsByConvo[p.conversation_id] = [];
+                const profile = profileMap[p.user_id];
+                participantsByConvo[p.conversation_id].push({
+                    id: p.user_id,
+                    name: profile?.full_name || profile?.username || 'Unknown',
+                    avatar: profile?.avatar_url || null,
+                    role: p.role || 'member',
+                    isVip: profile?.is_vip || false,
+                });
+            });
+
             // Merge participant info
             const merged = (convData || []).map(conv => {
                 const participant = participantData.find(p => p.conversation_id === conv.id);
@@ -666,6 +697,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
                     isPinned: participant?.is_pinned || false,
                     unreadCount: participant?.unread_count || 0,
                     myRole: participant?.role || 'member',
+                    participants: participantsByConvo[conv.id] || [],
                 };
             });
 
