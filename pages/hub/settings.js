@@ -2238,7 +2238,11 @@ export default function SettingsPage() {
 
             {/* VIP Cancellation Modal */}
             {showCancelModal && (
-                <div style={{
+                <div
+                    onClick={(e) => { if (e.target === e.currentTarget) setShowCancelModal(false); }}
+                    onKeyDown={(e) => { if (e.key === 'Escape') setShowCancelModal(false); }}
+                    tabIndex={-1}
+                    style={{
                     position: 'fixed',
                     top: 0,
                     left: 0,
@@ -2566,7 +2570,11 @@ export default function SettingsPage() {
 
             {/* Custom Avatar Builder Modal */}
             {showAvatarBuilder && (
-                <div style={{
+                <div
+                    onClick={(e) => { if (e.target === e.currentTarget) setShowAvatarBuilder(false); }}
+                    onKeyDown={(e) => { if (e.key === 'Escape') setShowAvatarBuilder(false); }}
+                    tabIndex={-1}
+                    style={{
                     position: 'fixed',
                     top: 0,
                     left: 0,
@@ -2601,7 +2609,11 @@ export default function SettingsPage() {
 
             {/* 2FA Setup Modal */}
             {show2FAModal && (
-                <div style={{
+                <div
+                    onClick={(e) => { if (e.target === e.currentTarget) { setShow2FAModal(false); setVerificationCode(''); } }}
+                    onKeyDown={(e) => { if (e.key === 'Escape') { setShow2FAModal(false); setVerificationCode(''); } }}
+                    tabIndex={-1}
+                    style={{
                     position: 'fixed',
                     top: 0,
                     left: 0,
@@ -2795,13 +2807,23 @@ export default function SettingsPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                <div
+                    onClick={(e) => { if (e.target === e.currentTarget) setShowDevicesModal(false); }}
+                    onKeyDown={(e) => { if (e.key === 'Escape') setShowDevicesModal(false); }}
+                    tabIndex={-1}
+                    style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.9)',
+                    zIndex: 1000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     padding: 20
                 }}>
-                    <div style={{
-                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-                        borderRadius: 16,
-                        padding: 32,
-                        maxWidth: 600,
                         width: '100%',
                         maxHeight: '80vh',
                         overflow: 'auto',

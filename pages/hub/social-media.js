@@ -5293,6 +5293,50 @@ function SocialMediaPage() {
         };
     }, []);
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PROFILE SYNC: Update local user state when profile is edited
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        // Same-tab: profile-edit.js dispatches this after saving
+        const handleProfileUpdated = async () => {
+            try {
+                const authUser = getAuthUser();
+                if (!authUser) return;
+                const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name,avatar_url,role`, {
+                    headers: {
+                        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+                    }
+                });
+                if (res.ok) {
+                    const profiles = await res.json();
+                    const p = profiles?.[0];
+                    if (p) {
+                        setUser(prev => ({
+                            ...prev,
+                            name: p.display_name || p.full_name || p.username || prev?.name,
+                            username: p.username || prev?.username,
+                            avatar: p.avatar_url || null,
+                        }));
+                    }
+                }
+            } catch { /* non-critical */ }
+        };
+
+        window.addEventListener('profile-updated', handleProfileUpdated);
+
+        // Cross-tab: BroadcastChannel avatar sync
+        const cleanupAvatarBc = listenBroadcast('smarter_poker_avatar_sync', (msg) => {
+            if (msg?.tabId === BROADCAST_TAB_ID) return; // Self-tab suppression
+            handleProfileUpdated();
+        });
+
+        return () => {
+            window.removeEventListener('profile-updated', handleProfileUpdated);
+            cleanupAvatarBc();
+        };
+    }, []);
+
     useEffect(() => {
         (async () => {
             try {
