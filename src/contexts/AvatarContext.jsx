@@ -270,7 +270,9 @@ export function AvatarProvider({ children }) {
 
         function handleProfileUpdate(e) {
             console.log('[AvatarContext] Profile update event received:', e.detail);
-            const { avatar_url, full_name, username } = e.detail;
+            const d = e.detail;
+            if (!d) return; // Headers dispatch without detail — skip gracefully
+            const { avatar_url, full_name, username } = d;
 
             setUser(prev => {
                 if (!prev) return prev;
@@ -287,11 +289,11 @@ export function AvatarProvider({ children }) {
 
             // If the user changed their basic profile pic, also update the active avatar state
             // so contextAvatar.imageUrl reflects the new image immediately
-            if (avatar_url) {
+            if (d.avatar_url) {
                 setAvatar(prev => ({
                     ...prev,
                     type: 'profile_upload',
-                    imageUrl: avatar_url
+                    imageUrl: d.avatar_url
                 }));
             }
         }

@@ -2842,7 +2842,7 @@ function MessengerPage() {
                     callerId: user.id,
                     calleeId: activeConversation.otherUser.id
                 }),
-            }).catch(() => { }).catch(() => {});
+            }).catch(() => { });
         }
 
         setShowCall(false);
@@ -3429,10 +3429,7 @@ function MessengerPage() {
                                     </div>
                                 </div>
 
-                                {/* Empty State — No conversations yet */}
-                                {conversations.length === 0 && !searchQuery && (
-                                    <EmptyConversationState />
-                                )}
+
 
                                 {/* Regular Conversations */}
                                 {conversations.filter(conv => {
