@@ -56,8 +56,8 @@ export function TiltJournal({ onAskJarvis, onClose }: TiltJournalProps) {
                 const user = await getSafeUser(supabase);
                 if (user) {
                     setUserId(user.id);
-                    const { data, error } = await supabase
-                        .from('tilt_journal')
+                    const { data, error } = await (supabase
+                        .from('tilt_journal') as any)
                         .select('*')
                         .eq('user_id', user.id)
                         .order('timestamp', { ascending: false });
@@ -97,7 +97,7 @@ export function TiltJournal({ onAskJarvis, onClose }: TiltJournalProps) {
         if (!userId) return;
 
         try {
-            await supabase.from('tilt_journal').upsert({
+            await (supabase.from('tilt_journal') as any).upsert({
                 id: entry.id,
                 user_id: userId,
                 timestamp: entry.timestamp,
@@ -115,7 +115,7 @@ export function TiltJournal({ onAskJarvis, onClose }: TiltJournalProps) {
     const deleteFromSupabase = useCallback(async (id: string) => {
         if (!userId) return;
         try {
-            await supabase.from('tilt_journal').delete().eq('id', id);
+            await (supabase.from('tilt_journal') as any).delete().eq('id', id);
         } catch (e) {
             console.error('[TiltJournal] Delete error:', e);
         }

@@ -80,8 +80,8 @@ export function useConversationMemory() {
                 setUserId(user.id);
 
                 // Load from Supabase
-                const { data, error } = await supabase
-                    .from('jarvis_conversations')
+                const { data, error } = await (supabase
+                    .from('jarvis_conversations') as any)
                     .select('*')
                     .eq('user_id', user.id)
                     .order('updated_at', { ascending: false })
@@ -90,7 +90,7 @@ export function useConversationMemory() {
                 if (error) {
                     console.error('Error loading conversations:', error);
                 } else if (data) {
-                    const loaded: ConversationSession[] = data.map(row => ({
+                    const loaded: ConversationSession[] = (data as any[]).map((row: any) => ({
                         id: row.id,
                         title: row.title || 'Conversation',
                         messages: (row.messages || []).map((m: any) => ({
@@ -133,7 +133,7 @@ export function useConversationMemory() {
         }
 
         try {
-            await supabase.from('jarvis_conversations').upsert({
+            await (supabase.from('jarvis_conversations') as any).upsert({
                 id: session.id,
                 user_id: userId,
                 title: session.title,
@@ -239,7 +239,7 @@ export function useConversationMemory() {
         }
 
         if (userId) {
-            await supabase.from('jarvis_conversations').delete().eq('id', sessionId);
+            await (supabase.from('jarvis_conversations') as any).delete().eq('id', sessionId);
         } else {
             const remaining = sessions.filter(s => s.id !== sessionId);
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
