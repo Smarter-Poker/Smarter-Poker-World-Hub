@@ -1259,23 +1259,34 @@ export default function SettingsPage() {
                                     <h3 style={styles.cardTitle}>Account Security</h3>
                                     <button
                                         onClick={async () => {
-                                            if (!user?.email) {
-                                                setPasswordResetStatus('error');
+                                            if (!user?.email || passwordResetStatus === 'sending') {
+                                                if (!user?.email) setPasswordResetStatus('error');
                                                 return;
                                             }
-                                            const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-                                                redirectTo: `${window.location.origin}/hub/reset-auth`
-                                            });
-                                            if (error) {
+                                            setPasswordResetStatus('sending');
+                                            try {
+                                                const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+                                                    redirectTo: `${window.location.origin}/hub/reset-auth`
+                                                });
+                                                if (error) {
+                                                    setPasswordResetStatus('error');
+                                                } else {
+                                                    setPasswordResetStatus('sent');
+                                                }
+                                            } catch (err) {
+                                                console.error('[Settings] Password reset error:', err);
                                                 setPasswordResetStatus('error');
-                                            } else {
-                                                setPasswordResetStatus('sent');
                                             }
                                             setTimeout(() => setPasswordResetStatus(null), 5000);
                                         }}
-                                        style={styles.secondaryButton}
+                                        disabled={passwordResetStatus === 'sending'}
+                                        style={{
+                                            ...styles.secondaryButton,
+                                            opacity: passwordResetStatus === 'sending' ? 0.6 : 1,
+                                            cursor: passwordResetStatus === 'sending' ? 'wait' : 'pointer',
+                                        }}
                                     >
-                                        Change Password
+                                        {passwordResetStatus === 'sending' ? 'Sending...' : 'Change Password'}
                                     </button>
                                     {passwordResetStatus === 'sent' && (
                                         <div style={{ padding: '8px 12px', marginBottom: 8, background: 'rgba(49, 162, 76, 0.15)', border: '1px solid rgba(49, 162, 76, 0.3)', borderRadius: 8, color: '#31A24C', fontSize: 13 }}>

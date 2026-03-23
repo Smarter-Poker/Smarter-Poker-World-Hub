@@ -1399,6 +1399,26 @@ function MessengerPage() {
     const [callRoomName, setCallRoomName] = useState('');
     const [showUserInfo, setShowUserInfo] = useState(false);
     const [showPushPrompt, setShowPushPrompt] = useState(false);
+    // Editing State
+    const [editingMessage, setEditingMessage] = useState(null); // message being edited
+    const [editText, setEditText] = useState('');
+    // Forward State
+    const [forwardingMessage, setForwardingMessage] = useState(null); // message to forward
+    // Online Presence
+    const [otherUserStatus, setOtherUserStatus] = useState('offline'); // 'online' | 'away' | 'offline'
+    const [otherUserLastSeen, setOtherUserLastSeen] = useState(null);
+    // Pinned Conversations
+    const [pinnedConvoIds, setPinnedConvoIds] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('sp-pinned-conversations') || '[]');
+        } catch { return []; }
+    });
+    // Hidden messages (delete-for-me persistence)
+    const [hiddenMessageIds] = useState(() => {
+        try {
+            return new Set(JSON.parse(localStorage.getItem('sp-hidden-messages') || '[]'));
+        } catch { return new Set(); }
+    });
     // Incoming Call State (for seamless calling like Snapchat/WhatsApp)
     const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
     const [callingUser, setCallingUser] = useState(null); // Track who we're calling
@@ -1699,7 +1719,8 @@ function MessengerPage() {
 
                 // If it's NOT the active conversation, we need to manually update the conversation sidebar
                 if (!currentActive || currentActive.id !== newMsg.conversation_id) {
-                    playMessageSound();
+                    // Only play sound if user has message sounds enabled
+                    if (preferences.messageSounds !== false) playMessageSound();
                     
                     setConversations(prev => {
                         const exists = prev.find(c => c.id === newMsg.conversation_id);
@@ -1744,8 +1765,8 @@ function MessengerPage() {
                 // Skip if this is our own message (already added via optimistic update)
                 if (newMsg.sender_id === user.id) return;
 
-                // Play sound for incoming message
-                playMessageSound();
+                // Play sound for incoming message (respect preferences)
+                if (preferences.messageSounds !== false) playMessageSound();
 
                 // Fetch sender profile (cached to avoid N queries for same sender)
                 let profile = profileCacheRef.current.get(newMsg.sender_id);
@@ -2526,7 +2547,13 @@ function MessengerPage() {
                     setToast({ type: 'error', message: 'Could Not Delete Message' });
                 }
             } else {
-                // Delete for me only (hide locally)
+                // Delete for me only — persist to localStorage so it survives refresh
+                const hiddenKey = 'sp-hidden-messages';
+                try {
+                    const existing = JSON.parse(localStorage.getItem(hiddenKey) || '[]');
+                    const updated = [...existing, messageId].slice(-1000); // FIFO: keep last 1000
+                    localStorage.setItem(hiddenKey, JSON.stringify(updated));
+                } catch { /* localStorage full or corrupted */ }
                 setMessages(prev => prev.filter(m => m.id !== messageId));
                 setToast({ type: 'success', message: 'Message Removed' });
             }
@@ -2534,6 +2561,99 @@ function MessengerPage() {
             console.error('Delete message error:', e);
             setToast({ type: 'error', message: 'Failed To Delete Message' });
         }
+    };
+
+    // Handle message editing (inline edit → API call)
+    const handleEditMessage = async (message) => {
+        setEditingMessage(message);
+        setEditText(message.content);
+    };
+
+    const handleEditSave = async () => {
+        if (!editingMessage || !editText.trim() || !user) return;
+        try {
+            const token = getAccessToken();
+            const resp = await fetch('/api/messenger/edit-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    messageId: editingMessage.id,
+                    userId: user.id,
+                    content: editText.trim(),
+                }),
+            });
+            const result = await resp.json();
+            if (result.success) {
+                setMessages(prev => prev.map(m =>
+                    m.id === editingMessage.id
+                        ? { ...m, content: editText.trim(), is_edited: true }
+                        : m
+                ));
+                setToast({ type: 'success', message: 'Message Edited' });
+            } else {
+                setToast({ type: 'error', message: result.error || 'Edit Failed' });
+            }
+        } catch (e) {
+            console.error('Edit message error:', e);
+            setToast({ type: 'error', message: 'Failed To Edit Message' });
+        }
+        setEditingMessage(null);
+        setEditText('');
+    };
+
+    const handleEditCancel = () => {
+        setEditingMessage(null);
+        setEditText('');
+    };
+
+    // Handle forwarding a message to another conversation
+    const handleForwardMessage = (message) => {
+        setForwardingMessage(message);
+    };
+
+    const handleForwardSend = async (targetConversation) => {
+        if (!forwardingMessage || !targetConversation || !user) return;
+        try {
+            const content = `[Forwarded] ${forwardingMessage.content}`;
+            const token = getAccessToken();
+            await fetch('/api/messenger/send-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    conversationId: targetConversation.id,
+                    senderId: user.id,
+                    content,
+                }),
+            });
+            setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.username || 'Conversation'}` });
+        } catch (e) {
+            console.error('Forward error:', e);
+            setToast({ type: 'error', message: 'Failed To Forward Message' });
+        }
+        setForwardingMessage(null);
+    };
+
+    // Handle GIF send — sends GIF URL as a message
+    const handleGifSend = (gifUrl) => {
+        if (!gifUrl) return;
+        handleSendMessage(`[GIF](${gifUrl})`);
+    };
+
+    // Pin/Unpin conversation
+    const handleTogglePin = (conversationId) => {
+        setPinnedConvoIds(prev => {
+            const updated = prev.includes(conversationId)
+                ? prev.filter(id => id !== conversationId)
+                : [...prev, conversationId].slice(0, 5); // max 5 pinned
+            localStorage.setItem('sp-pinned-conversations', JSON.stringify(updated));
+            return updated;
+        });
     };
 
     // Handle media (photo/video) upload
@@ -3652,7 +3772,17 @@ function MessengerPage() {
 
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: 600, fontSize: 15 }}>{otherUser?.username}</div>
-                                        <div style={{ fontSize: 12, color: C.textSec }}>Active Now</div>
+                                        <div style={{ fontSize: 12, color: otherUserStatus === 'online' ? C.green : C.textSec }}>
+                                            {otherUserStatus === 'online' ? 'Active Now' : otherUserLastSeen ? `Active ${(() => {
+                                                const diff = Date.now() - new Date(otherUserLastSeen).getTime();
+                                                const mins = Math.floor(diff / 60000);
+                                                if (mins < 1) return 'just now';
+                                                if (mins < 60) return `${mins}m ago`;
+                                                const hrs = Math.floor(mins / 60);
+                                                if (hrs < 24) return `${hrs}h ago`;
+                                                return `${Math.floor(hrs / 24)}d ago`;
+                                            })()}` : 'Offline'}
+                                        </div>
                                     </div>
 
                                     <div style={{ display: 'flex', gap: 8 }}>
@@ -3887,6 +4017,8 @@ function MessengerPage() {
                                                         onRetry={handleRetryMessage}
                                                         onReact={handleReaction}
                                                         onDelete={handleDeleteMessage}
+                                                        onEdit={handleEditMessage}
+                                                        onForward={handleForwardMessage}
                                                         currentUserId={user.id}
                                                     />
                                                 </Fragment>
@@ -3919,7 +4051,32 @@ function MessengerPage() {
                                     </div>
                                 )}
                                 {/* Message Input */}
-                                <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} />
+                                {/* Edit bar — shows when editing a message */}
+                                {editingMessage && (
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        padding: '8px 16px', background: '#E7F3FF',
+                                        borderTop: `1px solid ${C.border}`,
+                                    }}>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: 11, color: C.blue, fontWeight: 600 }}>Editing Message</div>
+                                            <input
+                                                type="text" value={editText}
+                                                onChange={e => setEditText(e.target.value)}
+                                                onKeyDown={e => { if (e.key === 'Enter') handleEditSave(); if (e.key === 'Escape') handleEditCancel(); }}
+                                                style={{
+                                                    width: '100%', border: 'none', background: 'transparent',
+                                                    fontSize: 14, outline: 'none', color: C.text,
+                                                }}
+                                                autoFocus
+                                            />
+                                        </div>
+                                        <button onClick={handleEditCancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 18 }}>×</button>
+                                        <button onClick={handleEditSave} style={{ background: C.blue, border: 'none', borderRadius: 6, color: 'white', padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}>Save</button>
+                                    </div>
+                                )}
+
+                                <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} />
                             </>
                         ) : (
                             /* No conversation selected */

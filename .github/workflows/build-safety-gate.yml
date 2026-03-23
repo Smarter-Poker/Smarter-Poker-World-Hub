@@ -26,6 +26,18 @@ jobs:
         run: npm ci --ignore-scripts
 
       # ═══════════════════════════════════════════════════════════════
+      # CHECK 0: TypeScript compilation (catches type errors before deploy)
+      # ═══════════════════════════════════════════════════════════════
+      - name: "CHECK 0: TypeScript compilation"
+        run: |
+          echo "Running TypeScript check..."
+          npx tsc --noEmit 2>&1 || {
+            echo "::error::FATAL: TypeScript compilation failed"
+            exit 1
+          }
+          echo "✓ TypeScript compilation passed"
+
+      # ═══════════════════════════════════════════════════════════════
       # CHECK 1: No .single() calls (must use .maybeSingle())
       # .single() throws PGRST116 when 0 rows returned = crash
       # ═══════════════════════════════════════════════════════════════

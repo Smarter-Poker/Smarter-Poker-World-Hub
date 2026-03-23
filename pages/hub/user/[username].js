@@ -741,6 +741,11 @@ export default function UserProfilePage() {
     const [coverLoaded, setCoverLoaded] = useState(false);
     const [shareCopied, setShareCopied] = useState(false);
     const shareCopiedTimer = useRef(null);
+    const [bioExpanded, setBioExpanded] = useState(false);
+    const [animatedStats, setAnimatedStats] = useState({ friends: 0, following: 0, followers: 0, posts: 0 });
+    const [statsAnimated, setStatsAnimated] = useState(false);
+    const [pullRefreshing, setPullRefreshing] = useState(false);
+    const pullStartY = useRef(null);
 
     // Poker Activity state
     const [pokerCheckins, setPokerCheckins] = useState([]);
@@ -756,6 +761,66 @@ export default function UserProfilePage() {
     // Profile menu state
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [profileMenuMsg, setProfileMenuMsg] = useState('');
+
+    // ── Animated Stat Counters: count-up from 0 when stats load ──
+    useEffect(() => {
+        if (statsAnimated) return;
+        const target = stats;
+        const hasData = target.friends > 0 || target.followers > 0 || target.following > 0 || target.posts > 0;
+        if (!hasData) { setAnimatedStats(target); return; }
+        setStatsAnimated(true);
+        const duration = 600; // ms
+        const steps = 30;
+        const interval = duration / steps;
+        let step = 0;
+        const timer = setInterval(() => {
+            step++;
+            const progress = Math.min(step / steps, 1);
+            // Ease-out cubic
+            const ease = 1 - Math.pow(1 - progress, 3);
+            setAnimatedStats({
+                friends: Math.round(target.friends * ease),
+                following: Math.round(target.following * ease),
+                followers: Math.round(target.followers * ease),
+                posts: Math.round(target.posts * ease),
+            });
+            if (step >= steps) clearInterval(timer);
+        }, interval);
+        return () => clearInterval(timer);
+    }, [stats, statsAnimated]);
+
+    // ── Pull-to-Refresh: mobile gesture handler ──
+    useEffect(() => {
+        const handleTouchStart = (e) => {
+            if (window.scrollY === 0) pullStartY.current = e.touches[0].clientY;
+        };
+        const handleTouchMove = (e) => {
+            if (pullStartY.current === null) return;
+            const dy = e.touches[0].clientY - pullStartY.current;
+            if (dy > 80 && window.scrollY === 0 && !pullRefreshing) {
+                setPullRefreshing(true);
+                pullStartY.current = null;
+            }
+        };
+        const handleTouchEnd = () => { pullStartY.current = null; };
+        window.addEventListener('touchstart', handleTouchStart, { passive: true });
+        window.addEventListener('touchmove', handleTouchMove, { passive: true });
+        window.addEventListener('touchend', handleTouchEnd, { passive: true });
+        return () => {
+            window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, [pullRefreshing]);
+
+    // ── Pull-to-Refresh: trigger reload ──
+    useEffect(() => {
+        if (!pullRefreshing || !username) return;
+        // Invalidate cache and re-fetch
+        try { localStorage.removeItem(`sp-profile-cache-${username}`); } catch (_) {}
+        setStatsAnimated(false);
+        router.replace(router.asPath).finally(() => setPullRefreshing(false));
+    }, [pullRefreshing, username]);
 
     // Cross-tab avatar/cache sync — re-fetch when profile is edited in another tab
     useEffect(() => {
@@ -792,7 +857,7 @@ export default function UserProfilePage() {
                 .eq('status', 'accepted')
                 .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`)
                 .then(({ count }) => {
-                    if (count != null) setStats(prev => ({ ...prev, friends: Math.floor(count / 2) }));
+                    if (count != null) setStats(prev => ({ ...prev, friends: count }));
                 });
         });
 
@@ -856,6 +921,9 @@ export default function UserProfilePage() {
         clearTimeout(shareCopiedTimer.current);
         setCoverLoaded(false);
         setShareCopied(false);
+        setBioExpanded(false);
+        setStatsAnimated(false);
+        setAnimatedStats({ friends: 0, following: 0, followers: 0, posts: 0 });
 
         // --- PHASE 1: SWR CACHE HYDRATION (Instant Render) ---
         const CACHE_KEY = `sp-profile-cache-${username}`;
@@ -939,7 +1007,7 @@ export default function UserProfilePage() {
                 const [friendsRes, followingRes, followersRes, postsRes, userFriendshipsRes, ...authResults] = batch1Results;
 
                 finalStats = {
-                    friends: friendsRes.count ? Math.floor(friendsRes.count / 2) : 0,
+                    friends: friendsRes.count || 0,
                     following: followingRes.count || 0,
                     followers: followersRes.count || 0,
                     posts: postsRes.count || 0
@@ -1100,7 +1168,7 @@ export default function UserProfilePage() {
                         ...prev,
                         following: followingRes.count || prev.following,
                         followers: followersRes.count || prev.followers,
-                        friends: friendsRes.count ? Math.floor(friendsRes.count / 2) : prev.friends,
+                        friends: friendsRes.count ?? prev.friends,
                         posts: postsCountRes.count ?? prev.posts,
                     }));
                 } catch (e) {
@@ -1498,10 +1566,14 @@ export default function UserProfilePage() {
                         <div style={{ flex: 1, paddingBottom: 8 }}>
                             <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: C.text }}>{displayName}</h1>
                             {profile.bio && (
-                                <div style={{ fontSize: 14, color: C.textSec, marginTop: 4, lineHeight: 1.4 }}>{profile.bio}</div>
+                                <div style={{ fontSize: 14, color: C.textSec, marginTop: 4, lineHeight: 1.4 }}>
+                                    {profile.bio.length > 150 && !bioExpanded
+                                        ? <>{profile.bio.slice(0, 150).trim()}... <span onClick={() => setBioExpanded(true)} style={{ color: C.blue, cursor: 'pointer', fontWeight: 600 }}>See More</span></>
+                                        : <>{profile.bio}{profile.bio.length > 150 && <>{' '}<span onClick={() => setBioExpanded(false)} style={{ color: C.blue, cursor: 'pointer', fontWeight: 600 }}>See Less</span></>}</>}
+                                </div>
                             )}
                             <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 4, flexWrap: 'wrap' }}>
-                                {[{ val: stats.friends, label: 'Friends' }, { val: stats.followers, label: 'Followers' }, { val: stats.following, label: 'Following' }, { val: stats.posts, label: 'Posts' }].map((s, i) => (
+                                {[{ val: animatedStats.friends, label: 'Friends' }, { val: animatedStats.followers, label: 'Followers' }, { val: animatedStats.following, label: 'Following' }, { val: animatedStats.posts, label: 'Posts' }].map((s, i) => (
                                     <React.Fragment key={s.label}>
                                         {i > 0 && <span>·</span>}
                                         <span><strong style={{ display: 'inline-block', minWidth: 12, textAlign: 'center', transition: 'transform 0.3s ease, opacity 0.3s ease' }}>{s.val}</strong> {s.label}</span>
