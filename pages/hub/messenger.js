@@ -773,8 +773,10 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         padding: '4px 6px',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                         zIndex: 10,
+                        flexWrap: 'wrap',
+                        maxWidth: 200,
                     }}>
-                        {['', '👍', '😂', '😮', '😢'].map(emoji => (
+                        {REACTION_EMOJIS.map(emoji => (
                             <button
                                 key={emoji}
                                 onClick={() => handleReaction(emoji)}
@@ -782,13 +784,13 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                     border: 'none',
                                     background: 'transparent',
                                     cursor: 'pointer',
-                                    fontSize: 16,
-                                    padding: 4,
-                                    borderRadius: 4,
-                                    transition: 'background 0.2s',
+                                    fontSize: 18,
+                                    padding: '3px 4px',
+                                    borderRadius: 6,
+                                    transition: 'transform 0.15s, background 0.15s',
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
-                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.25)'; e.currentTarget.style.background = C.hoverBg; }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'transparent'; }}
                             >{emoji}</button>
                         ))}
                         {isOwn && (
@@ -2516,7 +2518,7 @@ function MessengerPage() {
         };
     }, [user]);
 
-    // Calculate total unread count
+    // Calculate total unread count + favicon badge
     useEffect(() => {
         const total = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
         setTotalUnreadCount(total);
@@ -2524,6 +2526,8 @@ function MessengerPage() {
         if (typeof document !== 'undefined') {
             document.title = total > 0 ? `(${total}) Messenger | Smarter.Poker` : 'Messenger | Smarter.Poker';
         }
+        // Update favicon with red badge
+        updateFaviconBadge(total);
     }, [conversations]);
 
     // Sync local conversations state to Zustand/localStorage cache
@@ -2752,15 +2756,40 @@ function MessengerPage() {
         return (
             <div style={{
                 minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 background: C.bg,
+                display: 'flex',
             }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-                    <div style={{ color: C.textSec }}>Loading Messenger...</div>
+                {/* Skeleton sidebar */}
+                <div style={{
+                    width: 360, background: C.card,
+                    borderRight: `1px solid ${C.border}`,
+                }}>
+                    <div style={{ padding: '12px 16px' }}>
+                        <div style={{
+                            width: 140, height: 28, borderRadius: 8,
+                            background: `linear-gradient(110deg, ${C.bg} 8%, ${C.border} 18%, ${C.bg} 33%)`,
+                            backgroundSize: '200% 100%',
+                            animation: 'shimmer 1.5s infinite',
+                        }} />
+                    </div>
+                    <ConversationSkeleton count={8} />
                 </div>
+                {/* Skeleton chat area */}
+                <div style={{
+                    flex: 1, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <div style={{ textAlign: 'center', color: C.textSec }}>
+                        <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>💬</div>
+                        <div>Loading Messenger...</div>
+                    </div>
+                </div>
+                <style>{`
+                    @keyframes shimmer {
+                        0% { background-position: 200% 0; }
+                        100% { background-position: -200% 0; }
+                    }
+                `}</style>
             </div>
         );
     }
@@ -3299,6 +3328,11 @@ function MessengerPage() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Empty State — No conversations yet */}
+                                {conversations.length === 0 && !searchQuery && (
+                                    <EmptyConversationState />
+                                )}
 
                                 {/* Regular Conversations */}
                                 {conversations.filter(conv => {
