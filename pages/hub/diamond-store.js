@@ -1326,43 +1326,6 @@ export default function DiamondStorePage() {
                                 draggable={false}
                                 loading="lazy" />
 
-                            {/* ── BUG-S3: Corrected text overlay to fix image typos ── */}
-                            <div style={{
-                                position: 'absolute',
-                                top: '3.5%',
-                                left: '3%',
-                                right: '3%',
-                                bottom: '76%',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                textAlign: 'center',
-                                fontFamily: "'Cinzel', 'Times New Roman', serif",
-                                fontStyle: 'italic',
-                                fontWeight: 700,
-                                color: '#c0d8f0',
-                                textShadow: '0 0 8px rgba(0,180,255,0.4), 0 1px 2px rgba(0,0,0,0.8)',
-                                pointerEvents: 'none',
-                                zIndex: 2,
-                                lineHeight: 1.35,
-                                background: 'linear-gradient(180deg, rgba(20,35,60,0.97) 0%, rgba(15,25,50,0.97) 50%, rgba(20,35,60,0.97) 100%)',
-                                borderRadius: 4,
-                                padding: '8px 12px',
-                            }}>
-                                <div style={{ fontSize: 'clamp(11px, 2.8vw, 16px)' }}>
-                                    Use Diamonds For Cash Games & Tournaments,
-                                </div>
-                                <div style={{ fontSize: 'clamp(11px, 2.8vw, 16px)' }}>
-                                    Playing, Training, Access To Special Features &
-                                </div>
-                                <div style={{ fontSize: 'clamp(11px, 2.8vw, 16px)' }}>
-                                    Upgrades For Smarter.Poker And More!
-                                </div>
-                                <div style={{ fontSize: 'clamp(12px, 3vw, 17px)', marginTop: 6, fontWeight: 800, color: '#e0f0ff' }}>
-                                    5% Bonus On $100+ Purchases!
-                                </div>
-                            </div>
 
 
 
