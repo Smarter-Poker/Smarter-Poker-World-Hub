@@ -1266,6 +1266,8 @@ function MessengerPage() {
     const [activeConversation, setActiveConversation] = useState(null);
     const [messages, setMessages] = useState([]);
     const [loadingMessages, setLoadingMessages] = useState(false);
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isMobile, setIsMobile] = useState(false);
@@ -1973,6 +1975,7 @@ function MessengerPage() {
 
     const loadMessages = async (conversationId) => {
         setLoadingMessages(true);
+        setHasMoreMessages(true); // Reset on new conversation
         try {
 
             // Use API route to bypass RLS issues
@@ -1983,7 +1986,7 @@ function MessengerPage() {
                     'Content-Type': 'application/json',
                     ...(msgToken ? { Authorization: `Bearer ${msgToken}` } : {}),
                 },
-                body: JSON.stringify({ conversationId, userId: user.id }),
+                body: JSON.stringify({ conversationId, userId: user.id, limit: 50 }),
             });
 
             if (!response.ok) throw new Error(`Request failed (${response.status})`);
@@ -1991,8 +1994,10 @@ function MessengerPage() {
 
             if (result.success && result.messages) {
                 setMessages(result.messages);
+                setHasMoreMessages(result.messages.length >= 50);
             } else {
                 setMessages([]);
+                setHasMoreMessages(false);
             }
 
             // Mark as read - use API with service role to bypass RLS
@@ -2018,6 +2023,40 @@ function MessengerPage() {
         }
         setLoadingMessages(false);
     };
+
+    // Load older messages (pagination — triggered when scrolling to top)
+    const loadOlderMessages = useCallback(async () => {
+        if (!activeConversation || loadingOlderMessages || !hasMoreMessages || messages.length === 0) return;
+        setLoadingOlderMessages(true);
+        try {
+            const oldestMsg = messages[0];
+            const msgToken = getAccessToken();
+            const response = await fetch('/api/messenger/get-messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(msgToken ? { Authorization: `Bearer ${msgToken}` } : {}),
+                },
+                body: JSON.stringify({
+                    conversationId: activeConversation.id,
+                    userId: user.id,
+                    before: oldestMsg.created_at,
+                    limit: 50,
+                }),
+            });
+            if (!response.ok) throw new Error(`Request failed (${response.status})`);
+            const result = await response.json();
+            if (result.success && result.messages?.length > 0) {
+                setMessages(prev => [...result.messages, ...prev]);
+                setHasMoreMessages(result.messages.length >= 50);
+            } else {
+                setHasMoreMessages(false);
+            }
+        } catch (e) {
+            console.error('Load older messages error:', e);
+        }
+        setLoadingOlderMessages(false);
+    }, [activeConversation, loadingOlderMessages, hasMoreMessages, messages, user]);
 
     const handleSelectConversation = async (conversation) => {
         setActiveConversation(conversation);
