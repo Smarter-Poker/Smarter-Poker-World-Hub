@@ -1426,6 +1426,46 @@ function MessengerPage() {
         init();
     }, []);
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PROFILE SYNC: Update local user state when profile is edited
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        const handleProfileUpdated = async () => {
+            try {
+                const authUser = getAuthUser();
+                if (!authUser) return;
+                const token = getAccessToken();
+                const resp = await fetch('/api/user/get-header-stats', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                }).then(r => r.json()).catch(() => ({}));
+                if (resp?.username || resp?.avatar_url) {
+                    setUser(prev => ({
+                        ...prev,
+                        username: resp.username || prev?.username,
+                        avatar_url: resp.avatar_url ?? prev?.avatar_url,
+                        full_name: resp.full_name || prev?.full_name,
+                    }));
+                }
+            } catch { /* non-critical */ }
+        };
+
+        window.addEventListener('profile-updated', handleProfileUpdated);
+
+        // Cross-tab: BroadcastChannel avatar sync
+        let avatarBc = null;
+        try {
+            avatarBc = new BroadcastChannel('smarter_poker_avatar_sync');
+            avatarBc.onmessage = () => handleProfileUpdated();
+        } catch { /* BroadcastChannel not supported */ }
+
+        return () => {
+            window.removeEventListener('profile-updated', handleProfileUpdated);
+            if (avatarBc) avatarBc.close();
+        };
+    }, []);
+
     //  MULTI-DEVICE RESILIENCE: Listen for auth changes from ANY device
     // This handles: token refresh, login from another device, session recovery
     useEffect(() => {
