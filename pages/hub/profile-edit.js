@@ -1474,24 +1474,29 @@ export default function ProfilePage() {
                                                     <button
                                                         onClick={async () => {
                                                             if (!live.video_url) {
-                                                                alert('No video available to post');
+                                                                setMessage('No video available to post');
                                                                 return;
                                                             }
                                                             // Post to feed
-                                                            const { error } = await supabase.from('social_posts').insert({
-                                                                author_id: user?.id,
-                                                                content: `🔴 ${live.title || 'Live replay'}`,
-                                                                content_type: 'video',
-                                                                media_urls: [live.video_url],
-                                                                visibility: 'public'
-                                                            });
-                                                            if (!error) {
+                                                            try {
+                                                                const { error } = await supabase.from('social_posts').insert({
+                                                                    author_id: user?.id,
+                                                                    content: `🔴 ${live.title || 'Live replay'}`,
+                                                                    content_type: 'video',
+                                                                    media_urls: [live.video_url],
+                                                                    visibility: 'public'
+                                                                });
+                                                                if (error) throw error;
                                                                 await supabase.from('live_streams')
                                                                     .update({ is_posted: true, is_draft: false })
                                                                     .eq('id', live.id);
                                                                 setUserLives(prev => prev.map(l =>
                                                                     l.id === live.id ? { ...l, is_posted: true, is_draft: false } : l
                                                                 ));
+                                                                setMessage('Live stream posted to your feed!');
+                                                            } catch (e) {
+                                                                console.error('Error posting live stream:', e);
+                                                                setMessage('Error posting live stream: ' + (e.message || 'Unknown error'));
                                                             }
                                                         }}
                                                         style={{
