@@ -211,7 +211,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
 
-    const emojis = ['😀', '😂', '', '👍', '', '', '😎', '🤔', '👏', '💯', 's', 'h', 'd', 'c', '', ''];
+    const emojis = ['😀', '😂', '❤️', '👍', '🔥', '😮', '😎', '🤔', '👏', '💯', '♠️', '♥️', '♦️', '♣️', '🃏', '🎰'];
 
     const handleSend = () => {
         if (!text.trim()) return;
@@ -1403,7 +1403,18 @@ function MessengerPage() {
     // ═══════════════════════════════════════════════════════════════════════════
     useEffect(() => {
         let debounceTimer = null;
-        const handleProfileUpdated = () => {
+        const handleProfileUpdated = (e) => {
+            // OPTIMISTIC: Instant UI update from event.detail (no network needed)
+            const d = e?.detail;
+            if (d && (d.full_name || d.avatar_url || d.username)) {
+                setUser(prev => ({
+                    ...prev,
+                    ...(d.full_name ? { full_name: d.full_name } : {}),
+                    ...(d.username ? { username: d.username } : {}),
+                    ...(d.avatar_url ? { avatar_url: d.avatar_url } : {}),
+                }));
+            }
+            // VERIFY: Debounced fetch confirms and fills remaining fields
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(async () => {
                 try {
@@ -1834,14 +1845,16 @@ function MessengerPage() {
         setIncomingCall(null);
     };
 
-    // Broadcast our typing state
+    // Broadcast our typing state — reuse the existing typing channel subscription
     const broadcastTyping = () => {
         if (!user || !activeConversation) return;
-        supabase.channel(`typing:${activeConversation.id}`).send({
+        // Supabase reuses channels with the same name, so this is safe
+        const ch = supabase.channel(`typing:${activeConversation.id}`);
+        ch.send({
             type: 'broadcast',
             event: 'typing',
             payload: { userId: user.id, username: user.username },
-        });
+        }).catch(() => { /* channel not yet subscribed is fine */ });
     };
 
     const loadConversations = async (userId) => {
@@ -2497,10 +2510,11 @@ function MessengerPage() {
 
         searchTimeout.current = setTimeout(async () => {
             try {
+                const escaped = query.replace(/[%_\\]/g, '\\$&');
                 const { data } = await supabase
                     .from('profiles')
                     .select('id, username, full_name, avatar_url')
-                    .ilike('username', `%${query}%`)
+                    .ilike('username', `%${escaped}%`)
                     .neq('id', user?.id)
                     .limit(10);
 
