@@ -1402,26 +1402,30 @@ function MessengerPage() {
     // PROFILE SYNC: Update local user state when profile is edited
     // ═══════════════════════════════════════════════════════════════════════════
     useEffect(() => {
-        const handleProfileUpdated = async () => {
-            try {
-                const authUser = getAuthUser();
-                if (!authUser) return;
-                const token = getAccessToken();
-                const resp = await fetch('/api/user/get-header-stats', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                }).then(r => r.json()).catch(() => ({}));
-                const p = resp?.profile;
-                if (p?.username || p?.avatar_url) {
-                    setUser(prev => ({
-                        ...prev,
-                        username: p.username || prev?.username,
-                        avatar_url: p.avatar_url ?? prev?.avatar_url,
-                        full_name: p.full_name || prev?.full_name,
-                    }));
-                }
-            } catch { /* non-critical */ }
+        let debounceTimer = null;
+        const handleProfileUpdated = () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                try {
+                    const authUser = getAuthUser();
+                    if (!authUser) return;
+                    const token = getAccessToken();
+                    const resp = await fetch('/api/user/get-header-stats', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                    }).then(r => r.json()).catch(() => ({}));
+                    const p = resp?.profile;
+                    if (p?.username || p?.avatar_url) {
+                        setUser(prev => ({
+                            ...prev,
+                            username: p.username || prev?.username,
+                            avatar_url: p.avatar_url ?? prev?.avatar_url,
+                            full_name: p.full_name || prev?.full_name,
+                        }));
+                    }
+                } catch { /* non-critical */ }
+            }, 300);
         };
 
         window.addEventListener('profile-updated', handleProfileUpdated);
@@ -1434,6 +1438,7 @@ function MessengerPage() {
         } catch { /* BroadcastChannel not supported */ }
 
         return () => {
+            clearTimeout(debounceTimer);
             window.removeEventListener('profile-updated', handleProfileUpdated);
             if (avatarBc) avatarBc.close();
         };
