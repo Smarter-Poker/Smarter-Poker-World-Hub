@@ -165,12 +165,20 @@ function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
             ) : (
                 <div style={{ textAlign: 'center', padding: 20 }}>
                     <div style={{ fontSize: 14, color: '#888', marginBottom: 8 }}>Resume Not Added Yet</div>
-                    <div style={{ fontSize: 12, opacity: 0.5 }}>
+                    <div style={{ fontSize: 12, opacity: 0.5, marginBottom: isOwnProfile ? 12 : 0 }}>
                         {isOwnProfile
-                            ? 'Link your HendonMob profile in settings to display your tournament stats'
+                            ? 'Link your HendonMob profile to display your tournament stats'
                             : 'This player hasn\'t linked their HendonMob profile yet'
                         }
                     </div>
+                    {isOwnProfile && (
+                        <Link href="/hub/profile-edit" style={{
+                            display: 'inline-block', padding: '8px 20px',
+                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                            color: '#000', borderRadius: 8, fontWeight: 700, fontSize: 13,
+                            textDecoration: 'none', transition: 'opacity 0.2s',
+                        }}>Link Your Resume</Link>
+                    )}
                 </div>
             )}
             {hendonData?.hendon_url && onOpenResume && (
@@ -759,6 +767,7 @@ export default function UserProfilePage() {
     // Tab state — persisted
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-user-profile', 'all');
     const [articleReader, setArticleReader] = useState({ open: false, url: '', title: '' });
+    const [lightboxUrl, setLightboxUrl] = useState(null);
 
     // Profile menu state
     const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -1794,9 +1803,15 @@ export default function UserProfilePage() {
                                     transition: 'width 0.6s ease',
                                 }} />
                             </div>
-                            <div style={{ fontSize: 12, color: C.textSec, marginTop: 6 }}>
-                                Add: {missing.join(', ')}
-                            </div>
+                            <Link href="/hub/profile-edit" style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                fontSize: 12, color: C.blue, marginTop: 8, textDecoration: 'none',
+                                fontWeight: 600, padding: '6px 10px', borderRadius: 6,
+                                background: 'rgba(24, 119, 242, 0.08)', transition: 'background 0.2s',
+                            }}>
+                                <span style={{ color: C.textSec, fontWeight: 400 }}>Add: {missing.join(', ')}</span>
+                                <span>Complete Profile →</span>
+                            </Link>
                         </div>
                     );
                 })()}
@@ -1865,6 +1880,12 @@ export default function UserProfilePage() {
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
                                             <span style={{ fontSize: 18 }}>🏨</span>
                                             <span>Home Casino: <strong>{profile.home_casino}</strong></span>
+                                        </div>
+                                    )}
+                                    {profile.occupation && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: C.text }}>
+                                            <span style={{ fontSize: 18 }}>💼</span>
+                                            <span>Works As <strong>{profile.occupation}</strong></span>
                                         </div>
                                     )}
                                     {profile.favorite_hand && (
@@ -2146,8 +2167,16 @@ export default function UserProfilePage() {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                                     {photos.map(photo => (
                                         photo.media_urls?.map((url, i) => (
-                                            <div key={`${photo.id}-${i}`} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                                <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Image" loading="lazy" />
+                                            <div key={`${photo.id}-${i}`} style={{ aspectRatio: '1', overflow: 'hidden', cursor: 'pointer', borderRadius: 4, position: 'relative' }}
+                                                onClick={() => setLightboxUrl(url)}
+                                            >
+                                                <img
+                                                    src={url}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.3s' }}
+                                                    alt="Photo"
+                                                    loading="lazy"
+                                                    onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentNode.style.background = '#e4e6eb'; e.currentTarget.parentNode.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#999;font-size:12px">Photo unavailable</div>'; }}
+                                                />
                                             </div>
                                         ))
                                     ))}
@@ -2395,6 +2424,44 @@ export default function UserProfilePage() {
                             >Submit Report</button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Photo Lightbox Modal */}
+            {lightboxUrl && (
+                <div
+                    onClick={() => setLightboxUrl(null)}
+                    onKeyDown={(e) => { if (e.key === 'Escape') setLightboxUrl(null); }}
+                    tabIndex={0}
+                    style={{
+                        position: 'fixed', inset: 0, zIndex: 9999,
+                        background: 'rgba(0,0,0,0.92)', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center',
+                        cursor: 'zoom-out', animation: 'fadeIn 0.2s ease',
+                    }}
+                >
+                    <img
+                        src={lightboxUrl}
+                        alt="Full size photo"
+                        style={{
+                            maxWidth: '90vw', maxHeight: '90vh',
+                            objectFit: 'contain', borderRadius: 8,
+                            boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                    <button
+                        onClick={() => setLightboxUrl(null)}
+                        style={{
+                            position: 'absolute', top: 20, right: 20,
+                            background: 'rgba(255,255,255,0.15)', border: 'none',
+                            color: 'white', width: 40, height: 40, borderRadius: '50%',
+                            fontSize: 20, cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center',
+                            backdropFilter: 'blur(4px)',
+                        }}
+                    >✕</button>
+                    <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
                 </div>
             )}
 
