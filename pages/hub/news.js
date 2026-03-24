@@ -3234,6 +3234,129 @@ export default function NewsHub() {
                     onClose={() => setArticleReader({ open: false, url: '', title: '' })}
                 />
             )}
+
+            {/* Fullscreen Reels Viewer - TikTok-style inline playback */}
+            {reelViewerOpen && reels.length > 0 && (() => {
+                const currentReel = reels[reelViewerIndex] || reels[0];
+                const videoId = getYouTubeVideoId(currentReel?.video_url);
+                const displayTitle = currentReel?.title || currentReel?.caption?.split('\n')[0] || 'Poker Reel';
+                const channelName = currentReel?.channel_name || currentReel?.profiles?.full_name || 'Smarter.Poker';
+
+                return (
+                    <div
+                        style={{
+                            position: 'fixed', inset: 0, background: '#000', zIndex: 99999,
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+                        }}
+                        onClick={(e) => { if (e.target === e.currentTarget) setReelViewerOpen(false); }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                                if (reelViewerIndex < reels.length - 1) setReelViewerIndex(prev => prev + 1);
+                            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                                if (reelViewerIndex > 0) setReelViewerIndex(prev => prev - 1);
+                            } else if (e.key === 'Escape') {
+                                setReelViewerOpen(false);
+                            }
+                        }}
+                        tabIndex={0}
+                        ref={(el) => el && el.focus()}
+                    >
+                        {/* Close button - subtle, top-left */}
+                        <button
+                            onClick={() => setReelViewerOpen(false)}
+                            style={{
+                                position: 'absolute', top: 16, left: 16, zIndex: 10,
+                                width: 40, height: 40, borderRadius: '50%',
+                                background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
+                                border: 'none', color: 'white', fontSize: 18, cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'background 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.3)'}
+                            onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.15)'}
+                        >✕</button>
+
+                        {/* Previous arrow */}
+                        {reelViewerIndex > 0 && (
+                            <button
+                                onClick={() => setReelViewerIndex(prev => prev - 1)}
+                                style={{
+                                    position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+                                    width: 48, height: 48, borderRadius: '50%',
+                                    background: 'rgba(255,255,255,0.1)', border: 'none',
+                                    color: 'white', fontSize: 24, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'background 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.25)'}
+                                onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
+                            >\u2190</button>
+                        )}
+
+                        {/* Next arrow */}
+                        {reelViewerIndex < reels.length - 1 && (
+                            <button
+                                onClick={() => setReelViewerIndex(prev => prev + 1)}
+                                style={{
+                                    position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+                                    width: 48, height: 48, borderRadius: '50%',
+                                    background: 'rgba(255,255,255,0.1)', border: 'none',
+                                    color: 'white', fontSize: 24, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'background 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.25)'}
+                                onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
+                            >\u2192</button>
+                        )}
+
+                        {/* Video container */}
+                        <div style={{ width: '100%', height: '100%', maxWidth: '100vw', maxHeight: '100vh' }}>
+                            {videoId ? (
+                                <iframe
+                                    key={currentReel.id}
+                                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&controls=1&showinfo=0&iv_load_policy=3&fs=0`}
+                                    style={{ width: '100%', height: '100%', border: 'none' }}
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                />
+                            ) : currentReel?.video_url ? (
+                                <video
+                                    key={currentReel.id}
+                                    src={currentReel.video_url}
+                                    autoPlay
+                                    controls
+                                    playsInline
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
+                                    onEnded={() => {
+                                        if (reelViewerIndex < reels.length - 1) setReelViewerIndex(prev => prev + 1);
+                                    }}
+                                />
+                            ) : null}
+                        </div>
+
+                        {/* Bottom info bar */}
+                        <div style={{
+                            position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 20px',
+                            background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+                            pointerEvents: 'none'
+                        }}>
+                            <div>
+                                <div style={{ color: 'white', fontSize: 15, fontWeight: 600, marginBottom: 4, textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>
+                                    {displayTitle}
+                                </div>
+                                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
+                                    {channelName}
+                                </div>
+                            </div>
+                            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 500 }}>
+                                {reelViewerIndex + 1} / {reels.length}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </>
     );
 }
