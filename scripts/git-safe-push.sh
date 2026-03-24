@@ -375,8 +375,17 @@ while [ $attempt -lt $MAX_RETRIES ]; do
   fi
 
   # ── PUSH ──
+  # NOTE: Antigravity IDE injects its own askpass helper with a hardcoded user ID,
+  # which overrides gh auth credentials. We bypass this by constructing the push URL
+  # with the gh auth token directly for GitHub repos.
   echo "🚀 Pushing to ${REMOTE}/${BRANCH}..."
-  if git push "${REMOTE}" "${BRANCH}" 2>&1; then
+  PUSH_URL=$(git remote get-url "${REMOTE}" 2>/dev/null || echo "")
+  GH_TOKEN=$(gh auth token 2>/dev/null || echo "")
+  if [ -n "$GH_TOKEN" ] && echo "$PUSH_URL" | grep -q "github.com"; then
+    # Extract owner/repo from URL
+    REPO_PATH=$(echo "$PUSH_URL" | sed 's|.*github.com[:/]||' | sed 's|\.git$||')
+    AUTH_URL="https://x-access-token:${GH_TOKEN}@github.com/${REPO_PATH}.git"
+    if git push "$AUTH_URL" "${BRANCH}" 2>&1; then
     PHASE3_END=$(date +%s)
     TOTAL_END=$(date +%s)
     COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
@@ -400,11 +409,30 @@ while [ $attempt -lt $MAX_RETRIES ]; do
       --duration "$(( TOTAL_END - TOTAL_START ))" \
       --msg "${MSG}" 2>/dev/null || true
     exit 0
-  else
+   else
     if [ $attempt -lt $MAX_RETRIES ]; then
       delay=$((attempt * 2))
       echo "⚠️  Push rejected. Retrying in ${delay}s..."
       sleep "$delay"
+    fi
+   fi
+  else
+    # Fallback: no gh token or not a GitHub repo — use standard push
+    if git push "${REMOTE}" "${BRANCH}" 2>&1; then
+      PHASE3_END=$(date +%s)
+      TOTAL_END=$(date +%s)
+      COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "N/A")
+      echo ""
+      echo "═══════════════════════════════════════════════════"
+      echo "✅ Push successful!"
+      echo "═══════════════════════════════════════════════════"
+      exit 0
+    else
+      if [ $attempt -lt $MAX_RETRIES ]; then
+        delay=$((attempt * 2))
+        echo "⚠️  Push rejected. Retrying in ${delay}s..."
+        sleep "$delay"
+      fi
     fi
   fi
 done
