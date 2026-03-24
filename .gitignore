@@ -35,6 +35,9 @@ src/content-engine/node_modules
 .env.production
 *.env.*
 
+# Agent brain artifacts (may contain tokens from browser sessions)
+.gemini/
+
 # Auto-generated service worker files (next-pwa / workbox)
 public/sw.js
 public/sw.js.map

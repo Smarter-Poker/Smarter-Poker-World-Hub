@@ -98,12 +98,48 @@ fi
 echo "═══════════════════════════════════════════════════"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PHASE 0: .ENV SAFETY CHECK
+# PHASE 0: SECRET SCANNING & .ENV SAFETY CHECK
 # ═══════════════════════════════════════════════════════════════════════════════
 
 echo ""
-echo "🛡️  Phase 0: .env safety check..."
+echo "🛡️  Phase 0: Secret scanning & .env safety check..."
 
+# ── 0a. TOKEN SCANNING GATE ──
+# Scan ALL tracked files for GitHub PAT patterns BEFORE staging.
+# GitHub's secret scanner auto-revokes ANY token found in commits.
+# This gate prevents that from ever happening again.
+echo "🔍 Scanning for GitHub PAT patterns in working tree..."
+
+# Scan all files that git would track (respects .gitignore)
+TOKEN_LEAKS=$(git ls-files 2>/dev/null | xargs grep -ln 'ghp_[A-Za-z0-9]\{20,\}' 2>/dev/null || true)
+TOKEN_LEAKS2=$(git ls-files 2>/dev/null | xargs grep -ln 'github_pat_[A-Za-z0-9]\{20,\}' 2>/dev/null || true)
+
+# Also scan untracked files that would be staged by git add -A
+UNTRACKED_LEAKS=$(git ls-files --others --exclude-standard 2>/dev/null | xargs grep -ln 'ghp_[A-Za-z0-9]\{20,\}' 2>/dev/null || true)
+UNTRACKED_LEAKS2=$(git ls-files --others --exclude-standard 2>/dev/null | xargs grep -ln 'github_pat_[A-Za-z0-9]\{20,\}' 2>/dev/null || true)
+
+ALL_LEAKS="${TOKEN_LEAKS}${TOKEN_LEAKS:+$'\n'}${TOKEN_LEAKS2}${TOKEN_LEAKS2:+$'\n'}${UNTRACKED_LEAKS}${UNTRACKED_LEAKS:+$'\n'}${UNTRACKED_LEAKS2}"
+ALL_LEAKS=$(echo "$ALL_LEAKS" | sed '/^$/d' | sort -u)
+
+if [ -n "$ALL_LEAKS" ]; then
+    echo ""
+    echo "🚨🚨🚨 CRITICAL: GitHub PAT tokens found in files! 🚨🚨🚨"
+    echo "═══════════════════════════════════════════════════"
+    echo "The following files contain GitHub PAT patterns:"
+    echo "$ALL_LEAKS" | while IFS= read -r f; do
+        [ -n "$f" ] && echo "   ❌ $f"
+    done
+    echo ""
+    echo "GitHub will AUTO-REVOKE your token if these are committed."
+    echo "Remove the token values from these files before pushing."
+    echo "═══════════════════════════════════════════════════"
+    echo "PUSH_OK:false"
+    echo "REASON:token_leak_detected"
+    exit 2
+fi
+echo "✅ No GitHub PAT patterns found in trackable files"
+
+# ── 0b. .ENV FILE CHECK ──
 # Check if .env files are staged for commit
 ENV_STAGED=$(git diff --cached --name-only 2>/dev/null | grep -E '\.env(\.|$)' || true)
 
