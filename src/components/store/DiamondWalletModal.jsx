@@ -80,7 +80,7 @@ const TX_TYPES = {
     venue_review: { icon: '📍', label: 'Venue Review', color: '#f59e0b' },
     promo_code: { icon: '🎟️', label: 'Promo Code', color: '#a855f7' },
     // Gifts / Transfers
-    diamond_gift_sent: { icon: '🎁', label: 'Gift Sent', color: '#f97316' },
+    diamond_gift_sent: { icon: '🎁', label: 'Gift Sent', color: '#00d4ff' },
     diamond_gift_received: { icon: '🎁', label: 'Gift Received', color: '#22c55e' },
     // Other
     refund: { icon: '🔄', label: 'Refund', color: '#94a3b8' },
@@ -1405,9 +1405,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                         onClick={handleTransfer}
                                         style={{
                                             flex: 1, padding: '7px 0',
-                                            background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.3))',
-                                            border: '1px solid rgba(249, 115, 22, 0.5)',
-                                            borderRadius: 8, color: '#f97316',
+                                            background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(0, 150, 200, 0.25))',
+                                            border: '1px solid rgba(0, 212, 255, 0.45)',
+                                            borderRadius: 8, color: '#00d4ff',
                                             fontSize: 11, fontWeight: 700, cursor: 'pointer',
                                         }}
                                     >
@@ -1475,14 +1475,14 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     <div style={{
                         padding: '8px 16px 12px',
                         borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                        background: 'rgba(249, 115, 22, 0.03)',
+                        background: 'rgba(0, 212, 255, 0.03)',
                         animation: 'walletFadeIn 0.2s ease',
                     }}>
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Gift Activity</div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
-                            <div style={{ background: 'rgba(249,115,22,0.08)', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
+                            <div style={{ background: 'rgba(0,212,255,0.08)', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Sent</div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#f97316', fontFamily: 'Orbitron, monospace' }}>{stats.giftsSent.toLocaleString()}</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#00d4ff', fontFamily: 'Orbitron, monospace' }}>{stats.giftsSent.toLocaleString()}</div>
                             </div>
                             <div style={{ background: 'rgba(74,222,128,0.08)', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Received</div>
