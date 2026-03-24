@@ -1841,6 +1841,20 @@ function MessengerPage() {
                     });
                 });
             })
+            // Real-time UPDATE — catches edits, delete-for-everyone, and reactions
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'social_messages',
+                filter: `conversation_id=eq.${activeConversation.id}`,
+            }, (payload) => {
+                const updatedMsg = payload.new;
+                setMessages(prev => prev.map(m =>
+                    m.id === updatedMsg.id
+                        ? { ...m, content: updatedMsg.content, is_deleted: updatedMsg.is_deleted, updated_at: updatedMsg.updated_at, is_edited: !!updatedMsg.updated_at }
+                        : m
+                ));
+            })
             .subscribe();
 
         return () => supabase.removeChannel(channel);
