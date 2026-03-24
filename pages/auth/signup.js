@@ -386,6 +386,16 @@ export default function SignUpPage() {
         e.preventDefault();
         setError('');
 
+        // Validate first and last name
+        if (!formData.firstName.trim()) {
+            setError('Please Enter Your First Name');
+            return;
+        }
+        if (!formData.lastName.trim()) {
+            setError('Please Enter Your Last Name');
+            return;
+        }
+
         // Validate alias availability
         if (aliasAvailable === false) {
             setError('Please Choose A Different Poker Alias');
