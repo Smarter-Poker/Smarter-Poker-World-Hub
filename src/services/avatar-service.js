@@ -196,6 +196,16 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
  */
 async function generateAvatarFromPhoto(photoFile, additionalPrompt = '', userId = null) {
     try {
+        // Get auth token for JWT-authenticated endpoint (BUG #266 FIX requires it)
+        let token = null;
+        try {
+            token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
+        } catch (_) { /* no-op */ }
+
+        if (!token) {
+            throw new Error('Authentication required. Please sign in and try again.');
+        }
+
         // Convert photo to base64 with proper error handling
         const reader = new FileReader();
         const photoBase64 = await new Promise((resolve, reject) => {
@@ -214,7 +224,10 @@ async function generateAvatarFromPhoto(photoFile, additionalPrompt = '', userId 
         try {
             const response = await fetch('/api/avatar/generate-from-photo', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     photoBase64,
                     prompt: additionalPrompt,
@@ -250,18 +263,47 @@ async function generateAvatarFromPhoto(photoFile, additionalPrompt = '', userId 
  */
 async function generateAvatarFromText(prompt, userId = null) {
     try {
-        // Call OpenAI API for text-to-image generation
-        // The API now handles the full prompt enhancement
-        const response = await fetch('/api/avatar/generate-from-text', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, userId })
-        });
+        // Get auth token for JWT-authenticated endpoint (BUG #266 FIX requires it)
+        let token = null;
+        try {
+            token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
+        } catch (_) { /* no-op */ }
 
-        if (!response.ok) throw new Error('AI generation failed');
+        if (!token) {
+            throw new Error('Authentication required. Please sign in and try again.');
+        }
 
-        const data = await response.json();
-        return data.imageUrl;
+        // 90 second timeout to match photo-based generation
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+        try {
+            const response = await fetch('/api/avatar/generate-from-text', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ prompt, userId }),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `AI generation failed (HTTP ${response.status})`);
+            }
+
+            const data = await response.json();
+            return data.imageUrl;
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+                throw new Error('Avatar generation timed out. Please try again.');
+            }
+            throw fetchError;
+        }
     } catch (error) {
         console.error('Text generation error:', error);
         throw error;

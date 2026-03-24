@@ -9,11 +9,12 @@ import React, { memo, useEffect, useState } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
 import { useFeatureGate } from '../gates/FeatureGatePopup';
+import { broadcastSync } from '../../lib/broadcastSync';
 import supabase from '../../lib/supabase.ts';
 import toast from '../../stores/toastStore';
 
 function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = null }) {
-  const { user: contextUser, createCustomAvatar, isVip: contextIsVip, initializing } = useAvatar();
+  const { user: contextUser, createCustomAvatar, isVip: contextIsVip, initializing, refreshAvatar } = useAvatar();
   // Use prop user as fallback when context is still initializing
   const user = contextUser || propUser;
   const effectiveVip = isVip || contextIsVip;
@@ -57,9 +58,12 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
   async function handleDeleteAvatar(avatarId) {
     const result = await deleteCustomAvatar(user.id, avatarId);
     if (result.success) {
+      toast.success('Avatar deleted successfully');
       await loadCustomAvatars();
       setShowDeleteModal(false);
       setAvatarToDelete(null);
+    } else {
+      toast.error(result.error || 'Failed to delete avatar');
     }
   }
 
@@ -173,6 +177,23 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         if (setError) {
           console.error('Error setting active avatar:', setError);
         }
+
+        // ═══ REAL-TIME PROPAGATION ═══
+        // 1. Refresh gallery count so slot counter updates immediately
+        await loadCustomAvatars();
+
+        // 2. Refresh avatar in AvatarContext so header/all components update
+        if (refreshAvatar) refreshAvatar();
+
+        // 3. Broadcast to other tabs via BroadcastChannel
+        broadcastSync('smarter_poker_avatar_sync', 'refresh');
+
+        // 4. Dispatch profile-updated event for components listening via EventBus
+        window.dispatchEvent(new CustomEvent('profile-updated', {
+          detail: { avatar_url: generatedImage }
+        }));
+
+        toast.success('Avatar saved and set as active!');
       } catch (err) {
         console.error('Error in handleAccept:', err);
         toast.error('Failed to save avatar. Please try again.');
@@ -210,19 +231,40 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
       return;
     }
 
+    // Get auth token for JWT-authenticated endpoint
+    let token = null;
+    try {
+      token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
+    } catch (_) { /* no-op */ }
+
+    if (!token) {
+      toast.error('Authentication required. Please sign in and try again.');
+      return;
+    }
+
     setEditing(true);
+
+    // 90 second timeout for AI generation
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
 
     try {
       const response = await fetch('/api/avatar/edit-avatar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           imageUrl: generatedImage,
-          originalPrompt: prompt, // Include original prompt to preserve character
+          originalPrompt: prompt,
           editPrompt: editPrompt,
           userId: user?.id
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       const result = await response.json();
 
@@ -230,12 +272,18 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         setGeneratedImage(result.imageUrl);
         setShowEditMode(false);
         setEditPrompt('');
+        toast.success('Avatar edited successfully!');
       } else {
-        toast.error(result.error);
+        toast.error(result.error || 'Failed to edit avatar');
       }
     } catch (error) {
-      console.error('Avatar edit error:', error);
-      toast.error('Error editing avatar. Please try again.');
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        toast.error('Avatar editing timed out. Please try again.');
+      } else {
+        console.error('Avatar edit error:', error);
+        toast.error('Error editing avatar. Please try again.');
+      }
     } finally {
       setEditing(false);
     }
