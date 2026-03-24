@@ -4983,8 +4983,27 @@ function SocialMediaPage() {
     const showGoLiveModal = useSocialStore((s) => s.showGoLiveModal);
     const setShowGoLiveModal = useSocialStore((s) => s.setShowGoLiveModal);
 
-    // Local state (keep for data/session)
-    const [user, setUser] = useState(null);
+    // 🛡️ INSTANT AUTH: Initialize user synchronously from localStorage
+    // Prevents "Log In" flash while async profile fetch completes
+    const [user, setUser] = useState(() => {
+        if (typeof window === 'undefined') return null;
+        try {
+            const authUser = getAuthUser();
+            if (authUser) {
+                // Return minimal user object to prevent login prompt flash
+                return {
+                    id: authUser.id,
+                    name: authUser.user_metadata?.full_name || authUser.user_metadata?.poker_alias || authUser.email?.split('@')[0] || 'Player',
+                    username: authUser.user_metadata?.poker_alias || null,
+                    avatar: authUser.user_metadata?.avatar_url || null,
+                    tier: null,
+                    role: 'user',
+                    hendon: null
+                };
+            }
+        } catch (_) {}
+        return null;
+    });
     const [loading, setLoading] = useState(true);
     const [posts, setPosts] = useState([]);
     const [contacts, setContacts] = useState([]);
@@ -7264,8 +7283,8 @@ function SocialMediaPage() {
                                 {/* Post Creator */}
                                 {user && <PostCreator user={user} onPost={handlePost} isPosting={isPosting} onGoLive={() => setShowGoLiveModal(true)} onOpenClubPages={() => { setShowClubPages(true); router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true }); }} />}
 
-                                {/* Login prompt */}
-                                {!user && (
+                                {/* Login prompt — only show after auth check completes */}
+                                {!user && !loading && (
                                     <div style={{ background: C.card, borderRadius: 8, padding: 24, textAlign: 'center', marginBottom: 8 }}>
                                         <p style={{ color: C.textSec, marginBottom: 12 }}>Log In To Post And Interact!</p>
                                         <Link href="/auth/login" style={{

@@ -12,7 +12,7 @@ import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
-import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
+import { getAuthUser, getAccessToken, ensureAuthReady } from '../../src/lib/authUtils';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -1412,8 +1412,23 @@ function MessengerPage() {
     // Identity switching
     const { isClubMode, clubPage, hasClubPage } = useActiveIdentity();
 
-    // Local state (keep for data/session)
-    const [user, setUser] = useState(null);
+    // 🛡️ INSTANT AUTH: Initialize user synchronously from localStorage
+    // Prevents "Sign In" flash while async profile fetch completes
+    const [user, setUser] = useState(() => {
+        if (typeof window === 'undefined') return null;
+        try {
+            const authUser = getAuthUser();
+            if (authUser) {
+                return {
+                    ...authUser,
+                    username: authUser.user_metadata?.poker_alias || authUser.email?.split('@')[0],
+                    avatar_url: authUser.user_metadata?.avatar_url || null,
+                    full_name: authUser.user_metadata?.full_name || null,
+                };
+            }
+        } catch (_) {}
+        return null;
+    });
     const [loading, setLoading] = useState(!hasCachedConversations());
     const [conversations, setConversations] = useState(cachedConversations);
     const [activeConversation, setActiveConversation] = useState(null);
@@ -1539,21 +1554,16 @@ function MessengerPage() {
 
                 // FALLBACK: If sync localStorage check fails, try async session check
                 // This catches browser restarts, stale tabs, and token refresh scenarios
-                let fallbackSession = null;
                 if (!authUser) {
                     try {
-                        const { data: { session } } = await supabase.auth.getSession();
-                        if (session?.user) {
-                            authUser = session.user;
-                            fallbackSession = session;
-                        }
+                        authUser = await ensureAuthReady(supabase);
                     } catch (_) {
                         // Session check failed — user is genuinely not logged in
                     }
                 }
 
                 if (authUser) {
-                    const token = getAccessToken() || fallbackSession?.access_token;
+                    const token = getAccessToken();
                     const headers = { 'Authorization': 'Bearer ' + token };
 
                     // PARALLEL: Fire all 3 independent API calls at once
@@ -3255,8 +3265,8 @@ function MessengerPage() {
         );
     }
 
-    // Not logged in
-    if (!user) {
+    // Not logged in — only show after loading completes to prevent flash
+    if (!user && !loading) {
         return (
             <>
                 <SEOHead
