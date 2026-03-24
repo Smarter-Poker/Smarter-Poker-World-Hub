@@ -8,7 +8,7 @@
 
 // GIPHY beta API key — free tier, 100 searches/hour
 // To upgrade: visit developers.giphy.com and request a production key
-const GIPHY_API_KEY = process.env.GIPHY_API_KEY || 'GlVGYHkr3WSBnllca54iNt0yFbjz7L29';
+const GIPHY_API_KEY = process.env.GIPHY_API_KEY || 'GRZ1Yjou2kmUFz1jcXP0S2skHrMZOFoQ';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
