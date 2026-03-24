@@ -193,7 +193,6 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
           detail: { avatar_url: generatedImage }
         }));
 
-        toast.success('Avatar saved and set as active!');
       } catch (err) {
         console.error('Error in handleAccept:', err);
         toast.error('Failed to save avatar. Please try again.');
@@ -209,6 +208,9 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
     if (onClose) {
       onClose();
     }
+
+    // Fire toast AFTER modal closes so user sees it on the gallery page
+    setTimeout(() => toast.success('Avatar saved and set as active!'), 300);
   }
 
   function handleRegenerate() {

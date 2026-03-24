@@ -6,7 +6,7 @@
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useEffect, useState } from 'react';
-import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -143,7 +143,7 @@ export default function AvatarsPage() {
                             </div>
                         )}
 
-                        <BrainHomeButton />
+
                     </div>
 
                     {/* Avatar Gallery - Custom avatars at top for VIP, then preset avatars */}

@@ -859,12 +859,10 @@ export default function ProfilePage() {
                 broadcastSync('smarter_poker_avatar_sync', 'refresh');
             } catch { /* noop */ }
 
-            // Redirect to profile view
-            if (profile.username) {
-                router.push(`/hub/user/${profile.username}`);
-            } else {
-                router.push('/hub');
-            }
+            // Show success and stay on page
+            setMessage('Profile saved successfully!');
+            setOriginalProfile({ ...profile });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 

@@ -217,13 +217,7 @@ export function ProfilePictureHistory({
     }
 
     if (history.length === 0) {
-        return (
-            <div style={styles.container}>
-                <div style={styles.emptyState}>
-                    📷 No profile picture history yet
-                </div>
-            </div>
-        );
+        return null;
     }
 
     return (
