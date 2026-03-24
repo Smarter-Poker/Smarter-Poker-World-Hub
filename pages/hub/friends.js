@@ -796,22 +796,13 @@ function FriendsPage() {
     const handleRemoveFriend = async (friendId) => {
         if (!user || actionInProgress.current) return;
         actionInProgress.current = true;
-        try {
 
-        // Remove both directions
-        await supabase
-            .from('friendships')
-            .delete()
-            .eq('user_id', user.id)
-            .eq('friend_id', friendId)
-
-        await supabase
-            .from('friendships')
-            .delete()
-            .eq('user_id', friendId)
-            .eq('friend_id', user.id)
-
+        // Optimistic update — capture state for rollback
         const removedFriend = friends.find(f => f.id === friendId);
+        const prevFriends = [...friends];
+        const prevFriendIds = new Set(friendIds);
+        const prevSuggestions = [...suggestions];
+
         if (removedFriend) {
             setFriends(prev => prev.filter(f => f.id !== friendId));
             setSuggestions(prev => [...prev, removedFriend]);
@@ -822,8 +813,27 @@ function FriendsPage() {
             });
         }
 
-        busEmit.dataMutated('friends');
-        broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
+        try {
+            // Delete both directions in parallel to avoid orphan records
+            const [res1, res2] = await Promise.all([
+                supabase.from('friendships').delete()
+                    .eq('user_id', user.id)
+                    .eq('friend_id', friendId),
+                supabase.from('friendships').delete()
+                    .eq('user_id', friendId)
+                    .eq('friend_id', user.id),
+            ]);
+            if (res1.error && res2.error) throw res1.error; // Both failed — rollback
+
+            busEmit.dataMutated('friends');
+            broadcastSyncDebounced('smarter_poker_friends_sync', { action: 'refresh', tabId: BROADCAST_TAB_ID });
+        } catch (e) {
+            // Rollback on failure
+            setFriends(prevFriends);
+            setFriendIds(prevFriendIds);
+            setSuggestions(prevSuggestions);
+            toast.error('Could not remove friend. Please try again.');
+            console.error('Error removing friend:', e);
         } finally { actionInProgress.current = false; }
     };
 
