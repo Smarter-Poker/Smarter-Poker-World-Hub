@@ -612,12 +612,16 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
 
             {/* Video Container */}
             {isYouTubeUrl(videoUrl) ? (
-                <iframe
-                    src={getYouTubeEmbedUrl(videoUrl)}
-                    style={{ width: '100vw', height: '100vh', border: 'none' }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                    allowFullScreen
-                />
+                <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
+                    <iframe
+                        src={getYouTubeEmbedUrl(videoUrl)}
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                        allowFullScreen
+                    />
+                    {/* Transparent tap-capture overlay — taps go to handleTap, not swallowed by iframe */}
+                    {!showOverlay && <div style={{ position: 'absolute', inset: 0, zIndex: 1 }} />}
+                </div>
             ) : (
                 <video
                     ref={videoRef}

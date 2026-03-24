@@ -1403,7 +1403,7 @@ export default function ProfilePage() {
                                         const month = e.target.value;
                                         const year = parts[0] || '';
                                         const day = parts[2] || '';
-                                        updateField('birthday')(month && year && day ? `${year}-${month}-${day}` : '');
+                                        updateField('birthday')(`${year}-${month}-${day}`);
                                     }}
                                     style={{
                                         flex: 1, padding: 12, fontSize: 15, borderRadius: 8,
@@ -1423,7 +1423,7 @@ export default function ProfilePage() {
                                         const day = e.target.value;
                                         const year = parts[0] || '';
                                         const month = parts[1] || '';
-                                        updateField('birthday')(month && year && day ? `${year}-${month}-${day}` : '');
+                                        updateField('birthday')(`${year}-${month}-${day}`);
                                     }}
                                     style={{
                                         width: 80, padding: 12, fontSize: 15, borderRadius: 8,
@@ -1443,7 +1443,7 @@ export default function ProfilePage() {
                                         const year = e.target.value;
                                         const month = parts[1] || '';
                                         const day = parts[2] || '';
-                                        updateField('birthday')(month && year && day ? `${year}-${month}-${day}` : '');
+                                        updateField('birthday')(`${year}-${month}-${day}`);
                                     }}
                                     style={{
                                         width: 100, padding: 12, fontSize: 15, borderRadius: 8,
@@ -1511,6 +1511,7 @@ export default function ProfilePage() {
                                 hendon_url: profile.hendon_url,
                                 total_cashes: profile.hendon_total_cashes,
                                 total_earnings: profile.hendon_total_earnings,
+                                biggest_cash: profile.hendon_biggest_cash,
                             }}
                             onRefresh={async () => {
                                 if (!profile.hendon_url) {
@@ -1534,6 +1535,7 @@ export default function ProfilePage() {
                                             ...prev,
                                             hendon_total_cashes: data.total_cashes,
                                             hendon_total_earnings: data.total_earnings,
+                                            hendon_biggest_cash: data.biggest_cash,
                                         }));
                                         setMessage('✅ Stats refreshed successfully!');
                                     } else {

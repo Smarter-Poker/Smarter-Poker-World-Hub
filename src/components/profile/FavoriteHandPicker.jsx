@@ -61,18 +61,11 @@ export default function FavoriteHandPicker({ value = '', gameType = 'holdem', la
 
   return (
     <div style={{ marginBottom: 16 }}>
-      {/* Label with game type badge */}
+      {/* Label */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: '#65676B' }}>
           {label || defaultLabel}
         </label>
-        <span style={{
-          fontSize: 10, fontWeight: 700, color: 'white',
-          background: ACCENT, padding: '2px 8px', borderRadius: 10,
-          textTransform: 'uppercase', letterSpacing: 0.5,
-        }}>
-          {gameType === 'plo' ? '4 Cards' : '2 Cards'}
-        </span>
       </div>
 
       {/* Selected cards preview */}

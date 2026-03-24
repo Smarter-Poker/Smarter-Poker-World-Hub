@@ -2,12 +2,13 @@
  * HENDONMOB SYNC API
  * 
  * Accepts client-provided stats (from manual entry or Scrapling scraper)
- * and saves them to the database. Only updates columns that exist:
+ * and saves them to the database. Columns:
  * - hendon_total_cashes
  * - hendon_total_earnings
+ * - hendon_biggest_cash
  * 
  * POST /api/hendonmob/sync
- * Body: { hendonUrl, stats: { totalCashes, totalEarnings } }
+ * Body: { hendonUrl, stats: { totalCashes, totalEarnings, biggestCash } }
  * 
  * GET /api/hendonmob/sync  — returns current stats from DB
  */
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
         const { data: profile } = await getSupabase()
             .from('profiles')
-            .select('hendon_url, hendon_total_cashes, hendon_total_earnings')
+            .select('hendon_url, hendon_total_cashes, hendon_total_earnings, hendon_biggest_cash')
             .eq('id', userId)
             .maybeSingle();
 
@@ -51,6 +52,7 @@ export default async function handler(req, res) {
             success: true,
             total_cashes: profile?.hendon_total_cashes || null,
             total_earnings: profile?.hendon_total_earnings || null,
+            biggest_cash: profile?.hendon_biggest_cash || null,
             hendon_url: profile?.hendon_url || null,
             source: 'database',
         });
@@ -96,6 +98,8 @@ export default async function handler(req, res) {
         const updateData = {};
         if (tc > 0) updateData.hendon_total_cashes = tc;
         if (te > 0) updateData.hendon_total_earnings = te;
+        const bc = clientStats.biggestCash ? parseFloat(clientStats.biggestCash) : null;
+        if (bc > 0) updateData.hendon_biggest_cash = bc;
 
         const { error: updateError } = await getSupabase()
             .from('profiles')
@@ -111,6 +115,7 @@ export default async function handler(req, res) {
             success: true,
             total_cashes: tc || null,
             total_earnings: te || null,
+            biggest_cash: bc || null,
             source: 'client_update',
         });
     }

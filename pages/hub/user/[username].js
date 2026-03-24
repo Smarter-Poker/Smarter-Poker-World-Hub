@@ -1758,11 +1758,12 @@ export default function UserProfilePage() {
                                         toast.error('Could not copy link');
                                     }
                                 }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.target.click(); }}} style={{
-                                    padding: '10px 16px', background: shareCopied ? '#42B72A' : '#e4e6eb',
+                                    padding: '10px 14px', background: shareCopied ? '#42B72A' : '#e4e6eb',
                                     color: shareCopied ? 'white' : C.text,
                                     borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14,
                                     transition: 'all 0.3s ease', outline: 'none',
-                                }}>{shareCopied ? 'Copied!' : 'Share Profile'}</button>
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                }}>{shareCopied ? '✓ Copied!' : <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Share</>}</button>
                             </>
                         ) : (
                             <>

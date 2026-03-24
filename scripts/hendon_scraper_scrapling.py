@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
 HendonMob Scraper using Scrapling — Cloudflare Bypass
-Scrapes player stats from HendonMob and saves to Supabase.
+
+CRITICAL LAW: This scraper ONLY extracts EXPLICITLY LABELED data from the source.
+NO guessing, NO assuming, NO simulating. If a stat is not found with its exact label,
+it is reported as null. Fake or simulated data is STRICTLY FORBIDDEN.
 
 Usage:
-  python3 scripts/hendon_scraper_scrapling.py <hendon_url> <user_id>
-  python3 scripts/hendon_scraper_scrapling.py  # scrapes all linked profiles
+  python3 scripts/hendon_scraper_scrapling.py <hendon_url> <user_id>   # Single user
+  python3 scripts/hendon_scraper_scrapling.py --all                     # All linked users
+  python3 scripts/hendon_scraper_scrapling.py <hendon_url>             # Scrape only (no save)
 """
 import asyncio
 import re
@@ -19,16 +23,37 @@ import urllib.parse
 SUPABASE_URL = os.getenv('NEXT_PUBLIC_SUPABASE_URL', 'https://kuklfnapbkmacvwxktbh.supabase.co')
 SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
 
+
+def supabase_get(path):
+    """GET request to Supabase REST API."""
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
+    req = urllib.request.Request(url)
+    req.add_header('apikey', SUPABASE_KEY)
+    req.add_header('Authorization', f'Bearer {SUPABASE_KEY}')
+    try:
+        resp = urllib.request.urlopen(req)
+        return json.loads(resp.read().decode('utf-8'))
+    except Exception as e:
+        print(f'  ❌ Supabase GET failed: {e}')
+        return []
+
+
 def update_supabase(user_id, stats):
-    """Update profile stats via Supabase REST API (only existing columns)."""
+    """Update profile stats via Supabase REST API. ONLY saves real scraped data."""
     url = f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{user_id}"
     update_data = {}
-    if stats.get('totalCashes'):
+    if stats.get('totalCashes') is not None:
         update_data['hendon_total_cashes'] = stats['totalCashes']
-    if stats.get('totalEarnings'):
+    if stats.get('totalEarnings') is not None:
         update_data['hendon_total_earnings'] = stats['totalEarnings']
-    data = json.dumps(update_data).encode('utf-8')
+    if stats.get('biggestCash') is not None:
+        update_data['hendon_biggest_cash'] = stats['biggestCash']
     
+    if not update_data:
+        print(f'  ⚠️ No verified data to update for user {user_id}')
+        return False
+
+    data = json.dumps(update_data).encode('utf-8')
     req = urllib.request.Request(url, data=data, method='PATCH')
     req.add_header('Content-Type', 'application/json')
     req.add_header('apikey', SUPABASE_KEY)
@@ -37,7 +62,7 @@ def update_supabase(user_id, stats):
     
     try:
         urllib.request.urlopen(req)
-        print(f'  ✅ Saved to DB for user {user_id}')
+        print(f'  ✅ Saved REAL scraped data to DB for user {user_id}')
         return True
     except Exception as e:
         print(f'  ❌ DB update failed: {e}')
@@ -45,7 +70,18 @@ def update_supabase(user_id, stats):
 
 
 def extract_stats(page):
-    """Extract stats from the Scrapling page response."""
+    """
+    Extract stats from the Scrapling page response.
+    
+    ██████████████████████████████████████████████████████████████
+    ██  REAL DATA ONLY LAW                                     ██
+    ██  - Only extract values that are EXPLICITLY LABELED       ██
+    ██  - Never guess, assume, or infer values                 ██
+    ██  - If a stat isn't found with its exact label → null     ██
+    ██  - No "fallback" logic that picks random dollar amounts ██
+    ██  - Every extracted value must trace to a labeled source  ██
+    ██████████████████████████████████████████████████████████████
+    """
     body = page.body
     if isinstance(body, bytes):
         body = body.decode('utf-8', errors='ignore')
@@ -53,85 +89,51 @@ def extract_stats(page):
     stats = {
         'totalCashes': None,
         'totalEarnings': None,
-        'bestFinish': None,
         'biggestCash': None,
-        'lastScraped': None,
+        'source': 'hendonmob_scrapling',
     }
     
-    # Try CSS selectors first
-    try:
-        tables = page.css('table')
-        for table in tables:
-            tds = table.css('td')
-            for i in range(0, len(tds) - 1, 2):
-                label_el = tds[i]
-                value_el = tds[i + 1]
-                label_text = ''
-                value_text = ''
-                
-                if hasattr(label_el, 'text'):
-                    label_text = label_el.text.strip().lower() if label_el.text else ''
-                if hasattr(value_el, 'text'):
-                    value_text = value_el.text.strip() if value_el.text else ''
-                
-                if not label_text or not value_text:
-                    continue
-                    
-                if 'cashes' in label_text and not stats['totalCashes']:
-                    m = re.search(r'(\d[\d,]*)', value_text)
-                    if m:
-                        stats['totalCashes'] = int(m.group(1).replace(',', ''))
-                        
-                if ('earnings' in label_text or 'winnings' in label_text) and not stats['totalEarnings']:
-                    m = re.search(r'\$([\d,]+)', value_text)
-                    if m:
-                        stats['totalEarnings'] = float(m.group(1).replace(',', ''))
-    except Exception as e:
-        print(f'  CSS extraction error: {e}')
+    # ── EXTRACTION METHOD: Labeled span pairs ──
+    # HendonMob uses: <span class="...label">Label</span><span class="...value">Value</span>
+    # This is the MOST RELIABLE source — explicitly labeled data.
     
-    # Regex fallback on raw HTML
-    if not stats['totalEarnings']:
-        m = re.search(r'Total Live Earnings[^$]*\$([\d,]+)', body, re.DOTALL | re.IGNORECASE)
-        if m:
-            stats['totalEarnings'] = float(m.group(1).replace(',', ''))
+    # Find all labeled stat pairs
+    label_value_pairs = re.findall(
+        r'<span[^>]*label[^>]*>(.*?)</span>\s*(?:<[^>]*>\s*)*<span[^>]*>(.*?)</span>',
+        body, re.DOTALL | re.IGNORECASE
+    )
     
-    if not stats['totalEarnings']:
-        dollar_matches = re.findall(r'\$([\d,]+(?:\.\d{2})?)', body)
-        if dollar_matches:
-            amounts = sorted([float(x.replace(',', '')) for x in dollar_matches], reverse=True)
-            if amounts and amounts[0] > 1000:
-                stats['totalEarnings'] = amounts[0]
-    
-    if not stats['totalCashes']:
-        # HendonMob format: "Daniel Bekavac's 52 cashes"
-        m = re.search(r"'s\s+(\d+)\s+cashes", body, re.IGNORECASE)
-        if m:
-            stats['totalCashes'] = int(m.group(1))
-        else:
-            # Fallback: "52 Cashes" or "52 cashes"
-            m = re.search(r'(\d+)\s+[Cc]ashes', body)
+    for raw_label, raw_value in label_value_pairs:
+        label = re.sub(r'<[^>]+>', '', raw_label).strip().lower()
+        value = re.sub(r'<[^>]+>', '', raw_value).strip()
+        
+        if not label or not value:
+            continue
+        
+        # Total Live Earnings — EXPLICITLY labeled
+        if 'total live earnings' in label and stats['totalEarnings'] is None:
+            m = re.search(r'\$([\d,]+)', value)
             if m:
-                stats['totalCashes'] = int(m.group(1))
+                stats['totalEarnings'] = float(m.group(1).replace(',', ''))
+                print(f'  📊 Total Live Earnings: ${m.group(1)} (labeled)')
+        
+        # Best Live Cash — EXPLICITLY labeled
+        if 'best live cash' in label and stats['biggestCash'] is None:
+            m = re.search(r'\$([\d,]+)', value)
+            if m:
+                stats['biggestCash'] = float(m.group(1).replace(',', ''))
+                print(f'  📊 Best Live Cash: ${m.group(1)} (labeled)')
     
-    # Biggest cash (from tournament result tables)
-    cash_amounts = re.findall(r'\$([\d,]+)', body)
-    if cash_amounts and stats['totalEarnings']:
-        amounts = [float(x.replace(',', '')) for x in cash_amounts]
-        # Filter out the total earnings value itself
-        filtered = [a for a in amounts if a > 0 and abs(a - (stats['totalEarnings'] or 0)) > 1]
-        if filtered:
-            stats['biggestCash'] = max(filtered)
+    # ── Total Cashes — from explicit "{name}'s {N} cashes" text ──
+    cashes_match = re.search(r"'s\s+(\d+)\s+cashes", body, re.IGNORECASE)
+    if cashes_match:
+        stats['totalCashes'] = int(cashes_match.group(1))
+        print(f'  📊 Total Cashes: {cashes_match.group(1)} (labeled)')
     
-    # Best finish
-    if re.search(r'\b(1st|first|winner|champion)\b', body, re.IGNORECASE):
-        stats['bestFinish'] = '1st'
-    elif re.search(r'\b(2nd|second|runner.?up)\b', body, re.IGNORECASE):
-        stats['bestFinish'] = '2nd'
-    elif re.search(r'\b(3rd|third)\b', body, re.IGNORECASE):
-        stats['bestFinish'] = '3rd'
-    
-    from datetime import datetime, timezone
-    stats['lastScraped'] = datetime.now(timezone.utc).isoformat()
+    # ── Report what was NOT found ──
+    missing = [k for k, v in stats.items() if v is None and k != 'source']
+    if missing:
+        print(f'  ⚠️ Could not find labeled data for: {", ".join(missing)}')
     
     return stats
 
@@ -153,42 +155,94 @@ async def scrape_hendonmob(url):
         print(f'  Status: {status}, Content: {content_len} bytes')
         
         if status != 200 or content_len < 500:
-            print(f'  ❌ Failed to load page')
+            print(f'  ❌ Failed to load page (status {status})')
             return None
         
         stats = extract_stats(page)
-        print(f'  Stats: {json.dumps(stats, indent=2)}')
+        print(f'  Extracted: {json.dumps({k:v for k,v in stats.items() if k != "source"}, indent=2)}')
         return stats
 
 
+async def scrape_all_users():
+    """Scrape all users who have a hendon_url linked."""
+    if not SUPABASE_KEY:
+        print('❌ SUPABASE_SERVICE_ROLE_KEY required for --all mode')
+        return
+    
+    print('\n════════════════════════════════════════════════════')
+    print('  HendonMob Bulk Scraper — All Linked Users')
+    print('  REAL DATA ONLY — No simulated or assumed values')
+    print('════════════════════════════════════════════════════\n')
+    
+    users = supabase_get('profiles?hendon_url=not.is.null&select=id,full_name,hendon_url')
+    
+    if not users:
+        print('No users with HendonMob URLs found.')
+        return
+    
+    print(f'Found {len(users)} user(s) with HendonMob links.\n')
+    
+    success_count = 0
+    fail_count = 0
+    
+    for i, user in enumerate(users, 1):
+        user_id = user['id']
+        name = user.get('full_name', 'Unknown')
+        url = user['hendon_url']
+        
+        print(f'── [{i}/{len(users)}] {name} ──')
+        
+        try:
+            stats = await scrape_hendonmob(url)
+            
+            if stats and (stats.get('totalCashes') is not None or stats.get('totalEarnings') is not None):
+                update_supabase(user_id, stats)
+                success_count += 1
+            else:
+                print(f'  ⚠️ No labeled stats found for {name}')
+                fail_count += 1
+        except Exception as e:
+            print(f'  ❌ Error scraping {name}: {e}')
+            fail_count += 1
+        
+        # Delay between users to avoid rate limits
+        if i < len(users):
+            print('  Waiting 5s before next user...')
+            await asyncio.sleep(5)
+    
+    print(f'\n════════════════════════════════════════════════════')
+    print(f'  Results: {success_count} success, {fail_count} failed')
+    print(f'════════════════════════════════════════════════════\n')
+
+
 async def main():
-    if len(sys.argv) >= 3:
-        # Single user mode: python3 script.py <url> <user_id>
+    if len(sys.argv) >= 2 and sys.argv[1] == '--all':
+        await scrape_all_users()
+    elif len(sys.argv) >= 3:
         hendon_url = sys.argv[1]
         user_id = sys.argv[2]
         
-        print(f'\n=== HendonMob Scraper (Scrapling + Cloudflare Bypass) ===')
+        print(f'\n=== HendonMob Scraper (REAL DATA ONLY) ===')
         stats = await scrape_hendonmob(hendon_url)
         
-        if stats and (stats['totalCashes'] or stats['totalEarnings']):
+        if stats and (stats.get('totalCashes') is not None or stats.get('totalEarnings') is not None):
             if SUPABASE_KEY:
                 update_supabase(user_id, stats)
             else:
                 print('  ⚠️ No SUPABASE_SERVICE_ROLE_KEY — skipping DB update')
-            # Output JSON for the Node.js API to parse
             print(f'\nSCRAPE_RESULT:{json.dumps(stats)}')
         else:
-            print('\n  ❌ No stats extracted')
-            print(f'SCRAPE_RESULT:{json.dumps({"error": "No stats found"})}')
+            print('\n  ❌ No labeled stats found on page')
+            print(f'SCRAPE_RESULT:{json.dumps({"error": "No labeled stats found"})}')
+    elif len(sys.argv) == 2:
+        stats = await scrape_hendonmob(sys.argv[1])
+        if stats:
+            print(f'\nSCRAPE_RESULT:{json.dumps(stats)}')
     else:
-        print('Usage: python3 hendon_scraper_scrapling.py <hendon_url> <user_id>')
-        print('       python3 hendon_scraper_scrapling.py <hendon_url>')
-        
-        if len(sys.argv) == 2:
-            # Just scrape without saving
-            stats = await scrape_hendonmob(sys.argv[1])
-            if stats:
-                print(f'\nSCRAPE_RESULT:{json.dumps(stats)}')
+        print('Usage:')
+        print('  python3 hendon_scraper_scrapling.py <hendon_url> <user_id>   # Single user')
+        print('  python3 hendon_scraper_scrapling.py --all                     # All linked users')
+        print('  python3 hendon_scraper_scrapling.py <hendon_url>             # Scrape only')
 
 
 if __name__ == '__main__':
