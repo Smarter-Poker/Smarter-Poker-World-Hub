@@ -48,15 +48,29 @@ export default function UniversalHeader({
 }) {
     const router = useRouter();
 
-    // 🛡️ INSTANT UI: Read cached header user from localStorage on mount
-    // This prevents "flash of missing data" before the API call completes
-    const [user, setUser] = useState(null);
+    // 🛡️ INSTANT UI: Synchronous localStorage read during useState init
+    // This ensures the very FIRST render already has cached user data,
+    // eliminating the "flash of missing profile" on page navigation.
+    const [user, setUser] = useState(() => {
+        if (typeof window === 'undefined') return null;
+        try {
+            const cached = localStorage.getItem('sp-cached-header-user');
+            return cached ? JSON.parse(cached) : null;
+        } catch (_) { return null; }
+    });
     const [notificationCount, setNotificationCount] = useState(() => {
         if (typeof window === 'undefined') return 0;
         try { return parseInt(localStorage.getItem('sp-notif-count') || '0', 10); } catch (_) { return 0; }
     });
     const [isWalletOpen, setIsWalletOpen] = useState(false);
-    const [isVip, setIsVip] = useState(false);
+    const [isVip, setIsVip] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        try {
+            const cached = localStorage.getItem('sp-cached-header-user');
+            if (cached) return !!JSON.parse(cached).is_vip;
+            return localStorage.getItem('sp-vip-status') === 'true';
+        } catch (_) { return false; }
+    });
     const [isMounted, setIsMounted] = useState(false);
 
     // ── Diamond balance: shared hook handles caching, realtime, cross-tab sync ──
@@ -87,26 +101,26 @@ export default function UniversalHeader({
     // Global Unread Messages State (instant caching)
     const { unreadCount } = useUnreadCount();
 
-    // 🛡️ INSTANT UI: Read cached header user from localStorage AFTER mount
-    // This prevents React 18 hydration mismatches while still loading fast
+    // 🛡️ INSTANT UI: Mark mounted for hydration-safe gates.
+    // Cache read is now synchronous in useState init above — no extra effect needed.
     useEffect(() => {
         setIsMounted(true);
+        // Seed diamond balance from cache (hook needs explicit init)
         if (typeof window !== 'undefined') {
             try {
                 const cached = localStorage.getItem('sp-cached-header-user');
                 if (cached) {
                     const data = JSON.parse(cached);
-                    if (data) setUser(data);
-                    if (data.diamonds !== undefined) setDiamondBalance(data.diamonds);
-                    if (data.is_vip) setIsVip(true);
-                } else if (localStorage.getItem('sp-vip-status') === 'true') {
-                    setIsVip(true);
+                    if (data?.diamonds !== undefined) setDiamondBalance(data.diamonds);
                 }
-            } catch (e) { }
+            } catch (_) { }
         }
     }, []);
 
-    // Derived values — strictly gated behind isMounted so the first client render EXACTLY matches the server
+    // Derived values — gated behind isMounted for SSR hydration safety.
+    // Because user/isVip are initialized synchronously from localStorage,
+    // the FIRST post-mount render (when isMounted flips true) already has
+    // cached data — so there is zero visual flash despite the gate.
     const displayAvatar = isMounted ? (user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url) : null;
     const isVipDisplay = isMounted ? (isVip || contextVip) : false;
     const safeUnreadCount = isMounted ? unreadCount : 0;
@@ -483,6 +497,8 @@ export default function UniversalHeader({
             <Head>
                 {/* Aggressive background cache of the Club Arena integration. This downloads the HTML document and triggers sub-resource fetching before the user clicks. */}
                 <link rel="prefetch" href="/hub/club-arena" as="document" />
+                {/* 🛡️ PRELOAD avatar image so it stays in browser cache across page navigations */}
+                {displayAvatar && <link rel="preload" as="image" href={displayAvatar} />}
             </Head>
 
             {/* Mobile-responsive CSS */}
