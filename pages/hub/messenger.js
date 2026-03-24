@@ -2321,7 +2321,13 @@ function MessengerPage() {
             if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
             if (result.success && result.messages?.length > 0) {
-                setMessages(prev => [...result.messages, ...prev]);
+                // Filter out hidden messages — re-read from localStorage for freshness
+                const freshHiddenIds = (() => {
+                    try { return new Set(JSON.parse(localStorage.getItem('sp-hidden-messages') || '[]')); }
+                    catch { return new Set(); }
+                })();
+                const filteredOlder = result.messages.filter(m => !freshHiddenIds.has(m.id));
+                setMessages(prev => [...filteredOlder, ...prev]);
                 setHasMoreMessages(result.messages.length >= 50);
                 // Preserve scroll position after prepending older messages
                 requestAnimationFrame(() => {

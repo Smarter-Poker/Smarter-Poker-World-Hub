@@ -653,8 +653,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 setTransferRecipient(null);
                 // Update balance optimistically
                 setBalance(prev => (prev ?? 0) - amount);
-                // Dispatch refresh event
-                window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { source: 'diamond-transfer' } }));
+                // Dispatch refresh event (include newBalance to prevent stale cache flash)
+                window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { source: 'diamond-transfer', newBalance: data.newBalance } }));
                 // #7: Recipient notification event (other components can listen)
                 window.dispatchEvent(new CustomEvent('diamond-gift-sent', {
                     detail: {

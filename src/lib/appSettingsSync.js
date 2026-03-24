@@ -44,7 +44,8 @@ async function _flushPendingSettings() {
         const current = profile?.app_settings || {};
         const merged = { ...current, ...toSave };
 
-        await supabase.from('profiles').update({ app_settings: merged }).eq('id', user.id);
+        const { error } = await supabase.from('profiles').update({ app_settings: merged }).eq('id', user.id);
+        if (error) console.error('[AppSettings] Flush DB error:', error.message, 'Keys:', Object.keys(toSave));
     } catch (err) {
         console.error('[AppSettings] Flush failed:', err, 'Keys:', Object.keys(toSave));
     }
@@ -91,7 +92,8 @@ export async function saveAppSettingsBatch(settingsMap) {
         const current = profile?.app_settings || {};
         const merged = { ...current, ...settingsMap };
 
-        await supabase.from('profiles').update({ app_settings: merged }).eq('id', user.id);
+        const { error } = await supabase.from('profiles').update({ app_settings: merged }).eq('id', user.id);
+        if (error) console.error('[AppSettings] Batch DB error:', error.message);
     } catch (err) {
         console.error('[AppSettings] Batch save failed:', err);
     }
