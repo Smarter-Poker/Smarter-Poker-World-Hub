@@ -123,8 +123,14 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
     };
     const catStyle = categoryColors[article.category] || categoryColors.news;
 
-    // Get image with fallback
-    const imageUrl = article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news;
+    // Get image with fallback — skip cardplayer.com hosted images (they return 403 to browsers)
+    const rawImageUrl = article.image_url;
+    const isBlockedImage = rawImageUrl && (
+        rawImageUrl.includes('cardplayer.com') ||
+        rawImageUrl.includes('cardplayer.com/assets')
+    );
+    const imageUrl = (isBlockedImage ? null : rawImageUrl) || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news;
+    const fallbackUrl = FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news;
 
     return (
         <div
@@ -155,8 +161,13 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                     alt={article.title}
                     loading="lazy"
                     onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.parentElement.classList.add('no-image');
+                        // Try category fallback before giving up
+                        if (e.target.src !== fallbackUrl) {
+                            e.target.src = fallbackUrl;
+                        } else {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.classList.add('no-image');
+                        }
                     }}
                 />
                 <div className="image-placeholder">
@@ -1350,19 +1361,19 @@ export default function NewsHub() {
                                     className={`section-tab-img ${activeSection === 'news' ? 'active' : ''}`}
                                     onClick={() => setActiveSection('news')}
                                 >
-                                    <Image src="/images/btn-news.png" alt="News" width={1024} height={604} />
+                                    <Image src="/images/btn-news.png" alt="News" width={144} height={85} style={{ width: 'auto', height: '85px', maxWidth: '100%', display: 'block' }} />
                                 </button>
                                 <button
                                     className={`section-tab-img ${activeSection === 'videos' ? 'active' : ''}`}
                                     onClick={() => setActiveSection('videos')}
                                 >
-                                    <Image src="/images/btn-latest-videos.png" alt="Latest Videos" width={1024} height={604} />
+                                    <Image src="/images/btn-latest-videos.png" alt="Latest Videos" width={144} height={85} style={{ width: 'auto', height: '85px', maxWidth: '100%', display: 'block' }} />
                                 </button>
                                 <button
                                     className={`section-tab-img ${activeSection === 'reels' ? 'active' : ''}`}
                                     onClick={() => setActiveSection('reels')}
                                 >
-                                    <Image src="/images/btn-reels.png" alt="Reels" width={1024} height={604} />
+                                    <Image src="/images/btn-reels.png" alt="Reels" width={144} height={85} style={{ width: 'auto', height: '85px', maxWidth: '100%', display: 'block' }} />
                                 </button>
 
                                 {/* Refresh Button */}
@@ -1503,7 +1514,7 @@ export default function NewsHub() {
                                                             onClick={() => openArticle(article)}
                                                         >
                                                             <img
-                                                                src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
+                                                                src={(article.image_url && !article.image_url.includes('cardplayer.com')) ? article.image_url : (FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news)}
                                                                 alt=""
                                                                 className="list-thumb"
                                                                 onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
