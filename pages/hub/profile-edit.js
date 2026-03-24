@@ -299,9 +299,10 @@ function HomeCasinoSelector({ value, onChange }) {
                     onFocus={() => { if (suggestions.length > 0) setShowDropdown(true); }}
                     placeholder="Search 483+ venues or type a name..."
                     style={{
-                        width: '100%', padding: '10px 12px', fontSize: 14,
-                        background: '#242526', border: '1px solid rgba(255,255,255,0.15)',
-                        borderRadius: 8, color: '#e4e6eb', outline: 'none',
+                        width: '100%', padding: 12, fontSize: 15,
+                        background: '#ffffff', border: `1px solid ${C.border}`,
+                        borderRadius: 8, color: '#000000', outline: 'none',
+                        boxSizing: 'border-box',
                     }}
                 />
                 {isSearching && <span style={{ position: 'absolute', right: 10, color: '#2374e1', fontSize: 16 }}>⟳</span>}
@@ -309,10 +310,10 @@ function HomeCasinoSelector({ value, onChange }) {
             {showDropdown && suggestions.length > 0 && (
                 <div style={{
                     position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-                    background: '#242526', border: '2px solid rgba(255,255,255,0.1)',
+                    background: '#ffffff', border: `1px solid ${C.border}`,
                     borderRadius: 8, overflow: 'hidden', zIndex: 100,
                     maxHeight: 240, overflowY: 'auto',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
                 }}>
                     {suggestions.map((venue) => (
                         <button
@@ -322,14 +323,14 @@ function HomeCasinoSelector({ value, onChange }) {
                             style={{
                                 display: 'block', width: '100%', padding: '10px 14px',
                                 background: 'none', border: 'none',
-                                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                                cursor: 'pointer', textAlign: 'left', color: '#e4e6eb',
+                                borderBottom: `1px solid ${C.border}`,
+                                cursor: 'pointer', textAlign: 'left', color: C.text,
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                             onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
                         >
-                            <div style={{ fontSize: 14, fontWeight: 600 }}>{venue.name}</div>
-                            <div style={{ fontSize: 12, color: '#b0b3b8', marginTop: 2 }}>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{venue.name}</div>
+                            <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>
                                 {venue.city}{venue.state ? `, ${venue.state}` : ''}
                             </div>
                         </button>
@@ -1329,11 +1330,11 @@ export default function ProfilePage() {
                                         alt={`${deck} deck`}
                                         style={{
                                             width: '100%',
-                                            height: 100,
-                                            objectFit: 'contain',
-                                            borderRadius: 8,
+                                            aspectRatio: '2.5 / 3.5',
+                                            objectFit: 'cover',
+                                            borderRadius: 6,
                                             marginBottom: 8,
-                                            background: 'transparent'
+                                            background: deck === 'white' ? '#f0f0f0' : deck === 'black' ? '#1a1a1a' : 'transparent'
                                         }}
                                     />
                                     <div style={{
@@ -1358,28 +1359,74 @@ export default function ProfilePage() {
                             <ProfileField label="Birth Year" value={profile.birth_year} onChange={updateField('birth_year')} placeholder="1990" icon="🎂" />
                         </div>
 
-                        {/* Birthday */}
+                        {/* Birthday — Dropdown Selectors */}
                         <div style={{ marginTop: 16 }}>
                             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>🎂 Birthday</label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <input
-                                    type="date"
-                                    value={profile.birthday || ''}
-                                    onChange={(e) => updateField('birthday')(e.target.value)}
-                                    style={{
-                                        flex: 1,
-                                        padding: '10px 12px',
-                                        fontSize: 14,
-                                        background: C.inputBg || '#242526',
-                                        border: `1px solid ${C.border}`,
-                                        borderRadius: 8,
-                                        color: C.text,
-                                        outline: 'none',
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <select
+                                    value={profile.birthday ? profile.birthday.split('-')[1] : ''}
+                                    onChange={(e) => {
+                                        const parts = (profile.birthday || '--').split('-');
+                                        const month = e.target.value;
+                                        const year = parts[0] || '';
+                                        const day = parts[2] || '';
+                                        updateField('birthday')(month && year && day ? `${year}-${month}-${day}` : '');
                                     }}
-                                />
+                                    style={{
+                                        flex: 1, padding: 12, fontSize: 15, borderRadius: 8,
+                                        border: `1px solid ${C.border}`, background: '#ffffff',
+                                        color: '#000000', boxSizing: 'border-box', cursor: 'pointer',
+                                    }}
+                                >
+                                    <option value="">Month</option>
+                                    {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+                                        <option key={m} value={String(i + 1).padStart(2, '0')}>{m}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    value={profile.birthday ? profile.birthday.split('-')[2] : ''}
+                                    onChange={(e) => {
+                                        const parts = (profile.birthday || '--').split('-');
+                                        const day = e.target.value;
+                                        const year = parts[0] || '';
+                                        const month = parts[1] || '';
+                                        updateField('birthday')(month && year && day ? `${year}-${month}-${day}` : '');
+                                    }}
+                                    style={{
+                                        width: 80, padding: 12, fontSize: 15, borderRadius: 8,
+                                        border: `1px solid ${C.border}`, background: '#ffffff',
+                                        color: '#000000', boxSizing: 'border-box', cursor: 'pointer',
+                                    }}
+                                >
+                                    <option value="">Day</option>
+                                    {Array.from({ length: 31 }, (_, i) => (
+                                        <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    value={profile.birthday ? profile.birthday.split('-')[0] : ''}
+                                    onChange={(e) => {
+                                        const parts = (profile.birthday || '--').split('-');
+                                        const year = e.target.value;
+                                        const month = parts[1] || '';
+                                        const day = parts[2] || '';
+                                        updateField('birthday')(month && year && day ? `${year}-${month}-${day}` : '');
+                                    }}
+                                    style={{
+                                        width: 100, padding: 12, fontSize: 15, borderRadius: 8,
+                                        border: `1px solid ${C.border}`, background: '#ffffff',
+                                        color: '#000000', boxSizing: 'border-box', cursor: 'pointer',
+                                    }}
+                                >
+                                    <option value="">Year</option>
+                                    {Array.from({ length: 80 }, (_, i) => {
+                                        const yr = new Date().getFullYear() - 16 - i;
+                                        return <option key={yr} value={String(yr)}>{yr}</option>;
+                                    })}
+                                </select>
                                 {profile.birthday && (
-                                    <div style={{ fontSize: 12, color: C.gold, fontWeight: 600 }}>
-                                        💎 300 Diamonds On Your Birthday!
+                                    <div style={{ fontSize: 12, color: C.gold, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                        💎 300
                                     </div>
                                 )}
                             </div>

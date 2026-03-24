@@ -32,7 +32,7 @@ async function fireConfetti(opts) {
     } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
 }
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, Newspaper, Globe, ChevronRight, Film } from 'lucide-react';
+import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, Newspaper, Globe, ChevronRight, ChevronLeft, Film } from 'lucide-react';
 
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -123,13 +123,14 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
     };
     const catStyle = categoryColors[article.category] || categoryColors.news;
 
-    // Get image with fallback — skip cardplayer.com hosted images (they return 403 to browsers)
+    // Get image with fallback — proxy cardplayer.com images through our server (they block direct browser access)
     const rawImageUrl = article.image_url;
-    const isBlockedImage = rawImageUrl && (
-        rawImageUrl.includes('cardplayer.com') ||
-        rawImageUrl.includes('cardplayer.com/assets')
+    const isCardPlayerImage = rawImageUrl && (
+        rawImageUrl.includes('cardplayer.com')
     );
-    const imageUrl = (isBlockedImage ? null : rawImageUrl) || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news;
+    const imageUrl = isCardPlayerImage
+        ? `/api/proxy?url=${encodeURIComponent(rawImageUrl)}`
+        : (rawImageUrl || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news);
     const fallbackUrl = FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news;
 
     return (
@@ -1351,36 +1352,7 @@ export default function NewsHub() {
                         bottomLinks={menuConfig.bottomLinks}
                     />
 
-                    {/* Floating Header */}
-                    <header className="header">
-                        <div className="header-left">
-                            {/* Section Tabs - Custom Image Buttons */}
-                            <div className="section-tabs">
-                                {/* Today's Top Stories - Clickable Tab */}
-
-
-                                <button
-                                    className={`section-tab-img ${activeSection === 'news' ? 'active' : ''}`}
-                                    onClick={() => setActiveSection('news')}
-                                >
-                                    <Image src="/images/btn-news.png" alt="News" width={144} height={85} style={{ width: 'auto', height: '85px', maxWidth: '100%', display: 'block' }} />
-                                </button>
-                                <button
-                                    className={`section-tab-img ${activeSection === 'reels' ? 'active' : ''}`}
-                                    onClick={() => setActiveSection('reels')}
-                                >
-                                    <Image src="/images/btn-reels.png" alt="Reels" width={144} height={85} style={{ width: 'auto', height: '85px', maxWidth: '100%', display: 'block' }} />
-                                </button>
-
-                                {/* Refresh Button */}
-                                {/* Refresh Button REMOVED */}
-                                {/* Theme Toggle REMOVED per user request */}
-
-                                {/* Theme Toggle REMOVED per user request */}
-                            </div>
-                        </div>
-                        {/* Search bar REMOVED - now in hamburger menu */}
-                    </header>
+                    {/* Section Tabs - moved inline above content */}
 
                     {/* Share Modal */}
                     <AnimatePresence>
@@ -1430,7 +1402,23 @@ export default function NewsHub() {
                     <div className="layout">
                         {/* Left Column - News Boxes */}
                         <main className="main-content">
-                            {/* Stories Section */}
+                            {/* Section Tabs - Inline above content */}
+                            <div className="section-tabs" style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+                                <button
+                                    className={`section-tab-img ${activeSection === 'news' ? 'active' : ''}`}
+                                    onClick={() => setActiveSection('news')}
+                                >
+                                    <Image src="/images/btn-news.png" alt="News" width={144} height={85} style={{ width: 'auto', height: '55px', maxWidth: '100%', display: 'block' }} />
+                                </button>
+                                <button
+                                    className={`section-tab-img ${activeSection === 'reels' ? 'active' : ''}`}
+                                    onClick={() => setActiveSection('reels')}
+                                >
+                                    <Image src="/images/btn-reels.png" alt="Reels" width={144} height={85} style={{ width: 'auto', height: '55px', maxWidth: '100%', display: 'block' }} />
+                                </button>
+                            </div>
+
+                            {/* Stories Section */}}
 
 
                             {activeSection === 'news' ? (
@@ -1510,7 +1498,7 @@ export default function NewsHub() {
                                                             onClick={() => openArticle(article)}
                                                         >
                                                             <img
-                                                                src={(article.image_url && !article.image_url.includes('cardplayer.com')) ? article.image_url : (FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news)}
+                                                                src={article.image_url ? (article.image_url.includes('cardplayer.com') ? `/api/proxy?url=${encodeURIComponent(article.image_url)}` : article.image_url) : (FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news)}
                                                                 alt=""
                                                                 className="list-thumb"
                                                                 onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
@@ -3290,7 +3278,7 @@ export default function NewsHub() {
                                 }}
                                 onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.25)'}
                                 onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
-                            >←</button>
+                            ><ChevronLeft size={28} /></button>
                         )}
 
                         {/* Next arrow */}
@@ -3307,7 +3295,7 @@ export default function NewsHub() {
                                 }}
                                 onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.25)'}
                                 onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
-                            >→</button>
+                            ><ChevronRight size={28} /></button>
                         )}
 
                         {/* Video container */}
