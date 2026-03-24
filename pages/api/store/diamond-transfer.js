@@ -6,12 +6,13 @@
  *  ANTI-ABUSE SAFEGUARDS:
  *  1. Friendship verification (must be accepted friends)
  *  2. Balance check (sender must have enough diamonds)
- *  3. Daily transfer limit (500💎/day outbound)
- *  4. Per-transfer limit (10-100💎)
+ *  3. Daily transfer limit (tiered: 500💎 standard, 2000💎 for 60-day friends)
+ *  4. Per-transfer limit (tiered: 10-100💎 standard, 10-500💎 for 60-day friends)
  *  5. Account age gate (both users must be >7 days old)
  *  6. Cooldown (60s between transfers)
  *  7. Self-transfer block
  *  8. Rate limiting (20 req/min)
+ *  9. Friendship age tier (60+ day friends get VIP transfer limits)
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
@@ -31,10 +32,13 @@ function getSupabase() {
 
 // ── Anti-abuse constants ──
 const MIN_TRANSFER = 10;
-const MAX_TRANSFER = 100;
-const DAILY_LIMIT = 500;
+const MAX_TRANSFER_STANDARD = 100;
+const MAX_TRANSFER_VIP = 500;
+const DAILY_LIMIT_STANDARD = 500;
+const DAILY_LIMIT_VIP = 2000;
 const COOLDOWN_SECONDS = 60;
 const MIN_ACCOUNT_AGE_DAYS = 7;
+const VIP_FRIENDSHIP_DAYS = 60; // 60+ day friendships unlock VIP transfer tier
 
 export default async function handler(req, res) {
     try {
@@ -73,19 +77,17 @@ export default async function handler(req, res) {
         if (isNaN(amount) || amount < MIN_TRANSFER) {
             return res.status(400).json({ success: false, error: `Minimum transfer is ${MIN_TRANSFER} diamonds` });
         }
-        if (amount > MAX_TRANSFER) {
-            return res.status(400).json({ success: false, error: `Maximum ${MAX_TRANSFER} diamonds per transfer` });
-        }
+        // Per-transfer max is checked after friendship tier is determined (below)
 
         // ── Guard 7: Self-transfer block ──
         if (userId === recipientId) {
             return res.status(400).json({ success: false, error: 'Cannot transfer diamonds to yourself' });
         }
 
-        // ── Guard 1: Friendship verification ──
+        // ── Guard 1: Friendship verification + age for tier ──
         const { data: friendship } = await getSupabase()
             .from('friendships')
-            .select('id, status')
+            .select('id, status, created_at')
             .or(`and(user_id.eq.${userId},friend_id.eq.${recipientId}),and(user_id.eq.${recipientId},friend_id.eq.${userId})`)
             .eq('status', 'accepted')
             .maybeSingle();
@@ -93,6 +95,14 @@ export default async function handler(req, res) {
         if (!friendship) {
             return res.status(403).json({ success: false, error: 'You can only send diamonds to accepted friends' });
         }
+
+        // ── Guard 9: Determine friendship tier ──
+        const friendshipAgeDays = friendship.created_at
+            ? (new Date() - new Date(friendship.created_at)) / (1000 * 60 * 60 * 24)
+            : 0;
+        const isVipTier = friendshipAgeDays >= VIP_FRIENDSHIP_DAYS;
+        const maxTransfer = isVipTier ? MAX_TRANSFER_VIP : MAX_TRANSFER_STANDARD;
+        const dailyLimit = isVipTier ? DAILY_LIMIT_VIP : DAILY_LIMIT_STANDARD;
 
         // ── Guard 5: Account age check (both users) ──
         const { data: profiles } = await getSupabase()
@@ -118,6 +128,16 @@ export default async function handler(req, res) {
             return res.status(403).json({ success: false, error: `Recipient account must be at least ${MIN_ACCOUNT_AGE_DAYS} days old to receive diamonds` });
         }
 
+        // ── Guard 4: Per-transfer max (tier-aware) ──
+        if (amount > maxTransfer) {
+            return res.status(400).json({
+                success: false,
+                error: isVipTier
+                    ? `Maximum ${MAX_TRANSFER_VIP} diamonds per transfer (VIP friend tier)`
+                    : `Maximum ${MAX_TRANSFER_STANDARD} diamonds per transfer (become friends for ${VIP_FRIENDSHIP_DAYS}+ days to unlock ${MAX_TRANSFER_VIP})`
+            });
+        }
+
         // ── Guard 2: Balance check ──
         if ((senderProfile.diamonds ?? 0) < amount) {
             return res.status(400).json({ success: false, error: 'Insufficient diamond balance' });
@@ -138,7 +158,7 @@ export default async function handler(req, res) {
             return res.status(429).json({ success: false, error: 'Please wait 60 seconds between transfers' });
         }
 
-        // ── Guard 3: Daily limit check (500💎/day) ──
+        // ── Guard 3: Daily limit check (tier-aware) ──
         const dayStart = new Date(now);
         dayStart.setHours(0, 0, 0, 0);
         const { data: dailyTransfers } = await getSupabase()
@@ -149,10 +169,10 @@ export default async function handler(req, res) {
             .gte('created_at', dayStart.toISOString());
 
         const dailyTotal = (dailyTransfers || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-        if (dailyTotal + amount > DAILY_LIMIT) {
+        if (dailyTotal + amount > dailyLimit) {
             return res.status(429).json({
                 success: false,
-                error: `Daily transfer limit reached (${DAILY_LIMIT}💎/day). You've sent ${dailyTotal}💎 today.`
+                error: `Daily transfer limit reached (${dailyLimit}💎/day${isVipTier ? ' VIP tier' : ''}). You've sent ${dailyTotal}💎 today.`
             });
         }
 
@@ -219,6 +239,8 @@ export default async function handler(req, res) {
             success: true,
             transferred: amount,
             newBalance: newSenderBalance,
+            tier: isVipTier ? 'vip' : 'standard',
+            dailyRemaining: dailyLimit - dailyTotal - amount,
         });
 
     } catch (err) {

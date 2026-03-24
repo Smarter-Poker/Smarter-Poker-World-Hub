@@ -559,10 +559,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             setTransferError('Minimum transfer is 10 diamonds');
             return;
         }
-        if (amount > 100) {
-            setTransferError('Maximum 100 diamonds per transfer');
-            return;
-        }
         if (amount > (balance ?? 0)) {
             setTransferError('Insufficient diamond balance');
             return;
@@ -585,7 +581,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             });
             const data = await res.json();
             if (data.success) {
-                setTransferSuccess(`Sent ${amount} diamonds to ${transferRecipient.display_name || transferRecipient.username}!`);
+                const tierLabel = data.tier === 'vip' ? ' (VIP Friend)' : '';
+                setTransferSuccess(`Sent ${amount}💎 to ${transferRecipient.display_name || transferRecipient.username}${tierLabel}! ${data.dailyRemaining != null ? `${data.dailyRemaining}💎 remaining today.` : ''}`);
                 setTransferAmount('');
                 setTransferRecipient(null);
                 // Update balance optimistically
@@ -1032,7 +1029,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         </div>
                         {/* Anti-abuse info */}
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 8, lineHeight: 1.4 }}>
-                            Limits: 10-100 per transfer | 500/day max | Friends only | 60s cooldown
+                            Standard: 10-100 per transfer | 500/day | 60s cooldown<br/>
+                            VIP Friends (60+ days): 10-500 per transfer | 2,000/day
                         </div>
                         {/* Friend picker */}
                         <div style={{ marginBottom: 8 }}>
@@ -1085,7 +1083,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     <span style={{ fontSize: 14 }}>💎</span>
                                     <input
                                         type="number"
-                                        min="10" max="100"
+                                        min="10" max="500"
                                         value={transferAmount}
                                         onChange={e => setTransferAmount(e.target.value)}
                                         placeholder="10-100"

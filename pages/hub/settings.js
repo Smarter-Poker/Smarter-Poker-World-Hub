@@ -25,6 +25,7 @@ import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
+import { getBlockedUsers, unblockUser } from '../../src/services/privacy-service';
 
 // Phase 2: Hoisted to module scope — static array, no need to re-create on every render
 const SETTINGS_SECTIONS = [
@@ -191,6 +192,15 @@ export default function SettingsPage() {
     const [billingLoading, setBillingLoading] = useState(false);
     const [billingLoaded, setBillingLoaded] = useState(false); // Dedup guard
 
+    // Blocked Users State
+    const [blockedList, setBlockedList] = useState([]);
+    const [blockedLoading, setBlockedLoading] = useState(false);
+    const [blockedLoaded, setBlockedLoaded] = useState(false);
+    const [unblockingId, setUnblockingId] = useState(null);
+
+    // Volume slider local state (for smooth drag without spamming DB)
+    const [localVolume, setLocalVolume] = useState(null); // null = use settings.masterVolume
+
     //  Use context user or localStorage fallback
     const user = contextUser || localUser;
 
@@ -306,18 +316,24 @@ export default function SettingsPage() {
         if (!user?.id) return;
 
         const loadSettings = async () => {
-            // Load user's display preference from profiles table
+            // Load user's display preference AND app_settings from profiles table
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('display_name_preference')
+                .select('display_name_preference, app_settings')
                 .eq('id', user.id)
                 .maybeSingle();
 
             if (profile) {
+                const dbSettings = profile.app_settings || {};
                 setSettings(prev => ({
                     ...prev,
-                    display_name_preference: profile.display_name_preference || 'full_name'
+                    ...dbSettings,
+                    display_name_preference: profile.display_name_preference || dbSettings.display_name_preference || 'full_name'
                 }));
+                // Also update localStorage cache with DB values
+                try {
+                    localStorage.setItem('sp-user-settings', JSON.stringify({ ...SETTINGS_DEFAULTS, ...dbSettings, display_name_preference: profile.display_name_preference || 'full_name' }));
+                } catch (_) {}
             }
         };
 
@@ -353,14 +369,16 @@ export default function SettingsPage() {
                 if (user?.id) {
                     supabase
                         .from('profiles')
-                        .select('display_name_preference')
+                        .select('display_name_preference, app_settings')
                         .eq('id', user.id)
                         .maybeSingle()
                         .then(({ data: profile }) => {
                             if (profile) {
+                                const dbSettings = profile.app_settings || {};
                                 setSettings(prev => ({
                                     ...prev,
-                                    display_name_preference: profile.display_name_preference || 'full_name'
+                                    ...dbSettings,
+                                    display_name_preference: profile.display_name_preference || dbSettings.display_name_preference || 'full_name'
                                 }));
                             }
                         });
@@ -542,18 +560,26 @@ export default function SettingsPage() {
         const newSettings = { ...settings, [key]: value };
         setSettings(newSettings);
 
-        // Persist all settings to localStorage
+        // Persist all settings to localStorage (fast cache)
         try {
             localStorage.setItem('sp-user-settings', JSON.stringify(newSettings));
         } catch (_) {}
 
-        // If display_name_preference changed, also persist to DB (affects other users' views)
-        if (key === 'display_name_preference' && user?.id) {
-            const { error } = await supabase.from('profiles').update({ display_name_preference: value }).eq('id', user.id);
+        // Persist ALL settings to Supabase profiles.app_settings (cross-device)
+        if (user?.id) {
+            // Build the update payload — always save app_settings JSONB
+            const updatePayload = { app_settings: newSettings };
+            // If display_name_preference changed, also update the dedicated column
+            if (key === 'display_name_preference') {
+                updatePayload.display_name_preference = value;
+            }
+            const { error } = await supabase.from('profiles').update(updatePayload).eq('id', user.id);
             if (error) {
-                console.error('[Settings] Failed to save display name preference:', error);
+                console.error('[Settings] Failed to save settings to DB:', error);
                 // Revert optimistic update on failure
-                setSettings(prev => ({ ...prev, display_name_preference: prev.display_name_preference }));
+                if (key === 'display_name_preference') {
+                    setSettings(prev => ({ ...prev, display_name_preference: prev.display_name_preference }));
+                }
             }
         }
 
@@ -581,11 +607,15 @@ export default function SettingsPage() {
         }
         setExportLoading(true);
         try {
-            const [profileRes, settingsData, promoRes, avatarRes] = await Promise.allSettled([
+            const [profileRes, settingsData, promoRes, avatarRes, clubsRes, ordersRes, vipRes, blockedRes] = await Promise.allSettled([
                 supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
                 Promise.resolve(settings),
                 supabase.from('promo_code_redemptions').select('*, promo_codes(code, description, reward_type, reward_value)').eq('user_id', user.id).order('redeemed_at', { ascending: false }),
                 supabase.from('user_avatars').select('*').eq('user_id', user.id),
+                supabase.from('club_members').select('club_id, role, joined_at').eq('user_id', user.id),
+                supabase.from('orders').select('id, status, total_cents, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
+                supabase.from('vip_subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
+                supabase.from('blocked_users').select('blocked_id, created_at').eq('blocker_id', user.id),
             ]);
 
             const exportPayload = {
@@ -596,6 +626,10 @@ export default function SettingsPage() {
                 settings: settingsData.status === 'fulfilled' ? settingsData.value : settings,
                 promo_history: promoRes.status === 'fulfilled' ? promoRes.value.data : [],
                 avatars: avatarRes.status === 'fulfilled' ? avatarRes.value.data : [],
+                club_memberships: clubsRes.status === 'fulfilled' ? clubsRes.value.data : [],
+                orders: ordersRes.status === 'fulfilled' ? ordersRes.value.data : [],
+                vip_subscription: vipRes.status === 'fulfilled' ? vipRes.value.data : null,
+                blocked_users: blockedRes.status === 'fulfilled' ? blockedRes.value.data : [],
             };
 
             const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
@@ -739,6 +773,21 @@ export default function SettingsPage() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeSection, user?.id, billingLoaded]);
+
+    // Load blocked users when section is activated
+    useEffect(() => {
+        if (activeSection === 'blocked' && user?.id && !blockedLoaded) {
+            setBlockedLoading(true);
+            getBlockedUsers(user.id).then(list => {
+                setBlockedList(list || []);
+                setBlockedLoading(false);
+                setBlockedLoaded(true);
+            }).catch(() => {
+                setBlockedLoading(false);
+                setBlockedLoaded(true);
+            });
+        }
+    }, [activeSection, user?.id, blockedLoaded]);
 
     const redeemPromoCode = async () => {
         if (!promoCode.trim()) return;
@@ -1552,8 +1601,10 @@ export default function SettingsPage() {
                                             type="range"
                                             min="0"
                                             max="100"
-                                            value={settings.masterVolume || 50}
-                                            onChange={(e) => updateSetting('masterVolume', parseInt(e.target.value))}
+                                            value={localVolume !== null ? localVolume : (settings.masterVolume || 50)}
+                                            onChange={(e) => setLocalVolume(parseInt(e.target.value))}
+                                            onPointerUp={() => { if (localVolume !== null) { updateSetting('masterVolume', localVolume); setLocalVolume(null); } }}
+                                            onTouchEnd={() => { if (localVolume !== null) { updateSetting('masterVolume', localVolume); setLocalVolume(null); } }}
                                             style={styles.slider}
                                             aria-label="Master Volume"
                                             aria-valuetext={`${settings.masterVolume || 50}%`}
@@ -2231,16 +2282,82 @@ export default function SettingsPage() {
                             <div style={styles.section}>
                                 <h2 style={styles.sectionTitle}>Blocked Users</h2>
 
-                                <div style={styles.settingGroup}>
-                                    <p style={styles.infoText}>
-                                        Manage Users You've Blocked From Messaging And Interacting With You.
-                                    </p>
-                                    <button
-                                        onClick={() => router.push('/hub/messenger/blocked')}
-                                        style={styles.linkButton}
-                                    >
-                                        Manage Blocked Users →
-                                    </button>
+                                <div style={styles.card}>
+                                    {blockedLoading ? (
+                                        <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Loading Blocked Users...</div>
+                                    ) : blockedList.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                                            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>&#x2714;</div>
+                                            <div style={{ fontSize: 16, fontWeight: 600, color: '#e4e6eb', marginBottom: 8 }}>No Blocked Users</div>
+                                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', maxWidth: 300, margin: '0 auto' }}>
+                                                You haven't blocked anyone. Users you block will appear here.
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                            {blockedList.map(entry => (
+                                                <div key={entry.blocked_id} style={{
+                                                    display: 'flex', alignItems: 'center', gap: 14,
+                                                    padding: '14px 16px', background: 'rgba(255,255,255,0.03)',
+                                                    borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)',
+                                                }}>
+                                                    <div style={{
+                                                        width: 40, height: 40, borderRadius: '50%',
+                                                        background: 'linear-gradient(135deg, #3a3b3c, #4e4f50)',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        overflow: 'hidden', flexShrink: 0,
+                                                    }}>
+                                                        {entry.blocked?.avatar_url ? (
+                                                            <img src={entry.blocked.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        ) : (
+                                                            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16, fontWeight: 600 }}>
+                                                                {(entry.blocked?.full_name || entry.blocked?.username || '?')[0].toUpperCase()}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <div style={{ fontSize: 14, fontWeight: 600, color: '#e4e6eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                            {entry.blocked?.full_name || entry.blocked?.username || 'Unknown User'}
+                                                        </div>
+                                                        {entry.blocked?.username && (
+                                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>@{entry.blocked.username}</div>
+                                                        )}
+                                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                                                            Blocked {entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={async () => {
+                                                            setUnblockingId(entry.blocked_id);
+                                                            try {
+                                                                await unblockUser(user.id, entry.blocked_id);
+                                                                setBlockedList(prev => prev.filter(b => b.blocked_id !== entry.blocked_id));
+                                                            } catch (err) {
+                                                                console.error('[Settings] Unblock failed:', err);
+                                                            } finally {
+                                                                setUnblockingId(null);
+                                                            }
+                                                        }}
+                                                        disabled={unblockingId === entry.blocked_id}
+                                                        style={{
+                                                            padding: '8px 16px',
+                                                            background: unblockingId === entry.blocked_id ? 'rgba(255,255,255,0.05)' : 'rgba(255, 71, 87, 0.12)',
+                                                            border: '1px solid rgba(255, 71, 87, 0.3)',
+                                                            borderRadius: 8,
+                                                            color: '#ff4757',
+                                                            fontSize: 12, fontWeight: 600,
+                                                            cursor: unblockingId === entry.blocked_id ? 'wait' : 'pointer',
+                                                            opacity: unblockingId === entry.blocked_id ? 0.5 : 1,
+                                                            transition: 'all 0.2s ease',
+                                                            flexShrink: 0,
+                                                        }}
+                                                    >
+                                                        {unblockingId === entry.blocked_id ? 'Unblocking...' : 'Unblock'}
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div style={styles.settingGroup}>
