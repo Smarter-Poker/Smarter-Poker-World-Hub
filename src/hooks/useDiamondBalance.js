@@ -31,6 +31,7 @@ function updateCachedBalance(diamonds) {
     try {
         const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
         cached.diamonds = diamonds;
+        cached._ts = Date.now(); // Refresh TTL on balance update
         localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
     } catch (_) { /* quota exceeded — ignore */ }
 }

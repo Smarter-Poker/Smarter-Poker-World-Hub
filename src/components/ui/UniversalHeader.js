@@ -49,16 +49,22 @@ export default function UniversalHeader({
 }) {
     const router = useRouter();
 
-    // 🛡️ INSTANT UI: Synchronous localStorage read during useState init
-    // This ensures the very FIRST render already has cached user data,
-    // eliminating the "flash of missing profile" on page navigation.
-    const [user, setUser] = useState(() => {
+    // 🛡️ INSTANT UI: Single-parse helper with 24h cache TTL
+    // Parses localStorage once and returns the cached header object (or null if expired/missing).
+    // This prevents double JSON.parse and ensures stale data (>24h) is discarded.
+    const _cachedHeader = (() => {
         if (typeof window === 'undefined') return null;
         try {
-            const cached = localStorage.getItem('sp-cached-header-user');
-            return cached ? JSON.parse(cached) : null;
+            const raw = localStorage.getItem('sp-cached-header-user');
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            // TTL check: discard cache older than 24 hours
+            if (data?._ts && (Date.now() - data._ts > 24 * 60 * 60 * 1000)) return null;
+            return data;
         } catch (_) { return null; }
-    });
+    })();
+
+    const [user, setUser] = useState(_cachedHeader);
     const [notificationCount, setNotificationCount] = useState(() => {
         if (typeof window === 'undefined') return 0;
         try { return parseInt(localStorage.getItem('sp-notif-count') || '0', 10); } catch (_) { return 0; }
@@ -67,12 +73,9 @@ export default function UniversalHeader({
     // ── FULL-SCREEN OVERLAY STATES ──
     const [overlayPage, setOverlayPage] = useState(null); // null | 'profile' | 'messenger' | 'notifications' | 'settings' | 'diamond-store'
     const [isVip, setIsVip] = useState(() => {
+        if (_cachedHeader) return !!_cachedHeader.is_vip;
         if (typeof window === 'undefined') return false;
-        try {
-            const cached = localStorage.getItem('sp-cached-header-user');
-            if (cached) return !!JSON.parse(cached).is_vip;
-            return localStorage.getItem('sp-vip-status') === 'true';
-        } catch (_) { return false; }
+        return localStorage.getItem('sp-vip-status') === 'true';
     });
     const [isMounted, setIsMounted] = useState(false);
 
@@ -105,18 +108,12 @@ export default function UniversalHeader({
     const { unreadCount } = useUnreadCount();
 
     // 🛡️ INSTANT UI: Mark mounted for hydration-safe gates.
-    // Cache read is now synchronous in useState init above — no extra effect needed.
+    // Cache read is now synchronous in _cachedHeader above — no extra effect needed.
     useEffect(() => {
         setIsMounted(true);
         // Seed diamond balance from cache (hook needs explicit init)
-        if (typeof window !== 'undefined') {
-            try {
-                const cached = localStorage.getItem('sp-cached-header-user');
-                if (cached) {
-                    const data = JSON.parse(cached);
-                    if (data?.diamonds !== undefined) setDiamondBalance(data.diamonds);
-                }
-            } catch (_) { }
+        if (_cachedHeader?.diamonds !== undefined) {
+            setDiamondBalance(_cachedHeader.diamonds);
         }
     }, []);
 
@@ -227,14 +224,15 @@ export default function UniversalHeader({
                                 if (typeof result.notificationCount === 'number') {
                                     setNotificationCount(result.notificationCount);
                                 }
-                                // 🛡️ INSTANT UI: Cache user data for next page load
+                                // 🛡️ INSTANT UI: Cache user data for next page load (with TTL timestamp)
                                 try {
                                     localStorage.setItem('sp-cached-header-user', JSON.stringify({
                                         avatar: avatar_url,
                                         name: full_name || username,
                                         username: username || null,
                                         diamonds: diamonds ?? 0,
-                                        is_vip: !!is_vip
+                                        is_vip: !!is_vip,
+                                        _ts: Date.now()
                                     }));
                                 } catch (_) { }
 
@@ -304,7 +302,8 @@ export default function UniversalHeader({
                                         name: profile.full_name || profile.username,
                                         username: profile.username || null,
                                         diamonds: profile.diamonds ?? 0,
-                                        is_vip: !!profile.is_vip
+                                        is_vip: !!profile.is_vip,
+                                        _ts: Date.now()
                                     }));
                                 } catch (_) { }
                                 // Update direct profile link
@@ -474,7 +473,8 @@ export default function UniversalHeader({
                             name: result.profile.full_name || result.profile.username,
                             username: result.profile.username || null,
                             diamonds: result.profile.diamonds ?? 0,
-                            is_vip: !!result.profile.is_vip
+                            is_vip: !!result.profile.is_vip,
+                            _ts: Date.now()
                         }));
                     } catch (_) { }
                     // Update direct profile link if username changed
@@ -734,6 +734,20 @@ export default function UniversalHeader({
                     50% { box-shadow: 0 0 18px rgba(0, 245, 255, 0.6), 0 0 4px rgba(0, 245, 255, 0.2); }
                 }
 
+                /* Shimmer skeleton for first-time users with no cached avatar */
+                @keyframes shimmer-avatar {
+                    0% { background-position: -200% 0; }
+                    100% { background-position: 200% 0; }
+                }
+                .profile-orb-shimmer {
+                    background: linear-gradient(90deg,
+                        rgba(0, 136, 255, 0.15) 25%,
+                        rgba(0, 245, 255, 0.3) 50%,
+                        rgba(0, 136, 255, 0.15) 75%) !important;
+                    background-size: 200% 100% !important;
+                    animation: shimmer-avatar 1.5s ease-in-out infinite !important;
+                }
+
                 .profile-orb:hover {
                     opacity: 0.85;
                     transform: scale(1.08);
@@ -914,7 +928,7 @@ export default function UniversalHeader({
 
                     {/* Avatar/Profile */}
                     <div
-                        className="profile-orb"
+                        className={`profile-orb${!displayAvatar && !isMounted ? ' profile-orb-shimmer' : ''}`}
                         onClick={() => openOverlay('profile')}
                         role="button"
                         tabIndex={0}

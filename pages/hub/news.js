@@ -646,12 +646,9 @@ function getReelThumbnail(reel) {
 }
 
 // Reel Card Component - Vertical Video for Social Reels
-function ReelCard({ reel, onClick, openExternal }) {
+function ReelCard({ reel, onClick }) {
     const openReel = () => {
-        if (reel.video_url) {
-            // Use link containment - stay inside smarter.poker
-            openExternal(reel.video_url, reel.title || 'Poker Reel');
-        }
+        if (onClick) onClick();
     };
 
     // Get display values with proper fallbacks
@@ -977,6 +974,11 @@ export default function NewsHub() {
 
     // Article reader state - uses server-side proxy to display articles in-app
     const [articleReader, setArticleReader] = useState({ open: false, url: '', title: '' });
+
+    // Fullscreen reels viewer state
+    const [reelViewerOpen, setReelViewerOpen] = useState(false);
+    const [reelViewerIndex, setReelViewerIndex] = useState(0);
+    const openReelViewer = (index) => { setReelViewerIndex(index); setReelViewerOpen(true); };
 
 
     // Handle query parameters for deep linking
@@ -1362,12 +1364,6 @@ export default function NewsHub() {
                                     onClick={() => setActiveSection('news')}
                                 >
                                     <Image src="/images/btn-news.png" alt="News" width={144} height={85} style={{ width: 'auto', height: '85px', maxWidth: '100%', display: 'block' }} />
-                                </button>
-                                <button
-                                    className={`section-tab-img ${activeSection === 'videos' ? 'active' : ''}`}
-                                    onClick={() => setActiveSection('videos')}
-                                >
-                                    <Image src="/images/btn-latest-videos.png" alt="Latest Videos" width={144} height={85} style={{ width: 'auto', height: '85px', maxWidth: '100%', display: 'block' }} />
                                 </button>
                                 <button
                                     className={`section-tab-img ${activeSection === 'reels' ? 'active' : ''}`}
