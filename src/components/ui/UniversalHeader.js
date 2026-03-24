@@ -23,6 +23,7 @@ import { supabase } from '../../lib/supabase';
 
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
+import FullScreenPageOverlay from './FullScreenPageOverlay';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { useDiamondBalance } from '../../hooks/useDiamondBalance';
@@ -63,6 +64,8 @@ export default function UniversalHeader({
         try { return parseInt(localStorage.getItem('sp-notif-count') || '0', 10); } catch (_) { return 0; }
     });
     const [isWalletOpen, setIsWalletOpen] = useState(false);
+    // ── FULL-SCREEN OVERLAY STATES ──
+    const [overlayPage, setOverlayPage] = useState(null); // null | 'profile' | 'messenger' | 'notifications' | 'settings' | 'diamond-store'
     const [isVip, setIsVip] = useState(() => {
         if (typeof window === 'undefined') return false;
         try {
@@ -129,15 +132,25 @@ export default function UniversalHeader({
     // Live Help state
     const liveHelp = useLiveHelp();
 
-    // ── PREFETCH: Eagerly load all header-linked page JS bundles ──
-    useEffect(() => {
-        if (profileHref !== '/hub/profile') {
-            router.prefetch(profileHref);
-        }
-        router.prefetch('/hub/notifications');
-        router.prefetch('/hub/settings');
-        router.prefetch('/hub/messenger');
-    }, [profileHref, router]);
+    // ── OVERLAY HELPERS ──
+    const openOverlay = (page) => setOverlayPage(page);
+    const closeOverlay = () => setOverlayPage(null);
+
+    const overlayUrlMap = {
+        profile: profileHref,
+        messenger: '/hub/messenger',
+        notifications: '/hub/notifications',
+        settings: '/hub/settings',
+        'diamond-store': '/hub/diamond-store',
+    };
+
+    const overlayTitleMap = {
+        profile: 'My Profile',
+        messenger: 'Messenger',
+        notifications: 'Notifications',
+        settings: 'Settings',
+        'diamond-store': 'Diamond Store',
+    };
 
     useEffect(() => {
         let mounted = true; // Prevent state updates after unmount
@@ -866,7 +879,7 @@ export default function UniversalHeader({
                 <div className="header-right">
                     {/* Diamond Wallet Icon */}
                     <button
-                        onClick={() => setIsWalletOpen(true)}
+                        onClick={() => openOverlay('diamond-store')}
                         className="orb-btn"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                         title="Diamond Wallet"
@@ -876,8 +889,12 @@ export default function UniversalHeader({
 
                     {/* VIP Card Icon — only for VIP members */}
                     {isVipDisplay && (
-                        <div className="orb-btn" style={{ borderRadius: 6, border: '2px solid rgba(200, 200, 200, 0.8)', boxShadow: '0 0 6px rgba(200, 200, 200, 0.4)' }}>
-                            <Link href="/hub/diamond-store" style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                        <button
+                            onClick={() => openOverlay('diamond-store')}
+                            className="orb-btn"
+                            style={{ borderRadius: 6, border: '2px solid rgba(200, 200, 200, 0.8)', boxShadow: '0 0 6px rgba(200, 200, 200, 0.4)', background: 'none', cursor: 'pointer', padding: 0 }}
+                            title="VIP Member"
+                        >
                                 <img
                                     src="/images/vip-card.png"
                                     alt="VIP Member"
@@ -892,13 +909,16 @@ export default function UniversalHeader({
                                         transform: 'translate(-50%, -50%)',
                                     }}
                                 />
-                            </Link>
-                        </div>
+                        </button>
                     )}
 
                     {/* Avatar/Profile */}
                     <div
                         className="profile-orb"
+                        onClick={() => openOverlay('profile')}
+                        role="button"
+                        tabIndex={0}
+                        aria-label="My Profile"
                         style={{
                             background: displayAvatar
                                 ? `url(${displayAvatar}) center/cover`
@@ -909,37 +929,31 @@ export default function UniversalHeader({
                             } : {})
                         }}
                     >
-                        <Link href={profileHref} prefetch={profileHref !== '/hub/profile'} style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>
+                        <span style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>
                             {!displayAvatar && (isMounted ? (user?.name || '').charAt(0).toUpperCase() || '?' : '')}
-                        </Link>
+                        </span>
                     </div>
 
                     {/* Messages - Custom Metallic Messenger icon */}
-                    <div className="orb-btn">
-                        <Link href="/hub/messenger" prefetch={true} style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => openOverlay('messenger')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Messages">
                             <img src="/images/header-messenger.png" alt="Messages" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {safeUnreadCount > 0 && (
                                 <span className="orb-badge">{safeUnreadCount > 99 ? '99+' : safeUnreadCount}</span>
                             )}
-                        </Link>
-                    </div>
+                    </button>
 
                     {/* Notifications - Custom Metallic Bell icon */}
-                    <div className="orb-btn">
-                        <Link href="/hub/notifications" style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => openOverlay('notifications')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Notifications">
                             <img src="/images/header-notifications.png" alt="Notifications" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {safeNotificationCount > 0 && (
                                 <span className="orb-badge">{safeNotificationCount > 99 ? '99+' : safeNotificationCount}</span>
                             )}
-                        </Link>
-                    </div>
+                    </button>
 
                     {/* Settings - Custom Metallic Gear icon */}
-                    <div className="orb-btn">
-                        <Link href="/hub/settings" style={{ textDecoration: 'none', display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => openOverlay('settings')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Settings">
                             <img src="/images/header-settings.png" alt="Settings" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
-                        </Link>
-                    </div>
+                    </button>
 
                     {/* Live Help - Hidden on mobile */}
                     <button
@@ -975,13 +989,15 @@ export default function UniversalHeader({
             {/* Live Help Panel */}
             <LiveHelpPanel {...liveHelp} />
 
-            {/* Diamond Wallet Modal */}
-            <DiamondWalletModal
-                isOpen={isWalletOpen}
-                onClose={() => setIsWalletOpen(false)}
-                onBuyClick={() => router.push('/hub/diamond-store')}
-                initialBalance={diamondBalance}
-            />
+            {/* Full-Screen Page Overlay — opens pages as popup instead of redirect */}
+            {overlayPage && (
+                <FullScreenPageOverlay
+                    isOpen={true}
+                    onClose={closeOverlay}
+                    url={overlayUrlMap[overlayPage]}
+                    title={overlayTitleMap[overlayPage]}
+                />
+            )}
         </>
     );
 }

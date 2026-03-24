@@ -256,11 +256,17 @@ function HomeCasinoSelector({ value, onChange }) {
         return () => document.removeEventListener('mousedown', handleClick);
     }, []);
 
+    // Cleanup debounce timer on unmount
+    useEffect(() => {
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    }, []);
+
     const searchVenues = useCallback(async (q) => {
         if (!q || q.length < 2) { setSuggestions([]); return; }
         setIsSearching(true);
         try {
             const res = await fetch(`/api/poker/venues?search=${encodeURIComponent(q)}&limit=8`);
+            if (!res.ok) { setIsSearching(false); return; }
             const data = await res.json();
             if (data.success && data.data) {
                 setSuggestions(data.data);

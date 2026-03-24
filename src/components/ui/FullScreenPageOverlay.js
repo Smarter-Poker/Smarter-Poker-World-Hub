@@ -1,0 +1,174 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * FULL-SCREEN PAGE OVERLAY
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * Renders a page inside a full-screen overlay via iframe.
+ * Used by UniversalHeader so clicking icons opens content as a popup
+ * instead of navigating away from the current page.
+ */
+
+import React, { useEffect, useRef, useState } from 'react';
+
+export default function FullScreenPageOverlay({ isOpen, onClose, url, title }) {
+    const [loaded, setLoaded] = useState(false);
+    const iframeRef = useRef(null);
+
+    // Lock body scroll & listen for Escape key
+    useEffect(() => {
+        if (!isOpen) {
+            setLoaded(false);
+            return;
+        }
+
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        const handleKey = (e) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleKey);
+
+        return () => {
+            document.body.style.overflow = prev;
+            window.removeEventListener('keydown', handleKey);
+        };
+    }, [isOpen, onClose]);
+
+    if (!isOpen) return null;
+
+    return (
+        <>
+            <style jsx>{`
+                .fsp-overlay {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 99999;
+                    background: rgba(0, 0, 0, 0.85);
+                    display: flex;
+                    flex-direction: column;
+                    animation: fsp-slide-up 0.3s ease-out;
+                }
+
+                @keyframes fsp-slide-up {
+                    from { opacity: 0; transform: translateY(40px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                }
+
+                .fsp-topbar {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 8px 16px;
+                    background: #0a0a0a;
+                    border-bottom: 1px solid rgba(255,255,255,0.1);
+                    flex-shrink: 0;
+                }
+
+                .fsp-title {
+                    color: rgba(255,255,255,0.9);
+                    font-size: 15px;
+                    font-weight: 600;
+                    letter-spacing: 0.3px;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                }
+
+                .fsp-close-btn {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    border: none;
+                    background: rgba(255,255,255,0.1);
+                    color: white;
+                    font-size: 20px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: background 0.15s ease, transform 0.1s ease;
+                }
+
+                .fsp-close-btn:hover {
+                    background: rgba(255,255,255,0.2);
+                    transform: scale(1.1);
+                }
+
+                .fsp-close-btn:active {
+                    transform: scale(0.95);
+                }
+
+                .fsp-iframe-wrap {
+                    flex: 1;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .fsp-iframe {
+                    width: 100%;
+                    height: 100%;
+                    border: none;
+                    background: #000;
+                }
+
+                .fsp-loader {
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #0a0a0a;
+                    transition: opacity 0.3s ease;
+                }
+
+                .fsp-loader.hidden {
+                    opacity: 0;
+                    pointer-events: none;
+                }
+
+                .fsp-spinner {
+                    width: 40px;
+                    height: 40px;
+                    border: 3px solid rgba(0, 136, 255, 0.2);
+                    border-top-color: #0088ff;
+                    border-radius: 50%;
+                    animation: fsp-spin 0.8s linear infinite;
+                }
+
+                @keyframes fsp-spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
+
+            <div className="fsp-overlay" role="dialog" aria-modal="true" aria-label={title || 'Page Overlay'}>
+                {/* Top bar with title & close */}
+                <div className="fsp-topbar">
+                    <span className="fsp-title">{title || ''}</span>
+                    <button
+                        className="fsp-close-btn"
+                        onClick={onClose}
+                        aria-label="Close"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                {/* Iframe content area */}
+                <div className="fsp-iframe-wrap">
+                    {/* Loading spinner until iframe loads */}
+                    <div className={`fsp-loader ${loaded ? 'hidden' : ''}`}>
+                        <div className="fsp-spinner" />
+                    </div>
+
+                    <iframe
+                        ref={iframeRef}
+                        src={url}
+                        className="fsp-iframe"
+                        title={title || 'Page Content'}
+                        onLoad={() => setLoaded(true)}
+                        allow="autoplay; camera; microphone"
+                    />
+                </div>
+            </div>
+        </>
+    );
+}
