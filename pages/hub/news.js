@@ -3290,7 +3290,7 @@ export default function NewsHub() {
                                 }}
                                 onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.25)'}
                                 onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
-                            >\u2190</button>
+                            >←</button>
                         )}
 
                         {/* Next arrow */}
@@ -3307,7 +3307,7 @@ export default function NewsHub() {
                                 }}
                                 onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.25)'}
                                 onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
-                            >\u2192</button>
+                            >→</button>
                         )}
 
                         {/* Video container */}
