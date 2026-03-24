@@ -3,6 +3,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState, useEffect } from 'react';
+import { saveAppSetting } from '../../../lib/appSettingsSync';
 
 interface CompactModeToggleProps {
     onModeChange?: (isCompact: boolean) => void;
@@ -22,6 +23,7 @@ export function CompactModeToggle({ onModeChange }: CompactModeToggleProps) {
         const newMode = !isCompact;
         setIsCompact(newMode);
         localStorage.setItem('jarvis-compact-mode', String(newMode));
+        saveAppSetting('jarvis_compact_mode', newMode, 'jarvis-compact-mode');
         onModeChange?.(newMode);
     };
 

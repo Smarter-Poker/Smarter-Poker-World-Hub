@@ -391,6 +391,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const [confirmTransfer, setConfirmTransfer] = useState(null); // #5: Confirmation dialog
     const [recentRecipients, setRecentRecipients] = useState([]); // P2-3: Recent recipients
     const [dailyLimitInfo, setDailyLimitInfo] = useState(null);   // P2-4: Daily limit display
+    const [userSearchMode, setUserSearchMode] = useState(false);  // P3: Search all users fallback
+    const [userSearchResults, setUserSearchResults] = useState([]); // P3: User search results
+    const [userSearchLoading, setUserSearchLoading] = useState(false); // P3: Search loading
 
     // ── ENH-A: Animated balance counter ──
     const animatedBalance = useAnimatedCounter(balance ?? 0);
@@ -545,16 +548,59 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         setFriendsLoading(true);
         try {
             const session = getSession();
-            if (!session?.access_token) return;
-            const res = await fetch('/api/friends?action=list', {
+            if (!session?.access_token) {
+                console.warn('[Diamond Transfer] No auth session for friends fetch');
+                setFriendsLoading(false);
+                return;
+            }
+            // Use action=full to get more friend data including suggestions
+            const res = await fetch('/api/friends?action=full', {
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
             if (res.ok) {
                 const data = await res.json();
-                setTransferFriends(data.data?.friends || []);
+                const friends = data.data?.friends || [];
+                setTransferFriends(friends);
+                // If no friends, auto-switch to user search mode
+                if (friends.length === 0) {
+                    setUserSearchMode(true);
+                }
+            } else {
+                console.warn('[Diamond Transfer] Friends API error:', res.status);
             }
-        } catch (_) {}
+        } catch (err) {
+            console.warn('[Diamond Transfer] Friends fetch failed:', err.message);
+        }
         setFriendsLoading(false);
+    }, [getSession]);
+
+    // ── P3: Search all platform users (fallback when no friends) ──
+    const searchUsers = useCallback(async (query) => {
+        if (!query || query.trim().length < 2) {
+            setUserSearchResults([]);
+            return;
+        }
+        setUserSearchLoading(true);
+        try {
+            const session = getSession();
+            if (!session?.access_token) return;
+            const res = await fetch(`/api/friends?action=full`, {
+                headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const allUsers = data.data?.suggestions || [];
+                const q = query.trim().toLowerCase();
+                const matches = allUsers.filter(u =>
+                    (u.display_name || '').toLowerCase().includes(q) ||
+                    (u.username || '').toLowerCase().includes(q)
+                ).slice(0, 10);
+                setUserSearchResults(matches);
+            }
+        } catch (err) {
+            console.warn('[Diamond Transfer] User search failed:', err.message);
+        }
+        setUserSearchLoading(false);
     }, [getSession]);
 
     // ── H7: Send diamonds to friend ──
@@ -652,6 +698,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             setFriendSearch('');
             setConfirmTransfer(null);
             setDailyLimitInfo(null);
+            setUserSearchMode(false);
+            setUserSearchResults([]);
             return;
         }
 
@@ -939,24 +987,24 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             style={{
                                 padding: '8px 20px',
                                 background: showTransfer
-                                    ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(234, 88, 12, 0.25))'
-                                    : 'linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(234, 88, 12, 0.12))',
-                                border: `1px solid ${showTransfer ? 'rgba(249, 115, 22, 0.6)' : 'rgba(249, 115, 22, 0.35)'}`,
+                                    ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(0, 150, 200, 0.25))'
+                                    : 'linear-gradient(135deg, rgba(0, 212, 255, 0.12), rgba(0, 150, 200, 0.12))',
+                                border: `1px solid ${showTransfer ? 'rgba(0, 212, 255, 0.6)' : 'rgba(0, 212, 255, 0.35)'}`,
                                 borderRadius: 20,
-                                color: '#f97316',
+                                color: '#00d4ff',
                                 fontSize: 13,
                                 fontWeight: 600,
                                 cursor: 'pointer',
                                 transition: 'all 0.2s',
                             }}
                             onMouseEnter={e => {
-                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.3))';
+                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(0, 150, 200, 0.3))';
                                 e.currentTarget.style.transform = 'scale(1.03)';
                             }}
                             onMouseLeave={e => {
                                 e.currentTarget.style.background = showTransfer
-                                    ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(234, 88, 12, 0.25))'
-                                    : 'linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(234, 88, 12, 0.12))';
+                                    ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(0, 150, 200, 0.25))'
+                                    : 'linear-gradient(135deg, rgba(0, 212, 255, 0.12), rgba(0, 150, 200, 0.12))';
                                 e.currentTarget.style.transform = 'scale(1)';
                             }}
                         >
@@ -1079,11 +1127,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 {showTransfer && (
                     <div style={{
                         padding: '12px 16px',
-                        borderBottom: '1px solid rgba(249, 115, 22, 0.15)',
-                        background: 'rgba(249, 115, 22, 0.04)',
+                        borderBottom: '1px solid rgba(0, 212, 255, 0.12)',
+                        background: 'linear-gradient(180deg, rgba(8, 20, 40, 0.95) 0%, rgba(4, 12, 30, 0.98) 100%)',
                         animation: 'walletFadeIn 0.2s ease',
                     }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: '#f97316', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                             Send Diamonds to a Friend
                         </div>
                         {/* Anti-abuse info */}
@@ -1137,30 +1185,105 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 </div>
                             </div>
                         )}
-                        {/* Friend picker */}
+                        {/* Friend picker / User search */}
                         <div style={{ marginBottom: 8 }}>
                             {friendsLoading ? (
-                                <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Loading friends...</div>
-                            ) : transferFriends.length === 0 ? (
-                                <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>No friends found. Add friends first.</div>
+                                <div style={{ padding: '8px 12px', background: 'rgba(0,212,255,0.04)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Loading friends...</div>
+                            ) : transferFriends.length === 0 && !userSearchMode ? (
+                                <div style={{ padding: '10px 12px', background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.08)', borderRadius: 10, textAlign: 'center' }}>
+                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>No friends found</div>
+                                    <button
+                                        onClick={() => setUserSearchMode(true)}
+                                        style={{
+                                            padding: '5px 14px', borderRadius: 8,
+                                            background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.25)',
+                                            color: '#00d4ff', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                                        }}
+                                    >Search All Users</button>
+                                </div>
+                            ) : userSearchMode ? (
+                                <div>
+                                    <div style={{ marginBottom: 6, display: 'flex', gap: 6, alignItems: 'center' }}>
+                                        <input
+                                            type="text"
+                                            value={friendSearch}
+                                            onChange={e => { setFriendSearch(e.target.value); searchUsers(e.target.value); }}
+                                            placeholder="Search by name or username..."
+                                            style={{
+                                                flex: 1, padding: '7px 12px',
+                                                background: 'rgba(0,212,255,0.04)',
+                                                border: '1px solid rgba(0,212,255,0.15)',
+                                                borderRadius: 8, color: '#e2e8f0', fontSize: 12,
+                                                outline: 'none', fontFamily: "'Inter', sans-serif",
+                                            }}
+                                            autoFocus
+                                        />
+                                        {transferFriends.length > 0 && (
+                                            <button
+                                                onClick={() => { setUserSearchMode(false); setFriendSearch(''); setUserSearchResults([]); }}
+                                                style={{
+                                                    padding: '6px 10px', borderRadius: 8,
+                                                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                                                    color: 'rgba(255,255,255,0.5)', fontSize: 10, cursor: 'pointer',
+                                                }}
+                                            >Friends</button>
+                                        )}
+                                    </div>
+                                    {userSearchLoading && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', padding: '4px 0' }}>Searching...</div>}
+                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                        {userSearchResults.map(u => (
+                                            <button
+                                                key={u.id}
+                                                onClick={() => setTransferRecipient(transferRecipient?.id === u.id ? null : u)}
+                                                style={{
+                                                    padding: '5px 10px', borderRadius: 14,
+                                                    border: transferRecipient?.id === u.id
+                                                        ? '1px solid rgba(0, 212, 255, 0.6)'
+                                                        : '1px solid rgba(255,255,255,0.08)',
+                                                    background: transferRecipient?.id === u.id
+                                                        ? 'rgba(0, 212, 255, 0.12)'
+                                                        : 'rgba(255,255,255,0.04)',
+                                                    color: transferRecipient?.id === u.id ? '#00d4ff' : 'rgba(255,255,255,0.6)',
+                                                    fontSize: 11, fontWeight: 500, cursor: 'pointer',
+                                                    display: 'flex', alignItems: 'center', gap: 5,
+                                                    transition: 'all 0.15s',
+                                                }}
+                                            >
+                                                {u.avatar_url && <img src={u.avatar_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' }} />}
+                                                {u.display_name || u.username || 'User'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {friendSearch.length >= 2 && userSearchResults.length === 0 && !userSearchLoading && (
+                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', padding: '6px 0', textAlign: 'center' }}>No users found</div>
+                                    )}
+                                </div>
                             ) : (
                                 <>
-                                    {/* #8: Friend search */}
+                                    {/* Friend search (shown when >6 friends) */}
                                     {transferFriends.length > 6 && (
-                                        <div style={{ marginBottom: 6 }}>
+                                        <div style={{ marginBottom: 6, display: 'flex', gap: 6 }}>
                                             <input
                                                 type="text"
                                                 value={friendSearch}
                                                 onChange={e => setFriendSearch(e.target.value)}
                                                 placeholder="Search friends..."
                                                 style={{
-                                                    width: '100%', padding: '5px 10px',
-                                                    background: 'rgba(255,255,255,0.04)',
-                                                    border: '1px solid rgba(255,255,255,0.08)',
+                                                    flex: 1, padding: '5px 10px',
+                                                    background: 'rgba(0,212,255,0.04)',
+                                                    border: '1px solid rgba(0,212,255,0.1)',
                                                     borderRadius: 8, color: '#e2e8f0', fontSize: 11,
                                                     outline: 'none', fontFamily: "'Inter', sans-serif",
                                                 }}
                                             />
+                                            <button
+                                                onClick={() => { setUserSearchMode(true); setFriendSearch(''); }}
+                                                style={{
+                                                    padding: '5px 10px', borderRadius: 8,
+                                                    background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.12)',
+                                                    color: '#00d4ff', fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap',
+                                                }}
+                                            >All Users</button>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1176,21 +1299,16 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                             key={f.id}
                                             onClick={() => setTransferRecipient(transferRecipient?.id === f.id ? null : f)}
                                             style={{
-                                                padding: '5px 10px',
-                                                borderRadius: 14,
+                                                padding: '5px 10px', borderRadius: 14,
                                                 border: transferRecipient?.id === f.id
-                                                    ? '1px solid rgba(249, 115, 22, 0.6)'
+                                                    ? '1px solid rgba(0, 212, 255, 0.6)'
                                                     : '1px solid rgba(255,255,255,0.08)',
                                                 background: transferRecipient?.id === f.id
-                                                    ? 'rgba(249, 115, 22, 0.15)'
+                                                    ? 'rgba(0, 212, 255, 0.12)'
                                                     : 'rgba(255,255,255,0.04)',
-                                                color: transferRecipient?.id === f.id ? '#f97316' : 'rgba(255,255,255,0.6)',
-                                                fontSize: 11,
-                                                fontWeight: 500,
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 5,
+                                                color: transferRecipient?.id === f.id ? '#00d4ff' : 'rgba(255,255,255,0.6)',
+                                                fontSize: 11, fontWeight: 500, cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', gap: 5,
                                                 transition: 'all 0.15s',
                                             }}
                                         >
@@ -1209,7 +1327,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                 <div style={{
                                     flex: 1, display: 'flex', alignItems: 'center', gap: 6,
-                                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                                    background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.12)',
                                     borderRadius: 10, padding: '6px 12px',
                                 }}>
                                     <span style={{ fontSize: 14 }}>💎</span>
@@ -1231,9 +1349,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     disabled={transferLoading || !transferAmount}
                                     style={{
                                         padding: '8px 16px',
-                                        background: transferLoading ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.3))',
-                                        border: '1px solid rgba(249, 115, 22, 0.5)',
-                                        borderRadius: 10, color: '#f97316', fontSize: 12, fontWeight: 700,
+                                        background: transferLoading ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(0, 150, 200, 0.25))',
+                                        border: '1px solid rgba(0, 212, 255, 0.45)',
+                                        borderRadius: 10, color: '#00d4ff', fontSize: 12, fontWeight: 700,
                                         cursor: transferLoading ? 'default' : 'pointer',
                                         opacity: transferLoading || !transferAmount ? 0.5 : 1,
                                         transition: 'all 0.15s', whiteSpace: 'nowrap',
@@ -1258,17 +1376,17 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         {confirmTransfer && (
                             <div style={{
                                 marginTop: 8, padding: '10px 14px',
-                                background: 'rgba(249, 115, 22, 0.1)',
-                                border: '1px solid rgba(249, 115, 22, 0.3)',
+                                background: 'rgba(0, 212, 255, 0.06)',
+                                border: '1px solid rgba(0, 212, 255, 0.2)',
                                 borderRadius: 10,
                                 animation: 'walletFadeIn 0.15s ease',
                             }}>
-                                <div style={{ fontSize: 12, fontWeight: 600, color: '#f97316', marginBottom: 8 }}>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: '#00d4ff', marginBottom: 8 }}>
                                     Confirm Transfer
                                 </div>
                                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginBottom: 10, lineHeight: 1.4 }}>
                                     Send <strong style={{ color: '#00d4ff' }}>{confirmTransfer.amount}💎</strong> to{' '}
-                                    <strong style={{ color: '#f97316' }}>{confirmTransfer.recipient?.display_name || confirmTransfer.recipient?.username}</strong>?
+                                    <strong style={{ color: '#4ade80' }}>{confirmTransfer.recipient?.display_name || confirmTransfer.recipient?.username}</strong>?
                                     This cannot be undone.
                                 </div>
                                 <div style={{ display: 'flex', gap: 8 }}>

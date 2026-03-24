@@ -32,6 +32,7 @@ import { getArchetypeRangeString, getArchetypeVPIP, getArchetypeInfo, ARCHETYPE_
 import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
 import RangeHeatGrid from '../../../src/components/sandbox/RangeHeatGrid';
 import useSandboxSounds from '../../../src/hooks/useSandboxSounds';
+import { saveAppSetting } from '../../../src/lib/appSettingsSync';
 import {
   FrequencyBar, RangeMatrix, classifyBoardTexture,
   ActionHistoryBuilder, SizingSensitivity, TreeVisualization,
@@ -722,6 +723,7 @@ export default function VirtualSandbox() {
     setCoachMode(prev => {
       const next = !prev;
       if (typeof window !== 'undefined') localStorage.setItem('sandbox-coach-mode', next);
+      saveAppSetting('sandbox_coach_mode', next, 'sandbox-coach-mode');
       return next;
     });
   }, []);
@@ -930,6 +932,7 @@ export default function VirtualSandbox() {
   const changeFeltColor = useCallback((color) => {
     setTableFelt(color);
     if (typeof window !== 'undefined') localStorage.setItem('sandbox-felt', color);
+    saveAppSetting('sandbox_felt', color, 'sandbox-felt');
   }, []);
 
   const FELT_COLORS = [

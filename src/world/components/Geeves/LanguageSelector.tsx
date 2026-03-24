@@ -3,6 +3,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState, useEffect } from 'react';
+import { saveAppSetting } from '../../../lib/appSettingsSync';
 
 export type Language = 'en' | 'es' | 'pt' | 'zh' | 'fr' | 'de';
 
@@ -39,6 +40,7 @@ export function LanguageSelector({ onLanguageChange }: LanguageSelectorProps) {
     const selectLanguage = (lang: Language) => {
         setLanguage(lang);
         localStorage.setItem('geeves-language', lang);
+        saveAppSetting('geeves_language', lang, 'geeves-language');
         setIsOpen(false);
         onLanguageChange?.(lang);
     };

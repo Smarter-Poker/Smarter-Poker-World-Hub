@@ -3,6 +3,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState, useEffect } from 'react';
+import { saveAppSetting } from '../../../lib/appSettingsSync';
 
 export type Theme = 'dark' | 'light';
 
@@ -28,6 +29,7 @@ export function ThemeToggle({ onThemeChange }: ThemeToggleProps) {
         const newTheme: Theme = theme === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
         localStorage.setItem('jarvis-theme', newTheme);
+        saveAppSetting('jarvis_theme', newTheme, 'jarvis-theme');
         onThemeChange?.(newTheme);
     };
 

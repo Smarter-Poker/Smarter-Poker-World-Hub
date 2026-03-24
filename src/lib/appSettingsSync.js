@@ -102,3 +102,60 @@ export async function loadAppSettings(userId) {
         return {};
     }
 }
+
+/**
+ * DB key → localStorage key mapping.
+ * When seeding from DB, we write each DB setting to its localStorage key.
+ */
+const DB_TO_LS_MAP = {
+    // Theme & display
+    theme: 'smarter-poker-theme',
+    // Poker table
+    poker_sound_pack: 'poker-sound-pack',
+    poker_auto_muck: 'poker-auto-muck',
+    poker_felt_color: 'poker-felt-color',
+    poker_seat_prefs: 'poker-seat-prefs',
+    poker_bet_presets: 'smarter-poker-bet-presets',
+    // Reels
+    reels_sound_enabled: 'reels-sound-enabled',
+    // Geeves
+    geeves_language: 'geeves-language',
+    jarvis_theme: 'jarvis-theme',
+    jarvis_compact_mode: 'jarvis-compact-mode',
+    // Sandbox
+    sandbox_coach_mode: 'sandbox-coach-mode',
+    sandbox_felt: 'sandbox-felt',
+    // Poker Near Me
+    sp_favorites: 'sp-favorites',
+    followed_series: 'followed-series',
+    followed_tours: 'followed-tours',
+    followed_venues: 'followed-venues',
+    poker_near_me_search_filters: 'poker-near-me-search-filters',
+};
+
+/**
+ * Seed localStorage from DB on login.
+ * Call once during auth session start (_app.js).
+ * This is what makes cross-device settings persistence actually work:
+ * on a new device, the user gets all their preferences restored.
+ *
+ * @param {string} [userId] - Optional user ID override
+ */
+export async function seedLocalStorageFromDB(userId) {
+    if (typeof window === 'undefined') return;
+    try {
+        const settings = await loadAppSettings(userId);
+        if (!settings || Object.keys(settings).length === 0) return;
+
+        for (const [dbKey, lsKey] of Object.entries(DB_TO_LS_MAP)) {
+            if (settings[dbKey] !== undefined && settings[dbKey] !== null) {
+                const val = settings[dbKey];
+                const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+                try { localStorage.setItem(lsKey, str); } catch (_) {}
+            }
+        }
+        console.log('[AppSettings] ✅ Seeded localStorage from DB —', Object.keys(settings).length, 'keys');
+    } catch (err) {
+        console.error('[AppSettings] Seed failed:', err);
+    }
+}

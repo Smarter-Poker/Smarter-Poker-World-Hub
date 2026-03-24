@@ -334,6 +334,16 @@ function NavigationGuard({ children }) {
         localStorage.setItem(migrationKey, AUTH_MIGRATION_VERSION);
         console.log(`[Auth Migration v6] Complete! Migrated: ${migratedSession}`);
       }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // CROSS-DEVICE SETTINGS SEED — Load DB settings into localStorage
+      // This runs once on mount. If user is logged in on a new device,
+      // their preferences (theme, poker felt, Geeves language, etc.)
+      // are restored from profiles.app_settings JSONB.
+      // ═══════════════════════════════════════════════════════════════════
+      import('../src/lib/appSettingsSync').then(({ seedLocalStorageFromDB }) => {
+        seedLocalStorageFromDB().catch(() => {});
+      }).catch(() => {});
     }
 
     // Initialize SoundEngine for audio playback
