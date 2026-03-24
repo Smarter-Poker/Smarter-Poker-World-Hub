@@ -1281,6 +1281,26 @@ export default function UserProfilePage() {
         }
     };
 
+    const handleCancelFriendRequest = async () => {
+        if (!currentUser || !profile || !friendRequestSent) return;
+        // Optimistic update
+        setFriendRequestSent(false);
+        try {
+            const { error } = await supabase.from('friendships')
+                .delete()
+                .eq('user_id', currentUser.id)
+                .eq('friend_id', profile.id)
+                .eq('status', 'pending');
+            if (error) throw error;
+            invalidateProfileCache();
+            notifyFriendsSync();
+        } catch (e) {
+            // Rollback on failure
+            setFriendRequestSent(true);
+            console.error('Error cancelling friend request:', e);
+        }
+    };
+
     const handleFollowToggle = async () => {
         if (!currentUser || !profile || followLoading) return;
         setFollowLoading(true);
@@ -1596,8 +1616,8 @@ export default function UserProfilePage() {
                             {profile.bio && (
                                 <div style={{ fontSize: 14, color: C.textSec, marginTop: 4, lineHeight: 1.4 }}>
                                     {profile.bio.length > 150 && !bioExpanded
-                                        ? <>{profile.bio.slice(0, 150).trim()}... <span onClick={() => setBioExpanded(true)} style={{ color: C.blue, cursor: 'pointer', fontWeight: 600 }}>See More</span></>
-                                        : <>{profile.bio}{profile.bio.length > 150 && <>{' '}<span onClick={() => setBioExpanded(false)} style={{ color: C.blue, cursor: 'pointer', fontWeight: 600 }}>See Less</span></>}</>}
+                                        ? <><HashtagRenderer text={profile.bio.slice(0, 150).trim() + '...'} />  <span onClick={() => setBioExpanded(true)} style={{ color: C.blue, cursor: 'pointer', fontWeight: 600 }}>See More</span></>
+                                        : <><HashtagRenderer text={profile.bio} />{profile.bio.length > 150 && <>{' '}<span onClick={() => setBioExpanded(false)} style={{ color: C.blue, cursor: 'pointer', fontWeight: 600 }}>See Less</span></>}</>}
                                 </div>
                             )}
                             <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 4, flexWrap: 'wrap' }}>
@@ -1619,7 +1639,7 @@ export default function UserProfilePage() {
                         {profile.instagram && <a href={`https://instagram.com/${profile.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ color: C.textSec, textDecoration: 'none' }}>· 📸 @{profile.instagram.replace('@', '')}</a>}
                     </div>
 
-                    {/* Friends Row - "Friends with..." */}
+                    {/* Friends Row - "Friends with..." + Mutual Friends Badge */}
                     {friends.length > 0 && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
                             <div style={{ display: 'flex' }}>
@@ -1632,10 +1652,20 @@ export default function UserProfilePage() {
                                         }} />
                                 ))}
                             </div>
-                            <span style={{ fontSize: 13, color: C.textSec }}>
-                                Friends with <strong>{friends.slice(0, 2).map(f => f.full_name?.split(' ')[0] || f.username).join(', ')}</strong>
-                                {friends.length > 2 && ` and ${friends.length - 2} others`}
-                            </span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <span style={{ fontSize: 13, color: C.textSec }}>
+                                    Friends with <strong>{friends.slice(0, 2).map(f => f.full_name?.split(' ')[0] || f.username).join(', ')}</strong>
+                                    {friends.length > 2 && ` and ${friends.length - 2} others`}
+                                </span>
+                                {!isOwnProfile && (() => {
+                                    const mutualTotal = friends.filter(f => f.mutualCount > 0).length;
+                                    return mutualTotal > 0 ? (
+                                        <span style={{ fontSize: 12, color: C.blue, fontWeight: 600 }}>
+                                            {mutualTotal} mutual friend{mutualTotal !== 1 ? 's' : ''}
+                                        </span>
+                                    ) : null;
+                                })()}
+                            </div>
                         </div>
                     )}
 
@@ -1693,9 +1723,10 @@ export default function UserProfilePage() {
                                         borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 14
                                     }}> ✓ Friends</button>
                                 ) : friendRequestSent ? (
-                                    <button style={{
+                                    <button onClick={handleCancelFriendRequest} title="Click to cancel friend request" style={{
                                         padding: '10px 20px', background: '#e4e6eb', color: C.textSec,
-                                        borderRadius: 8, border: 'none', fontWeight: 600, fontSize: 14
+                                        borderRadius: 8, border: 'none', fontWeight: 600, fontSize: 14,
+                                        cursor: 'pointer', transition: 'all 0.2s'
                                     }}>⏳ Request Sent</button>
                                 ) : (
                                     <button onClick={handleAddFriend} style={{
@@ -2070,6 +2101,26 @@ export default function UserProfilePage() {
                                     </div>
                                 )}
 
+                                {/* See All Media Links */}
+                                {(photos.length > 0 || videos.length > 0) && (
+                                    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                                        {photos.length > 0 && (
+                                            <button onClick={() => setActiveTab('photos')} style={{
+                                                flex: 1, padding: '10px 16px', background: C.card, border: `1px solid ${C.border}`,
+                                                borderRadius: 8, fontSize: 13, fontWeight: 600, color: C.blue, cursor: 'pointer',
+                                                transition: 'background 0.2s',
+                                            }}>📸 See All Photos ({photos.length})</button>
+                                        )}
+                                        {videos.length > 0 && (
+                                            <button onClick={() => setActiveTab('videos')} style={{
+                                                flex: 1, padding: '10px 16px', background: C.card, border: `1px solid ${C.border}`,
+                                                borderRadius: 8, fontSize: 13, fontWeight: 600, color: C.blue, cursor: 'pointer',
+                                                transition: 'background 0.2s',
+                                            }}>🎬 See All Videos ({videos.length})</button>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* Posts Feed */}
                                 {posts.length > 0 ? (
                                     posts.map(post => <PostCard key={post.id} post={post} author={profile} isOwnProfile={isOwnProfile} onDelete={handleDeletePost} onPostEdited={(updatedPost) => { setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p)); invalidateProfileCache(); }} currentUserId={currentUser?.id} horseProfileIds={horseProfileIds} />)
@@ -2392,8 +2443,13 @@ export default function UserProfilePage() {
                                 }}
                             >Cancel</button>
                             <button
-                                onClick={async () => {
-                                    if (!currentUser?.id || !profile?.id) { setProfileMenuMsg('Please log in'); setTimeout(() => setProfileMenuMsg(''), 2000); setShowBlockConfirm(false); return; }
+                                id="block-confirm-btn"
+                                onClick={async (e) => {
+                                    const btn = e.currentTarget;
+                                    if (btn.disabled) return;
+                                    btn.disabled = true;
+                                    btn.textContent = 'Blocking...';
+                                    if (!currentUser?.id || !profile?.id) { setProfileMenuMsg('Please log in'); setTimeout(() => setProfileMenuMsg(''), 2000); setShowBlockConfirm(false); btn.disabled = false; btn.textContent = 'Block'; return; }
                                     try {
                                         await supabase.from('user_blocks').insert({
                                             blocker_id: currentUser.id,
@@ -2450,8 +2506,13 @@ export default function UserProfilePage() {
                                 }}
                             >Cancel</button>
                             <button
+                                id="report-submit-btn"
                                 disabled={!reportReason.trim()}
-                                onClick={async () => {
+                                onClick={async (e) => {
+                                    const btn = e.currentTarget;
+                                    if (btn.dataset.submitting === 'true') return;
+                                    btn.dataset.submitting = 'true';
+                                    btn.textContent = 'Submitting...';
                                     if (!currentUser?.id || !profile?.id) { setProfileMenuMsg('Please log in'); setTimeout(() => setProfileMenuMsg(''), 2000); setShowReportInput(false); setReportReason(''); return; }
                                     try {
                                         await supabase.from('user_reports').insert({

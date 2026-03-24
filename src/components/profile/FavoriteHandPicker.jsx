@@ -139,13 +139,25 @@ export default function FavoriteHandPicker({ value = '', gameType = 'holdem', la
           );
         })}
       </div>
-
-      {/* Instruction */}
-      <p style={{ fontSize: 12, color: '#65676B', margin: '0 0 12px', textAlign: 'center' }}>
-        {selectedCards.length < maxCards
-          ? `Tap ${maxCards - selectedCards.length} more card${maxCards - selectedCards.length > 1 ? 's' : ''} below`
-          : 'Hand complete — tap a selected card above to change it'}
-      </p>
+      {/* Instruction + Clear button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, margin: '0 0 12px' }}>
+        <p style={{ fontSize: 12, color: '#65676B', margin: 0, textAlign: 'center' }}>
+          {selectedCards.length < maxCards
+            ? `Tap ${maxCards - selectedCards.length} more card${maxCards - selectedCards.length > 1 ? 's' : ''} below`
+            : 'Hand complete — tap a selected card above to change it'}
+        </p>
+        {selectedCards.length > 0 && (
+          <button
+            onClick={() => onChangeValue('')}
+            style={{
+              padding: '3px 10px', fontSize: 11, fontWeight: 600,
+              background: '#e4e6eb', border: 'none', borderRadius: 6,
+              color: '#65676B', cursor: 'pointer', whiteSpace: 'nowrap',
+              transition: 'all 0.15s',
+            }}
+          >Clear</button>
+        )}
+      </div>
 
       {/* Card Grid — Organized by Suit */}
       <div style={{
