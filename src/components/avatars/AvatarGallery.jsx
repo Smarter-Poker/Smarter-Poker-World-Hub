@@ -428,8 +428,24 @@ export default function AvatarGallery({ onSelect }) {
         {/* CREATE CUSTOM AVATAR BUTTON - ALWAYS visible for VIP */}
         <div style={{
           marginTop: '20px',
-          textAlign: 'center'
+          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
         }}>
+          {/* Show active custom avatar thumbnail */}
+          {customAvatars.length > 0 && customAvatars[0]?.image_url && (
+            <img
+              src={customAvatars[0].image_url}
+              alt="Active Custom Avatar"
+              style={{
+                width: 48, height: 48, borderRadius: '50%', objectFit: 'cover',
+                border: '2px solid #00f5ff',
+                boxShadow: '0 0 12px rgba(0, 245, 255, 0.4)',
+              }}
+            />
+          )}
           <button
             onClick={handleCreateNewCustom}
             style={{
