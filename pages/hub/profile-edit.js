@@ -285,6 +285,7 @@ export default function ProfilePage() {
         favorite_game: '',
         favorite_hand: '',
         favorite_hand_type: 'holdem',
+        favorite_hand_plo: '',
         home_casino: '',
         birth_year: '',
         avatar_url: '',
@@ -674,6 +675,7 @@ export default function ProfilePage() {
                 favorite_game: profile.favorite_game,
                 favorite_hand: profile.favorite_hand,
                 favorite_hand_type: profile.favorite_hand_type || 'holdem',
+                favorite_hand_plo: profile.favorite_hand_plo || '',
                 home_casino: profile.home_casino,
                 birth_year: profile.birth_year,
                 avatar_url: profile.avatar_url,
@@ -1149,9 +1151,13 @@ export default function ProfilePage() {
                         </div>
                         <FavoriteHandPicker
                             value={profile.favorite_hand}
-                            type={profile.favorite_hand_type || 'holdem'}
+                            gameType="holdem"
                             onChangeValue={updateField('favorite_hand')}
-                            onChangeType={updateField('favorite_hand_type')}
+                        />
+                        <FavoriteHandPicker
+                            value={profile.favorite_hand_plo}
+                            gameType="plo"
+                            onChangeValue={updateField('favorite_hand_plo')}
                         />
                     </div>
 

@@ -1,0 +1,1 @@
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS favorite_hand_plo TEXT DEFAULT NULL;
