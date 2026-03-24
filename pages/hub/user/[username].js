@@ -1111,9 +1111,9 @@ export default function UserProfilePage() {
                 setReels(userReels);
 
                 // Fetch poker activity (fire-and-forget, non-blocking)
-                var anonUid = null;
+                let anonUid = null;
                 try { anonUid = localStorage.getItem('sp-anon-uid'); } catch (ex) { /* ignore */ }
-                var pokerUid = data.id || anonUid;
+                const pokerUid = data.id || anonUid;
                 if (pokerUid) {
                     const token = getAccessToken();
                     const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
@@ -1278,6 +1278,7 @@ export default function UserProfilePage() {
             // Rollback on failure
             setFriendRequestSent(false);
             console.error('Error sending friend request:', e);
+            toast.error('Could not send friend request');
         }
     };
 
@@ -1298,6 +1299,7 @@ export default function UserProfilePage() {
             // Rollback on failure
             setFriendRequestSent(true);
             console.error('Error cancelling friend request:', e);
+            toast.error('Could not cancel friend request');
         }
     };
 
@@ -1345,6 +1347,7 @@ export default function UserProfilePage() {
                 followers: wasFollowing ? prev.followers + 1 : Math.max(0, prev.followers - 1)
             }));
             console.error('Error toggling follow:', e);
+            toast.error(wasFollowing ? 'Could not unfollow' : 'Could not follow');
         }
         setFollowLoading(false);
     };
@@ -1380,6 +1383,7 @@ export default function UserProfilePage() {
             setIsFriend(wasFriend);
             setStats(prevStats);
             console.error('Error unfriending:', e);
+            toast.error('Could not unfriend user');
         }
     };
 
@@ -2458,6 +2462,9 @@ export default function UserProfilePage() {
                                         setProfileMenuMsg('User blocked');
                                     } catch (e) {
                                         setProfileMenuMsg('Already blocked or error');
+                                    } finally {
+                                        btn.disabled = false;
+                                        btn.textContent = 'Block';
                                     }
                                     setTimeout(() => setProfileMenuMsg(''), 2000);
                                     setShowBlockConfirm(false);
@@ -2523,6 +2530,9 @@ export default function UserProfilePage() {
                                         setProfileMenuMsg('Report submitted');
                                     } catch (e) {
                                         setProfileMenuMsg('Report failed');
+                                    } finally {
+                                        btn.dataset.submitting = 'false';
+                                        btn.textContent = 'Submit Report';
                                     }
                                     setTimeout(() => setProfileMenuMsg(''), 2000);
                                     setShowReportInput(false);
