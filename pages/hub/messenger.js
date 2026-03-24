@@ -996,6 +996,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >Forward</button>
                         )}
+                        {isOwn && (
                         <button
                             onClick={() => {
                                 onDelete(message.id, 'for_everyone');
@@ -1015,6 +1016,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >Delete For Everyone</button>
+                        )}
                     </div>
                 )}
 
@@ -1194,6 +1196,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                     alignItems: 'center',
                     gap: 4,
                 }}>
+                    {message.is_edited && !message.is_deleted && <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Edited · </span>}
                     {formatMessageTime(message.created_at || message.timestamp)}
                     <StatusIcon />
                 </span>
@@ -1849,11 +1852,12 @@ function MessengerPage() {
                 filter: `conversation_id=eq.${activeConversation.id}`,
             }, (payload) => {
                 const updatedMsg = payload.new;
-                setMessages(prev => prev.map(m =>
-                    m.id === updatedMsg.id
-                        ? { ...m, content: updatedMsg.content, is_deleted: updatedMsg.is_deleted, updated_at: updatedMsg.updated_at, is_edited: !!updatedMsg.updated_at }
-                        : m
-                ));
+                setMessages(prev => prev.map(m => {
+                    if (m.id !== updatedMsg.id) return m;
+                    // Detect real edit: content changed AND message not deleted
+                    const wasEdited = m.is_edited || (updatedMsg.content !== m.content && !updatedMsg.is_deleted);
+                    return { ...m, content: updatedMsg.content, is_deleted: updatedMsg.is_deleted, updated_at: updatedMsg.updated_at, is_edited: wasEdited };
+                }));
             })
             .subscribe();
 
@@ -2245,8 +2249,12 @@ function MessengerPage() {
             const result = await response.json();
 
             if (result.success && result.messages) {
-                // Filter out hidden messages (delete-for-me persistence)
-                const filtered = result.messages.filter(m => !hiddenMessageIds.has(m.id));
+                // Filter out hidden messages — re-read from localStorage for freshness
+                const freshHiddenIds = (() => {
+                    try { return new Set(JSON.parse(localStorage.getItem('sp-hidden-messages') || '[]')); }
+                    catch { return hiddenMessageIds; }
+                })();
+                const filtered = result.messages.filter(m => !freshHiddenIds.has(m.id));
                 setMessages(filtered);
                 setHasMoreMessages(result.messages.length >= 50);
             } else {
