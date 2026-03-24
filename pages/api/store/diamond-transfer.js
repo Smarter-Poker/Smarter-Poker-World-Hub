@@ -194,7 +194,7 @@ export default async function handler(req, res) {
             .insert({
                 user_id: userId,
                 amount: -amount,
-                type: 'diamond_gift_sent',
+                type: 'spend',
                 transaction_type: 'diamond_gift_sent',
                 description: `Sent ${amount} diamonds to ${recipientName}`,
                 balance_after: newSenderBalance,
@@ -208,7 +208,7 @@ export default async function handler(req, res) {
             .insert({
                 user_id: recipientId,
                 amount: amount,
-                type: 'diamond_gift_received',
+                type: 'earn',
                 transaction_type: 'diamond_gift_received',
                 description: `Received ${amount} diamonds from ${senderName}`,
                 balance_after: newRecipientBalance,
