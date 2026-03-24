@@ -96,7 +96,7 @@ function FriendAvatar({ friend, currentUserFriends = [] }) {
             </div>
             <div style={{
                 fontSize: 13, fontWeight: 600, color: C.text,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                wordBreak: 'break-word', lineHeight: 1.3
             }}>
                 {friend.full_name?.split(' ').slice(0, 2).join(' ') || friend.username}
             </div>
@@ -1553,7 +1553,7 @@ export default function UserProfilePage() {
 
                 {/* COVER PHOTO */}
                 <div style={{
-                    height: 220,
+                    height: 180,
                     background: 'linear-gradient(135deg, #0a0e1a 0%, #0d1f3c 25%, #1a3a5c 50%, #0f2847 75%, #0a1628 100%)',
                     position: 'relative',
                     borderRadius: '0 0 12px 12px',
