@@ -997,10 +997,12 @@ export default function ProfilePage() {
                         {profile.cover_photo_url ? 'Change Cover' : 'Add Cover Photo'}
                     </div>
 
-                    {/* Profile Avatar - Center */}
-                    <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)' }}>
-                        <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
-                    </div>
+                    {/* Profile Avatar - MOVED outside overflow:hidden container */}
+                </div>
+
+                {/* Profile Avatar - overlapping cover photo bottom */}
+                <div style={{ position: 'relative', zIndex: 2, marginTop: -60, display: 'flex', justifyContent: 'center' }}>
+                    <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
                 </div>
 
                 {/* Cover Photo Reposition Editor Modal */}
@@ -1008,7 +1010,7 @@ export default function ProfilePage() {
                     <CoverPhotoEditor
                         imageUrl={profile.cover_photo_url}
                         initialPosition={profile.cover_photo_position || '50% 50%'}
-                        coverHeight={240}
+                        coverHeight={200}
                         onCancel={() => setCoverEditorOpen(false)}
                         onSave={async (positionStr) => {
                             const { error } = await supabase
