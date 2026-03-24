@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import FavoriteHandPicker from '../../src/components/profile/FavoriteHandPicker';
+import CoverPhotoEditor from '../../src/components/profile/CoverPhotoEditor';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { claimReward } from '../../src/lib/claimReward';
@@ -290,6 +291,7 @@ export default function ProfilePage() {
         birth_year: '',
         avatar_url: '',
         cover_photo_url: '', // Cover photo for profile
+        cover_photo_position: '50% 50%', // CSS object-position for repositioned cover
         card_back_preference: 'white', // Default to white deck
         // HendonMob scraped data
         hendon_total_cashes: null,
@@ -299,6 +301,7 @@ export default function ProfilePage() {
         hendon_last_scraped: null,
     });
     const [originalProfile, setOriginalProfile] = useState(null);
+    const [coverEditorOpen, setCoverEditorOpen] = useState(false);
 
     // Award diamonds and XP for profile actions
     const awardProfileReward = async (reason, diamonds, xp) => {
@@ -568,8 +571,9 @@ export default function ProfilePage() {
                 return;
             }
 
-            setProfile(prev => ({ ...prev, cover_photo_url: publicUrl }));
-            setMessage('Cover photo saved!');
+            setProfile(prev => ({ ...prev, cover_photo_url: publicUrl, cover_photo_position: '50% 50%' }));
+            setMessage('Cover photo uploaded! Drag to reposition.');
+            setCoverEditorOpen(true);
 
             // ── CRITICAL: Dispatch bus event so profile page updates in real-time ──
             if (typeof window !== 'undefined') {
@@ -661,7 +665,9 @@ export default function ProfilePage() {
         const { error } = await supabase
             .from('profiles')
             .update({
-                full_name: profile.full_name,
+                full_name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+                first_name: profile.first_name,
+                last_name: profile.last_name,
                 username: profile.username,
                 bio: profile.bio,
                 city: profile.city,
@@ -680,6 +686,7 @@ export default function ProfilePage() {
                 birth_year: profile.birth_year,
                 avatar_url: profile.avatar_url,
                 cover_photo_url: profile.cover_photo_url,
+                cover_photo_position: profile.cover_photo_position || '50% 50%',
                 card_back_preference: profile.card_back_preference,
                 updated_at: new Date().toISOString(),
             })
@@ -711,7 +718,9 @@ export default function ProfilePage() {
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('profile-updated', {
                     detail: {
-                        full_name: profile.full_name,
+                        full_name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+                        first_name: profile.first_name,
+                        last_name: profile.last_name,
                         username: profile.username,
                         avatar_url: profile.avatar_url,
                     }
@@ -770,13 +779,25 @@ export default function ProfilePage() {
                     onClick={() => coverPhotoRef.current?.click()}
                     style={{
                         height: 200,
-                        background: profile.cover_photo_url
-                            ? `url(${profile.cover_photo_url}) center/cover no-repeat`
-                            : '#E5E7EB',
                         position: 'relative',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        overflow: 'hidden',
+                        background: profile.cover_photo_url ? '#0d0d1e' : '#E5E7EB',
                     }}
                 >
+                    {/* Cover Photo Image with saved position */}
+                    {profile.cover_photo_url && (
+                        <img
+                            src={profile.cover_photo_url}
+                            alt="Cover photo"
+                            style={{
+                                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                                objectFit: 'cover',
+                                objectPosition: profile.cover_photo_position || '50% 50%',
+                                pointerEvents: 'none',
+                            }}
+                        />
+                    )}
                     <input
                         ref={coverPhotoRef}
                         type="file"
@@ -813,7 +834,35 @@ export default function ProfilePage() {
                         </button>
                     )}
 
-                    {/* Add Cover Photo - Bottom Right inside cover */}
+                    {/* Reposition button - only when cover exists */}
+                    {profile.cover_photo_url && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setCoverEditorOpen(true); }}
+                            style={{
+                                position: 'absolute',
+                                bottom: 12,
+                                left: 12,
+                                background: 'rgba(0,0,0,0.6)',
+                                color: 'white',
+                                padding: '8px 16px',
+                                borderRadius: 8,
+                                fontSize: 13,
+                                fontWeight: 600,
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(24,119,242,0.8)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.6)'}
+                        >
+                            Reposition
+                        </button>
+                    )}
+
+                    {/* Add/Change Cover Photo - Bottom Right inside cover */}
                     <div style={{
                         position: 'absolute',
                         bottom: 12,
@@ -828,7 +877,7 @@ export default function ProfilePage() {
                         alignItems: 'center',
                         gap: 6
                     }}>
-                        📷 {profile.cover_photo_url ? 'Change Cover' : 'Add Cover Photo'}
+                        {profile.cover_photo_url ? 'Change Cover' : 'Add Cover Photo'}
                     </div>
 
                     {/* Profile Avatar - Center */}
@@ -836,6 +885,39 @@ export default function ProfilePage() {
                         <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
                     </div>
                 </div>
+
+                {/* Cover Photo Reposition Editor Modal */}
+                {coverEditorOpen && profile.cover_photo_url && (
+                    <CoverPhotoEditor
+                        imageUrl={profile.cover_photo_url}
+                        initialPosition={profile.cover_photo_position || '50% 50%'}
+                        coverHeight={240}
+                        onCancel={() => setCoverEditorOpen(false)}
+                        onSave={async (positionStr) => {
+                            const { error } = await supabase
+                                .from('profiles')
+                                .update({ cover_photo_position: positionStr, updated_at: new Date().toISOString() })
+                                .eq('id', user.id);
+                            if (error) {
+                                setMessage('Error saving position: ' + error.message);
+                                return;
+                            }
+                            setProfile(prev => ({ ...prev, cover_photo_position: positionStr }));
+                            setCoverEditorOpen(false);
+                            setMessage('Cover photo position saved!');
+                            if (typeof window !== 'undefined') {
+                                window.dispatchEvent(new CustomEvent('profile-updated', {
+                                    detail: { cover_photo_position: positionStr }
+                                }));
+                            }
+                            try {
+                                const cacheKey = `sp-profile-cache-${profile.username}`;
+                                localStorage.removeItem(cacheKey);
+                                broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
+                            } catch { /* noop */ }
+                        }}
+                    />
+                )}
 
                 {/* Action Buttons Row - BELOW cover photo in the black area */}
                 <div style={{
@@ -1057,7 +1139,8 @@ export default function ProfilePage() {
                     <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
                         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>👤 Basic Information</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                            <ProfileField label="Full Name" value={profile.full_name} onChange={updateField('full_name')} placeholder="John Doe" icon="📛" />
+                            <ProfileField label="First Name" value={profile.first_name} onChange={updateField('first_name')} placeholder="John" icon="📛" />
+                            <ProfileField label="Last Name" value={profile.last_name} onChange={updateField('last_name')} placeholder="Doe" icon="📛" />
                             <ProfileField label="Username" value={profile.username} onChange={updateField('username')} placeholder="@johndoe" icon="@" />
                         </div>
                         <ProfileField label="Bio" value={profile.bio} onChange={updateField('bio')} type="textarea" placeholder="Tell Us About Yourself And Your Poker Journey..." icon="" />

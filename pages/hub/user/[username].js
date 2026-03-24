@@ -763,6 +763,7 @@ export default function UserProfilePage() {
 
     // Refs
     const profileMenuRef = useRef(null);
+    const loadedUsernameRef = useRef(null);
 
     // Tab state — persisted
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-user-profile', 'all');
@@ -772,6 +773,27 @@ export default function UserProfilePage() {
     // Profile menu state
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [profileMenuMsg, setProfileMenuMsg] = useState('');
+
+    // Profile completion decline/dismiss state — persisted in localStorage per-user
+    const [declinedFields, setDeclinedFields] = useState(() => {
+        if (typeof window === 'undefined') return [];
+        try { return JSON.parse(localStorage.getItem(`sp-profile-completion-declined-${currentUser?.id}`) || '[]'); } catch { return []; }
+    });
+    const [completionDismissed, setCompletionDismissed] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        try { return localStorage.getItem(`sp-profile-completion-dismissed-${currentUser?.id}`) === 'true'; } catch { return false; }
+    });
+
+    const handleDeclineField = (label) => {
+        const updated = [...declinedFields, label];
+        setDeclinedFields(updated);
+        try { localStorage.setItem(`sp-profile-completion-declined-${currentUser?.id}`, JSON.stringify(updated)); } catch {}
+    };
+
+    const handleDismissCompletion = () => {
+        setCompletionDismissed(true);
+        try { localStorage.setItem(`sp-profile-completion-dismissed-${currentUser?.id}`, 'true'); } catch {}
+    };
 
     // ── Animated Stat Counters: count-up from 0 when stats load ──
     useEffect(() => {
@@ -935,6 +957,14 @@ export default function UserProfilePage() {
         setStatsAnimated(false);
         setAnimatedStats({ friends: 0, following: 0, followers: 0, posts: 0 });
 
+        // Only show loading skeleton if we're loading a DIFFERENT profile.
+        // If same profile is already loaded (e.g. back-navigation), keep it visible
+        // during background revalidation to prevent the completion indicator from flashing.
+        if (loadedUsernameRef.current !== username) {
+            setProfile(null);
+            setLoading(true);
+        }
+
         // --- PHASE 1: SWR CACHE HYDRATION (Instant Render) ---
         const CACHE_KEY = `sp-profile-cache-${username}`;
         const CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours (SWR revalidates in background anyway)
@@ -987,6 +1017,7 @@ export default function UserProfilePage() {
                 }
 
                 setProfile(data);
+                loadedUsernameRef.current = username;
 
                 // ═══════════════════════════════════════════════════════════
                 // PARALLEL BATCH 1: Friendship + Stats (all independent)
@@ -1573,6 +1604,7 @@ export default function UserProfilePage() {
                             style={{
                                 position: 'absolute', inset: 0, width: '100%', height: '100%',
                                 objectFit: 'cover',
+                                objectPosition: profile.cover_photo_position || '50% 50%',
                                 opacity: coverLoaded ? 1 : 0,
                                 transition: 'opacity 0.5s ease-in-out',
                             }}
@@ -1819,7 +1851,7 @@ export default function UserProfilePage() {
                 </div>
 
                 {/* Profile Completion Indicator — own profile only */}
-                {isOwnProfile && (() => {
+                {isOwnProfile && !completionDismissed && (() => {
                     const fields = [
                         { label: 'Profile Photo', done: !!profile.avatar_url },
                         { label: 'Bio', done: !!profile.bio },
@@ -1827,10 +1859,17 @@ export default function UserProfilePage() {
                         { label: 'Cover Photo', done: !!profile.cover_photo_url },
                         { label: 'Display Name', done: !!profile.full_name },
                     ];
-                    const completed = fields.filter(f => f.done).length;
-                    const pct = Math.round((completed / fields.length) * 100);
-                    if (pct >= 100) return null; // Hide when complete
-                    const missing = fields.filter(f => !f.done).map(f => f.label);
+                    // Auto-reset declined fields that user has since completed
+                    const activeDeclined = declinedFields.filter(label => {
+                        const field = fields.find(f => f.label === label);
+                        return field && !field.done; // Only keep declined if still not done
+                    });
+                    // Fields that count toward completion: done ones + declined ones
+                    const effectiveCompleted = fields.filter(f => f.done || activeDeclined.includes(f.label)).length;
+                    const pct = Math.round((effectiveCompleted / fields.length) * 100);
+                    if (pct >= 100) return null; // Hide when effectively complete
+                    const missing = fields.filter(f => !f.done && !activeDeclined.includes(f.label));
+                    if (missing.length === 0) return null;
                     return (
                         <div style={{
                             background: C.card, borderRadius: 10, padding: '14px 16px', margin: '12px 16px 0',
@@ -1838,7 +1877,20 @@ export default function UserProfilePage() {
                         }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                 <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Profile Completion</span>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: pct >= 80 ? C.green : C.blue }}>{pct}%</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: pct >= 80 ? C.green : C.blue }}>{pct}%</span>
+                                    <button
+                                        onClick={handleDismissCompletion}
+                                        title="Dismiss"
+                                        style={{
+                                            background: 'none', border: 'none', cursor: 'pointer',
+                                            fontSize: 14, color: C.textSec, padding: '0 2px', lineHeight: 1,
+                                            opacity: 0.6, transition: 'opacity 0.2s',
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                        onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
+                                    >✕</button>
+                                </div>
                             </div>
                             <div style={{ width: '100%', height: 6, background: '#e4e6eb', borderRadius: 3, overflow: 'hidden' }}>
                                 <div style={{
@@ -1847,15 +1899,31 @@ export default function UserProfilePage() {
                                     transition: 'width 0.6s ease',
                                 }} />
                             </div>
-                            <Link href="/hub/profile-edit" style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                fontSize: 12, color: C.blue, marginTop: 8, textDecoration: 'none',
-                                fontWeight: 600, padding: '6px 10px', borderRadius: 6,
-                                background: 'rgba(24, 119, 242, 0.08)', transition: 'background 0.2s',
-                            }}>
-                                <span style={{ color: C.textSec, fontWeight: 400 }}>Add: {missing.join(', ')}</span>
-                                <span>Complete Profile →</span>
-                            </Link>
+                            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {missing.map(f => (
+                                    <div key={f.label} style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        padding: '5px 10px', borderRadius: 6,
+                                        background: 'rgba(24, 119, 242, 0.06)',
+                                    }}>
+                                        <Link href="/hub/profile-edit" style={{
+                                            fontSize: 12, color: C.blue, textDecoration: 'none',
+                                            fontWeight: 600, flex: 1,
+                                        }}>Add {f.label} →</Link>
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeclineField(f.label); }}
+                                            title={`Skip ${f.label}`}
+                                            style={{
+                                                background: 'none', border: 'none', cursor: 'pointer',
+                                                fontSize: 11, color: C.textSec, padding: '2px 4px',
+                                                opacity: 0.5, transition: 'opacity 0.2s',
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                            onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}
+                                        >Skip</button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     );
                 })()}

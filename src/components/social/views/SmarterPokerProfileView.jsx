@@ -21,7 +21,7 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
     <div className="profile-header">
         {/* Cover Photo */}
         <div className="cover-photo">
-            <img src={user.coverPhoto || ''} alt="" style={{ background: '#2d2d2d' }} />
+            <img src={user.coverPhoto || ''} alt="" style={{ background: '#2d2d2d', objectPosition: user.coverPosition || '50% 50%' }} />
             {isOwnProfile && (
                 <button className="edit-cover-btn">
                     📷 Edit cover photo
@@ -125,6 +125,7 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
+                object-position: var(--cover-position, 50% 50%);
             }
 
             .edit-cover-btn {
@@ -551,6 +552,7 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
         name: authProfile?.username || authUser?.email || 'Unknown User',
         avatar: authProfile?.avatar_url || null,
         coverPhoto: authProfile?.cover_url || null,
+        coverPosition: authProfile?.cover_photo_position || '50% 50%',
         bio: authProfile?.bio || 'Poker enthusiast',
         location: authProfile?.location || '',
         favoriteGame: authProfile?.favorite_game || 'NLHE',
