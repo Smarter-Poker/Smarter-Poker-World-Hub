@@ -10,12 +10,9 @@
  * - One claim per year (deduplicated via diamond_ledger)
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+const getSupabase = () => createClient();
 
 const BIRTHDAY_DIAMONDS = 300;
 
@@ -30,6 +27,7 @@ export default async function handler(req, res) {
     }
 
     try {
+        const supabase = getSupabase();
         // Fetch user profile
         const { data: profile, error: profileError } = await supabase
             .from('profiles')

@@ -455,6 +455,11 @@ export default function SignUpPage() {
 
         setLoading(true);
 
+        // Sanitize: trim whitespace from names before any DB write
+        const cleanFirstName = formData.firstName.trim();
+        const cleanLastName = formData.lastName.trim();
+        const cleanFullName = `${cleanFirstName} ${cleanLastName}`.trim();
+
         try {
             // Step 1: Create auth user with email/password
             const { data: authData, error: signUpError } = await supabase.auth.signUp({
@@ -462,9 +467,9 @@ export default function SignUpPage() {
                 password: formData.password,
                 options: {
                     data: {
-                        full_name: `${formData.firstName} ${formData.lastName}`.trim(),
-                        first_name: formData.firstName,
-                        last_name: formData.lastName,
+                        full_name: cleanFullName,
+                        first_name: cleanFirstName,
+                        last_name: cleanLastName,
                         poker_alias: formData.pokerAlias,
                         city: formData.city,
                         state: formData.state,
@@ -487,7 +492,7 @@ export default function SignUpPage() {
                     const { data: profileData, error: rpcError } = await supabase
                         .rpc('initialize_player_profile', {
                             p_user_id: authData.user.id,
-                            p_full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+                            p_full_name: cleanFullName,
                             p_email: formData.email,
                             p_phone: cleanPhoneFormatted,
                             p_city: formData.city,
@@ -536,9 +541,9 @@ export default function SignUpPage() {
                     const { error: updateError } = await supabase
                         .from('profiles')
                         .update({
-                            full_name: `${formData.firstName} ${formData.lastName}`.trim(),
-                            first_name: formData.firstName,
-                            last_name: formData.lastName,
+                            full_name: cleanFullName,
+                            first_name: cleanFirstName,
+                            last_name: cleanLastName,
                             phone: cleanPhoneFormatted,
                             city: formData.city,
                             state: formData.state,
@@ -561,9 +566,9 @@ export default function SignUpPage() {
                             .from('profiles')
                             .insert({
                                 id: authData.user.id,
-                                full_name: `${formData.firstName} ${formData.lastName}`.trim(),
-                                first_name: formData.firstName,
-                                last_name: formData.lastName,
+                                full_name: cleanFullName,
+                                first_name: cleanFirstName,
+                                last_name: cleanLastName,
                                 email: formData.email,
                                 phone: cleanPhoneFormatted,
                                 city: formData.city,

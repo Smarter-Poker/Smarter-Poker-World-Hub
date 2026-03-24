@@ -778,9 +778,9 @@ export default function ProfilePage() {
         const { error } = await supabase
             .from('profiles')
             .update({
-                full_name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
-                first_name: profile.first_name,
-                last_name: profile.last_name,
+                full_name: `${(profile.first_name || '').trim()} ${(profile.last_name || '').trim()}`.trim(),
+                first_name: (profile.first_name || '').trim(),
+                last_name: (profile.last_name || '').trim(),
                 username: profile.username,
                 bio: profile.bio,
                 city: profile.city,
@@ -835,9 +835,9 @@ export default function ProfilePage() {
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('profile-updated', {
                     detail: {
-                        full_name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
-                        first_name: profile.first_name,
-                        last_name: profile.last_name,
+                        full_name: `${(profile.first_name || '').trim()} ${(profile.last_name || '').trim()}`.trim(),
+                        first_name: (profile.first_name || '').trim(),
+                        last_name: (profile.last_name || '').trim(),
                         username: profile.username,
                         avatar_url: profile.avatar_url,
                     }
