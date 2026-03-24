@@ -795,6 +795,19 @@ export default function UserProfilePage() {
         try { localStorage.setItem(`sp-profile-completion-dismissed-${currentUser?.id}`, 'true'); } catch {}
     };
 
+    // ── BULLETPROOF AUTH: Listen for late session resolution ──
+    // If getAuthUser() returns null on initial render (token not yet in localStorage),
+    // this listener catches the session when Supabase SDK finishes initializing
+    useEffect(() => {
+        if (currentUser) return; // Already have user, no need to listen
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (session?.user && !currentUser) {
+                setCurrentUser(session.user);
+            }
+        });
+        return () => subscription?.unsubscribe();
+    }, [currentUser]);
+
     // ── Animated Stat Counters: count-up from 0 when stats load ──
     useEffect(() => {
         const target = stats;
