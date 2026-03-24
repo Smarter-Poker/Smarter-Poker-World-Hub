@@ -1478,9 +1478,6 @@ export default function ProfilePage() {
                                 hendon_url: profile.hendon_url,
                                 total_cashes: profile.hendon_total_cashes,
                                 total_earnings: profile.hendon_total_earnings,
-                                best_finish: profile.hendon_best_finish,
-                                biggest_cash: profile.hendon_biggest_cash,
-                                last_scraped: profile.hendon_last_scraped,
                             }}
                             onRefresh={async () => {
                                 if (!profile.hendon_url) {
@@ -1488,47 +1485,15 @@ export default function ProfilePage() {
                                     return;
                                 }
 
-                                // Open the user's HendonMob page in a new tab so they can see their stats
-                                window.open(profile.hendon_url, '_blank');
-
-                                // Brief delay so the new tab opens first
-                                await new Promise(r => setTimeout(r, 500));
-
-                                // Prompt user for stats (HendonMob uses Cloudflare CAPTCHA that blocks automated scraping)
-                                const cashesInput = window.prompt(
-                                    'We opened your Hendon Mob page in a new tab.\n\nPlease enter your Total Cashes count from that page:',
-                                    profile.hendon_total_cashes || ''
-                                );
-                                if (cashesInput === null) return; // User cancelled
-
-                                const earningsInput = window.prompt(
-                                    'Now enter your Total Live Earnings (numbers only, e.g. 896211):',
-                                    profile.hendon_total_earnings || ''
-                                );
-                                if (earningsInput === null) return; // User cancelled
-
-                                const totalCashes = parseInt(String(cashesInput).replace(/[^0-9]/g, ''), 10) || null;
-                                const totalEarnings = parseFloat(String(earningsInput).replace(/[^0-9.]/g, '')) || null;
-
-                                if (!totalCashes && !totalEarnings) {
-                                    setMessage('No valid stats entered. Please try again.');
-                                    return;
-                                }
-
                                 setIsRefreshing(true);
-                                setMessage('Saving your stats...');
+                                setMessage('🔄 Refreshing stats from database...');
                                 try {
                                     const _syncToken = getAccessToken();
                                     const res = await fetch('/api/hendonmob/sync', {
-                                        method: 'POST',
+                                        method: 'GET',
                                         headers: {
-                                            'Content-Type': 'application/json',
                                             ...(_syncToken ? { 'Authorization': `Bearer ${_syncToken}` } : {}),
                                         },
-                                        body: JSON.stringify({
-                                            hendonUrl: profile.hendon_url,
-                                            stats: { totalCashes, totalEarnings, bestFinish: null, biggestCash: null }
-                                        })
                                     });
                                     const data = await res.json();
                                     if (res.ok && data.success) {
@@ -1536,17 +1501,14 @@ export default function ProfilePage() {
                                             ...prev,
                                             hendon_total_cashes: data.total_cashes,
                                             hendon_total_earnings: data.total_earnings,
-                                            hendon_best_finish: data.best_finish,
-                                            hendon_biggest_cash: data.biggest_cash,
-                                            hendon_last_scraped: new Date().toISOString()
                                         }));
-                                        setMessage('✅ Stats updated successfully!');
+                                        setMessage('✅ Stats refreshed successfully!');
                                     } else {
-                                        setMessage(`❌ ${data.error || 'Could not save stats.'}`);
+                                        setMessage(`❌ ${data.error || 'Could not refresh stats.'}`);
                                     }
                                 } catch (e) {
                                     console.error('Sync error:', e);
-                                    setMessage('❌ Error saving stats. Please try again.');
+                                    setMessage('❌ Error refreshing stats. Please try again.');
                                 }
                                 setIsRefreshing(false);
                             }}

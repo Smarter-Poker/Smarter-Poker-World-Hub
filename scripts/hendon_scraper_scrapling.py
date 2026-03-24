@@ -20,15 +20,14 @@ SUPABASE_URL = os.getenv('NEXT_PUBLIC_SUPABASE_URL', 'https://kuklfnapbkmacvwxkt
 SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
 
 def update_supabase(user_id, stats):
-    """Update profile stats via Supabase REST API."""
+    """Update profile stats via Supabase REST API (only existing columns)."""
     url = f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{user_id}"
-    data = json.dumps({
-        'hendon_total_cashes': stats.get('totalCashes'),
-        'hendon_total_earnings': stats.get('totalEarnings'),
-        'hendon_best_finish': stats.get('bestFinish'),
-        'hendon_biggest_cash': stats.get('biggestCash'),
-        'hendon_last_scraped': stats.get('lastScraped'),
-    }).encode('utf-8')
+    update_data = {}
+    if stats.get('totalCashes'):
+        update_data['hendon_total_cashes'] = stats['totalCashes']
+    if stats.get('totalEarnings'):
+        update_data['hendon_total_earnings'] = stats['totalEarnings']
+    data = json.dumps(update_data).encode('utf-8')
     
     req = urllib.request.Request(url, data=data, method='PATCH')
     req.add_header('Content-Type', 'application/json')
@@ -104,9 +103,15 @@ def extract_stats(page):
                 stats['totalEarnings'] = amounts[0]
     
     if not stats['totalCashes']:
-        m = re.search(r'(\d+)\s+Cashes', body)
+        # HendonMob format: "Daniel Bekavac's 52 cashes"
+        m = re.search(r"'s\s+(\d+)\s+cashes", body, re.IGNORECASE)
         if m:
             stats['totalCashes'] = int(m.group(1))
+        else:
+            # Fallback: "52 Cashes" or "52 cashes"
+            m = re.search(r'(\d+)\s+[Cc]ashes', body)
+            if m:
+                stats['totalCashes'] = int(m.group(1))
     
     # Biggest cash (from tournament result tables)
     cash_amounts = re.findall(r'\$([\d,]+)', body)
