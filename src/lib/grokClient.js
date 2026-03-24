@@ -16,7 +16,7 @@ import OpenAI from 'openai';
 
 /**
  * Model mapping from OpenAI to Grok
- * Updated 2026-01-29: Using correct xAI model names
+ * Updated 2026-03-24: grok-2-image-1212 deprecated, using grok-imagine-image
  */
 const MODEL_MAP = {
     'gpt-4o': 'grok-3',
@@ -25,8 +25,8 @@ const MODEL_MAP = {
     'gpt-4': 'grok-3',
     'gpt-4-turbo': 'grok-3',
     'gpt-4-vision-preview': 'grok-vision-beta',  // grok-vision-beta confirmed for vision
-    'dall-e-3': 'grok-2-image-1212',  // Correct xAI image model name
-    'dall-e-2': 'grok-2-image-1212',
+    'dall-e-3': 'grok-imagine-image',  // Updated 2026-03-24: grok-2-image-1212 deprecated
+    'dall-e-2': 'grok-imagine-image',
 };
 
 /**
