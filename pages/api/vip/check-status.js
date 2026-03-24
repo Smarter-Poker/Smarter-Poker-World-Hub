@@ -41,37 +41,21 @@ export default async function handler(req, res) {
           // Query profiles for VIP status
           const { data: profile, error } = await getSupabase()
               .from('profiles')
-              .select('is_vip, vip_tier, vip_expires_at, diamonds')
+              .select('is_vip, diamonds')
               .eq('id', userId)
               .maybeSingle();
 
           if (error || !profile) {
               return res.status(200).json({
                   isVip: false,
-                  vipTier: null,
-                  expiresAt: null,
                   diamonds: 0
               });
           }
 
-          // Check if VIP has expired (shouldn't happen with trigger, but defense-in-depth)
-          let isVip = profile.is_vip === true;
-          if (isVip && profile.vip_expires_at) {
-              const expiresAt = new Date(profile.vip_expires_at);
-              if (expiresAt < new Date()) {
-                  isVip = false;
-                  // Auto-cleanup expired VIP
-                  await getSupabase()
-                      .from('profiles')
-                      .update({ is_vip: false, vip_tier: null })
-                      .eq('id', userId);
-              }
-          }
+          const isVip = profile.is_vip === true;
 
           return res.status(200).json({
               isVip,
-              vipTier: isVip ? profile.vip_tier : null,
-              expiresAt: profile.vip_expires_at,
               diamonds: profile.diamonds || 0
           });
 
