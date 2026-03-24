@@ -1418,7 +1418,7 @@ export default function NewsHub() {
                                 </button>
                             </div>
 
-                            {/* Stories Section */}}
+                            {/* Stories Section */}
 
 
                             {activeSection === 'news' ? (

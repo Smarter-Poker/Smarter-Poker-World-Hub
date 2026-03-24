@@ -1,12 +1,15 @@
 /**
- * HENDONMOB SYNC API - Accepts Client-Scraped Stats
+ * HENDONMOB SYNC API
  * 
- * Two modes:
- * 1. Client sends pre-scraped stats (from browser-side fetch via CORS proxy)
- * 2. Server attempts direct scrape as fallback
+ * Accepts client-provided stats (from manual entry or Scrapling scraper)
+ * and saves them to the database. Only updates columns that exist:
+ * - hendon_total_cashes
+ * - hendon_total_earnings
  * 
  * POST /api/hendonmob/sync
- * Body: { hendonUrl, stats?: { totalCashes, totalEarnings, bestFinish, biggestCash } }
+ * Body: { hendonUrl, stats: { totalCashes, totalEarnings } }
+ * 
+ * GET /api/hendonmob/sync  — returns current stats from DB
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -28,10 +31,6 @@ export default async function handler(req, res) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
-    }
-
     // Require JWT auth
     const _token = req.headers.authorization?.replace('Bearer ', '');
     if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
@@ -39,65 +38,68 @@ export default async function handler(req, res) {
     if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const userId = _authUser.id;
-    const { hendonUrl, stats: clientStats } = req.body;
 
-    try {
-        // Validate hendon URL
+    // ── GET: return current stats from DB ──
+    if (req.method === 'GET') {
         const { data: profile } = await getSupabase()
             .from('profiles')
-            .select('full_name, hendon_url')
+            .select('hendon_url, hendon_total_cashes, hendon_total_earnings')
             .eq('id', userId)
             .maybeSingle();
 
-        const targetUrl = hendonUrl || profile?.hendon_url;
+        return res.status(200).json({
+            success: true,
+            total_cashes: profile?.hendon_total_cashes || null,
+            total_earnings: profile?.hendon_total_earnings || null,
+            hendon_url: profile?.hendon_url || null,
+            source: 'database',
+        });
+    }
 
-        if (!targetUrl || !targetUrl.includes('thehendonmob.com')) {
-            return res.status(400).json({
-                success: false,
-                error: 'Please enter a valid Hendon Mob profile URL'
-            });
-        }
+    // ── POST: save stats ──
+    if (req.method !== 'POST') {
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
 
-        // Use client-scraped stats if provided (browser can fetch HendonMob without 403)
-        let stats = null;
-        let source = 'unknown';
+    const { hendonUrl, stats: clientStats } = req.body;
 
-        if (clientStats && (clientStats.totalCashes || clientStats.totalEarnings)) {
-            // Validate the client-provided stats are reasonable numbers
-            const tc = parseInt(clientStats.totalCashes, 10);
-            const te = parseFloat(clientStats.totalEarnings);
-            const bc = clientStats.biggestCash ? parseFloat(clientStats.biggestCash) : null;
+    // Validate hendon URL
+    const { data: profile } = await getSupabase()
+        .from('profiles')
+        .select('full_name, hendon_url')
+        .eq('id', userId)
+        .maybeSingle();
 
-            // Basic sanity check: numbers must be positive and reasonable
-            if ((tc > 0 || te > 0) && tc < 100000 && te < 500000000) {
-                stats = {
-                    totalCashes: tc || null,
-                    totalEarnings: te || null,
-                    bestFinish: clientStats.bestFinish || null,
-                    biggestCash: bc || null,
-                };
-                source = 'client_scrape';
-            }
-        }
+    const targetUrl = hendonUrl || profile?.hendon_url;
 
-        if (!stats || (!stats.totalEarnings && !stats.totalCashes)) {
-            return res.status(400).json({
-                success: false,
-                error: 'Could not extract stats. The browser may have been unable to reach HendonMob. Please try again.',
-                needsClientScrape: true,
-            });
-        }
+    if (!targetUrl || !targetUrl.includes('thehendonmob.com')) {
+        return res.status(400).json({
+            success: false,
+            error: 'Please enter a valid Hendon Mob profile URL'
+        });
+    }
 
-        // Save to database
+    // Validate client-provided stats
+    if (!clientStats || (!clientStats.totalCashes && !clientStats.totalEarnings)) {
+        return res.status(400).json({
+            success: false,
+            error: 'No stats provided. Please enter your cashes and/or earnings.',
+        });
+    }
+
+    const tc = parseInt(clientStats.totalCashes, 10);
+    const te = parseFloat(clientStats.totalEarnings);
+
+    // Basic sanity check
+    if ((tc > 0 || te > 0) && tc < 100000 && te < 500000000) {
+        // Only update existing DB columns
+        const updateData = {};
+        if (tc > 0) updateData.hendon_total_cashes = tc;
+        if (te > 0) updateData.hendon_total_earnings = te;
+
         const { error: updateError } = await getSupabase()
             .from('profiles')
-            .update({
-                hendon_total_cashes: stats.totalCashes,
-                hendon_total_earnings: stats.totalEarnings,
-                hendon_best_finish: stats.bestFinish,
-                hendon_biggest_cash: stats.biggestCash,
-                hendon_last_scraped: new Date().toISOString(),
-            })
+            .update(updateData)
             .eq('id', userId);
 
         if (updateError) {
@@ -107,17 +109,16 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             success: true,
-            total_cashes: stats.totalCashes,
-            total_earnings: stats.totalEarnings,
-            best_finish: stats.bestFinish,
-            biggest_cash: stats.biggestCash,
-            source,
+            total_cashes: tc || null,
+            total_earnings: te || null,
+            source: 'client_update',
         });
-
-    } catch (error) {
-        console.error('Sync error:', error);
-        return res.status(500).json({ success: false, error: 'Sync failed: ' + error.message });
     }
+
+    return res.status(400).json({
+        success: false,
+        error: 'Invalid stats values. Cashes must be 1-99999, earnings must be positive.',
+    });
 
   } catch (err) {
     console.error('[API Error]', err);

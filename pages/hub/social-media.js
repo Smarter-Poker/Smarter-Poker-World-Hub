@@ -527,76 +527,104 @@ function LinkPreviewCard({ url }) {
 
 function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onComment, onShare }) {
     const videoRef = useRef(null);
+    const containerRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(true);
-    const [showControls, setShowControls] = useState(true);
+    const [showOverlay, setShowOverlay] = useState(false);
+    const overlayTimerRef = useRef(null);
+    const touchStartRef = useRef({ x: 0, y: 0 });
+
+    // Auto-hide overlay after 2 seconds
+    useEffect(() => {
+        if (showOverlay) {
+            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+        }
+        return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
+    }, [showOverlay]);
 
     useEffect(() => {
-        // Auto-hide controls after 3 seconds
-        const timer = setTimeout(() => setShowControls(false), 3000);
-        return () => clearTimeout(timer);
-    }, [showControls]);
-
-    useEffect(() => {
-        // Prevent body scroll when modal is open
         document.body.style.overflow = 'hidden';
         return () => { document.body.style.overflow = ''; };
     }, []);
 
-    const togglePlay = () => {
-        if (videoRef.current) {
-            if (videoRef.current.paused) {
-                videoRef.current.play();
-                setIsPlaying(true);
-            } else {
-                videoRef.current.pause();
-                setIsPlaying(false);
+    // Swipe gesture support
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const handleTouchStart = (e) => {
+            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        };
+        const handleTouchEnd = (e) => {
+            const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+            const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+            // Swipe down to close (threshold 80px, and mostly vertical)
+            if (dy > 80 && Math.abs(dy) > Math.abs(dx)) { onClose(); }
+        };
+        el.addEventListener('touchstart', handleTouchStart, { passive: true });
+        el.addEventListener('touchend', handleTouchEnd, { passive: true });
+        return () => {
+            el.removeEventListener('touchstart', handleTouchStart);
+            el.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, [onClose]);
+
+    const handleTap = (e) => {
+        // If overlay is hidden, show it. If overlay is showing, toggle play/pause.
+        if (!showOverlay) {
+            setShowOverlay(true);
+        } else {
+            // Tap while overlay visible = play/pause
+            if (videoRef.current) {
+                if (videoRef.current.paused) {
+                    videoRef.current.play();
+                    setIsPlaying(true);
+                } else {
+                    videoRef.current.pause();
+                    setIsPlaying(false);
+                }
             }
+            // Reset the 2s timer
+            setShowOverlay(true);
         }
     };
 
     return (
         <div
+            ref={containerRef}
             style={{
                 position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                 background: '#000', zIndex: 9999,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
-            onClick={() => setShowControls(true)}
+            onClick={handleTap}
         >
-            {/* Close Button */}
+            {/* Close Button — always visible */}
             <button
-                onClick={onClose}
+                onClick={(e) => { e.stopPropagation(); onClose(); }}
                 style={{
                     position: 'absolute', top: 16, left: 16, zIndex: 10001,
                     width: 44, height: 44, borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)',
+                    background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)',
                     border: 'none', cursor: 'pointer', color: 'white', fontSize: 24,
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}
             >×</button>
 
-            {/* Video Container - Detect YouTube URLs vs direct video files */}
+            {/* Video Container */}
             {isYouTubeUrl(videoUrl) ? (
-                // YouTube embed - takes full screen
                 <iframe
                     src={getYouTubeEmbedUrl(videoUrl)}
-                    style={{
-                        width: '100vw',
-                        height: '100vh',
-                        border: 'none'
-                    }}
+                    style={{ width: '100vw', height: '100vh', border: 'none' }}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                     allowFullScreen
                 />
             ) : (
-                // Direct video file
                 <video
                     ref={videoRef}
                     src={videoUrl}
                     autoPlay
                     loop
                     playsInline
-                    onClick={togglePlay}
                     style={{
                         maxWidth: '100%', maxHeight: '100%',
                         width: 'auto', height: '100%',
@@ -605,15 +633,11 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                 />
             )}
 
-
-
-
-            {/* Author Info & Caption Overlay */}
+            {/* Author Info & Caption — always visible at bottom */}
             <div style={{
-                position: 'absolute', bottom: 80, left: 16, right: 80,
+                position: 'absolute', bottom: 80, left: 16, right: 16,
                 color: 'white', textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                opacity: showControls ? 1 : 0.7,
-                transition: 'opacity 0.3s'
+                pointerEvents: 'none',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                     <img
@@ -633,39 +657,75 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                 )}
             </div>
 
-            {/* Right Side Engagement Buttons */}
-            <div style={{
-                position: 'absolute', right: 16, bottom: 120,
-                display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center'
-            }}>
+            {/* Bottom Overlay — tap to reveal, auto-hides after 2s */}
+            <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                    background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
+                    padding: '24px 12px 20px',
+                    display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+                    opacity: showOverlay ? 1 : 0,
+                    pointerEvents: showOverlay ? 'auto' : 'none',
+                    transition: 'opacity 0.3s ease',
+                    zIndex: 10002,
+                }}
+            >
                 <button onClick={onLike} style={{
-                    background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
-                    border: 'none', borderRadius: '50%', width: 48, height: 48,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', cursor: 'pointer', fontSize: 22
-                }}></button>
-
+                    background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                }}>
+                    <span style={{ fontSize: 24 }}>👍</span>
+                    <span style={{ fontSize: 10, fontWeight: 500 }}>Like</span>
+                </button>
+                <button onClick={() => {}} style={{
+                    background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                }}>
+                    <span style={{ fontSize: 24 }}>👎</span>
+                    <span style={{ fontSize: 10, fontWeight: 500 }}>Dislike</span>
+                </button>
                 <button onClick={onComment} style={{
-                    background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
-                    border: 'none', borderRadius: '50%', width: 48, height: 48,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', cursor: 'pointer', fontSize: 22
-                }}></button>
-
+                    background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                }}>
+                    <span style={{ fontSize: 24 }}>💬</span>
+                    <span style={{ fontSize: 10, fontWeight: 500 }}>Comment</span>
+                </button>
+                <button onClick={() => {}} style={{
+                    background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                }}>
+                    <span style={{ fontSize: 24 }}>🔖</span>
+                    <span style={{ fontSize: 10, fontWeight: 500 }}>Save</span>
+                </button>
                 <button onClick={onShare} style={{
-                    background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)',
-                    border: 'none', borderRadius: '50%', width: 48, height: 48,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', cursor: 'pointer', fontSize: 22
-                }}>↗️</button>
+                    background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                }}>
+                    <span style={{ fontSize: 24 }}>📤</span>
+                    <span style={{ fontSize: 10, fontWeight: 500 }}>Share</span>
+                </button>
+                <button onClick={() => {}} style={{
+                    background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                }}>
+                    <span style={{ fontSize: 24 }}>🤖</span>
+                    <span style={{ fontSize: 10, fontWeight: 500 }}>Jarvis</span>
+                </button>
             </div>
 
-            {/* Bottom Gradient */}
-            <div style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0, height: 200,
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-                pointerEvents: 'none'
-            }} />
+            {/* Paused indicator */}
+            {!isPlaying && !isYouTubeUrl(videoUrl) && (
+                <div style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: 72, height: 72, borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.4)', border: '2px solid rgba(255,255,255,0.6)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', fontSize: 32, pointerEvents: 'none',
+                }}>▶</div>
+            )}
         </div>
     );
 }
