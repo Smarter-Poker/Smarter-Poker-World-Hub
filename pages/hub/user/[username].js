@@ -1261,7 +1261,7 @@ export default function UserProfilePage() {
     };
 
     const handleAddFriend = async () => {
-        if (!currentUser || !profile) return;
+        if (!currentUser || !profile || friendRequestSent || isFriend) return;
         // Optimistic update
         setFriendRequestSent(true);
         try {
