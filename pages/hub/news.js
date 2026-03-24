@@ -1546,65 +1546,17 @@ export default function NewsHub() {
                                         </div>
                                         {reels.length > 0 ? (
                                             <div className="reels-carousel">
-                                                {reels.slice(0, 10).map(reel => (
-                                                    <ReelCard key={reel.id} reel={reel} openExternal={openExternal} />
+                                                {reels.slice(0, 10).map((reel, idx) => (
+                                                    <ReelCard key={reel.id} reel={reel} onClick={() => openReelViewer(idx)} />
                                                 ))}
                                             </div>
                                         ) : (
                                             <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading Reels...</p>
                                         )}
                                     </section>
-
-                                    {/* Videos Preview Section - Shows on News tab */}
-                                    <section className="videos-preview-section">
-                                        <div className="section-header-row">
-                                            <h2 className="section-title">
-                                                <Play size={18} /> Latest Videos
-                                            </h2>
-                                            <button
-                                                className="see-all-btn"
-                                                onClick={() => setActiveSection('videos')}
-                                            >
-                                                See All →
-                                            </button>
-                                        </div>
-                                        {videos.length > 0 ? (
-                                            <div className="videos-carousel">
-                                                {videos.slice(0, 4).map(video => (
-                                                    <VideoCard key={video.id} video={video} onClick={openVideo} />
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading Videos...</p>
-                                        )}
-                                    </section>
                                 </>
-                            ) : activeSection === 'videos' ? (
-                                /* Videos Section */
-                                <section className="videos-section">
-                                    <h2 className="section-title">
-                                        <Play size={18} /> Latest Poker Videos
-                                    </h2>
-                                    <p className="section-desc">
-                                        Auto-updated every 2 hours with the latest poker content from YouTube
-                                    </p>
-
-                                    <div className="videos-grid">
-                                        {videos.map(video => (
-                                            <VideoCard
-                                                key={video.id}
-                                                video={video}
-                                                onClick={openVideo}
-                                            />
-                                        ))}
-                                    </div>
-
-                                    <Link href="/hub/video-library" className="see-all-videos">
-                                        View Full Video Library <ExternalLink size={14} />
-                                    </Link>
-                                </section>
                             ) : (
-                                /* Reels Section */
+                                /* Reels Section - Full View */
                                 <section className="reels-section">
                                     <h2 className="section-title">
                                         <Film size={18} /> Poker Reels
@@ -1620,11 +1572,11 @@ export default function NewsHub() {
                                         </div>
                                     ) : (
                                         <div className="reels-grid">
-                                            {reels.map(reel => (
+                                            {reels.map((reel, idx) => (
                                                 <ReelCard
                                                     key={reel.id || reel.youtube_id}
                                                     reel={reel}
-                                                    openExternal={openExternal}
+                                                    onClick={() => openReelViewer(idx)}
                                                 />
                                             ))}
                                         </div>
