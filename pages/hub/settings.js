@@ -1607,9 +1607,9 @@ export default function SettingsPage() {
                                             onTouchEnd={() => { if (localVolume !== null) { updateSetting('masterVolume', localVolume); setLocalVolume(null); } }}
                                             style={styles.slider}
                                             aria-label="Master Volume"
-                                            aria-valuetext={`${settings.masterVolume || 50}%`}
+                                            aria-valuetext={`${localVolume !== null ? localVolume : (settings.masterVolume || 50)}%`}
                                         />
-                                        <span style={styles.volumeLabel}>{settings.masterVolume || 50}%</span>
+                                        <span style={styles.volumeLabel}>{localVolume !== null ? localVolume : (settings.masterVolume || 50)}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -2379,7 +2379,7 @@ export default function SettingsPage() {
 
                                 <div style={styles.settingGroup}>
                                     <p style={styles.infoText}>
-                                        Download A Copy Of Your Smarter.Poker Data Including Your Profile, Settings, Promo History, And Avatars.
+                                        Download A Copy Of Your Smarter.Poker Data Including Your Profile, Settings, Promo History, Avatars, Club Memberships, Orders, VIP Status, And Blocked Users.
                                     </p>
                                     <button
                                         onClick={exportData}
