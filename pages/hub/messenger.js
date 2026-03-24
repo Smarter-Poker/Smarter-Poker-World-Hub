@@ -211,6 +211,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
     const [gifSearchQuery, setGifSearchQuery] = useState('');
     const [gifs, setGifs] = useState([]);
     const [loadingGifs, setLoadingGifs] = useState(false);
+    const [gifError, setGifError] = useState('');
     const [uploading, setUploading] = useState(false);
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -244,11 +245,19 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
     // GIF picker functions
     const loadTrendingGifs = async () => {
         setLoadingGifs(true);
+        setGifError('');
         try {
             const resp = await fetch('/api/messenger/gif-search?limit=20');
             const data = await resp.json();
-            if (data.success) setGifs(data.gifs);
-        } catch (e) { console.error('GIF load error:', e); }
+            if (data.success) {
+                setGifs(data.gifs);
+            } else {
+                setGifError(data.error || 'Failed to load GIFs');
+            }
+        } catch (e) {
+            console.error('GIF load error:', e);
+            setGifError('Unable to connect to GIF service');
+        }
         setLoadingGifs(false);
     };
 
@@ -261,11 +270,19 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
         }
         gifSearchTimer.current = setTimeout(async () => {
             setLoadingGifs(true);
+            setGifError('');
             try {
                 const resp = await fetch(`/api/messenger/gif-search?q=${encodeURIComponent(query)}&limit=20`);
                 const data = await resp.json();
-                if (data.success) setGifs(data.gifs);
-            } catch (e) { console.error('GIF search error:', e); }
+                if (data.success) {
+                    setGifs(data.gifs);
+                } else {
+                    setGifError(data.error || 'Search failed');
+                }
+            } catch (e) {
+                console.error('GIF search error:', e);
+                setGifError('Unable to search GIFs');
+            }
             setLoadingGifs(false);
         }, 300);
     };
@@ -372,6 +389,12 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
                     }}>
                         {loadingGifs ? (
                             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 20, color: C.textSec }}>Loading...</div>
+                        ) : gifError ? (
+                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 20, color: C.textSec }}>
+                                <div style={{ fontSize: 24, marginBottom: 8 }}>🎞️</div>
+                                <div style={{ fontSize: 13 }}>{gifError}</div>
+                                <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>Set GIPHY_API_KEY in Vercel to enable</div>
+                            </div>
                         ) : gifs.length === 0 ? (
                             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 20, color: C.textSec }}>No GIFs found</div>
                         ) : gifs.map(gif => (

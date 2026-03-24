@@ -29,6 +29,9 @@ export default async function handler(req, res) {
 
         const response = await fetch(url);
         if (!response.ok) {
+            if (response.status === 401) {
+                return res.status(200).json({ success: false, error: 'GIPHY API key is not configured or invalid', gifs: [] });
+            }
             throw new Error(`GIPHY API returned ${response.status}`);
         }
 
