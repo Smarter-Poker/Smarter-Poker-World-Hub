@@ -1445,6 +1445,105 @@ export default function ProfilePage() {
                                 setIsRefreshing(true);
                                 setMessage('🔄 Syncing stats from Hendon Mob... This may take 15-30 seconds.');
                                 try {
+                                    // ── Client-side scrape via CORS proxy ──────────────
+                                    // HendonMob blocks server-side requests (403), so the
+                                    // browser fetches the page through a CORS proxy, parses
+                                    // the HTML locally, and sends extracted stats to our API.
+                                    let clientStats = null;
+                                    const corsProxies = [
+                                        (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+                                        (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+                                    ];
+
+                                    for (const proxyFn of corsProxies) {
+                                        try {
+                                            const proxyUrl = proxyFn(profile.hendon_url);
+                                            const htmlRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(25000) });
+                                            if (!htmlRes.ok) continue;
+                                            const html = await htmlRes.text();
+                                            if (html.length < 500) continue;
+
+                                            // Parse HTML in the browser with DOMParser
+                                            const parser = new DOMParser();
+                                            const doc = parser.parseFromString(html, 'text/html');
+                                            let totalCashes = null, totalEarnings = null, biggestCash = null, bestFinish = null;
+
+                                            // Scan tables for stats
+                                            doc.querySelectorAll('table').forEach(table => {
+                                                const txt = table.textContent.toLowerCase();
+                                                if (txt.includes('cashes') || txt.includes('earnings')) {
+                                                    table.querySelectorAll('tr').forEach(row => {
+                                                        const cells = row.querySelectorAll('td');
+                                                        if (cells.length >= 2) {
+                                                            const label = cells[0].textContent.toLowerCase().trim();
+                                                            const value = cells[1].textContent.trim();
+                                                            if (label.includes('cashes') && !totalCashes) {
+                                                                const n = parseInt(value.replace(/,/g, ''), 10);
+                                                                if (!isNaN(n)) totalCashes = n;
+                                                            }
+                                                            if ((label.includes('earnings') || label.includes('winnings')) && !totalEarnings) {
+                                                                const n = parseFloat(value.replace(/[$,]/g, ''));
+                                                                if (!isNaN(n)) totalEarnings = n;
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                            });
+
+                                            // Regex fallback on raw HTML
+                                            if (!totalEarnings) {
+                                                const m = html.match(/Total\s+Live\s+Earnings[^$]*\$([\d,]+)/i);
+                                                if (m) totalEarnings = parseFloat(m[1].replace(/,/g, ''));
+                                            }
+                                            if (!totalEarnings) {
+                                                const dollarMatches = html.match(/\$[\d,]+(?:\.\d{2})?/g);
+                                                if (dollarMatches?.length) {
+                                                    const amounts = dollarMatches.map(s => parseFloat(s.replace(/[$,]/g, ''))).filter(n => n > 0).sort((a, b) => b - a);
+                                                    if (amounts.length) totalEarnings = amounts[0];
+                                                }
+                                            }
+                                            if (!totalCashes) {
+                                                const m = html.match(/(\d+)\s*(?:live\s*)?cashes/i);
+                                                if (m) totalCashes = parseInt(m[1], 10);
+                                            }
+
+                                            // Biggest cash from tournament tables
+                                            doc.querySelectorAll('table').forEach(table => {
+                                                const txt = table.textContent;
+                                                if (txt.toLowerCase().includes('total live earnings')) return;
+                                                if (txt.includes('$') && (txt.toLowerCase().includes('date') || txt.toLowerCase().includes('event'))) {
+                                                    table.querySelectorAll('td').forEach(cell => {
+                                                        const pm = cell.textContent.match(/\$[\d,]+(?:\.\d{2})?/);
+                                                        if (pm) {
+                                                            const amt = parseFloat(pm[0].replace(/[$,]/g, ''));
+                                                            if (totalEarnings && Math.abs(amt - totalEarnings) < 1) return;
+                                                            if (!biggestCash || amt > biggestCash) biggestCash = amt;
+                                                        }
+                                                    });
+                                                }
+                                            });
+
+                                            // Best finish
+                                            if (html.match(/\b(1st|first|winner|champion)\b/i)) bestFinish = '1st';
+                                            else if (html.match(/\b(2nd|second|runner.?up)\b/i)) bestFinish = '2nd';
+                                            else if (html.match(/\b(3rd|third)\b/i)) bestFinish = '3rd';
+
+                                            if (totalCashes || totalEarnings) {
+                                                clientStats = { totalCashes, totalEarnings, bestFinish, biggestCash };
+                                                break; // Success — stop trying proxies
+                                            }
+                                        } catch (proxyErr) {
+                                            console.warn('[HendonSync] Proxy failed:', proxyErr.message);
+                                        }
+                                    }
+
+                                    if (!clientStats) {
+                                        setMessage('❌ Could not reach Hendon Mob. Please check the URL and try again.');
+                                        setIsRefreshing(false);
+                                        return;
+                                    }
+
+                                    // ── Send client-scraped stats to API for secure save ──
                                     const _syncToken = getAccessToken();
                                     const res = await fetch('/api/hendonmob/sync', {
                                         method: 'POST',
@@ -1452,9 +1551,8 @@ export default function ProfilePage() {
                                             'Content-Type': 'application/json',
                                             ...(_syncToken ? { 'Authorization': `Bearer ${_syncToken}` } : {}),
                                         },
-                                        body: JSON.stringify({ hendonUrl: profile.hendon_url })
+                                        body: JSON.stringify({ hendonUrl: profile.hendon_url, stats: clientStats })
                                     });
-                                    if (!res.ok) throw new Error(`Request failed (${res.status})`);
                                     const data = await res.json();
                                     if (res.ok && data.success) {
                                         setProfile(prev => ({
