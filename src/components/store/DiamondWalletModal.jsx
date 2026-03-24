@@ -1086,7 +1086,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                         min="10" max="500"
                                         value={transferAmount}
                                         onChange={e => setTransferAmount(e.target.value)}
-                                        placeholder="10-100"
+                                        placeholder="Amount"
                                         style={{
                                             flex: 1, background: 'transparent', border: 'none', outline: 'none',
                                             color: '#e2e8f0', fontSize: 14, fontWeight: 600,
