@@ -18,11 +18,7 @@
 // eslint-disable-next-line no-restricted-globals
 const sw = self;
 
-// DEPLOY VERSION — updated by CI/build to bust the service worker cache.
-// When this changes, the browser detects a new SW → install → activate → clears old caches.
-// Format: ISO timestamp of last deploy. Update via: sed -i "s/DEPLOY_TS.*/DEPLOY_TS = '$(date -u +%Y%m%d%H%M%S)';/" public/sw-bus.js
-const DEPLOY_TS = '20260323183000';
-const CACHE_NAME = `club-arena-${DEPLOY_TS}`;
+const CACHE_NAME = 'club-arena-v1';
 const MAX_CACHE_ENTRIES = 200; // Evict oldest entries when cache grows beyond this
 
 /**
@@ -60,7 +56,7 @@ sw.addEventListener('fetch', (event) => {
       url.pathname.includes('supabase') ||
       url.pathname.includes('realtime')) return;
 
-  const isHashedAsset = /[-\.][a-zA-Z0-9_]{4,}\.(js|css|woff2?)$/.test(url.pathname);
+  const isHashedAsset = /\.[a-f0-9]{8,}\.(js|css|woff2?)$/.test(url.pathname);
   const isImage = /\.(png|jpg|jpeg|webp|svg|gif|ico)$/.test(url.pathname);
 
   if (isHashedAsset) {
