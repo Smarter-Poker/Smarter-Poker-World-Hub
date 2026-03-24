@@ -1588,7 +1588,7 @@ export default function UserProfilePage() {
 
                 {/* COVER PHOTO */}
                 <div style={{
-                    height: 180,
+                    height: 200,
                     background: 'linear-gradient(135deg, #0a0e1a 0%, #0d1f3c 25%, #1a3a5c 50%, #0f2847 75%, #0a1628 100%)',
                     position: 'relative',
                     borderRadius: '0 0 12px 12px',

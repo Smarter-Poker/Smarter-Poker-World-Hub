@@ -114,7 +114,7 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
             }
 
             .cover-photo {
-                height: 350px;
+                height: 200px;
                 position: relative;
                 border-radius: 0 0 8px 8px;
                 overflow: hidden;
