@@ -781,40 +781,73 @@ export default function ProfilePage() {
         setSaving(true);
         setMessage('');
 
-        // Use update instead of upsert to avoid XP trigger issues
-        const { error } = await supabase
-            .from('profiles')
-            .update({
-                full_name: `${(profile.first_name || '').trim()} ${(profile.last_name || '').trim()}`.trim(),
-                first_name: (profile.first_name || '').trim(),
-                last_name: (profile.last_name || '').trim(),
-                username: profile.username,
-                bio: profile.bio,
-                city: profile.city,
-                state: profile.state,
-                country: profile.country,
-                phone: profile.phone,
-                email: profile.email,
-                website: profile.website,
-                twitter: profile.twitter,
-                instagram: profile.instagram,
-                tiktok: profile.tiktok,
-                telegram: profile.telegram,
-                hendon_url: profile.hendon_url,
-                favorite_game: profile.favorite_game,
-                favorite_hand: profile.favorite_hand,
-                favorite_hand_type: profile.favorite_hand_type || 'holdem',
-                favorite_hand_plo: profile.favorite_hand_plo || '',
-                home_casino: profile.home_casino,
-                birth_year: profile.birth_year,
-                birthday: profile.birthday || null,
-                avatar_url: profile.avatar_url,
-                cover_photo_url: profile.cover_photo_url,
-                cover_photo_position: profile.cover_photo_position || '50% 50%',
-                card_back_preference: profile.card_back_preference,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', user.id);
+        // ── CRITICAL: Use direct PostgREST fetch — NOT supabase.update() ──
+        // supabase.update() triggers autoRefreshToken → if refresh fails → SIGNED_OUT event
+        // → authGuard clears session → user gets logged out. Direct fetch avoids this cascade.
+        // The global fetch interceptor in _app.js auto-injects JWT for auth.
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        const updatePayload = {
+            full_name: `${(profile.first_name || '').trim()} ${(profile.last_name || '').trim()}`.trim(),
+            first_name: (profile.first_name || '').trim(),
+            last_name: (profile.last_name || '').trim(),
+            username: profile.username,
+            bio: profile.bio,
+            city: profile.city,
+            state: profile.state,
+            country: profile.country,
+            phone: profile.phone,
+            email: profile.email,
+            website: profile.website,
+            twitter: profile.twitter,
+            instagram: profile.instagram,
+            tiktok: profile.tiktok,
+            telegram: profile.telegram,
+            hendon_url: profile.hendon_url,
+            favorite_game: profile.favorite_game,
+            favorite_hand: profile.favorite_hand,
+            favorite_hand_type: profile.favorite_hand_type || 'holdem',
+            favorite_hand_plo: profile.favorite_hand_plo || '',
+            home_casino: profile.home_casino,
+            birth_year: profile.birth_year,
+            birthday: profile.birthday || null,
+            avatar_url: profile.avatar_url,
+            cover_photo_url: profile.cover_photo_url,
+            cover_photo_position: profile.cover_photo_position || '50% 50%',
+            card_back_preference: profile.card_back_preference,
+            updated_at: new Date().toISOString(),
+        };
+
+        // Get user's JWT from localStorage for authenticated write
+        let userToken = supabaseKey;
+        try {
+            const authData = localStorage.getItem('smarter-poker-auth');
+            if (authData) {
+                const parsed = JSON.parse(authData);
+                if (parsed?.access_token) userToken = parsed.access_token;
+            }
+        } catch { /* fallback to anon key */ }
+
+        let error = null;
+        try {
+            const res = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'apikey': supabaseKey,
+                    'Authorization': `Bearer ${userToken}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal',
+                },
+                body: JSON.stringify(updatePayload),
+            });
+            if (!res.ok) {
+                const errBody = await res.text();
+                error = { message: `HTTP ${res.status}: ${errBody}` };
+            }
+        } catch (fetchErr) {
+            error = { message: fetchErr.message };
+        }
 
         setSaving(false);
         if (error) {

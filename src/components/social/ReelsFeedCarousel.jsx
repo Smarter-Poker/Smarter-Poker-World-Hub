@@ -215,13 +215,17 @@ function ReelCard({ reel, onClick }) {
 function ReelViewer({ reels, startIndex, onClose }) {
     const { user: authUser } = useSupabase();
     const [currentIndex, setCurrentIndex] = useState(startIndex);
-    const [muted, setMuted] = useState(false); // Sound ON by default - user clicked to watch
+    const [muted, setMuted] = useState(false);
     const [liked, setLiked] = useState({});
     const [showComments, setShowComments] = useState(false);
     const [reelComments, setReelComments] = useState([]);
     const [commentText, setCommentText] = useState('');
+    const [showOverlay, setShowOverlay] = useState(false);
     const commentInputRef = useRef(null);
     const videoRef = useRef(null);
+    const containerRef = useRef(null);
+    const overlayTimerRef = useRef(null);
+    const touchStartRef = useRef({ x: 0, y: 0 });
 
     const currentReel = reels[currentIndex];
 
@@ -232,6 +236,42 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const goPrev = () => {
         if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
     };
+
+    // Auto-hide overlay after 2 seconds
+    useEffect(() => {
+        if (showOverlay) {
+            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+        }
+        return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
+    }, [showOverlay]);
+
+    // Swipe gesture support
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const handleTouchStart = (e) => {
+            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        };
+        const handleTouchEnd = (e) => {
+            const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+            const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
+                if (dy < 0) goNext();  // Swipe up = next
+                else goPrev();         // Swipe down = prev
+            }
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+                if (dx < 0) goNext();  // Swipe left = next
+                else goPrev();         // Swipe right = prev
+            }
+        };
+        el.addEventListener('touchstart', handleTouchStart, { passive: true });
+        el.addEventListener('touchend', handleTouchEnd, { passive: true });
+        return () => {
+            el.removeEventListener('touchstart', handleTouchStart);
+            el.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, [currentIndex]);
 
     const handleLike = async () => {
         if (!currentReel || !authUser?.id) return;
@@ -294,25 +334,24 @@ function ReelViewer({ reels, startIndex, onClose }) {
             });
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, authUser.id);
-            // Fire-and-forget: sync denormalized comment_count
             supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }).catch(() => {});
         } catch {
-            // Rollback optimistic comment on failure
             setReelComments(prev => prev.filter(c => c.id !== tempId));
         }
     };
 
-    // Reset comment drawer on reel change
+    // Reset on reel change
     useEffect(() => {
         setShowComments(false);
         setReelComments([]);
         setCommentText('');
+        setShowOverlay(false);
     }, [currentIndex]);
 
     // Keyboard navigation
     useEffect(() => {
         const handleKey = (e) => {
-            if (showComments && e.target.tagName === 'INPUT') return; // Don't intercept when typing
+            if (showComments && e.target.tagName === 'INPUT') return;
             if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goNext();
             if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goPrev();
             if (e.key === 'Escape') { if (showComments) setShowComments(false); else onClose(); }
@@ -324,19 +363,27 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     if (!currentReel) return null;
 
+    const handleTap = () => {
+        if (!showOverlay) {
+            setShowOverlay(true);
+        } else {
+            setShowOverlay(true); // Reset timer
+        }
+    };
+
     return (
-        <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.95)',
-            zIndex: 10000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-        }}>
+        <div
+            ref={containerRef}
+            style={{
+                position: 'fixed', inset: 0,
+                background: 'rgba(0,0,0,0.95)', zIndex: 10000,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+            onClick={handleTap}
+        >
             {/* Close button */}
             <button
-                onClick={onClose}
+                onClick={(e) => { e.stopPropagation(); onClose(); }}
                 aria-label="Close reels"
                 style={{
                     position: 'absolute', top: 20, right: 20,
@@ -347,41 +394,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 }}
             >✕</button>
 
-            {/* Navigation arrows */}
-            {currentIndex > 0 && (
-                <button
-                    onClick={goPrev}
-                    aria-label="Previous reel"
-                    style={{
-                        position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)',
-                        width: 48, height: 48, borderRadius: '50%',
-                        background: 'rgba(255,255,255,0.1)', border: 'none',
-                        color: 'white', fontSize: 24, cursor: 'pointer',
-                    }}
-                >←</button>
-            )}
-            {currentIndex < reels.length - 1 && (
-                <button
-                    onClick={goNext}
-                    aria-label="Next reel"
-                    style={{
-                        position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)',
-                        width: 48, height: 48, borderRadius: '50%',
-                        background: 'rgba(255,255,255,0.1)', border: 'none',
-                        color: 'white', fontSize: 24, cursor: 'pointer',
-                    }}
-                >→</button>
-            )}
-
             {/* Reel container - FULLSCREEN TikTok-style */}
             <div style={{
-                width: '100vw',
-                height: '100vh',
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
+                width: '100vw', height: '100vh',
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                 background: '#000',
             }}>
                 {isYouTubeUrl(currentReel.video_url) ? (
@@ -402,17 +418,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         muted={muted}
                         playsInline
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onClick={() => setMuted(prev => !prev)}
                     />
                 )}
 
                 {/* Author overlay */}
                 <div style={{
-                    position: 'absolute', bottom: 80, left: 16, right: 80,
+                    position: 'absolute', bottom: 80, left: 16, right: 16,
+                    pointerEvents: 'none',
                 }}>
                     <Link href={`/hub/user/${currentReel.profiles?.username}`} style={{
                         display: 'flex', alignItems: 'center', gap: 12,
-                        textDecoration: 'none', marginBottom: 12,
+                        textDecoration: 'none', marginBottom: 12, pointerEvents: 'auto',
                     }}>
                         <img
                             src={currentReel.profiles?.avatar_url || '/default-avatar.png'}
@@ -434,39 +450,67 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     )}
                 </div>
 
-                {/* Action buttons */}
-                <div style={{
-                    position: 'absolute', bottom: 100, right: 16,
-                    display: 'flex', flexDirection: 'column', gap: 16,
-                }}>
-                    <button
-                        onClick={handleLike}
-                        aria-label={liked[currentReel.id] ? 'Unlike reel' : 'Like reel'}
-                        style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}
-                    >
-                        <span style={{ fontSize: 28 }}>{liked[currentReel.id] ? '❤️' : '🤍'}</span>
-                        <span style={{ color: 'white', fontSize: 12 }}>{currentReel.like_count || 0}</span>
+                {/* Bottom Overlay — tap to reveal, auto-hides after 2s */}
+                <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
+                        padding: '24px 12px 20px',
+                        display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+                        opacity: showOverlay ? 1 : 0,
+                        pointerEvents: showOverlay ? 'auto' : 'none',
+                        transition: 'opacity 0.3s ease',
+                        zIndex: 20,
+                    }}
+                >
+                    <button onClick={handleLike} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                    }}>
+                        <span style={{ fontSize: 24 }}>{liked[currentReel.id] ? '❤️' : '👍'}</span>
+                        <span style={{ fontSize: 10, fontWeight: 500 }}>Like</span>
                     </button>
-                    <button onClick={handleToggleComments} aria-label="Toggle comments" style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-                        <span style={{ fontSize: 28 }}>💬</span>
-                        <span style={{ color: showComments ? '#1877F2' : 'white', fontSize: 12 }}>Comment</span>
+                    <button onClick={() => {}} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                    }}>
+                        <span style={{ fontSize: 24 }}>👎</span>
+                        <span style={{ fontSize: 10, fontWeight: 500 }}>Dislike</span>
                     </button>
-                    <button aria-label="Share reel" style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-                        <span style={{ fontSize: 28 }}>📤</span>
-                        <span style={{ color: 'white', fontSize: 12 }}>Share</span>
+                    <button onClick={handleToggleComments} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                    }}>
+                        <span style={{ fontSize: 24 }}>💬</span>
+                        <span style={{ fontSize: 10, fontWeight: 500 }}>Comment</span>
                     </button>
-                    <button
-                        onClick={() => setMuted(prev => !prev)}
-                        aria-label={muted ? 'Unmute' : 'Mute'}
-                        style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}
-                    >
+                    <button onClick={() => {}} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                    }}>
+                        <span style={{ fontSize: 24 }}>🔖</span>
+                        <span style={{ fontSize: 10, fontWeight: 500 }}>Save</span>
+                    </button>
+                    <button onClick={() => {}} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                    }}>
+                        <span style={{ fontSize: 24 }}>📤</span>
+                        <span style={{ fontSize: 10, fontWeight: 500 }}>Share</span>
+                    </button>
+                    <button onClick={() => setMuted(prev => !prev)} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                    }}>
                         <span style={{ fontSize: 24 }}>{muted ? '🔇' : '🔊'}</span>
+                        <span style={{ fontSize: 10, fontWeight: 500 }}>{muted ? 'Unmute' : 'Mute'}</span>
                     </button>
                 </div>
 
                 {/* Counter */}
                 <div style={{
-                    position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+                    position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
                     color: 'rgba(255,255,255,0.7)', fontSize: 12,
                 }}>
                     {currentIndex + 1} / {reels.length}
@@ -474,12 +518,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
                 {/* Comment drawer */}
                 {showComments && (
-                    <div style={{
+                    <div onClick={(e) => e.stopPropagation()} style={{
                         position: 'absolute', bottom: 0, left: 0, right: 0,
                         maxHeight: '40vh', background: 'rgba(0,0,0,0.85)',
                         borderTop: '1px solid rgba(255,255,255,0.15)',
                         display: 'flex', flexDirection: 'column',
-                        backdropFilter: 'blur(12px)',
+                        backdropFilter: 'blur(12px)', zIndex: 30,
                     }}>
                         <div style={{ padding: '12px 16px', fontWeight: 600, color: 'white', fontSize: 14, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                             Comments ({reelComments.length})

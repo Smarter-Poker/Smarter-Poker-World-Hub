@@ -51,3 +51,4 @@ public/worker-*.js
 _legacy_scripts/
 _legacy_logs/
 _legacy_sql/
+.venv

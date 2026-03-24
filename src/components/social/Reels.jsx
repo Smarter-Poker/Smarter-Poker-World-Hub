@@ -42,17 +42,17 @@ export function ReelsViewer({ onClose }) {
     const [commentText, setCommentText] = useState('');
     const [reelComments, setReelComments] = useState([]);
     const [shareToast, setShareToast] = useState(false);
+    const [showOverlay, setShowOverlay] = useState(false);
     const videoRef = useRef(null);
     const containerRef = useRef(null);
     const commentInputRef = useRef(null);
+    const overlayTimerRef = useRef(null);
 
     useEffect(() => {
         loadReels();
-        // Get authenticated user for like operations + load existing likes
         supabase.auth.getUser().then(({ data: { user } }) => {
             if (user) {
                 setCurrentUserId(user.id);
-                // Load existing like state for this user
                 supabase.from('social_interactions')
                     .select('post_id')
                     .eq('user_id', user.id)
@@ -71,7 +71,17 @@ export function ReelsViewer({ onClose }) {
     // Reset paused state when changing reels
     useEffect(() => {
         setPaused(false);
+        setShowOverlay(false);
     }, [currentIndex]);
+
+    // Auto-hide overlay after 2 seconds
+    useEffect(() => {
+        if (showOverlay) {
+            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+        }
+        return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
+    }, [showOverlay]);
 
     const loadReels = async () => {
         setLoading(true);
@@ -107,24 +117,11 @@ export function ReelsViewer({ onClose }) {
         }
     };
 
-    const togglePlay = () => {
-        if (videoRef.current) {
-            if (videoRef.current.paused) {
-                videoRef.current.play();
-                setPaused(false);
-            } else {
-                videoRef.current.pause();
-                setPaused(true);
-            }
-        }
-    };
-
     const handleLike = async () => {
         if (!currentReel || !currentUserId) return;
         const wasLiked = liked[currentReel.id];
         setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
 
-        // Persist to Supabase — scoped to current user
         try {
             if (wasLiked) {
                 await supabase.from('social_interactions')
@@ -140,7 +137,6 @@ export function ReelsViewer({ onClose }) {
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);
-            // Revert on failure
             setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
         }
     };
@@ -206,7 +202,6 @@ export function ReelsViewer({ onClose }) {
     // Keyboard navigation
     useEffect(() => {
         const handleKey = (e) => {
-            // Skip when typing in any input or textarea
             const tag = e.target?.tagName?.toLowerCase();
             if (tag === 'input' || tag === 'textarea') return;
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goNext();
@@ -218,22 +213,34 @@ export function ReelsViewer({ onClose }) {
         return () => window.removeEventListener('keydown', handleKey);
     }, [currentIndex]);
 
-    // Touch/scroll navigation
+    // Touch/scroll navigation (swipe to next/prev)
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
         let startY = 0;
-        const handleTouchStart = (e) => { startY = e.touches[0].clientY; };
+        let startX = 0;
+        const handleTouchStart = (e) => {
+            startY = e.touches[0].clientY;
+            startX = e.touches[0].clientX;
+        };
         const handleTouchEnd = (e) => {
             const endY = e.changedTouches[0].clientY;
-            const diff = startY - endY;
-            if (diff > 50) goNext();
-            if (diff < -50) goPrev();
+            const endX = e.changedTouches[0].clientX;
+            const diffY = startY - endY;
+            const diffX = startX - endX;
+            if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 50) {
+                if (diffY > 0) goNext();   // Swipe up = next
+                else goPrev();              // Swipe down = prev
+            }
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                if (diffX > 0) goNext();   // Swipe left = next
+                else goPrev();              // Swipe right = prev
+            }
         };
 
-        container.addEventListener('touchstart', handleTouchStart);
-        container.addEventListener('touchend', handleTouchEnd);
+        container.addEventListener('touchstart', handleTouchStart, { passive: true });
+        container.addEventListener('touchend', handleTouchEnd, { passive: true });
         return () => {
             container.removeEventListener('touchstart', handleTouchStart);
             container.removeEventListener('touchend', handleTouchEnd);
@@ -267,22 +274,39 @@ export function ReelsViewer({ onClose }) {
         );
     }
 
+    const handleTap = (e) => {
+        // Don't trigger on comment drawer clicks
+        if (showCommentInput) return;
+        if (!showOverlay) {
+            setShowOverlay(true);
+        } else {
+            // Tap while overlay visible = toggle play/pause
+            if (videoRef.current) {
+                if (videoRef.current.paused) {
+                    videoRef.current.play();
+                    setPaused(false);
+                } else {
+                    videoRef.current.pause();
+                    setPaused(true);
+                }
+            }
+            setShowOverlay(true); // Reset timer
+        }
+    };
+
     return (
         <div
             ref={containerRef}
             style={{
-                position: 'fixed',
-                inset: 0,
-                background: C.bg,
-                zIndex: 10000,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                position: 'fixed', inset: 0,
+                background: C.bg, zIndex: 10000,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
+            onClick={handleTap}
         >
             {/* Close button */}
             <button
-                onClick={onClose}
+                onClick={(e) => { e.stopPropagation(); onClose(); }}
                 style={{
                     position: 'absolute', top: 20, left: 20,
                     width: 44, height: 44, borderRadius: '50%',
@@ -295,14 +319,9 @@ export function ReelsViewer({ onClose }) {
 
             {/* Reel container */}
             <div style={{
-                width: '100%',
-                maxWidth: 420,
-                height: '100vh',
-                position: 'relative',
-                background: '#000',
-            }}
-                onClick={togglePlay}
-            >
+                width: '100%', maxWidth: 420, height: '100vh',
+                position: 'relative', background: '#000',
+            }}>
                 {/* Video */}
                 <video
                     ref={videoRef}
@@ -312,45 +331,30 @@ export function ReelsViewer({ onClose }) {
                     loop
                     muted={muted}
                     playsInline
-                    style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                    }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
 
-                {/* Play Button Overlay */}
+                {/* Play Button Overlay — only when paused */}
                 {paused && (
                     <div style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
+                        position: 'absolute', top: '50%', left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        width: 80,
-                        height: 80,
-                        borderRadius: '50%',
+                        width: 80, height: 80, borderRadius: '50%',
                         background: 'rgba(0,0,0,0.4)',
                         border: '2px solid rgba(255,255,255,0.8)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: 40,
-                        zIndex: 20,
-                        pointerEvents: 'none',
-                    }}>
-                        ▶
-                    </div>
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white', fontSize: 40, zIndex: 20, pointerEvents: 'none',
+                    }}>▶</div>
                 )}
 
-                {/* Author info overlay */}
+                {/* Author info overlay — always visible */}
                 <div style={{
-                    position: 'absolute', bottom: 80, left: 16, right: 80,
-                    zIndex: 10,
-                }} onClick={(e) => e.stopPropagation()}>
-                    <Link href={`/hub/user/${currentReel?.profiles?.username}`} style={{
+                    position: 'absolute', bottom: 80, left: 16, right: 16,
+                    zIndex: 10, pointerEvents: 'none',
+                }}>
+                    <Link href={`/hub/user/${currentReel?.profiles?.username}`} onClick={(e) => e.stopPropagation()} style={{
                         display: 'flex', alignItems: 'center', gap: 12,
-                        textDecoration: 'none', marginBottom: 12,
+                        textDecoration: 'none', marginBottom: 12, pointerEvents: 'auto',
                     }}>
                         <img
                             src={currentReel?.profiles?.avatar_url || '/default-avatar.png'}
@@ -376,65 +380,61 @@ export function ReelsViewer({ onClose }) {
                     )}
                 </div>
 
-                {/* Action buttons (right side) */}
-                <div style={{
-                    position: 'absolute', bottom: 100, right: 16,
-                    display: 'flex', flexDirection: 'column', gap: 20,
-                    zIndex: 10,
-                }} onClick={(e) => e.stopPropagation()}>
-                    {/* Like */}
-                    <button
-                        onClick={handleLike}
-                        style={{
-                            background: 'none', border: 'none',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                            cursor: 'pointer',
-                        }}
-                    >
-                        <span style={{ fontSize: 28 }}>
-                            {liked[currentReel?.id] ? '❤️' : '🤍'}
-                        </span>
-                        <span style={{ color: 'white', fontSize: 12 }}>
-                            {(currentReel?.like_count || 0) + (liked[currentReel?.id] ? 1 : 0)}
-                        </span>
+                {/* Bottom Overlay — tap to reveal, auto-hides after 2s */}
+                <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
+                        padding: '24px 8px 20px',
+                        display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+                        opacity: showOverlay ? 1 : 0,
+                        pointerEvents: showOverlay ? 'auto' : 'none',
+                        transition: 'opacity 0.3s ease',
+                        zIndex: 20,
+                    }}
+                >
+                    <button onClick={handleLike} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                    }}>
+                        <span style={{ fontSize: 22 }}>{liked[currentReel?.id] ? '❤️' : '👍'}</span>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>Like</span>
                     </button>
-
-                    {/* Comment */}
-                    <button
-                        onClick={handleOpenComments}
-                        style={{
-                            background: 'none', border: 'none',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                            cursor: 'pointer',
-                        }}
-                    >
-                        <span style={{ fontSize: 28 }}>💬</span>
-                        <span style={{ color: 'white', fontSize: 12 }}>Comment</span>
+                    <button onClick={() => {}} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                    }}>
+                        <span style={{ fontSize: 22 }}>👎</span>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>Dislike</span>
                     </button>
-
-                    {/* Share */}
-                    <button
-                        onClick={handleShare}
-                        style={{
-                            background: 'none', border: 'none',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                            cursor: 'pointer',
-                        }}
-                    >
-                        <span style={{ fontSize: 28 }}>📤</span>
-                        <span style={{ color: 'white', fontSize: 12 }}>Share</span>
+                    <button onClick={handleOpenComments} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                    }}>
+                        <span style={{ fontSize: 22 }}>💬</span>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>Comment</span>
                     </button>
-
-                    {/* Sound toggle */}
-                    <button
-                        onClick={() => setMuted(prev => !prev)}
-                        style={{
-                            background: 'none', border: 'none',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center',
-                            cursor: 'pointer',
-                        }}
-                    >
-                        <span style={{ fontSize: 24 }}>{muted ? '🔇' : '🔊'}</span>
+                    <button onClick={() => {}} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                    }}>
+                        <span style={{ fontSize: 22 }}>🔖</span>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>Save</span>
+                    </button>
+                    <button onClick={handleShare} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                    }}>
+                        <span style={{ fontSize: 22 }}>📤</span>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>Share</span>
+                    </button>
+                    <button onClick={() => setMuted(prev => !prev)} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                    }}>
+                        <span style={{ fontSize: 22 }}>{muted ? '🔇' : '🔊'}</span>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>{muted ? 'Unmute' : 'Mute'}</span>
                     </button>
                 </div>
 
@@ -512,9 +512,10 @@ export function ReelsViewer({ onClose }) {
 
                 {/* View count */}
                 <div style={{
-                    position: 'absolute', bottom: 20, left: 16,
+                    position: 'absolute', top: 20, left: 60,
                     color: C.textSec, fontSize: 12,
                     display: 'flex', alignItems: 'center', gap: 4,
+                    pointerEvents: 'none',
                 }}>
                     👁 {currentReel?.view_count || 0} views
                 </div>
