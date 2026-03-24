@@ -1172,6 +1172,51 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 {transferSuccess}
                             </div>
                         )}
+                        {/* #5: Confirmation dialog */}
+                        {confirmTransfer && (
+                            <div style={{
+                                marginTop: 8, padding: '10px 14px',
+                                background: 'rgba(249, 115, 22, 0.1)',
+                                border: '1px solid rgba(249, 115, 22, 0.3)',
+                                borderRadius: 10,
+                                animation: 'walletFadeIn 0.15s ease',
+                            }}>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: '#f97316', marginBottom: 8 }}>
+                                    Confirm Transfer
+                                </div>
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginBottom: 10, lineHeight: 1.4 }}>
+                                    Send <strong style={{ color: '#00d4ff' }}>{confirmTransfer.amount}💎</strong> to{' '}
+                                    <strong style={{ color: '#f97316' }}>{confirmTransfer.recipient?.display_name || confirmTransfer.recipient?.username}</strong>?
+                                    This cannot be undone.
+                                </div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <button
+                                        onClick={() => setConfirmTransfer(null)}
+                                        style={{
+                                            flex: 1, padding: '7px 0',
+                                            background: 'rgba(255,255,255,0.06)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: 8, color: 'rgba(255,255,255,0.5)',
+                                            fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleTransfer}
+                                        style={{
+                                            flex: 1, padding: '7px 0',
+                                            background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.3))',
+                                            border: '1px solid rgba(249, 115, 22, 0.5)',
+                                            borderRadius: 8, color: '#f97316',
+                                            fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                        }}
+                                    >
+                                        Confirm Send {confirmTransfer.amount}💎
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
