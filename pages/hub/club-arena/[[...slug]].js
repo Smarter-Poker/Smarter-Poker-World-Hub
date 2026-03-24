@@ -40,12 +40,77 @@ const FALLBACK_HTML = `<!DOCTYPE html>
 <body><div id="root"><p style="color:#fff;text-align:center;padding:40px">Loading Club Arena...</p></div></body>
 </html>`;
 
-export async function getServerSideProps({ res }) {
+// MIME types for static assets served from public/hub/club-arena/
+const MIME_TYPES = {
+    '.js': 'application/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.map': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp',
+    '.avif': 'image/avif',
+    '.ico': 'image/x-icon',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf',
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
+    '.mp3': 'audio/mpeg',
+    '.ogg': 'audio/ogg',
+    '.txt': 'text/plain',
+    '.xml': 'application/xml',
+};
+
+export async function getServerSideProps({ req, res }) {
     // fs and path are server-only — require them inside getServerSideProps
     // so webpack doesn't try to bundle them for the client
     const fs = require('fs');
     const path = require('path');
 
+    // ── Static Asset Detection ──────────────────────────────────────────
+    // Vercel's filesystem routing sometimes doesn't serve static files from
+    // public/ before the catch-all [[...slug]] page. This block detects
+    // requests for static assets (by file extension) and serves them directly
+    // from the public/ directory with correct MIME types and caching headers.
+    const urlPath = (req.url || '').split('?')[0]; // strip query string
+    const ext = path.extname(urlPath).toLowerCase();
+
+    if (ext && MIME_TYPES[ext]) {
+        // This is a static asset request — serve the file directly
+        const relativePath = urlPath; // e.g. /hub/club-arena/assets/index-KYOW60ge.js
+        const filePaths = [
+            path.join(process.cwd(), 'public', relativePath),
+            path.join(__dirname, '..', '..', '..', 'public', relativePath),
+        ];
+
+        for (const filePath of filePaths) {
+            try {
+                const fileBuffer = fs.readFileSync(filePath);
+                res.setHeader('Content-Type', MIME_TYPES[ext]);
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.write(fileBuffer);
+                res.end();
+                return { props: {} };
+            } catch {
+                // Try next path
+            }
+        }
+
+        // File not found — return 404 instead of SPA HTML
+        res.statusCode = 404;
+        res.setHeader('Content-Type', 'text/plain');
+        res.write('Not Found');
+        res.end();
+        return { props: {} };
+    }
+
+    // ── SPA HTML Serving ────────────────────────────────────────────────
+    // For non-asset requests (SPA routes), serve the Vite SPA index.html
     let spaHtml = '';
     try {
         const vercelPath = path.join(process.cwd(), 'public', 'hub', 'club-arena', 'index.html');
