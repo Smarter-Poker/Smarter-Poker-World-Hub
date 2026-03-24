@@ -129,7 +129,7 @@ export default async function handler(req, res) {
             .from('diamond_transactions')
             .select('id')
             .eq('user_id', userId)
-            .in('type', ['diamond_gift_sent'])
+            .eq('transaction_type', 'diamond_gift_sent')
             .gte('created_at', cooldownCutoff)
             .limit(1)
             .maybeSingle();
@@ -145,7 +145,7 @@ export default async function handler(req, res) {
             .from('diamond_transactions')
             .select('amount')
             .eq('user_id', userId)
-            .in('type', ['diamond_gift_sent'])
+            .eq('transaction_type', 'diamond_gift_sent')
             .gte('created_at', dayStart.toISOString());
 
         const dailyTotal = (dailyTransfers || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
