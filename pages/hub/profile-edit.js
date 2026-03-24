@@ -3,7 +3,7 @@
  * SmarterPoker-style profile with HendonMob integration
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import FavoriteHandPicker from '../../src/components/profile/FavoriteHandPicker';
 import CoverPhotoEditor from '../../src/components/profile/CoverPhotoEditor';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -233,6 +233,107 @@ function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
     );
 }
 
+// ── Home Casino Venue Autocomplete ──────────────────────────────────────────
+function HomeCasinoSelector({ value, onChange }) {
+    const [query, setQuery] = useState(value || '');
+    const [suggestions, setSuggestions] = useState([]);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+    const debounceRef = useRef(null);
+    const containerRef = useRef(null);
+
+    // Sync external value
+    useEffect(() => { setQuery(value || ''); }, [value]);
+
+    // Close on outside click
+    useEffect(() => {
+        const handleClick = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) {
+                setShowDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, []);
+
+    const searchVenues = useCallback(async (q) => {
+        if (!q || q.length < 2) { setSuggestions([]); return; }
+        setIsSearching(true);
+        try {
+            const res = await fetch(`/api/poker/venues?search=${encodeURIComponent(q)}&limit=8`);
+            const data = await res.json();
+            if (data.success && data.data) {
+                setSuggestions(data.data);
+                setShowDropdown(true);
+            }
+        } catch { /* noop */ } finally { setIsSearching(false); }
+    }, []);
+
+    const handleInputChange = (e) => {
+        const val = e.target.value;
+        setQuery(val);
+        onChange(val);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => searchVenues(val), 300);
+    };
+
+    const handleSelect = (venue) => {
+        setQuery(venue.name);
+        setShowDropdown(false);
+        onChange(venue.name);
+    };
+
+    return (
+        <div ref={containerRef} style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                    type="text"
+                    value={query}
+                    onChange={handleInputChange}
+                    onFocus={() => { if (suggestions.length > 0) setShowDropdown(true); }}
+                    placeholder="Search 483+ venues or type a name..."
+                    style={{
+                        width: '100%', padding: '10px 12px', fontSize: 14,
+                        background: '#242526', border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: 8, color: '#e4e6eb', outline: 'none',
+                    }}
+                />
+                {isSearching && <span style={{ position: 'absolute', right: 10, color: '#2374e1', fontSize: 16 }}>⟳</span>}
+            </div>
+            {showDropdown && suggestions.length > 0 && (
+                <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+                    background: '#242526', border: '2px solid rgba(255,255,255,0.1)',
+                    borderRadius: 8, overflow: 'hidden', zIndex: 100,
+                    maxHeight: 240, overflowY: 'auto',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                }}>
+                    {suggestions.map((venue) => (
+                        <button
+                            key={venue.id}
+                            type="button"
+                            onClick={() => handleSelect(venue)}
+                            style={{
+                                display: 'block', width: '100%', padding: '10px 14px',
+                                background: 'none', border: 'none',
+                                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                                cursor: 'pointer', textAlign: 'left', color: '#e4e6eb',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                        >
+                            <div style={{ fontSize: 14, fontWeight: 600 }}>{venue.name}</div>
+                            <div style={{ fontSize: 12, color: '#b0b3b8', marginTop: 2 }}>
+                                {venue.city}{venue.state ? `, ${venue.state}` : ''}
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function ProfilePage() {
     const router = useRouter();
     useTrainingBus('profile-edit');
@@ -273,15 +374,20 @@ export default function ProfilePage() {
     // Profile fields
     const [profile, setProfile] = useState({
         full_name: '',
+        first_name: '',
+        last_name: '',
         username: '',
         bio: '',
         city: '',
         state: '',
         country: '',
         phone: '',
+        email: '',
         website: '',
         twitter: '',
         instagram: '',
+        tiktok: '',
+        telegram: '',
         hendon_url: '',
         favorite_game: '',
         favorite_hand: '',
@@ -289,6 +395,7 @@ export default function ProfilePage() {
         favorite_hand_plo: '',
         home_casino: '',
         birth_year: '',
+        birthday: '',
         avatar_url: '',
         cover_photo_url: '', // Cover photo for profile
         cover_photo_position: '50% 50%', // CSS object-position for repositioned cover
@@ -350,6 +457,12 @@ export default function ProfilePage() {
                             const profiles = await response.json();
                             const profileData = profiles[0];
                             if (profileData) {
+                                // Parse full_name into first_name/last_name if those columns are empty
+                                if (!profileData.first_name && !profileData.last_name && profileData.full_name) {
+                                    const parts = profileData.full_name.trim().split(/\s+/);
+                                    profileData.first_name = parts[0] || '';
+                                    profileData.last_name = parts.slice(1).join(' ') || '';
+                                }
                                 setProfile(prev => ({ ...prev, ...profileData }));
                                 setOriginalProfile(profileData);
                             }
@@ -628,7 +741,7 @@ export default function ProfilePage() {
         // Update database to remove URL
         const { error: updateError } = await supabase
             .from('profiles')
-            .update({ cover_photo_url: null, updated_at: new Date().toISOString() })
+            .update({ cover_photo_url: null, cover_photo_position: '50% 50%', updated_at: new Date().toISOString() })
             .eq('id', user.id);
 
         if (updateError) {
@@ -637,13 +750,13 @@ export default function ProfilePage() {
             return;
         }
 
-        setProfile(prev => ({ ...prev, cover_photo_url: null }));
+        setProfile(prev => ({ ...prev, cover_photo_url: null, cover_photo_position: '50% 50%' }));
         setMessage('Cover photo removed!');
 
         // ── CRITICAL: Dispatch bus event so profile page updates in real-time ──
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('profile-updated', {
-                detail: { cover_photo_url: null }
+                detail: { cover_photo_url: null, cover_photo_position: '50% 50%' }
             }));
         }
 
@@ -674,9 +787,12 @@ export default function ProfilePage() {
                 state: profile.state,
                 country: profile.country,
                 phone: profile.phone,
+                email: profile.email,
                 website: profile.website,
                 twitter: profile.twitter,
                 instagram: profile.instagram,
+                tiktok: profile.tiktok,
+                telegram: profile.telegram,
                 hendon_url: profile.hendon_url,
                 favorite_game: profile.favorite_game,
                 favorite_hand: profile.favorite_hand,
@@ -684,6 +800,7 @@ export default function ProfilePage() {
                 favorite_hand_plo: profile.favorite_hand_plo || '',
                 home_casino: profile.home_casino,
                 birth_year: profile.birth_year,
+                birthday: profile.birthday || null,
                 avatar_url: profile.avatar_url,
                 cover_photo_url: profile.cover_photo_url,
                 cover_photo_position: profile.cover_photo_position || '50% 50%',
@@ -1168,10 +1285,13 @@ export default function ProfilePage() {
                     <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
                         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>🔗 Contact & Social</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+                            <ProfileField label="Email" value={profile.email} onChange={updateField('email')} type="email" placeholder="you@example.com" icon="✉️" />
                             <ProfileField label="Phone" value={profile.phone} onChange={updateField('phone')} type="tel" placeholder="+1 555 123 4567" icon="📱" />
                             <ProfileField label="Website" value={profile.website} onChange={updateField('website')} placeholder="https://yoursite.com" icon="🌐" />
                             <ProfileField label="Twitter/X" value={profile.twitter} onChange={updateField('twitter')} placeholder="@username" icon="𝕏" />
                             <ProfileField label="Instagram" value={profile.instagram} onChange={updateField('instagram')} placeholder="@username" icon="📸" />
+                            <ProfileField label="TikTok" value={profile.tiktok} onChange={updateField('tiktok')} placeholder="@username" icon="🎵" />
+                            <ProfileField label="Telegram" value={profile.telegram} onChange={updateField('telegram')} placeholder="@username" icon="✈️" />
                         </div>
                     </div>
 
@@ -1199,7 +1319,7 @@ export default function ProfilePage() {
                                     }}
                                 >
                                     <img
-                                        src={`/images/card-backs/${deck}.jpg`}
+                                        src={`/images/card-backs/${deck}.png`}
                                         alt={`${deck} deck`}
                                         style={{
                                             width: '100%',
@@ -1229,9 +1349,48 @@ export default function ProfilePage() {
                         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>Poker Info</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                             <ProfileField label="Favorite Game" value={profile.favorite_game} onChange={updateField('favorite_game')} placeholder="No Limit Hold'em" icon="" />
-                            <ProfileField label="Home Casino" value={profile.home_casino} onChange={updateField('home_casino')} placeholder="Bellagio" icon="🏨" />
                             <ProfileField label="Birth Year" value={profile.birth_year} onChange={updateField('birth_year')} placeholder="1990" icon="🎂" />
                         </div>
+
+                        {/* Birthday */}
+                        <div style={{ marginTop: 16 }}>
+                            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>🎂 Birthday</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <input
+                                    type="date"
+                                    value={profile.birthday || ''}
+                                    onChange={(e) => updateField('birthday')(e.target.value)}
+                                    style={{
+                                        flex: 1,
+                                        padding: '10px 12px',
+                                        fontSize: 14,
+                                        background: C.inputBg || '#242526',
+                                        border: `1px solid ${C.border}`,
+                                        borderRadius: 8,
+                                        color: C.text,
+                                        outline: 'none',
+                                    }}
+                                />
+                                {profile.birthday && (
+                                    <div style={{ fontSize: 12, color: C.gold, fontWeight: 600 }}>
+                                        💎 300 Diamonds On Your Birthday!
+                                    </div>
+                                )}
+                            </div>
+                            <div style={{ fontSize: 11, color: C.textSec, marginTop: 4, opacity: 0.7 }}>
+                                Earn 300 diamonds on your birthday (accounts must be 60+ days old)
+                            </div>
+                        </div>
+
+                        {/* Home Casino - Venue Autocomplete */}
+                        <div style={{ marginTop: 16 }}>
+                            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>🏨 Home Casino</label>
+                            <HomeCasinoSelector
+                                value={profile.home_casino}
+                                onChange={(name) => updateField('home_casino')(name)}
+                            />
+                        </div>
+
                         <FavoriteHandPicker
                             value={profile.favorite_hand}
                             gameType="holdem"
@@ -1278,10 +1437,14 @@ export default function ProfilePage() {
                                 setIsRefreshing(true);
                                 setMessage('🔄 Syncing stats from Hendon Mob... This may take 15-30 seconds.');
                                 try {
+                                    const _syncToken = getAccessToken();
                                     const res = await fetch('/api/hendonmob/sync', {
                                         method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ userId: user.id, hendonUrl: profile.hendon_url })
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            ...(_syncToken ? { 'Authorization': `Bearer ${_syncToken}` } : {}),
+                                        },
+                                        body: JSON.stringify({ hendonUrl: profile.hendon_url })
                                     });
                                     if (!res.ok) throw new Error(`Request failed (${res.status})`);
                                     const data = await res.json();
