@@ -328,6 +328,8 @@ export default async function handler(req, res) {
             newBalance: newSenderBalance,
             tier: isVipTier ? 'vip' : 'standard',
             dailyRemaining: dailyLimit - dailyTotal - amount,
+            dailySent: dailyTotal + amount,
+            dailyLimit,
             recipientName,
         });
 

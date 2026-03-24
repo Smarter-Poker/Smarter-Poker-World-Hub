@@ -34,6 +34,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getAuthUser } from '../../lib/authUtils';
+import { showStoreToast } from './StoreToast';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Transaction type config — icons, labels, colors
@@ -388,6 +389,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const [friendsLoading, setFriendsLoading] = useState(false);
     const [friendSearch, setFriendSearch] = useState('');       // #8: Friend search
     const [confirmTransfer, setConfirmTransfer] = useState(null); // #5: Confirmation dialog
+    const [recentRecipients, setRecentRecipients] = useState([]); // P2-3: Recent recipients
+    const [dailyLimitInfo, setDailyLimitInfo] = useState(null);   // P2-4: Daily limit display
 
     // ── ENH-A: Animated balance counter ──
     const animatedBalance = useAnimatedCounter(balance ?? 0);
@@ -591,8 +594,20 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             const data = await res.json();
             if (data.success) {
                 const tierLabel = data.tier === 'vip' ? ' (VIP Friend)' : '';
-                setTransferSuccess(`Sent ${amount}💎 to ${transferRecipient.display_name || transferRecipient.username}${tierLabel}! ${data.dailyRemaining != null ? `${data.dailyRemaining}💎 remaining today.` : ''}`);
+                const successMsg = `Sent ${amount}💎 to ${transferRecipient.display_name || transferRecipient.username}${tierLabel}!`;
+                setTransferSuccess(successMsg);
+                // P2-1: StoreToast for premium notification
+                showStoreToast('success', successMsg + (data.dailyRemaining != null ? ` ${data.dailyRemaining}💎 remaining today.` : ''));
                 setTransferAmount('');
+                // P2-3: Save to recent recipients
+                setRecentRecipients(prev => {
+                    const filtered = prev.filter(r => r.id !== transferRecipient.id);
+                    return [{ ...transferRecipient, lastAmount: amount, lastSent: Date.now() }, ...filtered].slice(0, 3);
+                });
+                // P2-4: Update daily limit info
+                if (data.dailySent != null && data.dailyLimit != null) {
+                    setDailyLimitInfo({ sent: data.dailySent, limit: data.dailyLimit, tier: data.tier });
+                }
                 setTransferRecipient(null);
                 // Update balance optimistically
                 setBalance(prev => (prev ?? 0) - amount);
@@ -607,11 +622,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         senderBalance: data.newBalance,
                     }
                 }));
+                // P2-5: Sparkle animation on success
+                showConfettiAnimation();
                 // Refetch transactions
                 if (!fetchInFlightRef.current) fetchTransactions();
                 setTimeout(() => setTransferSuccess(''), 4000);
             } else {
                 setTransferError(data.error || 'Transfer failed');
+                // P2-1: StoreToast for error
+                showStoreToast('error', data.error || 'Transfer failed');
             }
         } catch (err) {
             setTransferError(err.message || 'Transfer failed');
@@ -632,6 +651,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             setTransferSuccess('');
             setFriendSearch('');
             setConfirmTransfer(null);
+            setDailyLimitInfo(null);
             return;
         }
 
@@ -747,7 +767,24 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5);
 
-        return { totalEarned, totalSpent, weekEarned, weekSpent, topSources };
+        // P2-2: Transfer analytics
+        let giftsSent = 0, giftsReceived = 0, giftCount = 0;
+        const recipientMap = {};
+        transactions.forEach(tx => {
+            const txType = tx.transaction_type || tx.type;
+            if (txType === 'diamond_gift_sent') {
+                giftsSent += Math.abs(tx.amount ?? 0);
+                giftCount++;
+                const match = (tx.description || '').match(/to (.+?)\s*\[/);
+                if (match) recipientMap[match[1]] = (recipientMap[match[1]] || 0) + Math.abs(tx.amount ?? 0);
+            }
+            if (txType === 'diamond_gift_received') {
+                giftsReceived += Math.abs(tx.amount ?? 0);
+            }
+        });
+        const topRecipients = Object.entries(recipientMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+        return { totalEarned, totalSpent, weekEarned, weekSpent, topSources, giftsSent, giftsReceived, giftCount, topRecipients };
     }, [transactions]);
 
     if (!isOpen) return null;
@@ -1055,6 +1092,51 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             VIP Friends (60+ days): 10-500 per transfer | 2,000/day<br/>
                             5min cooldown between transfers to same friend | 1,000/day receive cap
                         </div>
+                        {/* P2-4: Daily limit progress bar */}
+                        {dailyLimitInfo && (
+                            <div style={{ marginBottom: 8 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>
+                                    <span>Today: {dailyLimitInfo.sent.toLocaleString()} / {dailyLimitInfo.limit.toLocaleString()}</span>
+                                    <span style={{ color: dailyLimitInfo.sent >= dailyLimitInfo.limit * 0.8 ? '#f87171' : '#4ade80' }}>
+                                        {(dailyLimitInfo.limit - dailyLimitInfo.sent).toLocaleString()} remaining
+                                    </span>
+                                </div>
+                                <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                                    <div style={{
+                                        width: `${Math.min((dailyLimitInfo.sent / dailyLimitInfo.limit) * 100, 100)}%`,
+                                        height: '100%', borderRadius: 2, transition: 'width 0.3s ease',
+                                        background: dailyLimitInfo.sent >= dailyLimitInfo.limit * 0.8
+                                            ? 'linear-gradient(90deg, #f97316, #ef4444)'
+                                            : 'linear-gradient(90deg, #4ade80, #22c55e)',
+                                    }} />
+                                </div>
+                            </div>
+                        )}
+                        {/* P2-3: Recent recipients quick-send */}
+                        {recentRecipients.length > 0 && !transferRecipient && (
+                            <div style={{ marginBottom: 8 }}>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Recent</div>
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                    {recentRecipients.map(r => (
+                                        <button
+                                            key={r.id}
+                                            onClick={() => setTransferRecipient(r)}
+                                            style={{
+                                                padding: '4px 10px', borderRadius: 12,
+                                                border: '1px solid rgba(0,212,255,0.2)',
+                                                background: 'rgba(0,212,255,0.06)',
+                                                color: '#00d4ff', fontSize: 10, fontWeight: 500,
+                                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                                                transition: 'all 0.15s',
+                                            }}
+                                        >
+                                            {r.avatar_url && <img src={r.avatar_url} alt="" style={{ width: 14, height: 14, borderRadius: '50%', objectFit: 'cover' }} />}
+                                            {r.display_name || r.username || 'User'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         {/* Friend picker */}
                         <div style={{ marginBottom: 8 }}>
                             {friendsLoading ? (
@@ -1269,6 +1351,46 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 </span>
                             </div>
                         ))}
+                    </div>
+                )}
+                {/* P2-2: Gift Analytics (shown when stats are open and gifts exist) */}
+                {showStats && stats && (stats.giftsSent > 0 || stats.giftsReceived > 0) && (
+                    <div style={{
+                        padding: '8px 16px 12px',
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                        background: 'rgba(249, 115, 22, 0.03)',
+                        animation: 'walletFadeIn 0.2s ease',
+                    }}>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Gift Activity</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+                            <div style={{ background: 'rgba(249,115,22,0.08)', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Sent</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#f97316', fontFamily: 'Orbitron, monospace' }}>{stats.giftsSent.toLocaleString()}</div>
+                            </div>
+                            <div style={{ background: 'rgba(74,222,128,0.08)', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Received</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', fontFamily: 'Orbitron, monospace' }}>{stats.giftsReceived.toLocaleString()}</div>
+                            </div>
+                            <div style={{ background: 'rgba(0,212,255,0.08)', borderRadius: 8, padding: '6px 8px', textAlign: 'center' }}>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Gifts</div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#00d4ff', fontFamily: 'Orbitron, monospace' }}>{stats.giftCount}</div>
+                            </div>
+                        </div>
+                        {stats.topRecipients.length > 0 && (
+                            <>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginBottom: 3 }}>Top Recipients</div>
+                                {stats.topRecipients.map(([name, amount], i) => (
+                                    <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                        <div style={{ flex: 1, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                                            <div style={{ width: `${(amount / stats.topRecipients[0][1]) * 100}%`, height: '100%', borderRadius: 2, background: `hsl(${25 + i * 15}, 80%, 55%)` }} />
+                                        </div>
+                                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', minWidth: 70 }}>
+                                            {name}: {amount.toLocaleString()}
+                                        </span>
+                                    </div>
+                                ))}
+                            </>
+                        )}
                     </div>
                 )}
 
