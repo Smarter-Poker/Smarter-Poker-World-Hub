@@ -16,13 +16,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
 
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
-import DiamondWalletModal from '../store/DiamondWalletModal';
+
 import FullScreenPageOverlay from './FullScreenPageOverlay';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
@@ -69,7 +69,7 @@ export default function UniversalHeader({
         if (typeof window === 'undefined') return 0;
         try { return parseInt(localStorage.getItem('sp-notif-count') || '0', 10); } catch (_) { return 0; }
     });
-    const [isWalletOpen, setIsWalletOpen] = useState(false);
+
     // ── FULL-SCREEN OVERLAY STATES ──
     const [overlayPage, setOverlayPage] = useState(null); // null | 'profile' | 'messenger' | 'notifications' | 'settings' | 'diamond-store'
     const [isVip, setIsVip] = useState(() => {

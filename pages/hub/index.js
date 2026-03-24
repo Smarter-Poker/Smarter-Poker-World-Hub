@@ -75,6 +75,13 @@ export default function HubPage() {
             claimReward('/api/rewards/daily-login', { userId: authUser.id }, 'Daily Login Reward');
         }
 
+        // Birthday reward — 300💎 if today is user's birthday (fire-and-forget, once per session)
+        // API handles all validation: birthday match, 60-day account age, yearly dedup
+        if (authUser?.id && !sessionStorage.getItem('birthdayRewardChecked')) {
+            sessionStorage.setItem('birthdayRewardChecked', 'true');
+            claimReward('/api/rewards/birthday-reward', {}, 'Happy Birthday! 🎂');
+        }
+
         // Detect which special cards are unlocked for this user
         const unlocked = ['toke-tracker']; // Always unlocked for all authenticated users
         try {

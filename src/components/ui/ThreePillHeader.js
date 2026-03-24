@@ -14,6 +14,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
@@ -30,22 +31,27 @@ export default function ThreePillHeader({
 }) {
     const router = useRouter();
 
-    // 🛡️ INSTANT UI: Read cached header user from localStorage on mount
-    const [user, setUser] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const cached = localStorage.getItem('sp-cached-header-user');
-                if (cached) return JSON.parse(cached);
-            } catch (e) { }
-        }
-        return null;
-    });
+    // 🛡️ INSTANT UI: Single-parse helper with 24h cache TTL
+    // Matches UniversalHeader pattern — parses once, discards stale data.
+    const _cachedHeader = (() => {
+        if (typeof window === 'undefined') return null;
+        try {
+            const raw = localStorage.getItem('sp-cached-header-user');
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            if (data?._ts && (Date.now() - data._ts > 24 * 60 * 60 * 1000)) return null;
+            return data;
+        } catch (_) { return null; }
+    })();
+
+    const [user, setUser] = useState(_cachedHeader);
     const [notificationCount, setNotificationCount] = useState(() => {
         if (typeof window === 'undefined') return 0;
         try { return parseInt(localStorage.getItem('sp-notif-count') || '0', 10); } catch (_) { return 0; }
     });
     const [isWalletOpen, setIsWalletOpen] = useState(false);
     const [headerHeight, setHeaderHeight] = useState(80);
+    const [isMounted, setIsMounted] = useState(false);
     const imgRef = useRef(null);
 
     // ── Diamond balance: shared hook handles caching, realtime, cross-tab sync ──
@@ -55,18 +61,13 @@ export default function ThreePillHeader({
     const [profileHref, setProfileHref] = useState(() => {
         if (typeof window === 'undefined') return '/hub/profile';
         try {
-            // Try dedicated username cache first
             const nameCache = localStorage.getItem('sp-profile-username');
             if (nameCache) {
                 const { username } = JSON.parse(nameCache);
                 if (username) return `/hub/user/${username}`;
             }
-            // Fallback: extract username from header user cache
-            const headerCache = localStorage.getItem('sp-cached-header-user');
-            if (headerCache) {
-                const { username } = JSON.parse(headerCache);
-                if (username) return `/hub/user/${username}`;
-            }
+            // Use single-parse cache instead of re-parsing
+            if (_cachedHeader?.username) return `/hub/user/${_cachedHeader.username}`;
         } catch (_) {}
         return '/hub/profile';
     });
@@ -77,8 +78,18 @@ export default function ThreePillHeader({
     // Global Unread Messages State
     const { unreadCount } = useUnreadCount();
 
-    // Derived values to prevent "flash of missing data" on mount
-    const displayAvatar = user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url;
+    // 🛡️ Hydration gate: mark mounted + seed diamond balance from cache
+    useEffect(() => {
+        setIsMounted(true);
+        if (_cachedHeader?.diamonds !== undefined) {
+            setDiamondBalance(_cachedHeader.diamonds);
+        }
+    }, []);
+
+    // Derived values — gated behind isMounted for SSR hydration safety
+    const displayAvatar = isMounted ? (user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url) : null;
+    const safeUnreadCount = isMounted ? unreadCount : 0;
+    const safeNotificationCount = isMounted ? notificationCount : 0;
 
     const liveHelp = useLiveHelp();
 
@@ -219,14 +230,15 @@ export default function ThreePillHeader({
 
                         // TIER 1: Diamond Balance Realtime Sync — handled by useDiamondBalance hook
 
-                        // 🛡️ INSTANT UI: Cache user data for next page load
+                        // 🛡️ INSTANT UI: Cache user data for next page load (with TTL)
                         try {
                             localStorage.setItem('sp-cached-header-user', JSON.stringify({
                                 avatar: avatar_url,
                                 name: full_name || username,
                                 username: username || null,
                                 diamonds: diamonds ?? 0,
-                                is_vip: !!result.profile.is_vip
+                                is_vip: !!result.profile.is_vip,
+                                _ts: Date.now()
                             }));
                         } catch (_) { }
 
@@ -311,7 +323,8 @@ export default function ThreePillHeader({
                             name: result.profile.full_name || result.profile.username,
                             username: result.profile.username || null,
                             diamonds: result.profile.diamonds ?? 0,
-                            is_vip: !!result.profile.is_vip
+                            is_vip: !!result.profile.is_vip,
+                            _ts: Date.now()
                         }));
                     } catch (_) { }
                     // Update direct profile link if username changed
@@ -389,7 +402,10 @@ export default function ThreePillHeader({
 
     return (
         <>
-            {/* Fixed header container - height driven by image */}
+            <Head>
+                {/* 🛡️ PRELOAD avatar image so it stays in browser cache */}
+                {displayAvatar && <link rel="preload" as="image" href={displayAvatar} />}
+            </Head>
             <header style={{
                 position: 'fixed',
                 top: 0,
@@ -539,9 +555,15 @@ export default function ThreePillHeader({
                                 transition: 'transform 0.1s ease, opacity 0.15s ease',
                                 background: displayAvatar
                                     ? `url(${displayAvatar}) center/cover`
-                                    : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)',
+                                    : (!isMounted
+                                        ? 'linear-gradient(90deg, rgba(0,136,255,0.15) 25%, rgba(0,245,255,0.3) 50%, rgba(0,136,255,0.15) 75%)'
+                                        : 'linear-gradient(135deg, rgba(0, 136, 255, 0.3) 0%, rgba(0, 245, 255, 0.15) 100%)'),
+                                ...((!displayAvatar && !isMounted) ? {
+                                    backgroundSize: '200% 100%',
+                                    animation: 'shimmer-avatar 1.5s ease-in-out infinite',
+                                } : {}),
                             }}>
-                                {!displayAvatar && ((user?.name || '').charAt(0).toUpperCase() || '?')}
+                                {!displayAvatar && (isMounted ? (user?.name || '').charAt(0).toUpperCase() || '?' : '')}
                             </div>
                         </Link>
 
@@ -550,7 +572,7 @@ export default function ThreePillHeader({
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)">
                                 <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.17.16.13.26.35.27.57l.05 1.78c.04.57.61.94 1.13.71l1.98-.87c.17-.07.36-.09.53-.05.86.23 1.81.36 2.9.36 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm6.07 7.56l-2.96 4.69c-.47.75-1.48.93-2.18.38l-2.35-1.76a.75.75 0 00-.9 0l-3.17 2.41c-.42.32-.98-.18-.7-.63l2.96-4.69c.47-.75 1.48-.93 2.18-.38l2.35 1.76c.27.2.65.2.9 0l3.17-2.41c.42-.32.98.18.7.63z" />
                             </svg>
-                            {unreadCount > 0 && (
+                            {safeUnreadCount > 0 && (
                                 <span style={{
                                     position: 'absolute',
                                     top: 2,
@@ -563,7 +585,7 @@ export default function ThreePillHeader({
                                     fontWeight: 700,
                                     minWidth: 16,
                                     textAlign: 'center',
-                                }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+                                }}>{safeUnreadCount > 99 ? '99+' : safeUnreadCount}</span>
                             )}
                         </Link>
 
@@ -572,7 +594,7 @@ export default function ThreePillHeader({
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)">
                                 <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
                             </svg>
-                            {notificationCount > 0 && (
+                            {safeNotificationCount > 0 && (
                                 <span style={{
                                     position: 'absolute',
                                     top: 2,
@@ -585,7 +607,7 @@ export default function ThreePillHeader({
                                     fontWeight: 700,
                                     minWidth: 16,
                                     textAlign: 'center',
-                                }}>{notificationCount > 99 ? '99+' : notificationCount}</span>
+                                }}>{safeNotificationCount > 99 ? '99+' : safeNotificationCount}</span>
                             )}
                         </Link>
 
