@@ -903,27 +903,26 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'transparent'; }}
                             >{emoji}</button>
                         ))}
-                        {isOwn && (
-                            <>
-                                <div style={{ width: 1, background: C.border, margin: '4px 2px' }} />
-                                <button
-                                    onClick={() => setShowMenu(!showMenu)}
-                                    style={{
-                                        border: 'none',
-                                        background: 'transparent',
-                                        cursor: 'pointer',
-                                        fontSize: 14,
-                                        padding: 4,
-                                        color: C.textSec,
-                                    }}
-                                >⋯</button>
-                            </>
-                        )}
+                        {/* Context menu trigger — shows on all messages */}
+                        <>
+                            <div style={{ width: 1, background: C.border, margin: '4px 2px' }} />
+                            <button
+                                onClick={() => setShowMenu(!showMenu)}
+                                style={{
+                                    border: 'none',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    fontSize: 14,
+                                    padding: 4,
+                                    color: C.textSec,
+                                }}
+                            >⋯</button>
+                        </>
                     </div>
                 )}
 
                 {/* Context menu for own messages */}
-                {showMenu && isOwn && (
+                {showMenu && (
                     <div style={{
                         position: 'absolute',
                         [isOwn ? 'left' : 'right']: '100%',
