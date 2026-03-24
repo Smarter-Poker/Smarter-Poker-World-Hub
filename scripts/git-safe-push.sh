@@ -139,6 +139,27 @@ if [ -n "$ALL_LEAKS" ]; then
 fi
 echo "✅ No GitHub PAT patterns found in trackable files"
 
+# ── 0b. ACCOUNT ENFORCEMENT GATE ──
+# ONLY the paid Smarter-Poker account (admin@smarter.poker) is authorized for pushes.
+# This prevents agents from ever using the wrong account.
+REQUIRED_ACCOUNT="Smarter-Poker"
+CURRENT_ACCOUNT=$(gh api /user --jq '.login' 2>/dev/null || echo "UNKNOWN")
+if [ "$CURRENT_ACCOUNT" != "$REQUIRED_ACCOUNT" ]; then
+    echo ""
+    echo "🚨🚨🚨 CRITICAL: WRONG GITHUB ACCOUNT! 🚨🚨🚨"
+    echo "═══════════════════════════════════════════════════"
+    echo "   Current:  $CURRENT_ACCOUNT"
+    echo "   Required: $REQUIRED_ACCOUNT (admin@smarter.poker)"
+    echo ""
+    echo "   Run: gh auth logout -h github.com"
+    echo "   Then re-authenticate with the Smarter-Poker token."
+    echo "═══════════════════════════════════════════════════"
+    echo "PUSH_OK:false"
+    echo "REASON:wrong_github_account"
+    exit 2
+fi
+echo "✅ Authenticated as $REQUIRED_ACCOUNT (paid account)"
+
 # ── 0b. .ENV FILE CHECK ──
 # Check if .env files are staged for commit
 ENV_STAGED=$(git diff --cached --name-only 2>/dev/null | grep -E '\.env(\.|$)' || true)
