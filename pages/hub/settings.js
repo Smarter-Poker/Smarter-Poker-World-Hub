@@ -400,7 +400,7 @@ export default function SettingsPage() {
             // Also fetch user profile for display name
             supabase
                 .from('profiles')
-                .select('full_name, username, avatar_url, player_number')
+                .select('full_name, first_name, last_name, username, avatar_url, player_number')
                 .eq('id', user.id)
                 .maybeSingle()
                 .then(({ data: profile }) => {
@@ -993,7 +993,11 @@ export default function SettingsPage() {
                                         })()}
                                         <div style={styles.profileInfo}>
                                             <span style={styles.profileName}>
-                                                {initializing ? 'Loading...' : (userProfile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Guest User')}
+                                                {initializing ? 'Loading...' : (
+                                                    (userProfile?.first_name && userProfile?.last_name)
+                                                        ? `${userProfile.first_name} ${userProfile.last_name}`
+                                                        : userProfile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Guest User'
+                                                )}
                                             </span>
                                             <span style={styles.profileEmail}>
                                                 {initializing ? '' : (user?.email || 'Not Logged In')}

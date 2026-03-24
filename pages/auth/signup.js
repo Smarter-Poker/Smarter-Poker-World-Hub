@@ -36,7 +36,8 @@ export default function SignUpPage() {
 
     // Form data
     const [formData, setFormData] = useState({
-        fullName: '',
+        firstName: '',
+        lastName: '',
         email: '',
         password: '',
         confirmPassword: '',
@@ -451,7 +452,9 @@ export default function SignUpPage() {
                 password: formData.password,
                 options: {
                     data: {
-                        full_name: formData.fullName,
+                        full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+                        first_name: formData.firstName,
+                        last_name: formData.lastName,
                         poker_alias: formData.pokerAlias,
                         city: formData.city,
                         state: formData.state,
@@ -474,7 +477,7 @@ export default function SignUpPage() {
                     const { data: profileData, error: rpcError } = await supabase
                         .rpc('initialize_player_profile', {
                             p_user_id: authData.user.id,
-                            p_full_name: formData.fullName,
+                            p_full_name: `${formData.firstName} ${formData.lastName}`.trim(),
                             p_email: formData.email,
                             p_phone: cleanPhoneFormatted,
                             p_city: formData.city,
@@ -523,7 +526,9 @@ export default function SignUpPage() {
                     const { error: updateError } = await supabase
                         .from('profiles')
                         .update({
-                            full_name: formData.fullName,
+                            full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+                            first_name: formData.firstName,
+                            last_name: formData.lastName,
                             phone: cleanPhoneFormatted,
                             city: formData.city,
                             state: formData.state,
@@ -546,7 +551,9 @@ export default function SignUpPage() {
                             .from('profiles')
                             .insert({
                                 id: authData.user.id,
-                                full_name: formData.fullName,
+                                full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+                                first_name: formData.firstName,
+                                last_name: formData.lastName,
                                 email: formData.email,
                                 phone: cleanPhoneFormatted,
                                 city: formData.city,
@@ -773,17 +780,30 @@ export default function SignUpPage() {
                                 <span style={styles.socialDividerText}>Or Sign Up With Email</span>
                                 <div style={styles.socialDividerLine} />
                             </div>
-                            {/* Full Name */}
-                            <div style={styles.inputGroup}>
-                                <label style={styles.label}>Full Name</label>
-                                <input
-                                    type="text"
-                                    value={formData.fullName}
-                                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                                    placeholder=""
-                                    style={styles.inputSingle}
-                                    required
-                                />
+                            {/* First Name + Last Name */}
+                            <div style={{ display: 'flex', gap: 12 }}>
+                                <div style={{ ...styles.inputGroup, flex: 1 }}>
+                                    <label style={styles.label}>First Name</label>
+                                    <input
+                                        type="text"
+                                        value={formData.firstName}
+                                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                                        placeholder=""
+                                        style={styles.inputSingle}
+                                        required
+                                    />
+                                </div>
+                                <div style={{ ...styles.inputGroup, flex: 1 }}>
+                                    <label style={styles.label}>Last Name</label>
+                                    <input
+                                        type="text"
+                                        value={formData.lastName}
+                                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                        placeholder=""
+                                        style={styles.inputSingle}
+                                        required
+                                    />
+                                </div>
                             </div>
 
                             {/* Email */}
