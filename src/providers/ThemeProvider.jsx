@@ -4,6 +4,7 @@
  */
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { saveAppSetting } from '../lib/appSettingsSync';
 
 // Theme definitions
 export const themes = {
@@ -67,6 +68,7 @@ export function ThemeProvider({ children }) {
     useEffect(() => {
         if (mounted) {
             localStorage.setItem('smarter-poker-theme', isDark ? 'dark' : 'light');
+            saveAppSetting('theme', isDark ? 'dark' : 'light', 'smarter-poker-theme');
 
             // Apply CSS variables to document root
             const theme = isDark ? themes.dark : themes.light;

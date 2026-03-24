@@ -15,6 +15,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { reelsPreferences, savedReelsService } from '../../src/services/preferences-service';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import UploadReelModal from '../../src/components/reels/UploadReelModal';
+import { saveAppSetting } from '../../src/lib/appSettingsSync';
 
 const C = {
     bg: '#000000',
@@ -147,6 +148,7 @@ export default function ReelsPage() {
         // Save preference to localStorage
         if (typeof window !== 'undefined') {
             localStorage.setItem('reels-sound-enabled', 'true');
+            saveAppSetting('reels_sound_enabled', true, 'reels-sound-enabled');
         }
     };
 
@@ -156,6 +158,7 @@ export default function ReelsPage() {
         setUserWantsSound(false);
         if (typeof window !== 'undefined') {
             localStorage.setItem('reels-sound-enabled', 'false');
+            saveAppSetting('reels_sound_enabled', false, 'reels-sound-enabled');
         }
     };
 

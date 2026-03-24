@@ -115,6 +115,7 @@ import {
 } from './TableExperienceComponents';
 import { eventBus, EventType } from '../../engine/EventBus';
 import ClubArenaMessenger from '../club-arena/ClubArenaMessenger';
+import { saveAppSetting } from '../../lib/appSettingsSync';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MYSTERY BOUNTY ENVELOPE OVERLAY
@@ -3050,6 +3051,7 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
   const handleSavePresets = () => {
     const payload = { p1: editP1, p2: editP2, p3: editP3, p4: editP4, p5: editP5 };
     localStorage.setItem('smarter-poker-bet-presets', JSON.stringify(payload));
+    saveAppSetting('poker_bet_presets', payload, 'smarter-poker-bet-presets');
     eventBus.emit(EventType.DATA_MUTATED, 'bet_presets_changed');
     setCustomPresets(payload);
     setIsEditingPresets(false);
@@ -6357,6 +6359,7 @@ function LivePokerTable({
       const prefs = JSON.parse(localStorage.getItem('poker-seat-prefs') || '{}');
       prefs[maxSeats] = seatIdx;
       localStorage.setItem('poker-seat-prefs', JSON.stringify(prefs));
+      saveAppSetting('poker_seat_prefs', prefs, 'poker-seat-prefs');
     } catch (_) {}
   }, [mySeat, maxSeats, tableState?.seats]);
 
@@ -6379,6 +6382,7 @@ function LivePokerTable({
     setFeltColor(feltId);
     try {
       localStorage.setItem('poker-felt-color', feltId);
+      saveAppSetting('poker_felt_color', feltId, 'poker-felt-color');
       eventBus.emit('DATA_MUTATED', 'felt_changed');
     } catch (_) {}
     setShowFeltPicker(false);

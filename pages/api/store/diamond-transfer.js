@@ -9,10 +9,15 @@
  *  3. Daily transfer limit (tiered: 500💎 standard, 2000💎 for 60-day friends)
  *  4. Per-transfer limit (tiered: 10-100💎 standard, 10-500💎 for 60-day friends)
  *  5. Account age gate (both users must be >7 days old)
- *  6. Cooldown (60s between transfers)
+ *  6. Cooldown (60s global between transfers)
  *  7. Self-transfer block
  *  8. Rate limiting (20 req/min)
  *  9. Friendship age tier (60+ day friends get VIP transfer limits)
+ *  10. Per-recipient daily limit (200💎/day to same friend)
+ *  11. Per-recipient cooldown (5min between transfers to same friend)
+ *  12. Recipient daily receive cap (1000💎/day inbound)
+ *  13. Admin audit trail (structured console logging)
+ *  14. Velocity detection (flags accounts hitting limits repeatedly)
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
@@ -38,7 +43,10 @@ const DAILY_LIMIT_STANDARD = 500;
 const DAILY_LIMIT_VIP = 2000;
 const COOLDOWN_SECONDS = 60;
 const MIN_ACCOUNT_AGE_DAYS = 7;
-const VIP_FRIENDSHIP_DAYS = 60; // 60+ day friendships unlock VIP transfer tier
+const VIP_FRIENDSHIP_DAYS = 60;
+const PER_RECIPIENT_DAILY_LIMIT = 200;  // #10: Max 200💎/day to same friend
+const PER_RECIPIENT_COOLDOWN_SECONDS = 300; // #11: 5min between transfers to same friend
+const RECIPIENT_DAILY_RECEIVE_LIMIT = 1000; // #12: Max 1000💎/day inbound per account
 
 export default async function handler(req, res) {
     try {
@@ -170,9 +178,64 @@ export default async function handler(req, res) {
 
         const dailyTotal = (dailyTransfers || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
         if (dailyTotal + amount > dailyLimit) {
+            // #14: Velocity detection — flag if hitting limit
+            console.warn(`[VELOCITY] User ${userId} hit daily limit: ${dailyTotal}/${dailyLimit}`);
             return res.status(429).json({
                 success: false,
                 error: `Daily transfer limit reached (${dailyLimit}💎/day${isVipTier ? ' VIP tier' : ''}). You've sent ${dailyTotal}💎 today.`
+            });
+        }
+
+        // ── Guard 10: Per-recipient daily limit (200💎/day to same friend) ──
+        const { data: recipientDailyTransfers } = await getSupabase()
+            .from('diamond_transactions')
+            .select('amount, description')
+            .eq('user_id', userId)
+            .eq('transaction_type', 'diamond_gift_sent')
+            .gte('created_at', dayStart.toISOString())
+            .ilike('description', `%[${recipientId}]%`);
+
+        const recipientDailyTotal = (recipientDailyTransfers || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        if (recipientDailyTotal + amount > PER_RECIPIENT_DAILY_LIMIT) {
+            console.warn(`[VELOCITY] User ${userId} hit per-recipient limit for ${recipientId}: ${recipientDailyTotal}/${PER_RECIPIENT_DAILY_LIMIT}`);
+            return res.status(429).json({
+                success: false,
+                error: `You can only send ${PER_RECIPIENT_DAILY_LIMIT}💎 per day to the same friend. Sent ${recipientDailyTotal}💎 to them today.`
+            });
+        }
+
+        // ── Guard 11: Per-recipient cooldown (5min between transfers to same friend) ──
+        const recipientCooldownCutoff = new Date(now - PER_RECIPIENT_COOLDOWN_SECONDS * 1000).toISOString();
+        const { data: recentRecipientTransfer } = await getSupabase()
+            .from('diamond_transactions')
+            .select('id, description')
+            .eq('user_id', userId)
+            .eq('transaction_type', 'diamond_gift_sent')
+            .gte('created_at', recipientCooldownCutoff)
+            .ilike('description', `%[${recipientId}]%`)
+            .limit(1)
+            .maybeSingle();
+
+        if (recentRecipientTransfer) {
+            return res.status(429).json({
+                success: false,
+                error: `Please wait 5 minutes between transfers to the same friend`
+            });
+        }
+
+        // ── Guard 12: Recipient daily receive limit (1000💎/day inbound) ──
+        const { data: recipientInbound } = await getSupabase()
+            .from('diamond_transactions')
+            .select('amount')
+            .eq('user_id', recipientId)
+            .eq('transaction_type', 'diamond_gift_received')
+            .gte('created_at', dayStart.toISOString());
+
+        const recipientReceiveTotal = (recipientInbound || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        if (recipientReceiveTotal + amount > RECIPIENT_DAILY_RECEIVE_LIMIT) {
+            return res.status(429).json({
+                success: false,
+                error: `This friend has reached their daily receive limit (${RECIPIENT_DAILY_RECEIVE_LIMIT}💎/day)`
             });
         }
 
@@ -222,7 +285,7 @@ export default async function handler(req, res) {
                 amount: -amount,
                 type: 'spend',
                 transaction_type: 'diamond_gift_sent',
-                description: `Sent ${amount} diamonds to ${recipientName}`,
+                description: `Sent ${amount} diamonds to ${recipientName} [${recipientId}]`,
                 balance_after: newSenderBalance,
                 created_at: now.toISOString(),
             });
@@ -236,10 +299,28 @@ export default async function handler(req, res) {
                 amount: amount,
                 type: 'earn',
                 transaction_type: 'diamond_gift_received',
-                description: `Received ${amount} diamonds from ${senderName}`,
+                description: `Received ${amount} diamonds from ${senderName} [${userId}]`,
                 balance_after: newRecipientBalance,
                 created_at: now.toISOString(),
             });
+
+        // ── #13: Admin audit trail ──
+        console.log(JSON.stringify({
+            event: 'DIAMOND_TRANSFER',
+            senderId: userId,
+            senderName: senderProfile.display_name || senderProfile.username,
+            recipientId,
+            recipientName,
+            amount,
+            tier: isVipTier ? 'vip' : 'standard',
+            senderBalanceBefore: senderProfile.diamonds ?? 0,
+            senderBalanceAfter: newSenderBalance,
+            recipientBalanceBefore: recipientProfile.diamonds ?? 0,
+            recipientBalanceAfter: newRecipientBalance,
+            friendshipAgeDays: Math.floor(friendshipAgeDays),
+            dailyTotalBefore: dailyTotal,
+            timestamp: now.toISOString(),
+        }));
 
         return res.status(200).json({
             success: true,
@@ -247,6 +328,7 @@ export default async function handler(req, res) {
             newBalance: newSenderBalance,
             tier: isVipTier ? 'vip' : 'standard',
             dailyRemaining: dailyLimit - dailyTotal - amount,
+            recipientName,
         });
 
     } catch (err) {

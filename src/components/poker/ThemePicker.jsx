@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   TABLE_THEMES, THEME_ORDER, CARD_BACKS, setStoredThemeId, setStoredCardBack,
 } from './TableThemes';
+import { saveAppSetting } from '../../lib/appSettingsSync';
 
 export default function ThemePicker({ currentThemeId, onThemeChange, currentCardBack, onCardBackChange, soundEnabled, onToggleSound, fourColorDeck, onToggleFourColor, hapticEnabled, onToggleHaptic }) {
   const [open, setOpen] = useState(false);
@@ -301,6 +302,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                               onClick={() => {
                                 setSoundPack(pack.id);
                                 try { localStorage.setItem('poker-sound-pack', pack.id); } catch (_) {}
+                                saveAppSetting('poker_sound_pack', pack.id, 'poker-sound-pack');
                                 try { window.dispatchEvent(new CustomEvent('poker-sound-pack-changed', { detail: pack.id })); } catch (_) {}
                               }}
                               style={{
@@ -383,6 +385,7 @@ export default function ThemePicker({ currentThemeId, onThemeChange, currentCard
                           const next = !autoMuck;
                           setAutoMuck(next);
                           try { localStorage.setItem('poker-auto-muck', String(next)); } catch (_) {}
+                          saveAppSetting('poker_auto_muck', next, 'poker-auto-muck');
                           try { window.dispatchEvent(new CustomEvent('poker-auto-muck-changed', { detail: next })); } catch (_) {}
                         }}
                         style={{

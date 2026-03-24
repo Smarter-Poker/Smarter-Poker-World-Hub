@@ -91,6 +91,7 @@ const FILTER_OPTIONS = [
     { value: 'purchase', label: 'Purchases' },
     { value: 'earned', label: 'Earned' },
     { value: 'spent', label: 'Spent' },
+    { value: 'gifts', label: 'Gifts' },
     { value: 'refund', label: 'Refunds' },
 ];
 
@@ -385,6 +386,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const [transferError, setTransferError] = useState('');
     const [transferSuccess, setTransferSuccess] = useState('');
     const [friendsLoading, setFriendsLoading] = useState(false);
+    const [friendSearch, setFriendSearch] = useState('');       // #8: Friend search
+    const [confirmTransfer, setConfirmTransfer] = useState(null); // #5: Confirmation dialog
 
     // ── ENH-A: Animated balance counter ──
     const animatedBalance = useAnimatedCounter(balance ?? 0);
@@ -563,6 +566,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             setTransferError('Insufficient diamond balance');
             return;
         }
+        // #5: Show confirmation dialog first
+        if (!confirmTransfer) {
+            setConfirmTransfer({ amount, recipient: transferRecipient });
+            return;
+        }
+        setConfirmTransfer(null);
         setTransferLoading(true);
         setTransferError('');
         setTransferSuccess('');
@@ -589,6 +598,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 setBalance(prev => (prev ?? 0) - amount);
                 // Dispatch refresh event
                 window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { source: 'diamond-transfer' } }));
+                // #7: Recipient notification event (other components can listen)
+                window.dispatchEvent(new CustomEvent('diamond-gift-sent', {
+                    detail: {
+                        recipientId: transferRecipient.id,
+                        recipientName: data.recipientName || transferRecipient.display_name,
+                        amount,
+                        senderBalance: data.newBalance,
+                    }
+                }));
                 // Refetch transactions
                 if (!fetchInFlightRef.current) fetchTransactions();
                 setTimeout(() => setTransferSuccess(''), 4000);
@@ -599,7 +617,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             setTransferError(err.message || 'Transfer failed');
         }
         setTransferLoading(false);
-    }, [transferRecipient, transferAmount, balance, getSession, fetchTransactions]);
+    }, [transferRecipient, transferAmount, balance, getSession, fetchTransactions, confirmTransfer]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -612,6 +630,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             setShowTransfer(false);
             setTransferError('');
             setTransferSuccess('');
+            setFriendSearch('');
+            setConfirmTransfer(null);
             return;
         }
 
@@ -637,12 +657,13 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
         // Apply type filter
         if (filter !== 'all') {
-            result = result.filter(tx => {
+         result = result.filter(tx => {
                 const txType = tx.transaction_type || tx.type;
                 if (filter === 'earned') return EARNED_TYPES.includes(txType);
                 if (filter === 'spent') return tx.amount < 0 && !['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
                 if (filter === 'refund') return ['refund', 'tournament_refund', 'pvp_refund'].includes(txType);
                 if (filter === 'purchase') return ['purchase', 'feature_unlock', 'game_cost', 'arcade_entry'].includes(txType);
+                if (filter === 'gifts') return ['diamond_gift_sent', 'diamond_gift_received'].includes(txType);
                 return txType === filter;
             });
         }
@@ -666,13 +687,14 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
     // ── H2: Filter badge counts ──
     const filterCounts = useMemo(() => {
-        const counts = { all: transactions.length, purchase: 0, earned: 0, spent: 0, refund: 0 };
+        const counts = { all: transactions.length, purchase: 0, earned: 0, spent: 0, refund: 0, gifts: 0 };
         transactions.forEach(tx => {
             const txType = tx.transaction_type || tx.type;
             if (EARNED_TYPES.includes(txType)) counts.earned++;
             if (tx.amount < 0 && !SPENT_TYPES_EXCLUDE.includes(txType)) counts.spent++;
             if (['refund', 'tournament_refund', 'pvp_refund'].includes(txType)) counts.refund++;
             if (['purchase', 'feature_unlock', 'game_cost', 'arcade_entry'].includes(txType)) counts.purchase++;
+            if (['diamond_gift_sent', 'diamond_gift_received'].includes(txType)) counts.gifts++;
         });
         return counts;
     }, [transactions]);
@@ -1029,8 +1051,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         </div>
                         {/* Anti-abuse info */}
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 8, lineHeight: 1.4 }}>
-                            Standard: 10-100 per transfer | 500/day | 60s cooldown<br/>
-                            VIP Friends (60+ days): 10-500 per transfer | 2,000/day
+                            Standard: 10-100 per transfer | 500/day | 200/day per friend | 60s cooldown<br/>
+                            VIP Friends (60+ days): 10-500 per transfer | 2,000/day<br/>
+                            5min cooldown between transfers to same friend | 1,000/day receive cap
                         </div>
                         {/* Friend picker */}
                         <div style={{ marginBottom: 8 }}>
@@ -1039,8 +1062,34 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             ) : transferFriends.length === 0 ? (
                                 <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>No friends found. Add friends first.</div>
                             ) : (
-                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                    {transferFriends.slice(0, 12).map(f => (
+                                <>
+                                    {/* #8: Friend search */}
+                                    {transferFriends.length > 6 && (
+                                        <div style={{ marginBottom: 6 }}>
+                                            <input
+                                                type="text"
+                                                value={friendSearch}
+                                                onChange={e => setFriendSearch(e.target.value)}
+                                                placeholder="Search friends..."
+                                                style={{
+                                                    width: '100%', padding: '5px 10px',
+                                                    background: 'rgba(255,255,255,0.04)',
+                                                    border: '1px solid rgba(255,255,255,0.08)',
+                                                    borderRadius: 8, color: '#e2e8f0', fontSize: 11,
+                                                    outline: 'none', fontFamily: "'Inter', sans-serif",
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                        {transferFriends
+                                            .filter(f => {
+                                                if (!friendSearch.trim()) return true;
+                                                const q = friendSearch.trim().toLowerCase();
+                                                return (f.display_name || '').toLowerCase().includes(q) ||
+                                                       (f.username || '').toLowerCase().includes(q);
+                                            })
+                                            .slice(0, 20).map(f => (
                                         <button
                                             key={f.id}
                                             onClick={() => setTransferRecipient(transferRecipient?.id === f.id ? null : f)}
@@ -1069,7 +1118,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                             {f.display_name || f.username || 'User'}
                                         </button>
                                     ))}
-                                </div>
+                                    </div>
+                                </>
                             )}
                         </div>
                         {/* Amount + Send */}
