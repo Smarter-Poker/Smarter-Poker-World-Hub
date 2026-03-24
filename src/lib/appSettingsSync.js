@@ -10,13 +10,51 @@
 import { supabase } from './supabase';
 import { getAuthUser } from './authUtils';
 
-// Debounce map: prevents rapid-fire DB writes for the same key
-const _pending = {};
+// Coalescing queue: collects all pending key-value pairs and flushes
+// them in a single atomic DB write. Prevents race conditions when
+// multiple different keys are saved within the debounce window.
+const _pendingValues = {};
+let _flushTimer = null;
+
+/**
+ * Flush all pending settings to DB in one atomic read-merge-write.
+ * This eliminates the race condition where per-key debounce timers
+ * could each read stale app_settings and overwrite each other.
+ */
+async function _flushPendingSettings() {
+    _flushTimer = null;
+    const toSave = { ..._pendingValues };
+    // Clear immediately so new saves during the async operation
+    // will be queued for the next flush cycle
+    for (const k of Object.keys(toSave)) delete _pendingValues[k];
+
+    if (Object.keys(toSave).length === 0) return;
+
+    try {
+        const user = getAuthUser();
+        if (!user?.id) return;
+
+        // Single atomic read-merge-write for ALL queued keys
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('app_settings')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        const current = profile?.app_settings || {};
+        const merged = { ...current, ...toSave };
+
+        await supabase.from('profiles').update({ app_settings: merged }).eq('id', user.id);
+    } catch (err) {
+        console.error('[AppSettings] Flush failed:', err, 'Keys:', Object.keys(toSave));
+    }
+}
 
 /**
  * Save a single setting to profiles.app_settings JSONB.
  * Also writes to localStorage for instant local reads.
- * Debounced at 500ms per-key to prevent spamming during sliders/rapid toggles.
+ * Coalesced — multiple keys are batched into a single DB write
+ * after a 500ms quiet period.
  *
  * @param {string} key - Setting key (e.g. 'poker_sound_pack', 'theme')
  * @param {*} value - Value to save
@@ -28,29 +66,10 @@ export function saveAppSetting(key, value, localStorageKey) {
         try { localStorage.setItem(localStorageKey, typeof value === 'object' ? JSON.stringify(value) : String(value)); } catch (_) {}
     }
 
-    // 2. Debounced DB write
-    if (_pending[key]) clearTimeout(_pending[key]);
-    _pending[key] = setTimeout(async () => {
-        delete _pending[key];
-        try {
-            const user = getAuthUser();
-            if (!user?.id) return;
-
-            // Read current app_settings, merge, write back
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('app_settings')
-                .eq('id', user.id)
-                .maybeSingle();
-
-            const current = profile?.app_settings || {};
-            const merged = { ...current, [key]: value };
-
-            await supabase.from('profiles').update({ app_settings: merged }).eq('id', user.id);
-        } catch (err) {
-            console.error(`[AppSettings] Failed to save "${key}":`, err);
-        }
-    }, 500);
+    // 2. Queue for coalesced DB write
+    _pendingValues[key] = value;
+    if (_flushTimer) clearTimeout(_flushTimer);
+    _flushTimer = setTimeout(_flushPendingSettings, 500);
 }
 
 /**

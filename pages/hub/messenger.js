@@ -2712,7 +2712,7 @@ function MessengerPage() {
         try {
             const content = `[Forwarded] ${forwardingMessage.content}`;
             const token = getAccessToken();
-            await fetch('/api/messenger/send-message', {
+            const resp = await fetch('/api/messenger/send-message', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2724,6 +2724,10 @@ function MessengerPage() {
                     content,
                 }),
             });
+            if (!resp.ok) {
+                const errData = await resp.json().catch(() => ({}));
+                throw new Error(errData.error || `Forward failed (${resp.status})`);
+            }
             setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.username || 'Conversation'}` });
         } catch (e) {
             console.error('Forward error:', e);

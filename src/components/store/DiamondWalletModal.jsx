@@ -544,6 +544,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     }, [pullDistance, fetchTransactions]);
 
     // ── H7: Fetch friends list when transfer panel opens ──
+    const allUsersCache = useRef([]);  // BUG-1 FIX: Cache all users from initial fetch
     const fetchFriends = useCallback(async () => {
         setFriendsLoading(true);
         try {
@@ -553,7 +554,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 setFriendsLoading(false);
                 return;
             }
-            // Use action=full to get more friend data including suggestions
+            // Use action=full to get friends + suggestions for search
             const res = await fetch('/api/friends?action=full', {
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
@@ -561,6 +562,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 const data = await res.json();
                 const friends = data.data?.friends || [];
                 setTransferFriends(friends);
+                // BUG-1 FIX: Cache all users for local search (no re-fetch per keystroke)
+                allUsersCache.current = data.data?.suggestions || [];
                 // If no friends, auto-switch to user search mode
                 if (friends.length === 0) {
                     setUserSearchMode(true);
@@ -574,34 +577,20 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         setFriendsLoading(false);
     }, [getSession]);
 
-    // ── P3: Search all platform users (fallback when no friends) ──
-    const searchUsers = useCallback(async (query) => {
+    // ── P3: Search all platform users (local filter from cached data) ──
+    const searchUsers = useCallback((query) => {
         if (!query || query.trim().length < 2) {
             setUserSearchResults([]);
             return;
         }
-        setUserSearchLoading(true);
-        try {
-            const session = getSession();
-            if (!session?.access_token) return;
-            const res = await fetch(`/api/friends?action=full`, {
-                headers: { Authorization: `Bearer ${session.access_token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                const allUsers = data.data?.suggestions || [];
-                const q = query.trim().toLowerCase();
-                const matches = allUsers.filter(u =>
-                    (u.display_name || '').toLowerCase().includes(q) ||
-                    (u.username || '').toLowerCase().includes(q)
-                ).slice(0, 10);
-                setUserSearchResults(matches);
-            }
-        } catch (err) {
-            console.warn('[Diamond Transfer] User search failed:', err.message);
-        }
-        setUserSearchLoading(false);
-    }, [getSession]);
+        const q = query.trim().toLowerCase();
+        // BUG-1 FIX: Filter locally from cached allUsersCache — no API call per keystroke
+        const matches = allUsersCache.current.filter(u =>
+            (u.display_name || '').toLowerCase().includes(q) ||
+            (u.username || '').toLowerCase().includes(q)
+        ).slice(0, 10);
+        setUserSearchResults(matches);
+    }, []);
 
     // ── H7: Send diamonds to friend ──
     const handleTransfer = useCallback(async () => {
@@ -626,6 +615,13 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         setTransferSuccess('');
         try {
             const session = getSession();
+            // BUG-2 FIX: Guard against null session
+            if (!session?.access_token) {
+                setTransferError('Please log in to send diamonds');
+                showStoreToast('error', 'Please log in to send diamonds');
+                setTransferLoading(false);
+                return;
+            }
             const res = await fetch('/api/store/diamond-transfer', {
                 method: 'POST',
                 headers: {
@@ -679,7 +675,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 showStoreToast('error', data.error || 'Transfer failed');
             }
         } catch (err) {
-            setTransferError(err.message || 'Transfer failed');
+            const errMsg = err.message || 'Transfer failed';
+            setTransferError(errMsg);
+            // BUG-3 FIX: Show StoreToast for network/unexpected errors too
+            showStoreToast('error', errMsg);
         }
         setTransferLoading(false);
     }, [transferRecipient, transferAmount, balance, getSession, fetchTransactions, confirmTransfer]);
