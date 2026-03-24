@@ -35,6 +35,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getAuthUser } from '../../lib/authUtils';
 import { showStoreToast } from './StoreToast';
+import { eventBus, EventType } from '../../engine/EventBus';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Transaction type config — icons, labels, colors
@@ -375,6 +376,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const skeletonCount = useRef(getSkeletonCount());
     const touchStartY = useRef(0); // ENH-E
     const scrollContainerRef = useRef(null); // ENH-E
+    const modalRef = useRef(null); // Focus trap ref
+    const previousFocusRef = useRef(null); // Restore focus on close
+    const loadMoreSentinelRef = useRef(null); // Infinite scroll sentinel
 
     // ── H1: Receipt copy feedback ──
     const [copiedTxId, setCopiedTxId] = useState(null);
@@ -434,7 +438,30 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             }
         };
         window.addEventListener('diamond-balance-refresh', handleBalanceRefresh);
-        return () => window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
+
+        // ── EventBus integration: Listen for DIAMONDS_EARNED / DIAMONDS_SPENT ──
+        const handleDiamondsEarned = (event) => {
+            const { amount } = event?.payload || {};
+            if (amount) {
+                setBalance(prev => (prev ?? 0) + amount);
+                if (!fetchInFlightRef.current) fetchTransactions();
+            }
+        };
+        const handleDiamondsSpent = (event) => {
+            const { amount } = event?.payload || {};
+            if (amount) {
+                setBalance(prev => (prev ?? 0) - Math.abs(amount));
+                if (!fetchInFlightRef.current) fetchTransactions();
+            }
+        };
+        const unsubEarned = eventBus.on(EventType.DIAMONDS_EARNED, handleDiamondsEarned);
+        const unsubSpent = eventBus.on(EventType.DIAMONDS_SPENT, handleDiamondsSpent);
+
+        return () => {
+            window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
+            unsubEarned();
+            unsubSpent();
+        };
     }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Helper: get auth session for API calls ──
@@ -500,14 +527,48 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         }
     }, [getSession]);
 
-    // ── ENH-D: Keyboard accessibility — Escape to close ──
+    // ── ENH-D + FOCUS TRAP: Keyboard accessibility ──
     useEffect(() => {
         if (!isOpen) return;
+        // Save previous focus to restore on close
+        previousFocusRef.current = document.activeElement;
+
         const handleKeyDown = (e) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape') { onClose(); return; }
+            // Focus trap: Tab/Shift+Tab stay inside modal
+            if (e.key === 'Tab' && modalRef.current) {
+                const focusable = modalRef.current.querySelectorAll(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                if (focusable.length === 0) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey) {
+                    if (document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    }
+                } else {
+                    if (document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        // Auto-focus first focusable element in modal
+        requestAnimationFrame(() => {
+            if (modalRef.current) {
+                const first = modalRef.current.querySelector('button, input');
+                first?.focus();
+            }
+        });
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            // Restore focus to the element that opened the modal
+            previousFocusRef.current?.focus?.();
+        };
     }, [isOpen, onClose]);
 
     // ── ENH-F: Persist filter selection ──
@@ -783,8 +844,25 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         return groups;
     }, [filteredTx]);
 
-    // ── ENH-3: Can load more? ──
+    // ── ENH-3 + Infinite scroll: Can load more? ──
     const canLoadMore = transactions.length < total;
+
+    // ── Infinite scroll via IntersectionObserver ──
+    useEffect(() => {
+        if (!canLoadMore || loadingMore || loading) return;
+        const sentinel = loadMoreSentinelRef.current;
+        if (!sentinel) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting && canLoadMore && !fetchInFlightRef.current) {
+                    fetchTransactions(transactions.length);
+                }
+            },
+            { root: scrollContainerRef.current, threshold: 0.1 }
+        );
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [canLoadMore, loadingMore, loading, transactions.length, fetchTransactions]);
 
     // ── ENH-G: Transaction analytics stats (computed from loaded transactions) ──
     const stats = useMemo(() => {
@@ -851,6 +929,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
             {/* Modal — Full Screen */}
             <div
+                ref={modalRef}
                 role="dialog"
                 aria-modal="true"
                 aria-label="Diamond Wallet"
@@ -1808,27 +1887,31 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 );
                             })}
 
-                            {/* ENH-3: Load More button */}
+                            {/* Infinite scroll sentinel + loading indicator */}
                             {canLoadMore && (
-                                <div style={{ textAlign: 'center', padding: '12px 16px' }}>
-                                    <button
-                                        onClick={() => fetchTransactions(transactions.length)}
-                                        disabled={loadingMore}
-                                        style={{
-                                            padding: '8px 24px',
-                                            background: loadingMore ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 212, 255, 0.1)',
-                                            border: '1px solid rgba(0, 212, 255, 0.3)',
-                                            borderRadius: 16,
-                                            color: '#00d4ff',
-                                            fontSize: 12,
-                                            fontWeight: 600,
-                                            cursor: loadingMore ? 'default' : 'pointer',
-                                            transition: 'all 0.15s',
-                                            opacity: loadingMore ? 0.5 : 1,
-                                        }}
-                                    >
-                                        {loadingMore ? 'Loading...' : `Load More (${transactions.length} of ${total})`}
-                                    </button>
+                                <div
+                                    ref={loadMoreSentinelRef}
+                                    style={{ textAlign: 'center', padding: '12px 16px' }}
+                                >
+                                    {loadingMore ? (
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                            color: 'rgba(255, 255, 255, 0.4)', fontSize: 12, fontWeight: 600,
+                                        }}>
+                                            <div style={{
+                                                width: 16, height: 16, border: '2px solid rgba(0, 212, 255, 0.3)',
+                                                borderTopColor: '#00d4ff', borderRadius: '50%',
+                                                animation: 'walletSpin 0.8s linear infinite',
+                                            }} />
+                                            Loading more...
+                                        </div>
+                                    ) : (
+                                        <div style={{
+                                            color: 'rgba(255, 255, 255, 0.2)', fontSize: 11,
+                                        }}>
+                                            {transactions.length} of {total} transactions
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </>
@@ -1873,6 +1956,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 @keyframes confettiFall {
                     0% { transform: translateY(0) rotate(0deg); opacity: 1; }
                     100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+                }
+                @keyframes walletSpin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
                 }
             `}</style>
         </>

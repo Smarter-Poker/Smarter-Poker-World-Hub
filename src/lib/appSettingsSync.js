@@ -35,11 +35,21 @@ async function _flushPendingSettings() {
         if (!user?.id) return;
 
         // Single atomic read-merge-write for ALL queued keys
-        const { data: profile } = await supabase
+        const { data: profile, error: readError } = await supabase
             .from('profiles')
             .select('app_settings')
             .eq('id', user.id)
             .maybeSingle();
+
+        // CRITICAL: If read fails, do NOT proceed — writing with empty 'current'
+        // would overwrite all existing settings with only the new keys.
+        if (readError) {
+            console.error('[AppSettings] Flush aborted — SELECT failed:', readError.message);
+            // Re-queue the values so they're retried on the next flush cycle
+            Object.assign(_pendingValues, toSave);
+            if (!_flushTimer) _flushTimer = setTimeout(_flushPendingSettings, 2000);
+            return;
+        }
 
         const current = profile?.app_settings || {};
         const merged = { ...current, ...toSave };
@@ -83,11 +93,17 @@ export async function saveAppSettingsBatch(settingsMap) {
         const user = getAuthUser();
         if (!user?.id) return;
 
-        const { data: profile } = await supabase
+        const { data: profile, error: readError } = await supabase
             .from('profiles')
             .select('app_settings')
             .eq('id', user.id)
             .maybeSingle();
+
+        // CRITICAL: If read fails, do NOT proceed — would overwrite all settings
+        if (readError) {
+            console.error('[AppSettings] Batch aborted — SELECT failed:', readError.message);
+            return;
+        }
 
         const current = profile?.app_settings || {};
         const merged = { ...current, ...settingsMap };
