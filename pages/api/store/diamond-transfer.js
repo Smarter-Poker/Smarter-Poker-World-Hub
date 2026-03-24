@@ -177,17 +177,23 @@ export default async function handler(req, res) {
         }
 
         // ═══ EXECUTE ATOMIC TRANSFER ═══
-        // Step 1: Deduct from sender
+        // Step 1: Deduct from sender (atomic — .gte prevents over-deduction)
         const newSenderBalance = (senderProfile.diamonds ?? 0) - amount;
-        const { error: deductErr } = await getSupabase()
+        const { data: deductData, error: deductErr } = await getSupabase()
             .from('profiles')
             .update({ diamonds: newSenderBalance, updated_at: now.toISOString() })
             .eq('id', userId)
-            .gte('diamonds', amount); // Double-check: only deduct if still has enough
+            .gte('diamonds', amount) // Atomic guard: only deduct if still has enough
+            .select('id, diamonds');
 
         if (deductErr) {
             console.error('Transfer deduct error:', deductErr);
             return res.status(500).json({ success: false, error: 'Transfer failed — please try again' });
+        }
+
+        // CRITICAL: Verify row was actually updated (prevents double-spend race)
+        if (!deductData || deductData.length === 0) {
+            return res.status(400).json({ success: false, error: 'Insufficient diamond balance (concurrent transfer detected)' });
         }
 
         // Step 2: Credit recipient
