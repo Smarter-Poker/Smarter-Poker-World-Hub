@@ -20,22 +20,29 @@ export default function TrainingPlayPage() {
     const [userId, setUserId] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Fetch current user
+    // Fetch current user from Supabase auth
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                // Get user from Supabase session or local storage
-                const storedUser = localStorage.getItem('sb-user-id');
-                if (storedUser) {
-                    setUserId(storedUser);
+                const { getAuthUser } = await import('../../../../src/lib/authUtils');
+                const authUser = getAuthUser();
+                if (authUser?.id) {
+                    setUserId(authUser.id);
                 } else {
-                    // Generate anonymous user ID for demo
-                    const anonId = `anon-${Date.now()}`;
-                    localStorage.setItem('sb-user-id', anonId);
-                    setUserId(anonId);
+                    // Fallback to stored ID
+                    const storedUser = localStorage.getItem('sb-user-id');
+                    if (storedUser) {
+                        setUserId(storedUser);
+                    } else {
+                        // Generate anonymous user ID for demo
+                        const anonId = `anon-${Date.now()}`;
+                        localStorage.setItem('sb-user-id', anonId);
+                        setUserId(anonId);
+                    }
                 }
             } catch (e) {
                 console.error('Error fetching user:', e);
+                setUserId(`anon-${Date.now()}`);
             }
             setLoading(false);
         };

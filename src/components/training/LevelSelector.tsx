@@ -16,6 +16,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getGameById } from '../../data/TRAINING_LIBRARY';
+import { getAuthUser } from '../../lib/authUtils';
 
 // ============================================================================
 // TYPES
@@ -245,30 +247,58 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
         setLoading(true);
 
         try {
-            // Fetch game data
-            const gameRes = await fetch(`/api/games/${gameId}`);
-            const game = await gameRes.json();
+            // Fetch game data from API, with TRAINING_LIBRARY fallback
+            let gameInfo: any = null;
 
-            if (game.error) {
-                console.error('Game not found:', game.error);
-                return;
+            try {
+                const gameRes = await fetch(`/api/games/${gameId}`);
+                const game = await gameRes.json();
+                if (!game.error) {
+                    gameInfo = game;
+                }
+            } catch (e) {
+                console.warn('[LevelSelector] API fetch failed, using client fallback');
+            }
+
+            // Fallback: use TRAINING_LIBRARY if API fails or game not in registry
+            if (!gameInfo) {
+                const libraryGame = getGameById(gameId);
+                if (libraryGame) {
+                    gameInfo = {
+                        id: libraryGame.id,
+                        title: libraryGame.name,
+                        slug: libraryGame.id,
+                        category: libraryGame.category,
+                        engine_type: libraryGame.tags?.includes('gto') ? 'PIO' :
+                            libraryGame.category === 'PSYCHOLOGY' ? 'SCENARIO' : 'PIO',
+                    };
+                    console.log(`[LevelSelector] Using TRAINING_LIBRARY fallback for: ${gameId}`);
+                } else {
+                    console.error('Game not found in registry or library:', gameId);
+                    // Still show levels with minimal game data
+                    gameInfo = { id: gameId, title: gameId, slug: gameId, category: 'CASH', engine_type: 'PIO' };
+                }
             }
 
             setGameData({
-                id: game.id,
-                title: game.title,
-                slug: game.slug,
-                category: game.category,
-                engineType: game.engine_type,
+                id: gameInfo.id,
+                title: gameInfo.title || gameInfo.name,
+                slug: gameInfo.slug || gameInfo.id,
+                category: gameInfo.category,
+                engineType: gameInfo.engine_type,
             });
 
             // Fetch user progress for this game
-            const progressRes = await fetch(`/api/training/progress?userId=${userId}&gameId=${gameId}`);
-            const progressData = await progressRes.json();
+            let levelProgress: any = {};
+            try {
+                const progressRes = await fetch(`/api/training/progress?userId=${userId}&gameId=${gameId}`);
+                const progressData = await progressRes.json();
+                levelProgress = progressData.levels || {};
+            } catch (e) {
+                console.warn('[LevelSelector] Progress fetch failed, showing default levels');
+            }
 
             // Build level data with lock logic
-            const levelProgress = progressData.levels || {};
-
             const levelDataList: LevelData[] = [];
 
             for (let i = 1; i <= 10; i++) {
@@ -313,27 +343,48 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
         setStartingLevel(level);
 
         try {
-            // Start session via API
-            const res = await fetch('/api/session/start', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: userId,
-                    game_id: gameId,
-                    level: level,
-                }),
-            });
-
-            const session = await res.json();
-
-            if (session.error) {
-                console.error('Failed to start session:', session.error);
-                setStartingLevel(null);
-                return;
+            // Get auth token for session start
+            let authToken = '';
+            try {
+                const authUser = getAuthUser();
+                const storedSession = localStorage.getItem('sb-kuklfnapbkmacvwxktbh-auth-token');
+                if (storedSession) {
+                    const parsed = JSON.parse(storedSession);
+                    authToken = parsed?.access_token || '';
+                }
+            } catch (e) {
+                console.warn('[LevelSelector] Auth token retrieval failed');
             }
 
-            // Navigate to game arena
-            router.push(`/hub/training/arena/${gameId}?level=${level}&session=${session.session_id}`);
+            // Start session via API (with auth token)
+            let sessionId = `client-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+            try {
+                const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+                if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+                const res = await fetch('/api/session/start', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        user_id: userId,
+                        game_id: gameId,
+                        level: level,
+                    }),
+                });
+
+                const session = await res.json();
+                if (session.session_id) {
+                    sessionId = session.session_id;
+                } else {
+                    console.warn('[LevelSelector] Session API returned no session_id, using client-generated ID');
+                }
+            } catch (e) {
+                console.warn('[LevelSelector] Session start failed, proceeding with client-generated session ID');
+            }
+
+            // Navigate to game arena (always proceed, even if session API fails)
+            router.push(`/hub/training/arena/${gameId}?level=${level}&session=${sessionId}`);
 
         } catch (error) {
             console.error('Failed to start session:', error);
