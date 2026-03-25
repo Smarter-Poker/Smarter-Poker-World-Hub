@@ -929,6 +929,7 @@ export default function ReelsPage() {
                                 width: 'calc(100% + 80px)',
                                 height: 'calc(100% + 80px)',
                                 border: 'none',
+                                pointerEvents: 'none',
                             }}
                         />
                     ) : null}
