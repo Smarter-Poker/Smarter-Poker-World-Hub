@@ -1,0 +1,30 @@
+name: Weekly HendonMob Auto-Sync
+
+on:
+  schedule:
+    # Every Monday at 9:00 AM EST (14:00 UTC)
+    - cron: '0 14 * * 1'
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  sync-hendonmob:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Manus AI HendonMob Scraper
+        run: |
+          echo "🔄 Triggering HendonMob auto-sync via Manus AI..."
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+            "https://smarter.poker/api/hendonmob/auto-sync?key=${{ secrets.HENDON_AUTO_SYNC_SECRET }}")
+          
+          HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2)
+          BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS")
+          
+          echo "Response: $BODY"
+          echo "Status: $HTTP_STATUS"
+          
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "❌ Auto-sync trigger failed with status $HTTP_STATUS"
+            exit 1
+          fi
+          
+          echo "✅ Manus task created successfully"

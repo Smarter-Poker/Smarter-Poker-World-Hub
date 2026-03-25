@@ -1402,13 +1402,10 @@ export default function NewsHub() {
                     <div className="layout">
                         {/* Left Column - News Boxes */}
                         <main className="main-content">
-                            {/* SMARTER.POKER NEWS Banner */}
-                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-                                <Image src="/images/smarter-poker-news-banner.png" alt="Smarter.Poker News" width={600} height={180} style={{ width: '100%', maxWidth: '500px', height: 'auto', display: 'block' }} priority />
-                            </div>
-
-                            {/* Stories Section */}
-
+                            {/* SMARTER.POKER NEWS Title */}
+                            <h1 style={{ textAlign: 'center', margin: '0 0 12px 0', padding: 0, fontSize: '1.6rem', fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase', color: '#5ef5f0', textShadow: '0 0 8px rgba(94,245,240,0.6), 0 0 20px rgba(94,245,240,0.3)', fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+                                SMARTER.POKER <span style={{ color: '#fff', textShadow: '0 0 8px rgba(255,255,255,0.4)' }}>NEWS</span>
+                            </h1>
 
                             {activeSection === 'news' ? (
                                 <>
