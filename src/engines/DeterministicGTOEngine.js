@@ -604,6 +604,7 @@ export class DeterministicGTOEngine {
                 isMixedStrategy: pushFreq > 0.1 && pushFreq < 0.9,
             },
             heroCards: parseHandToCards(heroHand),
+            boardCards: [],  // Push/fold games are preflop — no board
             question: `${chart.hero_position || 'BTN'} with ${heroHand} at ${chart.stack_depth}BB. ${chart.villain_action || 'Folded to you'}. Push or Fold?`,
             options: [
                 { id: 'push', text: 'Push All-In', frequency: gtoFrequencies.push },
