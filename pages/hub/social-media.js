@@ -581,6 +581,7 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
         if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
             // Double-tap = like
             onLike?.();
+            try { navigator?.vibrate?.(15); } catch {}
             setShowHeart(true);
             setTimeout(() => setShowHeart(false), 800);
             lastTapRef.current = 0;

@@ -63,11 +63,13 @@ export default function ReelsPage() {
     const containerRef = useRef(null);
     const iframeRef = useRef(null);
     const touchStartY = useRef(0);
+    const lastTapRef = useRef(0);
     const router = useRouter();
     const [user, setUser] = useState(null);
     const [menuOpen, setMenuOpen] = useState(false);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [savedReels, setSavedReels] = useState(new Set());
+    const [showHeart, setShowHeart] = useState(false);
 
     // Reels preferences state
     const [preferences, setPreferences] = useState({
@@ -267,18 +269,28 @@ export default function ReelsPage() {
         if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
     };
 
+    // Haptic helper
+    const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch {} };
+
+    // Track view count on reel change
+    useEffect(() => {
+        if (currentReel?.id) {
+            supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'view_count' }).catch(() => {});
+        }
+    }, [currentIndex]);
+
     const handleLike = async () => {
         if (!currentReel || likeBusy) return;
         setLikeBusy(true);
         const wasLiked = liked[currentReel.id];
         setLiked(prev => ({ ...prev, [currentReel.id]: !wasLiked }));
-        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-        if (userId) {
+        haptic(wasLiked ? 5 : 15);
+        if (user?.id) {
             try {
                 await authedFetch('/api/social/interactions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'like' })
+                    body: JSON.stringify({ post_id: currentReel.id, user_id: user.id, interaction_type: 'like' })
                 });
             } catch (e) {
                 setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
@@ -302,14 +314,13 @@ export default function ReelsPage() {
 
     const submitComment = async () => {
         if (!commentText.trim()) return;
-        const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-        if (!userId) return;
+        if (!user?.id) return;
         setSubmittingComment(true);
         try {
             const res = await authedFetch('/api/social/interactions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'comment', content: commentText.trim() })
+                body: JSON.stringify({ post_id: currentReel.id, user_id: user.id, interaction_type: 'comment', content: commentText.trim() })
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -324,17 +335,17 @@ export default function ReelsPage() {
     const handleShare = async () => {
         if (!currentReel || shareBusy) return;
         setShareBusy(true);
+        haptic(10);
         const url = window.location.origin + '/hub/reels?id=' + currentReel.id;
         try {
             await navigator.clipboard.writeText(url);
             setShareMsg('Copied!');
             setTimeout(() => setShareMsg(''), 2000);
-            const userId = typeof window !== 'undefined' ? localStorage.getItem('sp-anon-uid') : null;
-            if (userId) {
+            if (user?.id) {
                 authedFetch('/api/social/interactions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ post_id: currentReel.id, user_id: userId, interaction_type: 'share' })
+                    body: JSON.stringify({ post_id: currentReel.id, user_id: user.id, interaction_type: 'share' })
                 }).catch(() => { }).finally(() => setShareBusy(false));
             } else {
                 setShareBusy(false);
@@ -739,7 +750,13 @@ export default function ReelsPage() {
                     display: 'flex', flexDirection: 'column', gap: 20, zIndex: 100,
                 }}>
                     {/* Like */}
-                    <button onClick={handleLike} style={{
+                    <button onClick={() => {
+                        handleLike();
+                        if (!liked[currentReel?.id]) {
+                            setShowHeart(true);
+                            setTimeout(() => setShowHeart(false), 800);
+                        }
+                    }} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
@@ -790,6 +807,25 @@ export default function ReelsPage() {
                         )}
                     </button>
                 </div>
+
+                {/* Double-tap heart burst */}
+                {showHeart && (
+                    <div style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        fontSize: 80, pointerEvents: 'none', zIndex: 150,
+                        animation: 'heartBurstReelsPage 0.8s ease-out forwards',
+                    }}>❤️</div>
+                )}
+
+                {/* Heart burst animation CSS */}
+                <style jsx>{`
+                    @keyframes heartBurstReelsPage {
+                        0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
+                        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+                        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+                    }
+                `}</style>
 
                 {/* Comment Panel */}
                 {showCommentPanel && (

@@ -48,6 +48,7 @@ export function ReelsViewer({ onClose }) {
     const [progress, setProgress] = useState(0);
     const [likeCounts, setLikeCounts] = useState({});
     const [commentCounts, setCommentCounts] = useState({});
+    const [saved, setSaved] = useState({});
     const videoRef = useRef(null);
     const containerRef = useRef(null);
     const commentInputRef = useRef(null);
@@ -71,14 +72,59 @@ export function ReelsViewer({ onClose }) {
                         setLiked(likeMap);
                     }
                 });
+            supabase.from('social_interactions')
+                .select('post_id')
+                .eq('user_id', user.id)
+                .eq('interaction_type', 'bookmark')
+                .then(({ data }) => {
+                    if (data) {
+                        const saveMap = {};
+                        data.forEach(row => { saveMap[row.post_id] = true; });
+                        setSaved(saveMap);
+                    }
+                });
         }
     }, []);
 
-    // Reset paused state when changing reels
+    // Reset paused state when changing reels + track view
     useEffect(() => {
         setPaused(false);
         setShowOverlay(false);
+        setProgress(0);
+        // Track view count
+        if (reels[currentIndex]?.id) {
+            supabase.rpc('increment_post_count', { p_post_id: reels[currentIndex].id, p_field: 'view_count' }).catch(() => {});
+        }
     }, [currentIndex]);
+
+    // Haptic helper
+    const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch {} };
+
+    // Save/Bookmark handler
+    const handleSave = async () => {
+        if (!currentReel?.id || !currentUserId) return;
+        const wasSaved = saved[currentReel.id];
+        setSaved(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
+        haptic(wasSaved ? 5 : 15);
+        try {
+            if (wasSaved) {
+                await supabase.from('social_interactions').delete()
+                    .eq('post_id', currentReel.id)
+                    .eq('user_id', currentUserId)
+                    .eq('interaction_type', 'bookmark');
+            } else {
+                await supabase.from('social_interactions').delete()
+                    .eq('post_id', currentReel.id)
+                    .eq('user_id', currentUserId)
+                    .eq('interaction_type', 'bookmark');
+                await supabase.from('social_interactions').insert({
+                    post_id: currentReel.id, user_id: currentUserId, interaction_type: 'bookmark'
+                });
+            }
+        } catch {
+            setSaved(prev => ({ ...prev, [currentReel.id]: wasSaved }));
+        }
+    };
 
     // Auto-hide overlay after 2 seconds
     useEffect(() => {
@@ -460,7 +506,7 @@ export function ReelsViewer({ onClose }) {
                         zIndex: 20,
                     }}
                 >
-                    <button onClick={handleLike} style={{
+                    <button onClick={() => { handleLike(); haptic(15); }} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
@@ -481,14 +527,14 @@ export function ReelsViewer({ onClose }) {
                         <span style={{ fontSize: 22 }}>💬</span>
                         <span style={{ fontSize: 9, fontWeight: 500 }}>{commentCounts[currentReel?.id] || 0}</span>
                     </button>
-                    <button onClick={() => {}} style={{
+                    <button onClick={handleSave} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
-                        <span style={{ fontSize: 22 }}>🔖</span>
-                        <span style={{ fontSize: 9, fontWeight: 500 }}>Save</span>
+                        <span style={{ fontSize: 22 }}>{saved[currentReel?.id] ? '💾' : '🔖'}</span>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>{saved[currentReel?.id] ? 'Saved' : 'Save'}</span>
                     </button>
-                    <button onClick={handleShare} style={{
+                    <button onClick={() => { handleShare(); haptic(10); }} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
