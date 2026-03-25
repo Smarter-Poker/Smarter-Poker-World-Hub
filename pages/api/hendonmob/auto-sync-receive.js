@@ -11,7 +11,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-const AUTO_SYNC_SECRET = process.env.HENDON_AUTO_SYNC_SECRET || 'hendon-sync-2026';
+const AUTO_SYNC_SECRET = process.env.HENDON_AUTO_SYNC_SECRET || '';
 
 let _supabase = null;
 function getSupabase() {
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
     // Auth via secret key
     const secretKey = req.headers['x-auto-sync-key'];
-    if (secretKey !== AUTO_SYNC_SECRET) {
+    if (!secretKey || !AUTO_SYNC_SECRET || secretKey !== AUTO_SYNC_SECRET) {
         return res.status(401).json({ error: 'Invalid sync key' });
     }
 

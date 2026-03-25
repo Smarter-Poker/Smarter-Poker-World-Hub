@@ -1606,6 +1606,7 @@ export default function ProfilePage() {
                                             hendon_total_earnings: dbData.total_earnings,
                                             hendon_biggest_cash: dbData.biggest_cash,
                                         }));
+                                        busEmit.dataMutated('profile');
                                         setMessage('✅ Stats refreshed successfully!');
                                         setIsRefreshing(false);
                                         return;
@@ -1664,6 +1665,7 @@ export default function ProfilePage() {
                                             hendon_total_earnings: postData.total_earnings,
                                             hendon_biggest_cash: postData.biggest_cash,
                                         }));
+                                        busEmit.dataMutated('profile');
                                         setMessage('✅ Stats saved successfully! Your Poker Resume is now live.');
                                     } else {
                                         setMessage(`❌ ${postData.error || 'Could not save stats.'}`);

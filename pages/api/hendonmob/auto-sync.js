@@ -90,7 +90,7 @@ export default async function handler(req, res) {
 
     let authorized = false;
 
-    if (secretKey === AUTO_SYNC_SECRET) {
+    if (secretKey && AUTO_SYNC_SECRET && secretKey === AUTO_SYNC_SECRET) {
         authorized = true;
     } else if (token) {
         const { data: { user } } = await getSupabase().auth.getUser(token);
