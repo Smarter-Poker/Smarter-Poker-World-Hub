@@ -1279,7 +1279,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                             </div>
                             {/* Personal Identity */}
                             <button
-                                onClick={() => { switchToPersonal(); setShowIdentityPicker(false); }}
+                                onClick={() => { switchToPersonal(); setShowIdentityPicker(false); toast.success('Switched to personal account', 2000); }}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                                     padding: '10px 12px', border: 'none', cursor: 'pointer',
@@ -1298,7 +1298,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                             </button>
                             {/* Club Page Identity */}
                             <button
-                                onClick={() => { switchToClub(); setShowIdentityPicker(false); }}
+                                onClick={() => { switchToClub(); setShowIdentityPicker(false); toast.success(`Now posting as ${clubPage?.name || 'Club'}`, 2000); }}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                                     padding: '10px 12px', border: 'none', cursor: 'pointer',
@@ -2164,6 +2164,12 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             </div>
             {editing ? (
                 <div style={{ padding: '0 12px 12px', transition: 'opacity 0.2s ease', animationName: 'sp-fade-in', animationDuration: '0.2s' }}>
+                    {post.isClubPagePost && (
+                        <div style={{ fontSize: 11, color: '#1877F2', marginBottom: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1877F2', display: 'inline-block' }} />
+                            Editing as {post.author?.name || 'Club Page'} — club branding preserved
+                        </div>
+                    )}
                     <textarea
                         value={editContent}
                         onChange={e => setEditContent(e.target.value)}
@@ -5326,6 +5332,9 @@ function SocialMediaPage() {
 
     // Club Pages View State — hydration-safe: read URL param after mount
     const [showClubPages, setShowClubPages] = useState(false);
+    // Identity context for feed filter
+    const { hasClubPage, clubPage } = useActiveIdentity();
+    const [showClubPostsOnly, setShowClubPostsOnly] = useState(false);
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         if (params.get('view') === 'club-pages') setShowClubPages(true);
@@ -7584,6 +7593,22 @@ function SocialMediaPage() {
                                     </div>
                                 )}
 
+                                {/* Club Posts Filter — only visible for Commander users */}
+                                {hasClubPage && clubPage && posts.length > 0 && (
+                                    <div style={{ padding: '6px 12px', display: 'flex', justifyContent: 'flex-end' }}>
+                                        <button onClick={() => setShowClubPostsOnly(prev => !prev)} style={{
+                                            background: showClubPostsOnly ? '#E7F3FF' : 'transparent',
+                                            border: `1px solid ${showClubPostsOnly ? '#1877F2' : C.border}`,
+                                            borderRadius: 20, padding: '5px 14px', fontSize: 12, fontWeight: 600,
+                                            color: showClubPostsOnly ? '#1877F2' : C.textSec, cursor: 'pointer',
+                                            transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: 5
+                                        }}>
+                                            {showClubPostsOnly && <span style={{ fontSize: 11 }}>✓</span>}
+                                            My Club Posts
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Posts Feed */}
                                 {posts.length === 0 ? (
                                     <div style={{ textAlign: 'center', padding: '48px 24px', color: C.textSec }}>
@@ -7598,7 +7623,7 @@ function SocialMediaPage() {
                                 ) : (
                                     <>
                                         {/* Render posts with Reels carousel inserted after every 3 posts */}
-                                        {posts.filter(p => !blockedUserIds.has(p.authorId)).map((p, index) => (
+                                        {posts.filter(p => !blockedUserIds.has(p.authorId)).filter(p => !showClubPostsOnly || p.isClubPagePost || p.metadata?.source_page_id === clubPage?.id).map((p, index) => (
                                             <React.Fragment key={p.id}>
                                                 <PostCard
                                                     post={{ ...p, isGodMode }}
