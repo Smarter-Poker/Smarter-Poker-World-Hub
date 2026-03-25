@@ -275,6 +275,22 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
                                 Share on Facebook
                             </a>
+                            <a href={`https://wa.me/?text=${encodeURIComponent((post.content?.slice(0, 100) || 'Check this out') + ' ' + shareUrl)}`}
+                                target="_blank" rel="noopener noreferrer" style={{
+                                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
+                                border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
+                            }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                Share on WhatsApp
+                            </a>
+                            <a href={`mailto:?subject=${encodeURIComponent(page?.name || 'Check this page')}&body=${encodeURIComponent(shareUrl)}`}
+                                style={{
+                                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
+                                border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
+                            }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2" /><polyline points="22,7 12,13 2,7"/></svg>
+                                Share via Email
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -420,9 +436,9 @@ export default function SocialPageDetail() {
 
 
 
-    const fetchPage = useCallback(async (signal) => {
+    const fetchPage = useCallback(async (signal, { silent = false } = {}) => {
         if (!pageId) return;
-        setLoading(true);
+        if (!silent) setLoading(true);
         try {
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pageId);
             const userParam = user?.id ? `&user_id=${user.id}` : '';
@@ -643,8 +659,8 @@ export default function SocialPageDetail() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_followers', filter: `page_id=eq.${resolvedId}` }, () => {
         fetchFollowers();
-        // Refresh page data to get updated follower count
-        fetchPage();
+        // Refresh page data to get updated follower count (silent — no loading flash)
+        fetchPage(undefined, { silent: true });
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
@@ -718,6 +734,9 @@ export default function SocialPageDetail() {
 
     const handleLike = async (postId) => {
         if (!user) return;
+        const prevPosts = posts;
+        const targetPost = posts.find(p => p.id === postId);
+        const wasLiked = targetPost?.user_liked;
         setPosts(prev => prev.map(p =>
             p.id === postId ? {
                 ...p,
@@ -727,41 +746,58 @@ export default function SocialPageDetail() {
         ));
         try {
             const token = getAccessToken();
-            await fetch('/api/social/pages/engage', {
+            const res = await fetch('/api/social/pages/engage', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ action: 'like', post_id: postId, user_id: user.id }),
             });
+            if (!res.ok) throw new Error('Like failed');
             busEmit.dataMutated('social-pages');
-            busEmit.socialPostLiked(postId, user.id, { added: !posts.find(p => p.id === postId)?.user_liked });
-        } catch (e) { console.error("[[pageId].js]", e); }
+            busEmit.socialPostLiked(postId, user.id, { added: !wasLiked });
+        } catch (e) {
+            console.error("[[pageId].js]", e);
+            // Rollback optimistic update
+            setPosts(prevPosts);
+        }
     };
 
     const handleDeletePost = async (postId) => {
+        const prevPosts = posts;
         setPosts(prev => prev.filter(p => p.id !== postId));
         try {
             const token = getAccessToken();
-            await fetch(`/api/social/pages/posts?id=${postId}`, {
+            const res = await fetch(`/api/social/pages/posts?id=${postId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` },
             });
+            if (!res.ok) throw new Error('Delete failed');
             busEmit.dataMutated('social-pages');
             toast.success('Post deleted');
-        } catch (e) { console.error(e); toast.error('Failed to delete post'); }
+        } catch (e) {
+            console.error(e);
+            toast.error('Failed to delete post');
+            setPosts(prevPosts); // Rollback
+        }
     };
 
     const handlePinPost = async (postId, pinned) => {
+        const prevPosts = posts;
         setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_pinned: pinned } : { ...p, is_pinned: false }));
         try {
             const token = getAccessToken();
-            await fetch('/api/social/pages/posts', {
+            const res = await fetch('/api/social/pages/posts', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ id: postId, is_pinned: pinned }),
             });
+            if (!res.ok) throw new Error('Pin failed');
             busEmit.dataMutated('social-pages');
             toast.success(pinned ? 'Post pinned' : 'Post unpinned');
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            toast.error('Failed to update pin');
+            setPosts(prevPosts); // Rollback
+        }
     };
 
     const handleEditPost = (postId, newContent) => {

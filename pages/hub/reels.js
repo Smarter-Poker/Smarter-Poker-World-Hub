@@ -1010,6 +1010,8 @@ export default function ReelsPage() {
                     overflow: 'hidden',
                     clipPath: 'inset(0)',
                     background: '#000',
+                    zIndex: 1,
+                    pointerEvents: 'none',
                     transition: slideDirection ? 'transform 0.25s ease-out, opacity 0.2s ease-out' : 'none',
                     transform: slideDirection === 'up' ? 'translateY(-100%)' : slideDirection === 'down' ? 'translateY(100%)' : 'translateY(0)',
                     opacity: slideDirection ? 0.3 : 1,
@@ -1150,16 +1152,11 @@ export default function ReelsPage() {
                     position: 'absolute', bottom: 0, left: 0, right: 0, height: 300,
                     background: 'linear-gradient(transparent, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.9))',
                     pointerEvents: 'none', zIndex: 90,
-                    opacity: overlayVisible ? 1 : 0,
-                    transition: 'opacity 0.35s ease',
                 }} />
 
                 {/* Author info overlay */}
                 <div style={{
                     position: 'absolute', bottom: 120, left: 16, right: 80, zIndex: 100,
-                    opacity: overlayVisible ? 1 : 0,
-                    transition: 'opacity 0.35s ease',
-                    pointerEvents: overlayVisible ? 'auto' : 'none',
                 }}>
                     <Link href={`/hub/user/${currentReel?.profiles?.username}`} style={{
                         display: 'flex', alignItems: 'center', gap: 12,
@@ -1201,9 +1198,8 @@ export default function ReelsPage() {
                 <div style={{
                     position: 'absolute', bottom: 140, right: 16,
                     display: 'flex', flexDirection: 'column', gap: 20, zIndex: 100,
-                    opacity: overlayVisible ? 1 : 0,
-                    transition: 'opacity 0.35s ease',
-                    pointerEvents: overlayVisible ? 'auto' : 'none',
+                    opacity: 1,
+                    pointerEvents: 'auto',
                 }}>
                     {/* Like */}
                     <button onClick={() => {

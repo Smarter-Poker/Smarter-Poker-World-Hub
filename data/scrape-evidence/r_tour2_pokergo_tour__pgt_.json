@@ -1,0 +1,11 @@
+{
+  "name": "PokerGO Tour (PGT)",
+  "type": "tour",
+  "source": "https://www.pokergo.com",
+  "http": 200,
+  "hash": "2501abb3752f274ebce2626fc92ccae6ba6fc6d2c68e0d9e96981fc007b71f1c",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:20:08.563228+00:00",
+  "batch": "6cc383f4-ca7e-44a4-9af8-96b855d49712"
+}

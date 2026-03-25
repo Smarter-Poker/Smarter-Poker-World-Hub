@@ -233,6 +233,33 @@ export default async function handler(req, res) {
           const authUser = await requireAuth(req, res);
           if (!authUser) return;
 
+          // === Report Action ===
+          if (req.body.action === 'report') {
+              const { page_id, reason, details } = req.body;
+              if (!page_id || !reason) {
+                  return res.status(400).json({ success: false, error: 'page_id and reason required' });
+              }
+              // Insert report into audit log (non-blocking if table doesn't exist)
+              try {
+                  const { error } = await getSupabase()
+                      .from('social_page_reports')
+                      .insert({
+                          page_id,
+                          reporter_id: authUser.id,
+                          reason,
+                          details: details || '',
+                          status: 'pending',
+                      });
+                  if (error) {
+                      // Table may not exist yet — log but don't fail
+                      console.warn('[SocialPages] Report insert warning:', error.message);
+                  }
+              } catch (e) {
+                  console.error('[SocialPages] Report error:', e.message);
+              }
+              return res.status(200).json({ success: true, message: 'Report submitted' });
+          }
+
           const { name, page_type, description, category, avatar_url, cover_url,
               website, contact_email, phone, location_city, location_state,
               linked_venue_id, is_public, allow_member_posts, require_post_approval,

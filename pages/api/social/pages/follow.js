@@ -3,6 +3,7 @@
  *
  * POST /api/social/pages/follow  - Follow/unfollow a page
  * GET  /api/social/pages/follow  - Get followers for a page or user's followed pages
+ * PUT  /api/social/pages/follow  - Update follower preferences (notifications, role)
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { requireAuth } from '../../../../src/lib/auth-middleware';
@@ -229,6 +230,40 @@ export default async function handler(req, res) {
           }
 
           return res.status(400).json({ success: false, error: 'page_id or user_id required' });
+
+      } else if (req.method === 'PUT') {
+          // Update follower preferences (notifications, role)
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
+
+          const { page_id, notify, role } = req.body;
+          const user_id = authUser.id;
+
+          if (!page_id) {
+              return res.status(400).json({ success: false, error: 'page_id required' });
+          }
+
+          const updates = { updated_at: new Date().toISOString() };
+          if (notify !== undefined) updates.notifications_enabled = !!notify;
+          if (role && ['follower', 'moderator', 'admin'].includes(role)) {
+              // Verify requester is page owner before allowing role change
+              const { data: pageInfo } = await getSupabase()
+                  .from('social_pages').select('owner_id').eq('id', page_id).maybeSingle();
+              if (pageInfo?.owner_id === user_id) {
+                  updates.role = role;
+              }
+          }
+
+          const { data, error } = await getSupabase()
+              .from('social_page_followers')
+              .update(updates)
+              .eq('page_id', page_id)
+              .eq('user_id', notify !== undefined ? user_id : req.body.follower_id || user_id)
+              .select()
+              .maybeSingle();
+
+          if (error) return res.status(500).json({ success: false, error: error.message });
+          return res.status(200).json({ success: true, data });
 
       } else {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
