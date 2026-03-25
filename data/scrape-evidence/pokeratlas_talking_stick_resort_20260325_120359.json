@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/talking-stick-resort-scottsdale",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:03:59.344609+00:00",
+  "scrape_html_hash": "dac1a5bc8e30b33d32337ffbad0bfd37eeeea73f108107c4bdcf1f6f19bfa097",
+  "scrape_byte_count": 59727,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Talking Stick Resort",
+  "data_extracted": {
+    "address": "9700 East Indian Bend Rd.",
+    "city": "Scottsdale",
+    "state": "AZ",
+    "zip": "85256",
+    "phone": "(480) 850-8693",
+    "latitude": 33.5386,
+    "longitude": -111.865,
+    "website": "https://www.talkingstickresort.com/phoenix-scottsdale-casino/poker/",
+    "name_from_source": "Talking Stick Resort",
+    "page_title": "Talking Stick Resort Poker Room Scottsdale, AZ Tournaments, Reviews,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

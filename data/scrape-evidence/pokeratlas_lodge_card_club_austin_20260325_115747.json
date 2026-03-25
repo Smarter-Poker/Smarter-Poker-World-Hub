@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/lodge-card-club-austin-round-rock",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:57:47.027849+00:00",
+  "scrape_html_hash": "9ce1e95465551202c2e708c0ce3f2d764f8869c639673ea6c91d1d3d0a178d3c",
+  "scrape_byte_count": 59327,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Lodge Card Club Austin",
+  "data_extracted": {
+    "address": "1401 S I-35 Frontage Rd #130",
+    "city": "Round Rock",
+    "state": "TX",
+    "zip": "78664",
+    "phone": "(512) 614-4045",
+    "latitude": 30.49617,
+    "longitude": -97.67777,
+    "website": "https://thelodgepokerclub.com/austin/",
+    "name_from_source": "Lodge Card Club Austin",
+    "page_title": "Lodge Austin Poker Room Round Rock, TX Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

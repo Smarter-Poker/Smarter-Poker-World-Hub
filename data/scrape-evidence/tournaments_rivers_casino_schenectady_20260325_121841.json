@@ -1,0 +1,73 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/rivers-schenectady/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:18:41.588176+00:00",
+    "scrape_html_hash": "5593589945c3bb1f02862e234f19221dda6cc0cf0703b0a77626ea298f5c512f",
+    "scrape_byte_count": 64823,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Rivers Casino Schenectady",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 500,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5593589945c3bb1f02862e234f19221dda6cc0cf0703b0a77626ea298f5c512f",
+      "scrape_timestamp": "2026-03-25T17:18:41.588176+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/rivers-schenectady/tournaments"
+    },
+    {
+      "venue_name": "Rivers Casino Schenectady",
+      "day_of_week": "monday",
+      "start_time": "6:15pm",
+      "buy_in": 240,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5593589945c3bb1f02862e234f19221dda6cc0cf0703b0a77626ea298f5c512f",
+      "scrape_timestamp": "2026-03-25T17:18:41.588176+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/rivers-schenectady/tournaments"
+    },
+    {
+      "venue_name": "Rivers Casino Schenectady",
+      "day_of_week": "Sunday",
+      "start_time": "12:15pm",
+      "buy_in": 190,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5593589945c3bb1f02862e234f19221dda6cc0cf0703b0a77626ea298f5c512f",
+      "scrape_timestamp": "2026-03-25T17:18:41.588176+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/rivers-schenectady/tournaments"
+    },
+    {
+      "venue_name": "Rivers Casino Schenectady",
+      "day_of_week": "Sunday",
+      "start_time": "12:15pm",
+      "buy_in": 165,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5593589945c3bb1f02862e234f19221dda6cc0cf0703b0a77626ea298f5c512f",
+      "scrape_timestamp": "2026-03-25T17:18:41.588176+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/rivers-schenectady/tournaments"
+    },
+    {
+      "venue_name": "Rivers Casino Schenectady",
+      "day_of_week": "Sunday",
+      "start_time": "12:15pm",
+      "buy_in": 500,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5593589945c3bb1f02862e234f19221dda6cc0cf0703b0a77626ea298f5c512f",
+      "scrape_timestamp": "2026-03-25T17:18:41.588176+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/rivers-schenectady/tournaments"
+    }
+  ]
+}

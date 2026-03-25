@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/wind-creek-bethlehem",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:03:09.410512+00:00",
+  "scrape_html_hash": "c2a135123464396c5cd99351c2329ad77403a10ca5b08fc19c3ec34240817ecf",
+  "scrape_byte_count": 61458,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Wind Creek Bethlehem",
+  "data_extracted": {
+    "address": "77 Wind Creek Blvd.",
+    "city": "Bethlehem",
+    "state": "PA",
+    "zip": "18015",
+    "phone": "(484) 777-7281",
+    "latitude": 40.6147216,
+    "longitude": -75.35751,
+    "website": "https://www.windcreekbethlehem.com/Gaming/poker-room.html",
+    "name_from_source": "Wind Creek Bethlehem",
+    "page_title": "Wind Creek Poker Room Bethlehem, PA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

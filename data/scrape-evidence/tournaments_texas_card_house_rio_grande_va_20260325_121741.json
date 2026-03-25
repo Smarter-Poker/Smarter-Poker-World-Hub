@@ -1,0 +1,145 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:17:41.287360+00:00",
+    "scrape_html_hash": "8b27557922c9686a1727e53498ee0c82b1db8c203c510ffaa2775065110c0ee0",
+    "scrape_byte_count": 70291,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "day_of_week": "Sunday",
+      "start_time": "9:00am",
+      "buy_in": 50000,
+      "game_type": "Turbo",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8b27557922c9686a1727e53498ee0c82b1db8c203c510ffaa2775065110c0ee0",
+      "scrape_timestamp": "2026-03-25T17:17:41.287360+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments"
+    },
+    {
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "day_of_week": "Sunday",
+      "start_time": "6:00pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8b27557922c9686a1727e53498ee0c82b1db8c203c510ffaa2775065110c0ee0",
+      "scrape_timestamp": "2026-03-25T17:17:41.287360+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments"
+    },
+    {
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "day_of_week": "Friday",
+      "start_time": "6:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8b27557922c9686a1727e53498ee0c82b1db8c203c510ffaa2775065110c0ee0",
+      "scrape_timestamp": "2026-03-25T17:17:41.287360+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments"
+    },
+    {
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "day_of_week": "Tuesday",
+      "start_time": "1:00pm",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8b27557922c9686a1727e53498ee0c82b1db8c203c510ffaa2775065110c0ee0",
+      "scrape_timestamp": "2026-03-25T17:17:41.287360+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments"
+    },
+    {
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "day_of_week": "Wednesday",
+      "start_time": "1:00pm",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8b27557922c9686a1727e53498ee0c82b1db8c203c510ffaa2775065110c0ee0",
+      "scrape_timestamp": "2026-03-25T17:17:41.287360+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments"
+    },
+    {
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "day_of_week": "Thursday",
+      "start_time": "1:00pm",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8b27557922c9686a1727e53498ee0c82b1db8c203c510ffaa2775065110c0ee0",
+      "scrape_timestamp": "2026-03-25T17:17:41.287360+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments"
+    },
+    {
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "day_of_week": "Friday",
+      "start_time": "1:00pm",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8b27557922c9686a1727e53498ee0c82b1db8c203c510ffaa2775065110c0ee0",
+      "scrape_timestamp": "2026-03-25T17:17:41.287360+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments"
+    },
+    {
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "day_of_week": "Saturday",
+      "start_time": "1:00pm",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8b27557922c9686a1727e53498ee0c82b1db8c203c510ffaa2775065110c0ee0",
+      "scrape_timestamp": "2026-03-25T17:17:41.287360+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments"
+    },
+    {
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8b27557922c9686a1727e53498ee0c82b1db8c203c510ffaa2775065110c0ee0",
+      "scrape_timestamp": "2026-03-25T17:17:41.287360+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments"
+    },
+    {
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "day_of_week": "Tuesday",
+      "start_time": "6:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8b27557922c9686a1727e53498ee0c82b1db8c203c510ffaa2775065110c0ee0",
+      "scrape_timestamp": "2026-03-25T17:17:41.287360+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments"
+    },
+    {
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "day_of_week": "Saturday",
+      "start_time": "6:00pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8b27557922c9686a1727e53498ee0c82b1db8c203c510ffaa2775065110c0ee0",
+      "scrape_timestamp": "2026-03-25T17:17:41.287360+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/garlic-city-casino-gilroy",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:57:33.381843+00:00",
+  "scrape_html_hash": "486c0c473a09f42afeea85ed230af79db48a350f801a8ab6056d420c0b388b40",
+  "scrape_byte_count": 58535,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Garlic City Casino",
+  "data_extracted": {
+    "address": "8630 San Ysidro Ave #100",
+    "city": "Gilroy",
+    "state": "CA",
+    "zip": "95020",
+    "phone": "(408) 847-3777",
+    "latitude": 37.0054,
+    "longitude": -121.568,
+    "website": "http://www.garliccityclub.com/",
+    "name_from_source": "Garlic City Casino",
+    "page_title": "Garlic City Casino Poker Room Gilroy, CA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

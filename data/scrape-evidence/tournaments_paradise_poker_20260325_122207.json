@@ -1,0 +1,61 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/paradise-poker-utica/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:22:07.481098+00:00",
+    "scrape_html_hash": "9dd6f519e432d94139f02ba3b22c23a794634b255e95706e016c6fd4a5b252ea",
+    "scrape_byte_count": 69514,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Paradise Poker",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9dd6f519e432d94139f02ba3b22c23a794634b255e95706e016c6fd4a5b252ea",
+      "scrape_timestamp": "2026-03-25T17:22:07.481098+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/paradise-poker-utica/tournaments"
+    },
+    {
+      "venue_name": "Paradise Poker",
+      "day_of_week": "Tuesday",
+      "start_time": "1:00pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9dd6f519e432d94139f02ba3b22c23a794634b255e95706e016c6fd4a5b252ea",
+      "scrape_timestamp": "2026-03-25T17:22:07.481098+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/paradise-poker-utica/tournaments"
+    },
+    {
+      "venue_name": "Paradise Poker",
+      "day_of_week": "Wednesday",
+      "start_time": "1:00pm",
+      "buy_in": 50,
+      "game_type": "nlh",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9dd6f519e432d94139f02ba3b22c23a794634b255e95706e016c6fd4a5b252ea",
+      "scrape_timestamp": "2026-03-25T17:22:07.481098+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/paradise-poker-utica/tournaments"
+    },
+    {
+      "venue_name": "Paradise Poker",
+      "day_of_week": "Monday",
+      "start_time": "1:00pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9dd6f519e432d94139f02ba3b22c23a794634b255e95706e016c6fd4a5b252ea",
+      "scrape_timestamp": "2026-03-25T17:22:07.481098+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/paradise-poker-utica/tournaments"
+    }
+  ]
+}

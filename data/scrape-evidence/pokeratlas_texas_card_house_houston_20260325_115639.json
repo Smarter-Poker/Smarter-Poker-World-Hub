@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/texas-card-house-houston",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:56:39.602211+00:00",
+  "scrape_html_hash": "de8ace4ddf615bbdd6fde9cbcee7a928f25b797f095e86f651b90d9099b73fe8",
+  "scrape_byte_count": 61302,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "ae8c5eef-9531-41be-96cc-7bd29f3cc8ff",
+  "venue_name": "Texas Card House Houston",
+  "data_extracted": {
+    "address": "6100 Westheimer Road, Suite 142",
+    "city": "Houston",
+    "state": "TX",
+    "zip": "77057",
+    "phone": "(346) 509-9709",
+    "latitude": 29.7389301,
+    "longitude": -95.4909107,
+    "website": "https://texascardhouse.com/Houston/",
+    "name_from_source": "Texas Card House Houston",
+    "page_title": "TCH Houston Poker Room Houston, TX Tournaments, Reviews, Games,"
+  },
+  "batch_id": "ae8c5eef-9531-41be-96cc-7bd29f3cc8ff"
+}

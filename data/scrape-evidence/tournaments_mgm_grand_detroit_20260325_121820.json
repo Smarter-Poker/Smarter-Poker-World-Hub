@@ -1,0 +1,25 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/mgm-grand-detroit/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:18:20.633832+00:00",
+    "scrape_html_hash": "d628fc8c8f72629974e7934c67ec7bf1e9282fccac4d3905509fb0bf253b1749",
+    "scrape_byte_count": 59609,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "MGM Grand Detroit",
+      "day_of_week": "Sunday",
+      "start_time": "11:30am",
+      "buy_in": 300,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "d628fc8c8f72629974e7934c67ec7bf1e9282fccac4d3905509fb0bf253b1749",
+      "scrape_timestamp": "2026-03-25T17:18:20.633832+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/mgm-grand-detroit/tournaments"
+    }
+  ]
+}

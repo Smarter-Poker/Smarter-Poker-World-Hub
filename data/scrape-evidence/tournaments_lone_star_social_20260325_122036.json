@@ -1,0 +1,37 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/lone-star-social-cedar-park/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:20:36.672132+00:00",
+    "scrape_html_hash": "b3c39612459019d392dfdde4e1183d8d0622380d35c7e996f8b0e424cc118a80",
+    "scrape_byte_count": 62293,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Lone Star Social",
+      "day_of_week": "Sunday",
+      "start_time": "4:00pm",
+      "buy_in": 1615,
+      "game_type": "NLH",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "b3c39612459019d392dfdde4e1183d8d0622380d35c7e996f8b0e424cc118a80",
+      "scrape_timestamp": "2026-03-25T17:20:36.672132+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/lone-star-social-cedar-park/tournaments"
+    },
+    {
+      "venue_name": "Lone Star Social",
+      "day_of_week": "Tuesday",
+      "start_time": "7:00pm",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "b3c39612459019d392dfdde4e1183d8d0622380d35c7e996f8b0e424cc118a80",
+      "scrape_timestamp": "2026-03-25T17:20:36.672132+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/lone-star-social-cedar-park/tournaments"
+    }
+  ]
+}

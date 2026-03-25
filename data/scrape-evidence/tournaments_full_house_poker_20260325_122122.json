@@ -1,0 +1,145 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:21:22.721084+00:00",
+    "scrape_html_hash": "f34865b4f70f2d5eeef03a415a6f4d04c923ce764866aa60428cf11d034337d7",
+    "scrape_byte_count": 66159,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Full House Poker",
+      "day_of_week": "Sunday",
+      "start_time": "4:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f34865b4f70f2d5eeef03a415a6f4d04c923ce764866aa60428cf11d034337d7",
+      "scrape_timestamp": "2026-03-25T17:21:22.721084+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene/tournaments"
+    },
+    {
+      "venue_name": "Full House Poker",
+      "day_of_week": "Friday",
+      "start_time": "7:00pm",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f34865b4f70f2d5eeef03a415a6f4d04c923ce764866aa60428cf11d034337d7",
+      "scrape_timestamp": "2026-03-25T17:21:22.721084+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene/tournaments"
+    },
+    {
+      "venue_name": "Full House Poker",
+      "day_of_week": "Sunday",
+      "start_time": "7:00pm",
+      "buy_in": 35,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f34865b4f70f2d5eeef03a415a6f4d04c923ce764866aa60428cf11d034337d7",
+      "scrape_timestamp": "2026-03-25T17:21:22.721084+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene/tournaments"
+    },
+    {
+      "venue_name": "Full House Poker",
+      "day_of_week": "Tuesday",
+      "start_time": "7:00pm",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f34865b4f70f2d5eeef03a415a6f4d04c923ce764866aa60428cf11d034337d7",
+      "scrape_timestamp": "2026-03-25T17:21:22.721084+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene/tournaments"
+    },
+    {
+      "venue_name": "Full House Poker",
+      "day_of_week": "Thursday",
+      "start_time": "7:00pm",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f34865b4f70f2d5eeef03a415a6f4d04c923ce764866aa60428cf11d034337d7",
+      "scrape_timestamp": "2026-03-25T17:21:22.721084+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene/tournaments"
+    },
+    {
+      "venue_name": "Full House Poker",
+      "day_of_week": "Saturday",
+      "start_time": "7:00pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f34865b4f70f2d5eeef03a415a6f4d04c923ce764866aa60428cf11d034337d7",
+      "scrape_timestamp": "2026-03-25T17:21:22.721084+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene/tournaments"
+    },
+    {
+      "venue_name": "Full House Poker",
+      "day_of_week": "Monday",
+      "start_time": "7:00pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f34865b4f70f2d5eeef03a415a6f4d04c923ce764866aa60428cf11d034337d7",
+      "scrape_timestamp": "2026-03-25T17:21:22.721084+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene/tournaments"
+    },
+    {
+      "venue_name": "Full House Poker",
+      "day_of_week": "Wednesday",
+      "start_time": "7:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f34865b4f70f2d5eeef03a415a6f4d04c923ce764866aa60428cf11d034337d7",
+      "scrape_timestamp": "2026-03-25T17:21:22.721084+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene/tournaments"
+    },
+    {
+      "venue_name": "Full House Poker",
+      "day_of_week": "Friday",
+      "start_time": "7:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f34865b4f70f2d5eeef03a415a6f4d04c923ce764866aa60428cf11d034337d7",
+      "scrape_timestamp": "2026-03-25T17:21:22.721084+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene/tournaments"
+    },
+    {
+      "venue_name": "Full House Poker",
+      "day_of_week": "Sunday",
+      "start_time": "7:00pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f34865b4f70f2d5eeef03a415a6f4d04c923ce764866aa60428cf11d034337d7",
+      "scrape_timestamp": "2026-03-25T17:21:22.721084+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene/tournaments"
+    },
+    {
+      "venue_name": "Full House Poker",
+      "day_of_week": "Tuesday",
+      "start_time": "5:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f34865b4f70f2d5eeef03a415a6f4d04c923ce764866aa60428cf11d034337d7",
+      "scrape_timestamp": "2026-03-25T17:21:22.721084+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene/tournaments"
+    }
+  ]
+}

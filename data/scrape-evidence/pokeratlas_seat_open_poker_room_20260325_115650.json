@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/seat-open-bozeman",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:56:50.634910+00:00",
+  "scrape_html_hash": "4bb5bb597c6d7fc2d24259b452187921a7fb9d0389df41ae1d403e8d1ab4c5f1",
+  "scrape_byte_count": 58894,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "ae8c5eef-9531-41be-96cc-7bd29f3cc8ff",
+  "venue_name": "Seat Open Poker Room",
+  "data_extracted": {
+    "address": "721 North 7th Avenue",
+    "city": "Bozeman",
+    "state": "MT",
+    "zip": "59715",
+    "phone": "(406) 404-1968",
+    "latitude": 45.68694,
+    "longitude": -111.04648,
+    "website": "http://seatopen.com/locations/cats-paw/",
+    "name_from_source": "Seat Open at The Cat's Paw",
+    "page_title": "Seat Open Poker Room Bozeman, MT Tournaments, Reviews, Games,"
+  },
+  "batch_id": "ae8c5eef-9531-41be-96cc-7bd29f3cc8ff"
+}

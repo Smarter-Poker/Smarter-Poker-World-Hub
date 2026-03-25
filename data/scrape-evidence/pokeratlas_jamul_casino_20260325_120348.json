@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/jamul-casino",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:03:48.714006+00:00",
+  "scrape_html_hash": "9d7066f6b68f81d3c1528944af92a93d6cc072c6cdb2d4dbcb5f75eee076274c",
+  "scrape_byte_count": 58618,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Jamul Casino",
+  "data_extracted": {
+    "address": "14145 Campo Road",
+    "city": "Jamul",
+    "state": "CA",
+    "zip": "91935",
+    "phone": "(619) 315-2270",
+    "latitude": 32.70441,
+    "longitude": -116.86883,
+    "website": "https://www.jamulcasinosd.com/poker-room/",
+    "name_from_source": "Jamul Casino",
+    "page_title": "Jamul Casino Poker Room Jamul, CA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

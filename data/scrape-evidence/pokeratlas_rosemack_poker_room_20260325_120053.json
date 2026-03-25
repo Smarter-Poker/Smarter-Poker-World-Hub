@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/rosemack-roseville",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:00:53.931607+00:00",
+  "scrape_html_hash": "fcdff1c88b747210dad87e6badcb9ded4507d8bc808d544e5d511d172c997546",
+  "scrape_byte_count": 58804,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Rosemack Poker Room",
+  "data_extracted": {
+    "address": "20791 East 13 Mile Road",
+    "city": "Roseville",
+    "state": "MI",
+    "zip": "48066",
+    "phone": "(586) 495-0202",
+    "latitude": 42.52495,
+    "longitude": -82.90739,
+    "website": "http://rosemackcharitypoker.com/",
+    "name_from_source": "Rosemack Poker Room",
+    "page_title": "Rosemack Poker Room Roseville, MI Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

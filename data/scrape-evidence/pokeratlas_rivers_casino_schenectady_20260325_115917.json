@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/rivers-schenectady",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:59:17.870092+00:00",
+  "scrape_html_hash": "d970eccae94d94f7a3896d28bc7f889e337f774f4369b23880a7b9b6eaffd78a",
+  "scrape_byte_count": 58997,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Rivers Casino Schenectady",
+  "data_extracted": {
+    "address": "1 Rush Street",
+    "city": "Schenectady",
+    "state": "NY",
+    "zip": "12305",
+    "phone": "(518) 579-8810",
+    "latitude": 42.82346,
+    "longitude": -73.9398,
+    "website": "https://www.riverscasino.com/schenectady/casino/poker-room",
+    "name_from_source": "Rivers Casino & Resort Schenectady",
+    "page_title": "Rivers Schenectady Poker Room Schenectady, NY Tournaments, Reviews,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

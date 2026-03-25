@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/snoqualmie-casino",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:00:26.592326+00:00",
+  "scrape_html_hash": "ae7c72b41b6e8544056af4c0d825dbc7db9a0f0f3b983ead0ef801ebd8082ae9",
+  "scrape_byte_count": 57211,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Snoqualmie Casino",
+  "data_extracted": {
+    "address": "37500 SE North Bend Way",
+    "city": "Snoqualmie",
+    "state": "WA",
+    "zip": "98065",
+    "phone": "(425) 888-8311",
+    "latitude": 47.51862,
+    "longitude": -121.84182,
+    "website": "http://snocasino.com/",
+    "name_from_source": "Snoqualmie Casino",
+    "page_title": "Snoqualmie Casino Poker Room Snoqualmie, WA Tournaments, Reviews,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

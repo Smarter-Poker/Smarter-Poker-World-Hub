@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/oxford-downs-summerfield",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:03:36.410029+00:00",
+  "scrape_html_hash": "7726c9f25abd02894b0315cce9e23483fff91f56a3feb7630ac69426b09c23f0",
+  "scrape_byte_count": 60381,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Oxford Downs Poker Room",
+  "data_extracted": {
+    "address": "17996 S. US Hwy 301",
+    "city": "Summerfield",
+    "state": "FL",
+    "zip": "34491",
+    "phone": "(352) 347-2273",
+    "latitude": 28.9612931,
+    "longitude": -82.049407,
+    "website": "http://betoxford.com",
+    "name_from_source": "Oxford Downs Poker Room",
+    "page_title": "Oxford Downs Poker Room Summerfield, FL Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

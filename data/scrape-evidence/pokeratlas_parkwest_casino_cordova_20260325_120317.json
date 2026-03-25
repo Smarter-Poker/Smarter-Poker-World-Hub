@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/parkwest-rancho-cordova",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:03:17.839348+00:00",
+  "scrape_html_hash": "3ca7e288c10b89fc46b4df67e62adc2101eed08da497cea1413cf452d8652ebb",
+  "scrape_byte_count": 56843,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Parkwest Casino Cordova",
+  "data_extracted": {
+    "address": "2801 Prospect Park Dr.",
+    "city": "Rancho Cordova",
+    "state": "CA",
+    "zip": "95670",
+    "phone": "(888) 693-9808",
+    "latitude": 38.59217,
+    "longitude": -121.28389,
+    "website": "http://parkwestcasinocordova.com/",
+    "name_from_source": "Parkwest Casino Cordova",
+    "page_title": "Parkwest Poker Room Rancho Cordova, CA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

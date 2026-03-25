@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:58:26.132407+00:00",
+  "scrape_html_hash": "c99ee7d673404c8cc0d864a20b191da49bbd8b3f1b3169493e1971036854d33e",
+  "scrape_byte_count": 59991,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Resorts World Las Vegas",
+  "data_extracted": {
+    "address": "3000 S. Las Vegas Blvd.",
+    "city": "Las Vegas",
+    "state": "NV",
+    "zip": "89109",
+    "phone": "(702) 676-7680",
+    "latitude": 36.13504,
+    "longitude": -115.1671655,
+    "website": "https://www.rwlasvegas.com/",
+    "name_from_source": "Resorts World Las Vegas",
+    "page_title": "Resorts World Poker Room Las Vegas, NV Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

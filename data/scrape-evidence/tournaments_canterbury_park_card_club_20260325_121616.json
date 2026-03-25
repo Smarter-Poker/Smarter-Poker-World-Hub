@@ -1,0 +1,181 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+    "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+    "scrape_byte_count": 85754,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Monday",
+      "start_time": "10:00am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Tuesday",
+      "start_time": "10:30am",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Wednesday",
+      "start_time": "10:30am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Thursday",
+      "start_time": "10:30am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Friday",
+      "start_time": "9:00am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Saturday",
+      "start_time": "9:00am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 800,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Monday",
+      "start_time": "10:30am",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Tuesday",
+      "start_time": "10:30am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Thursday",
+      "start_time": "10:30am",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Friday",
+      "start_time": "10:30am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Saturday",
+      "start_time": "10:30am",
+      "buy_in": 350,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "venue_name": "Canterbury Park Card Club",
+      "day_of_week": "Saturday",
+      "start_time": "10:30am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ce6e9e43762270b4caf6a1d6b2dfccba5d481b35c545d5d9b07560127835717b",
+      "scrape_timestamp": "2026-03-25T17:16:16.260410+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    }
+  ]
+}

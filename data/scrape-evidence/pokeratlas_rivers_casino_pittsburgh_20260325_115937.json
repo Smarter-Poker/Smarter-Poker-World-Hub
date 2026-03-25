@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/rivers-casino-pittsburgh",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:59:37.662820+00:00",
+  "scrape_html_hash": "630b844579f527b2c1b62a85eaea1aa84794abc24f7031261a0ce735512e6243",
+  "scrape_byte_count": 58895,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Rivers Casino Pittsburgh",
+  "data_extracted": {
+    "address": "777 Casino Dr. ",
+    "city": "Pittsburgh",
+    "state": "PA",
+    "zip": "15212",
+    "phone": "(412) 566-4606",
+    "latitude": 40.4474,
+    "longitude": -80.02259,
+    "website": "http://www.riverspokerroom.com/",
+    "name_from_source": "Rivers Casino-Pittsburgh",
+    "page_title": "Rivers Casino Poker Room Pittsburgh, PA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:00:36.096940+00:00",
+  "scrape_html_hash": "f1efb16af14841c8e57c051514a3263f98794795f592ca7d8b42400a78561fc3",
+  "scrape_byte_count": 59317,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "MGM National Harbor",
+  "data_extracted": {
+    "address": "101 MGM National Ave.",
+    "city": "Oxon Hill",
+    "state": "MD",
+    "zip": "20745",
+    "phone": "(301) 971-5600",
+    "latitude": 38.795,
+    "longitude": -77.01149,
+    "website": "https://www.mgmnationalharbor.com/en/casino/poker.html",
+    "name_from_source": "MGM National Harbor",
+    "page_title": "MGM National Poker Room Oxon Hill, MD Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

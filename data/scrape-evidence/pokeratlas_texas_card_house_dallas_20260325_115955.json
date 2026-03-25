@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/texas-card-house-dallas",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:59:55.074134+00:00",
+  "scrape_html_hash": "d8dc1e1f5dc9d430b7a72f813ab2035b8d2964dd82f6d5715a835a7340cb7a16",
+  "scrape_byte_count": 60712,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Texas Card House Dallas",
+  "data_extracted": {
+    "address": "11834 Harry Hines Blvd., #135",
+    "city": "Dallas",
+    "state": "TX",
+    "zip": "75234",
+    "phone": "(469) 521-9269",
+    "latitude": 32.9106481,
+    "longitude": -96.8939548,
+    "website": "https://texascardhouse.com/dallas/",
+    "name_from_source": "Texas Card House Dallas",
+    "page_title": "TCH Dallas Poker Room Dallas, TX Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

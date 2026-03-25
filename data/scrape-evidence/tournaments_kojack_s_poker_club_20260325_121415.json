@@ -1,0 +1,61 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/kojacks-midland/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:14:15.420725+00:00",
+    "scrape_html_hash": "d94a6adba0881dfbaf5c1e66af7cf4606d239815df9ff5a4a4d188774d6c24b8",
+    "scrape_byte_count": 67181,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "ed5eb1f5-9db9-4ef9-94f6-f5886774ec56"
+  },
+  "tournaments": [
+    {
+      "venue_name": "KoJack's Poker Club",
+      "day_of_week": "Sunday",
+      "start_time": "2:00pm",
+      "buy_in": 100,
+      "game_type": "mixed",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "d94a6adba0881dfbaf5c1e66af7cf4606d239815df9ff5a4a4d188774d6c24b8",
+      "scrape_timestamp": "2026-03-25T17:14:15.420725+00:00",
+      "scrape_batch_id": "ed5eb1f5-9db9-4ef9-94f6-f5886774ec56",
+      "source": "https://www.pokeratlas.com/poker-room/kojacks-midland/tournaments"
+    },
+    {
+      "venue_name": "KoJack's Poker Club",
+      "day_of_week": "Monday",
+      "start_time": "3:00pm",
+      "buy_in": 16,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "d94a6adba0881dfbaf5c1e66af7cf4606d239815df9ff5a4a4d188774d6c24b8",
+      "scrape_timestamp": "2026-03-25T17:14:15.420725+00:00",
+      "scrape_batch_id": "ed5eb1f5-9db9-4ef9-94f6-f5886774ec56",
+      "source": "https://www.pokeratlas.com/poker-room/kojacks-midland/tournaments"
+    },
+    {
+      "venue_name": "KoJack's Poker Club",
+      "day_of_week": "Monday",
+      "start_time": "6:00pm",
+      "buy_in": 0,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "d94a6adba0881dfbaf5c1e66af7cf4606d239815df9ff5a4a4d188774d6c24b8",
+      "scrape_timestamp": "2026-03-25T17:14:15.420725+00:00",
+      "scrape_batch_id": "ed5eb1f5-9db9-4ef9-94f6-f5886774ec56",
+      "source": "https://www.pokeratlas.com/poker-room/kojacks-midland/tournaments"
+    },
+    {
+      "venue_name": "KoJack's Poker Club",
+      "day_of_week": "Saturday",
+      "start_time": "3:00pm",
+      "buy_in": 65,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "d94a6adba0881dfbaf5c1e66af7cf4606d239815df9ff5a4a4d188774d6c24b8",
+      "scrape_timestamp": "2026-03-25T17:14:15.420725+00:00",
+      "scrape_batch_id": "ed5eb1f5-9db9-4ef9-94f6-f5886774ec56",
+      "source": "https://www.pokeratlas.com/poker-room/kojacks-midland/tournaments"
+    }
+  ]
+}

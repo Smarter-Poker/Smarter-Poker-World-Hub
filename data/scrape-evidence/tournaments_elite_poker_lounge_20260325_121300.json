@@ -1,0 +1,109 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/elite-poker-lounge-mcallen/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:13:00.889043+00:00",
+    "scrape_html_hash": "0cc8f40375ce628ce7fa70c658726364af72a108c831ed01a36713afeb64ce3b",
+    "scrape_byte_count": 69115,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Elite Poker Lounge",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 1500,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "0cc8f40375ce628ce7fa70c658726364af72a108c831ed01a36713afeb64ce3b",
+      "scrape_timestamp": "2026-03-25T17:13:00.889043+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/elite-poker-lounge-mcallen/tournaments"
+    },
+    {
+      "venue_name": "Elite Poker Lounge",
+      "day_of_week": "sunday",
+      "start_time": "6:00pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "0cc8f40375ce628ce7fa70c658726364af72a108c831ed01a36713afeb64ce3b",
+      "scrape_timestamp": "2026-03-25T17:13:00.889043+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/elite-poker-lounge-mcallen/tournaments"
+    },
+    {
+      "venue_name": "Elite Poker Lounge",
+      "day_of_week": "tuesday",
+      "start_time": "6:00pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "0cc8f40375ce628ce7fa70c658726364af72a108c831ed01a36713afeb64ce3b",
+      "scrape_timestamp": "2026-03-25T17:13:00.889043+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/elite-poker-lounge-mcallen/tournaments"
+    },
+    {
+      "venue_name": "Elite Poker Lounge",
+      "day_of_week": "friday",
+      "start_time": "6:00pm",
+      "buy_in": 0,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "0cc8f40375ce628ce7fa70c658726364af72a108c831ed01a36713afeb64ce3b",
+      "scrape_timestamp": "2026-03-25T17:13:00.889043+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/elite-poker-lounge-mcallen/tournaments"
+    },
+    {
+      "venue_name": "Elite Poker Lounge",
+      "day_of_week": "Tuesday",
+      "start_time": "6:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "0cc8f40375ce628ce7fa70c658726364af72a108c831ed01a36713afeb64ce3b",
+      "scrape_timestamp": "2026-03-25T17:13:00.889043+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/elite-poker-lounge-mcallen/tournaments"
+    },
+    {
+      "venue_name": "Elite Poker Lounge",
+      "day_of_week": "Thursday",
+      "start_time": "6:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "0cc8f40375ce628ce7fa70c658726364af72a108c831ed01a36713afeb64ce3b",
+      "scrape_timestamp": "2026-03-25T17:13:00.889043+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/elite-poker-lounge-mcallen/tournaments"
+    },
+    {
+      "venue_name": "Elite Poker Lounge",
+      "day_of_week": "Saturday",
+      "start_time": "12:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "0cc8f40375ce628ce7fa70c658726364af72a108c831ed01a36713afeb64ce3b",
+      "scrape_timestamp": "2026-03-25T17:13:00.889043+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/elite-poker-lounge-mcallen/tournaments"
+    },
+    {
+      "venue_name": "Elite Poker Lounge",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "0cc8f40375ce628ce7fa70c658726364af72a108c831ed01a36713afeb64ce3b",
+      "scrape_timestamp": "2026-03-25T17:13:00.889043+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/elite-poker-lounge-mcallen/tournaments"
+    }
+  ]
+}

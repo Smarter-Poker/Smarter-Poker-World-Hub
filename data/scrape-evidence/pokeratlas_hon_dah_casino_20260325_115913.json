@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/hon-dah-casino-pinetop",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:59:13.555365+00:00",
+  "scrape_html_hash": "6630e3c33af1f9cd193babe7872a9f5901585cb5c60d994a2a0cc2cfd8cfdf20",
+  "scrape_byte_count": 58716,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Hon-Dah Casino",
+  "data_extracted": {
+    "address": "777 Highway 260",
+    "city": "Pinetop",
+    "state": "AZ",
+    "zip": "85935",
+    "phone": "(928) 369-7555",
+    "latitude": 34.10427,
+    "longitude": -109.92505,
+    "website": "https://www.hon-dah.com/service-b",
+    "name_from_source": "Hon-Dah Casino",
+    "page_title": "Hon-Dah Casino Poker Room Pinetop, AZ Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

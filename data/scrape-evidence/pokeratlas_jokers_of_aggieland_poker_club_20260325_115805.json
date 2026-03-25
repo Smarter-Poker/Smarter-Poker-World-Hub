@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/jokers-of-aggieland-poker-club-college-station",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:58:05.394266+00:00",
+  "scrape_html_hash": "735df510f0be380b9424a00459734e29c294a47bbc8c8bf184cddb3c84190dba",
+  "scrape_byte_count": 60077,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Jokers of Aggieland Poker Club",
+  "data_extracted": {
+    "address": "2553 Texas Ave South Suite D",
+    "city": "College Station",
+    "state": "TX",
+    "zip": "77840",
+    "phone": "(979) 446-2077",
+    "latitude": 30.60583,
+    "longitude": -96.30597,
+    "website": "https://jokersofaggieland.com",
+    "name_from_source": "Jokers of Aggieland Poker Club",
+    "page_title": "Jokers of Aggieland Poker Room College Station, TX Tournaments,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

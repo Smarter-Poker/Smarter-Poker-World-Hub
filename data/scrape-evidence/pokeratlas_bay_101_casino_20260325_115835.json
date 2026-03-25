@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/bay-101-san-jose",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:58:35.293158+00:00",
+  "scrape_html_hash": "8afc7254e81cb3950bb4f55016be129693c10d7bd89ea8e6e1168952c9f3df6c",
+  "scrape_byte_count": 59577,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Bay 101 Casino",
+  "data_extracted": {
+    "address": "1788 North First Street",
+    "city": "San Jose",
+    "state": "CA",
+    "zip": "95112",
+    "phone": "(408) 451-8888",
+    "latitude": 37.36969,
+    "longitude": -121.91763,
+    "website": "https://bay101.com/",
+    "name_from_source": "Bay 101 Casino",
+    "page_title": "Bay 101 Poker Room San Jose, CA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/mount-airy-casino-mt-pocono",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:02:21.782308+00:00",
+  "scrape_html_hash": "440ac3d06100bf4096b2b829114675142839bc23f7418e9e608837ec1a77579e",
+  "scrape_byte_count": 59376,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Mount Airy Casino",
+  "data_extracted": {
+    "address": "44 Woodland Rd.",
+    "city": "Mt. Pocono",
+    "state": "PA",
+    "zip": "18344",
+    "phone": "(877) 682-4791",
+    "latitude": 41.1123,
+    "longitude": -75.32384,
+    "website": "http://www.mountairycasino.com/",
+    "name_from_source": "Mount Airy Casino",
+    "page_title": "Mount Airy Casino Poker Room Mt. Pocono, PA Tournaments, Reviews,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

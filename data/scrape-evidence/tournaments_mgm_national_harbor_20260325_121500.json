@@ -1,0 +1,133 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:15:00.115773+00:00",
+    "scrape_html_hash": "f065df3d8ddf96093e8c4e0f7ca6b9f4b02b05b36d72284511ba98fa9d6fa6d6",
+    "scrape_byte_count": 83906,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "afa03967-54ab-43fc-9b4b-b314788086be"
+  },
+  "tournaments": [
+    {
+      "venue_name": "MGM National Harbor",
+      "day_of_week": "Sunday",
+      "start_time": "11:15am",
+      "buy_in": 500,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f065df3d8ddf96093e8c4e0f7ca6b9f4b02b05b36d72284511ba98fa9d6fa6d6",
+      "scrape_timestamp": "2026-03-25T17:15:00.115773+00:00",
+      "scrape_batch_id": "afa03967-54ab-43fc-9b4b-b314788086be",
+      "source_url": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill/tournaments"
+    },
+    {
+      "venue_name": "MGM National Harbor",
+      "day_of_week": "Monday",
+      "start_time": "11:15am",
+      "buy_in": 200,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f065df3d8ddf96093e8c4e0f7ca6b9f4b02b05b36d72284511ba98fa9d6fa6d6",
+      "scrape_timestamp": "2026-03-25T17:15:00.115773+00:00",
+      "scrape_batch_id": "afa03967-54ab-43fc-9b4b-b314788086be",
+      "source_url": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill/tournaments"
+    },
+    {
+      "venue_name": "MGM National Harbor",
+      "day_of_week": "Tuesday",
+      "start_time": "11:15am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f065df3d8ddf96093e8c4e0f7ca6b9f4b02b05b36d72284511ba98fa9d6fa6d6",
+      "scrape_timestamp": "2026-03-25T17:15:00.115773+00:00",
+      "scrape_batch_id": "afa03967-54ab-43fc-9b4b-b314788086be",
+      "source_url": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill/tournaments"
+    },
+    {
+      "venue_name": "MGM National Harbor",
+      "day_of_week": "Wednesday",
+      "start_time": "11:15am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f065df3d8ddf96093e8c4e0f7ca6b9f4b02b05b36d72284511ba98fa9d6fa6d6",
+      "scrape_timestamp": "2026-03-25T17:15:00.115773+00:00",
+      "scrape_batch_id": "afa03967-54ab-43fc-9b4b-b314788086be",
+      "source_url": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill/tournaments"
+    },
+    {
+      "venue_name": "MGM National Harbor",
+      "day_of_week": "Thursday",
+      "start_time": "11:15am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f065df3d8ddf96093e8c4e0f7ca6b9f4b02b05b36d72284511ba98fa9d6fa6d6",
+      "scrape_timestamp": "2026-03-25T17:15:00.115773+00:00",
+      "scrape_batch_id": "afa03967-54ab-43fc-9b4b-b314788086be",
+      "source_url": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill/tournaments"
+    },
+    {
+      "venue_name": "MGM National Harbor",
+      "day_of_week": "Friday",
+      "start_time": "11:15am",
+      "buy_in": 300,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f065df3d8ddf96093e8c4e0f7ca6b9f4b02b05b36d72284511ba98fa9d6fa6d6",
+      "scrape_timestamp": "2026-03-25T17:15:00.115773+00:00",
+      "scrape_batch_id": "afa03967-54ab-43fc-9b4b-b314788086be",
+      "source_url": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill/tournaments"
+    },
+    {
+      "venue_name": "MGM National Harbor",
+      "day_of_week": "Sunday",
+      "start_time": "11:15am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f065df3d8ddf96093e8c4e0f7ca6b9f4b02b05b36d72284511ba98fa9d6fa6d6",
+      "scrape_timestamp": "2026-03-25T17:15:00.115773+00:00",
+      "scrape_batch_id": "afa03967-54ab-43fc-9b4b-b314788086be",
+      "source_url": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill/tournaments"
+    },
+    {
+      "venue_name": "MGM National Harbor",
+      "day_of_week": "Sunday",
+      "start_time": "11:15am",
+      "buy_in": 1100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f065df3d8ddf96093e8c4e0f7ca6b9f4b02b05b36d72284511ba98fa9d6fa6d6",
+      "scrape_timestamp": "2026-03-25T17:15:00.115773+00:00",
+      "scrape_batch_id": "afa03967-54ab-43fc-9b4b-b314788086be",
+      "source_url": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill/tournaments"
+    },
+    {
+      "venue_name": "MGM National Harbor",
+      "day_of_week": "Sunday",
+      "start_time": "11:15am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f065df3d8ddf96093e8c4e0f7ca6b9f4b02b05b36d72284511ba98fa9d6fa6d6",
+      "scrape_timestamp": "2026-03-25T17:15:00.115773+00:00",
+      "scrape_batch_id": "afa03967-54ab-43fc-9b4b-b314788086be",
+      "source_url": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill/tournaments"
+    },
+    {
+      "venue_name": "MGM National Harbor",
+      "day_of_week": "Sunday",
+      "start_time": "11:15am",
+      "buy_in": 300,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f065df3d8ddf96093e8c4e0f7ca6b9f4b02b05b36d72284511ba98fa9d6fa6d6",
+      "scrape_timestamp": "2026-03-25T17:15:00.115773+00:00",
+      "scrape_batch_id": "afa03967-54ab-43fc-9b4b-b314788086be",
+      "source_url": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill/tournaments"
+    }
+  ]
+}

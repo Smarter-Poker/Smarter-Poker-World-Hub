@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/oaks-card-club-emeryville",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:00:43.188604+00:00",
+  "scrape_html_hash": "cafd7b2243da73eb5bbb3a8e15fe67d8c6aa68172ef54fef7cb6d8367f065455",
+  "scrape_byte_count": 58515,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Oaks Card Club",
+  "data_extracted": {
+    "address": "4097 San Pablo Avenue",
+    "city": "Emeryville",
+    "state": "CA",
+    "zip": "94608",
+    "phone": "(510) 653-4456",
+    "latitude": 37.8325,
+    "longitude": -122.281,
+    "website": "http://www.oakscardclub.com/",
+    "name_from_source": "Oaks Card Club",
+    "page_title": "Oaks Card Club Poker Room Emeryville, CA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

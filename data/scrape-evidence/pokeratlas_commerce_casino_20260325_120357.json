@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/commerce-casino-los-angeles",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:03:57.138792+00:00",
+  "scrape_html_hash": "e99cf0d1763c7adc262b2e19e247041446aeb5f8272d84373444e55edc6f1ab4",
+  "scrape_byte_count": 61241,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Commerce Casino",
+  "data_extracted": {
+    "address": "6131 East Telegraph Rd.",
+    "city": "Los Angeles",
+    "state": "CA",
+    "zip": "90040",
+    "phone": "(323) 721-2100",
+    "latitude": 33.9977,
+    "longitude": -118.146,
+    "website": "https://commercecasino.com/",
+    "name_from_source": "Commerce Casino",
+    "page_title": "Commerce Casino Poker Room Los Angeles, CA Tournaments, Reviews,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

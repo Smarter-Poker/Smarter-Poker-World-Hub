@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/soaring-eagle-mt-pleasant",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:58:44.133278+00:00",
+  "scrape_html_hash": "7244ee8a197982fccaf5ffd7733eb9113a4bd8043eee6be26102aa0ae9611626",
+  "scrape_byte_count": 59476,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Soaring Eagle Casino",
+  "data_extracted": {
+    "address": "6800 Soaring Eagle Boulevard",
+    "city": "Mt. Pleasant",
+    "state": "MI",
+    "zip": "48858",
+    "phone": "(989) 775-5198",
+    "latitude": 43.60837,
+    "longitude": -84.71177,
+    "website": "http://www.soaringeaglecasino.com/",
+    "name_from_source": "Soaring Eagle Casino",
+    "page_title": "Soaring Eagle Poker Room Mt. Pleasant, MI Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

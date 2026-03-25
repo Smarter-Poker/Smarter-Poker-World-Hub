@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/resorts-world-catski-monticello",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:58:46.494892+00:00",
+  "scrape_html_hash": "166cbb5ed262bae69f204c823a1f3c2209df03085c586553f4193b3e677f17cc",
+  "scrape_byte_count": 58813,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Resorts World Catskills",
+  "data_extracted": {
+    "address": "888 Resorts World Drive",
+    "city": "Monticello",
+    "state": "NY",
+    "zip": "12701",
+    "phone": "(845) 428-7200",
+    "latitude": 41.6767,
+    "longitude": -74.66639,
+    "website": "https://rwcatskills.com",
+    "name_from_source": "Resorts World Catskills",
+    "page_title": "Resorts World Catski Poker Room Monticello, NY Tournaments, Reviews,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

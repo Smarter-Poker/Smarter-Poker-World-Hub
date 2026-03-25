@@ -1,0 +1,97 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/commerce-casino-los-angeles/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:18:18.334821+00:00",
+    "scrape_html_hash": "ff8cf194aaab962afff08d8e4c30ba92735a5f05c06e85c646761bfc92b01812",
+    "scrape_byte_count": 73682,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Commerce Casino",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 300,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ff8cf194aaab962afff08d8e4c30ba92735a5f05c06e85c646761bfc92b01812",
+      "scrape_timestamp": "2026-03-25T17:18:18.334821+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/commerce-casino-los-angeles/tournaments"
+    },
+    {
+      "venue_name": "Commerce Casino",
+      "day_of_week": "Friday",
+      "start_time": "11:00am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ff8cf194aaab962afff08d8e4c30ba92735a5f05c06e85c646761bfc92b01812",
+      "scrape_timestamp": "2026-03-25T17:18:18.334821+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/commerce-casino-los-angeles/tournaments"
+    },
+    {
+      "venue_name": "Commerce Casino",
+      "day_of_week": "Saturday",
+      "start_time": "2:00pm",
+      "buy_in": 180,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ff8cf194aaab962afff08d8e4c30ba92735a5f05c06e85c646761bfc92b01812",
+      "scrape_timestamp": "2026-03-25T17:18:18.334821+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/commerce-casino-los-angeles/tournaments"
+    },
+    {
+      "venue_name": "Commerce Casino",
+      "day_of_week": "Monday",
+      "start_time": "11:00am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ff8cf194aaab962afff08d8e4c30ba92735a5f05c06e85c646761bfc92b01812",
+      "scrape_timestamp": "2026-03-25T17:18:18.334821+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/commerce-casino-los-angeles/tournaments"
+    },
+    {
+      "venue_name": "Commerce Casino",
+      "day_of_week": "Tuesday",
+      "start_time": "11:00am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ff8cf194aaab962afff08d8e4c30ba92735a5f05c06e85c646761bfc92b01812",
+      "scrape_timestamp": "2026-03-25T17:18:18.334821+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/commerce-casino-los-angeles/tournaments"
+    },
+    {
+      "venue_name": "Commerce Casino",
+      "day_of_week": "Wednesday",
+      "start_time": "11:00am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ff8cf194aaab962afff08d8e4c30ba92735a5f05c06e85c646761bfc92b01812",
+      "scrape_timestamp": "2026-03-25T17:18:18.334821+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/commerce-casino-los-angeles/tournaments"
+    },
+    {
+      "venue_name": "Commerce Casino",
+      "day_of_week": "Thursday",
+      "start_time": "11:00am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ff8cf194aaab962afff08d8e4c30ba92735a5f05c06e85c646761bfc92b01812",
+      "scrape_timestamp": "2026-03-25T17:18:18.334821+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/commerce-casino-los-angeles/tournaments"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/muckleshoot-casino-auburn",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:58:28.255833+00:00",
+  "scrape_html_hash": "88d61849ef92d0bf1fa804d1865f13e3bbbbae4254e2deac3723818b671b7f6a",
+  "scrape_byte_count": 56592,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Muckleshoot Casino",
+  "data_extracted": {
+    "address": "2402 Auburn Way South ",
+    "city": "Auburn",
+    "state": "WA",
+    "zip": "98002",
+    "phone": "(253) 804-4444 ext. 2901",
+    "latitude": 47.29109,
+    "longitude": -122.19445,
+    "website": "http://www.muckleshootcasino.com/",
+    "name_from_source": "Muckleshoot Casino",
+    "page_title": "Muckleshoot Casino Poker Room Auburn, WA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

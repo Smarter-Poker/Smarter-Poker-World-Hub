@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/live-casino-philadelphia",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:00:07.122475+00:00",
+  "scrape_html_hash": "2842a4c971a9844525e46096fe97b9c606faa8f4d2461ea1cd4ab8a04908c20c",
+  "scrape_byte_count": 59763,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Live! Casino Philadelphia",
+  "data_extracted": {
+    "address": "900 Packer Ave.",
+    "city": "Philadelphia",
+    "state": "PA",
+    "zip": "19148",
+    "phone": "(267) 682-7426",
+    "latitude": 39.9091912,
+    "longitude": -75.1668504,
+    "website": "https://philadelphia.livecasinohotel.com/casino-and-gaming/poker",
+    "name_from_source": "Live! Casino Philadelphia",
+    "page_title": "Live! Philly Poker Room Philadelphia, PA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

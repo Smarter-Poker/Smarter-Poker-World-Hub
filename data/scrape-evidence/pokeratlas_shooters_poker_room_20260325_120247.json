@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/shooters-poker-room-billings",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:02:47.223380+00:00",
+  "scrape_html_hash": "7a08b2df873b6a6c54b0ba55e3e0f65f7b54ef9be331d830f89f9626dcbcb7d3",
+  "scrape_byte_count": 57586,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Shooters Poker Room",
+  "data_extracted": {
+    "address": "1600 Avenue D",
+    "city": "Billings",
+    "state": "MT",
+    "zip": "59102",
+    "phone": "(406) 208-4648",
+    "latitude": 457868732.0,
+    "longitude": 1085565545.0,
+    "website": "https://www.facebook.com/shooters.bar.16/",
+    "name_from_source": "Shooters Poker Room",
+    "page_title": "Shooters Poker Room Billings, MT Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/river-spirit-casino-tulsa",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:03:02.206342+00:00",
+  "scrape_html_hash": "baaab08d0ed21f9c7199fa2e01670e57b2fe4a3c591ddc6ca9f78b77c6910ea4",
+  "scrape_byte_count": 58970,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "River Spirit Casino",
+  "data_extracted": {
+    "address": "8330 Riverside Pkwy.",
+    "city": "Tulsa",
+    "state": "OK",
+    "zip": "74136",
+    "phone": "(918) 995-8183",
+    "latitude": 36.043,
+    "longitude": -95.96275,
+    "website": "http://www.riverspirittulsa.com/Pages/default.aspx",
+    "name_from_source": "River Spirit Casino",
+    "page_title": "River Spirit Casino Poker Room Tulsa, OK Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

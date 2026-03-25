@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:02:35.216522+00:00",
+  "scrape_html_hash": "195d1705b7ab0078794a9897f628de6311975358bf5d1502d7f04386904b4d6b",
+  "scrape_byte_count": 61066,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Bellagio",
+  "data_extracted": {
+    "address": "3600 S. Las Vegas Blvd.",
+    "city": "Las Vegas",
+    "state": "NV",
+    "zip": "89109",
+    "phone": "(702) 693-7291",
+    "latitude": 36.1125,
+    "longitude": -115.175,
+    "website": "https://www.bellagio.com/en/casino/poker.html",
+    "name_from_source": "Bellagio Casino",
+    "page_title": "Bellagio Poker Room Las Vegas, NV Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:58:51.012488+00:00",
+  "scrape_html_hash": "737ce8ec44edc7eb0f39d64741052fec22bad0030762a2ca95f92a7b4dce8f3f",
+  "scrape_byte_count": 58542,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "G's Charity Poker",
+  "data_extracted": {
+    "address": "48550 Van Dyke Ave.",
+    "city": "Utica",
+    "state": "MI",
+    "zip": "48317",
+    "phone": "(810) 246-0089",
+    "latitude": 42.6518344,
+    "longitude": -83.0326347,
+    "website": "https://www.pokeratlas.com/poker-room/mr-bs-poker-room-utica",
+    "name_from_source": "Mr. B's Poker Room",
+    "page_title": "Mr. B&#39;s Poker Room Utica, MI Tournaments, Reviews, Games, Promotions"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

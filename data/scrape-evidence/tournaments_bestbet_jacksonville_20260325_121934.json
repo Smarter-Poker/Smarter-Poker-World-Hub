@@ -1,0 +1,49 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/bestbet-jacksonville/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:19:34.927340+00:00",
+    "scrape_html_hash": "7d6921978573a51b5199c2a8595c91975a538bb024b617a69af5c16701699705",
+    "scrape_byte_count": 67712,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "bestbet Jacksonville",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7d6921978573a51b5199c2a8595c91975a538bb024b617a69af5c16701699705",
+      "scrape_timestamp": "2026-03-25T17:19:34.927340+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/bestbet-jacksonville/tournaments"
+    },
+    {
+      "venue_name": "bestbet Jacksonville",
+      "day_of_week": "Wednesday",
+      "start_time": "12:00pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7d6921978573a51b5199c2a8595c91975a538bb024b617a69af5c16701699705",
+      "scrape_timestamp": "2026-03-25T17:19:34.927340+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/bestbet-jacksonville/tournaments"
+    },
+    {
+      "venue_name": "bestbet Jacksonville",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7d6921978573a51b5199c2a8595c91975a538bb024b617a69af5c16701699705",
+      "scrape_timestamp": "2026-03-25T17:19:34.927340+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/bestbet-jacksonville/tournaments"
+    }
+  ]
+}

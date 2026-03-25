@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/mgm-grand-las-vegas",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:02:49.581389+00:00",
+  "scrape_html_hash": "d36ed16df0496b75732f4d99fbb60a872a9074be70a9ec70b6fa5c874a6c7d90",
+  "scrape_byte_count": 62522,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "MGM Grand Poker Room",
+  "data_extracted": {
+    "address": "3799 Las Vegas Boulevard South",
+    "city": "Las Vegas",
+    "state": "NV",
+    "zip": "89109",
+    "phone": "(702) 891-7434",
+    "latitude": 36.1023,
+    "longitude": -115.17,
+    "website": "https://mgmgrand.mgmresorts.com/en/casino/poker-tables.html",
+    "name_from_source": "MGM Grand",
+    "page_title": "MGM Grand Poker Room Las Vegas, NV Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

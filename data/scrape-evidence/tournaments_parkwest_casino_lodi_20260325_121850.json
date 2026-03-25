@@ -1,0 +1,73 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/parkwest-lodi/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:18:50.558134+00:00",
+    "scrape_html_hash": "8acc9b63730aff4533f97bb56f1452d21943c69f83dddfcc915b1f3e88be44b6",
+    "scrape_byte_count": 68886,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Parkwest Casino Lodi",
+      "day_of_week": "Sunday",
+      "start_time": "9:00am",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8acc9b63730aff4533f97bb56f1452d21943c69f83dddfcc915b1f3e88be44b6",
+      "scrape_timestamp": "2026-03-25T17:18:50.558134+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/parkwest-lodi/tournaments"
+    },
+    {
+      "venue_name": "Parkwest Casino Lodi",
+      "day_of_week": "Wednesday",
+      "start_time": "10:00am",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8acc9b63730aff4533f97bb56f1452d21943c69f83dddfcc915b1f3e88be44b6",
+      "scrape_timestamp": "2026-03-25T17:18:50.558134+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/parkwest-lodi/tournaments"
+    },
+    {
+      "venue_name": "Parkwest Casino Lodi",
+      "day_of_week": "Friday",
+      "start_time": "10:00am",
+      "buy_in": 75,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8acc9b63730aff4533f97bb56f1452d21943c69f83dddfcc915b1f3e88be44b6",
+      "scrape_timestamp": "2026-03-25T17:18:50.558134+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/parkwest-lodi/tournaments"
+    },
+    {
+      "venue_name": "Parkwest Casino Lodi",
+      "day_of_week": "saturday",
+      "start_time": "12:00pm",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8acc9b63730aff4533f97bb56f1452d21943c69f83dddfcc915b1f3e88be44b6",
+      "scrape_timestamp": "2026-03-25T17:18:50.558134+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/parkwest-lodi/tournaments"
+    },
+    {
+      "venue_name": "Parkwest Casino Lodi",
+      "day_of_week": "Monday",
+      "start_time": "10:00am",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8acc9b63730aff4533f97bb56f1452d21943c69f83dddfcc915b1f3e88be44b6",
+      "scrape_timestamp": "2026-03-25T17:18:50.558134+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/parkwest-lodi/tournaments"
+    }
+  ]
+}

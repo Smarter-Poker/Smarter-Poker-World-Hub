@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/empire-poker-club-houston",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:02:53.980556+00:00",
+  "scrape_html_hash": "5bf2dbba5b02f51ba158ac5bbc265f3eeee64fd3314bb0b6430dc48bb5b44ad7",
+  "scrape_byte_count": 59081,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Empire Poker Club",
+  "data_extracted": {
+    "address": "2938 W Sam Houston Pkwy S",
+    "city": "Houston",
+    "state": "TX",
+    "zip": "77042",
+    "phone": "(832) 709-3076",
+    "latitude": 29.73376,
+    "longitude": -95.5588,
+    "website": "https://www.empirepokerclub.com/",
+    "name_from_source": "Empire Poker Club",
+    "page_title": "Empire Poker Room Houston, TX Tournaments, Reviews, Games, Promotions"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

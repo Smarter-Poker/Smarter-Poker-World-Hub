@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/mgm-grand-detroit",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:58:59.956799+00:00",
+  "scrape_html_hash": "9a12d3734c7ffe44b3a62bf0598cf6904e16e7af8802e223cd3a9b489804bb12",
+  "scrape_byte_count": 59383,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "MGM Grand Detroit",
+  "data_extracted": {
+    "address": "1777 Third St.",
+    "city": "Detroit",
+    "state": "MI",
+    "zip": "48226",
+    "phone": "(313) 465-1070",
+    "latitude": 42.33351,
+    "longitude": -83.06038,
+    "website": "http://www.mgmgranddetroit.com/casino/table-games.aspx",
+    "name_from_source": "MGM Grand Detroit",
+    "page_title": "MGM Grand Detroit Poker Room Detroit, MI Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/hard-rock-tampa",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:00:11.787958+00:00",
+  "scrape_html_hash": "29f1c13e64b3246810082a5289c957ed75a40ef9157b97d67529705ecf9e5f1c",
+  "scrape_byte_count": 58696,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Seminole Hard Rock Tampa",
+  "data_extracted": {
+    "address": "5223 North Orient Road",
+    "city": "Tampa",
+    "state": "FL",
+    "zip": "33610",
+    "phone": "(866) 388-4263",
+    "latitude": 27.99361,
+    "longitude": -82.37108,
+    "website": "http://www.shrtpoker.com/",
+    "name_from_source": "Seminole Hard Rock Tampa",
+    "page_title": "Hard Rock Tampa Poker Room Tampa, FL Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

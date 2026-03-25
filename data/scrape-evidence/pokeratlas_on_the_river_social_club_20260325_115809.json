@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/on-the-river-social-club-san-marcos",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:58:09.765850+00:00",
+  "scrape_html_hash": "3f224b1536d3cae9599a544b8acdefaab0e4e353884f627817d2f129a3c47b81",
+  "scrape_byte_count": 60510,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "On The River Social Club",
+  "data_extracted": {
+    "address": "700 N LBJ Drive, Suite 103A",
+    "city": "San Marcos",
+    "state": "TX",
+    "zip": "78666",
+    "phone": "(737) 355-2317",
+    "latitude": 29.8919239,
+    "longitude": -97.94099849999999,
+    "website": "https://Sanmarcossocialclub.com",
+    "name_from_source": "On The River Social Club",
+    "page_title": "On The River Poker Room San Marcos, TX Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

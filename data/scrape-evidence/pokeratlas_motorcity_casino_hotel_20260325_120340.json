@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/motorcity-casino-detroit",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:03:40.813587+00:00",
+  "scrape_html_hash": "501a1270ecdda15342578acf3232a0be5a9d9a5c7a1bfc7996ae6c20687eaafe",
+  "scrape_byte_count": 59560,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "MotorCity Casino Hotel",
+  "data_extracted": {
+    "address": "2901 Grand River Avenue",
+    "city": "Detroit",
+    "state": "MI",
+    "zip": "48201",
+    "phone": "(313) 237-6735",
+    "latitude": 42.3397,
+    "longitude": -83.0671,
+    "website": "http://www.motorcitycasino.com/",
+    "name_from_source": "MotorCity Casino",
+    "page_title": "MotorCity Casino Poker Room Detroit, MI Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

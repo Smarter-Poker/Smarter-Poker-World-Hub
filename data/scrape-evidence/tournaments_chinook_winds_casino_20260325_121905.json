@@ -1,0 +1,109 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/chinook-winds-lincoln-city/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:19:05.184166+00:00",
+    "scrape_html_hash": "677f3057bab2a29a874d408ef6b8628b4f49fa83656b655292ef584cc9858e24",
+    "scrape_byte_count": 65548,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Chinook Winds Casino",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 290,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "677f3057bab2a29a874d408ef6b8628b4f49fa83656b655292ef584cc9858e24",
+      "scrape_timestamp": "2026-03-25T17:19:05.184166+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/chinook-winds-lincoln-city/tournaments"
+    },
+    {
+      "venue_name": "Chinook Winds Casino",
+      "day_of_week": "Monday",
+      "start_time": "11:00am",
+      "buy_in": 290,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "677f3057bab2a29a874d408ef6b8628b4f49fa83656b655292ef584cc9858e24",
+      "scrape_timestamp": "2026-03-25T17:19:05.184166+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/chinook-winds-lincoln-city/tournaments"
+    },
+    {
+      "venue_name": "Chinook Winds Casino",
+      "day_of_week": "Tuesday",
+      "start_time": "11:00am",
+      "buy_in": 190,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "677f3057bab2a29a874d408ef6b8628b4f49fa83656b655292ef584cc9858e24",
+      "scrape_timestamp": "2026-03-25T17:19:05.184166+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/chinook-winds-lincoln-city/tournaments"
+    },
+    {
+      "venue_name": "Chinook Winds Casino",
+      "day_of_week": "Wednesday",
+      "start_time": "11:00am",
+      "buy_in": 590,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "677f3057bab2a29a874d408ef6b8628b4f49fa83656b655292ef584cc9858e24",
+      "scrape_timestamp": "2026-03-25T17:19:05.184166+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/chinook-winds-lincoln-city/tournaments"
+    },
+    {
+      "venue_name": "Chinook Winds Casino",
+      "day_of_week": "Thursday",
+      "start_time": "11:00am",
+      "buy_in": 190,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "677f3057bab2a29a874d408ef6b8628b4f49fa83656b655292ef584cc9858e24",
+      "scrape_timestamp": "2026-03-25T17:19:05.184166+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/chinook-winds-lincoln-city/tournaments"
+    },
+    {
+      "venue_name": "Chinook Winds Casino",
+      "day_of_week": "Friday",
+      "start_time": "11:00am",
+      "buy_in": 590,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "677f3057bab2a29a874d408ef6b8628b4f49fa83656b655292ef584cc9858e24",
+      "scrape_timestamp": "2026-03-25T17:19:05.184166+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/chinook-winds-lincoln-city/tournaments"
+    },
+    {
+      "venue_name": "Chinook Winds Casino",
+      "day_of_week": "Saturday",
+      "start_time": "11:00am",
+      "buy_in": 775,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "677f3057bab2a29a874d408ef6b8628b4f49fa83656b655292ef584cc9858e24",
+      "scrape_timestamp": "2026-03-25T17:19:05.184166+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/chinook-winds-lincoln-city/tournaments"
+    },
+    {
+      "venue_name": "Chinook Winds Casino",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 775,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "677f3057bab2a29a874d408ef6b8628b4f49fa83656b655292ef584cc9858e24",
+      "scrape_timestamp": "2026-03-25T17:19:05.184166+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/chinook-winds-lincoln-city/tournaments"
+    }
+  ]
+}

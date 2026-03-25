@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/barona-casino-lakeside",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:57:44.922080+00:00",
+  "scrape_html_hash": "82b737401bff5230ddd52a96139f9b2fa02ebda0f9cfdd2377481c71c600bfb5",
+  "scrape_byte_count": 57849,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Barona Resort & Casino",
+  "data_extracted": {
+    "address": "1932 Wildcat Canyon Road",
+    "city": "Lakeside",
+    "state": "CA",
+    "zip": "92040",
+    "phone": "(619) 328-3285",
+    "latitude": 32.94013,
+    "longitude": -116.8743,
+    "website": "http://www.barona.com/",
+    "name_from_source": "Barona Resort & Casino",
+    "page_title": "Barona Casino Poker Room Lakeside, CA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/limelight-card-room-sacramento",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:57:24.655841+00:00",
+  "scrape_html_hash": "c319b8f4bad8e56fd67c5ee5b4d1895313e390873e0fdc207625bd7560f593b9",
+  "scrape_byte_count": 59811,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Limelight Card Room",
+  "data_extracted": {
+    "address": "1014 Alhambra Blvd",
+    "city": "Sacramento",
+    "state": "CA",
+    "zip": "95816",
+    "phone": "(916) 446-2208",
+    "latitude": 38.5726,
+    "longitude": -121.465,
+    "website": "https://limelightsac.com/",
+    "name_from_source": "Limelight Card Room",
+    "page_title": "Limelight Card Room Poker Room Sacramento, CA Tournaments, Reviews,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

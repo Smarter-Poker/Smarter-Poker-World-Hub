@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:01:50.084978+00:00",
+  "scrape_html_hash": "8c23a76f5cfb71f6c48adb672c36701be7b8228232fc3ac2af70e4533b3cb116",
+  "scrape_byte_count": 61153,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Seminole Hard Rock Hollywood",
+  "data_extracted": {
+    "address": "1 Seminole Way",
+    "city": "Ft. Lauderdale",
+    "state": "FL",
+    "zip": "33314",
+    "phone": "(954) 327-7625 ext. 4",
+    "latitude": 26.0512,
+    "longitude": -80.2106,
+    "website": "https://www.seminolehardrockpokeropen.com/",
+    "name_from_source": "Seminole Hard Rock Hollywood",
+    "page_title": "Hard Rock Hollywood Poker Room Ft. Lauderdale, FL Tournaments,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

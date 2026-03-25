@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/palace-poker-grand-prairie",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:59:08.794582+00:00",
+  "scrape_html_hash": "ba38d2d82f275b096515c41fbd0902be5d8e268f8c6023b05717a434d9c07ad1",
+  "scrape_byte_count": 60684,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Palace Poker",
+  "data_extracted": {
+    "address": "401 E Palace Pkwy",
+    "city": "Grand Prairie",
+    "state": "TX",
+    "zip": "75050",
+    "phone": "(469) 912-2237",
+    "latitude": 32.76098,
+    "longitude": -97.0051,
+    "website": "https://www.palacepoker.com/",
+    "name_from_source": "Palace Poker",
+    "page_title": "Palace Poker Poker Room Grand Prairie, TX Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

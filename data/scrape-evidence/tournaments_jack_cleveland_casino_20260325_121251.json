@@ -1,0 +1,73 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/jack-cleveland/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:12:51.840801+00:00",
+    "scrape_html_hash": "52f91245bc2677e6e5dbee40de943043453db5af11dae2d626f27b4f011765a5",
+    "scrape_byte_count": 64886,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958"
+  },
+  "tournaments": [
+    {
+      "venue_name": "JACK Cleveland Casino",
+      "day_of_week": "Sunday",
+      "start_time": "9:00am",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "52f91245bc2677e6e5dbee40de943043453db5af11dae2d626f27b4f011765a5",
+      "scrape_timestamp": "2026-03-25T17:12:51.840801+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/jack-cleveland/tournaments"
+    },
+    {
+      "venue_name": "JACK Cleveland Casino",
+      "day_of_week": "Tuesday",
+      "start_time": "12:15pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "52f91245bc2677e6e5dbee40de943043453db5af11dae2d626f27b4f011765a5",
+      "scrape_timestamp": "2026-03-25T17:12:51.840801+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/jack-cleveland/tournaments"
+    },
+    {
+      "venue_name": "JACK Cleveland Casino",
+      "day_of_week": "Sunday",
+      "start_time": "12:15pm",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "52f91245bc2677e6e5dbee40de943043453db5af11dae2d626f27b4f011765a5",
+      "scrape_timestamp": "2026-03-25T17:12:51.840801+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/jack-cleveland/tournaments"
+    },
+    {
+      "venue_name": "JACK Cleveland Casino",
+      "day_of_week": "Saturday",
+      "start_time": "12:15pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "52f91245bc2677e6e5dbee40de943043453db5af11dae2d626f27b4f011765a5",
+      "scrape_timestamp": "2026-03-25T17:12:51.840801+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/jack-cleveland/tournaments"
+    },
+    {
+      "venue_name": "JACK Cleveland Casino",
+      "day_of_week": "Monday",
+      "start_time": "12:15pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "52f91245bc2677e6e5dbee40de943043453db5af11dae2d626f27b4f011765a5",
+      "scrape_timestamp": "2026-03-25T17:12:51.840801+00:00",
+      "scrape_batch_id": "ea3bbc80-3074-4d8b-9421-23d10c186958",
+      "source": "https://www.pokeratlas.com/poker-room/jack-cleveland/tournaments"
+    }
+  ]
+}

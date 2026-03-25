@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/parx-casino-bensalem",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:59:59.697736+00:00",
+  "scrape_html_hash": "95bb17770c6933a1555e37113cb813dd8699e6df955f4ce2064e68edf4844d49",
+  "scrape_byte_count": 59848,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Parx Casino",
+  "data_extracted": {
+    "address": "2999 E Street Rd",
+    "city": "Bensalem",
+    "state": "PA",
+    "zip": "19020",
+    "phone": "(267) 525-7300",
+    "latitude": 40.11479,
+    "longitude": -74.95753,
+    "website": "http://www.parxcasino.com/",
+    "name_from_source": "Parx Casino",
+    "page_title": "Parx Casino Poker Room Bensalem, PA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

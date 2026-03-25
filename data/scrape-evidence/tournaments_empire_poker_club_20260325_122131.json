@@ -1,0 +1,97 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/empire-poker-club-houston/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:21:31.608473+00:00",
+    "scrape_html_hash": "5b1e0e522961edf62cc85a5b6aa76e222d51f526ae058b5fa30c0126dce10780",
+    "scrape_byte_count": 77731,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Empire Poker Club",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 10,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5b1e0e522961edf62cc85a5b6aa76e222d51f526ae058b5fa30c0126dce10780",
+      "scrape_timestamp": "2026-03-25T17:21:31.608473+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/empire-poker-club-houston/tournaments"
+    },
+    {
+      "venue_name": "Empire Poker Club",
+      "day_of_week": "Tuesday",
+      "start_time": "12:00pm",
+      "buy_in": 10,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5b1e0e522961edf62cc85a5b6aa76e222d51f526ae058b5fa30c0126dce10780",
+      "scrape_timestamp": "2026-03-25T17:21:31.608473+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/empire-poker-club-houston/tournaments"
+    },
+    {
+      "venue_name": "Empire Poker Club",
+      "day_of_week": "Thursday",
+      "start_time": "12:00pm",
+      "buy_in": 10,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5b1e0e522961edf62cc85a5b6aa76e222d51f526ae058b5fa30c0126dce10780",
+      "scrape_timestamp": "2026-03-25T17:21:31.608473+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/empire-poker-club-houston/tournaments"
+    },
+    {
+      "venue_name": "Empire Poker Club",
+      "day_of_week": "Friday",
+      "start_time": "12:00pm",
+      "buy_in": 10,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5b1e0e522961edf62cc85a5b6aa76e222d51f526ae058b5fa30c0126dce10780",
+      "scrape_timestamp": "2026-03-25T17:21:31.608473+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/empire-poker-club-houston/tournaments"
+    },
+    {
+      "venue_name": "Empire Poker Club",
+      "day_of_week": "Saturday",
+      "start_time": "12:00pm",
+      "buy_in": 10,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5b1e0e522961edf62cc85a5b6aa76e222d51f526ae058b5fa30c0126dce10780",
+      "scrape_timestamp": "2026-03-25T17:21:31.608473+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/empire-poker-club-houston/tournaments"
+    },
+    {
+      "venue_name": "Empire Poker Club",
+      "day_of_week": "Monday",
+      "start_time": "12:00pm",
+      "buy_in": 10,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5b1e0e522961edf62cc85a5b6aa76e222d51f526ae058b5fa30c0126dce10780",
+      "scrape_timestamp": "2026-03-25T17:21:31.608473+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/empire-poker-club-houston/tournaments"
+    },
+    {
+      "venue_name": "Empire Poker Club",
+      "day_of_week": "Wednesday",
+      "start_time": "12:00pm",
+      "buy_in": 10,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5b1e0e522961edf62cc85a5b6aa76e222d51f526ae058b5fa30c0126dce10780",
+      "scrape_timestamp": "2026-03-25T17:21:31.608473+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/empire-poker-club-houston/tournaments"
+    }
+  ]
+}

@@ -1,0 +1,193 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+    "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+    "scrape_byte_count": 79861,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Sunday",
+      "start_time": "2:00pm",
+      "buy_in": 1400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Wednesday",
+      "start_time": "7:00pm",
+      "buy_in": 130,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Saturday",
+      "start_time": "11:00am",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Thursday",
+      "start_time": "10:00am",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Friday",
+      "start_time": "10:00am",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Saturday",
+      "start_time": "10:00am",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Monday",
+      "start_time": "10:00am",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Tuesday",
+      "start_time": "10:00am",
+      "buy_in": 400,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Wednesday",
+      "start_time": "10:00am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Thursday",
+      "start_time": "10:00am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Friday",
+      "start_time": "10:00am",
+      "buy_in": 300,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Saturday",
+      "start_time": "10:00am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_name": "Turning Stone Resort",
+      "day_of_week": "Sunday",
+      "start_time": "2:00pm",
+      "buy_in": 175,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2f2f93fe36018f306b3668cf1a260918f34e744694496d750d182d7755a693be",
+      "scrape_timestamp": "2026-03-25T17:16:23.512864+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    }
+  ]
+}

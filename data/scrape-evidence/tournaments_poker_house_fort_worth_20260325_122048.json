@@ -1,0 +1,109 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/poker-house-fort-worth-burleson/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:20:48.699872+00:00",
+    "scrape_html_hash": "120927d87e432e514b3a7b575d0ea7de628d8b20f655953086cb93ff4c23008e",
+    "scrape_byte_count": 78787,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Poker House Fort Worth",
+      "day_of_week": "Sunday",
+      "start_time": "9:00am",
+      "buy_in": 75,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "120927d87e432e514b3a7b575d0ea7de628d8b20f655953086cb93ff4c23008e",
+      "scrape_timestamp": "2026-03-25T17:20:48.699872+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/poker-house-fort-worth-burleson/tournaments"
+    },
+    {
+      "venue_name": "Poker House Fort Worth",
+      "day_of_week": "Monday",
+      "start_time": "12:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "120927d87e432e514b3a7b575d0ea7de628d8b20f655953086cb93ff4c23008e",
+      "scrape_timestamp": "2026-03-25T17:20:48.699872+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/poker-house-fort-worth-burleson/tournaments"
+    },
+    {
+      "venue_name": "Poker House Fort Worth",
+      "day_of_week": "Tuesday",
+      "start_time": "12:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "120927d87e432e514b3a7b575d0ea7de628d8b20f655953086cb93ff4c23008e",
+      "scrape_timestamp": "2026-03-25T17:20:48.699872+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/poker-house-fort-worth-burleson/tournaments"
+    },
+    {
+      "venue_name": "Poker House Fort Worth",
+      "day_of_week": "Wednesday",
+      "start_time": "12:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "120927d87e432e514b3a7b575d0ea7de628d8b20f655953086cb93ff4c23008e",
+      "scrape_timestamp": "2026-03-25T17:20:48.699872+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/poker-house-fort-worth-burleson/tournaments"
+    },
+    {
+      "venue_name": "Poker House Fort Worth",
+      "day_of_week": "Thursday",
+      "start_time": "12:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "120927d87e432e514b3a7b575d0ea7de628d8b20f655953086cb93ff4c23008e",
+      "scrape_timestamp": "2026-03-25T17:20:48.699872+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/poker-house-fort-worth-burleson/tournaments"
+    },
+    {
+      "venue_name": "Poker House Fort Worth",
+      "day_of_week": "Friday",
+      "start_time": "12:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "120927d87e432e514b3a7b575d0ea7de628d8b20f655953086cb93ff4c23008e",
+      "scrape_timestamp": "2026-03-25T17:20:48.699872+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/poker-house-fort-worth-burleson/tournaments"
+    },
+    {
+      "venue_name": "Poker House Fort Worth",
+      "day_of_week": "Saturday",
+      "start_time": "12:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "120927d87e432e514b3a7b575d0ea7de628d8b20f655953086cb93ff4c23008e",
+      "scrape_timestamp": "2026-03-25T17:20:48.699872+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/poker-house-fort-worth-burleson/tournaments"
+    },
+    {
+      "venue_name": "Poker House Fort Worth",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "120927d87e432e514b3a7b575d0ea7de628d8b20f655953086cb93ff4c23008e",
+      "scrape_timestamp": "2026-03-25T17:20:48.699872+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/poker-house-fort-worth-burleson/tournaments"
+    }
+  ]
+}

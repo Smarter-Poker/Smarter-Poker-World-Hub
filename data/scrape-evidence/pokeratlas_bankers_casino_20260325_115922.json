@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/bankers-casino-salinas",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:59:22.008190+00:00",
+  "scrape_html_hash": "96b68d37d2cfe5ba307f79199196a5725248e1e2522c315c5c5eb805e5672260",
+  "scrape_byte_count": 58834,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Bankers Casino",
+  "data_extracted": {
+    "address": "111 Monterey St.",
+    "city": "Salinas",
+    "state": "CA",
+    "zip": "93901",
+    "phone": "(831) 422-6666",
+    "latitude": 36.6774,
+    "longitude": -121.654,
+    "website": "http://www.bankerscasino.net/",
+    "name_from_source": "Bankers Casino",
+    "page_title": "Bankers Casino Poker Room Salinas, CA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

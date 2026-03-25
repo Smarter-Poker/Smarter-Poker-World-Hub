@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/hard-rock-cincinnati",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:02:51.727159+00:00",
+  "scrape_html_hash": "bde448fb13def7a7318a2f3bad00380a15236314017037a8244d68886c99f059",
+  "scrape_byte_count": 58785,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Hard Rock Cincinnati",
+  "data_extracted": {
+    "address": "1000 Broadway Street",
+    "city": "Cincinnati",
+    "state": "OH",
+    "zip": "45202",
+    "phone": "(513) 250-3288",
+    "latitude": 39.10798,
+    "longitude": -84.50714,
+    "website": "https://www.hardrockcasinocincinnati.com/poker.htm",
+    "name_from_source": "Hard Rock Casino Cincinnati",
+    "page_title": "Hard Rock Cincinnati Poker Room Cincinnati, OH Tournaments, Reviews,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

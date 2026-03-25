@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/table-mountain-friant",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:00:31.390812+00:00",
+  "scrape_html_hash": "7de3695c9111d32590ca7362de8f794f4578bef3744f2ce9fe8f71f20c6d5025",
+  "scrape_byte_count": 57482,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Table Mountain Casino",
+  "data_extracted": {
+    "address": "8184 Table Mountain Rd.",
+    "city": "Friant",
+    "state": "CA",
+    "zip": "93626",
+    "phone": "(800) 541-3637",
+    "latitude": 36.98465,
+    "longitude": -119.63969,
+    "website": "http://www.tmcasino.com/",
+    "name_from_source": "Table Mountain Casino",
+    "page_title": "Table Mountain Poker Room Friant, CA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

@@ -1,0 +1,133 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:20:00.409366+00:00",
+    "scrape_html_hash": "6849857c273d990b1b4a6894e34315eaebb679e8fbf68b12b129ca834cb5428c",
+    "scrape_byte_count": 72938,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Doghouse Poker Club",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 100,
+      "game_type": "NLH",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6849857c273d990b1b4a6894e34315eaebb679e8fbf68b12b129ca834cb5428c",
+      "scrape_timestamp": "2026-03-25T17:20:00.409366+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress/tournaments"
+    },
+    {
+      "venue_name": "Doghouse Poker Club",
+      "day_of_week": "TUESDAY",
+      "start_time": "6:30pm",
+      "buy_in": 500,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6849857c273d990b1b4a6894e34315eaebb679e8fbf68b12b129ca834cb5428c",
+      "scrape_timestamp": "2026-03-25T17:20:00.409366+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress/tournaments"
+    },
+    {
+      "venue_name": "Doghouse Poker Club",
+      "day_of_week": "Monday",
+      "start_time": "7:00pm",
+      "buy_in": 85,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6849857c273d990b1b4a6894e34315eaebb679e8fbf68b12b129ca834cb5428c",
+      "scrape_timestamp": "2026-03-25T17:20:00.409366+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress/tournaments"
+    },
+    {
+      "venue_name": "Doghouse Poker Club",
+      "day_of_week": "Wednesday",
+      "start_time": "7:00pm",
+      "buy_in": 85,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6849857c273d990b1b4a6894e34315eaebb679e8fbf68b12b129ca834cb5428c",
+      "scrape_timestamp": "2026-03-25T17:20:00.409366+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress/tournaments"
+    },
+    {
+      "venue_name": "Doghouse Poker Club",
+      "day_of_week": "Friday",
+      "start_time": "7:00pm",
+      "buy_in": 105,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6849857c273d990b1b4a6894e34315eaebb679e8fbf68b12b129ca834cb5428c",
+      "scrape_timestamp": "2026-03-25T17:20:00.409366+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress/tournaments"
+    },
+    {
+      "venue_name": "Doghouse Poker Club",
+      "day_of_week": "Sunday",
+      "start_time": "2:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6849857c273d990b1b4a6894e34315eaebb679e8fbf68b12b129ca834cb5428c",
+      "scrape_timestamp": "2026-03-25T17:20:00.409366+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress/tournaments"
+    },
+    {
+      "venue_name": "Doghouse Poker Club",
+      "day_of_week": "Tuesday",
+      "start_time": "7:00pm",
+      "buy_in": 75,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6849857c273d990b1b4a6894e34315eaebb679e8fbf68b12b129ca834cb5428c",
+      "scrape_timestamp": "2026-03-25T17:20:00.409366+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress/tournaments"
+    },
+    {
+      "venue_name": "Doghouse Poker Club",
+      "day_of_week": "Thursday",
+      "start_time": "7:00pm",
+      "buy_in": 0,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6849857c273d990b1b4a6894e34315eaebb679e8fbf68b12b129ca834cb5428c",
+      "scrape_timestamp": "2026-03-25T17:20:00.409366+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress/tournaments"
+    },
+    {
+      "venue_name": "Doghouse Poker Club",
+      "day_of_week": "Saturday",
+      "start_time": "2:00pm",
+      "buy_in": 140,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6849857c273d990b1b4a6894e34315eaebb679e8fbf68b12b129ca834cb5428c",
+      "scrape_timestamp": "2026-03-25T17:20:00.409366+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress/tournaments"
+    },
+    {
+      "venue_name": "Doghouse Poker Club",
+      "day_of_week": "Saturday",
+      "start_time": "11:00am",
+      "buy_in": 300,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6849857c273d990b1b4a6894e34315eaebb679e8fbf68b12b129ca834cb5428c",
+      "scrape_timestamp": "2026-03-25T17:20:00.409366+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress/tournaments"
+    }
+  ]
+}

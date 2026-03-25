@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/parkwest-lodi",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:59:15.787933+00:00",
+  "scrape_html_hash": "ac2019b221f23a105fde2c44e2ce8b090f7fec596fcda0e79161a2d77337093b",
+  "scrape_byte_count": 59113,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Parkwest Casino Lodi",
+  "data_extracted": {
+    "address": "1800 S. Cherokee Lane",
+    "city": "Lodi",
+    "state": "CA",
+    "zip": "95240",
+    "phone": "(209) 334-9777",
+    "latitude": 38.1116,
+    "longitude": -121.26,
+    "website": "http://parkwestcasinolodi.com/",
+    "name_from_source": "Parkwest Casino Lodi",
+    "page_title": "Parkwest Poker Room Lodi, CA Tournaments, Reviews, Games, Promotions"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

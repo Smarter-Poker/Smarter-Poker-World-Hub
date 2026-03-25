@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/saracen-casino-resort-pine-bluff",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:56:56.254205+00:00",
+  "scrape_html_hash": "220a4a3a7a84557e26c332eb660e843d9dd9962958616994582917dbf1a745af",
+  "scrape_byte_count": 58833,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "ae8c5eef-9531-41be-96cc-7bd29f3cc8ff",
+  "venue_name": "Saracen Casino Resort",
+  "data_extracted": {
+    "address": "1 Saracen Resort Drive",
+    "city": "Pine Bluff",
+    "state": "AR",
+    "zip": "71601",
+    "phone": "(870) 686-9001",
+    "latitude": 34.20895000000001,
+    "longitude": -91.9625625,
+    "website": "https://saracenresort.com/",
+    "name_from_source": "Saracen Casino Resort",
+    "page_title": "Saracen Poker Room Pine Bluff, AR Tournaments, Reviews, Games,"
+  },
+  "batch_id": "ae8c5eef-9531-41be-96cc-7bd29f3cc8ff"
+}

@@ -1,0 +1,85 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/ace-high-poker-club-oxford/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:19:51.062701+00:00",
+    "scrape_html_hash": "bbf3860b30815ea5f83d69a4eeb0a692cc945c76be664a03a357003dad680fc8",
+    "scrape_byte_count": 67383,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Ace High Poker Club",
+      "day_of_week": "Sunday",
+      "start_time": "2:00pm",
+      "buy_in": 10,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bbf3860b30815ea5f83d69a4eeb0a692cc945c76be664a03a357003dad680fc8",
+      "scrape_timestamp": "2026-03-25T17:19:51.062701+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/ace-high-poker-club-oxford/tournaments"
+    },
+    {
+      "venue_name": "Ace High Poker Club",
+      "day_of_week": "monday",
+      "start_time": "6:00pm",
+      "buy_in": 10,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bbf3860b30815ea5f83d69a4eeb0a692cc945c76be664a03a357003dad680fc8",
+      "scrape_timestamp": "2026-03-25T17:19:51.062701+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/ace-high-poker-club-oxford/tournaments"
+    },
+    {
+      "venue_name": "Ace High Poker Club",
+      "day_of_week": "Wednesday",
+      "start_time": "6:00pm",
+      "buy_in": 10,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bbf3860b30815ea5f83d69a4eeb0a692cc945c76be664a03a357003dad680fc8",
+      "scrape_timestamp": "2026-03-25T17:19:51.062701+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/ace-high-poker-club-oxford/tournaments"
+    },
+    {
+      "venue_name": "Ace High Poker Club",
+      "day_of_week": "Friday",
+      "start_time": "6:00pm",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bbf3860b30815ea5f83d69a4eeb0a692cc945c76be664a03a357003dad680fc8",
+      "scrape_timestamp": "2026-03-25T17:19:51.062701+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/ace-high-poker-club-oxford/tournaments"
+    },
+    {
+      "venue_name": "Ace High Poker Club",
+      "day_of_week": "Monday",
+      "start_time": "6:00pm",
+      "buy_in": 10,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bbf3860b30815ea5f83d69a4eeb0a692cc945c76be664a03a357003dad680fc8",
+      "scrape_timestamp": "2026-03-25T17:19:51.062701+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/ace-high-poker-club-oxford/tournaments"
+    },
+    {
+      "venue_name": "Ace High Poker Club",
+      "day_of_week": "Sunday",
+      "start_time": "3:00pm",
+      "buy_in": 10,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bbf3860b30815ea5f83d69a4eeb0a692cc945c76be664a03a357003dad680fc8",
+      "scrape_timestamp": "2026-03-25T17:19:51.062701+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/ace-high-poker-club-oxford/tournaments"
+    }
+  ]
+}

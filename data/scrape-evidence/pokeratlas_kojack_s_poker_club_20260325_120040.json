@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/kojacks-midland",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:00:40.927304+00:00",
+  "scrape_html_hash": "c2e5e458d8632a55d427392fe9e651f14cd07f476072a15e753d2f8945b25c50",
+  "scrape_byte_count": 60939,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "KoJack's Poker Club",
+  "data_extracted": {
+    "address": "3205 West Cuthbert Ave, Suite B-9",
+    "city": "Midland",
+    "state": "TX",
+    "zip": "79701",
+    "phone": "(432) 770-7038",
+    "latitude": 31.9983,
+    "longitude": -102.11815,
+    "website": "https://www.kojackspokerclub.com/",
+    "name_from_source": "KoJack's Poker Club",
+    "page_title": "KoJack&#39;s Poker Room Midland, TX Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

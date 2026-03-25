@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/lotus-sacramento",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:57:26.827241+00:00",
+  "scrape_html_hash": "5168f2426999deb15621157326b02000a334cc66a13e2f82edb5af29946e26f2",
+  "scrape_byte_count": 56272,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Parkwest Casino Lotus",
+  "data_extracted": {
+    "address": "6010 Stockton Boulevard",
+    "city": "Sacramento",
+    "state": "CA",
+    "zip": "95824",
+    "phone": "(916) 399-4929",
+    "latitude": 38.518,
+    "longitude": -121.439,
+    "website": "http://www.mylotuscasino.com/",
+    "name_from_source": "Lotus Casino",
+    "page_title": "Lotus Poker Room Sacramento, CA Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

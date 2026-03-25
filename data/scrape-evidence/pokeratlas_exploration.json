@@ -1,0 +1,9 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-rooms",
+  "scrape_http_status": 200,
+  "scrape_html_hash": "ba402797c881103f851620aadd1af8bd0e0e846d68b64a82136b5ebfa49cdafb",
+  "scrape_byte_count": 50931,
+  "scrape_timestamp": "2026-03-25T16:55:18.234944+00:00",
+  "room_links_found": 9,
+  "sample_venue_status": 200
+}

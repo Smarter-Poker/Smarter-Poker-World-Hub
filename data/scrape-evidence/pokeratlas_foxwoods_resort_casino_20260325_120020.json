@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/foxwoods-mashantucket",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:00:20.308076+00:00",
+  "scrape_html_hash": "f0b6d3af85416e16b293a0a29c63040042cfc611d5cfcd7876e67d2ccf1aad82",
+  "scrape_byte_count": 59065,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Foxwoods Resort Casino",
+  "data_extracted": {
+    "address": "350 Trolley Line Boulevard",
+    "city": "Mashantucket",
+    "state": "CT",
+    "zip": "06338",
+    "phone": "(860) 312-3177",
+    "latitude": 41.47343,
+    "longitude": -71.958,
+    "website": "http://www.foxwoods.com",
+    "name_from_source": "Foxwoods Casino",
+    "page_title": "Foxwoods Poker Room Mashantucket, CT Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

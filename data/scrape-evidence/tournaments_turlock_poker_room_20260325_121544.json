@@ -1,0 +1,85 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/turlock-poker-room/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T17:15:44.740665+00:00",
+    "scrape_html_hash": "c7b21d3d021bb010dc3763adeacf08006133df52d1340a4c07c6882e626a345c",
+    "scrape_byte_count": 76035,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Turlock Poker Room",
+      "day_of_week": "Sunday",
+      "start_time": "8:00am",
+      "buy_in": 45,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c7b21d3d021bb010dc3763adeacf08006133df52d1340a4c07c6882e626a345c",
+      "scrape_timestamp": "2026-03-25T17:15:44.740665+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turlock-poker-room/tournaments"
+    },
+    {
+      "venue_name": "Turlock Poker Room",
+      "day_of_week": "Tuesday",
+      "start_time": "10:00am",
+      "buy_in": 45,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c7b21d3d021bb010dc3763adeacf08006133df52d1340a4c07c6882e626a345c",
+      "scrape_timestamp": "2026-03-25T17:15:44.740665+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turlock-poker-room/tournaments"
+    },
+    {
+      "venue_name": "Turlock Poker Room",
+      "day_of_week": "Thursday",
+      "start_time": "10:00am",
+      "buy_in": 45,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c7b21d3d021bb010dc3763adeacf08006133df52d1340a4c07c6882e626a345c",
+      "scrape_timestamp": "2026-03-25T17:15:44.740665+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turlock-poker-room/tournaments"
+    },
+    {
+      "venue_name": "Turlock Poker Room",
+      "day_of_week": "Saturday",
+      "start_time": "10:00am",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c7b21d3d021bb010dc3763adeacf08006133df52d1340a4c07c6882e626a345c",
+      "scrape_timestamp": "2026-03-25T17:15:44.740665+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turlock-poker-room/tournaments"
+    },
+    {
+      "venue_name": "Turlock Poker Room",
+      "day_of_week": "Monday",
+      "start_time": "10:00am",
+      "buy_in": 35,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c7b21d3d021bb010dc3763adeacf08006133df52d1340a4c07c6882e626a345c",
+      "scrape_timestamp": "2026-03-25T17:15:44.740665+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turlock-poker-room/tournaments"
+    },
+    {
+      "venue_name": "Turlock Poker Room",
+      "day_of_week": "Saturday",
+      "start_time": "11:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c7b21d3d021bb010dc3763adeacf08006133df52d1340a4c07c6882e626a345c",
+      "scrape_timestamp": "2026-03-25T17:15:44.740665+00:00",
+      "scrape_batch_id": "8a9e353f-259b-4b44-aaff-3fc24ea8a4e8",
+      "source_url": "https://www.pokeratlas.com/poker-room/turlock-poker-room/tournaments"
+    }
+  ]
+}

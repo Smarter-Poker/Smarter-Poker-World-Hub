@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/aggieland-poker-club-college-station",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:57:37.674962+00:00",
+  "scrape_html_hash": "a8a26c317c10913f5a313047a0f6584b3a09237ec676b9bcd431c30f4a4bef3b",
+  "scrape_byte_count": 59537,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Aggieland Poker Club",
+  "data_extracted": {
+    "address": "12815 Wellborn Road",
+    "city": "College Station",
+    "state": "TX",
+    "zip": "77845",
+    "phone": "(979) 485-1081",
+    "latitude": 30.5702865,
+    "longitude": -96.3090126,
+    "website": "https://www.pokeratlas.com/poker-room/aggieland-poker-club-college-station",
+    "name_from_source": "Aggieland Poker Club",
+    "page_title": "Aggieland Poker Club Poker Room College Station, TX Tournaments,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/seven-feathers-canyonville",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:02:09.622449+00:00",
+  "scrape_html_hash": "61f37f802003d0d4fa36ff1c8d6f578aa98103c14948cb74a49319a9b9e97003",
+  "scrape_byte_count": 56941,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Seven Feathers Casino Resort",
+  "data_extracted": {
+    "address": "146 Chief Miwaleta Lane",
+    "city": "Canyonville",
+    "state": "OR",
+    "zip": "97417",
+    "phone": "(800) 548-8461",
+    "latitude": 42.9397,
+    "longitude": -123.285,
+    "website": "http://www.sevenfeathers.com/",
+    "name_from_source": "Seven Feathers Casino",
+    "page_title": "Seven Feathers Poker Room Canyonville, OR Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

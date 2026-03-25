@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/orange-city",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T17:01:15.683832+00:00",
+  "scrape_html_hash": "f073cf53897a8064414e4e398221a9cbc6557881e17c332c31447ee9ca0c7d48",
+  "scrape_byte_count": 58729,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Orange City Racing & Card Club",
+  "data_extracted": {
+    "address": "822-4 Saxon Blvd",
+    "city": "Orange City",
+    "state": "FL",
+    "zip": "32763",
+    "phone": "(386) 252-6484",
+    "latitude": 28.91198,
+    "longitude": -81.29634,
+    "website": "https://orangecitypoker.com/",
+    "name_from_source": "Orange City Racing & Card Club",
+    "page_title": "Orange City Poker Room Orange City, FL Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}

@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/texas-card-house-spring",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-25T16:59:11.265008+00:00",
+  "scrape_html_hash": "34de50f4cd41c586ed7dd53c04b3d673afed7cb38e7f624b57684b404116e888",
+  "scrape_byte_count": 61704,
+  "scrape_script": "scripts/scrape_pokeratlas_venues.py",
+  "scrape_batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14",
+  "venue_name": "Texas Card House Spring",
+  "data_extracted": {
+    "address": "1411 Spring Cypress Rd",
+    "city": "Spring",
+    "state": "TX",
+    "zip": "77373",
+    "phone": "(346) 831-0677",
+    "latitude": 30.07516,
+    "longitude": -95.43378,
+    "website": "https://texascardhouse.com/spring/",
+    "name_from_source": "Texas Card House Spring",
+    "page_title": "Texas Card House Poker Room Spring, TX Tournaments, Reviews, Games,"
+  },
+  "batch_id": "a8836453-86b2-4a53-b634-71f3bd4b7c14"
+}
