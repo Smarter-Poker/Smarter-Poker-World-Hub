@@ -978,9 +978,6 @@ export default function ReelsPage() {
 
                 {/* Engagement Stats Pill */}
                 <div style={{
-                    opacity: overlayVisible ? 1 : 0,
-                    transition: 'opacity 0.35s ease',
-                    pointerEvents: overlayVisible ? 'auto' : 'none',
                     position: 'absolute', top: 20, right: 16, zIndex: 100,
                     display: 'flex', gap: 12, padding: '6px 14px', borderRadius: 20,
                     background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
@@ -1423,8 +1420,6 @@ export default function ReelsPage() {
                     <div style={{
                         position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100,
-                        opacity: overlayVisible ? 1 : 0,
-                        transition: 'opacity 0.35s ease',
                         pointerEvents: 'none',
                     }}>
                         {loadingMore ? (
