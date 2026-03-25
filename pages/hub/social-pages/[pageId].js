@@ -14,10 +14,10 @@ import SkeletonLight from '../../../src/components/ui/SkeletonLight';
 import { supabase } from '../../../src/lib/supabase';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
-// Lightweight QR Code component — uses Google Charts API (zero dependencies)
+// Lightweight QR Code component — uses goqr.me API (zero dependencies, no Google Charts)
 function QRCanvas({ value, size = 140 }) {
     if (!value) return null;
-    const qrSrc = `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${encodeURIComponent(value)}&choe=UTF-8`;
+    const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(value)}&format=png&margin=4`;
     return (
         <img
             src={qrSrc}
@@ -25,6 +25,7 @@ function QRCanvas({ value, size = 140 }) {
             width={size}
             height={size}
             style={{ borderRadius: 8, border: '1px solid #E4E6EB' }}
+            onError={(e) => { e.target.style.display = 'none'; }}
         />
     );
 }
