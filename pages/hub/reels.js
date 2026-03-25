@@ -291,21 +291,27 @@ export default function ReelsPage() {
     const currentReel = reels[currentIndex];
 
     const goNext = () => {
+        if (slideDebounceRef.current) return;
         if (currentIndex < reels.length - 1) {
+            slideDebounceRef.current = true;
             setSlideDirection('up');
             setTimeout(() => {
                 setCurrentIndex(prev => prev + 1);
                 setSlideDirection(null);
+                slideDebounceRef.current = false;
             }, 250);
         }
     };
 
     const goPrev = () => {
+        if (slideDebounceRef.current) return;
         if (currentIndex > 0) {
+            slideDebounceRef.current = true;
             setSlideDirection('down');
             setTimeout(() => {
                 setCurrentIndex(prev => prev - 1);
                 setSlideDirection(null);
+                slideDebounceRef.current = false;
             }, 250);
         }
     };
@@ -549,18 +555,51 @@ export default function ReelsPage() {
     // Use refs to avoid stale closures in event handlers
     const currentIndexRef = useRef(currentIndex);
     const reelsLengthRef = useRef(reels.length);
+    const slideDebounceRef = useRef(false);
 
     useEffect(() => {    const _c = new AbortController();
-
         currentIndexRef.current = currentIndex;
     return () => _c.abort();
   }, [currentIndex]);
 
     useEffect(() => {    const _c = new AbortController();
-
         reelsLengthRef.current = reels.length;
     return () => _c.abort();
   }, [reels.length]);
+
+    // Slide helper for event handlers (uses refs, no stale closures)
+    const slideToNext = () => {
+        if (slideDebounceRef.current) return;
+        if (currentIndexRef.current < reelsLengthRef.current - 1) {
+            slideDebounceRef.current = true;
+            setSlideDirection('up');
+            setTimeout(() => {
+                setCurrentIndex(prev => prev + 1);
+                setSlideDirection(null);
+                slideDebounceRef.current = false;
+            }, 250);
+        }
+    };
+    const slideToPrev = () => {
+        if (slideDebounceRef.current) return;
+        if (currentIndexRef.current > 0) {
+            slideDebounceRef.current = true;
+            setSlideDirection('down');
+            setTimeout(() => {
+                setCurrentIndex(prev => prev - 1);
+                setSlideDirection(null);
+                slideDebounceRef.current = false;
+            }, 250);
+        }
+    };
+
+    // Stable refs for slide functions (used in useEffect handlers)
+    const slideToNextRef = useRef(slideToNext);
+    const slideToPrevRef = useRef(slideToPrev);
+    useEffect(() => {
+        slideToNextRef.current = slideToNext;
+        slideToPrevRef.current = slideToPrev;
+    });
 
     // DOCUMENT-LEVEL touch capture to intercept BEFORE YouTube iframe gets them
     useEffect(() => {    const _c = new AbortController();
@@ -581,14 +620,10 @@ export default function ReelsPage() {
                 try { navigator?.vibrate?.(10); } catch {}
                 if (diff > 0) {
                     // Swipe up = next
-                    if (currentIndexRef.current < reelsLengthRef.current - 1) {
-                        setCurrentIndex(prev => prev + 1);
-                    }
+                    slideToNextRef.current();
                 } else {
                     // Swipe down = previous
-                    if (currentIndexRef.current > 0) {
-                        setCurrentIndex(prev => prev - 1);
-                    }
+                    slideToPrevRef.current();
                 }
             }
         };
@@ -599,25 +634,40 @@ export default function ReelsPage() {
             if (wheelTimeout) return;
             wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 400);
             if (e.deltaY > 30) {
-                if (currentIndexRef.current < reelsLengthRef.current - 1) {
-                    setCurrentIndex(prev => prev + 1);
-                }
+                slideToNextRef.current();
             }
             if (e.deltaY < -30) {
-                if (currentIndexRef.current > 0) {
-                    setCurrentIndex(prev => prev - 1);
-                }
+                slideToPrevRef.current();
             }
+        };
+
+        // YouTube API message listener — auto-advance on video end
+        const handleYTMessage = (e) => {
+            try {
+                if (typeof e.data !== 'string') return;
+                const data = JSON.parse(e.data);
+                // YouTube iframe API sends onStateChange with info.playerState
+                if (data?.event === 'onStateChange' && data?.info === 0) {
+                    // 0 = ended — auto-advance to next reel
+                    slideToNextRef.current();
+                }
+                // Also handle the "infoDelivery" format
+                if (data?.info?.playerState === 0) {
+                    slideToNextRef.current();
+                }
+            } catch {}
         };
 
         // CAPTURE phase - intercepts before iframe
         document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
         document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
         window.addEventListener('wheel', handleWheel, { passive: true });
+        window.addEventListener('message', handleYTMessage);
         return () => { _c.abort();
             document.removeEventListener('touchstart', handleTouchStart, { capture: true });
             document.removeEventListener('touchend', handleTouchEnd, { capture: true });
             window.removeEventListener('wheel', handleWheel);
+            window.removeEventListener('message', handleYTMessage);
         };}, []);
   // Realtime subscription — live updates
   useEffect(() => {
@@ -660,11 +710,22 @@ export default function ReelsPage() {
                 });
             }
         };
+        const handleCommentBus = (event) => {
+            const d = event?.payload;
+            if (d?.postId) {
+                setCommentCounts(prev => ({
+                    ...prev,
+                    [d.postId]: (prev[d.postId] || 0) + 1
+                }));
+            }
+        };
         eventBus.on(EventType.SOCIAL_POST_LIKED, handleLikeBus);
         eventBus.on(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
+        eventBus.on(EventType.SOCIAL_COMMENT_ADDED, handleCommentBus);
         return () => {
             eventBus.off(EventType.SOCIAL_POST_LIKED, handleLikeBus);
             eventBus.off(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
+            eventBus.off(EventType.SOCIAL_COMMENT_ADDED, handleCommentBus);
         };
     }, [user?.id]);
 
@@ -845,7 +906,7 @@ export default function ReelsPage() {
                         <iframe
                             ref={iframeRef}
                             key={currentReel?.id}
-                            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
+                            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
                             title="Poker Reel"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen
