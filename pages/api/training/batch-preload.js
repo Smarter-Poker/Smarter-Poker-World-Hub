@@ -144,6 +144,42 @@ export default async function handler(req, res) {
           const allQuestions = [...cachedQuestions, ...solverQuestions];
 
           if (allQuestions.length === 0) {
+              // ═══ GROK AI FALLBACK — for games with zero data ═══
+              try {
+                  const { getGrokClient } = await import('../../../src/lib/grokClient');
+                  const grok = getGrokClient();
+                  const TRAINING_LIBRARY = require('../../../src/data/TRAINING_LIBRARY').default || require('../../../src/data/TRAINING_LIBRARY');
+                  const game = (Array.isArray(TRAINING_LIBRARY) ? TRAINING_LIBRARY : []).find(g => g.id === gameId);
+                  const gameName = game?.name || 'Training Game';
+                  const gameFocus = game?.focus || 'GTO poker strategy';
+
+                  console.log(`[BatchPreload] ⚠️ Grok fallback for ${gameId} (zero cache+solver data)`);
+                  for (let i = 0; i < Math.min(questionCount, 10); i++) {
+                      try {
+                          const prompt = `You are an elite GTO poker coach. Generate a unique training question #${i + 1} for "${gameName}" focusing on: ${gameFocus}. Difficulty: ${gameLevel}/10.\n\nGenerate in this EXACT JSON format (no markdown):\n{"id":"grok_${gameId}_${Date.now()}_${i}","type":"PIO","source":"GROK_GTO","question":"...","scenario":{"title":"${gameName}","context":"...","heroPosition":"BTN","villainPosition":"BB","pot":12,"heroStack":100,"villainStack":100,"street":"flop","board":"Jh 7s 2d","heroHand":"AKs"},"heroCards":["Ah","Kh"],"boardCards":["Jh","7s","2d"],"options":[{"id":"a","text":"Fold"},{"id":"b","text":"Call"},{"id":"c","text":"Raise"},{"id":"d","text":"All-In"}],"correctAnswer":"c","correctAnswerText":"Raise","explanation":"...","gtoFrequencies":{"a":5,"b":25,"c":60,"d":10}}`;
+                          const resp = await grok.chat.completions.create({
+                              model: 'grok-3', messages: [{ role: 'user', content: prompt }],
+                              temperature: 0.9, max_tokens: 800,
+                          }, { signal: AbortSignal.timeout(15000) });
+                          const content = resp.choices[0]?.message?.content || '';
+                          const jsonMatch = content.match(/\{[\s\S]*\}/);
+                          if (jsonMatch) {
+                              const parsed = JSON.parse(jsonMatch[0]);
+                              allQuestions.push({ question_data: parsed });
+                          }
+                      } catch (grokErr) {
+                          console.warn('[BatchPreload] Grok question gen failed:', grokErr.message);
+                      }
+                  }
+                  if (allQuestions.length > 0) {
+                      console.log(`[BatchPreload] ✅ Grok fallback generated ${allQuestions.length} questions for ${gameId}`);
+                  }
+              } catch (grokImportErr) {
+                  console.error('[BatchPreload] ⚠️ Grok import failed:', grokImportErr.message);
+              }
+          }
+
+          if (allQuestions.length === 0) {
               return res.status(404).json({ success: false, error: 'No questions available for this game/level' });
           }
 
@@ -196,6 +232,33 @@ export default async function handler(req, res) {
                       const seed = hashSeed(q.id || `board${qData.id || Math.random()}`);
                       qData.boardCards = _getDeterministicCards(seed, 3, qData.heroCards);
                       dataQuality = 'SIMULATED';
+                  }
+              }
+
+              // 2.5 ═══ 4-OPTION MANDATE ═══
+              // Pad options to exactly 4 if under-populated
+              if (!qData.options) qData.options = [];
+              // Normalize options to object format: { id, text, frequency }
+              qData.options = qData.options.map((opt, idx) => {
+                  if (typeof opt === 'string') return { id: String.fromCharCode(97 + idx), text: opt, frequency: 0 };
+                  return { id: opt.id || String.fromCharCode(97 + idx), text: opt.text || opt, frequency: opt.frequency || 0 };
+              });
+
+              if (qData.options.length < 4 && !scenario.isPsychology) {
+                  const existingTexts = new Set(qData.options.map(o => (o.text || '').toLowerCase()));
+                  const existingIds = new Set(qData.options.map(o => o.id));
+                  const fillers = [
+                      { text: 'Fold' }, { text: 'Check' }, { text: 'Call' },
+                      { text: 'Raise' }, { text: 'All-In' },
+                      { text: 'Bet 33%' }, { text: 'Bet Pot' },
+                  ];
+                  for (const filler of fillers) {
+                      if (qData.options.length >= 4) break;
+                      if (!existingTexts.has(filler.text.toLowerCase())) {
+                          const newId = String.fromCharCode(97 + qData.options.length);
+                          qData.options.push({ id: newId, text: filler.text, frequency: 0 });
+                          existingTexts.add(filler.text.toLowerCase());
+                      }
                   }
               }
 
