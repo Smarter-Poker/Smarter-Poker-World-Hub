@@ -1,0 +1,11 @@
+{
+  "name": "Harrahs Cherokee Poker Series",
+  "type": "series",
+  "source": "https://www.caesars.com/harrahs-cherokee",
+  "http": 200,
+  "hash": "51823b0b60c37863ae5dc408f702a42798ae9dfae524e9548f1b882181fb8bd2",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:02:20.905787+00:00",
+  "batch": "3615f5d8-5626-4749-9358-8c72707e3aa8"
+}

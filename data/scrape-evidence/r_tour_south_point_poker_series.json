@@ -1,0 +1,11 @@
+{
+  "name": "South Point Poker Series",
+  "type": "series",
+  "source": "https://www.southpointcasino.com/casino/poker",
+  "http": 200,
+  "hash": "8c982e2ee3d792f9d3ecad76d110644778f7f0929fead3643ff5423cde081ec9",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:02:39.525396+00:00",
+  "batch": "3615f5d8-5626-4749-9358-8c72707e3aa8"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "Wynn Poker Series",
+  "type": "series",
+  "source": "https://www.wynnlasvegas.com/casino/poker",
+  "http": 200,
+  "hash": "4a44c8e43a14a6027805783aa3b2e8df489c8b9670168b7e1d109edd9c30bd39",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:00:29.209155+00:00",
+  "batch": "3615f5d8-5626-4749-9358-8c72707e3aa8"
+}

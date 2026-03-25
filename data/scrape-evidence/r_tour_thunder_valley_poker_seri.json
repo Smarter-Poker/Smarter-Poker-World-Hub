@@ -1,0 +1,11 @@
+{
+  "name": "Thunder Valley Poker Series",
+  "type": "series",
+  "source": "https://www.thundervalleyresort.com",
+  "http": 200,
+  "hash": "7497b8f5744610d718581d9df5f9e8c28dea3ecca2be8b53fef9611444e8dd08",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:02:09.429954+00:00",
+  "batch": "3615f5d8-5626-4749-9358-8c72707e3aa8"
+}

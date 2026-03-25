@@ -1,0 +1,11 @@
+{
+  "name": "Mid-States Poker Tour (MSPT)",
+  "type": "tour",
+  "source": "https://msptpoker.com",
+  "http": 200,
+  "hash": "254cc89cb544db1899a6d178c510b138cfcfa6bd5443a8cb22eff2ec2dee5c25",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T22:59:29.809847+00:00",
+  "batch": "3615f5d8-5626-4749-9358-8c72707e3aa8"
+}

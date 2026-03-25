@@ -59,7 +59,7 @@ function Avatar({ src, name, size = 40 }) {
     );
 }
 
-function PostCard({ post, user, onLike, onComment, onDelete, onPin, isPageOwner, page, isOwnerOnOwnPage }) {
+function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPageOwner, page, isOwnerOnOwnPage }) {
     const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
     const [comments, setComments] = useState([]);
@@ -118,7 +118,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, isPageOwner,
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ id: post.id, content: editContent.trim() }),
             });
-            if (res.ok) { post.content = editContent.trim(); setEditing(false); }
+            if (res.ok) {
+                onEdit(post.id, editContent.trim());
+                setEditing(false);
+            }
         } catch (e) { console.error(e); }
     };
 
@@ -582,7 +585,7 @@ export default function SocialPageDetail() {
                 toast.success(actionType === 'seat' ? 'Seat reserved!' : 'Added to waitlist!');
                 fetchGames();
             } else {
-                toast.success(json.error || 'Action failed');
+                toast.error(json.error || 'Action failed');
             }
         } catch (e) { console.error('Seat action error:', e); }
         setSeatAction(null);
@@ -640,12 +643,12 @@ export default function SocialPageDetail() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_followers', filter: `page_id=eq.${resolvedId}` }, () => {
         fetchFollowers();
-        // Update follower count from fresh data
-        setPage(prev => prev ? { ...prev, follower_count: (prev.follower_count || 0) } : prev);
+        // Refresh page data to get updated follower count
+        fetchPage();
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [pageId, page, fetchPosts, fetchFollowers]);
+  }, [pageId, page, fetchPosts, fetchFollowers, fetchPage]);
 
     const handleFollow = async () => {
         if (!user) { router.push('/auth/login'); return; }
@@ -759,6 +762,13 @@ export default function SocialPageDetail() {
             busEmit.dataMutated('social-pages');
             toast.success(pinned ? 'Post pinned' : 'Post unpinned');
         } catch (e) { console.error(e); }
+    };
+
+    const handleEditPost = (postId, newContent) => {
+        setPosts(prev => prev.map(p =>
+            p.id === postId ? { ...p, content: newContent } : p
+        ));
+        busEmit.dataMutated('social-pages');
     };
 
     // Follow/unfollow a user from the member list
@@ -1103,6 +1113,7 @@ export default function SocialPageDetail() {
                                                 onComment={handleCommentAdded}
                                                 onDelete={handleDeletePost}
                                                 onPin={handlePinPost}
+                                                onEdit={handleEditPost}
                                                 isPageOwner={isPageOwner}
                                                 page={page}
                                                 isOwnerOnOwnPage={isOwnerOnOwnPage}
