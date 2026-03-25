@@ -82,6 +82,8 @@ export const EventType = {
     SOCIAL_POST_CREATED: 'SOCIAL_POST_CREATED',
     SOCIAL_POST_LIKED: 'SOCIAL_POST_LIKED',
     SOCIAL_COMMENT_ADDED: 'SOCIAL_COMMENT_ADDED',
+    SOCIAL_POST_BOOKMARKED: 'SOCIAL_POST_BOOKMARKED',
+    SOCIAL_POST_SHARED: 'SOCIAL_POST_SHARED',
     SOCIAL_FEED_REFRESHED: 'SOCIAL_FEED_REFRESHED',
 
     // ── Club Arena Operations ──
@@ -360,6 +362,12 @@ const _busEmitMethods = {
 
     socialCommentAdded: (postId, authorId, meta = {}) =>
         eventBus.emit(EventType.SOCIAL_COMMENT_ADDED, { postId, authorId, ...meta }, 'SocialFeed'),
+
+    socialPostBookmarked: (postId, userId, meta = {}) =>
+        eventBus.emit(EventType.SOCIAL_POST_BOOKMARKED, { postId, userId, added: meta.added }, 'SocialFeed'),
+
+    socialPostShared: (postId, userId) =>
+        eventBus.emit(EventType.SOCIAL_POST_SHARED, { postId, userId }, 'SocialFeed'),
 
     socialFeedRefreshed: () =>
         eventBus.emit(EventType.SOCIAL_FEED_REFRESHED, {}, 'SocialFeed'),

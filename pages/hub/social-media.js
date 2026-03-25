@@ -2543,7 +2543,6 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                                     )}
                                                 </div>
                                             )}
-                                            )}
                                         </div>
                                     )}
                                     {/* Comment Meta row: Time, Like, Reply, Edit, Delete, Count */}

@@ -1167,7 +1167,6 @@ export default function ProfilePage() {
                 broadcastSync('smarter_poker_avatar_sync', 'refresh');
             } catch { /* noop */ }
             busEmit.dataMutated('profile');
-            setOriginalProfile(prev => ({ ...prev, cover_photo_url: publicUrl, cover_photo_position: '50% 50%' }));
         } catch (error) {
             setCoverUploadPhase(null);
             setMessage('Error uploading cover photo: ' + error.message);
@@ -1247,7 +1246,6 @@ export default function ProfilePage() {
             broadcastSync('smarter_poker_avatar_sync', 'refresh');
         } catch { /* noop */ }
         busEmit.dataMutated('profile');
-        setOriginalProfile(prev => ({ ...prev, cover_photo_url: null, cover_photo_position: '50% 50%' }));
     };
 
     const handleSave = async () => {
@@ -1600,7 +1598,6 @@ export default function ProfilePage() {
                                 broadcastSync('smarter_poker_avatar_sync', 'refresh');
                             } catch { /* noop */ }
                             busEmit.dataMutated('profile');
-                            setOriginalProfile(prev => ({ ...prev, cover_photo_position: positionStr }));
                         }}
                     />
                 )}

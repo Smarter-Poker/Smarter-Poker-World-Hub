@@ -470,6 +470,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setTimeout(() => setShareToast(false), 2000);
         // Increment share_count in Supabase
         supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }).catch(() => {});
+        if (authUser?.id) busEmit.socialPostShared(currentReel.id, authUser.id);
     };
 
     // Reset on reel change + track view
@@ -512,6 +513,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         } catch {
             setSaved(prev => ({ ...prev, [currentReel.id]: wasSaved }));
         }
+        busEmit.socialPostBookmarked(currentReel.id, authUser.id, { added: !wasSaved });
     };
 
     // Keyboard navigation
@@ -795,8 +797,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>{c.created_at ? timeAgo(c.created_at) : ''}</span>
                                         {c.content && <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, margin: '2px 0 0' }}>{c.content}</p>}
                                         {c.media_url && (
-                                            <img src={c.media_url} alt={c.media_type === 'gif' ? 'GIF' : 'Image'}
-                                                style={{ maxWidth: 180, maxHeight: 140, borderRadius: 8, marginTop: 4, display: 'block' }} />
+                                            <div style={{ position: 'relative', display: 'inline-block', marginTop: 4 }}>
+                                                <img src={c.media_url} alt={c.media_type === 'gif' ? 'GIF' : 'Image'}
+                                                    style={{ maxWidth: 180, maxHeight: 140, borderRadius: 8, display: 'block' }}
+                                                    onError={e => { e.target.style.display = 'none'; }} />
+                                                {c.media_type === 'gif' && (
+                                                    <span style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: 8, fontWeight: 700, padding: '1px 4px', borderRadius: 3 }}>GIF</span>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>

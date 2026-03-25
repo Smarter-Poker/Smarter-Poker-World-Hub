@@ -639,8 +639,14 @@ export function ReelsViewer({ onClose }) {
                                         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>{c.created_at ? timeAgo(c.created_at) : ''}</span>
                                         {c.content && <span style={{ color: C.textSec, fontSize: 13, marginLeft: 8 }}>{c.content}</span>}
                                         {c.media_url && (
-                                            <img src={c.media_url} alt={c.media_type === 'gif' ? 'GIF' : 'Image'}
-                                                style={{ maxWidth: 180, maxHeight: 140, borderRadius: 8, marginTop: 4, display: 'block' }} />
+                                            <div style={{ position: 'relative', display: 'inline-block', marginTop: 4 }}>
+                                                <img src={c.media_url} alt={c.media_type === 'gif' ? 'GIF' : 'Image'}
+                                                    style={{ maxWidth: 180, maxHeight: 140, borderRadius: 8, display: 'block' }}
+                                                    onError={e => { e.target.style.display = 'none'; }} />
+                                                {c.media_type === 'gif' && (
+                                                    <span style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: 8, fontWeight: 700, padding: '1px 4px', borderRadius: 3 }}>GIF</span>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
