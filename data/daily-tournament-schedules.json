@@ -2,8 +2,8 @@
   "metadata": {
     "description": "Daily/Recurring Tournament Schedules for Verified Venues",
     "lastUpdated": "2026-03-25",
-    "totalVenues": 192,
-    "venuesWithDailyTournaments": 192,
+    "totalVenues": 193,
+    "venuesWithDailyTournaments": 193,
     "sources": [
       "Direct venue websites",
       "Web search results",
@@ -28832,6 +28832,60 @@
       ],
       "source_url": "4bearscasino.com",
       "last_scraped": "2026-03-25T14:26:24Z"
+    },
+    {
+      "venue_name": "Mardi Gras Casino",
+      "city": "Cross Lanes",
+      "state": "WV",
+      "schedules": [
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "6:30PM",
+          "buy_in": 115,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "2:00PM",
+          "buy_in": 115,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:30PM",
+          "buy_in": 115,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 115,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "2:00PM",
+          "buy_in": 115,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        }
+      ],
+      "source_url": "mardigrascasinowv.com",
+      "last_scraped": "2026-03-25T14:27:30Z"
     }
   ],
   "venuesWithoutDailyTournaments": [
