@@ -22,11 +22,15 @@ export async function getNewsPreferences(userId) {
             .eq('id', userId)
             .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+            // Column may not exist in DB — gracefully degrade
+            console.warn('News preferences fetch failed (non-critical):', error?.message);
+            return { pushNotifications: false, emailDigest: false };
+        }
 
         return data?.news_preferences || { pushNotifications: false, emailDigest: false };
     } catch (error) {
-        console.error('Error fetching news preferences:', error);
+        console.warn('News preferences not available:', error?.message);
         return { pushNotifications: false, emailDigest: false };
     }
 }

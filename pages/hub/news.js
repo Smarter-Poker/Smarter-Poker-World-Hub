@@ -1149,7 +1149,7 @@ export default function NewsHub() {
     // Load preferences and bookmarks from Supabase on mount
     useEffect(() => {
         if (userId) {
-            getNewsPreferences(userId).then(setPreferences);
+            getNewsPreferences(userId).then(setPreferences).catch(err => console.warn('News preferences not available:', err?.message));
 
             // Load bookmarks
             getNewsBookmarks(userId).then(data => {
