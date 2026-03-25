@@ -187,12 +187,16 @@ function PostCard({ post, user, onLike, onComment }) {
                             ))}
                             {user && (
                                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                                    <Avatar src={user.user_metadata?.avatar_url} name={user.user_metadata?.full_name || user.email} size={28} />
+                                    <Avatar
+                                        src={isOwnerOnOwnPage ? page.avatar_url : user.user_metadata?.avatar_url}
+                                        name={isOwnerOnOwnPage ? page.name : (user.user_metadata?.full_name || user.email)}
+                                        size={28}
+                                    />
                                     <div style={{ flex: 1, display: 'flex', gap: 4 }}>
                                         <input
                                             type="text" value={commentText} onChange={e => setCommentText(e.target.value)}
                                             onKeyDown={e => e.key === 'Enter' && submitComment()}
-                                            placeholder="Write A Comment..."
+                                            placeholder={isOwnerOnOwnPage ? `Comment as ${page.name}...` : 'Write A Comment...'}
                                             style={{
                                                 flex: 1, padding: '8px 12px', borderRadius: 20,
                                                 border: `1px solid ${C.border}`, fontSize: 13,
@@ -233,6 +237,12 @@ export default function SocialPageDetail() {
     const [userRole, setUserRole] = useState(null);
     const [newPost, setNewPost] = useState('');
     const [posting, setPosting] = useState(false);
+    // Invite friends
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [inviteFriends, setInviteFriends] = useState([]);
+    const [inviteLoading, setInviteLoading] = useState(false);
+    const [invitedIds, setInvitedIds] = useState(new Set());
+    const [inviteSearch, setInviteSearch] = useState('');
 
     // Toast notification system
     const [toastMsg, setToastMsg] = useState(null);
@@ -244,6 +254,11 @@ export default function SocialPageDetail() {
             toastTimerRef.current = setTimeout(() => setToastMsg(null), duration);
         }
     };
+
+    // Cleanup toast timer on unmount
+    useEffect(() => {
+        return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); };
+    }, []);
 
     // Owner identity detection — works regardless of active identity mode
     // userRole is already set by the API (detected via page.owner_id === user.id)
@@ -323,7 +338,7 @@ export default function SocialPageDetail() {
         return () => controller.abort();
     }, [fetchPosts, page]);
     useEffect(() => { if (page && activeTab === 'members') fetchFollowers(); }, [fetchFollowers, page, activeTab]);
-  // Realtime subscription — live updates
+  // Realtime subscription — live updates (posts, interactions, followers)
   useEffect(() => {
 
     if (!router.isReady) return;
@@ -339,9 +354,14 @@ export default function SocialPageDetail() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_interactions', filter: `page_id=eq.${resolvedId}` }, () => {
         fetchPosts();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_followers', filter: `page_id=eq.${resolvedId}` }, () => {
+        fetchFollowers();
+        // Update follower count from fresh data
+        setPage(prev => prev ? { ...prev, follower_count: (prev.follower_count || 0) } : prev);
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [pageId, page, fetchPosts]);
+  }, [pageId, page, fetchPosts, fetchFollowers]);
 
     const handleFollow = async () => {
         if (!user) { router.push('/auth/login'); return; }
@@ -816,6 +836,49 @@ export default function SocialPageDetail() {
                                 </button>
                             </div>
 
+                            {/* Invite Friends Card */}
+                            {user && (
+                                <div style={{
+                                    background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16, marginBottom: 12,
+                                }}>
+                                    <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 8px' }}>Invite Friends</h3>
+                                    <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 10px' }}>Help {page.name} grow!</p>
+                                    <button onClick={async () => {
+                                        setShowInviteModal(true);
+                                        if (inviteFriends.length === 0) {
+                                            setInviteLoading(true);
+                                            try {
+                                                const token = getAccessToken();
+                                                const res = await fetch(`/api/friends?action=list`, {
+                                                    headers: { 'Authorization': `Bearer ${token}` }
+                                                });
+                                                const json = await res.json();
+                                                if (json.success && json.data?.friends) {
+                                                    // Filter out users who are already followers
+                                                    const followerIds = new Set(followers.map(f => f.user_id || f.profile?.id));
+                                                    const filtered = json.data.friends.filter(f => !followerIds.has(f.id));
+                                                    setInviteFriends(filtered);
+                                                }
+                                            } catch (e) { console.error('Failed to load friends:', e); }
+                                            setInviteLoading(false);
+                                        }
+                                    }} style={{
+                                        width: '100%', padding: '9px 0', borderRadius: 8, border: 'none',
+                                        background: '#E7F3FF', color: C.blue, fontSize: 13, fontWeight: 600,
+                                        cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center',
+                                        justifyContent: 'center', gap: 6,
+                                    }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                            <circle cx="9" cy="7" r="4" />
+                                            <path d="M2 21v-2a7 7 0 0114 0v2" />
+                                            <line x1="19" y1="8" x2="19" y2="14" />
+                                            <line x1="16" y1="11" x2="22" y2="11" />
+                                        </svg>
+                                        Invite Friends
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Recent Members */}
                             {followers.length > 0 && (
                                 <div style={{
@@ -833,6 +896,112 @@ export default function SocialPageDetail() {
                     </div>
                 </div>
               <BottomNavBar />
+
+              {/* Invite Friends Modal */}
+              {showInviteModal && (
+                  <div style={{
+                      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+                  }} onClick={() => setShowInviteModal(false)}>
+                      <div style={{
+                          background: C.card, borderRadius: 16, maxWidth: 420, width: '100%',
+                          maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+                          boxShadow: '0 8px 40px rgba(0,0,0,0.3)', overflow: 'hidden',
+                      }} onClick={e => e.stopPropagation()}>
+                          {/* Header */}
+                          <div style={{
+                              padding: '16px 20px', borderBottom: `1px solid ${C.border}`,
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          }}>
+                              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Invite Friends to {page.name}</h3>
+                              <button onClick={() => setShowInviteModal(false)} style={{
+                                  background: C.bg, border: 'none', cursor: 'pointer', fontSize: 16,
+                                  width: 32, height: 32, borderRadius: '50%', display: 'flex',
+                                  alignItems: 'center', justifyContent: 'center', color: C.text,
+                              }}>✕</button>
+                          </div>
+                          {/* Search */}
+                          <div style={{ padding: '12px 20px', borderBottom: `1px solid ${C.border}` }}>
+                              <input
+                                  type="text" value={inviteSearch}
+                                  onChange={e => setInviteSearch(e.target.value)}
+                                  placeholder="Search friends..."
+                                  style={{
+                                      width: '100%', padding: '8px 12px', borderRadius: 20,
+                                      border: `1px solid ${C.border}`, fontSize: 13,
+                                      fontFamily: 'inherit', outline: 'none', background: C.bg,
+                                      boxSizing: 'border-box',
+                                  }}
+                              />
+                          </div>
+                          {/* Friends List */}
+                          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+                              {inviteLoading ? (
+                                  <div style={{ padding: 40, textAlign: 'center', color: C.textSec, fontSize: 14 }}>Loading friends...</div>
+                              ) : inviteFriends.length === 0 ? (
+                                  <div style={{ padding: 40, textAlign: 'center', color: C.textSec }}>
+                                      <div style={{ fontSize: 36, marginBottom: 8 }}>👥</div>
+                                      <div style={{ fontSize: 14, fontWeight: 500 }}>No friends to invite</div>
+                                      <div style={{ fontSize: 12, marginTop: 4 }}>All your friends are already following this page!</div>
+                                  </div>
+                              ) : (
+                                  inviteFriends
+                                      .filter(f => !inviteSearch || (f.full_name || f.display_name || f.username || '').toLowerCase().includes(inviteSearch.toLowerCase()))
+                                      .map(friend => (
+                                          <div key={friend.id} style={{
+                                              display: 'flex', alignItems: 'center', gap: 12,
+                                              padding: '10px 20px',
+                                          }}>
+                                              <Avatar src={friend.avatar_url} name={friend.display_name || friend.username} size={40} />
+                                              <div style={{ flex: 1 }}>
+                                                  <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
+                                                      {friend.display_name || friend.full_name || friend.username}
+                                                  </div>
+                                                  {friend.username && (
+                                                      <div style={{ fontSize: 12, color: C.textSec }}>@{friend.username}</div>
+                                                  )}
+                                              </div>
+                                              <button
+                                                  disabled={invitedIds.has(friend.id)}
+                                                  onClick={() => {
+                                                      const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
+                                                      navigator.clipboard.writeText(url);
+                                                      setInvitedIds(prev => new Set([...prev, friend.id]));
+                                                      toast.success(`Invite link copied for ${friend.display_name || friend.username}!`);
+                                                  }}
+                                                  style={{
+                                                      padding: '6px 16px', borderRadius: 6, border: 'none',
+                                                      background: invitedIds.has(friend.id) ? '#E4E6EB' : C.blue,
+                                                      color: invitedIds.has(friend.id) ? C.textSec : '#fff',
+                                                      fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                                  }}
+                                              >
+                                                  {invitedIds.has(friend.id) ? 'Invited' : 'Invite'}
+                                              </button>
+                                          </div>
+                                      ))
+                              )}
+                          </div>
+                          {/* Share Link Footer */}
+                          <div style={{
+                              padding: '12px 20px', borderTop: `1px solid ${C.border}`,
+                              display: 'flex', gap: 8, alignItems: 'center',
+                          }}>
+                              <button onClick={() => {
+                                  const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
+                                  navigator.clipboard.writeText(url);
+                                  toast.success('Page link copied!');
+                              }} style={{
+                                  flex: 1, padding: '10px 0', borderRadius: 8, border: 'none',
+                                  background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600,
+                                  cursor: 'pointer', fontFamily: 'inherit',
+                              }}>
+                                  Copy Page Link
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+              )}
 
               {/* Toast Notification */}
               {toastMsg && (

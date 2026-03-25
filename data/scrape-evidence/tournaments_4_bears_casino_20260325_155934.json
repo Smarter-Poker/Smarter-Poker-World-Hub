@@ -1,0 +1,49 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/4-bears-new-town/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T20:59:34.858156+00:00",
+    "scrape_html_hash": "50c162fe60edfe3c1501722d29ee4f30e605f7738ee0cac3e1655568e66ce240",
+    "scrape_byte_count": 64739,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "4 Bears Casino",
+      "day_of_week": "Sunday",
+      "start_time": "6:00pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "50c162fe60edfe3c1501722d29ee4f30e605f7738ee0cac3e1655568e66ce240",
+      "scrape_timestamp": "2026-03-25T20:59:34.858156+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/4-bears-new-town/tournaments"
+    },
+    {
+      "venue_name": "4 Bears Casino",
+      "day_of_week": "Friday",
+      "start_time": "7:00pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "50c162fe60edfe3c1501722d29ee4f30e605f7738ee0cac3e1655568e66ce240",
+      "scrape_timestamp": "2026-03-25T20:59:34.858156+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/4-bears-new-town/tournaments"
+    },
+    {
+      "venue_name": "4 Bears Casino",
+      "day_of_week": "Wednesday",
+      "start_time": "7:00pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "50c162fe60edfe3c1501722d29ee4f30e605f7738ee0cac3e1655568e66ce240",
+      "scrape_timestamp": "2026-03-25T20:59:34.858156+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/4-bears-new-town/tournaments"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/wheeling-island/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T20:56:35.203745+00:00",
+    "scrape_html_hash": "5a6212af515c773c686587c6e0f4348d9369f8ec711fe8698f7ed4f37a220fc6",
+    "scrape_byte_count": 60087,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Wheeling Island",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5a6212af515c773c686587c6e0f4348d9369f8ec711fe8698f7ed4f37a220fc6",
+      "scrape_timestamp": "2026-03-25T20:56:35.203745+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/wheeling-island/tournaments"
+    },
+    {
+      "venue_name": "Wheeling Island",
+      "day_of_week": "Sunday",
+      "start_time": "1:00pm",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5a6212af515c773c686587c6e0f4348d9369f8ec711fe8698f7ed4f37a220fc6",
+      "scrape_timestamp": "2026-03-25T20:56:35.203745+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/wheeling-island/tournaments"
+    }
+  ]
+}

@@ -7623,7 +7623,23 @@ function SocialMediaPage() {
                                 ) : (
                                     <>
                                         {/* Render posts with Reels carousel inserted after every 3 posts */}
-                                        {posts.filter(p => !blockedUserIds.has(p.authorId)).filter(p => !showClubPostsOnly || p.isClubPagePost || p.metadata?.source_page_id === clubPage?.id).map((p, index) => (
+                                        {(() => {
+                                            const filteredPosts = posts.filter(p => !blockedUserIds.has(p.authorId)).filter(p => !showClubPostsOnly || p.isClubPagePost || p.metadata?.source_page_id === clubPage?.id);
+                                            if (showClubPostsOnly && filteredPosts.length === 0) {
+                                                return (
+                                                    <div style={{ textAlign: 'center', padding: '48px 24px', color: C.textSec }}>
+                                                        <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
+                                                        <h3 style={{ color: C.text, fontSize: 16, marginBottom: 8 }}>No Club Posts Yet</h3>
+                                                        <p style={{ marginBottom: 16, lineHeight: 1.5, fontSize: 13 }}>Post as your club to see content here!</p>
+                                                        <button onClick={() => setShowClubPostsOnly(false)} style={{
+                                                            padding: '8px 20px', background: C.blue, color: 'white',
+                                                            borderRadius: 6, fontWeight: 600, fontSize: 13, border: 'none',
+                                                            cursor: 'pointer', fontFamily: 'inherit',
+                                                        }}>Clear Filter</button>
+                                                    </div>
+                                                );
+                                            }
+                                            return filteredPosts.map((p, index) => (
                                             <React.Fragment key={p.id}>
                                                 <PostCard
                                                     post={{ ...p, isGodMode }}
@@ -7639,7 +7655,8 @@ function SocialMediaPage() {
                                                 {/* Insert Reels carousel after 3rd post */}
                                                 {index === 2 && <ReelsFeedCarousel key="reels-carousel" />}
                                             </React.Fragment>
-                                        ))}
+                                        ));
+                                        })()}
 
                                         {/* ♾️ INFINITE SCROLL: Load more trigger */}
                                         <div ref={loadMoreCallbackRef} style={{

@@ -1,0 +1,49 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/bestbet-orange-park/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T20:58:42.703048+00:00",
+    "scrape_html_hash": "f40f13d590391b050e15f422746e52cbd414f34a4839565e560a8821a2d1e7d3",
+    "scrape_byte_count": 65742,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "bestbet Orange Park",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 300,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f40f13d590391b050e15f422746e52cbd414f34a4839565e560a8821a2d1e7d3",
+      "scrape_timestamp": "2026-03-25T20:58:42.703048+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bestbet-orange-park/tournaments"
+    },
+    {
+      "venue_name": "bestbet Orange Park",
+      "day_of_week": "Thursday",
+      "start_time": "7:00pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f40f13d590391b050e15f422746e52cbd414f34a4839565e560a8821a2d1e7d3",
+      "scrape_timestamp": "2026-03-25T20:58:42.703048+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bestbet-orange-park/tournaments"
+    },
+    {
+      "venue_name": "bestbet Orange Park",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f40f13d590391b050e15f422746e52cbd414f34a4839565e560a8821a2d1e7d3",
+      "scrape_timestamp": "2026-03-25T20:58:42.703048+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bestbet-orange-park/tournaments"
+    }
+  ]
+}

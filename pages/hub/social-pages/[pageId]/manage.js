@@ -18,7 +18,7 @@ const C = {
     border: '#DADDE1', blue: '#1877F2', green: '#42B72A', red: '#FA383E', orange: '#F5A623',
 };
 
-const TABS = ['settings', 'members', 'posts', 'invitations'];
+const TABS = ['settings', 'members', 'posts', 'analytics', 'invitations'];
 
 export default function ManageSocialPage() {
     const router = useRouter();
@@ -549,6 +549,81 @@ export default function ManageSocialPage() {
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            )}
+
+                            {/* Analytics Tab */}
+                            {tab === 'analytics' && (
+                                <div>
+                                    {/* Overview Stats Grid */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
+                                        {[
+                                            { label: 'Followers', value: page.follower_count || 0, color: C.blue, icon: '👥' },
+                                            { label: 'Total Posts', value: posts.length, color: C.green, icon: '📝' },
+                                            { label: 'Total Likes', value: posts.reduce((sum, p) => sum + (p.like_count || 0), 0), color: C.orange, icon: '👍' },
+                                            { label: 'Total Comments', value: posts.reduce((sum, p) => sum + (p.comment_count || 0), 0), color: '#9333EA', icon: '💬' },
+                                        ].map(s => (
+                                            <div key={s.label} style={{
+                                                background: C.bg, borderRadius: 12, padding: 16, textAlign: 'center',
+                                                border: `1px solid ${C.border}`,
+                                            }}>
+                                                <div style={{ fontSize: 28, marginBottom: 4 }}>{s.icon}</div>
+                                                <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.value}</div>
+                                                <div style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginTop: 2 }}>{s.label}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Engagement Rate */}
+                                    <div style={{
+                                        background: C.bg, borderRadius: 12, padding: 16, marginBottom: 24,
+                                        border: `1px solid ${C.border}`,
+                                    }}>
+                                        <h4 style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 700, color: C.text }}>Engagement Rate</h4>
+                                        <div style={{ fontSize: 13, color: C.textSec }}>
+                                            {posts.length > 0 ? (
+                                                <>
+                                                    <span style={{ fontSize: 28, fontWeight: 800, color: C.blue }}>
+                                                        {((posts.reduce((s, p) => s + (p.like_count || 0) + (p.comment_count || 0), 0) / posts.length)).toFixed(1)}
+                                                    </span>
+                                                    <span style={{ marginLeft: 4 }}>interactions per post</span>
+                                                </>
+                                            ) : 'No posts yet to calculate engagement'}
+                                        </div>
+                                    </div>
+
+                                    {/* Top Posts */}
+                                    {posts.length > 0 && (
+                                        <div style={{
+                                            background: C.bg, borderRadius: 12, padding: 16,
+                                            border: `1px solid ${C.border}`,
+                                        }}>
+                                            <h4 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: C.text }}>Top Posts by Engagement</h4>
+                                            {[...posts]
+                                                .sort((a, b) => ((b.like_count || 0) + (b.comment_count || 0)) - ((a.like_count || 0) + (a.comment_count || 0)))
+                                                .slice(0, 5)
+                                                .map((p, i) => (
+                                                    <div key={p.id} style={{
+                                                        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0',
+                                                        borderBottom: i < 4 ? `1px solid ${C.border}` : 'none',
+                                                    }}>
+                                                        <div style={{
+                                                            width: 28, height: 28, borderRadius: '50%', background: C.blue,
+                                                            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontSize: 13, fontWeight: 700, flexShrink: 0,
+                                                        }}>{i + 1}</div>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ fontSize: 13, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                {(p.content || '').substring(0, 80)}
+                                                            </div>
+                                                            <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>
+                                                                {p.like_count || 0} likes · {p.comment_count || 0} comments
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

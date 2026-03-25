@@ -1,0 +1,37 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/seat-open-bozeman/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:00:58.059590+00:00",
+    "scrape_html_hash": "8c7d501d814a11e3805414a548021a5a4a9e2b20fc3627aff52cd9659eba8af0",
+    "scrape_byte_count": 62460,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Seat Open Poker Room",
+      "day_of_week": "Sunday",
+      "start_time": "3:00pm",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8c7d501d814a11e3805414a548021a5a4a9e2b20fc3627aff52cd9659eba8af0",
+      "scrape_timestamp": "2026-03-25T21:00:58.059590+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/seat-open-bozeman/tournaments"
+    },
+    {
+      "venue_name": "Seat Open Poker Room",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8c7d501d814a11e3805414a548021a5a4a9e2b20fc3627aff52cd9659eba8af0",
+      "scrape_timestamp": "2026-03-25T21:00:58.059590+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/seat-open-bozeman/tournaments"
+    }
+  ]
+}

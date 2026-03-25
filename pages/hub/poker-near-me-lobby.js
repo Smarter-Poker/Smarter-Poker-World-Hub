@@ -22,9 +22,66 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory } from '../../src/services/pokerNearMeSearchHistory';
-import { getPokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
+import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 // BottomNavBar removed — Poker Near Me has its own navigation grid
+
+// ─── Sound Utilities (Web Audio API — zero-latency, no external assets) ───
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx && typeof AudioContext !== 'undefined') {
+    _audioCtx = new AudioContext();
+  }
+  return _audioCtx;
+}
+function playClickSound() {
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.06);
+  } catch { /* silent */ }
+}
+function playPanelOpenSound() {
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.15);
+  } catch { /* silent */ }
+}
+function playPanelCloseSound() {
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(700, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.12);
+  } catch { /* silent */ }
+}
 
 // Dynamic import — 2D lobby background (client-only, no SSR)
 const LobbyCanvas = dynamic(
@@ -760,7 +817,7 @@ export default function PokerNearMeLobby() {
     };
   }, [bus]);
 
-  // ─── GPS ───
+  // ─── GPS (persists to Supabase) ───
   const gpsErrorTimeoutRef = useRef(null);
   const handleGpsClick = useCallback(() => {
     // Clear any pending error timeout from a previous click
@@ -769,6 +826,10 @@ export default function PokerNearMeLobby() {
     if (gpsActive) {
       setGpsActive(false);
       setUserLocation(null);
+      // Persist disabled state to Supabase
+      if (userId) {
+        updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
+      }
       return;
     }
     if (!navigator.geolocation) {
@@ -781,6 +842,14 @@ export default function PokerNearMeLobby() {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserLocation(loc);
         setGpsActive(true);
+        // Persist enabled state + coordinates to Supabase
+        if (userId) {
+          updatePokerNearMePreferences(userId, {
+            locationEnabled: true,
+            lastLocation: loc,
+            locationEnabledAt: new Date().toISOString(),
+          }).catch(() => {});
+        }
         // Fetch venues with explicit lat/lng to avoid stale closure on userLocation
         const gpsUrl = `/api/poker/venues?limit=${PAGE_SIZE}&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=100${sortBy ? `&sort=${sortBy}` : ''}`;
         cachedFetch(gpsUrl).then(data => {
@@ -797,25 +866,52 @@ export default function PokerNearMeLobby() {
         setGpsActive(false);
         setGpsError(err.code === 1 ? 'Location access denied' : 'Could not get location');
         gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
+        // Persist error state
+        if (userId) {
+          updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
+        }
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, [gpsActive, fetchVenues]);
+  }, [gpsActive, fetchVenues, userId]);
+
+  // ─── Auto-enable GPS if previously enabled ───
+  const gpsAutoRef = useRef(false);
+  useEffect(() => {
+    if (gpsAutoRef.current || !preferences?.locationEnabled || gpsActive) return;
+    gpsAutoRef.current = true;
+    // Silently re-request GPS on mount if user previously enabled
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setUserLocation(loc);
+          setGpsActive(true);
+        },
+        () => { /* silent — don't show error for auto-enable */ },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+  }, [preferences?.locationEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Pod click → open panel with feature ───
   const handlePodClick = useCallback((podId) => {
+    playClickSound();
     if (activePod === podId) {
       setActivePod(null);
       setShowPanel(false);
+      playPanelCloseSound();
       return;
     }
     setActivePod(podId);
     setShowPanel(true);
+    playPanelOpenSound();
     // Emit TrainingBus event for pod interaction tracking
     try { bus?.emitHandComplete?.({ action: 'pod_click', pod: podId }); } catch { }
   }, [activePod, bus]);
 
   const handlePanelClose = useCallback(() => {
+    playPanelCloseSound();
     setShowPanel(false);
     setActivePod(null);
   }, []);

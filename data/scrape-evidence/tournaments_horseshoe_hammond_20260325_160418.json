@@ -1,0 +1,157 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+    "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+    "scrape_byte_count": 75589,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Horseshoe Hammond",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+      "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    },
+    {
+      "venue_name": "Horseshoe Hammond",
+      "day_of_week": "Monday",
+      "start_time": "10:00am",
+      "buy_in": 400,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+      "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    },
+    {
+      "venue_name": "Horseshoe Hammond",
+      "day_of_week": "Tuesday",
+      "start_time": "10:00am",
+      "buy_in": 400,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+      "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    },
+    {
+      "venue_name": "Horseshoe Hammond",
+      "day_of_week": "Wednesday",
+      "start_time": "10:00am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+      "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    },
+    {
+      "venue_name": "Horseshoe Hammond",
+      "day_of_week": "Thursday",
+      "start_time": "10:00am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+      "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    },
+    {
+      "venue_name": "Horseshoe Hammond",
+      "day_of_week": "Friday",
+      "start_time": "10:00am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+      "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    },
+    {
+      "venue_name": "Horseshoe Hammond",
+      "day_of_week": "Saturday",
+      "start_time": "10:00am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+      "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    },
+    {
+      "venue_name": "Horseshoe Hammond",
+      "day_of_week": "Monday",
+      "start_time": "11:00am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+      "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    },
+    {
+      "venue_name": "Horseshoe Hammond",
+      "day_of_week": "Tuesday",
+      "start_time": "12:00pm",
+      "buy_in": 120,
+      "game_type": "horse",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+      "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    },
+    {
+      "venue_name": "Horseshoe Hammond",
+      "day_of_week": "Thursday",
+      "start_time": "12:00pm",
+      "buy_in": 120,
+      "game_type": "horse",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+      "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    },
+    {
+      "venue_name": "Horseshoe Hammond",
+      "day_of_week": "Saturday",
+      "start_time": "12:00pm",
+      "buy_in": 300,
+      "game_type": "horse",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+      "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    },
+    {
+      "venue_name": "Horseshoe Hammond",
+      "day_of_week": "Wednesday",
+      "start_time": "12:00pm",
+      "buy_in": 220,
+      "game_type": "horse",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a762ecb88bf0b5c248c9e177a0e9538ff428e12ed26c0487bc916171a161ec06",
+      "scrape_timestamp": "2026-03-25T21:04:18.478317+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    }
+  ]
+}

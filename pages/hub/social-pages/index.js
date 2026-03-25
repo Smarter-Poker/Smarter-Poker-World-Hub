@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, busEmit } from '../../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const C = {
@@ -197,9 +197,12 @@ export default function SocialPagesHub() {
 
     // Listen for dataMutated events from other pages (create, manage, detail) to auto-refresh listing
     useEffect(() => {
-        const unsub = eventBus.on('dataMutated:social-pages', () => {
-            refreshPages();
-        });
+        const handler = (event) => {
+            if (event?.payload?.entity === 'social-pages') {
+                refreshPages();
+            }
+        };
+        const unsub = eventBus.on(EventType.DATA_MUTATED, handler);
         return () => { if (typeof unsub === 'function') unsub(); };
     }, [refreshPages]);
 
@@ -249,7 +252,7 @@ export default function SocialPagesHub() {
             <UniversalHeader />
 
             <div style={{
-                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, paddingBottom: 72,
+                minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, paddingBottom: 72,
                 fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif" ,
             }}>
                 {/* Header */}

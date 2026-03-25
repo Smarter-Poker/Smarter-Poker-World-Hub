@@ -1,0 +1,97 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T20:58:55.604980+00:00",
+    "scrape_html_hash": "cf84c580a2fc481a179a6fd7ebf015ff49bd0a1c38ae2afaac822c78679660eb",
+    "scrape_byte_count": 81428,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Bellagio Poker Room",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf84c580a2fc481a179a6fd7ebf015ff49bd0a1c38ae2afaac822c78679660eb",
+      "scrape_timestamp": "2026-03-25T20:58:55.604980+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Bellagio Poker Room",
+      "day_of_week": "Monday",
+      "start_time": "12:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf84c580a2fc481a179a6fd7ebf015ff49bd0a1c38ae2afaac822c78679660eb",
+      "scrape_timestamp": "2026-03-25T20:58:55.604980+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Bellagio Poker Room",
+      "day_of_week": "Tuesday",
+      "start_time": "12:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf84c580a2fc481a179a6fd7ebf015ff49bd0a1c38ae2afaac822c78679660eb",
+      "scrape_timestamp": "2026-03-25T20:58:55.604980+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Bellagio Poker Room",
+      "day_of_week": "Wednesday",
+      "start_time": "12:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf84c580a2fc481a179a6fd7ebf015ff49bd0a1c38ae2afaac822c78679660eb",
+      "scrape_timestamp": "2026-03-25T20:58:55.604980+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Bellagio Poker Room",
+      "day_of_week": "Thursday",
+      "start_time": "12:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf84c580a2fc481a179a6fd7ebf015ff49bd0a1c38ae2afaac822c78679660eb",
+      "scrape_timestamp": "2026-03-25T20:58:55.604980+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Bellagio Poker Room",
+      "day_of_week": "Friday",
+      "start_time": "12:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf84c580a2fc481a179a6fd7ebf015ff49bd0a1c38ae2afaac822c78679660eb",
+      "scrape_timestamp": "2026-03-25T20:58:55.604980+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Bellagio Poker Room",
+      "day_of_week": "Saturday",
+      "start_time": "12:00pm",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf84c580a2fc481a179a6fd7ebf015ff49bd0a1c38ae2afaac822c78679660eb",
+      "scrape_timestamp": "2026-03-25T20:58:55.604980+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments"
+    }
+  ]
+}

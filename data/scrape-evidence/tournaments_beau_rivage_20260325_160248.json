@@ -1,0 +1,109 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/beau-rivage-biloxi/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:02:48.774927+00:00",
+    "scrape_html_hash": "9c8125fdc97e9c756fb2d46e78ff6fbf916866a8cb8c72f8542a0fbb9917fb64",
+    "scrape_byte_count": 72512,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Beau Rivage",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9c8125fdc97e9c756fb2d46e78ff6fbf916866a8cb8c72f8542a0fbb9917fb64",
+      "scrape_timestamp": "2026-03-25T21:02:48.774927+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/beau-rivage-biloxi/tournaments"
+    },
+    {
+      "venue_name": "Beau Rivage",
+      "day_of_week": "Tuesday",
+      "start_time": "12:15pm",
+      "buy_in": 140,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9c8125fdc97e9c756fb2d46e78ff6fbf916866a8cb8c72f8542a0fbb9917fb64",
+      "scrape_timestamp": "2026-03-25T21:02:48.774927+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/beau-rivage-biloxi/tournaments"
+    },
+    {
+      "venue_name": "Beau Rivage",
+      "day_of_week": "Thursday",
+      "start_time": "12:15pm",
+      "buy_in": 140,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9c8125fdc97e9c756fb2d46e78ff6fbf916866a8cb8c72f8542a0fbb9917fb64",
+      "scrape_timestamp": "2026-03-25T21:02:48.774927+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/beau-rivage-biloxi/tournaments"
+    },
+    {
+      "venue_name": "Beau Rivage",
+      "day_of_week": "Saturday",
+      "start_time": "12:15pm",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9c8125fdc97e9c756fb2d46e78ff6fbf916866a8cb8c72f8542a0fbb9917fb64",
+      "scrape_timestamp": "2026-03-25T21:02:48.774927+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/beau-rivage-biloxi/tournaments"
+    },
+    {
+      "venue_name": "Beau Rivage",
+      "day_of_week": "Monday",
+      "start_time": "12:15pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9c8125fdc97e9c756fb2d46e78ff6fbf916866a8cb8c72f8542a0fbb9917fb64",
+      "scrape_timestamp": "2026-03-25T21:02:48.774927+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/beau-rivage-biloxi/tournaments"
+    },
+    {
+      "venue_name": "Beau Rivage",
+      "day_of_week": "Wednesday",
+      "start_time": "12:15pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9c8125fdc97e9c756fb2d46e78ff6fbf916866a8cb8c72f8542a0fbb9917fb64",
+      "scrape_timestamp": "2026-03-25T21:02:48.774927+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/beau-rivage-biloxi/tournaments"
+    },
+    {
+      "venue_name": "Beau Rivage",
+      "day_of_week": "Friday",
+      "start_time": "12:15pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9c8125fdc97e9c756fb2d46e78ff6fbf916866a8cb8c72f8542a0fbb9917fb64",
+      "scrape_timestamp": "2026-03-25T21:02:48.774927+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/beau-rivage-biloxi/tournaments"
+    },
+    {
+      "venue_name": "Beau Rivage",
+      "day_of_week": "Sunday",
+      "start_time": "12:15pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9c8125fdc97e9c756fb2d46e78ff6fbf916866a8cb8c72f8542a0fbb9917fb64",
+      "scrape_timestamp": "2026-03-25T21:02:48.774927+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/beau-rivage-biloxi/tournaments"
+    }
+  ]
+}

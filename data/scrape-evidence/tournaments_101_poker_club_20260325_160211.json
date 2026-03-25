@@ -1,0 +1,109 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/101-poker-club-katy/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:02:11.124360+00:00",
+    "scrape_html_hash": "36e6ce43386e1b08a9fac2e06cf091d68d7707018dcfd9baa55c536a4252d24c",
+    "scrape_byte_count": 69585,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "101 Poker Club",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 180,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "36e6ce43386e1b08a9fac2e06cf091d68d7707018dcfd9baa55c536a4252d24c",
+      "scrape_timestamp": "2026-03-25T21:02:11.124360+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/101-poker-club-katy/tournaments"
+    },
+    {
+      "venue_name": "101 Poker Club",
+      "day_of_week": "Monday",
+      "start_time": "7:00pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "36e6ce43386e1b08a9fac2e06cf091d68d7707018dcfd9baa55c536a4252d24c",
+      "scrape_timestamp": "2026-03-25T21:02:11.124360+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/101-poker-club-katy/tournaments"
+    },
+    {
+      "venue_name": "101 Poker Club",
+      "day_of_week": "Wednesday",
+      "start_time": "7:00pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "36e6ce43386e1b08a9fac2e06cf091d68d7707018dcfd9baa55c536a4252d24c",
+      "scrape_timestamp": "2026-03-25T21:02:11.124360+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/101-poker-club-katy/tournaments"
+    },
+    {
+      "venue_name": "101 Poker Club",
+      "day_of_week": "Saturday",
+      "start_time": "12:00pm",
+      "buy_in": 0,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "36e6ce43386e1b08a9fac2e06cf091d68d7707018dcfd9baa55c536a4252d24c",
+      "scrape_timestamp": "2026-03-25T21:02:11.124360+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/101-poker-club-katy/tournaments"
+    },
+    {
+      "venue_name": "101 Poker Club",
+      "day_of_week": "Saturday",
+      "start_time": "12:00pm",
+      "buy_in": 180,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "36e6ce43386e1b08a9fac2e06cf091d68d7707018dcfd9baa55c536a4252d24c",
+      "scrape_timestamp": "2026-03-25T21:02:11.124360+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/101-poker-club-katy/tournaments"
+    },
+    {
+      "venue_name": "101 Poker Club",
+      "day_of_week": "Sunday",
+      "start_time": "1:05pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "36e6ce43386e1b08a9fac2e06cf091d68d7707018dcfd9baa55c536a4252d24c",
+      "scrape_timestamp": "2026-03-25T21:02:11.124360+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/101-poker-club-katy/tournaments"
+    },
+    {
+      "venue_name": "101 Poker Club",
+      "day_of_week": "Tuesday",
+      "start_time": "7:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "36e6ce43386e1b08a9fac2e06cf091d68d7707018dcfd9baa55c536a4252d24c",
+      "scrape_timestamp": "2026-03-25T21:02:11.124360+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/101-poker-club-katy/tournaments"
+    },
+    {
+      "venue_name": "101 Poker Club",
+      "day_of_week": "Thursday",
+      "start_time": "7:00pm",
+      "buy_in": 60,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "36e6ce43386e1b08a9fac2e06cf091d68d7707018dcfd9baa55c536a4252d24c",
+      "scrape_timestamp": "2026-03-25T21:02:11.124360+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/101-poker-club-katy/tournaments"
+    }
+  ]
+}

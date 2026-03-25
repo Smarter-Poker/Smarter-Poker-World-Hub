@@ -1,0 +1,193 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+    "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+    "scrape_byte_count": 82701,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 260,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Saturday",
+      "start_time": "11:00am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 300,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Monday",
+      "start_time": "11:00am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Tuesday",
+      "start_time": "11:00am",
+      "buy_in": 400,
+      "game_type": "mixed",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Wednesday",
+      "start_time": "11:00am",
+      "buy_in": 400,
+      "game_type": "mixed",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Thursday",
+      "start_time": "11:00am",
+      "buy_in": 400,
+      "game_type": "mixed",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Friday",
+      "start_time": "11:00am",
+      "buy_in": 400,
+      "game_type": "mixed",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Monday",
+      "start_time": "12:00pm",
+      "buy_in": 1400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Tuesday",
+      "start_time": "11:00am",
+      "buy_in": 1400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Thursday",
+      "start_time": "11:00am",
+      "buy_in": 360,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Friday",
+      "start_time": "11:00am",
+      "buy_in": 260,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Monday",
+      "start_time": "11:00am",
+      "buy_in": 300,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "day_of_week": "Tuesday",
+      "start_time": "11:00am",
+      "buy_in": 300,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c330a04aa44f40211ac63b38bfc6f6ae3ffa919c553907ab097da34269188879",
+      "scrape_timestamp": "2026-03-25T21:01:16.089694+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens/tournaments"
+    }
+  ]
+}

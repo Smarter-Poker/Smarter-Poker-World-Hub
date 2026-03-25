@@ -304,7 +304,7 @@ export default function LobbyOverlay({
               <button
                 key={hotspot.id}
                 onClick={() => {
-                  try { navigator.vibrate?.(15); } catch { }
+                  try { navigator.vibrate?.([10, 30, 10]); } catch { }
                   onPodSelect?.(hotspot.id);
                 }}
                 aria-label={`Open ${hotspot.label}`}
@@ -321,29 +321,7 @@ export default function LobbyOverlay({
             ))}
           </div>
 
-          {/* Badge overlays for alerts, saved, friends */}
-          {alertCount > 0 && (
-            <span style={{
-              position: 'absolute', top: '69%', right: '6%',
-              minWidth: 24, height: 24, borderRadius: 12,
-              background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
-              color: '#fff', fontSize: 12, fontWeight: 700,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0 5px', zIndex: 2,
-              boxShadow: '0 3px 12px rgba(238, 90, 36, 0.5)',
-            }}>{alertCount}</span>
-          )}
-          {savedCount > 0 && (
-            <span style={{
-              position: 'absolute', top: '69%', right: '55%',
-              minWidth: 24, height: 24, borderRadius: 12,
-              background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
-              color: '#fff', fontSize: 12, fontWeight: 700,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0 5px', zIndex: 2,
-              boxShadow: '0 3px 12px rgba(238, 90, 36, 0.5)',
-            }}>{savedCount}</span>
-          )}
+          {/* Badge overlays removed — alert subscriptions route to global header */}
         </div>
       </div>
     </div>

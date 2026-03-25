@@ -1,0 +1,121 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/mohegan-sun-uncasville/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:01:28.128568+00:00",
+    "scrape_html_hash": "6b48eadbbe0281fd9071ff0dd69347f61c62aabd212b24800664f54aec57440a",
+    "scrape_byte_count": 81120,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Mohegan Sun",
+      "day_of_week": "Sunday",
+      "start_time": "9:00am",
+      "buy_in": 260,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6b48eadbbe0281fd9071ff0dd69347f61c62aabd212b24800664f54aec57440a",
+      "scrape_timestamp": "2026-03-25T21:01:28.128568+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mohegan-sun-uncasville/tournaments"
+    },
+    {
+      "venue_name": "Mohegan Sun",
+      "day_of_week": "Tuesday",
+      "start_time": "6:00pm",
+      "buy_in": 160,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6b48eadbbe0281fd9071ff0dd69347f61c62aabd212b24800664f54aec57440a",
+      "scrape_timestamp": "2026-03-25T21:01:28.128568+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mohegan-sun-uncasville/tournaments"
+    },
+    {
+      "venue_name": "Mohegan Sun",
+      "day_of_week": "Thursday",
+      "start_time": "6:00pm",
+      "buy_in": 180,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6b48eadbbe0281fd9071ff0dd69347f61c62aabd212b24800664f54aec57440a",
+      "scrape_timestamp": "2026-03-25T21:01:28.128568+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mohegan-sun-uncasville/tournaments"
+    },
+    {
+      "venue_name": "Mohegan Sun",
+      "day_of_week": "Saturday",
+      "start_time": "11:00am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6b48eadbbe0281fd9071ff0dd69347f61c62aabd212b24800664f54aec57440a",
+      "scrape_timestamp": "2026-03-25T21:01:28.128568+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mohegan-sun-uncasville/tournaments"
+    },
+    {
+      "venue_name": "Mohegan Sun",
+      "day_of_week": "Monday",
+      "start_time": "10:00am",
+      "buy_in": 160,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6b48eadbbe0281fd9071ff0dd69347f61c62aabd212b24800664f54aec57440a",
+      "scrape_timestamp": "2026-03-25T21:01:28.128568+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mohegan-sun-uncasville/tournaments"
+    },
+    {
+      "venue_name": "Mohegan Sun",
+      "day_of_week": "Saturday",
+      "start_time": "11:00am",
+      "buy_in": 350,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6b48eadbbe0281fd9071ff0dd69347f61c62aabd212b24800664f54aec57440a",
+      "scrape_timestamp": "2026-03-25T21:01:28.128568+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mohegan-sun-uncasville/tournaments"
+    },
+    {
+      "venue_name": "Mohegan Sun",
+      "day_of_week": "Monday",
+      "start_time": "10:00am",
+      "buy_in": 155,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6b48eadbbe0281fd9071ff0dd69347f61c62aabd212b24800664f54aec57440a",
+      "scrape_timestamp": "2026-03-25T21:01:28.128568+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mohegan-sun-uncasville/tournaments"
+    },
+    {
+      "venue_name": "Mohegan Sun",
+      "day_of_week": "Thursday",
+      "start_time": "11:10am",
+      "buy_in": 600,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6b48eadbbe0281fd9071ff0dd69347f61c62aabd212b24800664f54aec57440a",
+      "scrape_timestamp": "2026-03-25T21:01:28.128568+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mohegan-sun-uncasville/tournaments"
+    },
+    {
+      "venue_name": "Mohegan Sun",
+      "day_of_week": "Saturday",
+      "start_time": "11:10am",
+      "buy_in": 600,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6b48eadbbe0281fd9071ff0dd69347f61c62aabd212b24800664f54aec57440a",
+      "scrape_timestamp": "2026-03-25T21:01:28.128568+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mohegan-sun-uncasville/tournaments"
+    }
+  ]
+}

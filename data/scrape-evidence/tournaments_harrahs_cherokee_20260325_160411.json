@@ -1,0 +1,85 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/harrahs-cherokee/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:04:11.117083+00:00",
+    "scrape_html_hash": "ccc082d4de686d57c9164f44b48c0452e7bc17b09c274dfa0512e974d3d082f3",
+    "scrape_byte_count": 80681,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Harrahs Cherokee",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ccc082d4de686d57c9164f44b48c0452e7bc17b09c274dfa0512e974d3d082f3",
+      "scrape_timestamp": "2026-03-25T21:04:11.117083+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/harrahs-cherokee/tournaments"
+    },
+    {
+      "venue_name": "Harrahs Cherokee",
+      "day_of_week": "Monday",
+      "start_time": "7:00pm",
+      "buy_in": 140,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ccc082d4de686d57c9164f44b48c0452e7bc17b09c274dfa0512e974d3d082f3",
+      "scrape_timestamp": "2026-03-25T21:04:11.117083+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/harrahs-cherokee/tournaments"
+    },
+    {
+      "venue_name": "Harrahs Cherokee",
+      "day_of_week": "Tuesday",
+      "start_time": "7:00pm",
+      "buy_in": 140,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ccc082d4de686d57c9164f44b48c0452e7bc17b09c274dfa0512e974d3d082f3",
+      "scrape_timestamp": "2026-03-25T21:04:11.117083+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/harrahs-cherokee/tournaments"
+    },
+    {
+      "venue_name": "Harrahs Cherokee",
+      "day_of_week": "Wednesday",
+      "start_time": "7:00pm",
+      "buy_in": 140,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ccc082d4de686d57c9164f44b48c0452e7bc17b09c274dfa0512e974d3d082f3",
+      "scrape_timestamp": "2026-03-25T21:04:11.117083+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/harrahs-cherokee/tournaments"
+    },
+    {
+      "venue_name": "Harrahs Cherokee",
+      "day_of_week": "Thursday",
+      "start_time": "7:00pm",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ccc082d4de686d57c9164f44b48c0452e7bc17b09c274dfa0512e974d3d082f3",
+      "scrape_timestamp": "2026-03-25T21:04:11.117083+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/harrahs-cherokee/tournaments"
+    },
+    {
+      "venue_name": "Harrahs Cherokee",
+      "day_of_week": "Friday",
+      "start_time": "8:00pm",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "ccc082d4de686d57c9164f44b48c0452e7bc17b09c274dfa0512e974d3d082f3",
+      "scrape_timestamp": "2026-03-25T21:04:11.117083+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/harrahs-cherokee/tournaments"
+    }
+  ]
+}

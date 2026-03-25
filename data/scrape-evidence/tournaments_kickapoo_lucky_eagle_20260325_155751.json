@@ -1,0 +1,61 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/kickapoo-lucky-eagle-eagle-pass/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T20:57:51.091562+00:00",
+    "scrape_html_hash": "a5f5da2a67ef995959d0441e598b6a9afe65332b21f06de03533918d325f471e",
+    "scrape_byte_count": 62704,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Kickapoo Lucky Eagle",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 35,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a5f5da2a67ef995959d0441e598b6a9afe65332b21f06de03533918d325f471e",
+      "scrape_timestamp": "2026-03-25T20:57:51.091562+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/kickapoo-lucky-eagle-eagle-pass/tournaments"
+    },
+    {
+      "venue_name": "Kickapoo Lucky Eagle",
+      "day_of_week": "thursday",
+      "start_time": "7:00pm",
+      "buy_in": 35,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a5f5da2a67ef995959d0441e598b6a9afe65332b21f06de03533918d325f471e",
+      "scrape_timestamp": "2026-03-25T20:57:51.091562+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/kickapoo-lucky-eagle-eagle-pass/tournaments"
+    },
+    {
+      "venue_name": "Kickapoo Lucky Eagle",
+      "day_of_week": "saturday",
+      "start_time": "7:00pm",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a5f5da2a67ef995959d0441e598b6a9afe65332b21f06de03533918d325f471e",
+      "scrape_timestamp": "2026-03-25T20:57:51.091562+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/kickapoo-lucky-eagle-eagle-pass/tournaments"
+    },
+    {
+      "venue_name": "Kickapoo Lucky Eagle",
+      "day_of_week": "tuesday",
+      "start_time": "7:00pm",
+      "buy_in": 35,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a5f5da2a67ef995959d0441e598b6a9afe65332b21f06de03533918d325f471e",
+      "scrape_timestamp": "2026-03-25T20:57:51.091562+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/kickapoo-lucky-eagle-eagle-pass/tournaments"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/hollywood-kansas-kansas-city/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T20:56:41.498979+00:00",
+    "scrape_html_hash": "5814506b4892c8abbdf512cb2cb86f53e7601d57343c3c6755345ffc8c7cb66d",
+    "scrape_byte_count": 75796,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Hollywood Casino Kansas",
+      "day_of_week": "Sunday",
+      "start_time": "9:00am",
+      "buy_in": 350,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5814506b4892c8abbdf512cb2cb86f53e7601d57343c3c6755345ffc8c7cb66d",
+      "scrape_timestamp": "2026-03-25T20:56:41.498979+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-kansas-kansas-city/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Casino Kansas",
+      "day_of_week": "Monday",
+      "start_time": "10:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5814506b4892c8abbdf512cb2cb86f53e7601d57343c3c6755345ffc8c7cb66d",
+      "scrape_timestamp": "2026-03-25T20:56:41.498979+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-kansas-kansas-city/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Casino Kansas",
+      "day_of_week": "Tuesday",
+      "start_time": "10:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5814506b4892c8abbdf512cb2cb86f53e7601d57343c3c6755345ffc8c7cb66d",
+      "scrape_timestamp": "2026-03-25T20:56:41.498979+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-kansas-kansas-city/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Casino Kansas",
+      "day_of_week": "Wednesday",
+      "start_time": "10:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5814506b4892c8abbdf512cb2cb86f53e7601d57343c3c6755345ffc8c7cb66d",
+      "scrape_timestamp": "2026-03-25T20:56:41.498979+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-kansas-kansas-city/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Casino Kansas",
+      "day_of_week": "Thursday",
+      "start_time": "10:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5814506b4892c8abbdf512cb2cb86f53e7601d57343c3c6755345ffc8c7cb66d",
+      "scrape_timestamp": "2026-03-25T20:56:41.498979+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-kansas-kansas-city/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Casino Kansas",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 350,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "5814506b4892c8abbdf512cb2cb86f53e7601d57343c3c6755345ffc8c7cb66d",
+      "scrape_timestamp": "2026-03-25T20:56:41.498979+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-kansas-kansas-city/tournaments"
+    }
+  ]
+}
