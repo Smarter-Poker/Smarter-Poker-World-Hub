@@ -264,6 +264,15 @@ export default function ReelsPage() {
                 // Shuffle for variety
                 const shuffled = mappedReels.sort(() => Math.random() - 0.5);
                 setReels(shuffled);
+
+                // Initialize like/comment counts from loaded data
+                const lc = {}, cc = {};
+                shuffled.forEach(r => {
+                    lc[r.id] = r.like_count || 0;
+                    cc[r.id] = r.comment_count || 0;
+                });
+                setLikeCounts(lc);
+                setCommentCounts(cc);
             }
         } catch (e) {
             console.error('Load reels error:', e);
@@ -565,6 +574,10 @@ export default function ReelsPage() {
             const d = event?.payload;
             if (d?.postId) {
                 setLiked(prev => ({ ...prev, [d.postId]: d.added }));
+                setLikeCounts(prev => ({
+                    ...prev,
+                    [d.postId]: Math.max(0, (prev[d.postId] || 0) + (d.added ? 1 : -1))
+                }));
             }
         };
         const handleBookmarkBus = (event) => {
@@ -876,7 +889,9 @@ export default function ReelsPage() {
                     }}>
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
                         <span style={{ color: showCommentPanel ? '#1877F2' : 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                            {comments.length > 0 ? comments.length : 'Comment'}
+                            {(commentCounts[currentReel?.id] || comments.length) > 0
+                                ? (commentCounts[currentReel?.id] || comments.length)
+                                : 'Comment'}
                         </span>
                     </button>
 
