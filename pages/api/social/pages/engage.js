@@ -61,6 +61,32 @@ export default async function handler(req, res) {
                   return res.status(200).json({ success: true, liked: false });
               } else {
                   await getSupabase().from('social_page_post_likes').insert({ post_id, user_id });
+
+                  // Like notification — notify post author
+                  try {
+                      const { data: postData } = await getSupabase()
+                          .from('social_page_posts').select('author_id, page_id').eq('id', post_id).maybeSingle();
+                      if (postData && postData.author_id !== user_id) {
+                          const { data: likerProfile } = await getSupabase()
+                              .from('profiles').select('full_name, username').eq('id', user_id).maybeSingle();
+                          const { data: pageData } = await getSupabase()
+                              .from('social_pages').select('name').eq('id', postData.page_id).maybeSingle();
+                          const likerName = likerProfile?.full_name || likerProfile?.username || 'Someone';
+                          const pageName = pageData?.name || 'a page';
+                          fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '' },
+                              body: JSON.stringify({
+                                  title: 'New Like',
+                                  message: `${likerName} liked your post in "${pageName}"`,
+                                  externalUserIds: [postData.author_id],
+                                  url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/social-pages/${postData.page_id}`,
+                                  data: { type: 'page_like', page_id: postData.page_id, post_id },
+                              }),
+                          }).catch(() => {});
+                      }
+                  } catch (ne) { console.error('Like notification error:', ne); }
+
                   return res.status(201).json({ success: true, liked: true });
               }
           }

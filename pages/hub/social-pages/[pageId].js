@@ -599,6 +599,30 @@ export default function SocialPageDetail() {
         } catch (e) { console.error(e); }
     };
 
+    // Follow/unfollow a user from the member list
+    const [followingUsers, setFollowingUsers] = useState(new Set());
+    const handleFollowUser = async (targetUserId) => {
+        if (!user || targetUserId === user.id) return;
+        const isCurrentlyFollowing = followingUsers.has(targetUserId);
+        setFollowingUsers(prev => {
+            const next = new Set(prev);
+            isCurrentlyFollowing ? next.delete(targetUserId) : next.add(targetUserId);
+            return next;
+        });
+        try {
+            const token = getAccessToken();
+            await fetch('/api/friends', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    action: isCurrentlyFollowing ? 'remove' : 'add',
+                    target_user_id: targetUserId,
+                }),
+            });
+            busEmit.dataMutated('friends');
+        } catch (e) { console.error('Follow user error:', e); }
+    };
+
     const handleImageUpload = async (e) => {
         const files = Array.from(e.target.files || []);
         if (!files.length) return;
@@ -754,33 +778,49 @@ export default function SocialPageDetail() {
                             )}
                         </div>
 
-                        {/* Mobile Share Bar (hidden on desktop where sidebar has share widget) */}
-                        <div className="mobile-share-bar" style={{
-                            display: 'none', alignItems: 'center', gap: 8,
+                        {/* Mobile Action Bar (hidden on desktop where sidebar has these widgets) */}
+                        <div className="mobile-action-bar" style={{
+                            display: 'none', alignItems: 'center', gap: 6,
                             padding: '10px 0', borderTop: `1px solid ${C.border}`,
                         }}>
-                            <div style={{
-                                flex: 1, padding: '8px 12px', borderRadius: 8,
-                                background: C.bg, fontSize: 12, color: C.blue,
-                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                border: `1px solid ${C.border}`,
-                            }}>
-                                {typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page.slug || page.id}` : ''}
-                            </div>
                             <button onClick={() => {
                                 const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
-                                if (navigator.share) {
-                                    navigator.share({ title: page.name, url }).catch(() => {});
-                                } else {
-                                    navigator.clipboard.writeText(url).catch(() => {});
-                                }
+                                navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'));
                             }} style={{
-                                padding: '8px 14px', borderRadius: 8, border: 'none',
-                                background: C.blue, color: '#fff', fontSize: 12, fontWeight: 600,
-                                cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                                flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${C.border}`,
+                                background: C.bg, fontSize: 12, fontWeight: 600,
+                                cursor: 'pointer', fontFamily: 'inherit', color: C.text,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                             }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
                                 Share
                             </button>
+                            {user && (
+                                <button onClick={async () => {
+                                    setShowInviteModal(true);
+                                    if (inviteFriends.length === 0) {
+                                        setInviteLoading(true);
+                                        try {
+                                            const token = getAccessToken();
+                                            const res = await fetch(`/api/friends?action=list`, { headers: { 'Authorization': `Bearer ${token}` } });
+                                            const json = await res.json();
+                                            if (json.success && json.data?.friends) {
+                                                const followerIds = new Set(followers.map(f => f.user_id || f.profile?.id));
+                                                setInviteFriends(json.data.friends.filter(f => !followerIds.has(f.id)));
+                                            }
+                                        } catch (e) { console.error(e); }
+                                        setInviteLoading(false);
+                                    }
+                                }} style={{
+                                    flex: 1, padding: '8px 0', borderRadius: 8, border: 'none',
+                                    background: '#E7F3FF', color: C.blue, fontSize: 12, fontWeight: 600,
+                                    cursor: 'pointer', fontFamily: 'inherit',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                                }}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a7 7 0 0114 0v2"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+                                    Invite
+                                </button>
+                            )}
                         </div>
                         <div style={{ display: 'flex', gap: 0, borderTop: `1px solid ${C.border}` }}>
                             {['posts', 'about', 'members'].map(t => (
@@ -1010,6 +1050,16 @@ export default function SocialPageDetail() {
                                                             Joined {timeAgo(f.created_at)}
                                                         </div>
                                                     </div>
+                                                    {user && f.user_id !== user.id && (
+                                                        <button onClick={(e) => { e.stopPropagation(); handleFollowUser(f.user_id); }} style={{
+                                                            padding: '5px 14px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600,
+                                                            cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                                                            background: followingUsers.has(f.user_id) ? '#E4E6EB' : C.blue,
+                                                            color: followingUsers.has(f.user_id) ? C.text : '#fff',
+                                                        }}>
+                                                            {followingUsers.has(f.user_id) ? 'Following' : 'Follow'}
+                                                        </button>
+                                                    )}
                                                     {f.profile?.username && (
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2">
                                                             <polyline points="9 18 15 12 9 6" />
@@ -1271,7 +1321,7 @@ export default function SocialPageDetail() {
                     div[style*="grid-template-columns: 1fr 320px"] {
                         grid-template-columns: 1fr !important;
                     }
-                    .mobile-share-bar {
+                    .mobile-action-bar {
                         display: flex !important;
                     }
                 }
