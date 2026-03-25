@@ -163,7 +163,7 @@ function ProfileCompletionBar({ profile }) {
 
     if (percent >= 100) return null; // Don't show if complete
 
-    const barColor = percent >= 80 ? '#00f5ff' : percent >= 50 ? '#FFD700' : '#ff6b6b';
+    const barColor = percent >= 80 ? '#42B72A' : percent >= 50 ? '#1877F2' : '#ff6b6b';
 
     return (
         <div style={{
@@ -1751,8 +1751,8 @@ export default function ProfilePage() {
                             onClick={() => window.open(`/hub/user/${profile.username || user?.id}`, '_blank')}
                             style={{
                                 background: 'transparent',
-                                color: '#00f5ff',
-                                border: '1px solid rgba(0,245,255,0.3)',
+                                color: '#1877F2',
+                                border: '1px solid #1877F2',
                                 borderRadius: 8,
                                 padding: '10px 16px',
                                 fontSize: 14,
@@ -1763,7 +1763,7 @@ export default function ProfilePage() {
                                 gap: 6,
                                 transition: 'all 0.2s ease',
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,245,255,0.1)'; }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(24,119,242,0.08)'; }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                         >
                             View Public Profile
@@ -1771,15 +1771,15 @@ export default function ProfilePage() {
                         <button
                             onClick={() => router.push('/hub/avatars')}
                             style={{
-                                background: 'linear-gradient(135deg, #00f5ff, #0099ff)',
-                                color: '#0a0e27',
+                                background: '#E74C3C',
+                                color: '#ffffff',
                                 border: 'none',
                                 borderRadius: 8,
                                 padding: '10px 16px',
                                 fontSize: 14,
                                 fontWeight: 700,
                                 cursor: 'pointer',
-                                boxShadow: '0 2px 8px rgba(0,245,255,0.4)'
+                                boxShadow: '0 2px 8px rgba(231,76,60,0.3)'
                             }}
                         >
                             Build A Custom Avatar
@@ -2261,15 +2261,15 @@ export default function ProfilePage() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{
-                                    fontSize: 13, color: '#00f5ff', textDecoration: 'none',
+                                    fontSize: 13, color: '#1877F2', textDecoration: 'none',
                                     display: 'inline-flex', alignItems: 'center', gap: 6,
                                     padding: '8px 16px', borderRadius: 20,
-                                    background: 'rgba(0,245,255,0.06)',
-                                    border: '1px solid rgba(0,245,255,0.15)',
+                                    background: 'rgba(24,119,242,0.06)',
+                                    border: '1px solid rgba(24,119,242,0.15)',
                                     transition: 'all 0.2s ease',
                                 }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,245,255,0.12)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,245,255,0.06)'; }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(24,119,242,0.12)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(24,119,242,0.06)'; }}
                             >
                                 View My Public Profile
                                 <span style={{ fontSize: 11 }}>↗</span>
