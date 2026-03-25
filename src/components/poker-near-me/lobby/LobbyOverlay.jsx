@@ -286,17 +286,21 @@ export default function LobbyOverlay({
           {/* Transparent clickable hotspot grid overlaid on top of the image */}
           <div style={{
             position: 'absolute',
-            /* Inset to match the image's internal frame border (~4% each side, ~3% top/bottom) */
-            top: '3%',
-            left: '4%',
-            right: '4%',
-            bottom: '3%',
+            /* Inset calibrated to the 1024×1024 original image's internal frame:
+               - Top: ~3.5% (neon frame top glow)
+               - Left/Right: ~3% (neon frame side glow)
+               - Bottom: ~1.5% (neon frame bottom glow, slightly thinner)
+            */
+            top: '3.5%',
+            left: '3%',
+            right: '3%',
+            bottom: '1.5%',
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
             gridTemplateRows: 'repeat(3, 1fr)',
             gap: 0,
           }}>
-            {GRID_HOTSPOTS.map((hotspot, idx) => (
+            {GRID_HOTSPOTS.map((hotspot) => (
               <button
                 key={hotspot.id}
                 onClick={() => {
@@ -312,32 +316,8 @@ export default function LobbyOverlay({
                   margin: 0,
                   WebkitTapHighlightColor: 'transparent',
                   outline: 'none',
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'flex-end',
-                  justifyContent: 'center',
                 }}
-              >
-                {/* CSS text label — crisp at any resolution */}
-                <span style={{
-                  position: 'absolute',
-                  bottom: idx < 4 ? '2%' : '4%',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  color: idx < 4 ? '#d4c08c' : '#c8d6e5',
-                  fontSize: idx < 4 ? 'clamp(9px, 1.4vw, 14px)' : 'clamp(9px, 1.3vw, 13px)',
-                  fontWeight: idx < 4 ? 800 : 600,
-                  fontFamily: idx < 4 ? "'Cinzel', 'Times New Roman', serif" : "'Inter', system-ui, sans-serif",
-                  textTransform: idx < 4 ? 'uppercase' : 'none',
-                  letterSpacing: idx < 4 ? '0.5px' : '0.2px',
-                  textAlign: 'center',
-                  lineHeight: 1.15,
-                  textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7)',
-                  whiteSpace: 'nowrap',
-                  pointerEvents: 'none',
-                  width: '100%',
-                }}>{hotspot.label}</span>
-              </button>
+              />
             ))}
           </div>
 
