@@ -80,6 +80,8 @@ export default function ReelsPage() {
     const [loadingMore, setLoadingMore] = useState(false);
     const [viewCounts, setViewCounts] = useState({});
     const [videoProgress, setVideoProgress] = useState(0);
+    const [overlayVisible, setOverlayVisible] = useState(true);
+    const overlayTimerRef = useRef(null);
 
     // Reels preferences state
     const [preferences, setPreferences] = useState({
@@ -373,6 +375,10 @@ export default function ReelsPage() {
     useEffect(() => {
         if (currentReel?.id) {
             setVideoProgress(0); // Reset progress bar
+            // Show overlay on reel change, auto-hide after 3s
+            setOverlayVisible(true);
+            clearTimeout(overlayTimerRef.current);
+            overlayTimerRef.current = setTimeout(() => setOverlayVisible(false), 3000);
             (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'view_count' }); } catch {} })();
         }
     }, [currentIndex]);
@@ -874,6 +880,8 @@ export default function ReelsPage() {
 
                 {/* Engagement Stats Pill */}
                 <div style={{
+                    opacity: overlayVisible ? 1 : 0,
+                    transition: 'opacity 0.35s ease',
                     position: 'absolute', top: 20, right: 16, zIndex: 100,
                     display: 'flex', gap: 12, padding: '6px 14px', borderRadius: 20,
                     background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
@@ -972,7 +980,29 @@ export default function ReelsPage() {
                         position: 'absolute',
                         top: 80,
                         left: 0,
-                        width: '35%',
+                        width: '30%',
+                        height: 'calc(100% - 200px)',
+                        zIndex: 50,
+                        cursor: 'pointer',
+                    }}
+                />
+                {/* CENTER ZONE - tap to toggle overlay */}
+                <div
+                    onClick={() => {
+                        setOverlayVisible(v => {
+                            const next = !v;
+                            clearTimeout(overlayTimerRef.current);
+                            if (next) {
+                                overlayTimerRef.current = setTimeout(() => setOverlayVisible(false), 3000);
+                            }
+                            return next;
+                        });
+                    }}
+                    style={{
+                        position: 'absolute',
+                        top: 80,
+                        left: '30%',
+                        width: '40%',
                         height: 'calc(100% - 200px)',
                         zIndex: 50,
                         cursor: 'pointer',
@@ -985,7 +1015,7 @@ export default function ReelsPage() {
                         position: 'absolute',
                         top: 80,
                         right: 0,
-                        width: '35%',
+                        width: '30%',
                         height: 'calc(100% - 200px)',
                         zIndex: 50,
                         cursor: 'pointer',
@@ -1009,11 +1039,16 @@ export default function ReelsPage() {
                     position: 'absolute', bottom: 0, left: 0, right: 0, height: 300,
                     background: 'linear-gradient(transparent, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.9))',
                     pointerEvents: 'none', zIndex: 90,
+                    opacity: overlayVisible ? 1 : 0,
+                    transition: 'opacity 0.35s ease',
                 }} />
 
                 {/* Author info overlay */}
                 <div style={{
                     position: 'absolute', bottom: 120, left: 16, right: 80, zIndex: 100,
+                    opacity: overlayVisible ? 1 : 0,
+                    transition: 'opacity 0.35s ease',
+                    pointerEvents: overlayVisible ? 'auto' : 'none',
                 }}>
                     <Link href={`/hub/user/${currentReel?.profiles?.username}`} style={{
                         display: 'flex', alignItems: 'center', gap: 12,
@@ -1055,6 +1090,9 @@ export default function ReelsPage() {
                 <div style={{
                     position: 'absolute', bottom: 140, right: 16,
                     display: 'flex', flexDirection: 'column', gap: 20, zIndex: 100,
+                    opacity: overlayVisible ? 1 : 0,
+                    transition: 'opacity 0.35s ease',
+                    pointerEvents: overlayVisible ? 'auto' : 'none',
                 }}>
                     {/* Like */}
                     <button onClick={() => {
