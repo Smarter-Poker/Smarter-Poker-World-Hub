@@ -271,7 +271,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             el.removeEventListener('touchstart', handleTouchStart);
             el.removeEventListener('touchend', handleTouchEnd);
         };
-    }, [currentIndex]);
+    }, [currentIndex, reels.length]);
 
     const handleLike = async () => {
         if (!currentReel || !authUser?.id) return;
@@ -338,6 +338,22 @@ function ReelViewer({ reels, startIndex, onClose }) {
         } catch {
             setReelComments(prev => prev.filter(c => c.id !== tempId));
         }
+    };
+
+    // Share handler
+    const handleShare = async () => {
+        if (!currentReel?.id) return;
+        const url = `${window.location.origin}/hub/social-media?reel=${currentReel.id}`;
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: 'Check out this reel on Smarter.Poker', url });
+            } else {
+                await navigator.clipboard.writeText(url);
+            }
+        } catch { /* user cancelled or clipboard failed */ }
+        // Increment share_count in Supabase
+        supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }).catch(() => {});
+        busEmit.socialPostShared?.(currentReel.id, authUser?.id);
     };
 
     // Reset on reel change
@@ -495,7 +511,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         <span style={{ fontSize: 24 }}>🔖</span>
                         <span style={{ fontSize: 10, fontWeight: 500 }}>Save</span>
                     </button>
-                    <button onClick={() => {}} style={{
+                    <button onClick={handleShare} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>

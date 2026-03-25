@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { getAuthUser } from '../../lib/authUtils';
 import { busEmit } from '../../engine/EventBus';
 import Link from 'next/link';
 
@@ -50,22 +51,21 @@ export function ReelsViewer({ onClose }) {
 
     useEffect(() => {
         loadReels();
-        supabase.auth.getUser().then(({ data: { user } }) => {
-            if (user) {
-                setCurrentUserId(user.id);
-                supabase.from('social_interactions')
-                    .select('post_id')
-                    .eq('user_id', user.id)
-                    .eq('interaction_type', 'like')
-                    .then(({ data }) => {
-                        if (data) {
-                            const likeMap = {};
-                            data.forEach(row => { likeMap[row.post_id] = true; });
-                            setLiked(likeMap);
-                        }
-                    });
-            }
-        });
+        const user = getAuthUser();
+        if (user?.id) {
+            setCurrentUserId(user.id);
+            supabase.from('social_interactions')
+                .select('post_id')
+                .eq('user_id', user.id)
+                .eq('interaction_type', 'like')
+                .then(({ data }) => {
+                    if (data) {
+                        const likeMap = {};
+                        data.forEach(row => { likeMap[row.post_id] = true; });
+                        setLiked(likeMap);
+                    }
+                });
+        }
     }, []);
 
     // Reset paused state when changing reels
@@ -168,9 +168,12 @@ export function ReelsViewer({ onClose }) {
             created_at: new Date().toISOString()
         }]);
         try {
-            await supabase.from('social_comments').insert({
+            const { error } = await supabase.from('social_comments').insert({
                 post_id: currentReel.id, author_id: currentUserId, content: text
             });
+            if (error) throw error;
+            busEmit.socialCommentAdded(currentReel.id, currentUserId);
+            supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }).catch(() => {});
         } catch { /* optimistic stays */ }
     };
 
@@ -190,6 +193,9 @@ export function ReelsViewer({ onClose }) {
         }
         setShareToast(true);
         setTimeout(() => setShareToast(false), 2000);
+        // Increment share_count + EventBus
+        supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }).catch(() => {});
+        busEmit.socialPostShared?.(currentReel.id, currentUserId);
     };
 
     // Reset comment drawer on reel change
