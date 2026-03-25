@@ -59,6 +59,11 @@ export default function CreateSocialPage() {
     const { user, checking: authChecking } = useRequireAuth('/hub/social-pages/create');
     useTrainingBus('social-pages-create');
 
+    // Cleanup slug debounce timer on unmount to prevent stale state updates
+    useEffect(() => {
+        return () => { if (slugTimerRef.current) clearTimeout(slugTimerRef.current); };
+    }, []);
+
     // Club Commander access gate
     const [isCommander, setIsCommander] = useState(null); // null=checking, true/false=result
     useEffect(() => {

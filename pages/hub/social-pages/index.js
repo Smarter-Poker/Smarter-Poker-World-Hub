@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
+import { eventBus, busEmit } from '../../../src/engine/EventBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const C = {
@@ -194,6 +194,14 @@ export default function SocialPagesHub() {
         })
     );
     const pages = swrData || [];
+
+    // Listen for dataMutated events from other pages (create, manage, detail) to auto-refresh listing
+    useEffect(() => {
+        const unsub = eventBus.on('dataMutated:social-pages', () => {
+            refreshPages();
+        });
+        return () => { if (typeof unsub === 'function') unsub(); };
+    }, [refreshPages]);
 
 
 
