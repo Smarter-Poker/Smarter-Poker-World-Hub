@@ -33,7 +33,7 @@ async function fireConfetti(opts) {
     } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
 }
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, Newspaper, Globe, ChevronRight, ChevronLeft, Film } from 'lucide-react';
+import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, Newspaper, Globe, ChevronRight, ChevronLeft, Film, Clock } from 'lucide-react';
 
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -134,9 +134,22 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
         : (rawImageUrl || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news);
     const fallbackUrl = FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news;
 
+    // Source accent color
+    const SOURCE_COLORS_LOCAL = {
+        'PokerNews': '#e53935',
+        'MSPT': '#1565c0',
+        'CardPlayer': '#43a047',
+        'WSOP': '#f9a825',
+        'Poker.org': '#7b1fa2',
+        'Pokerfuse': '#00897b'
+    };
+    const srcColor = SOURCE_COLORS_LOCAL[article.source_name] || '#5ef5f0';
+
     return (
         <div
             className={`news-box ${isRead ? 'read' : ''}`}
+            data-source={article.source_name}
+            style={{ '--src-accent': srcColor }}
             onClick={() => onOpen(article)}
         >
             {/* Quick Actions */}
@@ -153,6 +166,13 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
             {isRead && (
                 <div className="read-indicator">
                     <CheckCircle size={10} /> Read
+                </div>
+            )}
+
+            {/* Reading Time Badge */}
+            {article.read_time > 0 && (
+                <div className="read-time-badge">
+                    <Clock size={9} /> {article.read_time} min
                 </div>
             )}
 
@@ -179,11 +199,14 @@ function NewsBox({ article, index, onOpen, isBookmarked, onBookmark, onShare, is
                 <div className="box-overlay" />
             </div>
 
-            {/* Content - compact: title + meta only */}
+            {/* Content - compact: title + excerpt + meta */}
             <div className="box-content">
                 <h3 className="box-title">{article.title}</h3>
+                {article.content && (
+                    <p className="box-excerpt">{article.content.replace(/<[^>]*>/g, '').slice(0, 90)}...</p>
+                )}
                 <div className="box-meta">
-                    <span className="source">{article.source_name || 'Smarter.Poker'}</span>
+                    <span className="source" style={{ color: srcColor }}>{article.source_name || 'Smarter.Poker'}</span>
                     <span className="separator">•</span>
                     <span className="time">{timeAgo(article.published_at)}</span>
                     <span className="separator">•</span>
@@ -935,6 +958,9 @@ export default function NewsHub() {
     const [sourceFilters, setSourceFilters] = useState({});
     const [visibleStories, setVisibleStories] = useState(10);
     const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [scrollProgress, setScrollProgress] = useState(0);
+    const [newArticleCount, setNewArticleCount] = useState(0);
+    const reelsCarouselRef = useRef(null);
 
     // Source accent colors for color-coded borders
     const SOURCE_COLORS = {
@@ -990,6 +1016,33 @@ export default function NewsHub() {
     React.useEffect(() => {
         if (newsData && !loading) setLastRefreshed(new Date());
     }, [newsData, loading]);
+
+    // Scroll progress bar
+    useEffect(() => {
+        const handleScroll = () => {
+            const total = document.documentElement.scrollHeight - window.innerHeight;
+            if (total > 0) setScrollProgress(Math.min((window.scrollY / total) * 100, 100));
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // New article notification dot
+    useEffect(() => {
+        if (news.length > 0) {
+            const lastVisit = localStorage.getItem('news_last_visit');
+            if (lastVisit) {
+                const count = news.filter(a => new Date(a.published_at) > new Date(lastVisit)).length;
+                setNewArticleCount(count);
+            }
+            localStorage.setItem('news_last_visit', new Date().toISOString());
+        }
+    }, [news]);
+
+    // Search suggestions
+    const searchSuggestions = searchQuery.length >= 2
+        ? news.filter(a => a.title?.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5)
+        : [];
 
     // Toggle source filter
     const toggleSource = (src) => setSourceFilters(prev => ({ ...prev, [src]: !prev[src] }));

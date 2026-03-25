@@ -54,6 +54,53 @@ function getDaysInMonth(month, year) {
     return 31;
 }
 
+// Max file size for uploads (5MB)
+const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
+
+// Social link URL stripping patterns
+function stripSocialHandle(value, platform) {
+    if (!value) return '';
+    let v = value.trim();
+    // Strip common URL prefixes
+    const patterns = {
+        twitter: [/^https?:\/\/(www\.)?(twitter|x)\.com\//i],
+        instagram: [/^https?:\/\/(www\.)?instagram\.com\//i],
+        tiktok: [/^https?:\/\/(www\.)?tiktok\.com\/@?/i],
+        telegram: [/^https?:\/\/(www\.)?(t\.me|telegram\.me)\//i],
+    };
+    const plats = patterns[platform] || [];
+    for (const p of plats) v = v.replace(p, '');
+    // Strip leading @
+    v = v.replace(/^@/, '');
+    // Strip trailing slashes
+    v = v.replace(/\/+$/, '');
+    return v;
+}
+
+// Profile completion calculator
+function calcProfileCompletion(profile) {
+    const fields = [
+        { key: 'first_name', weight: 1 },
+        { key: 'last_name', weight: 1 },
+        { key: 'username', weight: 1.5 },
+        { key: 'bio', weight: 1.5 },
+        { key: 'avatar_url', weight: 2 },
+        { key: 'cover_photo_url', weight: 1 },
+        { key: 'city', weight: 0.5 },
+        { key: 'state', weight: 0.5 },
+        { key: 'country', weight: 0.5 },
+        { key: 'favorite_game', weight: 1 },
+        { key: 'birthday', weight: 1 },
+        { key: 'home_casino', weight: 1 },
+    ];
+    const total = fields.reduce((s, f) => s + f.weight, 0);
+    const filled = fields.reduce((s, f) => {
+        const v = profile[f.key];
+        return s + (v && String(v).trim().length > 0 ? f.weight : 0);
+    }, 0);
+    return Math.round((filled / total) * 100);
+}
+
 // ── Image compression utility — reduces upload size 60-80% ──
 async function compressImage(file, maxWidth = 1200, quality = 0.85) {
     return new Promise((resolve) => {
@@ -263,7 +310,8 @@ function Avatar({ src, size = 120, onUpload, uploadPhase }) {
     );
 }
 
-function ProfileField({ label, value, onChange, type = 'text', placeholder, icon }) {
+function ProfileField({ label, value, onChange, type = 'text', placeholder, icon, maxLength, showCount, suffix }) {
+    const charCount = value ? String(value).length : 0;
     return (
         <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>
@@ -271,35 +319,51 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
                 {label}
             </label>
             {type === 'textarea' ? (
-                <textarea
-                    value={value || ''}
-                    onChange={e => onChange(e.target.value)}
-                    placeholder={placeholder}
-                    spellCheck={false}
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    style={{
-                        width: '100%', padding: 12, borderRadius: 8, border: `1px solid ${C.border}`,
-                        fontSize: 15, resize: 'vertical', minHeight: 80, boxSizing: 'border-box',
-                        fontFamily: 'inherit', color: '#000000', background: '#ffffff'
-                    }}
-                />
+                <>
+                    <textarea
+                        value={value || ''}
+                        onChange={e => onChange(e.target.value)}
+                        placeholder={placeholder}
+                        maxLength={maxLength}
+                        spellCheck={false}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        style={{
+                            width: '100%', padding: 12, borderRadius: 8, border: `1px solid ${C.border}`,
+                            fontSize: 15, resize: 'vertical', minHeight: 80, boxSizing: 'border-box',
+                            fontFamily: 'inherit', color: '#000000', background: '#ffffff'
+                        }}
+                    />
+                    {showCount && maxLength && (
+                        <div style={{ fontSize: 11, color: charCount > maxLength * 0.9 ? '#e53935' : C.textSec, textAlign: 'right', marginTop: 2 }}>
+                            {charCount}/{maxLength}
+                        </div>
+                    )}
+                </>
             ) : (
-                <input
-                    type={type}
-                    value={value || ''}
-                    onChange={e => onChange(e.target.value)}
-                    placeholder={placeholder}
-                    spellCheck={false}
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    style={{
-                        width: '100%', padding: 12, borderRadius: 8, border: `1px solid ${C.border}`,
-                        fontSize: 15, boxSizing: 'border-box', color: '#000000', background: '#ffffff'
-                    }}
-                />
+                <div style={{ position: 'relative' }}>
+                    <input
+                        type={type}
+                        value={value || ''}
+                        onChange={e => onChange(e.target.value)}
+                        placeholder={placeholder}
+                        maxLength={maxLength}
+                        spellCheck={false}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        style={{
+                            width: '100%', padding: 12, paddingRight: suffix ? 40 : 12, borderRadius: 8, border: `1px solid ${C.border}`,
+                            fontSize: 15, boxSizing: 'border-box', color: '#000000', background: '#ffffff'
+                        }}
+                    />
+                    {suffix && (
+                        <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 16 }}>
+                            {suffix}
+                        </span>
+                    )}
+                </div>
             )}
         </div>
     );
@@ -564,6 +628,8 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
     const [avatarUploadPhase, setAvatarUploadPhase] = useState(null); // 'Compressing' | 'Uploading' | 'Saving' | null
+    const [usernameStatus, setUsernameStatus] = useState('idle'); // 'idle' | 'checking' | 'available' | 'taken'
+    const usernameCheckRef = useRef(null);
 
     // Auto-dismiss success messages after 3.5 seconds
     useEffect(() => {
@@ -781,11 +847,52 @@ export default function ProfilePage() {
     }, []);
 
     const updateField = (field) => (value) => {
+        // Social link auto-formatting: strip URLs and @ prefixes
+        const socialFields = { twitter: 'twitter', instagram: 'instagram', tiktok: 'tiktok', telegram: 'telegram' };
+        if (socialFields[field]) {
+            value = stripSocialHandle(value, socialFields[field]);
+        }
         setProfile(prev => ({ ...prev, [field]: value }));
+
+        // Username uniqueness check (debounced)
+        if (field === 'username') {
+            if (usernameCheckRef.current) clearTimeout(usernameCheckRef.current);
+            const trimmed = (value || '').trim();
+            if (!trimmed || trimmed.length < 3) {
+                setUsernameStatus('idle');
+                return;
+            }
+            // Skip check if username hasn't changed from original
+            if (originalProfile && trimmed === (originalProfile.username || '').trim()) {
+                setUsernameStatus('available');
+                return;
+            }
+            setUsernameStatus('checking');
+            usernameCheckRef.current = setTimeout(async () => {
+                try {
+                    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                    const res = await fetch(
+                        `${supabaseUrl}/rest/v1/profiles?username=eq.${encodeURIComponent(trimmed)}&select=id`,
+                        { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${getProfileJwt()}` } }
+                    );
+                    const data = res.ok ? await res.json() : [];
+                    // If the only result is the current user, it's available
+                    const takenByOther = data.filter(d => d.id !== user?.id);
+                    setUsernameStatus(takenByOther.length > 0 ? 'taken' : 'available');
+                } catch {
+                    setUsernameStatus('idle');
+                }
+            }, 500);
+        }
     };
 
     const handleAvatarUpload = async (file) => {
         if (!user) return;
+        if (file.size > MAX_UPLOAD_SIZE) {
+            setMessage('Error: Image too large (max 5MB). Please choose a smaller image.');
+            return;
+        }
 
         // Phase 1: Compress
         setAvatarUploadPhase('Compressing');
@@ -861,6 +968,10 @@ export default function ProfilePage() {
     const handleCoverPhotoUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file || !user) return;
+        if (file.size > MAX_UPLOAD_SIZE) {
+            setMessage('Error: Cover photo too large (max 5MB). Please choose a smaller image.');
+            return;
+        }
 
         setMessage('Compressing & uploading cover photo...');
 
@@ -1010,6 +1121,10 @@ export default function ProfilePage() {
 
     const handleSave = async () => {
         if (!user) return;
+        if (usernameStatus === 'taken') {
+            setMessage('Error: Username is already taken. Please choose a different username.');
+            return;
+        }
         setSaving(true);
         setMessage('');
 
@@ -1388,23 +1503,58 @@ export default function ProfilePage() {
                         </button>
                     </div>
 
-                    {/* Right side - Build Custom Avatar */}
-                    <button
-                        onClick={() => router.push('/hub/avatars')}
-                        style={{
-                            background: 'linear-gradient(135deg, #00f5ff, #0099ff)',
-                            color: '#0a0e27',
-                            border: 'none',
-                            borderRadius: 8,
-                            padding: '10px 16px',
-                            fontSize: 14,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            boxShadow: '0 2px 8px rgba(0,245,255,0.4)'
-                        }}
-                    >
-                        Build A Custom Avatar
-                    </button>
+                    {/* Right side - Share Profile + Build Custom Avatar */}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                            onClick={async () => {
+                                const shareUrl = `https://smarter.poker/hub/user/${profile.username || user?.id}`;
+                                try {
+                                    await navigator.clipboard.writeText(shareUrl);
+                                    setMessage('Profile link copied to clipboard!');
+                                } catch {
+                                    // Fallback for older browsers
+                                    const ta = document.createElement('textarea');
+                                    ta.value = shareUrl;
+                                    document.body.appendChild(ta);
+                                    ta.select();
+                                    document.execCommand('copy');
+                                    document.body.removeChild(ta);
+                                    setMessage('Profile link copied to clipboard!');
+                                }
+                            }}
+                            style={{
+                                background: C.card,
+                                color: C.text,
+                                border: `1px solid ${C.border}`,
+                                borderRadius: 8,
+                                padding: '10px 16px',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6
+                            }}
+                        >
+                            Share Profile
+                        </button>
+                        <button
+                            onClick={() => router.push('/hub/avatars')}
+                            style={{
+                                background: 'linear-gradient(135deg, #00f5ff, #0099ff)',
+                                color: '#0a0e27',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '10px 16px',
+                                fontSize: 14,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(0,245,255,0.4)'
+                            }}
+                        >
+                            Build A Custom Avatar
+                        </button>
+                    </div>
                 </div>
 
                 {/* Main Content */}
@@ -1505,11 +1655,19 @@ export default function ProfilePage() {
                     <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
                         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>👤 Basic Information</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                            <ProfileField label="First Name" value={profile.first_name} onChange={updateField('first_name')} placeholder="John" icon="📛" />
-                            <ProfileField label="Last Name" value={profile.last_name} onChange={updateField('last_name')} placeholder="Doe" icon="📛" />
-                            <ProfileField label="Username" value={profile.username} onChange={updateField('username')} placeholder="@johndoe" icon="@" />
+                            <ProfileField label="First Name" value={profile.first_name} onChange={updateField('first_name')} placeholder="John" icon="📛" maxLength={50} />
+                            <ProfileField label="Last Name" value={profile.last_name} onChange={updateField('last_name')} placeholder="Doe" icon="📛" maxLength={50} />
+                            <ProfileField
+                                label="Username"
+                                value={profile.username}
+                                onChange={updateField('username')}
+                                placeholder="@johndoe"
+                                icon="@"
+                                maxLength={30}
+                                suffix={usernameStatus === 'checking' ? '⟳' : usernameStatus === 'available' ? '✅' : usernameStatus === 'taken' ? '❌' : null}
+                            />
                         </div>
-                        <ProfileField label="Bio" value={profile.bio} onChange={updateField('bio')} type="textarea" placeholder="Tell Us About Yourself And Your Poker Journey..." icon="" />
+                        <ProfileField label="Bio" value={profile.bio} onChange={updateField('bio')} type="textarea" placeholder="Tell Us About Yourself And Your Poker Journey..." icon="" maxLength={500} showCount />
 
                         {/* Profile Picture History */}
                         <ProfilePictureHistory
@@ -1524,9 +1682,9 @@ export default function ProfilePage() {
                     <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
                         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>Location</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-                            <ProfileField label="City" value={profile.city} onChange={updateField('city')} placeholder="Las Vegas" />
-                            <ProfileField label="State" value={profile.state} onChange={updateField('state')} placeholder="Nevada" />
-                            <ProfileField label="Country" value={profile.country} onChange={updateField('country')} placeholder="USA" />
+                            <ProfileField label="City" value={profile.city} onChange={updateField('city')} placeholder="Las Vegas" maxLength={100} />
+                            <ProfileField label="State" value={profile.state} onChange={updateField('state')} placeholder="Nevada" maxLength={100} />
+                            <ProfileField label="Country" value={profile.country} onChange={updateField('country')} placeholder="USA" maxLength={100} />
                         </div>
                     </div>
 
@@ -1534,13 +1692,13 @@ export default function ProfilePage() {
                     <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
                         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>🔗 Contact & Social</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                            <ProfileField label="Email" value={profile.email} onChange={updateField('email')} type="email" placeholder="you@example.com" icon="✉️" />
-                            <ProfileField label="Phone" value={profile.phone} onChange={updateField('phone')} type="tel" placeholder="+1 555 123 4567" icon="📱" />
-                            <ProfileField label="Website" value={profile.website} onChange={updateField('website')} placeholder="https://yoursite.com" icon="🌐" />
-                            <ProfileField label="Twitter/X" value={profile.twitter} onChange={updateField('twitter')} placeholder="@username" icon="𝕏" />
-                            <ProfileField label="Instagram" value={profile.instagram} onChange={updateField('instagram')} placeholder="@username" icon="📸" />
-                            <ProfileField label="TikTok" value={profile.tiktok} onChange={updateField('tiktok')} placeholder="@username" icon="🎵" />
-                            <ProfileField label="Telegram" value={profile.telegram} onChange={updateField('telegram')} placeholder="@username" icon="✈️" />
+                            <ProfileField label="Email" value={profile.email} onChange={updateField('email')} type="email" placeholder="you@example.com" icon="✉️" maxLength={100} />
+                            <ProfileField label="Phone" value={profile.phone} onChange={updateField('phone')} type="tel" placeholder="+1 555 123 4567" icon="📱" maxLength={20} />
+                            <ProfileField label="Website" value={profile.website} onChange={updateField('website')} placeholder="https://yoursite.com" icon="🌐" maxLength={200} />
+                            <ProfileField label="Twitter/X" value={profile.twitter} onChange={updateField('twitter')} placeholder="username" icon="𝕏" maxLength={100} />
+                            <ProfileField label="Instagram" value={profile.instagram} onChange={updateField('instagram')} placeholder="username" icon="📸" maxLength={100} />
+                            <ProfileField label="TikTok" value={profile.tiktok} onChange={updateField('tiktok')} placeholder="username" icon="🎵" maxLength={100} />
+                            <ProfileField label="Telegram" value={profile.telegram} onChange={updateField('telegram')} placeholder="username" icon="✈️" maxLength={100} />
                         </div>
                     </div>
 
@@ -1570,6 +1728,7 @@ export default function ProfilePage() {
                                     <img
                                         src={`/images/card-backs/${deck}.png`}
                                         alt={`${deck} deck`}
+                                        loading="lazy"
                                         style={{
                                             width: '100%',
                                             aspectRatio: '2.5 / 3.5',
@@ -1611,7 +1770,12 @@ export default function ProfilePage() {
                                         const parts = (profile.birthday || '--').split('-');
                                         const month = e.target.value;
                                         const year = parts[0] || '';
-                                        const day = parts[2] || '';
+                                        let day = parts[2] || '';
+                                        // Auto-clamp day if new month has fewer days
+                                        if (day && month) {
+                                            const max = getDaysInMonth(month, year);
+                                            if (parseInt(day, 10) > max) day = String(max).padStart(2, '0');
+                                        }
                                         updateField('birthday')(month && year && day ? `${year}-${month}-${day}` : (month || year || day ? `${year}-${month}-${day}` : ''));
                                     }}
                                     style={{
@@ -1896,6 +2060,7 @@ export default function ProfilePage() {
                                     <img
                                         src={photo.media_url}
                                         alt={photo.content || 'Photo'}
+                                        loading="lazy"
                                         style={{
                                             width: '100%', height: 'auto',
                                             display: 'block'
