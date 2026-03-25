@@ -6405,6 +6405,7 @@ function SocialMediaPage() {
 
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 toast.success(`Posted as ${identityStored.clubPage.name}!`, 2000);
+                busEmit.dataMutated('social');
                 return true;
             }
 

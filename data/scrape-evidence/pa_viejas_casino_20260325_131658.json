@@ -1,0 +1,17 @@
+{
+  "venue": "Viejas Casino",
+  "slug": "viejas-casino-alpine",
+  "url": "https://www.pokeratlas.com/poker-room/viejas-casino-alpine",
+  "data": {
+    "address": "5000 Willows Road",
+    "city": "Alpine",
+    "state": "CA",
+    "phone": "(800) 847-6537",
+    "lat": 32.8419,
+    "lng": -116.703,
+    "website": "http://www.viejas.com/"
+  },
+  "hash": "63b75c2904915b01a91926c148a9c2e619e4c15dbf7a517a609e2a29ff2fdc9d",
+  "ts": "2026-03-25T18:16:58.808999+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}

@@ -1,0 +1,17 @@
+{
+  "venue": "Pechanga",
+  "slug": "pechanga-temecula",
+  "url": "https://www.pokeratlas.com/poker-room/pechanga-temecula",
+  "data": {
+    "address": "45000 Pechanga Parkway",
+    "city": "Temecula",
+    "state": "CA",
+    "phone": "(951) 770-5155",
+    "lat": 33.45612,
+    "lng": -117.10652,
+    "website": "http://www.pechanga.com/play/poker"
+  },
+  "hash": "86691b40ee84175dadea6b7704be42018b21e295b93bb604f9e6f2160e0e6a31",
+  "ts": "2026-03-25T18:16:11.415317+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}

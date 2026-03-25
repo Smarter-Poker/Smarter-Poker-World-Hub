@@ -1,0 +1,17 @@
+{
+  "venue": "Table Mountain",
+  "slug": "table-mountain-friant",
+  "url": "https://www.pokeratlas.com/poker-room/table-mountain-friant",
+  "data": {
+    "address": "8184 Table Mountain Rd.",
+    "city": "Friant",
+    "state": "CA",
+    "phone": "(800) 541-3637",
+    "lat": 36.98465,
+    "lng": -119.63969,
+    "website": "http://www.tmcasino.com/"
+  },
+  "hash": "166fc56975244d9b291c41aac6109bd5b2aa0ff50059bfcad4f9c0369eb795ee",
+  "ts": "2026-03-25T18:20:32.271501+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}

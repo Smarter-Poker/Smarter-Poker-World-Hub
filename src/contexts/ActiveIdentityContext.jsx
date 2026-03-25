@@ -174,9 +174,11 @@ export function ActiveIdentityProvider({ children }) {
     // If the stored club page was deleted (admin action, etc.), auto-reset to personal
     useEffect(() => {
         if (activeIdentity.mode !== 'club' || !activeIdentity.clubPage?.id) return;
+        let mounted = true; // Unmount guard — prevents state update after unmount
         const validateClubPage = async () => {
             try {
                 const res = await fetch(`/api/social/pages?id=${activeIdentity.clubPage.id}`);
+                if (!mounted) return; // Guard: component unmounted during fetch
                 if (!res.ok) {
                     // 404 or server error — page likely deleted
                     console.warn('[ActiveIdentity] Stale club page detected (HTTP', res.status, '), resetting');
@@ -185,6 +187,7 @@ export function ActiveIdentityProvider({ children }) {
                     return;
                 }
                 const json = await res.json();
+                if (!mounted) return; // Guard: component unmounted during parse
                 // Pages API returns { success, data } — data is object for single lookup
                 if (!json.success || !json.data) {
                     console.warn('[ActiveIdentity] Stale club page detected, resetting to personal');
@@ -194,6 +197,7 @@ export function ActiveIdentityProvider({ children }) {
             } catch (e) { /* network error — keep existing identity */ }
         };
         validateClubPage();
+        return () => { mounted = false; }; // Cleanup: mark as unmounted
     }, []); // Only on mount
 
     const value = {

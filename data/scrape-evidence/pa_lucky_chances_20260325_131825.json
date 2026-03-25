@@ -1,0 +1,17 @@
+{
+  "venue": "Lucky Chances",
+  "slug": "lucky-chances-colma",
+  "url": "https://www.pokeratlas.com/poker-room/lucky-chances-colma",
+  "data": {
+    "address": "1700 Hillside Boulevard",
+    "city": "Colma",
+    "state": "CA",
+    "phone": "(650) 758-2237",
+    "lat": 37.68,
+    "lng": -122.452,
+    "website": "http://www.luckychances.com/"
+  },
+  "hash": "e0864832b7477f1618ffa930e2498534a26c4df917f7801c791544ed991054fa",
+  "ts": "2026-03-25T18:18:25.607024+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}
