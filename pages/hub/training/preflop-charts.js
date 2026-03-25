@@ -18,7 +18,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -725,7 +724,6 @@ export default function PreflopCharts() {
             </p>
           </div>
         </div>
-        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

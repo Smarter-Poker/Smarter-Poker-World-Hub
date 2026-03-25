@@ -16,7 +16,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { idbSet, idbDelete, idbGet } from '../../../src/lib/idbCacheStore';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const TREES = [
   {
@@ -441,7 +440,6 @@ export default function GtoPreloaderPage() {
             })}
           </div>
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

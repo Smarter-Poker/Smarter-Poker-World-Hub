@@ -24,7 +24,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ── Save-session helper (SSR-safe) ──────────────────────────────
 
@@ -1443,7 +1442,6 @@ export default function VillainRange() {
             )}
           </AnimatePresence>
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

@@ -22,7 +22,6 @@ import GameIntroSplash from '../../../../src/components/training/GameIntroSplash
 // God-Mode Stack
 import PageTransition from '../../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
-import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 
 // Category metadata
 const CATEGORY_META = {
@@ -158,7 +157,6 @@ export default function CategoryPage() {
                     </div>
                 </div>
             </div>
-              <BottomNavBar />
     </PageTransition>
     );
 }

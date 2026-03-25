@@ -18,7 +18,6 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GTO BASELINES — Optimal frequencies by position (6-max Cash, 100BB)
@@ -699,7 +698,6 @@ export default function GTOScorecardPage() {
             </div>
           )}
         </div>
-        <BottomNavBar />
       </div>
       {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
       <ConnectionToast />

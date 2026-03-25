@@ -8,7 +8,6 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import dynamic from 'next/dynamic';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const AreaChart = dynamic(() => import('recharts').then(m => m.AreaChart), { ssr: false });
 const Area = dynamic(() => import('recharts').then(m => m.Area), { ssr: false });
@@ -183,7 +182,6 @@ export default function MixedStrategyLab() {
           </div>
         </div>
       </div>
-          <BottomNavBar />
     </PageTransition>
     <ConnectionToast />
     </>

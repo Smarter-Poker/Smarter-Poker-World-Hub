@@ -17,7 +17,6 @@ import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STAKES PRESETS
@@ -575,7 +574,6 @@ export default function BankrollCoachPage() {
             </div>
           )}
         </div>
-        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

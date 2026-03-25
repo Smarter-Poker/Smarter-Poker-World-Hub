@@ -13,7 +13,6 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BOUNTY FORMAT DEFINITIONS
@@ -841,7 +840,6 @@ export default function BountyTrainerPage() {
             </div>
           )}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

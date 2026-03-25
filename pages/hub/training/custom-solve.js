@@ -15,7 +15,6 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRESETS & CONSTANTS
@@ -1377,7 +1376,6 @@ export default function CustomSolvePage() {
             />
           )}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

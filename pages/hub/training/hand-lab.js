@@ -8,7 +8,6 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
@@ -393,7 +392,6 @@ export default function HandLabV2() {
         </div>
       </div>
       <ConnectionToast />
-          <BottomNavBar />
     </PageTransition>
   );
 }

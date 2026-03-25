@@ -8,7 +8,6 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SPR ENGINE
@@ -932,7 +931,6 @@ export default function PotGeometry() {
             </>
           )}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

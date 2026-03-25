@@ -13,7 +13,6 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MULTIWAY RANGES DATA — Pre-computed for common spots
@@ -763,7 +762,6 @@ export default function MultiwayPreflopPage() {
             )}
           </div>
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

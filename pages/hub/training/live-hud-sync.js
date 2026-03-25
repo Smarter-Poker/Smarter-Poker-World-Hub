@@ -13,7 +13,6 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 // no fetch imports needed
 
 export default function LiveHudSyncPage() {
@@ -411,7 +410,6 @@ export default function LiveHudSyncPage() {
             )}
           </AnimatePresence>
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

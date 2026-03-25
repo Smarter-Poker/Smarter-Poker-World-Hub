@@ -18,7 +18,6 @@ import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function ChallengesPage() {
   useTrainingBus('challenges');
@@ -209,7 +208,6 @@ export default function ChallengesPage() {
           )}
         </div>
       </div>
-          <BottomNavBar />
     </PageTransition>
     <ConnectionToast />
     </>

@@ -18,7 +18,6 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TILT DETECTION
@@ -594,7 +593,6 @@ export default function TiltGuardPage() {
           {/* Breathing Exercise Overlay */}
           {showBreathing && <BreathingExercise onClose={() => setShowBreathing(false)} />}
         </div>
-        <BottomNavBar />
       </div>
       {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchData(); }} />}
       <ConnectionToast />

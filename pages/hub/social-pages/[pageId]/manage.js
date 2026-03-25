@@ -576,6 +576,38 @@ export default function ManageSocialPage() {
                                     }}>
                                         Copy Link
                                     </button>
+
+                                    {/* QR Code */}
+                                    <div style={{ marginTop: 24, paddingTop: 24, borderTop: `1px solid ${C.border}` }}>
+                                        <p style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 4 }}>QR Code</p>
+                                        <p style={{ fontSize: 12, color: C.textSec, marginBottom: 12 }}>
+                                            Scan to visit your page
+                                        </p>
+                                        {typeof window !== 'undefined' && (
+                                            <img
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/hub/social-pages/${page.slug || page.id}`)}`}
+                                                alt={`QR code for ${page.name}`}
+                                                width={200} height={200}
+                                                style={{ borderRadius: 8, border: `1px solid ${C.border}` }}
+                                            />
+                                        )}
+                                        <div style={{ marginTop: 8 }}>
+                                            <button onClick={() => {
+                                                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(`${window.location.origin}/hub/social-pages/${page.slug || page.id}`)}`;
+                                                const a = document.createElement('a');
+                                                a.href = qrUrl;
+                                                a.download = `${page.slug || page.id}-qr.png`;
+                                                a.target = '_blank';
+                                                a.click();
+                                            }} style={{
+                                                padding: '6px 16px', borderRadius: 6, border: `1px solid ${C.border}`,
+                                                background: C.bg, color: C.text, fontSize: 12, fontWeight: 600,
+                                                cursor: 'pointer', fontFamily: 'inherit',
+                                            }}>
+                                                Download QR Code
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>

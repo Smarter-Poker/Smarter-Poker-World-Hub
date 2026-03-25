@@ -12,7 +12,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const CARDS = [
   // Original 30
@@ -798,7 +797,6 @@ export default function FlashcardsPage() {
             </div>
           )}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

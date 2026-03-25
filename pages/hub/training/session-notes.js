@@ -17,7 +17,6 @@ import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authU
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const MOOD_OPTIONS = [
   { id: 'focused', emoji: '🎯', label: 'Focused' },
@@ -819,7 +818,6 @@ export default function SessionNotesPage() {
             </>
           )}
         </div>
-        <BottomNavBar />
       </div>
       {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchRecentSession(); }} />}
       <ConnectionToast />

@@ -19,7 +19,6 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useSWRConfig } from 'swr';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function TrainingLeaderboard() {
   useTrainingBus('training-leaderboard');
@@ -219,7 +218,6 @@ export default function TrainingLeaderboard() {
         </div>
       </div>
       <ConnectionToast />
-          <BottomNavBar />
     </PageTransition>
   );
 }

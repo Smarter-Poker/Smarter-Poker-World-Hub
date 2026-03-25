@@ -17,7 +17,6 @@ import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import feedback, { EFFECT_STYLES } from '../../../../src/engine/HapticsFeedback';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 
 // Constants
 const TIME_PER_QUESTION = 21;
@@ -291,7 +290,6 @@ export default function ClinicPlayPage() {
                             >{passed ? 'CONTINUE' : 'BACK'}</motion.button>
                         </div>
                     </motion.div>
-                  <BottomNavBar />
                 </div>
             </>
         );

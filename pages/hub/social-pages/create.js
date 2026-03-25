@@ -188,7 +188,30 @@ export default function CreateSocialPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                                 <div>
                                     <label style={labelStyle}>Page Name *</label>
-                                    <input type="text" value={form.name} onChange={e => update('name', e.target.value)}
+                                    <input type="text" value={form.name} onChange={e => {
+                                        update('name', e.target.value);
+                                        // Auto-suggest slug from name if slug field is empty or matches the previous auto-generated slug
+                                        if (!form.slug || form.slug === form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 60)) {
+                                            const suggested = e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 60);
+                                            update('slug', suggested);
+                                            setSlugStatus(null);
+                                            setSlugError('');
+                                            if (slugTimerRef.current) clearTimeout(slugTimerRef.current);
+                                            if (suggested.length >= 3) {
+                                                setSlugStatus('checking');
+                                                slugTimerRef.current = setTimeout(async () => {
+                                                    try {
+                                                        const res = await fetch(`/api/social/pages/check-slug?slug=${encodeURIComponent(suggested)}`);
+                                                        const json = await res.json();
+                                                        if (json.success) {
+                                                            setSlugStatus(json.available ? 'available' : 'taken');
+                                                            setSlugError(json.error || '');
+                                                        }
+                                                    } catch { setSlugStatus(null); }
+                                                }, 500);
+                                            }
+                                        }
+                                    }}
                                         placeholder="Enter Page Name" style={inputStyle} maxLength={100} />
                                 </div>
 
@@ -365,10 +388,10 @@ export default function CreateSocialPage() {
                                     ))}
                                 </div>
 
-                                <button onClick={handleSubmit} disabled={submitting || slugStatus === 'taken' || slugStatus === 'invalid'} style={{
+                                <button onClick={handleSubmit} disabled={submitting || slugStatus === 'checking' || slugStatus === 'taken' || slugStatus === 'invalid'} style={{
                                     width: '100%', padding: '12px 0', borderRadius: 8, border: 'none',
-                                    background: (submitting || slugStatus === 'taken' || slugStatus === 'invalid') ? '#CCD0D5' : C.blue, color: '#fff',
-                                    fontSize: 15, fontWeight: 700, cursor: (submitting || slugStatus === 'taken' || slugStatus === 'invalid') ? 'default' : 'pointer',
+                                    background: (submitting || slugStatus === 'checking' || slugStatus === 'taken' || slugStatus === 'invalid') ? '#CCD0D5' : C.blue, color: '#fff',
+                                    fontSize: 15, fontWeight: 700, cursor: (submitting || slugStatus === 'checking' || slugStatus === 'taken' || slugStatus === 'invalid') ? 'default' : 'pointer',
                                     fontFamily: 'inherit', marginTop: 8,
                                 }}>
                                     {submitting ? 'Creating...' : 'Create Page'}

@@ -16,7 +16,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const POSITIONS = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const STREETS = ['Preflop', 'Flop', 'Turn', 'River'];
@@ -424,7 +423,6 @@ export default function EvHeatmapPage() {
             )}
           </AnimatePresence>
         </div>
-        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

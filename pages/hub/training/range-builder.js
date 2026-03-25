@@ -16,7 +16,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -776,7 +775,6 @@ function LegendItem({ color, label }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
       <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
       <span style={{ fontSize: 9, color: '#94a3b8' }}>{label}</span>
-      <BottomNavBar />
     </div>
   );
 }

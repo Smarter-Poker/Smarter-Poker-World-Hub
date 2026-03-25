@@ -13,7 +13,6 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const LESSONS = [
   {
@@ -667,7 +666,6 @@ export default function CoachModePage() {
             </motion.button>
           ))}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

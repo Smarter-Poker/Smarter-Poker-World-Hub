@@ -18,7 +18,6 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SKILL TREE DATA
@@ -565,7 +564,6 @@ export default function SkillTreePage() {
               </motion.div>
             ))}
         </div>
-        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

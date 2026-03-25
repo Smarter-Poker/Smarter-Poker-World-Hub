@@ -15,7 +15,6 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const PHASES = {
   FOCUS: { id: 'focus', label: 'Focus Block', mins: 25, color: '#3b82f6' },
@@ -418,7 +417,6 @@ export default function FocusTimerPage() {
             </div>
           )}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

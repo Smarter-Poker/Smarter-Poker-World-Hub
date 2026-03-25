@@ -13,7 +13,6 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RAKE PRESETS
@@ -447,7 +446,6 @@ export default function CustomRakePage() {
             </div>
           </div>
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

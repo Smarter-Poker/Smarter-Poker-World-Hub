@@ -15,7 +15,6 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const PROTOCOL_STEPS = [
   {
@@ -565,7 +564,6 @@ export default function SessionWarmupPage() {
             </motion.div>
           )}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

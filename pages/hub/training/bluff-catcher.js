@@ -7,7 +7,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // Pseudo-MDF based bluff-catching scenarios
 const SCENARIOS = [
@@ -249,7 +248,6 @@ export default function BluffCatcherTrainer() {
           )}
         </div>
       </div>
-          <BottomNavBar />
     </PageTransition>
     <ConnectionToast />
     </>

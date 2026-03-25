@@ -18,7 +18,6 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 function generateGoals(sessionsParams) {
   const today = new Date().toISOString().slice(0, 10);
@@ -516,7 +515,6 @@ export default function DailyGoalsPage() {
             </>
           )}
         </div>
-        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

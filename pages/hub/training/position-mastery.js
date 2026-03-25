@@ -15,7 +15,6 @@ import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 
 
@@ -719,7 +718,6 @@ export default function PositionMasteryPage() {
             </motion.div>
           )}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

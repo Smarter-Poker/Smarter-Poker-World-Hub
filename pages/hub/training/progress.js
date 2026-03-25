@@ -17,7 +17,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function TrainingProgress() {
   useTrainingBus('training-progress');
@@ -301,7 +300,6 @@ export default function TrainingProgress() {
         </div>
       </div>
       <ConnectionToast />
-          <BottomNavBar />
     </PageTransition>
   );
 }

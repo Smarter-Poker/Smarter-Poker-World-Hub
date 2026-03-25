@@ -14,10 +14,9 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-import Card from '../../../src/components/training/Card';
+import Card, { parseCards } from '../../../src/components/training/Card';
 import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 
 const DAILY_CHALLENGE_DIAMOND_REWARD = 25;
@@ -656,18 +655,11 @@ export default function DailyChallengePage() {
                     >
                       YOUR HAND
                     </div>
-                    <span
-                      style={{
-                        fontSize: 22,
-                        fontWeight: 900,
-                        fontFamily: "'Orbitron', monospace",
-                        background: 'linear-gradient(135deg, #eab308, #f97316)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                      }}
-                    >
-                      {heroHand}
-                    </span>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+                      {parseCards(heroHand).map((c, i) => (
+                        <Card key={i} rank={c.rank} suit={c.suit} size="small" />
+                      ))}
+                    </div>
                   </>
                 )}
               </div>
@@ -1003,7 +995,7 @@ export default function DailyChallengePage() {
             </div>
           )}
         </div>
-        <BottomNavBar />
+
       </div>
       <ConnectionToast />
     </>

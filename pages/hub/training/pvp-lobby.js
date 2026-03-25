@@ -13,7 +13,6 @@ import { useRouter } from 'next/router';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GAME FORMATS
@@ -859,7 +858,6 @@ export default function PvPLobbyPage() {
             </motion.div>
           )}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

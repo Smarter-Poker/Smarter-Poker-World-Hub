@@ -6,6 +6,7 @@
  * Returns: { available: boolean, formatted: string, error?: string }
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -74,6 +75,9 @@ export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
+
+    // Rate limit: prevent brute-force slug enumeration
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
     // CDN cache: short TTL since availability can change
     res.setHeader('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=10');

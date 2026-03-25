@@ -15,7 +15,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -1062,7 +1061,6 @@ export default function EquityCalculatorPage() {
             </p>
           </div>
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

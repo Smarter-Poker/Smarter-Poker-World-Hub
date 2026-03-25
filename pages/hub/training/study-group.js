@@ -7,7 +7,6 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function StudyGroupRoom() {
   const router = useRouter();
@@ -283,7 +282,6 @@ export default function StudyGroupRoom() {
         )}
       </div>
       <ConnectionToast />
-          <BottomNavBar />
     </PageTransition>
   );
 }

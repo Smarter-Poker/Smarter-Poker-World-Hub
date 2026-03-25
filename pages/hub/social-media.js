@@ -6343,7 +6343,8 @@ function SocialMediaPage() {
         // Check if posting as Club Page
         let identityStoredRaw = null;
         try { identityStoredRaw = localStorage.getItem('active-identity'); } catch (e) { }
-        const identityStored = identityStoredRaw ? JSON.parse(identityStoredRaw) : null;
+        let identityStored = null;
+        try { identityStored = identityStoredRaw ? JSON.parse(identityStoredRaw) : null; } catch (e) { /* corrupted localStorage — treat as personal */ }
         const isClubPost = identityStored?.mode === 'club' && identityStored?.clubPage?.id;
 
         try {

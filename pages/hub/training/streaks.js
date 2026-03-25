@@ -19,7 +19,6 @@ import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // Milestone definitions (must match API)
 const STREAK_MILESTONES = [
@@ -485,7 +484,6 @@ export default function StreaksPage() {
         </div>
       </div>
       <ConnectionToast />
-          <BottomNavBar />
     </PageTransition>
   );
 }

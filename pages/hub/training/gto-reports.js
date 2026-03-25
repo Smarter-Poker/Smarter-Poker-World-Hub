@@ -15,7 +15,6 @@ import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authU
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GTO BASELINE FREQUENCIES (6-Max Cash 100BB)
@@ -847,7 +846,6 @@ export default function GTOReportsPage() {
             </>
           )}
         </div>
-        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

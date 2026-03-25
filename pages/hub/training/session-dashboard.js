@@ -15,7 +15,6 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG LINE CHART COMPONENT
@@ -959,7 +958,6 @@ export default function SessionDashboard() {
             </>
           )}
         </div>
-        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

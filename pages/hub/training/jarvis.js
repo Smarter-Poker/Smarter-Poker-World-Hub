@@ -16,7 +16,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function JarvisDashboard() {
   useTrainingBus('jarvis-dashboard');
@@ -277,7 +276,6 @@ export default function JarvisDashboard() {
         </div>
       </div>
       <ConnectionToast />
-          <BottomNavBar />
     </PageTransition>
   );
 }

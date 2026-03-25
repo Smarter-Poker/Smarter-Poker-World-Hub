@@ -12,7 +12,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -692,7 +691,7 @@ export default function SPRTrainer() {
             </AnimatePresence>
           )}
         </div>
-        <BottomNavBar />
+
       </div>
     </>
   );

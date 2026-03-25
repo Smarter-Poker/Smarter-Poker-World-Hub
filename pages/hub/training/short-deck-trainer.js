@@ -16,7 +16,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import Card from '../../../src/components/training/Card';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const SUIT_COLORS = { '♠': '#e2e8f0', '♥': '#ef4444', '♦': '#3b82f6', '♣': '#22c55e' };
@@ -635,7 +634,6 @@ export default function ShortDeckTrainerPage() {
             </div>
           )}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

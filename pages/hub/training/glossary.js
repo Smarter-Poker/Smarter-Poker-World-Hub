@@ -13,7 +13,6 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const TERMS = [
   {
@@ -491,7 +490,6 @@ export default function GlossaryPage() {
             </div>
           )}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

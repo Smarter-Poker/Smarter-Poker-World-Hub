@@ -23,7 +23,6 @@ import {
 } from '../../../src/hooks/useGTOWScore';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION HELPERS
@@ -896,7 +895,6 @@ export default function HandAnalyzer() {
             </div>
           )}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

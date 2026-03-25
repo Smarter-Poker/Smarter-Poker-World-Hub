@@ -20,7 +20,6 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 import useSWR, { useSWRConfig } from 'swr';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CATEGORIES
@@ -381,7 +380,6 @@ export default function CommunityLeaderboardPage() {
             </div>
           )}
         </div>
-        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

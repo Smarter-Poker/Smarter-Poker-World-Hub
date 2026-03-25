@@ -13,7 +13,6 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // Simple exact ICM calculation for up to 6 players
 function calculateICM(stacks, payouts) {
@@ -456,7 +455,6 @@ export default function IcmSimulatorPage() {
             </div>
           </div>
         </div>
-        <BottomNavBar />
       </div>
     </>
   );

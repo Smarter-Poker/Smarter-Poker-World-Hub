@@ -16,7 +16,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function RiskAnalyzerPage() {
   const router = useRouter();
@@ -462,7 +461,6 @@ export default function RiskAnalyzerPage() {
             )}
           </div>
         </div>
-        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

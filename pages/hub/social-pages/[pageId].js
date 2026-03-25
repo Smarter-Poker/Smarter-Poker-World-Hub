@@ -305,18 +305,20 @@ export default function SocialPageDetail() {
 
     if (!router.isReady) return;
 
-    if (!pageId) return;
+    if (!pageId || !page) return;
+    // Use resolved page.id UUID for realtime, not the raw URL param (which may be a slug)
+    const resolvedId = page.id;
     const _ch = supabase
-      .channel(`social-page:${pageId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${pageId}` }, () => {
+      .channel(`social-page:${resolvedId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${resolvedId}` }, () => {
         fetchPosts();
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_interactions', filter: `page_id=eq.${pageId}` }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_interactions', filter: `page_id=eq.${resolvedId}` }, () => {
         fetchPosts();
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [pageId, fetchPosts]);
+  }, [pageId, page, fetchPosts]);
 
     const handleFollow = async () => {
         if (!user) { router.push('/auth/login'); return; }
@@ -442,9 +444,10 @@ export default function SocialPageDetail() {
     return (
         <>
             <SEOHead
-                title="Social Page"
-                description="View A Community Page On Smarter.Poker."
-                noindex={true}
+                title={`${page.name} | Smarter.Poker`}
+                description={page.description || `Follow ${page.name} on Smarter.Poker`}
+                ogImage={page.avatar_url || page.cover_url}
+                canonicalUrl={`https://smarter.poker/hub/social-pages/${page.slug || page.id}`}
             />
             <UniversalHeader />
 
@@ -707,6 +710,33 @@ export default function SocialPageDetail() {
                                         <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600 }}>Posts</div>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Share URL Card */}
+                            <div style={{
+                                background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16, marginBottom: 12,
+                            }}>
+                                <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 8px' }}>Share This Page</h3>
+                                <div style={{
+                                    background: C.bg, borderRadius: 8, padding: '10px 12px',
+                                    fontSize: 12, color: C.blue, wordBreak: 'break-all',
+                                    border: `1px solid ${C.border}`, marginBottom: 8,
+                                }}>
+                                    {typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page.slug || page.id}` : ''}
+                                </div>
+                                <button onClick={() => {
+                                    const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
+                                    navigator.clipboard.writeText(url).then(() => {
+                                        const el = document.getElementById('copy-feedback');
+                                        if (el) { el.textContent = 'Copied!'; setTimeout(() => { el.textContent = 'Copy Link'; }, 2000); }
+                                    }).catch(() => {});
+                                }} id="copy-feedback" style={{
+                                    width: '100%', padding: '8px 0', borderRadius: 8, border: 'none',
+                                    background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600,
+                                    cursor: 'pointer', fontFamily: 'inherit',
+                                }}>
+                                    Copy Link
+                                </button>
                             </div>
 
                             {/* Recent Members */}

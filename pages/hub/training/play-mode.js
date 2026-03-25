@@ -21,7 +21,6 @@ import EVGraph from '../../../src/components/training/EVGraph';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import DeckCard from '../../../src/components/training/Card';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIG
@@ -1792,7 +1791,6 @@ export default function PlayModePage() {
             />
           )}
         </div>
-        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

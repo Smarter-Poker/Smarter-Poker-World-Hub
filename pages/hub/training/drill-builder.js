@@ -14,7 +14,6 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 let _supabase = null;
 function getSupabase() {
@@ -652,7 +651,6 @@ export default function DrillBuilderPage() {
             </div>
           )}
         </div>
-        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

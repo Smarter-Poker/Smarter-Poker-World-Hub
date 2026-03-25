@@ -14,7 +14,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -349,7 +348,6 @@ export default function AggregateReports() {
             </motion.div>
           </AnimatePresence>
         )}
-        <BottomNavBar />
       </div>
     </>
   );

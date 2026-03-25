@@ -18,7 +18,6 @@ import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function TournamentsPage() {
   useTrainingBus('tournaments');
@@ -276,7 +275,6 @@ export default function TournamentsPage() {
           )}
         </div>
       </div>
-          <BottomNavBar />
     </PageTransition>
     <ConnectionToast />
     </>

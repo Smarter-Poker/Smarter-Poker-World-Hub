@@ -1,0 +1,17 @@
+{
+  "venue": "Muskegon Poker Room",
+  "slug": "muskegon-poker-room",
+  "url": "https://www.pokeratlas.com/poker-room/muskegon-poker-room",
+  "data": {
+    "address": "1751 Evanston Ave.",
+    "city": "Muskegon",
+    "state": "MI",
+    "phone": "(231) 450-2912",
+    "lat": 43.2208269,
+    "lng": -86.2032739,
+    "website": "https://www.pokeratlas.com/poker-room/muskegon-poker-room"
+  },
+  "hash": "dd60ca784b63c5b3a9aa8b807bfcba714e26c2fb89b27f494183a229e129b436",
+  "ts": "2026-03-25T19:13:14.923173+00:00",
+  "batch": "20a913b4-06fd-4dd8-b6e7-2608ec6c22da"
+}

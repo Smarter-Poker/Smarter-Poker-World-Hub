@@ -14,7 +14,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import Card from '../../../src/components/training/Card';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HAND HISTORY PARSERS — Multi-Site Support (PokerStars, GGPoker, 888, WPN)
@@ -1605,7 +1604,6 @@ export default function HandHistoryUploadPage() {
             </> /* end activeView === 'upload' */
           )}
         </div>
-        <BottomNavBar />
       </div>
     </>
   );
