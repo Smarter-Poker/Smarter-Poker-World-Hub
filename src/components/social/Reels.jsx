@@ -733,6 +733,14 @@ export function ReelsViewer({ onClose }) {
                     }}>❤️</div>
                 )}
 
+                {/* Reel counter */}
+                <div style={{
+                    position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
+                    color: 'rgba(255,255,255,0.7)', fontSize: 12, zIndex: 20,
+                }}>
+                    {currentIndex + 1} / {reels.length}
+                </div>
+
                 {/* Progress bar for native videos */}
                 {progress > 0 && (
                     <div style={{
