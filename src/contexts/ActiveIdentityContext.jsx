@@ -49,6 +49,8 @@ export function ActiveIdentityProvider({ children }) {
     // HARDENED: Always checks by owner_id as fallback, even without commander_staff in localStorage.
     // This ensures freshly registered Commanders can see their Club Page immediately after registration.
     useEffect(() => {
+        let mounted = true; // Unmount guard — prevents state update on unmounted component
+
         const detectClubPage = async () => {
             try {
                 // ── Step 1: Get userId from localStorage (AbortError-immune) ──
@@ -66,15 +68,18 @@ export function ActiveIdentityProvider({ children }) {
                         const data = JSON.parse(stored);
                         if (data?.venue_id) {
                             const res = await fetch(`/api/social/pages?linked_venue_id=${data.venue_id}`);
+                            if (!mounted) return; // Guard: component unmounted during fetch
                             const json = await res.json();
                             if (json.success && json.data && json.data.length > 0) {
                                 const page = json.data[0];
-                                setAvailableClubPage({
-                                    id: page.id,
-                                    name: page.name,
-                                    avatar_url: page.avatar_url,
-                                    page_type: page.page_type || 'club',
-                                });
+                                if (mounted) {
+                                    setAvailableClubPage({
+                                        id: page.id,
+                                        name: page.name,
+                                        avatar_url: page.avatar_url,
+                                        page_type: page.page_type || 'club',
+                                    });
+                                }
                                 console.log('[ActiveIdentity] Club page found (by venue):', page.name);
                                 return; // Found — done
                             }
@@ -86,15 +91,18 @@ export function ActiveIdentityProvider({ children }) {
                 // This catches freshly registered Commanders who haven't logged into
                 // Commander yet (so commander_staff isn't in localStorage).
                 const res2 = await fetch(`/api/social/pages?owner_id=${userId}`);
+                if (!mounted) return; // Guard: component unmounted during fetch
                 const json2 = await res2.json();
                 if (json2.success && json2.data && json2.data.length > 0) {
                     const page = json2.data[0];
-                    setAvailableClubPage({
-                        id: page.id,
-                        name: page.name,
-                        avatar_url: page.avatar_url,
-                        page_type: page.page_type || 'club',
-                    });
+                    if (mounted) {
+                        setAvailableClubPage({
+                            id: page.id,
+                            name: page.name,
+                            avatar_url: page.avatar_url,
+                            page_type: page.page_type || 'club',
+                        });
+                    }
                     console.log('[ActiveIdentity] Club page found (by owner):', page.name);
                 }
             } catch (e) {
@@ -103,6 +111,7 @@ export function ActiveIdentityProvider({ children }) {
         };
 
         detectClubPage();
+        return () => { mounted = false; }; // Cleanup: mark as unmounted
     }, []);
 
     // Persist to localStorage on change
@@ -138,6 +147,13 @@ export function ActiveIdentityProvider({ children }) {
 
     // Debounce ref to prevent race conditions from rapid switching
     const switchDebounceRef = useRef(null);
+
+    // Cleanup debounce timer on unmount — prevents zombie timeout
+    useEffect(() => {
+        return () => {
+            if (switchDebounceRef.current) clearTimeout(switchDebounceRef.current);
+        };
+    }, []);
 
     const switchToClub = useCallback((clubPage = null) => {
         const page = clubPage || availableClubPage;

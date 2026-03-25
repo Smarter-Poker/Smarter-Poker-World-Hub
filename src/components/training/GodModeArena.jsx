@@ -57,6 +57,9 @@ const FULL_SCREEN_UI_GAMES = [
     'adv-006', 'adv-007', 'adv-008', 'adv-009', 'adv-010',
     'adv-011', 'adv-012', 'adv-013', 'adv-014', 'adv-015',
     'adv-016', 'adv-017', 'adv-018', 'adv-019', 'adv-020',
+    // Special Games (7)
+    'tournament-prep', 'final-table-sim', 'quiz-gauntlet',
+    'hand-lab', 'bluff-catcher', 'mixed-strategy-lab', 'study-group',
 ];
 
 // SVG ICON RENDERER for classification badges
@@ -766,7 +769,7 @@ function GodModeArenaInner({
         startNextLevel,
         retryLevel,
         resetGame,
-    } = useGTOTrainer(gameId, 'PIO', level, trainerConfig);
+    } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     const [showDrillFilters, setShowDrillFilters] = useState(false);
     const [drillFilters, setDrillFilters] = useState(null);

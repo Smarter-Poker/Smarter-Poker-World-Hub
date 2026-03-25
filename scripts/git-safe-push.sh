@@ -11,8 +11,9 @@
 #   bash scripts/git-safe-push.sh --build-check "msg"   # build check before push
 #
 # FLAGS:
-#   --dry-run       Show what would be committed/pushed without doing it
-#   --build-check   Run `next build` before pushing (aborts on failure)
+#   --dry-run              Show what would happen without committing/pushing
+#   --build-check          Run `next build` before pushing (aborts on failure)
+#   --force-destructive    Bypass @media removal and large deletion safeguards
 #
 # This script is designed to NEVER require human intervention.
 # It handles: stale locks, ghost files, dirty trees, rebase conflicts,
@@ -40,6 +41,7 @@ for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=true ;;
         --build-check) BUILD_CHECK=true ;;
+        --force-destructive) ;; # Handled later in Phase 0.5
         *) POSITIONAL+=("$arg") ;;
     esac
 done
@@ -198,6 +200,10 @@ for arg in "$@"; do
     [ "$arg" = "--force-destructive" ] && FORCE_DESTRUCTIVE=true
 done
 
+# Pre-stage changes temporarily so we can inspect what would be committed.
+# This is required because git diff --cached is empty until git add.
+git add -A 2>/dev/null || true
+
 # ── 0.5a. VAGUE COMMIT MESSAGE GATE ──
 # Block lazy/generic commit messages that hide destructive bulk changes
 BLOCKED_MESSAGES="Daily update|daily update|Update files|update files|Auto commit|auto commit|WIP|wip"
@@ -241,6 +247,8 @@ if [ "$FORCE_DESTRUCTIVE" = false ]; then
         echo "   Removing @media rules destroys mobile responsive layouts."
         echo "   If this is intentional, re-run with --force-destructive flag."
         echo "═══════════════════════════════════════════════════"
+        # Unstage before exiting so we don't leave dirty index
+        git reset HEAD 2>/dev/null || true
         echo "PUSH_OK:false"
         echo "REASON:media_rule_removal_blocked"
         exit 2
@@ -280,6 +288,8 @@ if [ "$FORCE_DESTRUCTIVE" = false ]; then
         echo "   This threshold prevents accidental code wipes."
         echo "   If deletions are intentional, re-run with --force-destructive flag."
         echo "═══════════════════════════════════════════════════"
+        # Unstage before exiting so we don't leave dirty index
+        git reset HEAD 2>/dev/null || true
         echo "PUSH_OK:false"
         echo "REASON:large_net_deletion_blocked"
         exit 2

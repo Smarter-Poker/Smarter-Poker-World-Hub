@@ -15,7 +15,7 @@ import PsychologyTiltControlUI from './games/PsychologyTiltControlUI';
 
 // Game ID to Game Type mapping (for table configuration)
 const GAME_TYPE_MAP = {
-    // Cash Games (6-Max)
+    // Cash Games (6-Max) — 25 games
     'cash-001': '6max', 'cash-002': '6max', 'cash-003': '6max',
     'cash-004': '6max', 'cash-005': '6max', 'cash-006': '6max',
     'cash-007': '6max', 'cash-008': '6max', 'cash-009': '6max',
@@ -23,8 +23,10 @@ const GAME_TYPE_MAP = {
     'cash-013': '6max', 'cash-014': '6max', 'cash-015': '6max',
     'cash-016': '6max', 'cash-017': '6max', 'cash-018': '6max',
     'cash-019': '6max', 'cash-020': '6max',
+    'cash-021': '6max', 'cash-022': '6max', 'cash-023': '6max',
+    'cash-024': '6max', 'cash-025': '6max',
 
-    // MTT Games (9-Max default, with exceptions)
+    // MTT Games (9-Max default, with exceptions) — 25 + 2 special
     'mtt-001': 'mtt', 'mtt-002': 'mtt', 'mtt-003': 'mtt',
     'mtt-004': 'mtt', 'mtt-005': 'mtt', 'mtt-006': 'mtt',
     'mtt-007': 'mtt', 'mtt-008': 'mtt', 'mtt-009': 'mtt',
@@ -33,17 +35,17 @@ const GAME_TYPE_MAP = {
     'mtt-015': 'heads-up', // Heads Up Duel (2-max)
     'mtt-016': 'mtt', 'mtt-017': 'mtt', 'mtt-018': 'mtt',
     'mtt-019': 'mtt', 'mtt-020': 'mtt',
+    'mtt-021': 'mtt', 'mtt-022': 'mtt', 'mtt-023': 'mtt',
+    'mtt-024': 'mtt', 'mtt-025': 'mtt',
+    'tournament-prep': 'mtt', 'final-table-sim': 'mtt',
 
-    // Spins/SNG Games (3-Max)
+    // Spins/SNG Games (3-Max) — 10 games
     'spins-001': 'spins', 'spins-002': 'spins', 'spins-003': 'spins',
     'spins-004': 'spins', 'spins-005': 'spins', 'spins-006': 'spins',
     'spins-007': 'spins', 'spins-008': 'spins', 'spins-009': 'spins',
-    'spins-010': 'spins', 'spins-011': 'spins', 'spins-012': 'spins',
-    'spins-013': 'spins', 'spins-014': 'spins', 'spins-015': 'spins',
-    'spins-016': 'spins', 'spins-017': 'spins', 'spins-018': 'spins',
-    'spins-019': 'spins', 'spins-020': 'spins',
+    'spins-010': 'spins',
 
-    // Advanced Games (6-Max default, with exceptions)
+    // Advanced Games (6-Max default, with exceptions) — 20 + 5 special
     'adv-001': '6max', 'adv-002': '6max', 'adv-003': '6max',
     'adv-004': '6max', 'adv-005': '6max', 'adv-006': '6max',
     'adv-007': 'heads-up', // Indifference Theory (2-max)
@@ -52,6 +54,9 @@ const GAME_TYPE_MAP = {
     'adv-013': '6max', 'adv-014': '6max', 'adv-015': '6max',
     'adv-016': '6max', 'adv-017': '6max', 'adv-018': '6max',
     'adv-019': '6max', 'adv-020': '6max',
+    'hand-lab': '6max', 'bluff-catcher': '6max',
+    'mixed-strategy-lab': '6max', 'study-group': '6max',
+    'quiz-gauntlet': '6max',
 };
 
 // Psychology games use specialized UI (no table needed)
