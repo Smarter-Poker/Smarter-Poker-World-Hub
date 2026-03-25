@@ -362,6 +362,14 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
 
+    // Auto-dismiss success messages after 2 seconds
+    useEffect(() => {
+        if (message && !message.includes('Error')) {
+            const timer = setTimeout(() => setMessage(''), 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [message]);
+
     // Social stats and friends
     const [socialStats, setSocialStats] = useState({ friends: 0, followers: 0, following: 0, posts: 0 });
     const [friends, setFriends] = useState([]);
@@ -1217,10 +1225,6 @@ export default function ProfilePage() {
                 <div style={{ maxWidth: 800, margin: '80px auto 40px', padding: '0 16px' }}>
                     {message && (() => {
                         const isError = message.includes('Error');
-                        // Auto-dismiss success messages after 2 seconds
-                        if (!isError) {
-                            setTimeout(() => setMessage(''), 2000);
-                        }
                         return (
                         <div style={{
                             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
