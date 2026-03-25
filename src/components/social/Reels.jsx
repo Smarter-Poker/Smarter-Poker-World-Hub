@@ -475,6 +475,11 @@ export function ReelsViewer({ onClose }) {
         progressRAF.current = requestAnimationFrame(updateProgress);
     };
 
+    // Cleanup RAF on unmount to prevent memory leak
+    useEffect(() => {
+        return () => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); };
+    }, []);
+
     return (
         <div
             ref={containerRef}
