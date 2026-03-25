@@ -1662,13 +1662,7 @@ export default function UserProfilePage() {
                                     Member Since {new Date(profile.created_at).getFullYear()}
                                 </div>
                             )}
-                            {profile.bio && (
-                                <div style={{ fontSize: 14, color: C.textSec, marginTop: 4, lineHeight: 1.4 }}>
-                                    {profile.bio.length > 150 && !bioExpanded
-                                        ? <><HashtagRenderer text={profile.bio.slice(0, 150).trim() + '...'} />  <span onClick={() => setBioExpanded(true)} style={{ color: C.blue, cursor: 'pointer', fontWeight: 600 }}>See More</span></>
-                                        : <><HashtagRenderer text={profile.bio} />{profile.bio.length > 150 && <>{' '}<span onClick={() => setBioExpanded(false)} style={{ color: C.blue, cursor: 'pointer', fontWeight: 600 }}>See Less</span></>}</>}
-                                </div>
-                            )}
+
                             <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 4, flexWrap: 'wrap' }}>
                                 {[{ val: animatedStats.friends, label: 'Friends' }, { val: animatedStats.followers, label: 'Followers' }, { val: animatedStats.following, label: 'Following' }, { val: animatedStats.posts, label: 'Posts' }].map((s, i) => (
                                     <React.Fragment key={s.label}>
@@ -1975,6 +1969,18 @@ export default function UserProfilePage() {
                                 isOwnProfile={isOwnProfile}
                                 onOpenResume={(url) => setArticleReader({ open: true, url, title: 'HendonMob Poker Resume' })}
                             />
+
+                            {/* Bio — below Poker Resume */}
+                            {profile.bio && (
+                                <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                    <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: C.text }}>About</h3>
+                                    <div style={{ fontSize: 14, color: C.textSec, lineHeight: 1.5 }}>
+                                        {profile.bio.length > 150 && !bioExpanded
+                                            ? <><HashtagRenderer text={profile.bio.slice(0, 150).trim() + '...'} />  <span onClick={() => setBioExpanded(true)} style={{ color: C.blue, cursor: 'pointer', fontWeight: 600 }}>See More</span></>
+                                            : <><HashtagRenderer text={profile.bio} />{profile.bio.length > 150 && <>{' '}<span onClick={() => setBioExpanded(false)} style={{ color: C.blue, cursor: 'pointer', fontWeight: 600 }}>See Less</span></>}</>}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Personal Details Card */}
                             <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
