@@ -14,9 +14,8 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import Card from '../../../src/components/training/Card';
+import Card, { parseCards } from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -47,24 +46,19 @@ const POSITION_OPTIONS = [
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// HAND DISPLAY — hero hand notation like "AKs"
+// HAND DISPLAY — hero hand rendered as PNG card images
 // ═══════════════════════════════════════════════════════════════════════════
 
 function HandBadge({ hand }) {
   if (!hand) return null;
+  const cards = parseCards(hand);
+  if (!cards || cards.length === 0) return null;
   return (
-    <span
-      style={{
-        fontSize: 22,
-        fontWeight: 900,
-        fontFamily: "'Orbitron', monospace",
-        background: 'linear-gradient(135deg, #f97316, #ef4444)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-      }}
-    >
-      {hand}
-    </span>
+    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+      {cards.map((c, i) => (
+        <Card key={i} rank={c.rank} suit={c.suit} size="small" />
+      ))}
+    </div>
   );
 }
 
@@ -821,7 +815,7 @@ export default function SpotTrainerPage() {
             </p>
           </div>
         </div>
-        <BottomNavBar />
+
       </div>
     </>
   );

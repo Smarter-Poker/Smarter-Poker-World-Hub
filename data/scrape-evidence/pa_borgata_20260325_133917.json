@@ -1,0 +1,17 @@
+{
+  "venue": "Borgata",
+  "slug": "borgata-atlantic-city",
+  "url": "https://www.pokeratlas.com/poker-room/borgata-atlantic-city",
+  "data": {
+    "address": "1 Borgata Way",
+    "city": "Atlantic City",
+    "state": "NJ",
+    "phone": "(609) 317-8262",
+    "lat": 39.37793,
+    "lng": -74.43393,
+    "website": "https://borgata.mgmresorts.com/en/casino/poker.html"
+  },
+  "hash": "9b12cdc8322e472e71129469f42ade86f086b1160b2afce1b5a8fef875d0b835",
+  "ts": "2026-03-25T18:39:17.307287+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}

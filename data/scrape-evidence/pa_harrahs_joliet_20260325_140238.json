@@ -1,0 +1,17 @@
+{
+  "venue": "Harrahs Joliet",
+  "slug": "harrahs-joliet",
+  "url": "https://www.pokeratlas.com/poker-room/harrahs-joliet",
+  "data": {
+    "address": "151 N. Joliet St.",
+    "city": "Joliet",
+    "state": "IL",
+    "phone": "(815) 740-7480",
+    "lat": 41.52694,
+    "lng": -88.08451,
+    "website": "http://www.harrahsjoliet.com/"
+  },
+  "hash": "1b8deba14b80f77afd4aec2a056192f6b5e79e347970b02ab1c5cea41559aea8",
+  "ts": "2026-03-25T19:02:38.857256+00:00",
+  "batch": "20a913b4-06fd-4dd8-b6e7-2608ec6c22da"
+}

@@ -1,0 +1,16 @@
+{
+  "venue": "Resorts Casino",
+  "slug": "resorts-atlantic-city",
+  "url": "https://www.pokeratlas.com/poker-room/resorts-atlantic-city",
+  "data": {
+    "address": "1133 Boardwalk",
+    "city": "Atlantic City",
+    "state": "NJ",
+    "lat": 39.3591,
+    "lng": -74.4225,
+    "website": "https://www.pokeratlas.com/poker-room/resorts-atlantic-city"
+  },
+  "hash": "e9bf48cf05ec96c450238323990cd7f508bfba40f85ac552def5a51e4690c282",
+  "ts": "2026-03-25T18:40:50.281422+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}

@@ -1,0 +1,17 @@
+{
+  "venue": "Pensacola Greyhound",
+  "slug": "pensacola-greyhound",
+  "url": "https://www.pokeratlas.com/poker-room/pensacola-greyhound",
+  "data": {
+    "address": "951 Dog Track Road",
+    "city": "Pensacola",
+    "state": "FL",
+    "phone": "(850) 456-9800",
+    "lat": 30.39781,
+    "lng": -87.37131,
+    "website": "http://pensacolagreyhoundtrack.com/"
+  },
+  "hash": "9da2c91cec7d02c88dc43ac5f0f096966558d88f661cb76e98c3878c634d86b2",
+  "ts": "2026-03-25T18:52:46.404236+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}

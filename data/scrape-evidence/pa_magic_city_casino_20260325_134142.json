@@ -1,0 +1,17 @@
+{
+  "venue": "Magic City Casino",
+  "slug": "magic-city-casino-miami",
+  "url": "https://www.pokeratlas.com/poker-room/magic-city-casino-miami",
+  "data": {
+    "address": "450 NW 37th Avenue",
+    "city": "Miami",
+    "state": "FL",
+    "phone": "(305) 631-4560",
+    "lat": 25.77686,
+    "lng": -80.25561,
+    "website": "http://www.magiccitycasino.com/"
+  },
+  "hash": "5d02122d7ff82f79f5d8d5bfd1c8b6340bcd17812cde386887cb56c20f8de805",
+  "ts": "2026-03-25T18:41:42.973513+00:00",
+  "batch": "20a913b4-06fd-4dd8-b6e7-2608ec6c22da"
+}

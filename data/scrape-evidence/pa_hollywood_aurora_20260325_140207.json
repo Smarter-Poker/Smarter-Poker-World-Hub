@@ -1,0 +1,17 @@
+{
+  "venue": "Hollywood Aurora",
+  "slug": "hollywood-aurora",
+  "url": "https://www.pokeratlas.com/poker-room/hollywood-aurora",
+  "data": {
+    "address": "1 New York Street Bridge",
+    "city": "Aurora",
+    "state": "IL",
+    "phone": "(630) 801-7471",
+    "lat": 41.75939,
+    "lng": -88.3134,
+    "website": "http://www.hollywoodcasinoaurora.com/Casino/Poker"
+  },
+  "hash": "1dc740f1b7f541e9c44356ce9295aa83a711a7d19d08c5e867380316313469a3",
+  "ts": "2026-03-25T19:02:07.956591+00:00",
+  "batch": "20a913b4-06fd-4dd8-b6e7-2608ec6c22da"
+}

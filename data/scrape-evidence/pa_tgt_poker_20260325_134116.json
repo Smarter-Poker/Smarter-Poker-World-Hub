@@ -1,0 +1,17 @@
+{
+  "venue": "TGT Poker",
+  "slug": "tgt-poker-tampa",
+  "url": "https://www.pokeratlas.com/poker-room/tgt-poker-tampa",
+  "data": {
+    "address": "755 East Waters Ave",
+    "city": "Tampa",
+    "state": "FL",
+    "phone": "(813) 932-4313",
+    "lat": 28.02414,
+    "lng": -82.45337,
+    "website": "http://tgtpoker.com/"
+  },
+  "hash": "c01d06fd8ce255a3d28bf8cfe4abe1368a93780a6f183b4f77fb55ffbc991618",
+  "ts": "2026-03-25T18:41:16.706708+00:00",
+  "batch": "20a913b4-06fd-4dd8-b6e7-2608ec6c22da"
+}

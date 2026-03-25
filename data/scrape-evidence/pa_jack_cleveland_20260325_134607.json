@@ -1,0 +1,17 @@
+{
+  "venue": "JACK Cleveland",
+  "slug": "jack-cleveland",
+  "url": "https://www.pokeratlas.com/poker-room/jack-cleveland",
+  "data": {
+    "address": "100 Public Square",
+    "city": "Cleveland",
+    "state": "OH",
+    "phone": "(216) 297-4545",
+    "lat": 41.49811,
+    "lng": -81.69283,
+    "website": "https://www.jackentertainment.com/cleveland"
+  },
+  "hash": "f1e6d06800c180431ed0dab2066a50dc86966ef3ea139ef45326ab1bb8c77178",
+  "ts": "2026-03-25T18:46:07.872026+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}

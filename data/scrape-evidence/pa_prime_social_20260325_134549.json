@@ -1,0 +1,17 @@
+{
+  "venue": "Prime Social",
+  "slug": "prime-social-houston",
+  "url": "https://www.pokeratlas.com/poker-room/prime-social-houston",
+  "data": {
+    "address": "7801 Westheimer Road",
+    "city": "Houston",
+    "state": "TX",
+    "phone": "(832) 377-7770",
+    "lat": 29.73717,
+    "lng": -95.50542,
+    "website": "https://primesocialtx.com"
+  },
+  "hash": "36789d81eb10b45b4d8e25c71f234b1b8ce9293f34975fa097f3e0b18b4d3498",
+  "ts": "2026-03-25T18:45:49.895992+00:00",
+  "batch": "20a913b4-06fd-4dd8-b6e7-2608ec6c22da"
+}

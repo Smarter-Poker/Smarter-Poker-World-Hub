@@ -1,0 +1,17 @@
+{
+  "venue": "MotorCity Casino",
+  "slug": "motorcity-casino-detroit",
+  "url": "https://www.pokeratlas.com/poker-room/motorcity-casino-detroit",
+  "data": {
+    "address": "2901 Grand River Avenue",
+    "city": "Detroit",
+    "state": "MI",
+    "phone": "(313) 237-6735",
+    "lat": 42.3397,
+    "lng": -83.0671,
+    "website": "http://www.motorcitycasino.com/"
+  },
+  "hash": "c3839e883f4efc5ea8ea967258faaf83bf8a714636ae68caa674931a2133a9e5",
+  "ts": "2026-03-25T18:45:42.581521+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}

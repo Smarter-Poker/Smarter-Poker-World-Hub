@@ -1,0 +1,17 @@
+{
+  "venue": "Greektown Casino",
+  "slug": "greektown-casino-detroit",
+  "url": "https://www.pokeratlas.com/poker-room/greektown-casino-detroit",
+  "data": {
+    "address": "555 E Lafayette Blvd.",
+    "city": "Detroit",
+    "state": "MI",
+    "phone": "(313) 309-2465",
+    "lat": 42.3347,
+    "lng": -83.04133,
+    "website": "https://www.hollywoodgreektown.com/casino/poker"
+  },
+  "hash": "005d6819b8faefd8af6af21efadf7b3221b10f3507975942b2aadd3251b66cda",
+  "ts": "2026-03-25T19:04:59.724375+00:00",
+  "batch": "20a913b4-06fd-4dd8-b6e7-2608ec6c22da"
+}

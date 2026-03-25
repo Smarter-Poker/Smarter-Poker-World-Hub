@@ -1,0 +1,17 @@
+{
+  "venue": "Riverside Casino",
+  "slug": "riverside-casino",
+  "url": "https://www.pokeratlas.com/poker-room/riverside-casino",
+  "data": {
+    "address": "3184 Highway 22",
+    "city": "Riverside",
+    "state": "IA",
+    "phone": "(877) 677-3456",
+    "lat": 41.4963,
+    "lng": -91.528,
+    "website": "http://www.riversidecasinoandresort.com/casino/tournaments.html"
+  },
+  "hash": "97a05ced04f40410fb51441889942a2a72b22711999836d24d191c2d721c852d",
+  "ts": "2026-03-25T18:52:57.218723+00:00",
+  "batch": "20a913b4-06fd-4dd8-b6e7-2608ec6c22da"
+}
