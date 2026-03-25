@@ -69,6 +69,7 @@ import GeofenceService from '../../src/lib/geofence';
 import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
 import { sendGeofenceNotification } from '../../src/lib/geofencePush';
 import { getAccessToken } from '../../src/lib/authUtils';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 
 // Clean SmarterPoker-style navigation (no emojis)
@@ -2304,6 +2305,7 @@ export default function BankrollManagerPage() {
           <span style={{ fontSize: 10, marginTop: 2, fontWeight: 500 }}>Profile</span>
         </Link>
       </nav>
+          <BottomNavBar />
     </PageTransition >
   );
 }

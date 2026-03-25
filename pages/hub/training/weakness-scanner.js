@@ -17,6 +17,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 function analyzeData(sessions) {
   if (!sessions || sessions.length === 0) return null;
@@ -162,7 +163,7 @@ export default function WeaknessScannerPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: '#e2e8f0',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -559,6 +560,7 @@ export default function WeaknessScannerPage() {
             </div>
           )}
         </div>
+        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

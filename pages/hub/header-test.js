@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import ThreePillHeader from '../../src/components/ui/ThreePillHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { MENU_CONFIGS } from '../../src/config/hamburgerMenus';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 export default function HeaderTestPage() {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -17,7 +18,7 @@ export default function HeaderTestPage() {
 
     return (
         <div style={{
-            minHeight: '100vh',
+            minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
             background: '#0a0e1a',
             color: 'white',
         }}>
@@ -55,6 +56,7 @@ export default function HeaderTestPage() {
                     This page is blank to isolate the header component for testing
                 </p>
             </div>
+          <BottomNavBar />
         </div>
     );
 }

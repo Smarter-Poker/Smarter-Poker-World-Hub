@@ -11,6 +11,7 @@ import Link from 'next/link';
 import {
     calculateEquity, makeCard, GAME_CONFIGS, PRESETS, parsePresetHands
 } from '../../src/lib/poker/pokerOddsEngine';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 /* ═══════════════════════════════════════════════
    CONSTANTS
@@ -190,7 +191,7 @@ export default function PokerToolsPage() {
             </Head>
 
             <div style={{
-                minHeight: '100vh', background: '#080810', color: '#E4E6EB',
+                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#080810', color: '#E4E6EB',
                 fontFamily: "var(--font-inter), -apple-system, sans-serif" , textTransform: 'capitalize',
                 display: 'flex', flexDirection: 'column',
             }}>
@@ -637,6 +638,7 @@ export default function PokerToolsPage() {
                 </div>
 
 
+              <BottomNavBar />
             </div>
         </>
     );

@@ -15,6 +15,7 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function TriviaHubPage() {
     useTrainingBus('trivia-hub');
@@ -247,6 +248,7 @@ export default function TriviaHubPage() {
                     to { transform: rotate(360deg); }
                 }
             `}</style>
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
     );
 }

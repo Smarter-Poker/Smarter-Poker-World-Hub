@@ -15,6 +15,7 @@ import { motion } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 
 
@@ -294,7 +295,7 @@ export default function PositionMasteryPage() {
 
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
           color: '#e2e8f0',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -718,6 +719,7 @@ export default function PositionMasteryPage() {
             </motion.div>
           )}
         </div>
+        <BottomNavBar />
       </div>
     </>
   );

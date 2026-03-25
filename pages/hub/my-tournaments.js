@@ -18,6 +18,7 @@ import {
     Trophy, DollarSign, Users, Calendar, Loader2,
     ChevronRight
 } from 'lucide-react';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 function ordinal(n) {
     if (!n) return '—';
@@ -203,6 +204,7 @@ export default function MyTournaments() {
                 <div className="mt-8 text-center">
                     <p className="text-white/10 text-xs tracking-wider">Powered By Smarter.Poker</p>
                 </div>
+              <BottomNavBar />
             </div>
         </>
     );

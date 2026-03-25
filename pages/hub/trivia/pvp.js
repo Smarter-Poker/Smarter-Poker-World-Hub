@@ -31,6 +31,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import { Trophy, Gem, Clock, CheckCircle, XCircle, Loader } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const STAKE_OPTIONS = [10, 25, 50, 100];
 
@@ -1050,6 +1051,7 @@ export default function PvPPage() {
                         </div>
                     )}
                 </div>
+              <BottomNavBar />
             </div>
 
             <style jsx>{`

@@ -7,6 +7,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function StudyGroupRoom() {
   const router = useRouter();
@@ -282,13 +283,14 @@ export default function StudyGroupRoom() {
         )}
       </div>
       <ConnectionToast />
+          <BottomNavBar />
     </PageTransition>
   );
 }
 
 const styles = {
   container: {
-    minHeight: '100vh',
+    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: 'linear-gradient(180deg, #05050A 0%, #0A0A15 100%)',
     padding: '24px 4vw 80px',
     color: '#fff',

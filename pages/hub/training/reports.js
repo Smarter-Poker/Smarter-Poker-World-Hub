@@ -17,6 +17,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import GTODeviationHeatmap from '../../../src/components/training/GTODeviationHeatmap';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION CONFIG
@@ -243,7 +244,7 @@ export default function GTOReports() {
 
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
           color: '#e2e8f0',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -791,6 +792,7 @@ export default function GTOReports() {
             </motion.div>
           )}
         </div>
+        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

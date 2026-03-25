@@ -249,10 +249,8 @@ export default async function handler(req, res) {
             .order('start_date', { ascending: true })
             .limit(999);
 
-          if (upcoming === 'true') {
-            const today = new Date().toISOString().split('T')[0];
-            psQuery = psQuery.gte('start_date', today);
-          }
+          // NOTE: Do NOT apply upcoming filter here — this query is for merging
+          // series_uid values to link events, not for display filtering.
 
           const { data: psData } = await psQuery;
           pokerSeriesData = psData || [];
@@ -260,40 +258,55 @@ export default async function handler(req, res) {
           // poker_series unavailable
         }
 
-        // Merge: combine both, dedup by name
+        // Merge: combine both, dedup by series_uid (primary) then name (fallback)
         const mergedMap = new Map();
+        const uidMap = new Map(); // track by series_uid to prevent duplicates
         if (!error && data) {
           for (const s of data) {
             const key = (s.name || s.series_name || '').toLowerCase();
-            mergedMap.set(key, {
-              ...s,
-              series_uid: s.series_uid || null,
-            });
+            const entry = { ...s, series_uid: s.series_uid || null };
+            mergedMap.set(key, entry);
+            if (s.series_uid) uidMap.set(s.series_uid, entry);
           }
         }
-        // Overlay poker_series data (has series_uid)
+        // Overlay poker_series data (has series_uid for event linking)
         for (const ps of pokerSeriesData) {
+          const uid = ps.series_uid;
           const key = (ps.series_name || ps.name || '').toLowerCase();
+          
+          // If already exists by series_uid, update it
+          if (uid && uidMap.has(uid)) {
+            const existing = uidMap.get(uid);
+            existing.series_uid = uid;
+            continue;
+          }
+          
+          // If already exists by name, add series_uid
           if (mergedMap.has(key)) {
             const existing = mergedMap.get(key);
-            existing.series_uid = existing.series_uid || ps.series_uid;
-          } else {
-            mergedMap.set(key, {
-              id: ps.id,
-              name: ps.series_name || ps.name,
-              short_name: ps.tour,
-              series_uid: ps.series_uid,
-              tour: ps.tour,
-              venue: ps.venue_name,
-              city: ps.city,
-              state: ps.state,
-              start_date: ps.start_date,
-              end_date: ps.end_date,
-              total_events: ps.event_count,
-              series_type: (ps.tier === 'A' ? 'major' : ps.tier === 'B' ? 'circuit' : 'regional'),
-              source_url: ps.source_url,
-            });
+            existing.series_uid = existing.series_uid || uid;
+            if (uid) uidMap.set(uid, existing);
+            continue;
           }
+          
+          // New series — add it
+          const newEntry = {
+            id: ps.id,
+            name: ps.series_name || ps.name,
+            short_name: ps.tour,
+            series_uid: uid,
+            tour: ps.tour,
+            venue: ps.venue_name,
+            city: ps.city,
+            state: ps.state,
+            start_date: ps.start_date,
+            end_date: ps.end_date,
+            total_events: ps.event_count,
+            series_type: (ps.tier === 'A' ? 'major' : ps.tier === 'B' ? 'circuit' : 'regional'),
+            source_url: ps.source_url,
+          };
+          mergedMap.set(uid || key, newEntry);
+          if (uid) uidMap.set(uid, newEntry);
         }
 
         const merged = [...mergedMap.values()].sort((a, b) =>

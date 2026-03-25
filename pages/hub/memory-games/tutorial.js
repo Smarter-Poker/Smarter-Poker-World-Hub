@@ -7,6 +7,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function MemoryGamesTutorial() {
     const bus = useTrainingBus('memory-games-tutorial');
@@ -27,7 +28,7 @@ export default function MemoryGamesTutorial() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
+                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0e1a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -92,7 +93,8 @@ export default function MemoryGamesTutorial() {
                         </button>
                     </div>
                 </div>
-            </PageTransition>
+                  <BottomNavBar />
+    </PageTransition>
         </>
     );
 }

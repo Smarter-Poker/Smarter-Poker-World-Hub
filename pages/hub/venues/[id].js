@@ -15,6 +15,7 @@ import { claimReward } from '../../../src/lib/claimReward';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { supabase } from '../../../src/lib/supabase';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const VENUE_TYPE_LABELS = {
   casino: 'Casino',
@@ -2049,6 +2050,7 @@ export default function VenueDetailPage() {
             </section>
           </>
         )}
+        <BottomNavBar />
       </div>
 
       <style jsx>{`

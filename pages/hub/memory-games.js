@@ -50,6 +50,7 @@ const SpotTrainerGame = dynamic(() => import('../../src/games/SpotTrainerGame'),
 const TournamentModeGame = dynamic(() => import('../../src/games/TournamentModeGame'), { ssr: false });
 import ScenarioFilterPanel, { filterScenarios } from '../../src/games/ScenarioFilterPanel';
 import { getAccessToken } from '../../src/lib/authUtils';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 ACTION COLORS
@@ -4421,7 +4422,8 @@ export default function MemoryGamesPage() {
                     50% { transform: scale(1.1); }
                 }
             `}</style >
-        </PageTransition >
+              <BottomNavBar />
+    </PageTransition >
     );
 }
 
@@ -4430,7 +4432,7 @@ export default function MemoryGamesPage() {
 // ═══════════════════════════════════════════════════════════════════════════
 const styles = {
     container: {
-        minHeight: '100vh',
+        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
         background: '#0a0a12',
         fontFamily: 'Inter, -apple-system, sans-serif',
         position: 'relative',

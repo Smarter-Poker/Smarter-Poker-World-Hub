@@ -16,6 +16,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -321,7 +322,7 @@ export default function RangeBuilder() {
 
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
           color: '#e2e8f0',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -775,6 +776,7 @@ function LegendItem({ color, label }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
       <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
       <span style={{ fontSize: 9, color: '#94a3b8' }}>{label}</span>
+      <BottomNavBar />
     </div>
   );
 }

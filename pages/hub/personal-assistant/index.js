@@ -16,6 +16,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useRecentSessions } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STRATEGY HUB — Image-Based Metal Frame Layout
@@ -333,6 +334,7 @@ export default function PersonalAssistantPage() {
         )}
       </div>
       {UpgradePopup}
+          <BottomNavBar />
     </PageTransition>
   );
 }
@@ -344,7 +346,7 @@ export default function PersonalAssistantPage() {
 const S = {
   // Page base
   page: {
-    minHeight: '100vh',
+    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: 'linear-gradient(180deg, #0d1929 0%, #0a1628 50%, #061018 100%)',
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',

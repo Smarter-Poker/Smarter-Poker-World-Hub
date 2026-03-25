@@ -17,6 +17,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { supabase } from '../../src/lib/supabase';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#0a0a0a',
@@ -384,7 +385,7 @@ export default function LeaderboardsPage() {
 
             <PageTransition>
                 <div style={{
-                    minHeight: '100vh', background: C.bg,
+                    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg,
                     paddingTop: 80, paddingBottom: 40
                 }}>
                     <div style={{ maxWidth: 680, margin: '0 auto', padding: '0 16px' }}>
@@ -656,7 +657,8 @@ export default function LeaderboardsPage() {
                         </AnimatePresence>
                     </div>
                 </div>
-            </PageTransition>
+                  <BottomNavBar />
+    </PageTransition>
 
             <style jsx global>{`
                 @keyframes pulse {

@@ -20,6 +20,7 @@ import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAccessToken } from '../../src/lib/authUtils';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -406,7 +407,7 @@ function NotificationsPage() {
         return (
             <PageTransition>
                 <SEOHead title="Notifications" description="Loading notifications..." canonical="/hub/notifications" noindex={true} />
-                <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
+                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                     <UniversalHeader pageDepth={2} onMenuClick={() => {}} />
                     <div style={{ maxWidth: 680, margin: '0 auto', padding: 16 }}>
                         {[1,2,3,4,5].map(i => (
@@ -584,7 +585,8 @@ function NotificationsPage() {
                 {/* Bottom padding for mobile nav */}
                 <div style={{ height: 80 }} />
             </div>
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
     );
 }
 

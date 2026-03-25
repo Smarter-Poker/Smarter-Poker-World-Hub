@@ -19,13 +19,14 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
   loading: () => (
     <div
       style={{
-        minHeight: '100vh',
+        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
         background: '#0a0a1a',
         display: 'flex',
         alignItems: 'center',
@@ -671,6 +672,7 @@ export default function AutopilotPage() {
             </div>
           )}
         </div>
+        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

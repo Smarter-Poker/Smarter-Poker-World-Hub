@@ -19,6 +19,7 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import FeatureGate from '../../src/components/gates/FeatureGate';
 import { supabase } from '../../src/lib/supabase';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
 const TourCard = dynamic(() => import('../../src/components/poker-near-me/TourCard'), { ssr: false });
 const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/SeriesCard'), { ssr: false });
@@ -4326,7 +4327,8 @@ export default function PokerNearMePage() {
                         cursor: pointer;
                     }
                 `}</style>
-                </FeatureGate>
+                      <BottomNavBar />
+    </FeatureGate>
             </div>
         </>
     );

@@ -9,6 +9,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -117,7 +118,7 @@ export default function CreateSocialPage() {
             <UniversalHeader />
 
             <div style={{
-                minHeight: '100vh', background: C.bg, paddingTop: 60,
+                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, paddingTop: 60,
                 fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif" ,
             }}>
                 <div style={{ maxWidth: 600, margin: '0 auto', padding: 16 }}>
@@ -377,6 +378,7 @@ export default function CreateSocialPage() {
                         )}
                     </div>
                 </div>
+              <BottomNavBar />
             </div>
             <style jsx global>{`
                 @keyframes spin { to { transform: rotate(360deg); } }

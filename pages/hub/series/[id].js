@@ -12,6 +12,7 @@ import { useState, useEffect, Fragment } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // Tour badge color mapping
 const TOUR_COLORS = {
@@ -766,6 +767,7 @@ export default function SeriesDetailPage() {
             </div>
           )}
         </div>
+        <BottomNavBar />
       </div>
 
       <style jsx>{styles}</style>

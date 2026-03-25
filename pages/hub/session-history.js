@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { eventBus } from '../../src/engine/EventBus';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const getSupabase = () => typeof window !== 'undefined' ? supabase : null;
 
@@ -193,7 +194,7 @@ export default function SessionHistoryPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: T.bg, padding: '20px 16px', fontFamily: "'Segoe UI', sans-serif" }}>
+    <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: T.bg, padding: '20px 16px', fontFamily: "'Segoe UI', sans-serif" }}>
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -558,6 +559,7 @@ export default function SessionHistoryPage() {
           )}
         </AnimatePresence>
       </div>
+      <BottomNavBar />
     </div>
   );
 }

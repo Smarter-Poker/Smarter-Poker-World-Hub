@@ -31,6 +31,7 @@ import HashtagRenderer from '../../../src/components/social/HashtagRenderer';
 import SharePostModal from '../../../src/components/social/SharePostModal';
 import ReactionPicker from '../../../src/components/social/ReactionPicker';
 import PostImageLightbox from '../../../src/components/social/PostImageLightbox';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -1563,7 +1564,7 @@ export default function UserProfilePage() {
 
     if (!profile) {
         return (
-            <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 48, marginBottom: 16 }}></div>
                     <h2 style={{ color: C.text, margin: '0 0 8px' }}>User Not Found</h2>
@@ -2684,6 +2685,7 @@ export default function UserProfilePage() {
                     onClose={() => setArticleReader({ open: false, url: '', title: '' })}
                 />
             )}
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
     );
 }

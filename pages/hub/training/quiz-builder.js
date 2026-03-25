@@ -15,6 +15,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // QUIZ TEMPLATES
@@ -379,7 +380,7 @@ export default function QuizBuilderPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: '#e2e8f0',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -621,6 +622,7 @@ export default function QuizBuilderPage() {
             </>
           )}
         </div>
+        <BottomNavBar />
       </div>
     </>
   );

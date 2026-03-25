@@ -11,6 +11,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import LevelSelector from '../../../../src/components/training/LevelSelector';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 
 export default function TrainingPlayPage() {
     const bus = useTrainingBus('training-play');
@@ -52,7 +53,7 @@ export default function TrainingPlayPage() {
     if (loading || !gameId) {
         return (
             <div style={{
-                minHeight: '100vh',
+                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
                 background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
                 display: 'flex',
                 alignItems: 'center',
@@ -80,6 +81,7 @@ export default function TrainingPlayPage() {
                     userId={userId}
                     gameId={gameId}
                 />
+              <BottomNavBar />
             </div>
         </>
     );

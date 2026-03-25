@@ -40,6 +40,7 @@ import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { createRingTone } from '../../src/utils/ringTone';
 import { createMultiDeviceAuthListener, withRetry, getCircuit, isOnline } from '../../src/utils/authGuard';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 COLOR PALETTE - Premium Poker Theme
@@ -3226,7 +3227,7 @@ function MessengerPage() {
     if (loading) {
         return (
             <div style={{
-                minHeight: '100vh',
+                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
                 background: C.bg,
                 display: 'flex',
             }}>
@@ -4265,6 +4266,7 @@ export default function MessengerPageWithBoundary() {
     return (
         <HubErrorBoundary name="Messenger">
             <MessengerPage />
-        </HubErrorBoundary>
+              <BottomNavBar />
+    </HubErrorBoundary>
     );
 }

@@ -9,6 +9,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import toast from '../../../src/stores/toastStore';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function BankrollExport() {
     const router = useRouter();
@@ -124,7 +125,7 @@ export default function BankrollExport() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
+                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0e1a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '800px', margin: '0 auto' }}>
@@ -181,7 +182,8 @@ export default function BankrollExport() {
                         </div>
                     </div>
                 </div>
-            </PageTransition>
+                  <BottomNavBar />
+    </PageTransition>
         </>
     );
 }

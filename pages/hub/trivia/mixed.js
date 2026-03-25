@@ -27,6 +27,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 const DAILY_DIAMOND_CAP = 10;
@@ -724,6 +725,7 @@ export default function MixedModePage() {
                         </div>
                     )}
                 </div>
+              <BottomNavBar />
             </div>
 
             <style jsx>{`

@@ -24,6 +24,7 @@ import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQue
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 
@@ -483,6 +484,7 @@ export default function TimeAttackPage() {
                         </div>
                     )}
                 </div>
+              <BottomNavBar />
             </div>
 
             <style jsx>{`

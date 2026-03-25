@@ -22,6 +22,7 @@ import GameIntroSplash from '../../../../src/components/training/GameIntroSplash
 // God-Mode Stack
 import PageTransition from '../../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
+import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 
 // Category metadata
 const CATEGORY_META = {
@@ -157,7 +158,8 @@ export default function CategoryPage() {
                     </div>
                 </div>
             </div>
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
     );
 }
 
@@ -167,7 +169,7 @@ export default function CategoryPage() {
 
 const styles = {
     page: {
-        minHeight: '100vh',
+        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
         background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
         color: '#fff',
         fontFamily: 'Inter, -apple-system, sans-serif',

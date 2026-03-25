@@ -23,6 +23,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -499,7 +500,7 @@ export default function HandComparison() {
     : null;
 
   const container = {
-    minHeight: '100vh',
+    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1629 50%, #0a0f1e 100%)',
     color: '#e2e8f0',
     fontFamily: "'Inter', sans-serif",
@@ -954,6 +955,7 @@ export default function HandComparison() {
             )}
           </AnimatePresence>
         </div>
+        <BottomNavBar />
       </div>
     </>
   );

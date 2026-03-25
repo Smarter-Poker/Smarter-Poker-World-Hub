@@ -12,6 +12,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { Gem, ArrowLeft, Trophy, Zap, Target } from 'lucide-react';
 import { ARCADE_GAMES } from '../../../src/lib/arcade/arcadeEngine';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function DiamondArcadePrizes() {
     const bus = useTrainingBus('diamond-arcade-prizes');
@@ -88,7 +89,7 @@ export default function DiamondArcadePrizes() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
+                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0e1a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -173,7 +174,8 @@ export default function DiamondArcadePrizes() {
                         )}
                     </div>
                 </div>
-            </PageTransition>
+                  <BottomNavBar />
+    </PageTransition>
         </>
     );
 }

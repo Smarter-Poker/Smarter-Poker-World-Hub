@@ -10,6 +10,7 @@ import PokerLobby from '../../../src/components/poker/PokerLobby';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function PokerLobbyPage() {
   const router = useRouter();
@@ -52,6 +53,7 @@ export default function PokerLobbyPage() {
         userId={userId}
         onJoinTable={handleJoinTable}
       />
+      <BottomNavBar />
     </>
   );
 }

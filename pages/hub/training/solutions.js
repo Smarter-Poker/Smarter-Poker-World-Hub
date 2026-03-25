@@ -32,6 +32,7 @@ import Card from '../../../src/components/training/Card';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // Dynamic imports for new Phase 34 components (avoid SSR issues)
 const BlockerScorePanel = dynamic(
@@ -705,7 +706,7 @@ function SolutionsBrowserInner({ setError }) {
 
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
           color: '#e2e8f0',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -1687,6 +1688,7 @@ function SolutionsBrowserInner({ setError }) {
             ) : null}
           </div>
         </div>
+        <BottomNavBar />
       </div>
 
       {/* Card Selector Modal */}

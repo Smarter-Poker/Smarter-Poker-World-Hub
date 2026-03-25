@@ -18,6 +18,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function TournamentsPage() {
   useTrainingBus('tournaments');
@@ -275,6 +276,7 @@ export default function TournamentsPage() {
           )}
         </div>
       </div>
+          <BottomNavBar />
     </PageTransition>
     <ConnectionToast />
     </>
@@ -287,7 +289,7 @@ export default function TournamentsPage() {
 
 const styles = {
   container: {
-    minHeight: '100vh',
+    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: '#0a0a0a',
     color: '#FFFFFF',
   },

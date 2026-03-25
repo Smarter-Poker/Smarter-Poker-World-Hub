@@ -18,6 +18,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import { supabase } from '../../src/lib/supabase';
 import SkeletonLight from '../../src/components/ui/SkeletonLight';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DESIGN TOKENS — SmarterPoker Dark palette
@@ -706,7 +707,7 @@ export default function MyClubsPage() {
             ` }} />
 
             <div style={{
-                minHeight: '100vh',
+                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
                 background: C.bg,
                 color: C.text,
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif',
@@ -960,6 +961,7 @@ export default function MyClubsPage() {
                             )}
                         </div>
                     )}
+                  <BottomNavBar />
                 </div>
             </div >
         </>

@@ -17,6 +17,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getDiamondArenaPreferences, updateDiamondArenaPreferences } from '../../src/services/diamondArenaPreferences';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 export default function DiamondArenaPage() {
     const bus = useTrainingBus('diamond-arena');
@@ -175,7 +176,8 @@ export default function DiamondArenaPage() {
                     100% { transform: translateX(100%); }
                 }
             `}</style>
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
     );
 }
 
@@ -219,7 +221,7 @@ const styles = {
         transition: 'opacity 0.3s ease',
     },
     loadingContainer: {
-        minHeight: '100vh',
+        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

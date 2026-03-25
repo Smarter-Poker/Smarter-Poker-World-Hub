@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -236,7 +237,7 @@ export default function QuizGauntlet() {
 
   const C = {
     page: {
-      minHeight: '100vh',
+      minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
       background: 'linear-gradient(135deg,#0a0f1e,#0d1629,#0a0f1e)',
       color: '#e2e8f0',
       fontFamily: "'Inter',sans-serif",
@@ -779,6 +780,7 @@ export default function QuizGauntlet() {
             )}
           </AnimatePresence>
         </div>
+        <BottomNavBar />
       </div>
     </>
   );

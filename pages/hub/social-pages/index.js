@@ -13,6 +13,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -234,7 +235,7 @@ export default function SocialPagesHub() {
             <UniversalHeader />
 
             <div style={{
-                minHeight: '100vh', background: C.bg, paddingBottom: 72,
+                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, paddingBottom: 72,
                 fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif" ,
             }}>
                 {/* Header */}
@@ -405,6 +406,7 @@ export default function SocialPagesHub() {
                         </Link>
                     ))}
                 </div>
+              <BottomNavBar />
             </div>
 
             <style jsx global>{`

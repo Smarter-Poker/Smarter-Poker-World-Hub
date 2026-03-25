@@ -18,13 +18,14 @@ import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
   loading: () => (
     <div
       style={{
-        minHeight: '100vh',
+        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
         background: '#0a0a1a',
         display: 'flex',
         alignItems: 'center',
@@ -534,6 +535,7 @@ export default function QuickWarmupPage() {
             </motion.div>
           )}
         </div>
+        <BottomNavBar />
       </div>
       {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchSessions(); }} />}
       <ConnectionToast />

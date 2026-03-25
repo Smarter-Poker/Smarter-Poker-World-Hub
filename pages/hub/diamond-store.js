@@ -25,6 +25,7 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import { showStoreToast } from '../../src/components/store/StoreToast';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 
 
@@ -2420,7 +2421,8 @@ export default function DiamondStorePage() {
                         </p>
                     </div>
                 </div>
-            </PageTransition>
+                  <BottomNavBar />
+    </PageTransition>
 
             {/* Shopping Cart Component */}
             <ShoppingCart onCheckout={handleCheckout} onPayWithDiamonds={handlePayWithDiamonds} />
@@ -2433,7 +2435,7 @@ export default function DiamondStorePage() {
 // ═══════════════════════════════════════════════════════════════════════════
 const styles = {
     container: {
-        minHeight: '100vh',
+        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
         background: '#000000',
         fontFamily: 'Inter, -apple-system, sans-serif',
         position: 'relative',

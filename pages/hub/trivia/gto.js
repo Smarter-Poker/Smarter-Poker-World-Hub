@@ -5,8 +5,9 @@
 
 import StrategyTrivia from '../../../src/components/trivia/StrategyTrivia';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function GTOPage() {
     useTrainingBus('trivia-gto');
-    return <StrategyTrivia mode="gto" />;
+    return <><StrategyTrivia mode="gto" /><BottomNavBar /></>;
 }

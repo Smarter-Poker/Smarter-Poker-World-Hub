@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function TimerTest() {
     const [timeRemaining, setTimeRemaining] = useState(15);
@@ -166,6 +167,7 @@ export default function TimerTest() {
                 >
                     Reset Timer
                 </button>
+              <BottomNavBar />
             </div>
         </>
     );

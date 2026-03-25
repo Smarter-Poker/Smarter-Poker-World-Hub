@@ -21,6 +21,7 @@ import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
 import { Trophy, Calendar, Clock, Gem, CheckCircle, XCircle, Medal, Award, Bell, Swords, AlertTriangle } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function TournamentsPage() {
     useTrainingBus('trivia-tournaments');
@@ -1760,7 +1761,8 @@ export default function TournamentsPage() {
                     }
                 }
             `}</style>
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
         </TriviaErrorBoundary>
     );
 }

@@ -26,6 +26,7 @@ import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
 import { getBlockedUsers, unblockUser } from '../../src/services/privacy-service';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // Phase 2: Hoisted to module scope — static array, no need to re-create on every render
 const SETTINGS_SECTIONS = [
@@ -3393,7 +3394,8 @@ export default function SettingsPage() {
                     </div>
                 </div>
             )}
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
     );
 }
 
@@ -3402,7 +3404,7 @@ export default function SettingsPage() {
 // ═══════════════════════════════════════════════════════════════════════════
 const styles = {
     container: {
-        minHeight: '100vh',
+        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
         background: '#0a1628',
         fontFamily: 'Inter, -apple-system, sans-serif',
         position: 'relative',

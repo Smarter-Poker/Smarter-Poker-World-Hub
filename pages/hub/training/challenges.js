@@ -18,6 +18,7 @@ import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function ChallengesPage() {
   useTrainingBus('challenges');
@@ -208,6 +209,7 @@ export default function ChallengesPage() {
           )}
         </div>
       </div>
+          <BottomNavBar />
     </PageTransition>
     <ConnectionToast />
     </>
@@ -220,7 +222,7 @@ export default function ChallengesPage() {
 
 const styles = {
   container: {
-    minHeight: '100vh',
+    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: '#0a0a0a',
     color: '#FFFFFF',
   },

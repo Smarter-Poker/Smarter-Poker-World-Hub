@@ -12,6 +12,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { BarChart3, ArrowLeft, Gamepad2, Target, Trophy, Gem, Zap, TrendingUp } from 'lucide-react';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function DiamondArcadeStats() {
     const bus = useTrainingBus('diamond-arcade-stats');
@@ -117,7 +118,7 @@ export default function DiamondArcadeStats() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
+                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0e1a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -188,7 +189,8 @@ export default function DiamondArcadeStats() {
                         )}
                     </div>
                 </div>
-            </PageTransition>
+                  <BottomNavBar />
+    </PageTransition>
         </>
     );
 }

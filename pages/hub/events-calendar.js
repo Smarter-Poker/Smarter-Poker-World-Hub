@@ -12,6 +12,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const C = { bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B', border: '#DADDE1', blue: '#1877F2', green: '#42B72A' };
 
@@ -679,6 +680,7 @@ export default function EventsCalendarPage() {
             </div>
           )}
         </div>
+        <BottomNavBar />
       </div>
 
       <style jsx>{`

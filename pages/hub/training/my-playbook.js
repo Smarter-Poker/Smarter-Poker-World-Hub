@@ -14,6 +14,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const TAG_COLORS = ['#ef4444', '#f97316', '#fbbf24', '#34d399', '#0ea5e9', '#8b5cf6'];
 
@@ -128,7 +129,7 @@ export default function MyPlaybookPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
           color: '#e2e8f0',
           fontFamily: "'Inter', sans-serif",
@@ -514,6 +515,7 @@ export default function MyPlaybookPage() {
             </div>
           )}
         </div>
+        <BottomNavBar />
       </div>
     </>
   );

@@ -10,6 +10,7 @@ import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -1105,6 +1106,7 @@ function TournamentCard({ tournament }) {
                     border-color: rgba(0, 212, 255, 0.5);
                 }
             `}</style>
+          <BottomNavBar />
         </div>
     );
 }

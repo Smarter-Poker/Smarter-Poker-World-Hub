@@ -16,6 +16,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function RiskAnalyzerPage() {
   const router = useRouter();
@@ -114,7 +115,7 @@ export default function RiskAnalyzerPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: '#0B0D11',
           color: '#e2e8f0',
           fontFamily: "'Inter', sans-serif",
@@ -461,6 +462,7 @@ export default function RiskAnalyzerPage() {
             )}
           </div>
         </div>
+        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

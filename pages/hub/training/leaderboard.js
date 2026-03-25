@@ -19,6 +19,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { useSWRConfig } from 'swr';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function TrainingLeaderboard() {
   useTrainingBus('training-leaderboard');
@@ -218,6 +219,7 @@ export default function TrainingLeaderboard() {
         </div>
       </div>
       <ConnectionToast />
+          <BottomNavBar />
     </PageTransition>
   );
 }
@@ -292,7 +294,7 @@ function LeaderboardEntry({
 
 const styles = {
   container: {
-    minHeight: '100vh',
+    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: '#0a0a0a',
     color: '#FFFFFF',
   },

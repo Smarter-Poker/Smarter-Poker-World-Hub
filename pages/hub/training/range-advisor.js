@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
@@ -595,7 +596,7 @@ export default function RangeAdvisor() {
       </Head>
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(135deg,#0a0f1e 0%,#0d1629 60%,#0a0f1e 100%)',
           color: '#e2e8f0',
           fontFamily: "'Inter',sans-serif",
@@ -964,6 +965,7 @@ export default function RangeAdvisor() {
             </div>
           </div>
         </div>
+        <BottomNavBar />
       </div>
     </>
   );

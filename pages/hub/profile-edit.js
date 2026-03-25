@@ -24,6 +24,7 @@ import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastSync } from '../../src/lib/broadcastSync';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // Light Theme Colors
 const C = {
@@ -236,7 +237,7 @@ function ProfileSkeleton() {
         animation: 'profileShimmer 1.5s ease-in-out infinite',
     });
     return (
-        <div style={{ minHeight: '100vh', background: '#F0F2F5' }}>
+        <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#F0F2F5' }}>
             <style>{shimmer}</style>
             {/* Cover area */}
             <div style={{ height: 200, ...bar('100%', 200, 0), borderRadius: 0 }} />
@@ -2715,6 +2716,7 @@ export default function ProfilePage() {
                             })
                         )}
                     </div>
+                  <BottomNavBar />
                 </div>
             )}
             {/* Global CSS keyframes for toast and avatar spinner */}

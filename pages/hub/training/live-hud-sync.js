@@ -13,6 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 // no fetch imports needed
 
 export default function LiveHudSyncPage() {
@@ -81,7 +82,7 @@ export default function LiveHudSyncPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: '#05050A',
           color: '#e2e8f0',
           fontFamily: "'Inter', sans-serif",
@@ -410,6 +411,7 @@ export default function LiveHudSyncPage() {
             )}
           </AnimatePresence>
         </div>
+        <BottomNavBar />
       </div>
     </>
   );

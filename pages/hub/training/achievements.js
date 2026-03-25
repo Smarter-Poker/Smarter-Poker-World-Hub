@@ -16,6 +16,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const RARITY_COLORS = {
   common: '#9ca3af',
@@ -224,13 +225,14 @@ export default function TrainingAchievements() {
         </div>
       </div>
       <ConnectionToast />
+          <BottomNavBar />
     </PageTransition>
   );
 }
 
 const styles = {
   container: {
-    minHeight: '100vh',
+    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: '#0a0a0a',
     color: '#FFFFFF',
   },

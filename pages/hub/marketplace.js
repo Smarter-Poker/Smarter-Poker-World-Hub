@@ -1,6 +1,7 @@
 // Marketplace redirects to Diamond Store
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 export default function MarketplacePage() {
     const router = useRouter();
@@ -21,6 +22,7 @@ export default function MarketplacePage() {
             fontSize: 16
         }}>
             Redirecting to Store...
+          <BottomNavBar />
         </div>
     );
 }

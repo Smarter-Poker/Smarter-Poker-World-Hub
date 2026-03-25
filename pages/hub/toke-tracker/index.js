@@ -12,6 +12,7 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { supabase } from '../../../src/lib/supabase';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const CARDS = [
     {
@@ -179,13 +180,14 @@ export default function TokeTrackerLanding() {
                 }
                 .toke-card-hover:hover { transform: translateY(-4px) scale(1.02) !important; }
             `}</style>
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
     );
 }
 
 const s = {
     page: {
-        minHeight: '100vh',
+        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
         background: '#18191a',
         position: 'relative',
     },

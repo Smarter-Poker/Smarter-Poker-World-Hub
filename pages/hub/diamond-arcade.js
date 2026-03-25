@@ -46,6 +46,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getDiamondArcadePreferences, updateDiamondArcadePreferences } from '../../src/services/diamondArcadePreferences';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GAME CARD BACKGROUNDS - Rich photographic-style gradients
@@ -1288,7 +1289,7 @@ export default function DiamondArcade() {
 const styles = {
     pageWrapper: {
         position: 'relative',
-        minHeight: '100vh',
+        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
         overflow: 'hidden',
     },
 
@@ -2083,6 +2084,7 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5, isVIP = false }) {
                     </button>
                 </div>
             </div>
+          <BottomNavBar />
         </div>
     );
 }

@@ -21,6 +21,7 @@ import SessionAnalytics from '../../../src/components/sandbox/SessionAnalytics';
 import LeakHeatmap from '../../../src/components/sandbox/LeakHeatmap';
 import CoachLeaderboard from '../../../src/components/sandbox/CoachLeaderboard';
 import MacroLeakDetector from '../../../src/components/sandbox/MacroLeakDetector';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MOCK DATA
@@ -823,6 +824,7 @@ export default function LeakFinderPage() {
         </FeatureGate>
       </div>
       {UpgradePopup}
+          <BottomNavBar />
     </PageTransition >
   );
 }
@@ -833,7 +835,7 @@ export default function LeakFinderPage() {
 
 const styles = {
   container: {
-    minHeight: '100vh',
+    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: 'linear-gradient(180deg, #e8e8e8 0%, #d0d0d0 100%)',
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',

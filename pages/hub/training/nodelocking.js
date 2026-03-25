@@ -16,6 +16,7 @@ import { DiamondEngine } from '../../../src/services/DiamondEngine';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VILLAIN PROFILES
@@ -565,7 +566,7 @@ export default function NodelockingPage() {
     return (
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: '#0a0a12',
           display: 'flex',
           alignItems: 'center',
@@ -1197,6 +1198,7 @@ export default function NodelockingPage() {
             <div style={{ opacity: 0.9 }}>{t.message}</div>
           </motion.div>
         ))}
+        <BottomNavBar />
       </div>
       {fetchError && <ErrorBanner message={fetchError} onRetry={() => setFetchError(null)} />}
       <ConnectionToast />

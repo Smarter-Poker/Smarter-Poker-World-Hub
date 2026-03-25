@@ -22,6 +22,7 @@ import {
     fireworksCelebration
 } from '../../src/utils/confetti';
 import { staggerContainer, staggerItem } from '../../src/utils/animations';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 export default function GodModeDemoPage() {
     const [loading, setLoading] = useState(false);
@@ -86,7 +87,7 @@ export default function GodModeDemoPage() {
             />
 
             <div style={{
-                minHeight: '100vh',
+                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
                 background: 'linear-gradient(135deg, #0a0a15 0%, #1a1f3a 100%)',
                 padding: '40px 20px',
             }}>
@@ -265,6 +266,7 @@ export default function GodModeDemoPage() {
                     </AnimatedButton>
                 </div>
             </AnimatedModal>
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
     );
 }

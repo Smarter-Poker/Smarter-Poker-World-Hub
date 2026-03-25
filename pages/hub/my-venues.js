@@ -16,6 +16,7 @@ import { listenBroadcast } from '../../src/lib/broadcastSync';
 import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import { Building2, Calendar, Layers, Clock, ChevronLeft, ChevronRight, Shield, Link2, AlertCircle } from 'lucide-react';
 import SkeletonLight from '../../src/components/ui/SkeletonLight';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // ── Design tokens ──
 const C = {
@@ -601,7 +602,7 @@ export default function MyVenuesPage() {
         body { margin: 0; }
       ` }} />
 
-            <div style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif', color: C.text }}>
+            <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif', color: C.text }}>
                 <UniversalHeader title="My Venues" backHref="/hub" backLabel="← Hub" />
 
                 <div style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px 80px' }}>
@@ -672,6 +673,7 @@ export default function MyVenuesPage() {
                         </>
                     )}
                 </div>
+              <BottomNavBar />
             </div>
         </>
     );

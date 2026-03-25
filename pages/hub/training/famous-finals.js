@@ -18,6 +18,7 @@ import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import Card from '../../../src/components/training/Card';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HISTORIC FINAL TABLE DATABASE
@@ -366,7 +367,7 @@ export default function FamousFinalsPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: '#e2e8f0',
           fontFamily: "'Inter', sans-serif",
@@ -888,6 +889,7 @@ export default function FamousFinalsPage() {
             </motion.div>
           )}
         </div>
+        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

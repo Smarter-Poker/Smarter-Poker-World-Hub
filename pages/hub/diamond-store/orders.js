@@ -13,6 +13,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useRequireAuth } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function OrderHistory() {
     const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/orders');
@@ -172,12 +173,13 @@ export default function OrderHistory() {
                     )}
                 </div>
             </div>
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
     );
 }
 
 const styles = {
-    container: { minHeight: '100vh', background: '#000000', color: '#FFFFFF' },
+    container: { minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#000000', color: '#FFFFFF' },
     content: { maxWidth: '900px', margin: '0 auto', padding: '80px 24px 40px' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' },
     title: { fontSize: '32px', fontWeight: 700, margin: 0 },

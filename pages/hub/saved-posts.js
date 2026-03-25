@@ -19,6 +19,7 @@ import HashtagRenderer from '../../src/components/social/HashtagRenderer';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import { busEmit } from '../../src/engine/EventBus';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -238,7 +239,7 @@ export default function SavedPostsPage() {
             <SEOHead title="Saved Posts | Smarter.Poker" description="View your saved and bookmarked posts" />
             <UniversalHeader />
             <PageTransition>
-                <div style={{ background: C.bg, minHeight: '100vh', paddingTop: 72 }}>
+                <div style={{ background: C.bg, minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', paddingTop: 72 }}>
                     <div style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px' }}>
                         {/* Header */}
                         <div style={{
@@ -314,7 +315,8 @@ export default function SavedPostsPage() {
                         )}
                     </div>
                 </div>
-            </PageTransition>
+                  <BottomNavBar />
+    </PageTransition>
         </>
     );
 }

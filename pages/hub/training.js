@@ -87,6 +87,7 @@ import JarvisRecommendations from '../../src/components/training/JarvisRecommend
 // DailyBonusWidget removed per UI overhaul
 import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 // busEmit not needed at page level — DiamondEngine auto-emits, useTrainingBus has own import
 
 
@@ -1512,7 +1513,8 @@ export default function TrainingPage() {
                 </>
             )
             }
-        </PageTransition >
+              <BottomNavBar />
+    </PageTransition >
     );
 }
 
@@ -1522,7 +1524,7 @@ export default function TrainingPage() {
 
 const styles = {
     page: {
-        minHeight: '100vh',
+        minHeight: '100vh', paddingBottom: 70,
         background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
         color: '#fff',
         fontFamily: 'Inter, -apple-system, sans-serif',

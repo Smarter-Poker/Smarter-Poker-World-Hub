@@ -26,6 +26,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQuestionLoader';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 
@@ -653,7 +654,8 @@ export default function SurvivalModePage() {
                     }
                 }
             `}</style>
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
         </TriviaErrorBoundary>
     );
 }

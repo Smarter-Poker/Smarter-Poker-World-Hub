@@ -18,6 +18,7 @@ import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const STATES = [
   { id: 'zone', label: 'In The Zone', color: '#4ade80', icon: '⚡' },
@@ -163,7 +164,7 @@ export default function MentalJournalPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
           color: '#e2e8f0',
           fontFamily: "'Inter', sans-serif",
@@ -549,6 +550,7 @@ export default function MentalJournalPage() {
             </div>
           )}
         </div>
+        <BottomNavBar />
       </div>
       <ConnectionToast />
     </>

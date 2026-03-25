@@ -24,6 +24,7 @@ import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory } from '../../src/services/pokerNearMeSearchHistory';
 import { getPokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // Dynamic import — 2D lobby background (client-only, no SSR)
 const LobbyCanvas = dynamic(
@@ -1317,6 +1318,7 @@ export default function PokerNearMeLobby() {
             </div>
           </div>
         )}
+        <BottomNavBar />
       </div>
 
       {/* Global keyframes for inline spinners used in panel loading states */}

@@ -13,6 +13,7 @@ import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#F0F2F5',
@@ -354,6 +355,7 @@ export default function PromotionsPage() {
                         </a>
                     </Link>
                 </div>
+              <BottomNavBar />
             </div>
 
             <style jsx>{`

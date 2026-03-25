@@ -66,6 +66,7 @@ import EquityHeatmapOverlay from '../../../src/components/sandbox/EquityHeatmapO
 import NodeLockExploits from '../../../src/components/sandbox/NodeLockExploits';
 import ImportHHModal from '../../../src/components/sandbox/ImportHHModal';
 import { idbSaveSessionLog, idbLoadSessionLog, idbSyncSavedHands, idbGetSavedHands } from '../../../src/utils/indexeddb-pwa';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -1375,7 +1376,7 @@ export default function VirtualSandbox() {
   ) : null;
 
   return (
-    <div className="sandbox-page" style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter',-apple-system,sans-serif" }}>
+    <div className="sandbox-page" style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter',-apple-system,sans-serif" }}>
       {/* Onboarding Tour */}
       <OnboardingTour isVisible={showTour} step={tourStep}
         onClose={dismissTour} onNext={() => setTourStep(s => s + 1)} />
@@ -2365,6 +2366,7 @@ export default function VirtualSandbox() {
                       {villains[0].range}
                     </div>
                   )}
+                  <BottomNavBar />
                 </div>
               )}
 

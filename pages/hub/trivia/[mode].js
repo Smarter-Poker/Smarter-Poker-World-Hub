@@ -34,6 +34,7 @@ import { getStreakTier, calculateRewardWithMultiplier } from '../../../src/confi
 import DoubleOrNothing from '../../../src/components/trivia/DoubleOrNothing';
 import { Gem } from 'lucide-react';
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const CATEGORY_MAP = {
     daily: null,
@@ -1106,6 +1107,7 @@ export default function TriviaModePage() {
                     {/* Celebration Effects */}
                     <celebrations.CelebrationComponents />
                 </div>
+              <BottomNavBar />
             </div>
 
             <style jsx>{`

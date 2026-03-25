@@ -7,6 +7,7 @@ import { useState } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { Smartphone, Tablet, ArrowRight, CheckCircle2 } from 'lucide-react';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 export default function InstallPage() {
     const [tab, setTab] = useState('ipad');
@@ -208,6 +209,7 @@ export default function InstallPage() {
                         </p>
                     </div>
                 </div>
+              <BottomNavBar />
             </div>
         </>
     );

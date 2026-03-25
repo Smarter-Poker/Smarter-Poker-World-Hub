@@ -11,6 +11,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import SkeletonLight from '../../../src/components/ui/SkeletonLight';
 import { supabase } from '../../../src/lib/supabase';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -403,7 +404,7 @@ export default function SocialPageDetail() {
         return (
             <>
                 <UniversalHeader />
-                <div style={{ minHeight: '100vh', background: C.bg, padding: '76px 16px 80px', fontFamily: "var(--font-inter), -apple-system, sans-serif", maxWidth: 700, margin: '0 auto' }}>
+                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, padding: '76px 16px 80px', fontFamily: "var(--font-inter), -apple-system, sans-serif", maxWidth: 700, margin: '0 auto' }}>
                     <SkeletonLight variant="profile" />
                     <SkeletonLight variant="feed" rows={2} />
                 </div>
@@ -724,6 +725,7 @@ export default function SocialPageDetail() {
                         </div>
                     </div>
                 </div>
+              <BottomNavBar />
             </div>
 
             <style jsx global>{`

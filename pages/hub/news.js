@@ -42,6 +42,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
 
 // Fallback data
@@ -4180,7 +4181,8 @@ export default function NewsHub() {
                     }
                 `}</style>
                 </div>
-            </PageTransition>
+                  <BottomNavBar />
+    </PageTransition>
 
 
             {/* Article Reader Modal - Opens full external pages in-app via server-side proxy */}

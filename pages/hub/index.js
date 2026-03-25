@@ -15,6 +15,7 @@ import { warmCache } from '../../src/lib/cacheWarmer';
 import { reapStaleCaches } from '../../src/lib/cacheReaper';
 import { CardCustomizerPanel } from '../../src/world/components/CardCustomizerPanel';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // Dynamic import with SSR disabled to prevent hydration mismatches from R3F/WebGL
 // Error handling on the dynamic import itself catches module-level init failures
@@ -24,7 +25,7 @@ const WorldHub = dynamic(
         // Return a safe fallback module when the import itself throws
         return {
             default: () => (
-                <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', flexDirection: 'column', gap: 16 }}>
+                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', flexDirection: 'column', gap: 16 }}>
                     <div style={{ color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 18 }}>World Hub — Reloading...</div>
                     <button onClick={() => window.location.reload()} style={{ background: '#1877f2', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontFamily: 'inherit' }}>Refresh</button>
                 </div>
@@ -146,7 +147,8 @@ export default function HubPage() {
             {/* WorldHub 3D carousel — isolated so a bad orb/import NEVER crashes the page */}
             <HubErrorBoundary name="World Hub">
                 <WorldHub onOpenCardCustomizer={() => setCardCustomizerOpen(true)} />
-            </HubErrorBoundary>
+                  <BottomNavBar />
+    </HubErrorBoundary>
         </>
     );
 }

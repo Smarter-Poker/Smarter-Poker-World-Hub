@@ -31,6 +31,7 @@ import { getRecentlySeenIds, filterAndShuffle } from '../../../src/lib/triviaQue
 import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const GAME_ENTRY_COST = 10; // 💎 per game for non-VIP
 const DAILY_DIAMOND_CAP = 10;
@@ -803,7 +804,7 @@ export default function SurvivalGamePage() {
 
             <PageTransition>
                 <div style={{
-                    minHeight: '100vh',
+                    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
                     background: "#0a0e1a",
                     backgroundColor: '#000000',
                     padding: '20px'
@@ -1664,7 +1665,8 @@ export default function SurvivalGamePage() {
                         )}
                     </div>
                 </div>
-            </PageTransition>
+                  <BottomNavBar />
+    </PageTransition>
         </TriviaErrorBoundary>
     );
 }

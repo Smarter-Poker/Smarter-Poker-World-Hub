@@ -23,6 +23,7 @@ import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { getAccessToken } from '../../src/lib/authUtils';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // Full video catalog with YouTube embeds - 138 VIDEOS (96 cash + 42 tournaments)
 const FULL_VIDEOS = [
@@ -945,7 +946,7 @@ export default function VideoLibraryPage() {
             />
 
             <div className="video-library-page" style={{
-                minHeight: '100vh',
+                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
                 background: C.bg,
                 padding: '20px',
             }}>
@@ -2510,6 +2511,7 @@ export default function VideoLibraryPage() {
                     }
                 }
             `}</style>
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
     );
 }

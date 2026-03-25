@@ -13,6 +13,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { Trophy, ArrowLeft, Target, Zap, Crown, Flame, Gem, Gamepad2, Star, Award, CheckCircle, Swords, Shield } from 'lucide-react';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const ACHIEVEMENTS = [
     { id: 'first_win', name: 'First Blood', description: 'Win Your First Arcade Game', Icon: Target, requirement: (s) => s.wins >= 1 },
@@ -111,7 +112,7 @@ export default function DiamondArcadeAchievements() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
+                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#0a0e1a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -174,7 +175,8 @@ export default function DiamondArcadeAchievements() {
                         )}
                     </div>
                 </div>
-            </PageTransition>
+                  <BottomNavBar />
+    </PageTransition>
         </>
     );
 }

@@ -16,6 +16,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import toast from '../../../src/stores/toastStore';
 import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function ShoppingCart() {
     const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/cart');
@@ -436,7 +437,8 @@ export default function ShoppingCart() {
                     )}
                 </div>
             </div>
-        </PageTransition>
+              <BottomNavBar />
+    </PageTransition>
     );
 }
 
@@ -494,7 +496,7 @@ function CartItem({ id, name, price, quantity, image, type, onUpdateQuantity, on
 
 const styles = {
     container: {
-        minHeight: '100vh',
+        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
         background: '#000000',
         color: '#FFFFFF'
     },

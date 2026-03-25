@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 // ── Save-session helper (SSR-safe) ──────────────────────────────
 
@@ -611,7 +612,7 @@ export default function VillainRange() {
   }, []);
 
   const container = {
-    minHeight: '100vh',
+    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
     background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1629 50%, #0a0f1e 100%)',
     color: '#e2e8f0',
     fontFamily: "'Inter', sans-serif",
@@ -1442,6 +1443,7 @@ export default function VillainRange() {
             )}
           </AnimatePresence>
         </div>
+        <BottomNavBar />
       </div>
     </>
   );

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 const C = {
     bg: '#0a1628',
@@ -104,7 +105,7 @@ export default function HelpPage() {
             />
 
             <div style={{
-                minHeight: '100vh',
+                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
                 background: C.bg,
                 fontFamily: 'Inter, -apple-system, sans-serif',
                 paddingBottom: 80,
@@ -373,6 +374,7 @@ export default function HelpPage() {
                         </div>
                     </div>
                 </div>
+              <BottomNavBar />
             </div>
         </>
     );

@@ -17,6 +17,7 @@ import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import feedback, { EFFECT_STYLES } from '../../../../src/engine/HapticsFeedback';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 
 // Constants
 const TIME_PER_QUESTION = 21;
@@ -246,7 +247,7 @@ export default function ClinicPlayPage() {
                     noindex={true}
                 />
                 <style>{EFFECT_STYLES}</style>
-                <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a1628', color: '#fff' }}>
+                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a1628', color: '#fff' }}>
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 80, marginBottom: 16 }}>{passed ? 'Trophy' : '🔄'}</div>
                         <h1 style={{ fontSize: 32, color: passed ? '#4CAF50' : '#fff' }}>
@@ -290,6 +291,7 @@ export default function ClinicPlayPage() {
                             >{passed ? 'CONTINUE' : 'BACK'}</motion.button>
                         </div>
                     </motion.div>
+                  <BottomNavBar />
                 </div>
             </>
         );

@@ -13,6 +13,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import Card from '../../../src/components/training/Card';
 import { authedFetch } from '../../../src/lib/authUtils';
+import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {
@@ -413,7 +414,7 @@ export default function PreflopAdvisor() {
 
   const C = {
     page: {
-      minHeight: '100vh',
+      minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
       background: 'linear-gradient(135deg,#0a0f1e,#0d1629,#0a0f1e)',
       color: '#e2e8f0',
       fontFamily: "'Inter',sans-serif",
@@ -777,6 +778,7 @@ export default function PreflopAdvisor() {
             </AnimatePresence>
           )}
         </div>
+        <BottomNavBar />
       </div>
     </>
   );
