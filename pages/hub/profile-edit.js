@@ -1048,8 +1048,8 @@ export default function ProfilePage() {
                                 gap: 6,
                                 transition: 'all 0.2s ease'
                             }}
-                            onMouseEnter={(e) => e.target.style.background = 'rgba(220,38,38,0.9)'}
-                            onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.7)'}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(220,38,38,0.9)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.7)'}
                         >
                             Remove
                         </button>
