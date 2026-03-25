@@ -272,7 +272,7 @@ export default async function handler(req, res) {
         // Overlay poker_series data (has series_uid for event linking)
         for (const ps of pokerSeriesData) {
           const uid = ps.series_uid;
-          const key = (ps.series_name || ps.name || '').toLowerCase();
+          const key = (ps.series_name || ps.name || uid || '').toLowerCase();
           
           // If already exists by series_uid, update it
           if (uid && uidMap.has(uid)) {
