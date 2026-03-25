@@ -44,7 +44,7 @@ const timeAgo = (d) => {
     return `${Math.floor(s / 86400)}d`;
 };
 
-function PageCard({ page, isFollowing, onFollow, onView }) {
+function PageCard({ page, isFollowing, onFollow, onView, followBusy }) {
     const typeLabel = { venue: 'Venue', group: 'Group', community: 'Community', brand: 'Brand' };
     const typeColor = { venue: C.blue, group: C.green, community: '#8b5cf6', brand: C.orange };
 
@@ -124,16 +124,20 @@ function PageCard({ page, isFollowing, onFollow, onView }) {
                 <div style={{ display: 'flex', gap: 8 }}>
                     <button
                         onClick={(e) => { e.stopPropagation(); onFollow(); }}
+                        disabled={followBusy}
                         style={{
                             flex: 1, padding: '8px 12px', borderRadius: 8,
-                            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            fontSize: 13, fontWeight: 600, cursor: followBusy ? 'default' : 'pointer',
                             border: 'none', fontFamily: 'inherit',
                             background: isFollowing ? '#E4E6EB' : C.blue,
                             color: isFollowing ? C.text : '#fff',
+                            opacity: followBusy ? 0.7 : 1, transition: 'opacity 0.15s',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                         }}
                     >
-                        {isFollowing ? 'Following' : 'Follow'}
+                        {followBusy ? (
+                            <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.6s linear infinite' }} />
+                        ) : isFollowing ? 'Following' : 'Follow'}
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); onView(); }}
@@ -171,6 +175,7 @@ export default function SocialPagesHub() {
     const [search, setSearch] = useState('');
     const [searchInput, setSearchInput] = useState('');
     const [followingIds, setFollowingIds] = useState(new Set());
+    const [followLoading, setFollowLoading] = useState(new Set());
 
 
 
@@ -215,7 +220,11 @@ export default function SocialPagesHub() {
 
     const handleFollow = async (pageId) => {
         if (!user) { router.push('/auth/login'); return; }
+        if (followLoading.has(pageId)) return; // Prevent double-clicks
         const isFollowing = followingIds.has(pageId);
+
+        // Set loading state
+        setFollowLoading(prev => { const next = new Set(prev); next.add(pageId); return next; });
 
         // Optimistic update (followingIds only — pages are SWR-managed)
         setFollowingIds(prev => {
@@ -226,7 +235,7 @@ export default function SocialPagesHub() {
 
         try {
             const token = getAccessToken();
-            await fetch('/api/social/pages/follow', {
+            const res = await fetch('/api/social/pages/follow', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -238,8 +247,18 @@ export default function SocialPagesHub() {
                     action: isFollowing ? 'unfollow' : 'follow'
                 }),
             });
+            if (!res.ok) throw new Error('Follow failed');
             busEmit.dataMutated('social-pages');
-        } catch { }
+        } catch {
+            // Rollback optimistic update on failure
+            setFollowingIds(prev => {
+                const next = new Set(prev);
+                if (isFollowing) next.add(pageId); else next.delete(pageId);
+                return next;
+            });
+        } finally {
+            setFollowLoading(prev => { const next = new Set(prev); next.delete(pageId); return next; });
+        }
     };
 
     return (
@@ -382,6 +401,7 @@ export default function SocialPagesHub() {
                                         key={page.id}
                                         page={page}
                                         isFollowing={followingIds.has(page.id)}
+                                        followBusy={followLoading.has(page.id)}
                                         onFollow={() => handleFollow(page.id)}
                                         onView={() => router.push(`/hub/social-pages/${page.slug || page.id}`)}
                                     />
@@ -391,38 +411,6 @@ export default function SocialPagesHub() {
                     )}
                 </div>
 
-                {/* Bottom Nav */}
-                <div style={{
-                    position: 'fixed', bottom: 0, left: 0, right: 0,
-                    background: C.card, borderTop: `1px solid ${C.border}`,
-                    display: 'flex', justifyContent: 'space-around', padding: '6px 0', zIndex: 50,
-                }}>
-                    {[
-                        { href: '/hub/social-media', label: 'Home', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
-                        { href: '/hub/poker-near-me', label: 'Search', icon: null, isSvg: true },
-                        { href: '/hub/social-pages', label: 'Pages', active: true, icon: null, isSvg: true },
-                        { href: '/hub/friends', label: 'Friends', icon: null, isSvg: true },
-                        { href: '/hub/notifications', label: 'Alerts', icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9' },
-                    ].map((nav, i) => (
-                        <Link key={i} href={nav.href} legacyBehavior>
-                            <a style={{
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                                padding: '4px 12px', color: nav.active ? C.blue : C.textSec,
-                                textDecoration: 'none', fontSize: 10, fontWeight: 600,
-                            }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill={nav.active ? 'currentColor' : 'none'}
-                                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    {i === 0 && <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></>}
-                                    {i === 1 && <><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></>}
-                                    {i === 2 && <><rect x="2" y="3" width="20" height="18" rx="2" /><line x1="2" y1="9" x2="22" y2="9" /></>}
-                                    {i === 3 && <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></>}
-                                    {i === 4 && <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></>}
-                                </svg>
-                                <span>{nav.label}</span>
-                            </a>
-                        </Link>
-                    ))}
-                </div>
               <BottomNavBar />
             </div>
 

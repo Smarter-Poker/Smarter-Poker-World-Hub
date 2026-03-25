@@ -414,8 +414,7 @@ export default function SocialPageDetail() {
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
-        } catch (e) { console.error("[[pageId].js]", e); }
-    setLoading(false);
+        } catch (e) { if (e.name !== 'AbortError') console.error("[[pageId].js]", e); }
     }, [page, user]);
 
     const fetchFollowers = useCallback(async () => {
@@ -427,7 +426,6 @@ export default function SocialPageDetail() {
             const json = await res.json();
             if (json.success) setFollowers(json.data || []);
         } catch (e) { console.error("[[pageId].js]", e); }
-    setLoading(false);
     }, [page, user]);
 
     useEffect(() => {
@@ -470,6 +468,7 @@ export default function SocialPageDetail() {
     const handleFollow = async () => {
         if (!user) { router.push('/auth/login'); return; }
         const newState = !isFollowing;
+        const prevCount = page?.follower_count || 0;
         setIsFollowing(newState);
         setPage(prev => prev ? {
             ...prev,
@@ -478,7 +477,7 @@ export default function SocialPageDetail() {
 
         try {
             const token = getAccessToken();
-            await fetch('/api/social/pages/follow', {
+            const res = await fetch('/api/social/pages/follow', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -489,9 +488,15 @@ export default function SocialPageDetail() {
                     action: newState ? 'follow' : 'unfollow',
                 }),
             });
+            if (!res.ok) throw new Error('Follow failed');
             toast.success(newState ? 'Following!' : 'Unfollowed');
             busEmit.dataMutated('social-pages');
-        } catch (e) { console.error("[[pageId].js]", e); }
+        } catch (e) {
+            console.error("[[pageId].js]", e);
+            // Rollback optimistic update
+            setIsFollowing(!newState);
+            setPage(prev => prev ? { ...prev, follower_count: prevCount } : prev);
+        }
     };
 
     const handlePost = async () => {

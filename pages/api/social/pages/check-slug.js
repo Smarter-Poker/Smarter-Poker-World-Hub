@@ -126,11 +126,47 @@ export default async function handler(req, res) {
 
         const available = !data;
 
+        // #6: Generate suggestions when slug is taken
+        let suggestions = [];
+        if (!available) {
+            const suffixes = ['-poker', `-${Date.now().toString(36).slice(-4)}`, '-club', '-page', '-hq'];
+            const candidateSlugs = suffixes.map(s => (formatted + s).substring(0, 60));
+            const { data: takenSlugs } = await supabase
+                .from('social_pages')
+                .select('slug')
+                .in('slug', candidateSlugs);
+            const takenSet = new Set((takenSlugs || []).map(r => r.slug));
+            suggestions = candidateSlugs.filter(s => !takenSet.has(s)).slice(0, 3);
+        }
+
+        // #10: Check slug cooldown (deleted within last 30 days)
+        if (available) {
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+            const { data: recentlyDeleted } = await supabase
+                .from('slug_history')
+                .select('id')
+                .eq('old_slug', formatted)
+                .eq('reason', 'deleted')
+                .gte('changed_at', thirtyDaysAgo)
+                .limit(1)
+                .maybeSingle();
+            if (recentlyDeleted) {
+                return res.status(200).json({
+                    success: true,
+                    available: false,
+                    formatted,
+                    error: 'This URL was recently used and is in a 30-day cooldown period',
+                    suggestions: [],
+                });
+            }
+        }
+
         return res.status(200).json({
             success: true,
             available,
             formatted,
             error: available ? null : 'This URL is already taken',
+            suggestions,
         });
     } catch (err) {
         console.error('[check-slug]', err);
