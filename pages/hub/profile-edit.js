@@ -452,10 +452,20 @@ export default function ProfilePage() {
                         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
                         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+                        // Use user JWT for profile read (respects RLS) — fallback to anon key
+                        let loadToken = supabaseKey;
+                        try {
+                            const authStr = localStorage.getItem('smarter-poker-auth');
+                            if (authStr) {
+                                const parsed = JSON.parse(authStr);
+                                if (parsed?.access_token) loadToken = parsed.access_token;
+                            }
+                        } catch { /* fallback to anon key */ }
+
                         const response = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${authUser.id}&select=*`, {
                             headers: {
                                 'apikey': supabaseKey,
-                                'Authorization': `Bearer ${supabaseKey}`,
+                                'Authorization': `Bearer ${loadToken}`,
                                 'Content-Type': 'application/json'
                             }
                         });
@@ -612,15 +622,29 @@ export default function ProfilePage() {
 
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
 
-        // Auto-save to database immediately
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
-            .eq('id', user.id);
+        // Auto-save to database immediately — direct PostgREST (avoids SIGNED_OUT cascade)
+        const _supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const _supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        let _avatarToken = _supabaseKey;
+        try {
+            const _auth = localStorage.getItem('smarter-poker-auth');
+            if (_auth) { const p = JSON.parse(_auth); if (p?.access_token) _avatarToken = p.access_token; }
+        } catch { /* noop */ }
 
-        if (updateError) {
-            setMessage('Error saving avatar: ' + updateError.message);
-            console.error('Save error:', updateError);
+        try {
+            const avatarRes = await fetch(`${_supabaseUrl}/rest/v1/profiles?id=eq.${user.id}`, {
+                method: 'PATCH',
+                headers: { 'apikey': _supabaseKey, 'Authorization': `Bearer ${_avatarToken}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                body: JSON.stringify({ avatar_url: publicUrl, updated_at: new Date().toISOString() }),
+            });
+            if (!avatarRes.ok) {
+                const errText = await avatarRes.text();
+                setMessage('Error saving avatar: ' + errText);
+                console.error('Save error:', errText);
+                return;
+            }
+        } catch (fetchErr) {
+            setMessage('Error saving avatar: ' + fetchErr.message);
             return;
         }
 
@@ -679,15 +703,24 @@ export default function ProfilePage() {
 
             const publicUrl = uploadJson.url;
 
-            // Update database
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ cover_photo_url: publicUrl, updated_at: new Date().toISOString() })
-                .eq('id', user.id);
+            // Update database — direct PostgREST (avoids SIGNED_OUT cascade)
+            const _coverUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const _coverKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            let _coverJwt = _coverKey;
+            try {
+                const _a = localStorage.getItem('smarter-poker-auth');
+                if (_a) { const p = JSON.parse(_a); if (p?.access_token) _coverJwt = p.access_token; }
+            } catch { /* noop */ }
 
-            if (updateError) {
-                setMessage('Error saving cover photo: ' + updateError.message);
-                console.error('Save error:', updateError);
+            const coverSaveRes = await fetch(`${_coverUrl}/rest/v1/profiles?id=eq.${user.id}`, {
+                method: 'PATCH',
+                headers: { 'apikey': _coverKey, 'Authorization': `Bearer ${_coverJwt}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                body: JSON.stringify({ cover_photo_url: publicUrl, updated_at: new Date().toISOString() }),
+            });
+            if (!coverSaveRes.ok) {
+                const errText = await coverSaveRes.text();
+                setMessage('Error saving cover photo: ' + errText);
+                console.error('Save error:', errText);
                 return;
             }
 
@@ -745,15 +778,24 @@ export default function ProfilePage() {
             // Continue anyway - file might already be deleted
         }
 
-        // Update database to remove URL
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ cover_photo_url: null, cover_photo_position: '50% 50%', updated_at: new Date().toISOString() })
-            .eq('id', user.id);
+        // Update database to remove URL — direct PostgREST (avoids SIGNED_OUT cascade)
+        const _rmUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const _rmKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        let _rmJwt = _rmKey;
+        try {
+            const _a = localStorage.getItem('smarter-poker-auth');
+            if (_a) { const p = JSON.parse(_a); if (p?.access_token) _rmJwt = p.access_token; }
+        } catch { /* noop */ }
 
-        if (updateError) {
-            setMessage('Error removing cover photo: ' + updateError.message);
-            console.error('Update error:', updateError);
+        const rmRes = await fetch(`${_rmUrl}/rest/v1/profiles?id=eq.${user.id}`, {
+            method: 'PATCH',
+            headers: { 'apikey': _rmKey, 'Authorization': `Bearer ${_rmJwt}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ cover_photo_url: null, cover_photo_position: '50% 50%', updated_at: new Date().toISOString() }),
+        });
+        if (!rmRes.ok) {
+            const errText = await rmRes.text();
+            setMessage('Error removing cover photo: ' + errText);
+            console.error('Update error:', errText);
             return;
         }
 
@@ -811,7 +853,14 @@ export default function ProfilePage() {
             favorite_hand_plo: profile.favorite_hand_plo || '',
             home_casino: profile.home_casino,
             birth_year: profile.birth_year,
-            birthday: profile.birthday || null,
+            birthday: (() => {
+                const b = profile.birthday;
+                if (!b) return null;
+                const parts = b.split('-');
+                // Only save if all 3 parts (year, month, day) are present and non-empty
+                if (parts.length === 3 && parts[0] && parts[1] && parts[2]) return b;
+                return null;
+            })(),
             avatar_url: profile.avatar_url,
             cover_photo_url: profile.cover_photo_url,
             cover_photo_position: profile.cover_photo_position || '50% 50%',
@@ -1166,46 +1215,57 @@ export default function ProfilePage() {
 
                 {/* Main Content */}
                 <div style={{ maxWidth: 800, margin: '80px auto 40px', padding: '0 16px' }}>
-                    {message && (
+                    {message && (() => {
+                        const isError = message.includes('Error');
+                        // Auto-dismiss success messages after 2 seconds
+                        if (!isError) {
+                            setTimeout(() => setMessage(''), 2000);
+                        }
+                        return (
                         <div style={{
                             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                            background: 'rgba(0,0,0,0.5)', zIndex: 9999,
+                            background: 'rgba(0,0,0,0.6)', zIndex: 9999,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             padding: 16,
                         }} onClick={() => setMessage('')}>
                             <div style={{
-                                background: message.includes('Error') ? '#1a1a2e' : '#1a2e1a',
-                                border: message.includes('Error')
+                                background: isError ? '#1a1a2e' : '#0a0e27',
+                                border: isError
                                     ? '2px solid #c62828'
-                                    : '2px solid #42B72A',
+                                    : '2px solid #00f5ff',
                                 borderRadius: 16, padding: 28, maxWidth: 400, width: '100%',
                                 textAlign: 'center',
-                                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                                boxShadow: isError
+                                    ? '0 8px 32px rgba(198,40,40,0.3)'
+                                    : '0 8px 32px rgba(0,245,255,0.2)',
                             }} onClick={e => e.stopPropagation()}>
                                 <div style={{
                                     fontSize: 40, marginBottom: 12,
-                                }}>{message.includes('Error') ? '⚠️' : '✅'}</div>
+                                }}>{isError ? '⚠️' : '✅'}</div>
                                 <div style={{
                                     fontSize: 16, fontWeight: 600, marginBottom: 12,
-                                    color: message.includes('Error') ? '#ff6b6b' : '#42B72A',
-                                }}>{message.includes('Error') ? 'Save Error' : 'Success'}</div>
+                                    color: isError ? '#ff6b6b' : '#00f5ff',
+                                }}>{isError ? 'Save Error' : 'Saved'}</div>
                                 <div style={{
-                                    fontSize: 14, color: '#ccc', lineHeight: 1.5,
-                                    marginBottom: 20, wordBreak: 'break-word',
+                                    fontSize: 14, color: '#a0a0b8', lineHeight: 1.5,
+                                    marginBottom: isError ? 20 : 0, wordBreak: 'break-word',
                                 }}>{message}</div>
-                                <button
-                                    onClick={() => setMessage('')}
-                                    style={{
-                                        padding: '10px 32px', borderRadius: 8,
-                                        border: 'none', fontWeight: 600, fontSize: 14,
-                                        cursor: 'pointer',
-                                        background: message.includes('Error') ? '#c62828' : '#42B72A',
-                                        color: 'white',
-                                    }}
-                                >Dismiss</button>
+                                {isError && (
+                                    <button
+                                        onClick={() => setMessage('')}
+                                        style={{
+                                            padding: '10px 32px', borderRadius: 8,
+                                            border: 'none', fontWeight: 600, fontSize: 14,
+                                            cursor: 'pointer', marginTop: 16,
+                                            background: '#c62828',
+                                            color: 'white',
+                                        }}
+                                    >Dismiss</button>
+                                )}
                             </div>
                         </div>
-                    )}
+                        );
+                    })()}
 
                     {/* Social Stats Row */}
                     <div style={{
@@ -1403,7 +1463,7 @@ export default function ProfilePage() {
                                         const month = e.target.value;
                                         const year = parts[0] || '';
                                         const day = parts[2] || '';
-                                        updateField('birthday')(`${year}-${month}-${day}`);
+                                        updateField('birthday')(month && year && day ? `${year}-${month}-${day}` : (month || year || day ? `${year}-${month}-${day}` : ''));
                                     }}
                                     style={{
                                         flex: 1, padding: 12, fontSize: 15, borderRadius: 8,
@@ -1423,7 +1483,7 @@ export default function ProfilePage() {
                                         const day = e.target.value;
                                         const year = parts[0] || '';
                                         const month = parts[1] || '';
-                                        updateField('birthday')(`${year}-${month}-${day}`);
+                                        updateField('birthday')(month && year && day ? `${year}-${month}-${day}` : (month || year || day ? `${year}-${month}-${day}` : ''));
                                     }}
                                     style={{
                                         width: 80, padding: 12, fontSize: 15, borderRadius: 8,
@@ -1443,7 +1503,7 @@ export default function ProfilePage() {
                                         const year = e.target.value;
                                         const month = parts[1] || '';
                                         const day = parts[2] || '';
-                                        updateField('birthday')(`${year}-${month}-${day}`);
+                                        updateField('birthday')(month && year && day ? `${year}-${month}-${day}` : (month || year || day ? `${year}-${month}-${day}` : ''));
                                     }}
                                     style={{
                                         width: 100, padding: 12, fontSize: 15, borderRadius: 8,
