@@ -855,11 +855,24 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     const [linkPreview, setLinkPreview] = useState(null); // { url, title, image, domain }
     const [linkLoading, setLinkLoading] = useState(false);
     const [showIdentityPicker, setShowIdentityPicker] = useState(false);
+    const identityPickerRef = useRef(null);
     const fileRef = useRef(null);
     const inputRef = useRef(null);
     const mentionTimeout = useRef(null);
     const linkTimeout = useRef(null);
     const draftTimeout = useRef(null);
+
+    // Click-outside handler: auto-close identity picker dropdown
+    useEffect(() => {
+        if (!showIdentityPicker) return;
+        const handleClickOutside = (e) => {
+            if (identityPickerRef.current && !identityPickerRef.current.contains(e.target)) {
+                setShowIdentityPicker(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showIdentityPicker]);
 
     // Phase 3: Restore draft from localStorage on mount
     useEffect(() => {
@@ -1224,7 +1237,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
         <div style={{ background: C.card, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2, position: 'relative' }}>
             {/* Identity Switcher Banner - only for Commander users */}
             {hasClubPage && (
-                <div style={{ padding: '8px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+                <div ref={identityPickerRef} style={{ padding: '8px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.textSec }}>
                         <span>Posting As</span>
                         <button

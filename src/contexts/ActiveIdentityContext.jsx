@@ -114,6 +114,23 @@ export function ActiveIdentityProvider({ children }) {
         }
     }, [activeIdentity]);
 
+    // ── Cross-Tab Identity Sync ──
+    // When identity changes in another tab via localStorage, update this tab
+    useEffect(() => {
+        const handleStorageChange = (e) => {
+            if (e.key !== STORAGE_KEY || !e.newValue) return;
+            try {
+                const parsed = JSON.parse(e.newValue);
+                if (parsed && parsed.mode) {
+                    setActiveIdentity(parsed);
+                    console.log('[ActiveIdentity] Synced from another tab:', parsed.mode);
+                }
+            } catch (_) { /* ignore parse errors */ }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
     const switchToPersonal = useCallback(() => {
         console.log('[ActiveIdentity] Switching to personal');
         setActiveIdentity({ mode: 'personal', clubPage: null });
@@ -143,8 +160,16 @@ export function ActiveIdentityProvider({ children }) {
         const validateClubPage = async () => {
             try {
                 const res = await fetch(`/api/social/pages?id=${activeIdentity.clubPage.id}`);
+                if (!res.ok) {
+                    // 404 or server error — page likely deleted
+                    console.warn('[ActiveIdentity] Stale club page detected (HTTP', res.status, '), resetting');
+                    setActiveIdentity({ mode: 'personal', clubPage: null });
+                    setAvailableClubPage(null);
+                    return;
+                }
                 const json = await res.json();
-                if (!json.success || !json.data || (Array.isArray(json.data) && json.data.length === 0)) {
+                // Pages API returns { success, data } — data is object for single lookup
+                if (!json.success || !json.data) {
                     console.warn('[ActiveIdentity] Stale club page detected, resetting to personal');
                     setActiveIdentity({ mode: 'personal', clubPage: null });
                     setAvailableClubPage(null);
