@@ -24,7 +24,7 @@ const VENUE_TYPE_LABELS = {
   charity: 'Charity',
 };
 
-const DAYS_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAYS_ORDER = ['Daily', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 function formatTime(timeStr) {
   if (!timeStr) return '';

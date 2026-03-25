@@ -1057,26 +1057,6 @@ export default function NewsHub() {
         return () => window.removeEventListener('scroll', handleScrollFAB);
     }, []);
 
-    // Keyboard navigation (J=next, K=prev, Enter=open)
-    useEffect(() => {
-        const handleKeyNav = (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            const allArticles = [...(topArticles || []), ...(remainingStories || [])];
-            if (e.key === 'j' || e.key === 'J') {
-                e.preventDefault();
-                setFocusedArticleIdx(prev => Math.min(prev + 1, allArticles.length - 1));
-            } else if (e.key === 'k' || e.key === 'K') {
-                e.preventDefault();
-                setFocusedArticleIdx(prev => Math.max(prev - 1, 0));
-            } else if (e.key === 'Enter' && focusedArticleIdx >= 0 && focusedArticleIdx < allArticles.length) {
-                e.preventDefault();
-                openArticle(allArticles[focusedArticleIdx]);
-            }
-        };
-        window.addEventListener('keydown', handleKeyNav);
-        return () => window.removeEventListener('keydown', handleKeyNav);
-    }, [focusedArticleIdx, topArticles, remainingStories]);
-
     // Toggle source filter
     const toggleSource = (src) => setSourceFilters(prev => ({ ...prev, [src]: !prev[src] }));
     const activeSourceFilters = Object.keys(sourceFilters).filter(k => sourceFilters[k]);
@@ -1391,6 +1371,27 @@ export default function NewsHub() {
     // Trending = sorted by views
     const trendingNews = [...news].filter(a => a.source_name !== 'Smarter.Poker')
         .sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+
+    // Keyboard navigation (J=next, K=prev, Enter=open)
+    // NOTE: Must be placed AFTER topArticles/remainingStories const declarations to avoid TDZ
+    useEffect(() => {
+        const handleKeyNav = (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            const allArticles = [...(topArticles || []), ...(remainingStories || [])];
+            if (e.key === 'j' || e.key === 'J') {
+                e.preventDefault();
+                setFocusedArticleIdx(prev => Math.min(prev + 1, allArticles.length - 1));
+            } else if (e.key === 'k' || e.key === 'K') {
+                e.preventDefault();
+                setFocusedArticleIdx(prev => Math.max(prev - 1, 0));
+            } else if (e.key === 'Enter' && focusedArticleIdx >= 0 && focusedArticleIdx < allArticles.length) {
+                e.preventDefault();
+                openArticle(allArticles[focusedArticleIdx]);
+            }
+        };
+        window.addEventListener('keydown', handleKeyNav);
+        return () => window.removeEventListener('keydown', handleKeyNav);
+    }, [focusedArticleIdx, topArticles, remainingStories]);
 
     return (
         <>
