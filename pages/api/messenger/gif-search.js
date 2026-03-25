@@ -1,13 +1,12 @@
 /**
- * GIF Search API — Server-side proxy for GIPHY API
+ * GIF/Sticker Search API — Server-side proxy for GIPHY API
  * ═══════════════════════════════════════════════════════════════════════════
  * Hides GIPHY API key from client. Returns trending or search results.
+ * Supports both GIFs and Stickers via the `type` query param.
  * Rate limited: 100 searches/hour (GIPHY beta key limit).
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-// GIPHY beta API key — free tier, 100 searches/hour
-// To upgrade: visit developers.giphy.com and request a production key
 const GIPHY_API_KEY = process.env.GIPHY_API_KEY || 'GRZ1Yjou2kmUFz1jcXP0S2skHrMZOFoQ';
 
 export default async function handler(req, res) {
@@ -15,16 +14,19 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { q, offset = 0, limit = 20 } = req.query;
+    const { q, offset = 0, limit = 20, type = 'gif' } = req.query;
+
+    // Determine endpoint based on type: 'gif' or 'sticker'
+    const endpoint = type === 'sticker' ? 'stickers' : 'gifs';
 
     try {
         let url;
         if (q && q.trim()) {
-            // Search GIFs
-            url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(q.trim())}&limit=${limit}&offset=${offset}&rating=pg-13&lang=en`;
+            // Search
+            url = `https://api.giphy.com/v1/${endpoint}/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(q.trim())}&limit=${limit}&offset=${offset}&rating=pg-13&lang=en`;
         } else {
-            // Trending GIFs
-            url = `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=${limit}&offset=${offset}&rating=pg-13`;
+            // Trending
+            url = `https://api.giphy.com/v1/${endpoint}/trending?api_key=${GIPHY_API_KEY}&limit=${limit}&offset=${offset}&rating=pg-13`;
         }
 
         const response = await fetch(url);

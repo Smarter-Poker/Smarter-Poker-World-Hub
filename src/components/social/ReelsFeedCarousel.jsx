@@ -226,6 +226,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [progress, setProgress] = useState(0);
     const [likeCounts, setLikeCounts] = useState({});
     const [commentCounts, setCommentCounts] = useState({});
+    const [saved, setSaved] = useState({});
     const commentInputRef = useRef(null);
     const videoRef = useRef(null);
     const containerRef = useRef(null);
@@ -237,7 +238,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     const currentReel = reels[currentIndex];
 
-    // Pre-fetch existing likes on mount
+    // Pre-fetch existing likes + bookmarks on mount
     useEffect(() => {
         if (!authUser?.id) return;
         supabase.from('social_likes')
@@ -248,6 +249,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     const likeMap = {};
                     data.forEach(row => { likeMap[row.post_id] = true; });
                     setLiked(likeMap);
+                }
+            });
+        supabase.from('social_interactions')
+            .select('post_id')
+            .eq('user_id', authUser.id)
+            .eq('interaction_type', 'bookmark')
+            .then(({ data }) => {
+                if (data) {
+                    const saveMap = {};
+                    data.forEach(row => { saveMap[row.post_id] = true; });
+                    setSaved(saveMap);
                 }
             });
     }, [authUser?.id]);
@@ -400,13 +412,47 @@ function ReelViewer({ reels, startIndex, onClose }) {
         supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }).catch(() => {});
     };
 
-    // Reset on reel change
+    // Reset on reel change + track view
     useEffect(() => {
         setShowComments(false);
         setReelComments([]);
         setCommentText('');
         setShowOverlay(false);
+        setProgress(0);
+        // Track view count
+        if (reels[currentIndex]?.id) {
+            supabase.rpc('increment_post_count', { p_post_id: reels[currentIndex].id, p_field: 'view_count' }).catch(() => {});
+        }
     }, [currentIndex]);
+
+    // Haptic helper
+    const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch {} };
+
+    // Save/Bookmark handler
+    const handleSave = async () => {
+        if (!currentReel?.id || !authUser?.id) return;
+        const wasSaved = saved[currentReel.id];
+        setSaved(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
+        haptic(wasSaved ? 5 : 15);
+        try {
+            if (wasSaved) {
+                await supabase.from('social_interactions').delete()
+                    .eq('post_id', currentReel.id)
+                    .eq('user_id', authUser.id)
+                    .eq('interaction_type', 'bookmark');
+            } else {
+                await supabase.from('social_interactions').delete()
+                    .eq('post_id', currentReel.id)
+                    .eq('user_id', authUser.id)
+                    .eq('interaction_type', 'bookmark');
+                await supabase.from('social_interactions').insert({
+                    post_id: currentReel.id, user_id: authUser.id, interaction_type: 'bookmark'
+                });
+            }
+        } catch {
+            setSaved(prev => ({ ...prev, [currentReel.id]: wasSaved }));
+        }
+    };
 
     // Keyboard navigation
     useEffect(() => {
@@ -561,7 +607,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         zIndex: 20,
                     }}
                 >
-                    <button onClick={handleLike} style={{
+                    <button onClick={() => { handleLike(); haptic(15); }} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
@@ -582,14 +628,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         <span style={{ fontSize: 24 }}>💬</span>
                         <span style={{ fontSize: 10, fontWeight: 500 }}>{commentCounts[currentReel.id] || 0}</span>
                     </button>
-                    <button onClick={() => {}} style={{
+                    <button onClick={handleSave} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
-                        <span style={{ fontSize: 24 }}>🔖</span>
-                        <span style={{ fontSize: 10, fontWeight: 500 }}>Save</span>
+                        <span style={{ fontSize: 24 }}>{saved[currentReel.id] ? '💾' : '🔖'}</span>
+                        <span style={{ fontSize: 10, fontWeight: 500 }}>{saved[currentReel.id] ? 'Saved' : 'Save'}</span>
                     </button>
-                    <button onClick={handleShare} style={{
+                    <button onClick={() => { handleShare(); haptic(10); }} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>

@@ -846,6 +846,40 @@ export default function ProfilePage() {
         fetchUser();
     }, []);
 
+    // ── Ctrl+S keyboard shortcut to save ──
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                if (!saving && user) {
+                    // Trigger save via DOM click to avoid stale closure
+                    const saveBtn = document.querySelector('[data-save-btn]');
+                    if (saveBtn) saveBtn.click();
+                }
+            }
+            // Escape key closes gallery modals
+            if (e.key === 'Escape') {
+                if (photoGalleryOpen) setPhotoGalleryOpen(false);
+                else if (reelsGalleryOpen) setReelsGalleryOpen(false);
+                else if (livesGalleryOpen) setLivesGalleryOpen(false);
+                else if (coverEditorOpen) setCoverEditorOpen(false);
+                else if (libraryOpen) setLibraryOpen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    });
+
+    // ── Dirty check helper — detects unsaved changes ──
+    const isDirty = (() => {
+        if (!originalProfile || !profile) return false;
+        const fields = ['first_name','last_name','username','bio','city','state','country',
+            'phone','email','website','twitter','instagram','tiktok','telegram',
+            'hendon_url','favorite_game','favorite_hand','favorite_hand_plo',
+            'home_casino','birth_year','birthday','card_back_preference'];
+        return fields.some(f => (profile[f] || '') !== (originalProfile[f] || ''));
+    })();
+
     const updateField = (field) => (value) => {
         // Social link auto-formatting: strip URLs and @ prefixes
         const socialFields = { twitter: 'twitter', instagram: 'instagram', tiktok: 'tiktok', telegram: 'telegram' };
@@ -1125,6 +1159,22 @@ export default function ProfilePage() {
             setMessage('Error: Username is already taken. Please choose a different username.');
             return;
         }
+        // Email format validation
+        if (profile.email && profile.email.trim()) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(profile.email.trim())) {
+                setMessage('Error: Please enter a valid email address.');
+                return;
+            }
+        }
+        // HendonMob URL format validation
+        if (profile.hendon_url && profile.hendon_url.trim()) {
+            const url = profile.hendon_url.trim().toLowerCase();
+            if (!url.includes('hendonmob.com') && !url.includes('pokerdb.')) {
+                setMessage('Error: HendonMob URL must be from thehendonmob.com or pokerdb.thehendonmob.com');
+                return;
+            }
+        }
         setSaving(true);
         setMessage('');
 
@@ -1290,6 +1340,7 @@ export default function ProfilePage() {
                         <img
                             src={profile.cover_photo_url}
                             alt="Cover photo"
+                            loading="lazy"
                             style={{
                                 position: 'absolute', inset: 0, width: '100%', height: '100%',
                                 objectFit: 'cover',
@@ -1992,18 +2043,45 @@ export default function ProfilePage() {
                         />
                     </div>
 
-                    {/* Save Button */}
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        style={{
-                            width: '100%', padding: 16, background: C.blue, color: 'white',
-                            border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 600,
-                            cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1
-                        }}
-                    >
-                        {saving ? 'Saving...' : '💾 Save Profile'}
-                    </button>
+                    {/* Save + Discard Buttons */}
+                    <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                        {isDirty && (
+                            <button
+                                onClick={() => {
+                                    if (confirm('Discard all unsaved changes?')) {
+                                        setProfile({ ...originalProfile });
+                                        setMessage('Changes discarded.');
+                                    }
+                                }}
+                                style={{
+                                    flex: '0 0 auto', padding: '16px 24px',
+                                    background: 'transparent', color: '#FA383E',
+                                    border: '2px solid #FA383E', borderRadius: 8,
+                                    fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                Discard Changes
+                            </button>
+                        )}
+                        <button
+                            data-save-btn="true"
+                            onClick={handleSave}
+                            disabled={saving}
+                            style={{
+                                flex: 1, padding: 16,
+                                background: isDirty ? 'linear-gradient(135deg, #1877F2, #0E5FC7)' : C.blue,
+                                color: 'white',
+                                border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 600,
+                                cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1,
+                                boxShadow: isDirty ? '0 4px 15px rgba(24,119,242,0.4)' : 'none',
+                                transition: 'all 0.3s ease',
+                                position: 'relative'
+                            }}
+                        >
+                            {saving ? 'Saving...' : isDirty ? 'Save Profile (Unsaved Changes)' : 'Save Profile'}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -2340,6 +2418,18 @@ export default function ProfilePage() {
                 }
                 @keyframes avatarSpin {
                     to { transform: rotate(360deg); }
+                }
+                /* Mobile responsive grids */
+                @media (max-width: 600px) {
+                    .profile-page [style*="grid-template-columns: repeat(2"] {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .profile-page [style*="grid-template-columns: repeat(3"] {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .profile-page [style*="grid-template-columns: repeat(4"] {
+                        grid-template-columns: repeat(2, 1fr) !important;
+                    }
                 }
             `}</style>
         </>
