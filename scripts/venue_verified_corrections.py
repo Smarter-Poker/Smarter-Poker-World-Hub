@@ -147,12 +147,27 @@ VERIFIED = {
 
     # --- MINNESOTA ---
     464: {"address": "1009 Central Ave NW", "phone": "(218) 773-1129"},                # American Legion EGF — visitgrandforks.com, freepokernetwork.com
-    467: {"address": "8060 State Hwy 55"},                                               # Billy's Rockford Bar — billysrockfordbar-rachelsplace.com
+    466: {"phone": "(218) 342-2400"},                                                    # Billy's Corner Bar — freepokernetwork.com
+    467: {"address": "8060 State Hwy 55", "phone": "(763) 276-1999"},                  # Billy's Rockford Bar — billysrockfordbar-rachelsplace.com, rockfordriverdays.com
+
+    # --- MICHIGAN (final phone fixes) ---
+    408: {"address": "1405 E M-21", "phone": "(989) 277-6702"},                        # Owosso Poker Room — pokeratlas.com
+    413: {"address": "7212 Gratiot Rd", "phone": "(989) 280-1933"},                    # Saginaw Poker Room — casinocity.com
 
     # --- OHIO / GEORGIA / INDIANA ---
+    470: {"address": "2023 Harshman Rd", "phone": "(937) 522-0003"},                   # Mad River Poker Club — thehendonmob.com, casinocity.com
+    472: {"address": "28940 Euclid Ave", "phone": "(216) 554-8739"},                   # Big Stack Poker Club — bigstackpokerclub.com
+    476: {"phone": "(614) 235-4070"},                                                    # Bexley Community Foundation — bexleycommunityfoundation.org
+    477: {"phone": "(330) 802-9211"},                                                    # The Joker Club — pokerdiy.com, thejokerclub.net
+    478: {"address": "5115 Glendale Ave", "phone": "(419) 279-8830"},                  # Reserve Poker Club — thereservepoker.com
+    479: {"address": "Travels to various venues"},                                       # Grinder's Poker Club — touring league, no fixed address
     481: {"address": "554 W Main St", "phone": "(678) 316-8588"},                      # Little Kings and Queens — pokerdiscover.com
     482: {"address": "3233 St Joe Center Rd", "phone": "(260) 739-7297"},              # Elks #155 — pokeratlas.com, elks.org
+
+    # --- MINNESOTA (final) ---
+    468: {"phone": "(952) 929-8718"},                                                    # Sure Bet — asurebet.net, biznet-us.com
 }
+
 
 
 # DEFAULT_HOURS and DEFAULT_GAMES by venue_type — for venues not in VERIFIED

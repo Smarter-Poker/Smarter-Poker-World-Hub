@@ -25,11 +25,10 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastSync } from '../../src/lib/broadcastSync';
 
-// Dark Theme Colors — matches page wrapper #0a0e1a
+// Light Theme Colors
 const C = {
-    bg: '#0a0e1a', card: '#141828', text: '#e8e8f0', textSec: '#8888a0',
-    border: '#2a2e40', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A', gold: '#FFD700',
-    inputBg: '#1a1e30', inputText: '#e0e0e8', inputBorder: '#2a2e40',
+    bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
+    border: '#DADDE1', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A', gold: '#FFD700',
 };
 
 // ── Shared JWT helper — eliminates 8 duplicated auth patterns ──
@@ -168,14 +167,14 @@ function ProfileCompletionBar({ profile }) {
 
     return (
         <div style={{
-            background: '#0f1528', borderRadius: 12, padding: 16, marginBottom: 16,
-            border: '1px solid rgba(255,255,255,0.08)'
+            background: '#FFFFFF', borderRadius: 12, padding: 16, marginBottom: 16,
+            border: '1px solid #DADDE1'
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#e0e0e8' }}>Profile Strength</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#050505' }}>Profile Strength</span>
                 <span style={{ fontSize: 14, fontWeight: 800, color: barColor }}>{percent}%</span>
             </div>
-            <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ height: 8, background: '#E4E6EB', borderRadius: 4, overflow: 'hidden' }}>
                 <div style={{
                     height: '100%', width: `${percent}%`, borderRadius: 4,
                     background: `linear-gradient(90deg, ${barColor}, ${barColor}aa)`,
@@ -183,7 +182,7 @@ function ProfileCompletionBar({ profile }) {
                 }} />
             </div>
             {missing.length > 0 && missing.length <= 4 && (
-                <div style={{ fontSize: 11, color: '#8888a0', marginTop: 8 }}>
+                <div style={{ fontSize: 11, color: '#65676B', marginTop: 8 }}>
                     Add: {missing.map(f => f.label).join(', ')}
                 </div>
             )}
@@ -196,9 +195,9 @@ function Toast({ message, onDismiss, isExiting }) {
     if (!message) return null;
     const isError = message.includes('Error');
     const isUndo = message.includes('Undo');
-    const bgColor = isError ? '#1a0a0a' : isUndo ? '#1a1400' : '#0a1a0a';
-    const borderColor = isError ? 'rgba(255,80,80,0.4)' : isUndo ? 'rgba(255,215,0,0.4)' : 'rgba(0,245,255,0.4)';
-    const textColor = isError ? '#ff8888' : isUndo ? '#ffd700' : '#b0f0ff';
+    const bgColor = isError ? '#FEF2F2' : isUndo ? '#FFFBEB' : '#F0FDF4';
+    const borderColor = isError ? 'rgba(220,38,38,0.4)' : isUndo ? 'rgba(217,119,6,0.4)' : 'rgba(22,163,74,0.4)';
+    const textColor = isError ? '#DC2626' : isUndo ? '#B45309' : '#16A34A';
     const icon = isError ? '⚠️' : isUndo ? '↩️' : '✅';
     return (
         <div style={{
@@ -217,7 +216,7 @@ function Toast({ message, onDismiss, isExiting }) {
             <div style={{ fontSize: 13, color: textColor, lineHeight: 1.4, fontWeight: 500, flex: 1 }}>
                 {message}
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>✕</div>
+            <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.3)', flexShrink: 0 }}>✕</div>
         </div>
     );
 }
@@ -232,18 +231,18 @@ function ProfileSkeleton() {
     `;
     const bar = (w, h = 16, mb = 12) => ({
         width: w, height: h, borderRadius: h / 2, marginBottom: mb,
-        background: 'linear-gradient(90deg, #1a1e30 25%, #252a3e 50%, #1a1e30 75%)',
+        background: 'linear-gradient(90deg, #E4E6EB 25%, #F0F2F5 50%, #E4E6EB 75%)',
         backgroundSize: '200% 100%',
         animation: 'profileShimmer 1.5s ease-in-out infinite',
     });
     return (
-        <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
+        <div style={{ minHeight: '100vh', background: '#F0F2F5' }}>
             <style>{shimmer}</style>
             {/* Cover area */}
             <div style={{ height: 200, ...bar('100%', 200, 0), borderRadius: 0 }} />
             {/* Avatar */}
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: -60, position: 'relative', zIndex: 2 }}>
-                <div style={{ ...bar(120, 120, 0), borderRadius: '50%', border: '4px solid #0a0e1a' }} />
+                <div style={{ ...bar(120, 120, 0), borderRadius: '50%', border: '4px solid #F0F2F5' }} />
             </div>
             {/* Stats */}
             <div style={{ display: 'flex', justifyContent: 'space-around', padding: '60px 40px 20px', maxWidth: 600, margin: '0 auto' }}>
@@ -435,7 +434,7 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
                         style={{
                             width: '100%', padding: 12, borderRadius: 8, border: `1px solid ${C.border}`,
                             fontSize: 15, resize: 'vertical', minHeight: 80, boxSizing: 'border-box',
-                            fontFamily: 'inherit', color: C.inputText, background: C.inputBg
+                            fontFamily: 'inherit', color: '#000000', background: '#ffffff'
                         }}
                     />
                     {showCount && maxLength && (
@@ -458,7 +457,7 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
                         autoCapitalize="off"
                         style={{
                             width: '100%', padding: 12, paddingRight: suffix ? 40 : 12, borderRadius: 8, border: `1px solid ${C.border}`,
-                            fontSize: 15, boxSizing: 'border-box', color: C.inputText, background: C.inputBg
+                            fontSize: 15, boxSizing: 'border-box', color: '#000000', background: '#ffffff'
                         }}
                     />
                     {suffix && (
@@ -669,8 +668,8 @@ function HomeCasinoSelector({ value, onChange }) {
                     placeholder="Search 483+ venues or type a name..."
                     style={{
                         width: '100%', padding: 12, fontSize: 15,
-                        background: C.inputBg, border: `1px solid ${C.border}`,
-                        borderRadius: 8, color: C.inputText, outline: 'none',
+                        background: '#ffffff', border: `1px solid ${C.border}`,
+                        borderRadius: 8, color: '#000000', outline: 'none',
                         boxSizing: 'border-box',
                     }}
                 />
@@ -1437,7 +1436,7 @@ export default function ProfilePage() {
                 canonical="/hub/profile-edit"
                 noindex={true}
             />
-            <div className="profile-page" style={{ minHeight: '100vh', background: '#0a0e1a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
+            <div className="profile-page" style={{ minHeight: '100vh', background: '#F0F2F5', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 {/* Header - Universal Header with Back navigation (nested page) */}
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
                 <HamburgerMenu
