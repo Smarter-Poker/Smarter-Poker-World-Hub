@@ -584,8 +584,9 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                     setIsPlaying(false);
                 }
             }
-            // Reset the 2s timer
-            setShowOverlay(true);
+            // Reset the 2s timer directly (setShowOverlay(true) is a no-op when already true)
+            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
         }
     };
 

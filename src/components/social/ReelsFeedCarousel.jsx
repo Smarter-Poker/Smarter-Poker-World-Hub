@@ -383,7 +383,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
         if (!showOverlay) {
             setShowOverlay(true);
         } else {
-            setShowOverlay(true); // Reset timer
+            // Reset timer directly (setShowOverlay(true) is a no-op when already true)
+            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
         }
     };
 

@@ -161,9 +161,10 @@ export function ReelsViewer({ onClose }) {
     const handleSubmitComment = async (e) => {
         if (e.key !== 'Enter' || !commentText.trim() || !currentUserId || !currentReel?.id) return;
         const text = commentText.trim();
+        const tempId = Date.now();
         setCommentText('');
         setReelComments(prev => [...prev, {
-            id: Date.now(), content: text,
+            id: tempId, content: text,
             profiles: { username: 'You', avatar_url: null },
             created_at: new Date().toISOString()
         }]);
@@ -174,7 +175,10 @@ export function ReelsViewer({ onClose }) {
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, currentUserId);
             supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }).catch(() => {});
-        } catch { /* optimistic stays */ }
+        } catch {
+            // Rollback optimistic comment on failure
+            setReelComments(prev => prev.filter(c => c.id !== tempId));
+        }
     };
 
     // Share handler
@@ -217,7 +221,7 @@ export function ReelsViewer({ onClose }) {
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, [currentIndex]);
+    }, [currentIndex, onClose]);
 
     // Touch/scroll navigation (swipe to next/prev)
     useEffect(() => {
@@ -296,7 +300,9 @@ export function ReelsViewer({ onClose }) {
                     setPaused(true);
                 }
             }
-            setShowOverlay(true); // Reset timer
+            // Reset timer directly (setShowOverlay(true) is a no-op when already true)
+            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
         }
     };
 
