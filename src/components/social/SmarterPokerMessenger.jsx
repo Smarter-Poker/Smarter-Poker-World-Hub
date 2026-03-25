@@ -1133,19 +1133,7 @@ export const ChatWindow = ({
         setGifReactionSearch('');
     };
 
-    // P9-2: GIF Search Handler (P10-11: Debounced)
-    const handleGifSearch = async (query) => {
-        setGifSearchTerm(query);
-        if (!query.trim()) { setGifResults([]); return; }
-        if (gifSearchDebounceRef.current) clearTimeout(gifSearchDebounceRef.current);
-        gifSearchDebounceRef.current = setTimeout(async () => {
-            try {
-                const res = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=sp_messenger&limit=12`);
-                const data = await res.json();
-                setGifResults((data.results || []).map(r => ({ id: r.id, url: r.media_formats?.gif?.url || r.media_formats?.tinygif?.url || '' })));
-            } catch (err) { console.warn('[GIF] Tenor search failed:', err); }
-        }, 300);
-    };
+    // P9-2: GIF search is now handled by the shared GiphyPicker component
 
     const sendGif = (gifUrl) => {
         onSend?.('GIF', { image: gifUrl, file: { name: 'GIF', type: 'image/gif' } });

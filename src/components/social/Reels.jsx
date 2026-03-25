@@ -5,9 +5,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { getAuthUser } from '../../lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../lib/authUtils';
 import { busEmit } from '../../engine/EventBus';
 import Link from 'next/link';
+import GiphyPicker from '../shared/GiphyPicker';
 
 const C = {
     bg: '#000000',
@@ -56,6 +57,12 @@ export function ReelsViewer({ onClose }) {
     const likeDebounceRef = useRef(false);
     const lastTapRef = useRef(0);
     const progressRAF = useRef(null);
+    // GIF + Image state for reel comments
+    const [showReelGifPicker, setShowReelGifPicker] = useState(false);
+    const [reelCommentMediaUrl, setReelCommentMediaUrl] = useState(null);
+    const [reelCommentMediaType, setReelCommentMediaType] = useState(null);
+    const [uploadingReelImage, setUploadingReelImage] = useState(false);
+    const reelFileInputRef = useRef(null);
 
     useEffect(() => {
         loadReels();
@@ -229,19 +236,27 @@ export function ReelsViewer({ onClose }) {
     };
 
     const handleSubmitComment = async (e) => {
-        if (e.key !== 'Enter' || !commentText.trim() || !currentUserId || !currentReel?.id) return;
+        if (e && e.key !== 'Enter') return;
+        if ((!commentText.trim() && !reelCommentMediaUrl) || !currentUserId || !currentReel?.id) return;
         const text = commentText.trim();
+        const mediaUrl = reelCommentMediaUrl;
+        const mediaType = reelCommentMediaType;
         const tempId = Date.now();
         setCommentText('');
+        setReelCommentMediaUrl(null);
+        setReelCommentMediaType(null);
+        setShowReelGifPicker(false);
         setReelComments(prev => [...prev, {
             id: tempId, content: text,
             profiles: { username: 'You', avatar_url: null },
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            media_url: mediaUrl || null,
+            media_type: mediaType || null,
         }]);
         try {
-            const { error } = await supabase.from('social_comments').insert({
-                post_id: currentReel.id, author_id: currentUserId, content: text
-            });
+            const payload = { post_id: currentReel.id, author_id: currentUserId, content: text || '' };
+            if (mediaUrl) { payload.media_url = mediaUrl; payload.media_type = mediaType; }
+            const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, currentUserId);
             supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }).catch(() => {});
@@ -250,6 +265,43 @@ export function ReelsViewer({ onClose }) {
             // Rollback optimistic comment on failure
             setReelComments(prev => prev.filter(c => c.id !== tempId));
         }
+    };
+
+    // Handle image upload for reel comments
+    const handleReelImageUpload = async (file) => {
+        if (!file || !currentUserId) return;
+        setUploadingReelImage(true);
+        try {
+            let uploadFile = file;
+            if (file.size > 500 * 1024 && file.type !== 'image/gif') {
+                try {
+                    const bitmap = await createImageBitmap(file);
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 1200;
+                    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+                    canvas.width = bitmap.width * scale;
+                    canvas.height = bitmap.height * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.82));
+                    uploadFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+                } catch { uploadFile = file; }
+            }
+            const formData = new FormData();
+            formData.append('image', uploadFile);
+            const token = getAccessToken();
+            const resp = await fetch('/api/social/upload-comment-image', {
+                method: 'POST',
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                body: formData,
+            });
+            const result = await resp.json();
+            if (resp.ok && result.success) {
+                setReelCommentMediaUrl(result.url);
+                setReelCommentMediaType('image');
+            }
+        } catch (err) { console.error('[ReelComment] Upload error:', err); }
+        setUploadingReelImage(false);
     };
 
     // Share handler
@@ -568,14 +620,44 @@ export function ReelsViewer({ onClose }) {
                             {reelComments.map((c, i) => (
                                 <div key={c.id || i} style={{ display: 'flex', gap: 10, padding: '8px 0' }}>
                                     <img src={c.profiles?.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
-                                    <div>
+                                    <div style={{ flex: 1 }}>
                                         <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{c.profiles?.username || 'User'}</span>
-                                        <span style={{ color: C.textSec, fontSize: 13, marginLeft: 8 }}>{c.content}</span>
+                                        {c.content && <span style={{ color: C.textSec, fontSize: 13, marginLeft: 8 }}>{c.content}</span>}
+                                        {c.media_url && (
+                                            <img src={c.media_url} alt={c.media_type === 'gif' ? 'GIF' : 'Image'}
+                                                style={{ maxWidth: 180, maxHeight: 140, borderRadius: 8, marginTop: 4, display: 'block' }} />
+                                        )}
                                     </div>
                                 </div>
                             ))}
                         </div>
-                        <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: 10 }}>
+                        {/* GIF Picker for reel comments */}
+                        {showReelGifPicker && (
+                            <div style={{ padding: '0 8px 4px' }}>
+                                <GiphyPicker
+                                    compact
+                                    onSelect={(gifUrl) => {
+                                        setReelCommentMediaUrl(gifUrl);
+                                        setReelCommentMediaType('gif');
+                                        setShowReelGifPicker(false);
+                                    }}
+                                    onClose={() => setShowReelGifPicker(false)}
+                                />
+                            </div>
+                        )}
+                        {/* Media preview */}
+                        {reelCommentMediaUrl && (
+                            <div style={{ padding: '4px 16px', position: 'relative', display: 'inline-block' }}>
+                                <img src={reelCommentMediaUrl} alt="Preview" style={{ maxWidth: 140, maxHeight: 100, borderRadius: 8, display: 'block' }} />
+                                <button onClick={() => { setReelCommentMediaUrl(null); setReelCommentMediaType(null); }}
+                                    style={{ position: 'absolute', top: 8, right: 20, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >&times;</button>
+                            </div>
+                        )}
+                        {/* Hidden file input */}
+                        <input type="file" accept="image/*" ref={reelFileInputRef} style={{ display: 'none' }}
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleReelImageUpload(f); e.target.value = ''; }} />
+                        <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: 10, alignItems: 'center' }}>
                             <input
                                 ref={commentInputRef}
                                 type="text"
@@ -583,12 +665,35 @@ export function ReelsViewer({ onClose }) {
                                 value={commentText}
                                 onChange={(e) => setCommentText(e.target.value)}
                                 onKeyDown={handleSubmitComment}
+                                onPaste={(e) => {
+                                    const items = e.clipboardData?.items;
+                                    if (!items) return;
+                                    for (const item of items) {
+                                        if (item.type.startsWith('image/')) {
+                                            e.preventDefault();
+                                            handleReelImageUpload(item.getAsFile());
+                                            return;
+                                        }
+                                    }
+                                }}
                                 style={{
                                     flex: 1, background: 'rgba(255,255,255,0.1)', border: 'none',
                                     borderRadius: 20, padding: '10px 16px', color: 'white', fontSize: 14,
                                     outline: 'none',
                                 }}
                             />
+                            <button onClick={() => setShowReelGifPicker(!showReelGifPicker)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: showReelGifPicker ? '#0A84FF' : 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: 11 }}
+                            >GIF</button>
+                            <button onClick={() => reelFileInputRef.current?.click()} disabled={uploadingReelImage}
+                                style={{ background: 'none', border: 'none', cursor: uploadingReelImage ? 'wait' : 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: 15, opacity: uploadingReelImage ? 0.5 : 1 }}
+                            >{uploadingReelImage ? '...' : '📷'}</button>
+                            {(commentText.trim() || reelCommentMediaUrl) && (
+                                <button onClick={() => handleSubmitComment(null)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0A84FF', fontWeight: 600, fontSize: 13 }}
+                                >Post</button>
+                            )}
+                        </div>
                         </div>
                     </div>
                 )}

@@ -33,7 +33,7 @@ async function fireConfetti(opts) {
     } catch (e) { /* confetti is cosmetic — swallow import/execution errors */ }
 }
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, Newspaper, Globe, ChevronRight, ChevronLeft, Film, Clock } from 'lucide-react';
+import { Eye, TrendingUp, Trophy, Play, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, LinkIcon, CheckCircle, ChevronDown, ChevronUp, Newspaper, Globe, ChevronRight, ChevronLeft, Film, Clock } from 'lucide-react';
 
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -962,6 +962,12 @@ export default function NewsHub() {
     const [newArticleCount, setNewArticleCount] = useState(0);
     const reelsCarouselRef = useRef(null);
 
+    // Phase 3 State
+    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    const [showScrollTop, setShowScrollTop] = useState(false);
+    const [searchFocused, setSearchFocused] = useState(false);
+    const [focusedArticleIdx, setFocusedArticleIdx] = useState(-1);
+
     // Source accent colors for color-coded borders
     const SOURCE_COLORS = {
         'PokerNews': '#e53935',
@@ -1043,6 +1049,33 @@ export default function NewsHub() {
     const searchSuggestions = searchQuery.length >= 2
         ? news.filter(a => a.title?.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5)
         : [];
+
+    // Scroll-to-top visibility (show after scrolling past 600px)
+    useEffect(() => {
+        const handleScrollFAB = () => setShowScrollTop(window.scrollY > 600);
+        window.addEventListener('scroll', handleScrollFAB, { passive: true });
+        return () => window.removeEventListener('scroll', handleScrollFAB);
+    }, []);
+
+    // Keyboard navigation (J=next, K=prev, Enter=open)
+    useEffect(() => {
+        const handleKeyNav = (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            const allArticles = [...(topArticles || []), ...(remainingStories || [])];
+            if (e.key === 'j' || e.key === 'J') {
+                e.preventDefault();
+                setFocusedArticleIdx(prev => Math.min(prev + 1, allArticles.length - 1));
+            } else if (e.key === 'k' || e.key === 'K') {
+                e.preventDefault();
+                setFocusedArticleIdx(prev => Math.max(prev - 1, 0));
+            } else if (e.key === 'Enter' && focusedArticleIdx >= 0 && focusedArticleIdx < allArticles.length) {
+                e.preventDefault();
+                openArticle(allArticles[focusedArticleIdx]);
+            }
+        };
+        window.addEventListener('keydown', handleKeyNav);
+        return () => window.removeEventListener('keydown', handleKeyNav);
+    }, [focusedArticleIdx, topArticles, remainingStories]);
 
     // Toggle source filter
     const toggleSource = (src) => setSourceFilters(prev => ({ ...prev, [src]: !prev[src] }));
@@ -1538,6 +1571,42 @@ export default function NewsHub() {
                                 )}
                             </div>
 
+                            {/* Phase 3: Search Bar + View Toggle Row */}
+                            <div className="search-view-row">
+                                <div className="search-wrapper">
+                                    <input
+                                        type="text"
+                                        className="news-search-input"
+                                        placeholder="Search articles..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onFocus={() => setSearchFocused(true)}
+                                        onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+                                    />
+                                    {searchFocused && searchSuggestions.length > 0 && (
+                                        <div className="search-dropdown">
+                                            {searchSuggestions.map(a => (
+                                                <div key={a.id} className="search-suggestion" onClick={() => { openArticle(a); setSearchQuery(''); }}>
+                                                    <span className="suggestion-source" style={{ color: SOURCE_COLORS[a.source_name] || '#5ef5f0' }}>{a.source_name}</span>
+                                                    <span className="suggestion-title">{a.title}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="view-toggle">
+                                    <button className={viewMode === 'grid' ? 'active' : ''} onClick={() => setViewMode('grid')} title="Grid View">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+                                    </button>
+                                    <button className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')} title="List View">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="1" y="7" width="14" height="2" rx="1"/><rect x="1" y="12" width="14" height="2" rx="1"/></svg>
+                                    </button>
+                                    {bookmarks.length > 0 && (
+                                        <span className="bookmark-counter"><BookmarkCheck size={12} /> {bookmarks.length}</span>
+                                    )}
+                                </div>
+                            </div>
+
                             {activeSection === 'news' ? (
                                 <>
                                     {/* News Grid - 6 Source-Specific Boxes */}
@@ -1551,18 +1620,25 @@ export default function NewsHub() {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <div className="news-grid">
+                                            <div className={viewMode === 'list' ? 'news-grid news-grid-list' : 'news-grid'}>
                                                 {topArticles.map((article, index) => (
-                                                    <NewsBox
+                                                    <motion.div
                                                         key={article.id}
-                                                        article={article}
-                                                        index={index}
-                                                        onOpen={openArticle}
-                                                        isBookmarked={bookmarks.includes(article.id)}
-                                                        onBookmark={toggleBookmark}
-                                                        onShare={setShareArticle}
-                                                        isRead={readArticles.includes(article.id)}
-                                                    />
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: index * 0.06, duration: 0.3 }}
+                                                        className={focusedArticleIdx === index ? 'keyboard-focused' : ''}
+                                                    >
+                                                        <NewsBox
+                                                            article={article}
+                                                            index={index}
+                                                            onOpen={openArticle}
+                                                            isBookmarked={bookmarks.includes(article.id)}
+                                                            onBookmark={toggleBookmark}
+                                                            onShare={setShareArticle}
+                                                            isRead={readArticles.includes(article.id)}
+                                                        />
+                                                    </motion.div>
                                                 ))}
                                             </div>
                                         )}
@@ -1763,8 +1839,39 @@ export default function NewsHub() {
                                     </div>
                                 </div>
                             </Link>
+
+                            {/* Phase 3: Reading History Widget */}
+                            {readArticles.length > 0 && (
+                                <div className="widget reading-history">
+                                    <h4><Eye size={14} /> Recently Read</h4>
+                                    <ul className="history-list">
+                                        {news.filter(a => readArticles.includes(a.id)).slice(0, 5).map(a => (
+                                            <li key={a.id} onClick={() => openArticle(a)}>
+                                                <CheckCircle size={10} style={{ color: '#22c55e', flexShrink: 0 }} />
+                                                <span>{a.title?.slice(0, 50)}{a.title?.length > 50 ? '...' : ''}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </aside>
                     </div>
+
+                    {/* Phase 3: Scroll-to-Top FAB */}
+                    <AnimatePresence>
+                        {showScrollTop && (
+                            <motion.button
+                                className="scroll-to-top-fab"
+                                initial={{ opacity: 0, scale: 0.5 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.5 }}
+                                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                                title="Back to Top"
+                            >
+                                <ChevronUp size={22} />
+                            </motion.button>
+                        )}
+                    </AnimatePresence>
 
                     <style jsx>{`
                     .news-hub {
@@ -2429,7 +2536,211 @@ export default function NewsHub() {
                         font-size: 18px;
                         line-height: 1;
                     }
-                    /* Layout */
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 3: SEARCH BAR + VIEW TOGGLE ROW */
+                    /* ═══════════════════════════════════════════════ */
+                    .search-view-row {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin: 10px 0 12px;
+                    }
+                    .search-wrapper {
+                        flex: 1;
+                        position: relative;
+                    }
+                    .news-search-input {
+                        width: 100%;
+                        padding: 10px 14px;
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        border-radius: 10px;
+                        color: #E4E6EB;
+                        font-size: 13px;
+                        font-family: inherit;
+                        outline: none;
+                        transition: border-color 0.2s, box-shadow 0.2s;
+                        box-sizing: border-box;
+                    }
+                    .news-search-input:focus {
+                        border-color: #5ef5f0;
+                        box-shadow: 0 0 0 2px rgba(94, 245, 240, 0.15);
+                    }
+                    .news-search-input::placeholder {
+                        color: rgba(255, 255, 255, 0.3);
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 3: SEARCH AUTOCOMPLETE DROPDOWN */
+                    /* ═══════════════════════════════════════════════ */
+                    .search-dropdown {
+                        position: absolute;
+                        top: calc(100% + 4px);
+                        left: 0;
+                        right: 0;
+                        background: #242526;
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 10px;
+                        overflow: hidden;
+                        z-index: 100;
+                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+                    }
+                    .search-suggestion {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 2px;
+                        padding: 10px 14px;
+                        cursor: pointer;
+                        transition: background 0.15s;
+                    }
+                    .search-suggestion:hover {
+                        background: rgba(94, 245, 240, 0.08);
+                    }
+                    .suggestion-source {
+                        font-size: 10px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .suggestion-title {
+                        font-size: 12px;
+                        color: #E4E6EB;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 3: VIEW MODE TOGGLE */
+                    /* ═══════════════════════════════════════════════ */
+                    .view-toggle {
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                        background: rgba(255, 255, 255, 0.04);
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 8px;
+                        padding: 2px;
+                    }
+                    .view-toggle button {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 32px;
+                        height: 32px;
+                        border: none;
+                        border-radius: 6px;
+                        background: transparent;
+                        color: rgba(255, 255, 255, 0.4);
+                        cursor: pointer;
+                        transition: all 0.15s;
+                    }
+                    .view-toggle button.active {
+                        background: rgba(94, 245, 240, 0.15);
+                        color: #5ef5f0;
+                    }
+                    .view-toggle button:hover:not(.active) {
+                        color: rgba(255, 255, 255, 0.7);
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 3: GRID-LIST VIEW MODE */
+                    /* ═══════════════════════════════════════════════ */
+                    .news-grid-list {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .news-grid-list .news-box {
+                        flex-direction: row;
+                        height: auto;
+                        min-height: 100px;
+                    }
+                    .news-grid-list .box-image {
+                        width: 140px;
+                        height: 100px;
+                        flex-shrink: 0;
+                    }
+                    .news-grid-list .box-content {
+                        padding: 10px 14px;
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 3: KEYBOARD FOCUS HIGHLIGHT */
+                    /* ═══════════════════════════════════════════════ */
+                    .keyboard-focused .news-box {
+                        outline: 2px solid #5ef5f0;
+                        outline-offset: 2px;
+                        box-shadow: 0 0 16px rgba(94, 245, 240, 0.3);
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 3: SCROLL-TO-TOP FAB */
+                    /* ═══════════════════════════════════════════════ */
+                    .scroll-to-top-fab {
+                        position: fixed;
+                        bottom: 24px;
+                        right: 24px;
+                        width: 48px;
+                        height: 48px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: rgba(30, 32, 38, 0.95);
+                        border: 1px solid rgba(94, 245, 240, 0.4);
+                        border-radius: 50%;
+                        color: #5ef5f0;
+                        cursor: pointer;
+                        z-index: 1000;
+                        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(94, 245, 240, 0.2);
+                        backdrop-filter: blur(8px);
+                        transition: all 0.2s;
+                    }
+                    .scroll-to-top-fab:hover {
+                        background: rgba(94, 245, 240, 0.15);
+                        transform: translateY(-2px);
+                        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(94, 245, 240, 0.4);
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 3: BOOKMARK COUNTER BADGE */
+                    /* ═══════════════════════════════════════════════ */
+                    .bookmark-counter {
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                        padding: 4px 8px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: #5ef5f0;
+                        background: rgba(94, 245, 240, 0.08);
+                        border-radius: 6px;
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 3: READING HISTORY WIDGET */
+                    /* ═══════════════════════════════════════════════ */
+                    .history-list {
+                        list-style: none;
+                        padding: 0;
+                        margin: 0;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                    }
+                    .history-list li {
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 8px;
+                        font-size: 12px;
+                        color: rgba(255, 255, 255, 0.6);
+                        cursor: pointer;
+                        padding: 4px 0;
+                        transition: color 0.15s;
+                    }
+                    .history-list li:hover {
+                        color: #5ef5f0;
+                    }
+
                     .layout {
                         display: grid;
                         grid-template-columns: 1fr 320px;

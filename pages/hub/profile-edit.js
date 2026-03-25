@@ -25,10 +25,11 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastSync } from '../../src/lib/broadcastSync';
 
-// Light Theme Colors
+// Dark Theme Colors — matches page wrapper #0a0e1a
 const C = {
-    bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
-    border: '#DADDE1', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A', gold: '#FFD700',
+    bg: '#0a0e1a', card: '#141828', text: '#e8e8f0', textSec: '#8888a0',
+    border: '#2a2e40', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A', gold: '#FFD700',
+    inputBg: '#1a1e30', inputText: '#e0e0e8', inputBorder: '#2a2e40',
 };
 
 // ── Shared JWT helper — eliminates 8 duplicated auth patterns ──
@@ -253,6 +254,90 @@ function ProfileSkeleton() {
     );
 }
 
+// ── Collapsible Section with animated expand/collapse ──
+function CollapsibleSection({ id, title, icon, children, defaultOpen = true }) {
+    const [open, setOpen] = useState(defaultOpen);
+    return (
+        <div id={id} data-section={id} style={{
+            background: C.card, borderRadius: 12, marginBottom: 16,
+            border: `1px solid ${C.border}`, overflow: 'hidden',
+            transition: 'box-shadow 0.2s ease',
+        }}>
+            <button
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                style={{
+                    width: '100%', padding: '16px 20px',
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    color: C.text, fontSize: 17, fontWeight: 700,
+                }}
+            >
+                <span>{icon && <span style={{ marginRight: 8 }}>{icon}</span>}{title}</span>
+                <span style={{
+                    fontSize: 12, color: C.textSec,
+                    transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.3s ease',
+                    display: 'inline-block',
+                }}>▼</span>
+            </button>
+            <div style={{
+                maxHeight: open ? '5000px' : '0',
+                overflow: 'hidden',
+                transition: open ? 'max-height 0.5s ease-in' : 'max-height 0.3s ease-out',
+                opacity: open ? 1 : 0,
+            }}>
+                <div style={{ padding: '0 20px 20px' }}>
+                    {children}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ── Section Jump Navigation (floating pill bar) ──
+const SECTION_NAV_ITEMS = [
+    { id: 'sec-basic', label: 'Basic' },
+    { id: 'sec-location', label: 'Location' },
+    { id: 'sec-social', label: 'Social' },
+    { id: 'sec-cards', label: 'Cards' },
+    { id: 'sec-poker', label: 'Poker' },
+    { id: 'sec-resume', label: 'Resume' },
+];
+
+function SectionNav() {
+    const scrollTo = (id) => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    return (
+        <div style={{
+            position: 'sticky', top: 56, zIndex: 90,
+            background: 'rgba(10,14,26,0.85)', backdropFilter: 'blur(12px)',
+            padding: '8px 16px', margin: '0 -16px 16px',
+            display: 'flex', gap: 6, overflowX: 'auto',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+        }}>
+            {SECTION_NAV_ITEMS.map(s => (
+                <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => scrollTo(s.id)}
+                    style={{
+                        padding: '6px 14px', borderRadius: 20,
+                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+                        color: '#b0b0c8', fontSize: 12, fontWeight: 600,
+                        cursor: 'pointer', whiteSpace: 'nowrap',
+                        transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,245,255,0.15)'; e.currentTarget.style.color = '#00f5ff'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#b0b0c8'; }}
+                >{s.label}</button>
+            ))}
+        </div>
+    );
+}
+
 function Avatar({ src, size = 120, onUpload, uploadPhase }) {
     const fileRef = useRef(null);
 
@@ -332,7 +417,7 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
                         style={{
                             width: '100%', padding: 12, borderRadius: 8, border: `1px solid ${C.border}`,
                             fontSize: 15, resize: 'vertical', minHeight: 80, boxSizing: 'border-box',
-                            fontFamily: 'inherit', color: '#000000', background: '#ffffff'
+                            fontFamily: 'inherit', color: C.inputText, background: C.inputBg
                         }}
                     />
                     {showCount && maxLength && (
@@ -355,7 +440,7 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
                         autoCapitalize="off"
                         style={{
                             width: '100%', padding: 12, paddingRight: suffix ? 40 : 12, borderRadius: 8, border: `1px solid ${C.border}`,
-                            fontSize: 15, boxSizing: 'border-box', color: '#000000', background: '#ffffff'
+                            fontSize: 15, boxSizing: 'border-box', color: C.inputText, background: C.inputBg
                         }}
                     />
                     {suffix && (
@@ -566,8 +651,8 @@ function HomeCasinoSelector({ value, onChange }) {
                     placeholder="Search 483+ venues or type a name..."
                     style={{
                         width: '100%', padding: 12, fontSize: 15,
-                        background: '#ffffff', border: `1px solid ${C.border}`,
-                        borderRadius: 8, color: '#000000', outline: 'none',
+                        background: C.inputBg, border: `1px solid ${C.border}`,
+                        borderRadius: 8, color: C.inputText, outline: 'none',
                         boxSizing: 'border-box',
                     }}
                 />
@@ -592,7 +677,7 @@ function HomeCasinoSelector({ value, onChange }) {
                                 borderBottom: `1px solid ${C.border}`,
                                 cursor: 'pointer', textAlign: 'left', color: C.text,
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                             onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
                         >
                             <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{venue.name}</div>
@@ -628,6 +713,7 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
     const [avatarUploadPhase, setAvatarUploadPhase] = useState(null); // 'Compressing' | 'Uploading' | 'Saving' | null
+    const [coverUploadPhase, setCoverUploadPhase] = useState(null); // 'Compressing' | 'Uploading' | 'Saving' | null
     const [usernameStatus, setUsernameStatus] = useState('idle'); // 'idle' | 'checking' | 'available' | 'taken'
     const usernameCheckRef = useRef(null);
 
