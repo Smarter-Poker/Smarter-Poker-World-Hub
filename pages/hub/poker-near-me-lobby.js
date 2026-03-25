@@ -1253,39 +1253,40 @@ export default function PokerNearMeLobby() {
         {/* Layer 3 — Feature Panel (page level to escape overlay z-index stacking context) */}
         {showPanel && panelContent && (
           <>
-            {/* Backdrop */}
-            <div
-              onClick={handlePanelClose}
-              style={{
-                position: 'fixed', inset: 0, zIndex: 50,
-                background: 'rgba(3, 4, 8, 0.6)',
-                backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-              }}
-            />
-            {/* Panel */}
+            {/* Full-screen panel overlay */}
             <div
               className="lobby-panel-page"
               style={{
-                position: 'fixed', bottom: 0, left: 0, right: 0,
-                maxHeight: '82vh', zIndex: 51,
-                background: 'linear-gradient, paddingBottom: 70(160deg, rgba(18, 24, 40, 0.97), rgba(8, 12, 22, 0.98))',
-                borderTop: '1px solid rgba(110, 231, 239, 0.15)',
-                borderRadius: '20px 20px 0 0',
-                boxShadow: '0 -8px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(110, 231, 239, 0.04)',
+                position: 'fixed', inset: 0, zIndex: 51,
+                background: 'linear-gradient(160deg, #0c1828, #060a14)',
                 display: 'flex', flexDirection: 'column', overflow: 'hidden',
-                animation: 'lobby-panelSlideUp 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+                animation: 'lobby-panelSlideUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
               }}
             >
-              {/* Drag handle */}
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
-                <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(200, 214, 229, 0.2)' }} />
-              </div>
               {/* Header */}
               <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '8px 20px 12px',
-                borderBottom: '1px solid rgba(110, 231, 239, 0.08)',
+                padding: '16px 20px 14px',
+                borderBottom: '1px solid rgba(110, 231, 239, 0.12)',
+                background: 'rgba(6, 15, 28, 0.95)',
+                flexShrink: 0,
               }}>
+                <button
+                  onClick={handlePanelClose}
+                  aria-label="Back to grid"
+                  style={{
+                    background: 'rgba(110, 231, 239, 0.08)', border: '1px solid rgba(110, 231, 239, 0.15)',
+                    color: '#6ee7ef',
+                    cursor: 'pointer', padding: '6px 14px', borderRadius: 8,
+                    fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  Back
+                </button>
                 <h2 style={{
                   fontFamily: 'var(--font-premium-display)',
                   fontSize: 20, fontWeight: 700, margin: 0,
@@ -1299,17 +1300,17 @@ export default function PokerNearMeLobby() {
                   style={{
                     background: 'none', border: 'none',
                     color: 'rgba(200, 214, 229, 0.5)',
-                    cursor: 'pointer', padding: 4, borderRadius: 8,
+                    cursor: 'pointer', padding: 6, borderRadius: 8,
                   }}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
-              {/* Content */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px', WebkitOverflowScrolling: 'touch' }}>
+              {/* Content — full remaining height */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 90px', WebkitOverflowScrolling: 'touch' }}>
                 {panelContent.component}
               </div>
             </div>

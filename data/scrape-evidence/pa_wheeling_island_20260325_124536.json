@@ -1,0 +1,17 @@
+{
+  "venue": "Wheeling Island",
+  "slug": "wheeling-island",
+  "url": "https://www.pokeratlas.com/poker-room/wheeling-island",
+  "data": {
+    "address": "1 South Stone Street",
+    "city": "Wheeling",
+    "state": "WV",
+    "phone": "(304) 232-5050 ext. 1785",
+    "lat": 40.0636,
+    "lng": -80.7293,
+    "website": "http://www.wheelingisland.com/"
+  },
+  "hash": "1930fc184969bffe9ed0f7201c6b94f796d14654d138dbc1d7092f522c2fbfc1",
+  "ts": "2026-03-25T17:45:36.117076+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}

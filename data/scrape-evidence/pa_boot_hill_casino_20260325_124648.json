@@ -1,0 +1,17 @@
+{
+  "venue": "Boot Hill Casino",
+  "slug": "boot-hill-casino-dodge-city",
+  "url": "https://www.pokeratlas.com/poker-room/boot-hill-casino-dodge-city",
+  "data": {
+    "address": "4000 W. Comanche St.",
+    "city": "Dodge City",
+    "state": "KS",
+    "phone": "(877) 906-0777",
+    "lat": 37.76757,
+    "lng": -100.06141,
+    "website": "http://www.boothillcasino.com/"
+  },
+  "hash": "ea4a8acc2489f2fca4446812740f0b9d0343c186199b764917396b47dcb8a31e",
+  "ts": "2026-03-25T17:46:48.429685+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}
