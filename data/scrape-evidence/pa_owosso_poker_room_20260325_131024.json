@@ -1,0 +1,17 @@
+{
+  "venue": "Owosso Poker Room",
+  "slug": "owosso-poker-room",
+  "url": "https://www.pokeratlas.com/poker-room/owosso-poker-room",
+  "data": {
+    "address": "211 N Shiawassee St., Suite B",
+    "city": "Corunna",
+    "state": "MI",
+    "phone": "(989) 720-4531",
+    "lat": 42.9815,
+    "lng": -84.11817,
+    "website": "http://owossopokerroom.com/"
+  },
+  "hash": "d016b88ee3f5d255ae75597edc21684d77a2212ddbbc8ceccacfc663a4d60f23",
+  "ts": "2026-03-25T18:10:24.052265+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}

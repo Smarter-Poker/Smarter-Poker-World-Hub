@@ -141,14 +141,16 @@ export default function ManageSocialPage() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ id: page.id, owner_id: user.id, ...form }),
+                body: JSON.stringify({ id: page.id, ...form }),
             });
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
                 busEmit.dataMutated('social-pages');
                 setMessage('Settings saved successfully');
                 setPage(json.data);
+                // Reset slug status since it's now the saved slug
+                setSlugStatus(null);
+                setSlugError('');
             } else {
                 setMessage('Error: ' + (json.error || 'Failed to save'));
             }

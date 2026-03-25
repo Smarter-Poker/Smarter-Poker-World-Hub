@@ -313,6 +313,8 @@ export default async function handler(req, res) {
 
           const { id, ...updates } = req.body;
           const owner_id = authUser.id;
+          // Security: never allow client to modify owner
+          delete updates.owner_id;
 
           if (!id) {
               return res.status(400).json({ success: false, error: 'id is required' });
