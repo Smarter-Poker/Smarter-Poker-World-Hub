@@ -43,11 +43,27 @@ function Avatar({ src, name, size = 40 }) {
     );
 }
 
-function PostCard({ post, user, onLike, onComment }) {
+function PostCard({ post, user, onLike, onComment, onDelete, onPin, isPageOwner, page, isOwnerOnOwnPage }) {
     const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
     const [comments, setComments] = useState([]);
     const [loadingComments, setLoadingComments] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [editing, setEditing] = useState(false);
+    const [editContent, setEditContent] = useState(post.content || '');
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const menuRef = useRef(null);
+
+    // Close menu on outside click
+    useEffect(() => {
+        if (!showMenu) return;
+        const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
+        document.addEventListener('mousedown', close);
+        return () => document.removeEventListener('mousedown', close);
+    }, [showMenu]);
+
+    const canManage = isPageOwner || (user && post.author_id === user.id);
 
     const fetchComments = async () => {
         if (comments.length > 0) { setShowComments(!showComments); return; }
@@ -68,101 +84,198 @@ function PostCard({ post, user, onLike, onComment }) {
             const token = getAccessToken();
             const res = await fetch('/api/social/pages/engage', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    action: 'comment', post_id: post.id,
-                    user_id: user.id, content: commentText.trim(),
-                }),
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: commentText.trim() }),
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
-            if (json.success) {
-                setComments(prev => [...prev, json.data]);
-                setCommentText('');
-                onComment(post.id);
-            }
+            if (json.success) { setComments(prev => [...prev, json.data]); setCommentText(''); onComment(post.id); }
         } catch (e) { console.error("[[pageId].js]", e); }
     };
 
+    const handleEdit = async () => {
+        if (!editContent.trim()) return;
+        try {
+            const token = getAccessToken();
+            const res = await fetch('/api/social/pages/posts', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ id: post.id, content: editContent.trim() }),
+            });
+            if (res.ok) { post.content = editContent.trim(); setEditing(false); }
+        } catch (e) { console.error(e); }
+    };
+
+    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page?.slug || page?.id}` : '';
+
     return (
-        <div style={{
-            background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
-            marginBottom: 12, overflow: 'hidden',
-        }}>
-            {/* Author */}
+        <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 12, overflow: 'hidden', position: 'relative' }}>
+            {/* Pinned badge */}
+            {post.is_pinned && (
+                <div style={{ padding: '6px 16px', background: '#E7F3FF', fontSize: 12, fontWeight: 600, color: C.blue, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill={C.blue}><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>
+                    Pinned Post
+                </div>
+            )}
+
+            {/* Author + Menu */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
                 <Avatar src={post.author?.avatar_url} name={post.author?.full_name || post.author?.username} size={40} />
                 <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
                         {post.author?.full_name || post.author?.username || 'Unknown'}
                     </div>
-                    <div style={{ fontSize: 12, color: C.textSec }}>
-                        {timeAgo(post.created_at)}
-                        {post.is_pinned && <span style={{ marginLeft: 8, color: C.blue, fontWeight: 600 }}>Pinned</span>}
-                    </div>
+                    <div style={{ fontSize: 12, color: C.textSec }}>{timeAgo(post.created_at)}</div>
                 </div>
+                {/* ⋮ Menu */}
+                {canManage && (
+                    <div ref={menuRef} style={{ position: 'relative' }}>
+                        <button onClick={() => setShowMenu(!showMenu)} style={{
+                            background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px',
+                            fontSize: 20, color: C.textSec, borderRadius: 8,
+                        }}>⋮</button>
+                        {showMenu && (
+                            <div style={{
+                                position: 'absolute', top: '100%', right: 0, background: C.card,
+                                borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                                border: `1px solid ${C.border}`, minWidth: 180, zIndex: 100, overflow: 'hidden',
+                            }}>
+                                {isPageOwner && (
+                                    <button onClick={() => { onPin(post.id, !post.is_pinned); setShowMenu(false); }} style={{
+                                        display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px',
+                                        border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                                        color: C.text, fontFamily: 'inherit', textAlign: 'left',
+                                    }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>
+                                        {post.is_pinned ? 'Unpin Post' : 'Pin Post'}
+                                    </button>
+                                )}
+                                <button onClick={() => { setEditing(true); setEditContent(post.content || ''); setShowMenu(false); }} style={{
+                                    display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px',
+                                    border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                                    color: C.text, fontFamily: 'inherit', textAlign: 'left',
+                                }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Edit Post
+                                </button>
+                                <button onClick={() => { setConfirmDelete(true); setShowMenu(false); }} style={{
+                                    display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px',
+                                    border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                                    color: C.red, fontFamily: 'inherit', textAlign: 'left',
+                                }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                                    Delete Post
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* Content */}
-            {post.content && (
+            {/* Content or Edit Mode */}
+            {editing ? (
+                <div style={{ padding: '0 16px 12px' }}>
+                    <textarea value={editContent} onChange={e => setEditContent(e.target.value)} style={{
+                        width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`,
+                        fontSize: 14, fontFamily: 'inherit', outline: 'none', resize: 'none', minHeight: 80,
+                        background: C.bg, boxSizing: 'border-box',
+                    }} />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
+                        <button onClick={() => setEditing(false)} style={{
+                            padding: '6px 16px', borderRadius: 6, border: `1px solid ${C.border}`,
+                            background: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: C.textSec, fontFamily: 'inherit',
+                        }}>Cancel</button>
+                        <button onClick={handleEdit} style={{
+                            padding: '6px 16px', borderRadius: 6, border: 'none',
+                            background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                        }}>Save</button>
+                    </div>
+                </div>
+            ) : post.content ? (
                 <div style={{ padding: '0 16px 12px', fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                     {post.content}
                 </div>
-            )}
+            ) : null}
 
             {/* Media */}
             {post.media_urls && post.media_urls.length > 0 && (
-                <div style={{ padding: '0 0 0' }}>
-                    {post.media_urls.slice(0, 4).map((url, i) => (
-                        <img key={i} src={url} alt="" style={{
-                            maxWidth: '100%', display: 'block', margin: '0 auto',
-                            marginBottom: post.media_urls.length > 1 ? 2 : 0
-                        }} />
-                    ))}
-                </div>
+                <div>{post.media_urls.slice(0, 4).map((url, i) => (
+                    <img key={i} src={url} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto', marginBottom: post.media_urls.length > 1 ? 2 : 0 }} />
+                ))}</div>
             )}
 
             {/* Stats */}
-            <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '8px 16px', fontSize: 13, color: C.textSec,
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', fontSize: 13, color: C.textSec }}>
                 <span>{post.like_count || 0} likes</span>
                 <span>{post.comment_count || 0} comments</span>
             </div>
 
             {/* Action Buttons */}
-            <div style={{
-                display: 'flex', borderTop: `1px solid ${C.border}`,
-                borderBottom: showComments ? `1px solid ${C.border}` : 'none',
-            }}>
+            <div style={{ display: 'flex', borderTop: `1px solid ${C.border}`, borderBottom: showComments ? `1px solid ${C.border}` : 'none' }}>
                 {[
                     { label: post.user_liked ? 'Liked' : 'Like', action: () => onLike(post.id), active: post.user_liked },
                     { label: 'Comment', action: fetchComments },
-                    {
-                        label: 'Share', action: () => {
-                            const url = window.location.href;
-                            if (navigator.share) {
-                                navigator.share({ title: post.content?.slice(0, 60) || 'Post', url }).catch(() => { });
-                            } else {
-                                navigator.clipboard.writeText(url).then(() => alert('Link copied!')).catch(() => { });
-                            }
-                        }
-                    },
+                    { label: 'Share', action: () => setShowShareModal(true) },
                 ].map((btn, i) => (
                     <button key={i} onClick={btn.action} style={{
                         flex: 1, padding: '10px 0', border: 'none', background: 'none',
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                        color: btn.active ? C.blue : C.textSec,
-                        borderRight: i < 2 ? `1px solid ${C.border}` : 'none',
-                    }}>
-                        {btn.label}
-                    </button>
+                        color: btn.active ? C.blue : C.textSec, borderRight: i < 2 ? `1px solid ${C.border}` : 'none',
+                    }}>{btn.label}</button>
                 ))}
             </div>
+
+            {/* Share Modal */}
+            {showShareModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+                    onClick={() => setShowShareModal(false)}>
+                    <div style={{ background: C.card, borderRadius: 16, maxWidth: 360, width: '100%', padding: 24, boxShadow: '0 8px 40px rgba(0,0,0,0.3)' }}
+                        onClick={e => e.stopPropagation()}>
+                        <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Share Post</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <button onClick={() => { navigator.clipboard.writeText(shareUrl); setShowShareModal(false); }} style={{
+                                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
+                                border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, fontFamily: 'inherit', width: '100%', textAlign: 'left',
+                            }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                                Copy Link
+                            </button>
+                            <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(post.content?.slice(0, 100) || '')}`}
+                                target="_blank" rel="noopener noreferrer" style={{
+                                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
+                                border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
+                            }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="#1DA1F2"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg>
+                                Share on X
+                            </a>
+                            <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                                target="_blank" rel="noopener noreferrer" style={{
+                                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
+                                border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
+                            }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
+                                Share on Facebook
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation */}
+            {confirmDelete && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+                    onClick={() => setConfirmDelete(false)}>
+                    <div style={{ background: C.card, borderRadius: 12, padding: 24, maxWidth: 320, width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}
+                        onClick={e => e.stopPropagation()}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 12 }}>Delete This Post?</div>
+                        <div style={{ fontSize: 14, color: C.textSec, marginBottom: 20 }}>This post will be permanently removed. This action cannot be undone.</div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: '10px 16px', background: C.bg, color: C.text, border: `1px solid ${C.border}`, borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                            <button onClick={() => { onDelete(post.id); setConfirmDelete(false); }} style={{ flex: 1, padding: '10px 16px', background: '#F02849', color: 'white', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Comments */}
             {showComments && (
@@ -174,12 +287,8 @@ function PostCard({ post, user, onLike, onComment }) {
                             {comments.map(c => (
                                 <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                                     <Avatar src={c.author?.avatar_url} name={c.author?.full_name} size={28} />
-                                    <div style={{
-                                        background: C.bg, borderRadius: 12, padding: '8px 12px', flex: 1,
-                                    }}>
-                                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                                            {c.author?.full_name || c.author?.username || 'Unknown'}
-                                        </div>
+                                    <div style={{ background: C.bg, borderRadius: 12, padding: '8px 12px', flex: 1 }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{c.author?.full_name || c.author?.username || 'Unknown'}</div>
                                         <div style={{ fontSize: 13, color: C.text }}>{c.content}</div>
                                         <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>{timeAgo(c.created_at)}</div>
                                     </div>
@@ -188,29 +297,21 @@ function PostCard({ post, user, onLike, onComment }) {
                             {user && (
                                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                                     <Avatar
-                                        src={isOwnerOnOwnPage ? page.avatar_url : user.user_metadata?.avatar_url}
-                                        name={isOwnerOnOwnPage ? page.name : (user.user_metadata?.full_name || user.email)}
+                                        src={isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url}
+                                        name={isOwnerOnOwnPage ? page?.name : (user.user_metadata?.full_name || user.email)}
                                         size={28}
                                     />
                                     <div style={{ flex: 1, display: 'flex', gap: 4 }}>
-                                        <input
-                                            type="text" value={commentText} onChange={e => setCommentText(e.target.value)}
+                                        <input type="text" value={commentText} onChange={e => setCommentText(e.target.value)}
                                             onKeyDown={e => e.key === 'Enter' && submitComment()}
-                                            placeholder={isOwnerOnOwnPage ? `Comment as ${page.name}...` : 'Write A Comment...'}
-                                            style={{
-                                                flex: 1, padding: '8px 12px', borderRadius: 20,
-                                                border: `1px solid ${C.border}`, fontSize: 13,
-                                                fontFamily: 'inherit', outline: 'none', background: C.bg,
-                                            }}
-                                        />
+                                            placeholder={isOwnerOnOwnPage ? `Comment as ${page?.name}...` : 'Write A Comment...'}
+                                            style={{ flex: 1, padding: '8px 12px', borderRadius: 20, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.bg }} />
                                         <button onClick={submitComment} disabled={!commentText.trim()} style={{
                                             padding: '6px 12px', borderRadius: 20, border: 'none',
                                             background: commentText.trim() ? C.blue : '#E4E6EB',
                                             color: commentText.trim() ? '#fff' : C.textSec,
                                             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                        }}>
-                                            Post
-                                        </button>
+                                        }}>Post</button>
                                     </div>
                                 </div>
                             )}
@@ -237,6 +338,9 @@ export default function SocialPageDetail() {
     const [userRole, setUserRole] = useState(null);
     const [newPost, setNewPost] = useState('');
     const [posting, setPosting] = useState(false);
+    const [uploadImages, setUploadImages] = useState([]);
+    const [memberSearch, setMemberSearch] = useState('');
+    const imageInputRef = useRef(null);
     // Invite friends
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [inviteFriends, setInviteFriends] = useState([]);
@@ -428,19 +532,57 @@ export default function SocialPageDetail() {
                 like_count: p.user_liked ? Math.max(0, (p.like_count || 1) - 1) : (p.like_count || 0) + 1
             } : p
         ));
-
         try {
             const token = getAccessToken();
             await fetch('/api/social/pages/engage', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ action: 'like', post_id: postId, user_id: user.id }),
             });
             busEmit.dataMutated('social-pages');
         } catch (e) { console.error("[[pageId].js]", e); }
+    };
+
+    const handleDeletePost = async (postId) => {
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        try {
+            const token = getAccessToken();
+            await fetch(`/api/social/pages/posts?id=${postId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            busEmit.dataMutated('social-pages');
+            toast.success('Post deleted');
+        } catch (e) { console.error(e); toast.error('Failed to delete post'); }
+    };
+
+    const handlePinPost = async (postId, pinned) => {
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_pinned: pinned } : { ...p, is_pinned: false }));
+        try {
+            const token = getAccessToken();
+            await fetch('/api/social/pages/posts', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ id: postId, is_pinned: pinned }),
+            });
+            busEmit.dataMutated('social-pages');
+            toast.success(pinned ? 'Post pinned' : 'Post unpinned');
+        } catch (e) { console.error(e); }
+    };
+
+    const handleImageUpload = async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+        for (const file of files.slice(0, 4)) {
+            const ext = file.name.split('.').pop();
+            const path = `social-pages/${page.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+            const { data, error } = await supabase.storage.from('social-media-uploads').upload(path, file);
+            if (!error && data) {
+                const { data: urlData } = supabase.storage.from('social-media-uploads').getPublicUrl(data.path);
+                setUploadImages(prev => [...prev, urlData.publicUrl]);
+            }
+        }
+        if (imageInputRef.current) imageInputRef.current.value = '';
     };
 
     const handleCommentAdded = (postId) => {
@@ -668,11 +810,39 @@ export default function SocialPageDetail() {
                                                     }}
                                                 />
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-                                                <button onClick={handlePost} disabled={!newPost.trim() || posting} style={{
+                                            {/* Image Upload Preview */}
+                                            {uploadImages.length > 0 && (
+                                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                                                    {uploadImages.map((url, i) => (
+                                                        <div key={i} style={{ position: 'relative', width: 80, height: 80, borderRadius: 8, overflow: 'hidden' }}>
+                                                            <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            <button onClick={() => setUploadImages(prev => prev.filter((_, j) => j !== i))} style={{
+                                                                position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%',
+                                                                background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer',
+                                                                fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            }}>×</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                                                <div style={{ display: 'flex', gap: 8 }}>
+                                                    <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleImageUpload} />
+                                                    <button onClick={() => imageInputRef.current?.click()} title="Add Photo" style={{
+                                                        background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px',
+                                                        borderRadius: 6, color: '#42B72A', fontSize: 14,
+                                                    }}>
+                                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                                                            <circle cx="8.5" cy="8.5" r="1.5" />
+                                                            <path d="M21 15l-5-5L5 21" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                                <button onClick={handlePost} disabled={(!newPost.trim() && uploadImages.length === 0) || posting} style={{
                                                     padding: '8px 20px', borderRadius: 8, border: 'none',
-                                                    background: newPost.trim() && !posting ? C.blue : '#E4E6EB',
-                                                    color: newPost.trim() && !posting ? '#fff' : C.textSec,
+                                                    background: (newPost.trim() || uploadImages.length > 0) && !posting ? C.blue : '#E4E6EB',
+                                                    color: (newPost.trim() || uploadImages.length > 0) && !posting ? '#fff' : C.textSec,
                                                     fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                                                 }}>
                                                     {posting ? 'Posting...' : 'Post'}
@@ -698,6 +868,11 @@ export default function SocialPageDetail() {
                                                 user={user}
                                                 onLike={handleLike}
                                                 onComment={handleCommentAdded}
+                                                onDelete={handleDeletePost}
+                                                onPin={handlePinPost}
+                                                isPageOwner={isPageOwner}
+                                                page={page}
+                                                isOwnerOnOwnPage={isOwnerOnOwnPage}
                                             />
                                         ))
                                     )}
@@ -761,30 +936,56 @@ export default function SocialPageDetail() {
                                 <div style={{
                                     background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 20,
                                 }}>
-                                    <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px' }}>
-                                        Members ({page.follower_count || 0})
-                                    </h2>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                        <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0 }}>
+                                            Members ({page.follower_count || 0})
+                                        </h2>
+                                    </div>
+                                    {/* Member Search */}
+                                    <input
+                                        type="text" value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
+                                        placeholder="Search members..."
+                                        style={{
+                                            width: '100%', padding: '8px 12px', borderRadius: 20,
+                                            border: `1px solid ${C.border}`, fontSize: 13,
+                                            fontFamily: 'inherit', outline: 'none', background: C.bg,
+                                            marginBottom: 12, boxSizing: 'border-box',
+                                        }}
+                                    />
 
                                     {followers.length === 0 ? (
-                                        <p style={{ fontSize: 14, color: C.textSec, textAlign: 'center', padding: 20 }}>
-                                            No members yet
-                                        </p>
+                                        <div style={{ textAlign: 'center', padding: 20 }}>
+                                            <div style={{ fontSize: 36, marginBottom: 8 }}>👥</div>
+                                            <p style={{ fontSize: 14, color: C.textSec }}>No members yet. Be the first to join!</p>
+                                        </div>
                                     ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                            {followers.map(f => (
-                                                <div key={f.id} style={{
-                                                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0',
-                                                    borderBottom: `1px solid ${C.bg}`,
-                                                }}>
-                                                    <Avatar src={f.profile?.avatar_url} name={f.profile?.full_name || f.profile?.username} size={40} />
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                            {followers
+                                                .filter(f => !memberSearch || (f.profile?.full_name || f.profile?.username || '').toLowerCase().includes(memberSearch.toLowerCase()))
+                                                .map(f => (
+                                                <div key={f.id} onClick={() => f.profile?.username && router.push(`/hub/user/${f.profile.username}`)} style={{
+                                                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px',
+                                                    borderBottom: `1px solid ${C.bg}`, cursor: f.profile?.username ? 'pointer' : 'default',
+                                                    borderRadius: 8, transition: 'background 0.15s',
+                                                }}
+                                                onMouseEnter={e => e.currentTarget.style.background = C.bg}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                >
+                                                    <Avatar src={f.profile?.avatar_url} name={f.profile?.full_name || f.profile?.username} size={44} />
                                                     <div style={{ flex: 1 }}>
                                                         <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
                                                             {f.profile?.full_name || f.profile?.username || 'Unknown'}
                                                         </div>
-                                                        <div style={{ fontSize: 12, color: C.textSec, textTransform: 'capitalize' }}>
-                                                            {f.role} - Joined {timeAgo(f.created_at)}
+                                                        <div style={{ fontSize: 12, color: C.textSec }}>
+                                                            {f.profile?.username && <span>@{f.profile.username} · </span>}
+                                                            Joined {timeAgo(f.created_at)}
                                                         </div>
                                                     </div>
+                                                    {f.profile?.username && (
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2">
+                                                            <polyline points="9 18 15 12 9 6" />
+                                                        </svg>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>

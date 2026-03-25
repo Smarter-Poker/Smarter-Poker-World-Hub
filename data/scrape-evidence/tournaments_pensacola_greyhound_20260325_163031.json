@@ -1,0 +1,97 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/pensacola-greyhound/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:30:31.975853+00:00",
+    "scrape_html_hash": "bd5a362e0b35ae01a416b768b11fdec0fb2d15026b2f698075a4795bed64572c",
+    "scrape_byte_count": 67557,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Pensacola Greyhound",
+      "day_of_week": "Sunday",
+      "start_time": "9:00am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bd5a362e0b35ae01a416b768b11fdec0fb2d15026b2f698075a4795bed64572c",
+      "scrape_timestamp": "2026-03-25T21:30:31.975853+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/pensacola-greyhound/tournaments"
+    },
+    {
+      "venue_name": "Pensacola Greyhound",
+      "day_of_week": "Thursday",
+      "start_time": "7:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bd5a362e0b35ae01a416b768b11fdec0fb2d15026b2f698075a4795bed64572c",
+      "scrape_timestamp": "2026-03-25T21:30:31.975853+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/pensacola-greyhound/tournaments"
+    },
+    {
+      "venue_name": "Pensacola Greyhound",
+      "day_of_week": "friday",
+      "start_time": "7:00pm",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bd5a362e0b35ae01a416b768b11fdec0fb2d15026b2f698075a4795bed64572c",
+      "scrape_timestamp": "2026-03-25T21:30:31.975853+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/pensacola-greyhound/tournaments"
+    },
+    {
+      "venue_name": "Pensacola Greyhound",
+      "day_of_week": "saturday",
+      "start_time": "1:00pm",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bd5a362e0b35ae01a416b768b11fdec0fb2d15026b2f698075a4795bed64572c",
+      "scrape_timestamp": "2026-03-25T21:30:31.975853+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/pensacola-greyhound/tournaments"
+    },
+    {
+      "venue_name": "Pensacola Greyhound",
+      "day_of_week": "saturday",
+      "start_time": "7:00pm",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bd5a362e0b35ae01a416b768b11fdec0fb2d15026b2f698075a4795bed64572c",
+      "scrape_timestamp": "2026-03-25T21:30:31.975853+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/pensacola-greyhound/tournaments"
+    },
+    {
+      "venue_name": "Pensacola Greyhound",
+      "day_of_week": "Tuesday",
+      "start_time": "7:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bd5a362e0b35ae01a416b768b11fdec0fb2d15026b2f698075a4795bed64572c",
+      "scrape_timestamp": "2026-03-25T21:30:31.975853+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/pensacola-greyhound/tournaments"
+    },
+    {
+      "venue_name": "Pensacola Greyhound",
+      "day_of_week": "tuesday",
+      "start_time": "7:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "bd5a362e0b35ae01a416b768b11fdec0fb2d15026b2f698075a4795bed64572c",
+      "scrape_timestamp": "2026-03-25T21:30:31.975853+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/pensacola-greyhound/tournaments"
+    }
+  ]
+}
