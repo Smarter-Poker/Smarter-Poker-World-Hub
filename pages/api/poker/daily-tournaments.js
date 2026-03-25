@@ -150,14 +150,8 @@ export default async function handler(req, res) {
                   );
               }
           } else {
-              // Fallback: Generate schedule from source of truth venues
-              tournaments = generateFallbackSchedule(tournamentVenues.venues, targetDay, {
-                  state,
-                  venue,
-                  type,
-                  minBuyin: minBuyin ? parseInt(minBuyin, 10) || 0 : null,
-                  maxBuyin: maxBuyin ? parseInt(maxBuyin, 10) || 100000 : null
-              });
+              // No database data available — return empty (never generate fake data)
+              tournaments = [];
           }
 
           // Sort by time
@@ -198,52 +192,8 @@ export default async function handler(req, res) {
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
+// NOTE: generateFallbackSchedule was removed — only real scraped data is served
 
-// Generate deterministic schedule based on confirmed tournament venues
-// Uses venue name hash for consistent (non-random) output per venue
-function generateFallbackSchedule(venues, day, filters) {
-    const tournaments = [];
-    const timeSlots = ['10:00AM', '11:00AM', '12:00PM', '1:00PM', '2:00PM', '6:00PM', '7:00PM', '8:00PM'];
-    const buyins = [40, 50, 65, 80, 100, 125, 150, 200, 250, 300];
-
-    venues.forEach((venue, idx) => {
-        // Apply filters
-        if (filters.state && venue.state !== filters.state.toUpperCase()) return;
-        if (filters.venue && !venue.name.toLowerCase().includes(filters.venue.toLowerCase())) return;
-        if (filters.type && !venue.type.toLowerCase().includes(filters.type.toLowerCase())) return;
-
-        // Deterministic: use venue index to pick consistent time/buyin per venue
-        const hash = venue.name.length + idx;
-        const numTournaments = (hash % 3) + 1;
-
-        for (let i = 0; i < numTournaments; i++) {
-            const buyin = buyins[(hash + i * 3) % buyins.length];
-
-            if (filters.minBuyin && buyin < filters.minBuyin) continue;
-            if (filters.maxBuyin && buyin > filters.maxBuyin) continue;
-
-            tournaments.push({
-                id: `${venue.name}-${day}-${i}`,
-                venue_id: null,
-                venue_name: venue.name,
-                city: venue.city,
-                state: venue.state,
-                venueType: venue.type,
-                day_of_week: day,
-                start_time: timeSlots[(hash + i * 2) % timeSlots.length],
-                buy_in: buyin,
-                game_type: (hash + i) % 10 === 0 ? 'PLO' : 'NLH',
-                format: (hash + i) % 4 === 0 ? 'Turbo' : null,
-                guaranteed: buyin >= 100 ? buyin * 10 : null,
-                tournament_name: null,
-                pokerAtlasUrl: venue.pokerAtlasUrl,
-                is_estimated: true
-            });
-        }
-    });
-
-    return tournaments;
-}
 
 function groupByTimeSlot(tournaments) {
     const slots = {
