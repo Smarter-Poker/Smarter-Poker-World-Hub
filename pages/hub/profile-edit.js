@@ -1520,30 +1520,92 @@ export default function ProfilePage() {
                                 }
 
                                 setIsRefreshing(true);
-                                setMessage('🔄 Refreshing stats from database...');
+                                setMessage('🔄 Checking for updated stats...');
                                 try {
                                     const _syncToken = getAccessToken();
-                                    const res = await fetch('/api/hendonmob/sync', {
+
+                                    // Step 1: Try reading from DB (Scrapling may have already synced)
+                                    const dbRes = await fetch('/api/hendonmob/sync', {
                                         method: 'GET',
                                         headers: {
                                             ...(_syncToken ? { 'Authorization': `Bearer ${_syncToken}` } : {}),
                                         },
                                     });
-                                    const data = await res.json();
-                                    if (res.ok && data.success) {
+                                    const dbData = await dbRes.json();
+
+                                    if (dbRes.ok && dbData.success && (dbData.total_cashes || dbData.total_earnings)) {
+                                        // DB has data — use it
                                         setProfile(prev => ({
                                             ...prev,
-                                            hendon_total_cashes: data.total_cashes,
-                                            hendon_total_earnings: data.total_earnings,
-                                            hendon_biggest_cash: data.biggest_cash,
+                                            hendon_total_cashes: dbData.total_cashes,
+                                            hendon_total_earnings: dbData.total_earnings,
+                                            hendon_biggest_cash: dbData.biggest_cash,
                                         }));
                                         setMessage('✅ Stats refreshed successfully!');
+                                        setIsRefreshing(false);
+                                        return;
+                                    }
+
+                                    // Step 2: No data in DB yet (new user) — prompt manual entry
+                                    setMessage('📋 No synced stats found. Opening your HendonMob page...');
+                                    window.open(profile.hendon_url, '_blank');
+                                    await new Promise(r => setTimeout(r, 800));
+
+                                    const earningsInput = window.prompt(
+                                        'Your HendonMob page is open in a new tab.\n\nEnter your Total Live Earnings from that page (numbers only, e.g. 900957):',
+                                        ''
+                                    );
+                                    if (earningsInput === null) { setIsRefreshing(false); return; }
+
+                                    const cashesInput = window.prompt(
+                                        'Now enter your Total Cashes count:',
+                                        ''
+                                    );
+                                    if (cashesInput === null) { setIsRefreshing(false); return; }
+
+                                    const biggestInput = window.prompt(
+                                        'Enter your Best Live Cash amount (numbers only, e.g. 252020):\n\n(Leave blank if unsure)',
+                                        ''
+                                    );
+
+                                    const totalEarnings = parseFloat(String(earningsInput).replace(/[^0-9.]/g, '')) || null;
+                                    const totalCashes = parseInt(String(cashesInput).replace(/[^0-9]/g, ''), 10) || null;
+                                    const biggestCash = biggestInput ? parseFloat(String(biggestInput).replace(/[^0-9.]/g, '')) : null;
+
+                                    if (!totalCashes && !totalEarnings) {
+                                        setMessage('No valid stats entered. Please try again.');
+                                        setIsRefreshing(false);
+                                        return;
+                                    }
+
+                                    // Save to DB via POST
+                                    const postRes = await fetch('/api/hendonmob/sync', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            ...(_syncToken ? { 'Authorization': `Bearer ${_syncToken}` } : {}),
+                                        },
+                                        body: JSON.stringify({
+                                            hendonUrl: profile.hendon_url,
+                                            stats: { totalCashes, totalEarnings, biggestCash }
+                                        })
+                                    });
+                                    const postData = await postRes.json();
+
+                                    if (postRes.ok && postData.success) {
+                                        setProfile(prev => ({
+                                            ...prev,
+                                            hendon_total_cashes: postData.total_cashes,
+                                            hendon_total_earnings: postData.total_earnings,
+                                            hendon_biggest_cash: postData.biggest_cash,
+                                        }));
+                                        setMessage('✅ Stats saved successfully! Your Poker Resume is now live.');
                                     } else {
-                                        setMessage(`❌ ${data.error || 'Could not refresh stats.'}`);
+                                        setMessage(`❌ ${postData.error || 'Could not save stats.'}`);
                                     }
                                 } catch (e) {
                                     console.error('Sync error:', e);
-                                    setMessage('❌ Error refreshing stats. Please try again.');
+                                    setMessage('❌ Error syncing stats. Please try again.');
                                 }
                                 setIsRefreshing(false);
                             }}
