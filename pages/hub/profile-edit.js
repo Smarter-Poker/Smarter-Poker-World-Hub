@@ -496,7 +496,7 @@ export default function ProfilePage() {
                         // Fetch social stats and friends
                         const headers = {
                             'apikey': supabaseKey,
-                            'Authorization': `Bearer ${supabaseKey}`,
+                            'Authorization': `Bearer ${loadToken}`,
                             'Content-Type': 'application/json'
                         };
 
@@ -1111,12 +1111,23 @@ export default function ProfilePage() {
                         coverHeight={200}
                         onCancel={() => setCoverEditorOpen(false)}
                         onSave={async (positionStr) => {
-                            const { error } = await supabase
-                                .from('profiles')
-                                .update({ cover_photo_position: positionStr, updated_at: new Date().toISOString() })
-                                .eq('id', user.id);
-                            if (error) {
-                                setMessage('Error saving position: ' + error.message);
+                            // Direct PostgREST fetch — avoids SIGNED_OUT cascade
+                            const _posUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                            const _posKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                            let _posJwt = _posKey;
+                            try {
+                                const _a = localStorage.getItem('smarter-poker-auth');
+                                if (_a) { const p = JSON.parse(_a); if (p?.access_token) _posJwt = p.access_token; }
+                            } catch { /* noop */ }
+
+                            const posRes = await fetch(`${_posUrl}/rest/v1/profiles?id=eq.${user.id}`, {
+                                method: 'PATCH',
+                                headers: { 'apikey': _posKey, 'Authorization': `Bearer ${_posJwt}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                                body: JSON.stringify({ cover_photo_position: positionStr, updated_at: new Date().toISOString() }),
+                            });
+                            if (!posRes.ok) {
+                                const errText = await posRes.text();
+                                setMessage('Error saving position: ' + errText);
                                 return;
                             }
                             setProfile(prev => ({ ...prev, cover_photo_position: positionStr }));
@@ -1940,17 +1951,38 @@ export default function ProfilePage() {
                                                             }
                                                             // Post to feed
                                                             try {
-                                                                const { error } = await supabase.from('social_posts').insert({
-                                                                    author_id: user?.id,
-                                                                    content: `🔴 ${live.title || 'Live replay'}`,
-                                                                    content_type: 'video',
-                                                                    media_urls: [live.video_url],
-                                                                    visibility: 'public'
+                                                                // Direct PostgREST — avoids SIGNED_OUT cascade
+                                                                const _liveUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                                                                const _liveKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                                                                let _liveJwt = _liveKey;
+                                                                try {
+                                                                    const _a = localStorage.getItem('smarter-poker-auth');
+                                                                    if (_a) { const p = JSON.parse(_a); if (p?.access_token) _liveJwt = p.access_token; }
+                                                                } catch { /* noop */ }
+                                                                const _liveHeaders = { 'apikey': _liveKey, 'Authorization': `Bearer ${_liveJwt}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+
+                                                                // Insert social post
+                                                                const insertRes = await fetch(`${_liveUrl}/rest/v1/social_posts`, {
+                                                                    method: 'POST',
+                                                                    headers: _liveHeaders,
+                                                                    body: JSON.stringify({
+                                                                        author_id: user?.id,
+                                                                        content: `🔴 ${live.title || 'Live replay'}`,
+                                                                        content_type: 'video',
+                                                                        media_urls: [live.video_url],
+                                                                        visibility: 'public'
+                                                                    }),
                                                                 });
-                                                                if (error) throw error;
-                                                                await supabase.from('live_streams')
-                                                                    .update({ is_posted: true, is_draft: false })
-                                                                    .eq('id', live.id);
+                                                                if (!insertRes.ok) throw new Error(await insertRes.text());
+
+                                                                // Update live stream status
+                                                                const updateRes = await fetch(`${_liveUrl}/rest/v1/live_streams?id=eq.${live.id}`, {
+                                                                    method: 'PATCH',
+                                                                    headers: _liveHeaders,
+                                                                    body: JSON.stringify({ is_posted: true, is_draft: false }),
+                                                                });
+                                                                if (!updateRes.ok) throw new Error(await updateRes.text());
+
                                                                 setUserLives(prev => prev.map(l =>
                                                                     l.id === live.id ? { ...l, is_posted: true, is_draft: false } : l
                                                                 ));
@@ -1969,7 +2001,18 @@ export default function ProfilePage() {
                                                     <button
                                                         onClick={async () => {
                                                             if (confirm('Delete this live stream?')) {
-                                                                await supabase.from('live_streams').delete().eq('id', live.id);
+                                                                // Direct PostgREST DELETE — avoids SIGNED_OUT cascade
+                                                                const _delUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                                                                const _delKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                                                                let _delJwt = _delKey;
+                                                                try {
+                                                                    const _a = localStorage.getItem('smarter-poker-auth');
+                                                                    if (_a) { const p = JSON.parse(_a); if (p?.access_token) _delJwt = p.access_token; }
+                                                                } catch { /* noop */ }
+                                                                await fetch(`${_delUrl}/rest/v1/live_streams?id=eq.${live.id}`, {
+                                                                    method: 'DELETE',
+                                                                    headers: { 'apikey': _delKey, 'Authorization': `Bearer ${_delJwt}`, 'Content-Type': 'application/json' },
+                                                                });
                                                                 setUserLives(prev => prev.filter(l => l.id !== live.id));
                                                             }
                                                         }}
