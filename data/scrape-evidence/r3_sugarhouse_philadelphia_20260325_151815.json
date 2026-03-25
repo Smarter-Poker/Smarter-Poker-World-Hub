@@ -1,0 +1,18 @@
+{
+  "venue": "SugarHouse Philadelphia",
+  "slug": "sugarhouse-casino-philadelphia",
+  "url": "https://www.pokeratlas.com/poker-room/sugarhouse-casino-philadelphia",
+  "data": {
+    "address": "1001 N. Delaware Avenue ",
+    "state": "PA",
+    "phone": "(215) 717-3883",
+    "lat": 39.96505,
+    "lng": -75.13253,
+    "website": "http://www.RiversCasino.com/Philadelphia"
+  },
+  "hash": "7a39a8ee356cf32e57a833535596b968f73838f38b42281095504bce31f8f4f8",
+  "bytes": 59096,
+  "http_status": 200,
+  "ts": "2026-03-25T20:18:15.172421+00:00",
+  "batch": "8a2a072d-bce3-46d2-a0e9-02209805d948"
+}

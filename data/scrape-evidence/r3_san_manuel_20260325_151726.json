@@ -1,0 +1,18 @@
+{
+  "venue": "San Manuel",
+  "slug": "san-manuel-casino-highland",
+  "url": "https://www.pokeratlas.com/poker-room/san-manuel-casino-highland",
+  "data": {
+    "address": "5797 North Victoria Avenue",
+    "state": "CA",
+    "phone": "(800) 359-2464",
+    "lat": 34.15243,
+    "lng": -117.22049,
+    "website": "http://www.sanmanuel.com/"
+  },
+  "hash": "aa18675259d48f98fe1f10a1caad50aac5ff92745c9d53dd0fef9afc3db0eeb1",
+  "bytes": 57785,
+  "http_status": 200,
+  "ts": "2026-03-25T20:17:26.031509+00:00",
+  "batch": "8a2a072d-bce3-46d2-a0e9-02209805d948"
+}

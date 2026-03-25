@@ -3,7 +3,8 @@
  * Supports venue, group, community, and brand pages
  */
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useAuthUser, getAccessToken } from '../../../src/lib/authUtils';
@@ -222,6 +223,7 @@ export default function SocialPageDetail() {
     const { pageId } = router.query;
     const { user } = useAuthUser();
     useTrainingBus('social-page-detail');
+    const { isClubMode, clubPage } = useActiveIdentity();
     const [page, setPage] = useState(null);
     const [posts, setPosts] = useState([]);
     const [followers, setFollowers] = useState([]);
@@ -231,6 +233,21 @@ export default function SocialPageDetail() {
     const [userRole, setUserRole] = useState(null);
     const [newPost, setNewPost] = useState('');
     const [posting, setPosting] = useState(false);
+
+    // Toast notification system
+    const [toastMsg, setToastMsg] = useState(null);
+    const toastTimerRef = useRef(null);
+    const toast = {
+        success: (msg, duration = 3000) => {
+            setToastMsg(msg);
+            if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+            toastTimerRef.current = setTimeout(() => setToastMsg(null), duration);
+        }
+    };
+
+    // Owner identity detection
+    const isPageOwner = userRole === 'owner';
+    const isOwnerOnOwnPage = isPageOwner && page && clubPage?.id === page.id;
 
 
 
@@ -347,6 +364,7 @@ export default function SocialPageDetail() {
                     action: newState ? 'follow' : 'unfollow',
                 }),
             });
+            toast.success(newState ? 'Following!' : 'Unfollowed');
             busEmit.dataMutated('social-pages');
         } catch (e) { console.error("[[pageId].js]", e); }
     };
@@ -370,11 +388,13 @@ export default function SocialPageDetail() {
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) {
+                toast.success('Posted successfully!');
                 busEmit.dataMutated('social-pages');
+                busEmit.dataMutated('social');
                 setNewPost('');
                 fetchPosts();
             }
-        } catch (e) { console.error("[[pageId].js]", e); }
+        } catch (e) { console.error("[[pageId].js]", e); toast.success('Post failed — try again'); }
         setPosting(false);
     };
 
@@ -398,6 +418,7 @@ export default function SocialPageDetail() {
                 },
                 body: JSON.stringify({ action: 'like', post_id: postId, user_id: user.id }),
             });
+            busEmit.dataMutated('social-pages');
         } catch (e) { console.error("[[pageId].js]", e); }
     };
 
@@ -598,16 +619,26 @@ export default function SocialPageDetail() {
                                             background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
                                             padding: 16, marginBottom: 16,
                                         }}>
+                                            {isOwnerOnOwnPage && (
+                                                <div style={{
+                                                    fontSize: 12, color: '#1877F2', fontWeight: 600,
+                                                    marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6,
+                                                    padding: '6px 10px', background: '#E7F3FF', borderRadius: 8,
+                                                }}>
+                                                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#1877F2', display: 'inline-block' }} />
+                                                    Posting as {page.name}
+                                                </div>
+                                            )}
                                             <div style={{ display: 'flex', gap: 10 }}>
                                                 <Avatar
-                                                    src={user.user_metadata?.avatar_url}
-                                                    name={user.user_metadata?.full_name || user.email}
+                                                    src={isOwnerOnOwnPage ? page.avatar_url : user.user_metadata?.avatar_url}
+                                                    name={isOwnerOnOwnPage ? page.name : (user.user_metadata?.full_name || user.email)}
                                                     size={40}
                                                 />
                                                 <textarea
                                                     value={newPost}
                                                     onChange={e => setNewPost(e.target.value)}
-                                                    placeholder={`Write something to ${page.name}...`}
+                                                    placeholder={isOwnerOnOwnPage ? `Post as ${page.name}...` : `Write something to ${page.name}...`}
                                                     style={{
                                                         flex: 1, padding: '10px 12px', borderRadius: 12,
                                                         border: `1px solid ${C.border}`, fontSize: 14,
@@ -774,10 +805,7 @@ export default function SocialPageDetail() {
                                 </div>
                                 <button onClick={() => {
                                     const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
-                                    navigator.clipboard.writeText(url).then(() => {
-                                        const el = document.getElementById('copy-feedback');
-                                        if (el) { el.textContent = 'Copied!'; setTimeout(() => { el.textContent = 'Copy Link'; }, 2000); }
-                                    }).catch(() => {});
+                                    navigator.clipboard.writeText(url).then(() => toast.success('Link copied!')).catch(() => {});
                                 }} id="copy-feedback" style={{
                                     width: '100%', padding: '8px 0', borderRadius: 8, border: 'none',
                                     background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600,
@@ -804,10 +832,23 @@ export default function SocialPageDetail() {
                     </div>
                 </div>
               <BottomNavBar />
+
+              {/* Toast Notification */}
+              {toastMsg && (
+                  <div style={{
+                      position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+                      background: '#2e7d32', color: '#fff', padding: '10px 24px', borderRadius: 8,
+                      fontSize: 14, fontWeight: 600, zIndex: 10000, boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                      animation: 'sp-toast-in 0.3s ease',
+                  }}>
+                      {toastMsg}
+                  </div>
+              )}
             </div>
 
             <style jsx global>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
+                @keyframes sp-toast-in { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
                 @media (max-width: 768px) {
                     div[style*="grid-template-columns: 1fr 320px"] {
                         grid-template-columns: 1fr !important;

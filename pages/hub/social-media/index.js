@@ -38,40 +38,40 @@
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
-import SEOHead from '../../src/components/seo/SEOHead';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import { useFeedPrefetchObserver } from '../../src/hooks/useProfilePrefetch';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import { useFeedPrefetchObserver } from '../../../src/hooks/useProfilePrefetch';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { usePersistedState } from '../../src/hooks/usePersistedState';
-import { supabase } from '../../src/lib/supabase';
-import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
-import { getAuthUser, ensureAuthReady } from '../../src/lib/authUtils';
-import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
-import { useUnreadCount } from '../../src/hooks/useUnreadCount';
-import { StoriesBar } from '../../src/components/social/Stories';
-import { ReelsFeedCarousel } from '../../src/components/social/ReelsFeedCarousel';
-import { GoLiveModal } from '../../src/components/social/GoLiveModal';
-import { LiveStreamCard } from '../../src/components/social/LiveStreamCard';
-import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
-import LiveStreamService from '../../src/services/LiveStreamService';
-import ArticleCard from '../../src/components/social/ArticleCard';
-import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
-import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
-import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
-import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
-import { isHorseOnlineNow } from '../../src/lib/horsePresence';
-import { blockUser, getBlockedUsers } from '../../src/services/privacy-service';
+import { usePersistedState } from '../../../src/hooks/usePersistedState';
+import { supabase } from '../../../src/lib/supabase';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import { getAuthUser, ensureAuthReady } from '../../../src/lib/authUtils';
+import { useExternalLink } from '../../../src/components/ui/ExternalLinkModal';
+import { useUnreadCount } from '../../../src/hooks/useUnreadCount';
+import { StoriesBar } from '../../../src/components/social/Stories';
+import { ReelsFeedCarousel } from '../../../src/components/social/ReelsFeedCarousel';
+import { GoLiveModal } from '../../../src/components/social/GoLiveModal';
+import { LiveStreamCard } from '../../../src/components/social/LiveStreamCard';
+import { LiveStreamViewer } from '../../../src/components/social/LiveStreamViewer';
+import LiveStreamService from '../../../src/services/LiveStreamService';
+import ArticleCard from '../../../src/components/social/ArticleCard';
+import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
+import InviteFriendsModal from '../../../src/components/ui/InviteFriendsModal';
+import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
+import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
+import { isHorseOnlineNow } from '../../../src/lib/horsePresence';
+import { blockUser, getBlockedUsers } from '../../../src/services/privacy-service';
 
 // God-Mode Stack
-import { useSocialStore } from '../../src/stores/socialStore';
-import PageTransition from '../../src/components/transitions/PageTransition';
-import toast from '../../src/stores/toastStore';
-import { getAccessToken } from '../../src/lib/authUtils';
-import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
-import GiphyPicker from '../../src/components/shared/GiphyPicker';
+import { useSocialStore } from '../../../src/stores/socialStore';
+import PageTransition from '../../../src/components/transitions/PageTransition';
+import toast from '../../../src/stores/toastStore';
+import { getAccessToken } from '../../../src/lib/authUtils';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
+import GiphyPicker from '../../../src/components/shared/GiphyPicker';
 
 // Light Theme Colors (SmarterPoker-style)
 const C = {
@@ -808,7 +808,7 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
     );
 }
 
-// StoriesBar imported from '../../src/components/social/Stories'
+// StoriesBar imported from '../../../src/components/social/Stories'
 
 const MAX_MEDIA = 10;
 

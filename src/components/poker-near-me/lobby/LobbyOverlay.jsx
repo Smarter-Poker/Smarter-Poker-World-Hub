@@ -286,15 +286,15 @@ export default function LobbyOverlay({
           {/* Transparent clickable hotspot grid overlaid on top of the image */}
           <div style={{
             position: 'absolute',
-            /* Inset calibrated to the 1024×1024 original image's internal frame:
-               - Top: ~3.5% (neon frame top glow)
-               - Left/Right: ~3% (neon frame side glow)
-               - Bottom: ~1.5% (neon frame bottom glow, slightly thinner)
+            /* Inset calibrated from pixel analysis of 1024×1024 source:
+               - Neon frame: top=1.8%, bottom=97.5%, left=0.8%, right=98.9%
+               - Row 1 content: 4%–30%, Row 2: 34%–60%, Row 3: 64%–96%
+               - Grid covers full icon+text cell area inside the frame
             */
-            top: '3.5%',
-            left: '3%',
-            right: '3%',
-            bottom: '1.5%',
+            top: '2.5%',
+            left: '2%',
+            right: '2%',
+            bottom: '2%',
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
             gridTemplateRows: 'repeat(3, 1fr)',
