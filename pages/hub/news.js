@@ -1,3 +1,4 @@
+import React from 'react';
 import dynamic from 'next/dynamic';
 /**
  * SMARTER.POKER NEWS HUB - REDESIGNED UI
