@@ -72,6 +72,11 @@ export default function ReelsPage() {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [savedReels, setSavedReels] = useState(new Set());
     const [showHeart, setShowHeart] = useState(false);
+    const [slideDirection, setSlideDirection] = useState(null);
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [viewCounts, setViewCounts] = useState({});
 
     // Reels preferences state
     const [preferences, setPreferences] = useState({
@@ -265,14 +270,16 @@ export default function ReelsPage() {
                 const shuffled = mappedReels.sort(() => Math.random() - 0.5);
                 setReels(shuffled);
 
-                // Initialize like/comment counts from loaded data
-                const lc = {}, cc = {};
+                // Initialize like/comment/view counts from loaded data
+                const lc = {}, cc = {}, vc = {};
                 shuffled.forEach(r => {
                     lc[r.id] = r.like_count || 0;
                     cc[r.id] = r.comment_count || 0;
+                    vc[r.id] = r.view_count || 0;
                 });
                 setLikeCounts(lc);
                 setCommentCounts(cc);
+                setViewCounts(vc);
             }
         } catch (e) {
             console.error('Load reels error:', e);
@@ -284,11 +291,70 @@ export default function ReelsPage() {
     const currentReel = reels[currentIndex];
 
     const goNext = () => {
-        if (currentIndex < reels.length - 1) setCurrentIndex(prev => prev + 1);
+        if (currentIndex < reels.length - 1) {
+            setSlideDirection('up');
+            setTimeout(() => {
+                setCurrentIndex(prev => prev + 1);
+                setSlideDirection(null);
+            }, 250);
+        }
     };
 
     const goPrev = () => {
-        if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
+        if (currentIndex > 0) {
+            setSlideDirection('down');
+            setTimeout(() => {
+                setCurrentIndex(prev => prev - 1);
+                setSlideDirection(null);
+            }, 250);
+        }
+    };
+
+    // Infinite scroll — load more when near end
+    useEffect(() => {
+        if (currentIndex >= reels.length - 3 && hasMore && !loadingMore && reels.length > 0) {
+            loadMoreReels();
+        }
+    }, [currentIndex, reels.length, hasMore, loadingMore]);
+
+    const loadMoreReels = async () => {
+        if (loadingMore || !hasMore) return;
+        setLoadingMore(true);
+        try {
+            const nextPage = page + 1;
+            const offset = nextPage * 50;
+            const { data: postsData } = await supabase
+                .from('social_posts')
+                .select('id, author_id, content, media_urls, like_count, comment_count, created_at, visibility')
+                .eq('visibility', 'public')
+                .not('media_urls', 'is', null)
+                .order('created_at', { ascending: false })
+                .range(offset, offset + 49);
+            const videos = (postsData || []).filter(p => {
+                const url = p.media_urls?.[0];
+                return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+            });
+            if (videos.length === 0) {
+                setHasMore(false);
+            } else {
+                const authorIds = [...new Set(videos.map(v => v.author_id))];
+                const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url, full_name').in('id', authorIds);
+                const pm = {}; (profiles || []).forEach(p => { pm[p.id] = p; });
+                const mapped = videos.map(v => ({
+                    id: v.id, video_url: v.media_urls[0], caption: v.content,
+                    like_count: v.like_count || 0, comment_count: v.comment_count || 0,
+                    created_at: v.created_at, profiles: pm[v.author_id] || { username: 'Anonymous' },
+                }));
+                setReels(prev => [...prev, ...mapped]);
+                const lc = {}, cc = {}, vc = {};
+                mapped.forEach(r => { lc[r.id] = r.like_count || 0; cc[r.id] = r.comment_count || 0; vc[r.id] = r.view_count || 0; });
+                setLikeCounts(prev => ({ ...prev, ...lc }));
+                setCommentCounts(prev => ({ ...prev, ...cc }));
+                setViewCounts(prev => ({ ...prev, ...vc }));
+                setPage(nextPage);
+            }
+        } catch (e) { console.error('Load more error:', e); }
+        setLoadingMore(false);
     };
 
     // Haptic helper
@@ -737,7 +803,28 @@ export default function ReelsPage() {
                     Reels
                 </div>
 
-                {/* VIDEO WRAPPER with clip-path to hide edge artifacts */}
+                {/* Engagement Stats Pill */}
+                <div style={{
+                    position: 'absolute', top: 20, right: 16, zIndex: 100,
+                    display: 'flex', gap: 12, padding: '6px 14px', borderRadius: 20,
+                    background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                }}>
+                    <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        {viewCounts[currentReel?.id] || currentReel?.view_count || 0}
+                    </span>
+                    <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        {likeCounts[currentReel?.id] ?? (currentReel?.like_count || 0)}
+                    </span>
+                    <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                        {commentCounts[currentReel?.id] || 0}
+                    </span>
+                </div>
+
+                {/* VIDEO WRAPPER with slide animation */}
                 <div style={{
                     position: 'absolute',
                     top: 0,
@@ -747,6 +834,9 @@ export default function ReelsPage() {
                     overflow: 'hidden',
                     clipPath: 'inset(0)',
                     background: '#000',
+                    transition: slideDirection ? 'transform 0.25s ease-out, opacity 0.2s ease-out' : 'none',
+                    transform: slideDirection === 'up' ? 'translateY(-100%)' : slideDirection === 'down' ? 'translateY(100%)' : 'translateY(0)',
+                    opacity: slideDirection ? 0.3 : 1,
                 }}>
                     {/* Videos auto-play immediately (muted per browser policy) */}
 
@@ -846,8 +936,15 @@ export default function ReelsPage() {
                             <div style={{ color: 'white', fontWeight: 600, fontSize: 15, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
                                 {currentReel?.profiles?.full_name || currentReel?.profiles?.username}
                             </div>
-                            <div style={{ color: C.textSec, fontSize: 12 }}>
+                            <div style={{ color: C.textSec, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 {timeAgo(currentReel?.created_at)}
+                                <span style={{ opacity: 0.6 }}>·</span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    {viewCounts[currentReel?.id] || currentReel?.view_count || 0}
+                                </span>
+                                <span style={{ opacity: 0.6 }}>·</span>
+                                <span style={{ fontSize: 11, opacity: 0.7 }}>{currentIndex + 1}/{reels.length}</span>
                             </div>
                         </div>
                     </Link>
@@ -931,14 +1028,29 @@ export default function ReelsPage() {
                     </button>
                 </div>
 
-                {/* Double-tap heart burst */}
+                {/* Instagram-style heart burst with particles */}
                 {showHeart && (
-                    <div style={{
-                        position: 'absolute', top: '50%', left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        fontSize: 80, pointerEvents: 'none', zIndex: 150,
-                        animation: 'heartBurstReelsPage 0.8s ease-out forwards',
-                    }}>❤️</div>
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 150, width: 120, height: 120 }}>
+                        {/* Main heart */}
+                        <svg width="80" height="80" viewBox="0 0 24 24" style={{
+                            position: 'absolute', top: '50%', left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            animation: 'heartBurstMain 0.8s ease-out forwards',
+                            filter: 'drop-shadow(0 0 20px rgba(239,68,68,0.6))',
+                        }}>
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="#ef4444" stroke="#ff6b6b" strokeWidth="1"/>
+                        </svg>
+                        {/* Particle hearts */}
+                        {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+                            <svg key={i} width="18" height="18" viewBox="0 0 24 24" style={{
+                                position: 'absolute', top: '50%', left: '50%',
+                                animation: `heartParticle${i} 0.7s ${i * 0.05}s ease-out forwards`,
+                                opacity: 0,
+                            }}>
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill={['#ef4444','#ff6b6b','#f472b6','#ef4444','#ff6b6b','#f472b6'][i]}/>
+                            </svg>
+                        ))}
+                    </div>
                 )}
 
                 {/* Share Toast */}
@@ -971,13 +1083,22 @@ export default function ReelsPage() {
                     }}
                 />
 
-                {/* Heart burst animation CSS */}
+                {/* Heart burst + slide animation CSS */}
                 <style jsx>{`
-                    @keyframes heartBurstReelsPage {
-                        0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
-                        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-                        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+                    @keyframes heartBurstMain {
+                        0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+                        30% { opacity: 1; transform: translate(-50%, -50%) scale(1.4); }
+                        60% { opacity: 1; transform: translate(-50%, -50%) scale(0.95); }
+                        80% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+                        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); }
                     }
+                    @keyframes heartParticle0 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% + 45px), calc(-50% - 35px)) scale(0.3) rotate(20deg); } }
+                    @keyframes heartParticle1 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% + 50px), calc(-50% + 20px)) scale(0.3) rotate(-15deg); } }
+                    @keyframes heartParticle2 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% + 15px), calc(-50% + 50px)) scale(0.3) rotate(30deg); } }
+                    @keyframes heartParticle3 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% - 45px), calc(-50% + 30px)) scale(0.3) rotate(-25deg); } }
+                    @keyframes heartParticle4 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% - 50px), calc(-50% - 20px)) scale(0.3) rotate(10deg); } }
+                    @keyframes heartParticle5 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% - 15px), calc(-50% - 50px)) scale(0.3) rotate(-30deg); } }
+                    @keyframes shimmer { to { background-position-x: -200%; } }
                 `}</style>
 
                 {/* Comment Panel */}
@@ -1044,16 +1165,39 @@ export default function ReelsPage() {
                     </div>
                 )}
 
-                {/* Swipe instruction */}
+                {/* Preload next reel thumbnail in background */}
+                {reels[currentIndex + 1] && (() => {
+                    const nextVid = getYouTubeVideoId(reels[currentIndex + 1]?.video_url);
+                    return nextVid ? <img src={`https://img.youtube.com/vi/${nextVid}/hqdefault.jpg`} style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} alt="" /> : null;
+                })()}
+
+                {/* Swipe instruction + position */}
                 {!showCommentPanel && (
                     <div style={{
                         position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100,
                     }}>
-                        <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Swipe Up For Next</span>
-                        <span style={{ fontSize: 20, marginTop: 4, color: 'rgba(255,255,255,0.6)' }}>↑</span>
+                        {loadingMore ? (
+                            <div style={{
+                                width: 24, height: 24, border: '2px solid rgba(255,255,255,0.3)',
+                                borderTopColor: 'white', borderRadius: '50%',
+                                animation: 'spin 0.8s linear infinite',
+                            }} />
+                        ) : currentIndex < reels.length - 1 ? (
+                            <>
+                                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Swipe Up For Next</span>
+                                <span style={{ fontSize: 20, marginTop: 4, color: 'rgba(255,255,255,0.6)' }}>↑</span>
+                            </>
+                        ) : (
+                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                                {hasMore ? 'Loading more...' : 'You\'ve seen all reels'}
+                            </span>
+                        )}
                     </div>
                 )}
+
+                {/* Spin animation for loader */}
+                <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
 
             </div >
