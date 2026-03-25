@@ -247,7 +247,7 @@ export default async function handler(req, res) {
             .from('poker_series')
             .select('*')
             .order('start_date', { ascending: true })
-            .limit(300);
+            .limit(500);
 
           if (upcoming === 'true') {
             const today = new Date().toISOString().split('T')[0];
@@ -368,7 +368,8 @@ export default async function handler(req, res) {
             .from('poker_events')
             .select('*')
             .in('series_uid', seriesUids)
-            .order('start_date', { ascending: true });
+            .order('start_date', { ascending: true })
+            .limit(2000);
 
           if (allEvents && allEvents.length > 0) {
             const eventsBySeries = {};
