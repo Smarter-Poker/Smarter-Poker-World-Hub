@@ -1447,10 +1447,19 @@ export default function NewsHub() {
             const allArticles = [...(topArticles || []), ...(remainingStories || [])];
             if (e.key === 'j' || e.key === 'J') {
                 e.preventDefault();
-                setFocusedArticleIdx(prev => Math.min(prev + 1, allArticles.length - 1));
+                setFocusedArticleIdx(prev => {
+                    const next = Math.min(prev + 1, allArticles.length - 1);
+                    // Phase 6: Smooth scroll to focused article
+                    setTimeout(() => document.querySelector('.keyboard-focused')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+                    return next;
+                });
             } else if (e.key === 'k' || e.key === 'K') {
                 e.preventDefault();
-                setFocusedArticleIdx(prev => Math.max(prev - 1, 0));
+                setFocusedArticleIdx(prev => {
+                    const next = Math.max(prev - 1, 0);
+                    setTimeout(() => document.querySelector('.keyboard-focused')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+                    return next;
+                });
             } else if (e.key === 'Enter' && focusedArticleIdx >= 0 && focusedArticleIdx < allArticles.length) {
                 e.preventDefault();
                 openArticle(allArticles[focusedArticleIdx]);
@@ -1459,6 +1468,35 @@ export default function NewsHub() {
         window.addEventListener('keydown', handleKeyNav);
         return () => window.removeEventListener('keydown', handleKeyNav);
     }, [focusedArticleIdx, topArticles, remainingStories]);
+
+    // Phase 6: IntersectionObserver for infinite scroll
+    const loadMoreRef = useRef(null);
+    useEffect(() => {
+        if (!loadMoreRef.current) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting && visibleStories < (remainingStories?.length || 0)) {
+                    setVisibleStories(prev => prev + 10);
+                }
+            },
+            { rootMargin: '200px' }
+        );
+        observer.observe(loadMoreRef.current);
+        return () => observer.disconnect();
+    }, [visibleStories, remainingStories?.length]);
+
+    // Phase 6: Time-grouped article helpers
+    const getTimeGroup = (publishedAt) => {
+        if (!publishedAt) return 'older';
+        const now = new Date();
+        const pub = new Date(publishedAt);
+        const diffH = (now - pub) / 3600000;
+        if (diffH < 24) return 'today';
+        if (diffH < 48) return 'yesterday';
+        if (diffH < 168) return 'this_week';
+        return 'older';
+    };
+    const TIME_GROUP_LABELS = { today: 'Today', yesterday: 'Yesterday', this_week: 'This Week', older: 'Older' };
 
     return (
         <>
@@ -1728,55 +1766,66 @@ export default function NewsHub() {
                                                     <Newspaper size={16} /> {activeSourceFilters.length > 0 ? `Filtered Stories (${remainingStories.length})` : `More Stories (${remainingStories.length})`}
                                                 </h2>
                                                 <div className="news-list">
-                                                    {remainingStories.slice(0, visibleStories).map((article) => (
-                                                        <motion.div
-                                                            key={article.id}
-                                                            className={`news-list-item ${readArticles.includes(article.id) ? 'read' : ''}`}
-                                                            whileHover={{ x: 4 }}
-                                                            onClick={() => openArticle(article)}
-                                                        >
-                                                            {isNewArticle(article) && (
-                                                                <span className="new-badge">NEW</span>
-                                                            )}
-                                                            {(article.views || 0) > 50 && (
-                                                                <span className="trending-badge">🔥</span>
-                                                            )}
-                                                            <img
-                                                                src={article.image_url ? (article.image_url.includes('cardplayer.com') ? `/api/proxy?url=${encodeURIComponent(article.image_url)}` : article.image_url) : (FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news)}
-                                                                alt=""
-                                                                className="list-thumb"
-                                                                onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
-                                                            />
-                                                            <div className="list-content">
-                                                                <h4>{article.title}</h4>
-                                                                <div className="list-meta">
-                                                                    <span style={{ color: SOURCE_COLORS[article.source_name] || '#888' }}>{article.source_name || 'Source'}</span>
-                                                                    <span>•</span>
-                                                                    <span>{timeAgo(article.published_at)}</span>
-                                                                    {article.category && <span className="category-pill" style={{ background: `rgba(${article.category === 'tournament' ? '251,191,36' : article.category === 'strategy' ? '124,58,237' : article.category === 'industry' ? '34,197,94' : '59,130,246'}, 0.2)`, color: article.category === 'tournament' ? '#fbbf24' : article.category === 'strategy' ? '#a78bfa' : article.category === 'industry' ? '#22c55e' : '#3b82f6' }}>{article.category}</span>}
-                                                                    {(article.views || 0) > 0 && <><span>•</span><span><Eye size={10} /> {formatViews(article.views)}</span></>}
-                                                                </div>
-                                                            </div>
-                                                            <div className="list-actions" onClick={(e) => e.stopPropagation()}>
-                                                                <button onClick={(e) => { e.stopPropagation(); toggleBookmark(article.id, article); }} title="Bookmark">
-                                                                    {bookmarks.includes(article.id) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
-                                                                </button>
-                                                                <button onClick={(e) => { e.stopPropagation(); handleShare(article); }} title="Share">
-                                                                    <Share2 size={14} />
-                                                                </button>
-                                                            </div>
-                                                        </motion.div>
-                                                    ))}
+                                                {(() => {
+                                                    let lastGroup = '';
+                                                    return remainingStories.slice(0, visibleStories).map((article) => {
+                                                        const group = getTimeGroup(article.published_at);
+                                                        const showHeader = group !== lastGroup;
+                                                        lastGroup = group;
+                                                        return (
+                                                            <React.Fragment key={article.id}>
+                                                                {showHeader && (
+                                                                    <div className="time-group-header">
+                                                                        {TIME_GROUP_LABELS[group]}
+                                                                    </div>
+                                                                )}
+                                                                <motion.div
+                                                                    className={`news-list-item ${readArticles.includes(article.id) ? 'read' : ''}`}
+                                                                    whileHover={{ x: 4 }}
+                                                                    onClick={() => openArticle(article)}
+                                                                >
+                                                                    {isNewArticle(article) && (
+                                                                        <span className="new-badge">NEW</span>
+                                                                    )}
+                                                                    {(article.views || 0) > 50 && (
+                                                                        <span className="trending-badge">🔥</span>
+                                                                    )}
+                                                                    <img
+                                                                        src={article.image_url ? (article.image_url.includes('cardplayer.com') ? `/api/proxy?url=${encodeURIComponent(article.image_url)}` : article.image_url) : (FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news)}
+                                                                        alt=""
+                                                                        className="list-thumb"
+                                                                        onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
+                                                                    />
+                                                                    <div className="list-content">
+                                                                        <h4>{article.title}</h4>
+                                                                        <div className="list-meta">
+                                                                            <span style={{ color: SOURCE_COLORS[article.source_name] || '#888' }}>{article.source_name || 'Source'}</span>
+                                                                            <span>•</span>
+                                                                            <span>{timeAgo(article.published_at)}</span>
+                                                                            {article.category && <span className="category-pill" style={{ background: `rgba(${article.category === 'tournament' ? '251,191,36' : article.category === 'strategy' ? '124,58,237' : article.category === 'industry' ? '34,197,94' : '59,130,246'}, 0.2)`, color: article.category === 'tournament' ? '#fbbf24' : article.category === 'strategy' ? '#a78bfa' : article.category === 'industry' ? '#22c55e' : '#3b82f6' }}>{article.category}</span>}
+                                                                            {(article.views || 0) > 0 && <><span>•</span><span><Eye size={10} /> {formatViews(article.views)}</span></>}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="list-actions" onClick={(e) => e.stopPropagation()}>
+                                                                        <button onClick={(e) => { e.stopPropagation(); toggleBookmark(article.id, article); }} title="Bookmark">
+                                                                            {bookmarks.includes(article.id) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+                                                                        </button>
+                                                                        <button onClick={(e) => { e.stopPropagation(); handleShare(article); }} title="Share">
+                                                                            <Share2 size={14} />
+                                                                        </button>
+                                                                    </div>
+                                                                </motion.div>
+                                                            </React.Fragment>
+                                                        );
+                                                    });
+                                                })()}
                                                 </div>
+                                                {/* Phase 6: IntersectionObserver sentinel replaces Load More */}
                                                 {visibleStories < remainingStories.length && (
-                                                    <motion.button
-                                                        className="load-more-btn"
-                                                        onClick={() => setVisibleStories(prev => prev + 10)}
-                                                        whileHover={{ scale: 1.02 }}
-                                                        whileTap={{ scale: 0.98 }}
-                                                    >
-                                                        Load More ({remainingStories.length - visibleStories} remaining)
-                                                    </motion.button>
+                                                    <div ref={loadMoreRef} className="load-more-sentinel">
+                                                        <div className="loading-spinner" />
+                                                        <span>Loading more stories...</span>
+                                                    </div>
                                                 )}
                                             </div>
                                         )}
@@ -2541,6 +2590,45 @@ export default function NewsHub() {
                     }
                     .news-list-item.read:hover {
                         opacity: 1;
+                    }
+                    .time-group-header {
+                        font-size: 11px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 1.5px;
+                        color: rgba(94,245,240,0.6);
+                        padding: 10px 0 4px;
+                        margin-top: 6px;
+                        border-top: 1px solid rgba(94,245,240,0.08);
+                    }
+                    .time-group-header:first-child {
+                        border-top: none;
+                        margin-top: 0;
+                    }
+                    .load-more-sentinel {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        padding: 16px;
+                        color: rgba(255,255,255,0.3);
+                        font-size: 12px;
+                    }
+                    .loading-spinner {
+                        width: 16px;
+                        height: 16px;
+                        border: 2px solid rgba(94,245,240,0.2);
+                        border-top-color: #5ef5f0;
+                        border-radius: 50%;
+                        animation: spin 0.8s linear infinite;
+                    }
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                    .keyboard-focused {
+                        outline: 2px solid rgba(94,245,240,0.4);
+                        outline-offset: 2px;
+                        border-radius: 8px;
                     }
 
                     /* ═══════════════════════════════════════════════ */

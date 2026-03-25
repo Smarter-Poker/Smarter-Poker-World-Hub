@@ -255,44 +255,39 @@ async def fetch_with_scrapling(url: str, session) -> str:
 async def scrape_venue(venue: dict, session) -> list:
     """
     Scrape tournament schedule for a single venue.
-    Priority: venue website first, PokerAtlas fallback.
+    OPTIMIZED: Casino venues (SPA-based) go to PokerAtlas first.
+    Card rooms try venue website first (2 paths max) then PokerAtlas.
     """
     name = venue.get("name", "Unknown")
     website = venue.get("website", "")
     pa_url = venue.get("poker_atlas_url", "")
+    vtype = venue.get("venue_type", "casino")
 
     tournaments = []
 
-    # --- Strategy 1: Venue HOME website (source of truth) ---
-    if website:
-        base_url = website if website.startswith("http") else f"https://{website}"
-        base_url = base_url.rstrip("/")
+    # Casino venues use SPAs — PokerAtlas has structured data, try that FIRST
+    # Card rooms often have simple HTML sites — try venue site first
+    if vtype in ("card_room", "charity", "poker_club"):
+        # --- Strategy 1a: Card room venue website (source of truth) ---
+        if website:
+            base_url = website if website.startswith("http") else f"https://{website}"
+            base_url = base_url.rstrip("/")
 
-        # Try multiple paths where tournaments might be listed
-        paths = [
-            "/poker/tournaments",
-            "/poker-room/tournaments",
-            "/tournaments",
-            "/poker",
-            "/poker-room",
-            "/casino/poker",
-            "/casino/poker/tournaments",
-            "",  # homepage
-        ]
+            # Try just 2 key paths (speed optimization — skip 8-path brute force)
+            paths = ["/poker/tournaments", ""]
+            for path in paths:
+                url = f"{base_url}{path}"
+                print(f"    Trying venue site: {url}")
+                html = await fetch_with_scrapling(url, session)
+                if html:
+                    found = extract_tournaments_from_html(html, name)
+                    if found:
+                        print(f"    ✅ Found {len(found)} tournaments from venue site")
+                        tournaments = found
+                        break
+                await asyncio.sleep(1)
 
-        for path in paths:
-            url = f"{base_url}{path}"
-            print(f"    Trying venue site: {url}")
-            html = await fetch_with_scrapling(url, session)
-            if html:
-                found = extract_tournaments_from_html(html, name)
-                if found:
-                    print(f"    ✅ Found {len(found)} tournaments from venue site")
-                    tournaments = found
-                    break
-            await asyncio.sleep(1)  # rate limit between paths
-
-    # --- Strategy 2: PokerAtlas fallback ---
+    # --- Strategy 2: PokerAtlas (primary for casinos, fallback for card rooms) ---
     if not tournaments and pa_url:
         pa_tourn_url = pa_url.rstrip("/")
         if not pa_tourn_url.endswith("/tournaments"):
@@ -304,6 +299,19 @@ async def scrape_venue(venue: dict, session) -> list:
             found = extract_tournaments_from_html(html, name)
             if found:
                 print(f"    ✅ Found {len(found)} tournaments from PokerAtlas")
+                tournaments = found
+
+    # --- Strategy 3: Casino venue website (last resort if PA failed) ---
+    if not tournaments and vtype == "casino" and website:
+        base_url = website if website.startswith("http") else f"https://{website}"
+        base_url = base_url.rstrip("/")
+        url = f"{base_url}"
+        print(f"    Trying casino homepage: {url}")
+        html = await fetch_with_scrapling(url, session)
+        if html:
+            found = extract_tournaments_from_html(html, name)
+            if found:
+                print(f"    ✅ Found {len(found)} tournaments from casino site")
                 tournaments = found
 
     if not tournaments:

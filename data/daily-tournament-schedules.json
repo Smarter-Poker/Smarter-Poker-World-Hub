@@ -1,9 +1,9 @@
 {
   "metadata": {
     "description": "Daily/Recurring Tournament Schedules for Verified Venues",
-    "lastUpdated": "2026-01-26",
-    "totalVenues": 178,
-    "venuesWithDailyTournaments": 65,
+    "lastUpdated": "2026-03-25",
+    "totalVenues": 89,
+    "venuesWithDailyTournaments": 89,
     "sources": [
       "Direct venue websites",
       "Web search results",
@@ -18,10 +18,42 @@
       "city": "Round Rock",
       "state": "TX",
       "schedules": [
-        {"day_of_week": "Tuesday", "start_time": "6:15 PM", "buy_in": 30, "game_type": "NLH", "format": "Freeroll", "guaranteed": 15000, "notes": "$20 rebuys available"},
-        {"day_of_week": "Thursday", "start_time": "6:15 PM", "buy_in": 30, "game_type": "NLH", "format": "Freeroll", "guaranteed": 10000, "notes": "$20 rebuys available"},
-        {"day_of_week": "Friday", "start_time": "6:15 PM", "buy_in": 120, "game_type": "NLH", "format": "Freezeout", "guaranteed": 4000, "notes": "No rebuys"},
-        {"day_of_week": "Sunday", "start_time": "12:15 PM", "buy_in": 200, "game_type": "NLH", "format": "Deep Stack", "guaranteed": 10000, "notes": "Single re-entry"}
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "6:15 PM",
+          "buy_in": 30,
+          "game_type": "NLH",
+          "format": "Freeroll",
+          "guaranteed": 15000,
+          "notes": "$20 rebuys available"
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "6:15 PM",
+          "buy_in": 30,
+          "game_type": "NLH",
+          "format": "Freeroll",
+          "guaranteed": 10000,
+          "notes": "$20 rebuys available"
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "6:15 PM",
+          "buy_in": 120,
+          "game_type": "NLH",
+          "format": "Freezeout",
+          "guaranteed": 4000,
+          "notes": "No rebuys"
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "12:15 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": "Deep Stack",
+          "guaranteed": 10000,
+          "notes": "Single re-entry"
+        }
       ],
       "source_url": "https://thelodgepokerclub.com/austin/tournaments/"
     },
@@ -30,16 +62,96 @@
       "city": "San Antonio",
       "state": "TX",
       "schedules": [
-        {"day_of_week": "Sunday", "start_time": "12:15 PM", "buy_in": 200, "game_type": "NLH", "format": "Deep Stack", "guaranteed": 15000, "notes": "One re-entry"},
-        {"day_of_week": "Sunday", "start_time": "4:15 PM", "buy_in": 100, "game_type": "NLH", "format": "Freezeout", "guaranteed": 2000, "notes": null},
-        {"day_of_week": "Monday", "start_time": "12:15 PM", "buy_in": 100, "game_type": "NLH", "format": "Bounty", "guaranteed": 2000, "notes": null},
-        {"day_of_week": "Monday", "start_time": "7:15 PM", "buy_in": 100, "game_type": "Big-O", "format": null, "guaranteed": 3500, "notes": null},
-        {"day_of_week": "Tuesday", "start_time": "7:15 PM", "buy_in": 30, "game_type": "NLH", "format": "Freeroll", "guaranteed": 15000, "notes": "$20 rebuys"},
-        {"day_of_week": "Wednesday", "start_time": "7:15 PM", "buy_in": 50, "game_type": "PLO", "format": "Freeroll", "guaranteed": 4000, "notes": null},
-        {"day_of_week": "Thursday", "start_time": "7:15 PM", "buy_in": 30, "game_type": "NLH", "format": "Freeroll", "guaranteed": 7500, "notes": "The Dirty Thirty"},
-        {"day_of_week": "Friday", "start_time": "12:15 PM", "buy_in": 100, "game_type": "NLH", "format": "Bounty", "guaranteed": 2000, "notes": null},
-        {"day_of_week": "Friday", "start_time": "7:15 PM", "buy_in": 120, "game_type": "NLH", "format": "Freezeout", "guaranteed": 4000, "notes": null},
-        {"day_of_week": "Saturday", "start_time": "7:15 PM", "buy_in": 150, "game_type": "NLH", "format": "Bounty", "guaranteed": 4000, "notes": "Bounty Hunter"}
+        {
+          "day_of_week": "Sunday",
+          "start_time": "12:15 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": "Deep Stack",
+          "guaranteed": 15000,
+          "notes": "One re-entry"
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "4:15 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": "Freezeout",
+          "guaranteed": 2000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "12:15 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": "Bounty",
+          "guaranteed": 2000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "7:15 PM",
+          "buy_in": 100,
+          "game_type": "Big-O",
+          "format": null,
+          "guaranteed": 3500,
+          "notes": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "7:15 PM",
+          "buy_in": 30,
+          "game_type": "NLH",
+          "format": "Freeroll",
+          "guaranteed": 15000,
+          "notes": "$20 rebuys"
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "7:15 PM",
+          "buy_in": 50,
+          "game_type": "PLO",
+          "format": "Freeroll",
+          "guaranteed": 4000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "7:15 PM",
+          "buy_in": 30,
+          "game_type": "NLH",
+          "format": "Freeroll",
+          "guaranteed": 7500,
+          "notes": "The Dirty Thirty"
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "12:15 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": "Bounty",
+          "guaranteed": 2000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "7:15 PM",
+          "buy_in": 120,
+          "game_type": "NLH",
+          "format": "Freezeout",
+          "guaranteed": 4000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "7:15 PM",
+          "buy_in": 150,
+          "game_type": "NLH",
+          "format": "Bounty",
+          "guaranteed": 4000,
+          "notes": "Bounty Hunter"
+        }
       ],
       "source_url": "https://thelodgepokerclub.com/san-antonio/tournaments/"
     },
@@ -48,10 +160,42 @@
       "city": "Las Vegas",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "10:10 AM", "buy_in": 120, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Aggressive guarantees"},
-        {"day_of_week": "Daily", "start_time": "2:10 PM", "buy_in": 120, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Daily", "start_time": "6:10 PM", "buy_in": 120, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Daily", "start_time": "10:10 PM", "buy_in": 120, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:10 AM",
+          "buy_in": 120,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "Aggressive guarantees"
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:10 PM",
+          "buy_in": 120,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10 PM",
+          "buy_in": 120,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:10 PM",
+          "buy_in": 120,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.southpointcasino.com/casino/poker-room"
     },
@@ -60,8 +204,24 @@
       "city": "Las Vegas",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "6:00 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": 10000, "notes": "Nightly tournament"},
-        {"day_of_week": "Friday", "start_time": "12:00 PM", "buy_in": 300, "game_type": "NLH", "format": "Rebuy", "guaranteed": 40000, "notes": "Suspended during series"}
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 10000,
+          "notes": "Nightly tournament"
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "12:00 PM",
+          "buy_in": 300,
+          "game_type": "NLH",
+          "format": "Rebuy",
+          "guaranteed": 40000,
+          "notes": "Suspended during series"
+        }
       ],
       "source_url": "https://www.wynnlasvegas.com/casino/poker"
     },
@@ -70,9 +230,33 @@
       "city": "Las Vegas",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": 4000, "notes": null},
-        {"day_of_week": "Sunday", "start_time": "11:00 AM", "buy_in": 200, "game_type": "NLH", "format": "Mystery Bounty", "guaranteed": 4000, "notes": null},
-        {"day_of_week": "Sunday", "start_time": "4:00 PM", "buy_in": 200, "game_type": "NLH", "format": "Mystery Bounty", "guaranteed": 4000, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "11:00 AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 4000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "11:00 AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": "Mystery Bounty",
+          "guaranteed": 4000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "4:00 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": "Mystery Bounty",
+          "guaranteed": 4000,
+          "notes": null
+        }
       ],
       "source_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments"
     },
@@ -81,24 +265,168 @@
       "city": "Las Vegas",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Monday", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Monday", "start_time": "4:00 PM", "buy_in": 100, "game_type": "Mixed", "format": null, "guaranteed": 5000, "notes": "Various non-holdem games"},
-        {"day_of_week": "Monday", "start_time": "6:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Tuesday", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Tuesday", "start_time": "4:00 PM", "buy_in": 100, "game_type": "Mixed", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Tuesday", "start_time": "6:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Wednesday", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Wednesday", "start_time": "4:00 PM", "buy_in": 100, "game_type": "Mixed", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Wednesday", "start_time": "6:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Thursday", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Thursday", "start_time": "4:00 PM", "buy_in": 100, "game_type": "Mixed", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Thursday", "start_time": "6:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Friday", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Friday", "start_time": "6:00 PM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": 7500, "notes": null},
-        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": 7500, "notes": null},
-        {"day_of_week": "Saturday", "start_time": "4:00 PM", "buy_in": 100, "game_type": "Mixed", "format": null, "guaranteed": 5000, "notes": null},
-        {"day_of_week": "Sunday", "start_time": "11:00 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": 10000, "notes": "Sunday Special +$100 add-on"},
-        {"day_of_week": "Sunday", "start_time": "6:00 PM", "buy_in": 150, "game_type": "PLO", "format": null, "guaranteed": 7500, "notes": "Big O"}
+        {
+          "day_of_week": "Monday",
+          "start_time": "11:00 AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "4:00 PM",
+          "buy_in": 100,
+          "game_type": "Mixed",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": "Various non-holdem games"
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "6:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "11:00 AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "4:00 PM",
+          "buy_in": 100,
+          "game_type": "Mixed",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "6:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "11:00 AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "4:00 PM",
+          "buy_in": 100,
+          "game_type": "Mixed",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "6:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "11:00 AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "4:00 PM",
+          "buy_in": 100,
+          "game_type": "Mixed",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "6:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "11:00 AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "6:00 PM",
+          "buy_in": 150,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 7500,
+          "notes": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "11:00 AM",
+          "buy_in": 150,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 7500,
+          "notes": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "4:00 PM",
+          "buy_in": 100,
+          "game_type": "Mixed",
+          "format": null,
+          "guaranteed": 5000,
+          "notes": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "11:00 AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 10000,
+          "notes": "Sunday Special +$100 add-on"
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "6:00 PM",
+          "buy_in": 150,
+          "game_type": "PLO",
+          "format": null,
+          "guaranteed": 7500,
+          "notes": "Big O"
+        }
       ],
       "source_url": "https://orleans.boydgaming.com/play/poker-room"
     },
@@ -107,15 +435,87 @@
       "city": "Las Vegas",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Monday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "7000 chips + 1000 for $5 dealer toke"},
-        {"day_of_week": "Monday", "start_time": "6:30 PM", "buy_in": 100, "game_type": "NLH", "format": "Bounty", "guaranteed": 3500, "notes": "$25 bounty"},
-        {"day_of_week": "Tuesday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Wednesday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Thursday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Thursday", "start_time": "6:30 PM", "buy_in": 100, "game_type": "NLH", "format": "Bounty", "guaranteed": 3500, "notes": "$25 bounty"},
-        {"day_of_week": "Friday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Sunday", "start_time": "12:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Monday",
+          "start_time": "12:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "7000 chips + 1000 for $5 dealer toke"
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "6:30 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": "Bounty",
+          "guaranteed": 3500,
+          "notes": "$25 bounty"
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "12:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "12:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "12:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "6:30 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": "Bounty",
+          "guaranteed": 3500,
+          "notes": "$25 bounty"
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "12:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "12:00 PM",
+          "buy_in": 80,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "12:00 PM",
+          "buy_in": 80,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "http://www.stationcasinospoker.com/dev/tournaments/red-rock.php"
     },
@@ -124,19 +524,123 @@
       "city": "Scottsdale",
       "state": "AZ",
       "schedules": [
-        {"day_of_week": "Monday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "10000 chips + 5000 for $5 staff appreciation"},
-        {"day_of_week": "Monday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "PLO", "format": null, "guaranteed": null, "notes": "5 Card Pot Limit Omaha"},
-        {"day_of_week": "Tuesday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Tuesday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Wednesday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Wednesday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "NLH", "format": "Crazy Pineapple", "guaranteed": null, "notes": null},
-        {"day_of_week": "Thursday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Thursday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "NLH", "format": "Bounty", "guaranteed": null, "notes": "$50 per elimination"},
-        {"day_of_week": "Friday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Friday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Saturday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Big Stack or special event"},
-        {"day_of_week": "Saturday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Sunday", "start_time": "11:15 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Monday",
+          "start_time": "11:15 AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "10000 chips + 5000 for $5 staff appreciation"
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "7:15 PM",
+          "buy_in": 200,
+          "game_type": "PLO",
+          "format": null,
+          "guaranteed": null,
+          "notes": "5 Card Pot Limit Omaha"
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "11:15 AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "7:15 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "11:15 AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "7:15 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": "Crazy Pineapple",
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "11:15 AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "7:15 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": "Bounty",
+          "guaranteed": null,
+          "notes": "$50 per elimination"
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "11:15 AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "7:15 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "11:15 AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "Big Stack or special event"
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "7:15 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "11:15 AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.talkingstickresort.com/phoenix-scottsdale-casino/poker/arena-poker-room-tournaments/"
     },
@@ -145,9 +649,33 @@
       "city": "Ledyard",
       "state": "CT",
       "schedules": [
-        {"day_of_week": "Sunday", "start_time": "10:10 AM", "buy_in": 395, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "40000 chips, 25-30 min levels"},
-        {"day_of_week": "Tuesday", "start_time": "10:10 AM", "buy_in": 135, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "15000 chips, 20 min levels"},
-        {"day_of_week": "Thursday", "start_time": "5:10 PM", "buy_in": 255, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "30000 chips, 20-25 min levels"}
+        {
+          "day_of_week": "Sunday",
+          "start_time": "10:10 AM",
+          "buy_in": 395,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "40000 chips, 25-30 min levels"
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "10:10 AM",
+          "buy_in": 135,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "15000 chips, 20 min levels"
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "5:10 PM",
+          "buy_in": 255,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "30000 chips, 20-25 min levels"
+        }
       ],
       "source_url": "https://foxwoods.com/game/poker"
     },
@@ -156,8 +684,24 @@
       "city": "Bensalem",
       "state": "PA",
       "schedules": [
-        {"day_of_week": "Monday", "start_time": "7:15 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Friday", "start_time": "11:15 AM", "buy_in": 340, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Monday",
+          "start_time": "7:15 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "11:15 AM",
+          "buy_in": 340,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.parxcasino.com/bensalem/poker"
     },
@@ -166,8 +710,24 @@
       "city": "Jacksonville",
       "state": "FL",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "3:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Times vary, check schedule"},
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "3:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "Times vary, check schedule"
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.bestbetjax.com/poker/tournaments"
     },
@@ -176,7 +736,15 @@
       "city": "Orange Park",
       "state": "FL",
       "schedules": [
-        {"day_of_week": "Wednesday", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "7:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.bestbetjax.com/poker/tournaments"
     },
@@ -185,10 +753,42 @@
       "city": "St. Augustine",
       "state": "FL",
       "schedules": [
-        {"day_of_week": "Monday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Tuesday", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Wednesday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Thursday", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Monday",
+          "start_time": "12:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "7:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "12:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "12:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.bestbetjax.com/poker/tournaments"
     },
@@ -197,7 +797,15 @@
       "city": "Reno",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 135, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Buy-ins range $135-$560"}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 135,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "Buy-ins range $135-$560"
+        }
       ],
       "source_url": "https://www.peppermillreno.com/gaming/poker/poker-tournaments"
     },
@@ -206,16 +814,96 @@
       "city": "Dallas",
       "state": "TX",
       "schedules": [
-        {"day_of_week": "Monday", "start_time": "12:00 PM", "buy_in": 130, "game_type": "NLH", "format": "Turbo", "guaranteed": null, "notes": null},
-        {"day_of_week": "Monday", "start_time": "7:00 PM", "buy_in": 200, "game_type": "NLH", "format": "Bounty", "guaranteed": null, "notes": "Green Chip Bounty"},
-        {"day_of_week": "Tuesday", "start_time": "12:00 PM", "buy_in": 130, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Tuesday", "start_time": "7:00 PM", "buy_in": 300, "game_type": "PLO", "format": "Bounty", "guaranteed": null, "notes": "Black Chip Bounty"},
-        {"day_of_week": "Wednesday", "start_time": "12:00 PM", "buy_in": 130, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Wednesday", "start_time": "7:00 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Thursday", "start_time": "12:00 PM", "buy_in": 130, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Thursday", "start_time": "7:00 PM", "buy_in": 200, "game_type": "NLH", "format": "Deep Stack", "guaranteed": null, "notes": null},
-        {"day_of_week": "Friday", "start_time": "7:00 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Funky Friday"},
-        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 300, "game_type": "NLH", "format": "Freezeout", "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Monday",
+          "start_time": "12:00 PM",
+          "buy_in": 130,
+          "game_type": "NLH",
+          "format": "Turbo",
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "7:00 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": "Bounty",
+          "guaranteed": null,
+          "notes": "Green Chip Bounty"
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "12:00 PM",
+          "buy_in": 130,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "7:00 PM",
+          "buy_in": 300,
+          "game_type": "PLO",
+          "format": "Bounty",
+          "guaranteed": null,
+          "notes": "Black Chip Bounty"
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "12:00 PM",
+          "buy_in": 130,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "7:00 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "12:00 PM",
+          "buy_in": 130,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "7:00 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": "Deep Stack",
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "7:00 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "Funky Friday"
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "12:00 PM",
+          "buy_in": 300,
+          "game_type": "NLH",
+          "format": "Freezeout",
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.texascardhouse.com/dallas"
     },
@@ -224,8 +912,24 @@
       "city": "Hollywood",
       "state": "FL",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Check venue for current schedule"},
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00 AM",
+          "buy_in": 150,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "Check venue for current schedule"
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 150,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.seminolehardrockhollywood.com/play/poker"
     },
@@ -234,8 +938,24 @@
       "city": "Tampa",
       "state": "FL",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 130, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Check venue for current schedule"},
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 130, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 130,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "Check venue for current schedule"
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 130,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://casino.hardrock.com/tampa/play/poker"
     },
@@ -244,8 +964,24 @@
       "city": "Las Vegas",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Check venue for current schedule"},
-        {"day_of_week": "Daily", "start_time": "2:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00 AM",
+          "buy_in": 80,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "Check venue for current schedule"
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://mgmgrand.mgmresorts.com/en/casino/poker.html"
     },
@@ -254,30 +990,411 @@
       "city": "Las Vegas",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "1:00 PM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "High-stakes room, check venue for schedule"}
+        {
+          "day_of_week": "Daily",
+          "start_time": "3:00PM",
+          "buy_in": 3300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "12:00PM",
+          "buy_in": 360,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00PM",
+          "buy_in": 3300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "12:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "12:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00PM",
+          "buy_in": 5300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "12:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "12:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "1:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "1:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "12:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00PM",
+          "buy_in": 10500,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 10500,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "12:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00PM",
+          "buy_in": 15700,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "1:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "1:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "1:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "1:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "1:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00PM",
+          "buy_in": 560,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "12:00PM",
+          "buy_in": 3300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "1:00PM",
+          "buy_in": 15700,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        }
       ],
-      "source_url": "https://aria.mgmresorts.com/en/casino/poker.html"
+      "source_url": "aria.com",
+      "last_scraped": "2026-03-25T07:34:19Z"
     },
     {
       "venue_name": "Resorts World Las Vegas",
       "city": "Las Vegas",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Check venue for current schedule"},
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Sunday",
+          "start_time": "12:05PM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:05PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:05PM",
+          "buy_in": 130,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "7:05PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "12:05PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:05PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "7:05PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "12:05PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "12:05PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "12:05PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:05PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "12:05PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "12:05PM",
+          "buy_in": 30,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        }
       ],
-      "source_url": "https://www.rwlasvegas.com/casino/poker/"
+      "source_url": "rwlasvegas.com",
+      "last_scraped": "2026-03-25T07:39:28Z"
     },
     {
       "venue_name": "Station Casinos Green Valley Ranch",
       "city": "Henderson",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Monday", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Tuesday", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Wednesday", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Thursday", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Friday", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Monday",
+          "start_time": "10:00 AM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "10:00 AM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "10:00 AM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "10:00 AM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "10:00 AM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "http://www.stationcasinospoker.com"
     },
@@ -286,7 +1403,15 @@
       "city": "Henderson",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Station Casinos property"}
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00 AM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "Station Casinos property"
+        }
       ],
       "source_url": "http://www.stationcasinospoker.com"
     },
@@ -295,7 +1420,15 @@
       "city": "Reno",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 65, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Check venue for current schedule"}
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00 AM",
+          "buy_in": 65,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "Check venue for current schedule"
+        }
       ],
       "source_url": "https://atlantiscasino.com/casino/poker"
     },
@@ -304,8 +1437,24 @@
       "city": "Reno",
       "state": "NV",
       "schedules": [
-        {"day_of_week": "Friday", "start_time": "6:00 PM", "buy_in": 125, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 125, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Friday",
+          "start_time": "6:00 PM",
+          "buy_in": 125,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "12:00 PM",
+          "buy_in": 125,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.grandsierraresort.com/play/poker"
     },
@@ -314,8 +1463,24 @@
       "city": "Thackerville",
       "state": "OK",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "World's largest casino"},
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "World's largest casino"
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.winstar.com/casino/poker"
     },
@@ -324,7 +1489,15 @@
       "city": "Durant",
       "state": "OK",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": "Check venue for special events"}
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": "Check venue for special events"
+        }
       ],
       "source_url": "https://www.choctawcasinos.com/durant"
     },
@@ -333,7 +1506,15 @@
       "city": "Catoosa",
       "state": "OK",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 65, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 65,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.hardrockcasinotulsa.com"
     },
@@ -342,7 +1523,15 @@
       "city": "Tulsa",
       "state": "OK",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.riverspirittulsa.com"
     },
@@ -351,8 +1540,24 @@
       "city": "Cherokee",
       "state": "NC",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.caesars.com/harrahs-cherokee"
     },
@@ -361,8 +1566,24 @@
       "city": "Des Plaines",
       "state": "IL",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 125, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 125, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00 AM",
+          "buy_in": 125,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 125,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.riverscasino.com/desplaines/play/poker"
     },
@@ -371,7 +1592,15 @@
       "city": "Oxon Hill",
       "state": "MD",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00 AM",
+          "buy_in": 150,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://mgmnationalharbor.mgmresorts.com"
     },
@@ -380,8 +1609,24 @@
       "city": "Hanover",
       "state": "MD",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "11:15 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Daily", "start_time": "7:15 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:15 AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:15 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.livecasinohotel.com/poker"
     },
@@ -390,7 +1635,15 @@
       "city": "Springfield",
       "state": "MA",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "12:00 PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://mgmspringfield.mgmresorts.com"
     },
@@ -399,7 +1652,15 @@
       "city": "Detroit",
       "state": "MI",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.mgmgranddetroit.com"
     },
@@ -408,7 +1669,15 @@
       "city": "Detroit",
       "state": "MI",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.motorcitycasino.com"
     },
@@ -417,7 +1686,15 @@
       "city": "Detroit",
       "state": "MI",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 65, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 65,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.greektowncasino.com"
     },
@@ -426,7 +1703,15 @@
       "city": "Battle Creek",
       "state": "MI",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "6:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.firekeeperscasino.com"
     },
@@ -435,7 +1720,15 @@
       "city": "Mt Pleasant",
       "state": "MI",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "1:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "1:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.soaringeaglecasino.com"
     },
@@ -444,7 +1737,15 @@
       "city": "Wayland",
       "state": "MI",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "2:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "2:00 PM",
+          "buy_in": 80,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.gunlakecasino.com"
     },
@@ -453,7 +1754,15 @@
       "city": "Verona",
       "state": "NY",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 125, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00 AM",
+          "buy_in": 125,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.turningstone.com/gaming/poker"
     },
@@ -462,7 +1771,15 @@
       "city": "Monticello",
       "state": "NY",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "12:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.rwcatskills.com"
     },
@@ -471,7 +1788,15 @@
       "city": "Schenectady",
       "state": "NY",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "12:00 PM",
+          "buy_in": 150,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.riverscasino.com/schenectady"
     },
@@ -480,7 +1805,15 @@
       "city": "Cincinnati",
       "state": "OH",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 80,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.hardrockcasinocincinnati.com"
     },
@@ -489,7 +1822,15 @@
       "city": "Columbus",
       "state": "OH",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.hollywoodcolumbus.com"
     },
@@ -498,7 +1839,15 @@
       "city": "Cleveland",
       "state": "OH",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.jackcleveland.com"
     },
@@ -507,7 +1856,15 @@
       "city": "Grand Ronde",
       "state": "OR",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 75, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "11:00 AM",
+          "buy_in": 75,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.spiritmountain.com"
     },
@@ -516,7 +1873,15 @@
       "city": "Lincoln City",
       "state": "OR",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "11:00 AM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.chinookwindscasino.com"
     },
@@ -525,7 +1890,15 @@
       "city": "Canyonville",
       "state": "OR",
       "schedules": [
-        {"day_of_week": "Friday", "start_time": "6:00 PM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Friday",
+          "start_time": "6:00 PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.sevenfeathers.com"
     },
@@ -534,7 +1907,15 @@
       "city": "Philadelphia",
       "state": "PA",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00 AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.riverscasino.com/philadelphia/play/poker"
     },
@@ -543,7 +1924,15 @@
       "city": "Philadelphia",
       "state": "PA",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00 AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://philadelphia.livecasinohotel.com"
     },
@@ -552,8 +1941,24 @@
       "city": "Bethlehem",
       "state": "PA",
       "schedules": [
-        {"day_of_week": "Friday", "start_time": "7:00 PM", "buy_in": 125, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 200, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Friday",
+          "start_time": "7:00 PM",
+          "buy_in": 125,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "11:00 AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://windcreekbethlehem.com"
     },
@@ -562,7 +1967,15 @@
       "city": "Pittsburgh",
       "state": "PA",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00 AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.riverscasino.com/pittsburgh/play/poker"
     },
@@ -571,7 +1984,15 @@
       "city": "Mount Pocono",
       "state": "PA",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "12:00 PM", "buy_in": 150, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "12:00 PM",
+          "buy_in": 150,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.mountairycasino.com"
     },
@@ -580,7 +2001,15 @@
       "city": "Grantville",
       "state": "PA",
       "schedules": [
-        {"day_of_week": "Friday", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Friday",
+          "start_time": "7:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.hollywoodpnrc.com"
     },
@@ -589,7 +2018,15 @@
       "city": "Lincoln",
       "state": "RI",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 120, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "11:00 AM",
+          "buy_in": 120,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.ballyslincoln.com"
     },
@@ -598,7 +2035,15 @@
       "city": "Auburn",
       "state": "WA",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00 AM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.muckleshootcasino.com"
     },
@@ -607,7 +2052,15 @@
       "city": "Tulalip",
       "state": "WA",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "6:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.tulalipresortcasino.com"
     },
@@ -616,8 +2069,24 @@
       "city": "Snoqualmie",
       "state": "WA",
       "schedules": [
-        {"day_of_week": "Friday", "start_time": "6:00 PM", "buy_in": 85, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Saturday", "start_time": "2:00 PM", "buy_in": 130, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Friday",
+          "start_time": "6:00 PM",
+          "buy_in": 85,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "2:00 PM",
+          "buy_in": 130,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.snocasino.com"
     },
@@ -626,7 +2095,15 @@
       "city": "Airway Heights",
       "state": "WA",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "11:00 AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.northernquest.com"
     },
@@ -635,7 +2112,15 @@
       "city": "Milwaukee",
       "state": "WI",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.paysbig.com"
     },
@@ -644,7 +2129,15 @@
       "city": "Green Bay",
       "state": "WI",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "1:00 PM", "buy_in": 75, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "1:00 PM",
+          "buy_in": 75,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.oneidacasino.net"
     },
@@ -653,8 +2146,24 @@
       "city": "Shakopee",
       "state": "MN",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Daily", "start_time": "6:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00 AM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.canterburypark.com"
     },
@@ -663,9 +2172,33 @@
       "city": "Seabrook",
       "state": "NH",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "10:00 AM", "buy_in": 40, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Daily", "start_time": "1:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00 AM",
+          "buy_in": 40,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 80,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.thebrooknh.com"
     },
@@ -674,7 +2207,15 @@
       "city": "Tucson",
       "state": "AZ",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "11:00 AM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00 AM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.casinodelsol.com"
     },
@@ -683,7 +2224,15 @@
       "city": "Pinetop",
       "state": "AZ",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "11:00 AM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "11:00 AM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.hon-dah.com"
     },
@@ -692,8 +2241,24 @@
       "city": "Pine Bluff",
       "state": "AR",
       "schedules": [
-        {"day_of_week": "Friday", "start_time": "7:00 PM", "buy_in": 65, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Saturday", "start_time": "2:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Friday",
+          "start_time": "7:00 PM",
+          "buy_in": 65,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "2:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.saracenresort.com"
     },
@@ -702,8 +2267,24 @@
       "city": "St. Petersburg",
       "state": "FL",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "1:00 PM", "buy_in": 65, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 65, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00 PM",
+          "buy_in": 65,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 65,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.derbylane.com"
     },
@@ -712,8 +2293,24 @@
       "city": "West Palm Beach",
       "state": "FL",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.pbkennelclub.com"
     },
@@ -722,8 +2319,24 @@
       "city": "Sarasota",
       "state": "FL",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 80,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.oneeyedjackspoker.com"
     },
@@ -732,7 +2345,15 @@
       "city": "Daytona Beach",
       "state": "FL",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "1:00 PM", "buy_in": 40, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00 PM",
+          "buy_in": 40,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.daytonapoker.com"
     },
@@ -741,7 +2362,15 @@
       "city": "Orange City",
       "state": "FL",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "1:00 PM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00 PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.orangecitypoker.com"
     },
@@ -750,7 +2379,15 @@
       "city": "Summerfield",
       "state": "FL",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 40, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 40,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.oxforddowns.com"
     },
@@ -759,7 +2396,15 @@
       "city": "Ebro",
       "state": "FL",
       "schedules": [
-        {"day_of_week": "Saturday", "start_time": "3:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Saturday",
+          "start_time": "3:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.ebropoker.com"
     },
@@ -768,8 +2413,24 @@
       "city": "Portland",
       "state": "OR",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "12:00 PM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 80, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00 PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 80,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.finaltablepoker.com"
     },
@@ -778,8 +2439,24 @@
       "city": "Eugene",
       "state": "OR",
       "schedules": [
-        {"day_of_week": "Friday", "start_time": "7:00 PM", "buy_in": 50, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Saturday", "start_time": "2:00 PM", "buy_in": 100, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Friday",
+          "start_time": "7:00 PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "2:00 PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.pokeratlas.com/poker-room/high-mountain-poker-eugene"
     },
@@ -788,7 +2465,15 @@
       "city": "Eugene",
       "state": "OR",
       "schedules": [
-        {"day_of_week": "Friday", "start_time": "6:00 PM", "buy_in": 40, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Friday",
+          "start_time": "6:00 PM",
+          "buy_in": 40,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene"
     },
@@ -797,7 +2482,15 @@
       "city": "Bozeman",
       "state": "MT",
       "schedules": [
-        {"day_of_week": "Daily", "start_time": "7:00 PM", "buy_in": 40, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00 PM",
+          "buy_in": 40,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.pokeratlas.com/poker-room/seat-open-bozeman"
     },
@@ -806,91 +2499,2893 @@
       "city": "Billings",
       "state": "MT",
       "schedules": [
-        {"day_of_week": "Thursday", "start_time": "7:00 PM", "buy_in": 35, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null},
-        {"day_of_week": "Saturday", "start_time": "2:00 PM", "buy_in": 60, "game_type": "NLH", "format": null, "guaranteed": null, "notes": null}
+        {
+          "day_of_week": "Thursday",
+          "start_time": "7:00 PM",
+          "buy_in": 35,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "2:00 PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "notes": null
+        }
       ],
       "source_url": "https://www.pokeratlas.com/poker-room/shooters-poker-room-billings"
+    },
+    {
+      "venue_name": "Venetian Resort",
+      "city": "Las Vegas",
+      "state": "NV",
+      "schedules": [
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:10AM",
+          "buy_in": 300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:10AM",
+          "buy_in": 30000,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00AM",
+          "buy_in": 2000,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "11:10AM",
+          "buy_in": 5300,
+          "game_type": "PLO",
+          "format": "Deep Stack",
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:10PM",
+          "buy_in": 800,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "10:10AM",
+          "buy_in": 800,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10PM",
+          "buy_in": 800,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "10:10AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10PM",
+          "buy_in": 600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "10:00AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:10AM",
+          "buy_in": 600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "11:10AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "11:10AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "11:10AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "4:10PM",
+          "buy_in": 600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:10PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "10:10AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:10AM",
+          "buy_in": 30,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "4:10PM",
+          "buy_in": 1600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "11:10AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "11:10AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10PM",
+          "buy_in": 1600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "11:00AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:10AM",
+          "buy_in": 1600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "11:00AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10PM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "11:10AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:10PM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10PM",
+          "buy_in": 360,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:10PM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:10PM",
+          "buy_in": 360,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "10:10AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:10AM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:10PM",
+          "buy_in": 3100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "10:10AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10PM",
+          "buy_in": 3300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:10AM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 30,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:10PM",
+          "buy_in": 3300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "10:10AM",
+          "buy_in": 560,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:10PM",
+          "buy_in": 3300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:10PM",
+          "buy_in": 5100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10PM",
+          "buy_in": 560,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "10:00AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:10PM",
+          "buy_in": 5100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:10PM",
+          "buy_in": 5300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:10PM",
+          "buy_in": 5300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10PM",
+          "buy_in": 1100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "11:00AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:10PM",
+          "buy_in": 10500,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00PM",
+          "buy_in": 300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:10PM",
+          "buy_in": 10500,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "10:10AM",
+          "buy_in": 300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "11:10AM",
+          "buy_in": 300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:10PM",
+          "buy_in": 300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "11:10AM",
+          "buy_in": 300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10PM",
+          "buy_in": 300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:10AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:10PM",
+          "buy_in": 5300,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:10PM",
+          "buy_in": 5100,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10PM",
+          "buy_in": 560,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:10PM",
+          "buy_in": 5100,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:10PM",
+          "buy_in": 1100,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00AM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:10PM",
+          "buy_in": 10500,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00AM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 5100,
+          "game_type": "PLO",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "11:10AM",
+          "buy_in": 800,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "10:10AM",
+          "buy_in": 30,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "10:10AM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        }
+      ],
+      "source_url": "venetian.com",
+      "last_scraped": "2026-03-25T07:35:59Z"
+    },
+    {
+      "venue_name": "Caesars Palace",
+      "city": "Las Vegas",
+      "state": "NV",
+      "schedules": [
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "9:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "10:00AM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "10:00AM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "10:00AM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "10:00AM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "10:00AM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "10:00AM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "10:00AM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00AM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "10:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "10:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        }
+      ],
+      "source_url": "caesars.com",
+      "last_scraped": "2026-03-25T07:37:17Z"
+    },
+    {
+      "venue_name": "Horseshoe Las Vegas",
+      "city": "Las Vegas",
+      "state": "NV",
+      "schedules": [
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "8:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00PM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "9:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "9:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "9:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "9:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "9:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "9:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "9:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00AM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "3:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:00PM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00PM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "8:00PM",
+          "buy_in": 150,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:00PM",
+          "buy_in": 800,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 800,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:00PM",
+          "buy_in": 600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00AM",
+          "buy_in": 600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00PM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00PM",
+          "buy_in": 600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00PM",
+          "buy_in": 600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 2200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00PM",
+          "buy_in": 2200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:00PM",
+          "buy_in": 300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "10:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00AM",
+          "buy_in": 250,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00AM",
+          "buy_in": 1700,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:00PM",
+          "buy_in": 250,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 400,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 1700,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:00PM",
+          "buy_in": 3300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:00PM",
+          "buy_in": 1700,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 3300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "9:00AM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 100,
+          "game_type": "Mixed",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        }
+      ],
+      "source_url": "caesars.com",
+      "last_scraped": "2026-03-25T07:38:04Z"
+    },
+    {
+      "venue_name": "101 Poker Club",
+      "city": "Katy",
+      "state": "TX",
+      "schedules": [
+        {
+          "day_of_week": "Saturday",
+          "start_time": "12:00PM",
+          "buy_in": 10100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": "MINI"
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "1:00PM",
+          "buy_in": 10000,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "7:00PM",
+          "buy_in": 10100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00PM",
+          "buy_in": 2000,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 101,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "1:05PM",
+          "buy_in": 2500,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 101,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "7:00PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "7:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "7:00PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "7:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "12:00PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "1:05PM",
+          "buy_in": 180,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "1:05PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:05PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00PM",
+          "buy_in": 60,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "1:05PM",
+          "buy_in": 180,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "1:05PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        }
+      ],
+      "source_url": "101pokerclub.com",
+      "last_scraped": "2026-03-25T07:40:56Z"
+    },
+    {
+      "venue_name": "Ace 1 Social Club",
+      "city": "Corpus Christi",
+      "state": "TX",
+      "schedules": [
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "7:00PM",
+          "buy_in": 140,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00PM",
+          "buy_in": 80,
+          "game_type": "NLH",
+          "format": "Deep Stack",
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00PM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00PM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:30PM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00AM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "3:00PM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "7:00PM",
+          "buy_in": 160,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        }
+      ],
+      "source_url": "ace1socialclub.com",
+      "last_scraped": "2026-03-25T07:41:23Z"
+    },
+    {
+      "venue_name": "Bullets Card Club",
+      "city": "Austin",
+      "state": "TX",
+      "schedules": [
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:05PM",
+          "buy_in": 2000,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:05PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:05PM",
+          "buy_in": 2000,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:05PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "07:05",
+          "buy_in": 10,
+          "game_type": "NLH",
+          "format": "Rebuy",
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "07:05PM",
+          "buy_in": 10,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "06:05PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "7:05PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 7,
+          "tournament_name": null
+        }
+      ],
+      "source_url": "bulletscardclub.com",
+      "last_scraped": "2026-03-25T07:42:41Z"
+    },
+    {
+      "venue_name": "Doghouse Poker Club",
+      "city": "Cypress",
+      "state": "TX",
+      "schedules": [
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:30PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "8:30PM",
+          "buy_in": 500,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00PM",
+          "buy_in": 1500,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "2:00PM",
+          "buy_in": 3000,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "7:00PM",
+          "buy_in": 85,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "7:00PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "7:00PM",
+          "buy_in": 85,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "6:00PM",
+          "buy_in": 105,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "2:00PM",
+          "buy_in": 80,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "7:00PM",
+          "buy_in": 75,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "2:00PM",
+          "buy_in": 80,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "2:00PM",
+          "buy_in": 140,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "2:00PM",
+          "buy_in": 105,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "11:00AM",
+          "buy_in": 80,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00PM",
+          "buy_in": 300,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "2:00PM",
+          "buy_in": 125,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00PM",
+          "buy_in": 85,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "11:00AM",
+          "buy_in": 80,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:00PM",
+          "buy_in": 125,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00PM",
+          "buy_in": 75,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        }
+      ],
+      "source_url": "https://deuceswildpokerclub.com",
+      "last_scraped": "2026-03-25T07:43:29Z"
+    },
+    {
+      "venue_name": "Elite Poker Lounge",
+      "city": "McAllen",
+      "state": "TX",
+      "schedules": [
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "6:00PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": "Turbo",
+          "guaranteed": 1,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "6:00PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 1,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:00PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": "Turbo",
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "6:00PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": "Turbo",
+          "guaranteed": 1,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "6:00PM",
+          "buy_in": 2000,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": 1,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "6:00PM",
+          "buy_in": 2000,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": 1,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "6:00PM",
+          "buy_in": 20,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": 1,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "6:00PM",
+          "buy_in": 20,
+          "game_type": "Omaha",
+          "format": "Turbo",
+          "guaranteed": 1,
+          "tournament_name": null
+        }
+      ],
+      "source_url": "elitepokerlounge.com",
+      "last_scraped": "2026-03-25T07:43:46Z"
+    },
+    {
+      "venue_name": "Empire Poker Club",
+      "city": "Houston",
+      "state": "TX",
+      "schedules": [
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:15PM",
+          "buy_in": 600,
+          "game_type": "NLH",
+          "format": "Turbo",
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:30PM",
+          "buy_in": 600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 2000,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:15PM",
+          "buy_in": 600,
+          "game_type": "PLO",
+          "format": "Turbo",
+          "guaranteed": 4,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "12:00PM",
+          "buy_in": 600,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:30PM",
+          "buy_in": 10,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "12:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "12:00PM",
+          "buy_in": 10,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "12:00PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "12:00PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "12:00PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "12:00PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "5:30PM",
+          "buy_in": 10,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "12:00PM",
+          "buy_in": 40,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "12:00PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 100,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 10,
+          "game_type": "NLH",
+          "format": "Turbo",
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:30PM",
+          "buy_in": 20,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "12:00PM",
+          "buy_in": 10,
+          "game_type": "PLO",
+          "format": "Turbo",
+          "guaranteed": 4,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "12:00PM",
+          "buy_in": 10,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        }
+      ],
+      "source_url": "empirepokerclub.com",
+      "last_scraped": "2026-03-25T07:44:31Z"
+    },
+    {
+      "venue_name": "Gin Mill Card Club Lubbock",
+      "city": "Lubbock",
+      "state": "TX",
+      "schedules": [
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "6:30",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "6:30",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "6:30",
+          "buy_in": 20,
+          "game_type": "PLO",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "6:30",
+          "buy_in": 10,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:30",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "6:30PM",
+          "buy_in": 60,
+          "game_type": "PLO",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Wednesday",
+          "start_time": "6:30PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Friday",
+          "start_time": "6:30PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Saturday",
+          "start_time": "6:30PM",
+          "buy_in": 70,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "2:30PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "6:30PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "6:30PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "6:30PM",
+          "buy_in": 140,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:30PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:30PM",
+          "buy_in": 60,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:30PM",
+          "buy_in": 70,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "2:30PM",
+          "buy_in": 60,
+          "game_type": "Omaha",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:30PM",
+          "buy_in": 140,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "6:30PM",
+          "buy_in": 60,
+          "game_type": "PLO",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "2:30PM",
+          "buy_in": 200,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "2:30PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "2:30PM",
+          "buy_in": 140,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        }
+      ],
+      "source_url": "https://hippopotamus.poker",
+      "last_scraped": "2026-03-25T07:46:08Z"
+    },
+    {
+      "venue_name": "Jokers of Aggieland Poker Club",
+      "city": "College Station",
+      "state": "TX",
+      "schedules": [
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "7:00PM",
+          "buy_in": 2000,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "3:30PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": "Turbo",
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "6:30PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Tuesday",
+          "start_time": "7:00PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Thursday",
+          "start_time": "7:00PM",
+          "buy_in": 20,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "3:30PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Sunday",
+          "start_time": "3:00PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "6:30PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
+          "start_time": "7:00PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "3:30PM",
+          "buy_in": 50,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Monday",
+          "start_time": "3:00PM",
+          "buy_in": 60,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        }
+      ],
+      "source_url": "https://www.facebook.com/JokerPokerCardroom",
+      "last_scraped": "2026-03-25T07:46:51Z"
     }
   ],
   "venuesWithoutDailyTournaments": [
-    {"venue_name": "Commerce Casino", "city": "Commerce", "state": "CA", "reason": "Focuses on major series (LAPC, WSOP Circuit) rather than daily events"},
-    {"venue_name": "The Bicycle Hotel & Casino", "city": "Bell Gardens", "state": "CA", "reason": "Daily tournaments discontinued; focuses on WPT and major series"},
-    {"venue_name": "Bay 101 Casino", "city": "San Jose", "state": "CA", "reason": "Hosts tournaments but not daily recurring schedule"},
-    {"venue_name": "Casino M8trix", "city": "San Jose", "state": "CA", "reason": "Check venue for special events"},
-    {"venue_name": "The Venetian Resort", "city": "Las Vegas", "state": "NV", "reason": "Focuses on DeepStack series events rather than daily tournaments"},
-    {"venue_name": "Thunder Valley Casino Resort", "city": "Lincoln", "state": "CA", "reason": "Major series focus"},
-    {"venue_name": "Graton Resort & Casino", "city": "Rohnert Park", "state": "CA", "reason": "Check venue for schedule"},
-    {"venue_name": "Pechanga Resort Casino", "city": "Temecula", "state": "CA", "reason": "Check venue for schedule"},
-    {"venue_name": "Morongo Casino Resort", "city": "Cabazon", "state": "CA", "reason": "Check venue for schedule"},
-    {"venue_name": "Jamul Casino", "city": "Jamul", "state": "CA", "reason": "Check venue for schedule"},
-    {"venue_name": "Sycuan Casino Resort", "city": "El Cajon", "state": "CA", "reason": "Check venue for schedule"},
-    {"venue_name": "Chumash Casino Resort", "city": "Santa Ynez", "state": "CA", "reason": "Check venue for schedule"},
-    {"venue_name": "Table Mountain Casino", "city": "Friant", "state": "CA", "reason": "Check venue for schedule"},
-    {"venue_name": "Parkwest Casino Lodi", "city": "Lodi", "state": "CA", "reason": "Check venue for schedule"},
-    {"venue_name": "Pala Casino Spa Resort", "city": "Pala", "state": "CA", "reason": "Check venue for schedule"},
-    {"venue_name": "Barona Resort & Casino", "city": "Lakeside", "state": "CA", "reason": "Check venue for schedule"}
+    {
+      "venue_name": "Commerce Casino",
+      "city": "Commerce",
+      "state": "CA",
+      "reason": "Focuses on major series (LAPC, WSOP Circuit) rather than daily events"
+    },
+    {
+      "venue_name": "The Bicycle Hotel & Casino",
+      "city": "Bell Gardens",
+      "state": "CA",
+      "reason": "Daily tournaments discontinued; focuses on WPT and major series"
+    },
+    {
+      "venue_name": "Bay 101 Casino",
+      "city": "San Jose",
+      "state": "CA",
+      "reason": "Hosts tournaments but not daily recurring schedule"
+    },
+    {
+      "venue_name": "Casino M8trix",
+      "city": "San Jose",
+      "state": "CA",
+      "reason": "Check venue for special events"
+    },
+    {
+      "venue_name": "The Venetian Resort",
+      "city": "Las Vegas",
+      "state": "NV",
+      "reason": "Focuses on DeepStack series events rather than daily tournaments"
+    },
+    {
+      "venue_name": "Thunder Valley Casino Resort",
+      "city": "Lincoln",
+      "state": "CA",
+      "reason": "Major series focus"
+    },
+    {
+      "venue_name": "Graton Resort & Casino",
+      "city": "Rohnert Park",
+      "state": "CA",
+      "reason": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Pechanga Resort Casino",
+      "city": "Temecula",
+      "state": "CA",
+      "reason": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Morongo Casino Resort",
+      "city": "Cabazon",
+      "state": "CA",
+      "reason": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Jamul Casino",
+      "city": "Jamul",
+      "state": "CA",
+      "reason": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Sycuan Casino Resort",
+      "city": "El Cajon",
+      "state": "CA",
+      "reason": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Chumash Casino Resort",
+      "city": "Santa Ynez",
+      "state": "CA",
+      "reason": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Table Mountain Casino",
+      "city": "Friant",
+      "state": "CA",
+      "reason": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Parkwest Casino Lodi",
+      "city": "Lodi",
+      "state": "CA",
+      "reason": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Pala Casino Spa Resort",
+      "city": "Pala",
+      "state": "CA",
+      "reason": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Barona Resort & Casino",
+      "city": "Lakeside",
+      "state": "CA",
+      "reason": "Check venue for schedule"
+    }
   ],
   "texasCardRoomsAdditional": [
-    {"venue_name": "101 Poker Club", "city": "Katy", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Ace 1 Social Club", "city": "Corpus Christi", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Aggieland Poker Club", "city": "College Station", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Alamo Card House 2", "city": "San Antonio", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Bullets Card Club", "city": "Austin", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Doghouse Poker Club", "city": "Cypress", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Elite Poker Lounge", "city": "McAllen", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Empire Poker Club", "city": "Houston", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Gin Mill Card Club Lubbock", "city": "Lubbock", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Jokers of Aggieland Poker Club", "city": "College Station", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "KoJack's Poker Club", "city": "Midland", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Lone Star Social", "city": "Cedar Park", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "On The River Social Club", "city": "San Marcos", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Palace Poker", "city": "Grand Prairie", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Poker House Fort Worth", "city": "Burleson", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "SA Card House", "city": "San Antonio", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Shuffle 214", "city": "Dallas", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Shuffle 512", "city": "Austin", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Spades Poker House", "city": "Webster", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Spades Poker House Baytown", "city": "Baytown", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "TCH Social Austin", "city": "Austin", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "TCH Social Las Colinas", "city": "Irving", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Texas Card House Houston", "city": "Spring", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Texas Card House Rio Grande Valley", "city": "Edinburg", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "Texas Card House Spring", "city": "Spring", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "The Big Blind", "city": "San Antonio", "state": "TX", "notes": "Check venue website for schedule"},
-    {"venue_name": "The Hangar Poker House", "city": "Humble", "state": "TX", "notes": "Check venue website for schedule"}
+    {
+      "venue_name": "101 Poker Club",
+      "city": "Katy",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Ace 1 Social Club",
+      "city": "Corpus Christi",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Aggieland Poker Club",
+      "city": "College Station",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Alamo Card House 2",
+      "city": "San Antonio",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Bullets Card Club",
+      "city": "Austin",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Doghouse Poker Club",
+      "city": "Cypress",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Elite Poker Lounge",
+      "city": "McAllen",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Empire Poker Club",
+      "city": "Houston",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Gin Mill Card Club Lubbock",
+      "city": "Lubbock",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Jokers of Aggieland Poker Club",
+      "city": "College Station",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "KoJack's Poker Club",
+      "city": "Midland",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Lone Star Social",
+      "city": "Cedar Park",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "On The River Social Club",
+      "city": "San Marcos",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Palace Poker",
+      "city": "Grand Prairie",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Poker House Fort Worth",
+      "city": "Burleson",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "SA Card House",
+      "city": "San Antonio",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "city": "Dallas",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Shuffle 512",
+      "city": "Austin",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Spades Poker House",
+      "city": "Webster",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Spades Poker House Baytown",
+      "city": "Baytown",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "TCH Social Austin",
+      "city": "Austin",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "TCH Social Las Colinas",
+      "city": "Irving",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Texas Card House Houston",
+      "city": "Spring",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "city": "Edinburg",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "Texas Card House Spring",
+      "city": "Spring",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "The Big Blind",
+      "city": "San Antonio",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    },
+    {
+      "venue_name": "The Hangar Poker House",
+      "city": "Humble",
+      "state": "TX",
+      "notes": "Check venue website for schedule"
+    }
   ],
   "michiganCharityRooms": [
-    {"venue_name": "DiCicco's Poker Room", "city": "Shelby Township", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "G's Charity Poker", "city": "Shelby Township", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "Kings Poker Room", "city": "Grand Rapids", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "Muskegon Poker Room", "city": "Muskegon", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "Paradise Poker", "city": "Utica", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "Rosemack Poker Room", "city": "Roseville", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "Roundtree Poker Room", "city": "Ypsilanti", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "The Event Spot Poker Room", "city": "Clawson", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "The Saginaw Poker Room", "city": "Saginaw", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "Thompson Poker Room", "city": "Ypsilanti", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "Waterford Card Room", "city": "Waterford", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "Krazy Kopz at Vision Lanes", "city": "Westland", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "Legends Poker Place of Metamora", "city": "Metamora", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "Momo's Poker Room", "city": "Taylor", "state": "MI", "notes": "Charity room - check for daily schedule"},
-    {"venue_name": "Ace High Poker Club", "city": "Oxford", "state": "MI", "notes": "Charity room - check for daily schedule"}
+    {
+      "venue_name": "DiCicco's Poker Room",
+      "city": "Shelby Township",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "G's Charity Poker",
+      "city": "Shelby Township",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "Kings Poker Room",
+      "city": "Grand Rapids",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "Muskegon Poker Room",
+      "city": "Muskegon",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "Paradise Poker",
+      "city": "Utica",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "Rosemack Poker Room",
+      "city": "Roseville",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "Roundtree Poker Room",
+      "city": "Ypsilanti",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "The Event Spot Poker Room",
+      "city": "Clawson",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "The Saginaw Poker Room",
+      "city": "Saginaw",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "Thompson Poker Room",
+      "city": "Ypsilanti",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "Waterford Card Room",
+      "city": "Waterford",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "Krazy Kopz at Vision Lanes",
+      "city": "Westland",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "Legends Poker Place of Metamora",
+      "city": "Metamora",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "Momo's Poker Room",
+      "city": "Taylor",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    },
+    {
+      "venue_name": "Ace High Poker Club",
+      "city": "Oxford",
+      "state": "MI",
+      "notes": "Charity room - check for daily schedule"
+    }
   ],
   "californiaCardRoomsAdditional": [
-    {"venue_name": "Bankers Casino", "city": "Salinas", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Oaks Card Club", "city": "Emeryville", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Stones Gambling Hall", "city": "Citrus Heights", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Artichoke Joe's Casino", "city": "San Bruno", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Lucky Chances Casino", "city": "Colma", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Capitol Casino", "city": "Sacramento", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Limelight Card Room", "city": "Sacramento", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Kings Card Club", "city": "Stockton", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Parkwest Casino Cordova", "city": "Rancho Cordova", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Parkwest Casino Lotus", "city": "Sacramento", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Casino 99", "city": "Chico", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Turlock Poker Room", "city": "Turlock", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Garlic City Casino", "city": "Gilroy", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "California Grand Casino", "city": "Pacheco", "state": "CA", "notes": "Check venue for schedule"},
-    {"venue_name": "Livermore Casino", "city": "Livermore", "state": "CA", "notes": "Check venue for schedule"}
+    {
+      "venue_name": "Bankers Casino",
+      "city": "Salinas",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Oaks Card Club",
+      "city": "Emeryville",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Stones Gambling Hall",
+      "city": "Citrus Heights",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Artichoke Joe's Casino",
+      "city": "San Bruno",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Lucky Chances Casino",
+      "city": "Colma",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Capitol Casino",
+      "city": "Sacramento",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Limelight Card Room",
+      "city": "Sacramento",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Kings Card Club",
+      "city": "Stockton",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Parkwest Casino Cordova",
+      "city": "Rancho Cordova",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Parkwest Casino Lotus",
+      "city": "Sacramento",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Casino 99",
+      "city": "Chico",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Turlock Poker Room",
+      "city": "Turlock",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Garlic City Casino",
+      "city": "Gilroy",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "California Grand Casino",
+      "city": "Pacheco",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    },
+    {
+      "venue_name": "Livermore Casino",
+      "city": "Livermore",
+      "state": "CA",
+      "notes": "Check venue for schedule"
+    }
   ]
 }
