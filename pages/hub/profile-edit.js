@@ -860,13 +860,16 @@ export default function ProfilePage() {
             favorite_hand_type: profile.favorite_hand_type || 'holdem',
             favorite_hand_plo: profile.favorite_hand_plo || '',
             home_casino: profile.home_casino,
-            birth_year: profile.birth_year,
+            birth_year: profile.birth_year ? parseInt(profile.birth_year, 10) || null : null,
             birthday: (() => {
                 const b = profile.birthday;
                 if (!b) return null;
                 const parts = b.split('-');
-                // Only save if all 3 parts (year, month, day) are present and non-empty
-                if (parts.length === 3 && parts[0] && parts[1] && parts[2]) return b;
+                // Only save if all 3 parts (year, month, day) are present, non-empty, and numeric
+                if (parts.length === 3 && parts[0] && parts[1] && parts[2] &&
+                    /^\d{4}$/.test(parts[0]) && /^\d{1,2}$/.test(parts[1]) && /^\d{1,2}$/.test(parts[2])) {
+                    return b;
+                }
                 return null;
             })(),
             avatar_url: profile.avatar_url,
