@@ -1996,7 +1996,7 @@ export default function ProfilePage() {
                     </CollapsibleSection>
 
                     {/* Poker Info */}
-                    <CollapsibleSection id="sec-poker" title="Poker Info" icon="\u2660\uFE0F">
+                    <CollapsibleSection id="sec-poker" title="Poker Info" icon="♠️">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                             <ProfileField label="Favorite Game" value={profile.favorite_game} onChange={updateField('favorite_game')} placeholder="No Limit Hold'em" icon="" />
                             <ProfileField label="Birth Year" value={profile.birth_year} onChange={updateField('birth_year')} placeholder="1990" icon="🎂" />
@@ -2109,7 +2109,7 @@ export default function ProfilePage() {
                     </CollapsibleSection>
 
                     {/* HendonMob Integration / Poker Resume */}
-                    <CollapsibleSection id="sec-resume" title="Poker Resume" icon="\uD83C\uDFC6">
+                    <CollapsibleSection id="sec-resume" title="Poker Resume" icon="🏆">
                         <p style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>
                             Link your Hendon Mob profile to automatically display your tournament stats.
                             Stats are synced directly from HendonMob.
