@@ -282,15 +282,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
         try {
             if (wasLiked) {
-                await supabase.from('social_interactions')
+                await supabase.from('social_likes')
                     .delete()
                     .eq('post_id', currentId)
-                    .eq('user_id', userId)
-                    .eq('interaction_type', 'like');
+                    .eq('user_id', userId);
                 busEmit.socialPostLiked(currentId, userId, { added: false, reactionType: 'like' });
             } else {
-                await supabase.from('social_interactions')
-                    .insert({ post_id: currentId, user_id: userId, interaction_type: 'like' });
+                await supabase.from('social_likes')
+                    .insert({ post_id: currentId, user_id: userId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentId, userId, { added: true, reactionType: 'like' });
             }
         } catch (err) {

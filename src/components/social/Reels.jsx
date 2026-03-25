@@ -54,10 +54,9 @@ export function ReelsViewer({ onClose }) {
         const user = getAuthUser();
         if (user?.id) {
             setCurrentUserId(user.id);
-            supabase.from('social_interactions')
+            supabase.from('social_likes')
                 .select('post_id')
                 .eq('user_id', user.id)
-                .eq('interaction_type', 'like')
                 .then(({ data }) => {
                     if (data) {
                         const likeMap = {};
@@ -124,15 +123,14 @@ export function ReelsViewer({ onClose }) {
 
         try {
             if (wasLiked) {
-                await supabase.from('social_interactions')
+                await supabase.from('social_likes')
                     .delete()
                     .eq('post_id', currentReel.id)
-                    .eq('user_id', currentUserId)
-                    .eq('interaction_type', 'like');
+                    .eq('user_id', currentUserId);
                 busEmit.socialPostLiked(currentReel.id, currentUserId, { added: false, reactionType: 'like' });
             } else {
-                await supabase.from('social_interactions')
-                    .insert({ post_id: currentReel.id, user_id: currentUserId, interaction_type: 'like' });
+                await supabase.from('social_likes')
+                    .insert({ post_id: currentReel.id, user_id: currentUserId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentReel.id, currentUserId, { added: true, reactionType: 'like' });
             }
         } catch (err) {
