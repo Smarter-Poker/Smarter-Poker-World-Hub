@@ -16,6 +16,7 @@ import { reelsPreferences, savedReelsService } from '../../src/services/preferen
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import UploadReelModal from '../../src/components/reels/UploadReelModal';
 import { saveAppSetting } from '../../src/lib/appSettingsSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const C = {
     bg: '#000000',
@@ -296,6 +297,7 @@ export default function ReelsPage() {
                 setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
             }
         }
+        busEmit.socialPostLiked(currentReel.id, user?.id, { added: !wasLiked, reactionType: 'like' });
         setLikeBusy(false);
     };
 
@@ -330,6 +332,7 @@ export default function ReelsPage() {
             setCommentText('');
         } catch (e) { console.error('Submit comment:', e); }
         setSubmittingComment(false);
+        busEmit.socialCommentAdded(currentReel.id, user?.id);
     };
 
     const handleShare = async () => {
@@ -347,6 +350,7 @@ export default function ReelsPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: currentReel.id, user_id: user.id, interaction_type: 'share' })
                 }).catch(() => { }).finally(() => setShareBusy(false));
+                busEmit.socialPostShared(currentReel.id, user.id);
             } else {
                 setShareBusy(false);
             }
@@ -386,6 +390,7 @@ export default function ReelsPage() {
             });
             setSavedReels(prev => new Set([...prev, currentReel.id]));
         }
+        busEmit.socialPostBookmarked(currentReel.id, user?.id, { added: !isSaved });
     };
 
     // Hamburger menu handlers
