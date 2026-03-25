@@ -7,15 +7,13 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-const GIPHY_API_KEY = process.env.GIPHY_API_KEY;
+// GIPHY beta key — this is a FREE public SDK key from GIPHY for development use (not a secret).
+// Override with a paid/production key via GIPHY_API_KEY env var in Vercel if needed.
+const GIPHY_API_KEY = process.env.GIPHY_API_KEY || 'GRZ1Yjou2kmUFz1jcXP0S2skHrMZOFoQ';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
-    }
-
-    if (!GIPHY_API_KEY) {
-        return res.status(200).json({ success: false, error: 'GIPHY API key is not configured', gifs: [] });
     }
 
     const { q, offset = 0, limit = 20, type = 'gif' } = req.query;
