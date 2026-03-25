@@ -606,7 +606,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, onPostEdited, 
                                                             setComments(prev => prev.filter(cm => cm.id !== c.id));
                                                             setCommentCount(prev => Math.max(0, prev - 1));
                                                             busEmit.socialCommentAdded(post.id, currentUserId, { removed: true });
-                                                            supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(() => {});
+                                                            try { await supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }); } catch {}
                                                             toast.success('Comment deleted');
                                                         } catch (e) { console.error('Delete comment error:', e); toast.error('Could not delete comment'); }
                                                     }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#F02849', fontSize: 11, padding: 0 }}>Delete</button>

@@ -2572,7 +2572,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                                                 setComments(prev => prev.filter(cm => cm.id !== c.id));
                                                                 setCommentCount(prev => Math.max(0, prev - 1));
                                                                 eventBus.emit('SOCIAL_COMMENT_UPDATE', { postId: post.id, removed: true }, 'CommentDelete');
-                                                                supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(() => {});
+                                                                try { await supabase.rpc('decrement_post_count', { p_post_id: post.id, p_field: 'comment_count' }); } catch {}
                                                             }
                                                             setDeletingCommentId(null);
                                                         }}>Yes</span>
