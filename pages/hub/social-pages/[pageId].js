@@ -495,7 +495,7 @@ export default function SocialPageDetail() {
     };
 
     const handlePost = async () => {
-        if (!newPost.trim() || !user || !page) return;
+        if ((!newPost.trim() && uploadImages.length === 0) || !user || !page) return;
         setPosting(true);
         try {
             const token = getAccessToken();
@@ -507,7 +507,8 @@ export default function SocialPageDetail() {
                 },
                 body: JSON.stringify({
                     page_id: page.id, author_id: user.id,
-                    content: newPost.trim(), content_type: 'text',
+                    content: newPost.trim(), content_type: uploadImages.length > 0 ? 'media' : 'text',
+                    ...(uploadImages.length > 0 ? { media_urls: uploadImages } : {}),
                 }),
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -517,6 +518,7 @@ export default function SocialPageDetail() {
                 busEmit.dataMutated('social-pages');
                 busEmit.dataMutated('social');
                 setNewPost('');
+                setUploadImages([]);
                 fetchPosts();
             }
         } catch (e) { console.error("[[pageId].js]", e); toast.success('Post failed — try again'); }

@@ -1,0 +1,97 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:31:09.984018+00:00",
+    "scrape_html_hash": "f23542dc64ba310c224783544944a13a8f38333efb02154e29de65aa78ae2408",
+    "scrape_byte_count": 123139,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "WSOP Room at Paris",
+      "day_of_week": "Sunday",
+      "start_time": "9:00am",
+      "buy_in": 100,
+      "game_type": "horse",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f23542dc64ba310c224783544944a13a8f38333efb02154e29de65aa78ae2408",
+      "scrape_timestamp": "2026-03-25T21:31:09.984018+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "WSOP Room at Paris",
+      "day_of_week": "Monday",
+      "start_time": "9:00am",
+      "buy_in": 100,
+      "game_type": "horse",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f23542dc64ba310c224783544944a13a8f38333efb02154e29de65aa78ae2408",
+      "scrape_timestamp": "2026-03-25T21:31:09.984018+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "WSOP Room at Paris",
+      "day_of_week": "Tuesday",
+      "start_time": "9:00am",
+      "buy_in": 100,
+      "game_type": "horse",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f23542dc64ba310c224783544944a13a8f38333efb02154e29de65aa78ae2408",
+      "scrape_timestamp": "2026-03-25T21:31:09.984018+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "WSOP Room at Paris",
+      "day_of_week": "Wednesday",
+      "start_time": "9:00am",
+      "buy_in": 100,
+      "game_type": "horse",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f23542dc64ba310c224783544944a13a8f38333efb02154e29de65aa78ae2408",
+      "scrape_timestamp": "2026-03-25T21:31:09.984018+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "WSOP Room at Paris",
+      "day_of_week": "Thursday",
+      "start_time": "9:00am",
+      "buy_in": 100,
+      "game_type": "horse",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f23542dc64ba310c224783544944a13a8f38333efb02154e29de65aa78ae2408",
+      "scrape_timestamp": "2026-03-25T21:31:09.984018+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "WSOP Room at Paris",
+      "day_of_week": "Friday",
+      "start_time": "9:00am",
+      "buy_in": 100,
+      "game_type": "horse",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f23542dc64ba310c224783544944a13a8f38333efb02154e29de65aa78ae2408",
+      "scrape_timestamp": "2026-03-25T21:31:09.984018+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "WSOP Room at Paris",
+      "day_of_week": "Saturday",
+      "start_time": "9:00am",
+      "buy_in": 100,
+      "game_type": "horse",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f23542dc64ba310c224783544944a13a8f38333efb02154e29de65aa78ae2408",
+      "scrape_timestamp": "2026-03-25T21:31:09.984018+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas/tournaments"
+    }
+  ]
+}

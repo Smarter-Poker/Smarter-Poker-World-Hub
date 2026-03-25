@@ -1,0 +1,49 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/kings-poker-room-grand-rapids/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:31:00.978654+00:00",
+    "scrape_html_hash": "0c69ebf966564771db982fd2d9bd8fdd4df138aea4f024d313a1c369cbd67a94",
+    "scrape_byte_count": 68549,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Kings Poker Room",
+      "day_of_week": "Sunday",
+      "start_time": "11:30am",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "0c69ebf966564771db982fd2d9bd8fdd4df138aea4f024d313a1c369cbd67a94",
+      "scrape_timestamp": "2026-03-25T21:31:00.978654+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/kings-poker-room-grand-rapids/tournaments"
+    },
+    {
+      "venue_name": "Kings Poker Room",
+      "day_of_week": "Friday",
+      "start_time": "7:00pm",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "0c69ebf966564771db982fd2d9bd8fdd4df138aea4f024d313a1c369cbd67a94",
+      "scrape_timestamp": "2026-03-25T21:31:00.978654+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/kings-poker-room-grand-rapids/tournaments"
+    },
+    {
+      "venue_name": "Kings Poker Room",
+      "day_of_week": "Sunday",
+      "start_time": "7:00pm",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "0c69ebf966564771db982fd2d9bd8fdd4df138aea4f024d313a1c369cbd67a94",
+      "scrape_timestamp": "2026-03-25T21:31:00.978654+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/kings-poker-room-grand-rapids/tournaments"
+    }
+  ]
+}

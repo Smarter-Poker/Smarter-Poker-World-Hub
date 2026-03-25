@@ -1,0 +1,97 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/peppermill-reno/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:31:37.236348+00:00",
+    "scrape_html_hash": "791401cda0fa710b09dc677b4d3e7eba15e2ca97a46e9a27b461936fbb83b0e1",
+    "scrape_byte_count": 77701,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Peppermill Resort Spa Casino",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 130,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "791401cda0fa710b09dc677b4d3e7eba15e2ca97a46e9a27b461936fbb83b0e1",
+      "scrape_timestamp": "2026-03-25T21:31:37.236348+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/peppermill-reno/tournaments"
+    },
+    {
+      "venue_name": "Peppermill Resort Spa Casino",
+      "day_of_week": "Tuesday",
+      "start_time": "12:00pm",
+      "buy_in": 65,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "791401cda0fa710b09dc677b4d3e7eba15e2ca97a46e9a27b461936fbb83b0e1",
+      "scrape_timestamp": "2026-03-25T21:31:37.236348+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/peppermill-reno/tournaments"
+    },
+    {
+      "venue_name": "Peppermill Resort Spa Casino",
+      "day_of_week": "Thursday",
+      "start_time": "12:00pm",
+      "buy_in": 65,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "791401cda0fa710b09dc677b4d3e7eba15e2ca97a46e9a27b461936fbb83b0e1",
+      "scrape_timestamp": "2026-03-25T21:31:37.236348+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/peppermill-reno/tournaments"
+    },
+    {
+      "venue_name": "Peppermill Resort Spa Casino",
+      "day_of_week": "sunday",
+      "start_time": "6:00pm",
+      "buy_in": 140,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "791401cda0fa710b09dc677b4d3e7eba15e2ca97a46e9a27b461936fbb83b0e1",
+      "scrape_timestamp": "2026-03-25T21:31:37.236348+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/peppermill-reno/tournaments"
+    },
+    {
+      "venue_name": "Peppermill Resort Spa Casino",
+      "day_of_week": "Saturday",
+      "start_time": "12:00pm",
+      "buy_in": 265,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "791401cda0fa710b09dc677b4d3e7eba15e2ca97a46e9a27b461936fbb83b0e1",
+      "scrape_timestamp": "2026-03-25T21:31:37.236348+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/peppermill-reno/tournaments"
+    },
+    {
+      "venue_name": "Peppermill Resort Spa Casino",
+      "day_of_week": "Monday",
+      "start_time": "12:00pm",
+      "buy_in": 65,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "791401cda0fa710b09dc677b4d3e7eba15e2ca97a46e9a27b461936fbb83b0e1",
+      "scrape_timestamp": "2026-03-25T21:31:37.236348+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/peppermill-reno/tournaments"
+    },
+    {
+      "venue_name": "Peppermill Resort Spa Casino",
+      "day_of_week": "Wednesday",
+      "start_time": "12:00pm",
+      "buy_in": 65,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "791401cda0fa710b09dc677b4d3e7eba15e2ca97a46e9a27b461936fbb83b0e1",
+      "scrape_timestamp": "2026-03-25T21:31:37.236348+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/peppermill-reno/tournaments"
+    }
+  ]
+}

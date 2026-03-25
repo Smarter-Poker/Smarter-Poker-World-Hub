@@ -91,10 +91,45 @@ export default async function handler(req, res) {
                   .eq('id', user_id)
                   .maybeSingle();
 
+              // Send notification to page owner about the new comment
+              try {
+                  const { data: pd } = await getSupabase()
+                      .from('social_page_posts').select('page_id').eq('id', post_id).maybeSingle();
+                  if (pd) {
+                      const { data: pg } = await getSupabase()
+                          .from('social_pages').select('owner_id, name').eq('id', pd.page_id).maybeSingle();
+                      if (pg && pg.owner_id !== user_id) {
+                          const cn = profile?.full_name || profile?.username || 'Someone';
+                          fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
+                              method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '' },
+                              body: JSON.stringify({ title: 'New Comment', message: `${cn} commented on a post in "${pg.name}"`, externalUserIds: [pg.owner_id], url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/social-pages/${pd.page_id}`, data: { type: 'page_comment', page_id: pd.page_id, post_id } }),
+                          }).catch(() => {});
+                      }
+                  }
+              } catch (ne) { console.error('Comment notification error:', ne); }
+
               return res.status(201).json({
                   success: true,
                   data: { ...data, author: profile }
               });
+          }
+
+
+                      if (pageData && pageData.owner_id !== user_id) {
+                          const commenterName = profile?.full_name || profile?.username || 'Someone';
+                          await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
+                              method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '' },
+                              body: JSON.stringify({
+                                  title: '💬 New Comment',
+                                  message: `${commenterName} commented on a post in "${pageData.name}"`,
+                                  externalUserIds: [pageData.owner_id],
+                                  url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/social-pages/${postData.page_id}`,
+                                  data: { type: 'page_comment', page_id: postData.page_id, post_id }
+                              }),
+                          });
+                      }
+                  }
+              } catch (notifErr) { console.error('Comment notification error:', notifErr); }
           }
 
           return res.status(400).json({ success: false, error: 'Invalid action. Use "like" or "comment"' });
