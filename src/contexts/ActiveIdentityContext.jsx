@@ -27,23 +27,24 @@ const ActiveIdentityContext = createContext({
 const STORAGE_KEY = 'active-identity';
 
 export function ActiveIdentityProvider({ children }) {
-    const [activeIdentity, setActiveIdentity] = useState({ mode: 'personal', clubPage: null });
-    const [availableClubPage, setAvailableClubPage] = useState(null);
-
-    // Load persisted identity on mount
-    useEffect(() => {
+    // Initialize from localStorage SYNCHRONOUSLY to prevent persist/load race condition.
+    // Without this, the persist effect (which fires on [activeIdentity] changes) would
+    // overwrite localStorage with the default 'personal' state before the load effect
+    // could read and restore the stored 'club' identity.
+    const [activeIdentity, setActiveIdentity] = useState(() => {
+        if (typeof window === 'undefined') return { mode: 'personal', clubPage: null };
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
                 const parsed = JSON.parse(stored);
-                if (parsed && parsed.mode) {
-                    setActiveIdentity(parsed);
-                }
+                if (parsed && parsed.mode) return parsed;
             }
         } catch (e) {
             console.warn('[ActiveIdentity] Failed to load stored identity:', e);
         }
-    }, []);
+        return { mode: 'personal', clubPage: null };
+    });
+    const [availableClubPage, setAvailableClubPage] = useState(null);
 
     // Auto-detect club page for Commander users
     // HARDENED: Always checks by owner_id as fallback, even without commander_staff in localStorage.
