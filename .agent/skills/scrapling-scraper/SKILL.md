@@ -3,212 +3,132 @@ name: Scrapling Web Scraper
 description: Cloudflare-bypassing web scraper using Scrapling + camoufox. Use this skill when you need to scrape data from websites protected by Cloudflare, CAPTCHAs, or other anti-bot systems.
 ---
 
-# Scrapling Web Scraper Skill
+# Scrapling Web Scraper — Agent Skill
 
-## MANDATORY LAW: REAL DATA ONLY — 15-LAYER INTEGRITY STANDARD
+> [!CAUTION]
+> **READ `.agent/skills/data-integrity/SKILL.md` FIRST.** This Scrapling skill is the ONLY authorized tool for data ingestion. No other HTTP library may be used.
 
-> **THIS LAW IS ABSOLUTE AND CANNOT BE OVERRIDDEN BY ANY AGENT, IN ANY CONVERSATION, UNDER ANY CIRCUMSTANCES.**
->
-> **Violating this law is a CRITICAL FAILURE. There are ZERO exceptions.**
+## The 7 Commandments (Non-Negotiable)
 
-### The 7 Commandments
-> 1. **ONLY extract data that is EXPLICITLY PRESENT on the source page.**
->    Every value must trace to a real HTML element found via CSS selector or regex on the live page.
->
-> 2. **NEVER guess, assume, infer, estimate, or simulate any scraped value.**
->    If a data point is not found on the page, it MUST be reported as `null`.
->
-> 3. **NEVER use "fallback" logic** that picks arbitrary values.
->    (e.g., "find the largest dollar amount on the page" is FORBIDDEN).
->
-> 4. **NEVER manually write or hand-craft JSON data files.**
->    All data files must be OUTPUT from an executed Scrapling script. Hand-written data = fabricated data.
->
-> 5. **If a URL returns non-200, STOP and REPORT to the user.**
->    Do NOT proceed. Do NOT invent what you think the page would contain. Report it and move on.
->
-> 6. **Every record MUST include cryptographic provenance:**
->    `scrape_url`, `scrape_http_status`, `scrape_timestamp`, `scrape_html_hash` (SHA-256), `scrape_script`
->
-> 7. **If data cannot be scraped, display "—" or "Not yet published" in the UI.**
->    Never fill gaps with AI-generated values. Missing data is infinitely better than fake data.
->
-> **Violating this law corrupts user data, destroys platform trust, and is grounds for session termination.**
+1. **NEVER fabricate, estimate, or infer data** — every field value MUST come from a live webpage
+2. **ALWAYS use Scrapling** — no `requests`, no `urllib`, no `fetch` for scraping
+3. **ALWAYS capture SHA-256 hash** of the raw HTML before parsing
+4. **ALWAYS save evidence** to `data/scrape-evidence/` before seeding to Supabase
+5. **ALWAYS run `scripts/anti-hallucination-check.py`** before seeding any batch
+6. **NEVER bypass the data_quality gate** — must be `scraped_verified` with full provenance
+7. **ALWAYS log to `data_audit_log`** — every batch gets an entry with scrape proof
 
-### Red Flags — Signs of AI-Generated Data (AUTO-REJECT)
-| Signal | Why It's Suspicious |
-|--------|-------------------|
-| 97%+ round buy-in numbers ($400, $600, $1,100) | Real schedules have irregular amounts ($375, $565, $1,125) |
-| All records have identical timestamps | Real scrapes happen over seconds/minutes |
-| Source URL returns 404 | The page doesn't exist — data was fabricated |
-| Uniform event naming (`$X NLH`, `$X Deep Stack`) | Real events have unique, specific names |
-| No HTML artifacts in extracted text | Real scraped data has encoding quirks |
-| Perfect field completeness (100% filled) | Real data always has gaps |
-| Sequential numbering with no gaps | Real schedules have scheduling irregularities |
+## Source of Truth Hierarchy
 
----
+| Priority | Source | Credential | Use For |
+|----------|--------|------------|---------|
+| 1️⃣ PRIMARY | Venue/Tour OWN WEBSITE | None (public) | Address, phone, hours, tournament schedule |
+| 2️⃣ BACKUP | PokerAtlas | `danbekavac4545` / `215SlalomCt!` | Cross-verification of venue data |
+| 3️⃣ BACKUP | Bravo Poker Live | `admin@smarter.poker` / `215SlalomCt!` (token: `cd6942d7-4d38-4ecc-95b2-cc9bee944b07`) | Real-time game data, tournament listings |
 
-## Overview
-This skill provides production-ready web scraping using **Scrapling** with **camoufox** (undetectable Firefox-based browser). It bypasses Cloudflare Turnstile CAPTCHAs and other anti-bot protections.
+## Environment Setup
 
-## When to Use This Skill
-- When you need to scrape data from a website
-- When Cloudflare or anti-bot systems block access
-- When `fetch()`, `axios`, or server-side requests fail
-- **ALWAYS** for any external data ingestion (per `/data-scraping` workflow)
-
-## Prerequisites
 ```bash
-# Python venv with Scrapling installed:
-/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.venv/bin/python3
-
-# Verify:
-.venv/bin/python3 -c "import scrapling; print(f'Scrapling v{scrapling.__version__}')"
-# Expected: Scrapling v0.4.2
+# Python venv with Scrapling installed
+cd /Users/smarter.poker/Documents/Smarter-Poker-World-Hub
+source .venv/bin/activate
+python3 -c "import scrapling; print(scrapling.__version__)"  # Should print 0.4.2+
 ```
 
-### Installed packages:
-- `scrapling` 0.4.2 — Core scraping framework
-- `camoufox` 0.4.11 — Undetectable Firefox browser
-- `playwright` / `patchright` — Browser automation
-- `curl_cffi` — TLS fingerprint spoofing
-- `browserforge` — Browser fingerprint generation
+## Scrapling Usage Patterns
 
-## Quick Start
-
-### 1. Simple Fetch (No Cloudflare)
+### Pattern 1: Simple HTTP Fetch (non-Cloudflare sites)
 ```python
 from scrapling.fetchers import Fetcher
-page = Fetcher.get('https://example.com', stealthy_headers=True)
-print(page.status, page.text)
-```
-
-### 2. Cloudflare Bypass (StealthySession)
-```python
-import asyncio
-from scrapling.fetchers import AsyncStealthySession
-
-async def scrape():
-    async with AsyncStealthySession(headless=True, solve_cloudflare=True) as session:
-        page = await session.fetch('https://cloudflare-protected-site.com')
-        
-        # IMPORTANT: Content is in page.body (bytes), NOT page.text
-        body = page.body.decode('utf-8', errors='ignore')
-        
-        # CSS selectors work on the response
-        tables = page.css('table')
-        links = page.css('a')
-
-asyncio.run(scrape())
-```
-
-### 3. Run from Shell
-```bash
-# Always use the venv Python:
-/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.venv/bin/python3 your_script.py
-```
-
-## Key API Details
-
-### Response Object Attributes
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `page.status` | int | HTTP status code |
-| `page.body` | bytes | **Full HTML** (use this, not `.text`) |
-| `page.text` | str | Often empty for StealthySession |
-| `page.css('selector')` | list | CSS selector results |
-| `page.headers` | dict | Response headers |
-
-> **CRITICAL**: For `StealthySession`, always use `page.body` instead of `page.text`.
-
-## Mandatory Scraper Template (With Full Provenance)
-
-```python
-#!/usr/bin/env python3
-"""
-Scrape [WHAT] from [WHERE] — REAL DATA ONLY
-Outputs: JSON with full cryptographic provenance per Layer 1
-"""
-import asyncio, hashlib, json, sys
+import hashlib
 from datetime import datetime, timezone
 
-SCRIPT_NAME = __file__
+page = Fetcher.get(url, stealthy_headers=True)
+body = page.body or page.text.encode()
 
-async def scrape(url):
-    from scrapling.fetchers import AsyncStealthySession
-    
+provenance = {
+    'scrape_url': url,
+    'scrape_http_status': page.status,
+    'scrape_timestamp': datetime.now(timezone.utc).isoformat(),
+    'scrape_html_hash': hashlib.sha256(body).hexdigest(),
+    'scrape_byte_count': len(body),
+    'scrape_script': __file__,
+}
+```
+
+### Pattern 2: Cloudflare Bypass (PokerAtlas, Bravo, casinos)
+```python
+from scrapling.fetchers import AsyncStealthySession
+import asyncio
+
+async def scrape_cloudflare(url):
     async with AsyncStealthySession(headless=True, solve_cloudflare=True) as session:
         page = await session.fetch(url, google_search=False)
-        
-        # LAYER 1: Capture provenance
-        raw_body = page.body
-        provenance = {
-            'scrape_url': url,
-            'scrape_http_status': page.status,
-            'scrape_timestamp': datetime.now(timezone.utc).isoformat(),
-            'scrape_html_hash': hashlib.sha256(raw_body).hexdigest(),
-            'scrape_byte_count': len(raw_body),
-            'scrape_script': SCRIPT_NAME,
-        }
-        
-        if page.status != 200:
-            print(f'FAILED: HTTP {page.status} for {url}')
-            print(f'PROVENANCE: {json.dumps(provenance)}')
-            return None
-        
-        body = raw_body.decode('utf-8', errors='ignore')
-        
-        # EXTRACT ONLY what is explicitly on the page
-        records = []
-        # ... CSS selector parsing here ...
-        
-        # Attach provenance to every record
-        for r in records:
-            r.update(provenance)
-        
-        return {
-            'provenance': provenance,
-            'records': records,
-            'record_count': len(records),
-        }
-
-if __name__ == '__main__':
-    url = sys.argv[1] if len(sys.argv) > 1 else None
-    if not url:
-        print('Usage: .venv/bin/python3 script.py <URL>')
-        sys.exit(1)
-    result = asyncio.run(scrape(url))
-    if result:
-        print(json.dumps(result, indent=2))
-        # Save evidence
-        with open(f'data/scrape-evidence/{SCRIPT_NAME}_{int(datetime.now().timestamp())}.json', 'w') as f:
-            json.dump(result, f, indent=2)
+        body = page.body
+        # ... capture provenance same as Pattern 1
 ```
 
-## Existing Implementation: HendonMob Scraper
-
-```bash
-# Single user
-SUPABASE_SERVICE_ROLE_KEY="<key>" \
-  .venv/bin/python3 scripts/hendon_scraper_scrapling.py \
-  "https://pokerdb.thehendonmob.com/player.php?a=r&n=238029" \
-  "47965354-0e56-43ef-931c-ddaab82af765"
-
-# ALL linked users
-SUPABASE_SERVICE_ROLE_KEY="<key>" \
-  .venv/bin/python3 scripts/hendon_scraper_scrapling.py --all
+### Pattern 3: Authenticated Scrape (PokerAtlas login)
+```python
+async def scrape_pokeratlas_authenticated():
+    async with AsyncStealthySession(headless=True, solve_cloudflare=True) as session:
+        # Login first
+        login_page = await session.fetch('https://www.pokeratlas.com/login')
+        # ... fill form with credentials ...
+        # Then scrape protected pages
 ```
 
-## Constraints
-1. **Cannot run on Vercel** — Requires headless browser. Must run locally or on a VPS.
-2. **Rate limiting** — Add 3-5s delays between requests.
-3. **Memory** — ~200-300MB per browser session.
-4. **First run** — 10-15s for Cloudflare solving; subsequent requests are fast.
+## Mandatory Workflow for Every Scrape
 
-## Troubleshooting
-| Issue | Solution |
-|-------|----------|
-| `ModuleNotFoundError: scrapling` | Use `.venv/bin/python3` |
-| 403 with `Fetcher` | Use `StealthySession` with `solve_cloudflare=True` |
-| `page.text` empty | Use `page.body` instead |
-| Cloudflare still blocking | Retry — sometimes needs 2 attempts |
+```
+1. Verify source URL is in scrape_source_registry (or add it)
+2. Scrape with Scrapling (Fetcher or StealthySession)
+3. Verify HTTP 200 response
+4. SHA-256 hash the raw HTML
+5. Parse data with CSS selectors
+6. Save evidence JSON to data/scrape-evidence/
+7. Run anti-hallucination-check.py
+8. Seed to Supabase with full provenance
+9. Log to data_audit_log
+```
+
+## Red Flag Detection Table
+
+If you see ANY of these patterns, STOP and flag for review:
+
+| 🚨 Red Flag | What It Means |
+|-------------|---------------|
+| No `scrape_html_hash` | Data was NOT scraped from a real page |
+| `source_url` returns 404 | Data was fabricated for a nonexistent page |
+| >90% buy-ins multiples of $100 | AI-generated patterns |
+| All timestamps identical | Batch-generated, not scraped |
+| Names follow `$X NLH` pattern | AI templating |
+| Phone numbers ending 5555/0000 | AI-generated phone numbers |
+| "Schedule not yet published" sources | Real — DO NOT fabricate what it might be |
+
+## Evidence File Format
+
+Save to `data/scrape-evidence/{source}_{timestamp}.json`:
+```json
+{
+  "scrape_url": "https://...",
+  "scrape_http_status": 200,
+  "scrape_html_hash": "sha256...",
+  "scrape_byte_count": 47622,
+  "scrape_timestamp": "2026-03-25T16:28:52Z",
+  "scrape_script": "scripts/scrape_pokeratlas.py",
+  "records_extracted": 42,
+  "batch_id": "uuid...",
+  "body_preview": "first 200 chars of HTML..."
+}
+```
+
+## Forbidden Actions
+
+- ❌ Using `urllib.request`, `requests`, or `fetch` for data scraping
+- ❌ Writing to data tables via `exec_sql` RPC (bypasses enforcement triggers)
+- ❌ Inserting records without `scrape_html_hash` and `scrape_timestamp`
+- ❌ Hardcoding data in JSON and seeding it as "scraped"
+- ❌ Estimating future schedules from past data
+- ❌ Skipping the anti-hallucination check before seeding
+- ❌ Using `data_quality = 'ai_generated'` or `'unverified'` on data tables
