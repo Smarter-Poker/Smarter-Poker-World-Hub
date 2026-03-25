@@ -688,15 +688,23 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 background: '#000',
             }}>
                 {isYouTubeUrl(currentReel.video_url) ? (
-                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none' }}>
                         <iframe
                             key={currentReel.id}
-                            src={`https://www.youtube-nocookie.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&rel=0&modestbranding=1&playsinline=1&controls=1&showinfo=0&iv_load_policy=3&fs=0&disablekb=0&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-                            style={{ width: '100%', height: '100%', border: 'none' }}
+                            src={`https://www.youtube-nocookie.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&controls=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=1&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                            style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
+                            onLoad={(e) => {
+                                // Force play via YouTube postMessage API
+                                try {
+                                    e.target.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                                    setTimeout(() => {
+                                        e.target.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                                    }, 500);
+                                } catch {}
+                            }}
                         />
-                        {!showOverlay && <div style={{ position: 'absolute', inset: 0, zIndex: 1 }} />}
                     </div>
                 ) : (
                     <video
@@ -787,9 +795,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
                         padding: '24px 12px 20px',
                         display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-                        opacity: showOverlay ? 1 : 0,
-                        pointerEvents: showOverlay ? 'auto' : 'none',
-                        transition: 'opacity 0.3s ease',
+                        opacity: 1,
+                        pointerEvents: 'auto',
                         zIndex: 20,
                     }}
                 >

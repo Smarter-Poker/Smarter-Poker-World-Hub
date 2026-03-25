@@ -646,9 +646,8 @@ export function ReelsViewer({ onClose }) {
                         background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
                         padding: '24px 8px 20px',
                         display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-                        opacity: showOverlay ? 1 : 0,
-                        pointerEvents: showOverlay ? 'auto' : 'none',
-                        transition: 'opacity 0.3s ease',
+                        opacity: 1,
+                        pointerEvents: 'auto',
                         zIndex: 20,
                     }}
                 >
