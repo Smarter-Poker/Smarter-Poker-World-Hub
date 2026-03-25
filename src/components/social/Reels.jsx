@@ -136,6 +136,7 @@ export function ReelsViewer({ onClose }) {
         } catch {
             setSaved(prev => ({ ...prev, [currentReel.id]: wasSaved }));
         }
+        busEmit.socialPostBookmarked(currentReel.id, currentUserId, { added: !wasSaved });
     };
 
     // Auto-hide overlay after 2 seconds
@@ -327,6 +328,7 @@ export function ReelsViewer({ onClose }) {
         setTimeout(() => setShareToast(false), 2000);
         // Increment share_count + EventBus
         supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }).catch(() => {});
+        if (currentUserId) busEmit.socialPostShared(currentReel.id, currentUserId);
     };
 
     // Reset comment drawer on reel change
