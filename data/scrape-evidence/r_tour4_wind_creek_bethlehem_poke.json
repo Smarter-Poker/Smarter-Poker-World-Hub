@@ -1,0 +1,11 @@
+{
+  "name": "Wind Creek Bethlehem Poker Series",
+  "type": "series",
+  "source": "https://www.windcreekbethlehem.com",
+  "http": 200,
+  "hash": "8cdc555d966f1e72d707dc8be03d797749b498eda35c041ad6a7064c1948ee59",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:39:57.533690+00:00",
+  "batch": "7c5bde4d-2c64-491a-a6ff-0d19bc681b62"
+}

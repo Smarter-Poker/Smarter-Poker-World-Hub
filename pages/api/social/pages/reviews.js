@@ -58,14 +58,19 @@ export default async function handler(req, res) {
 
               if (error) throw error;
 
-              // Enrich with reviewer profiles
-              const enriched = await Promise.all((reviews || []).map(async (r) => {
-                  const { data: profile } = await getSupabase()
+              // Enrich with reviewer profiles (batched — single query)
+              const reviewerIds = [...new Set((reviews || []).map(r => r.reviewer_id))];
+              let profileMap = {};
+              if (reviewerIds.length > 0) {
+                  const { data: profileData } = await getSupabase()
                       .from('profiles')
-                      .select('display_name, username, avatar_url')
-                      .eq('id', r.reviewer_id)
-                      .maybeSingle();
-
+                      .select('id, display_name, username, avatar_url')
+                      .in('id', reviewerIds)
+                      .limit(100);
+                  (profileData || []).forEach(p => { profileMap[p.id] = p; });
+              }
+              const enriched = (reviews || []).map(r => {
+                  const profile = profileMap[r.reviewer_id];
                   return {
                       ...r,
                       reviewer: profile ? {
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
                           avatar_url: profile.avatar_url
                       } : { id: r.reviewer_id, display_name: 'Anonymous', avatar_url: null }
                   };
-              }));
+              });
 
               return res.status(200).json({
                   success: true,

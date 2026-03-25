@@ -1,0 +1,11 @@
+{
+  "name": "Derby Lane Poker Series",
+  "type": "series",
+  "source": "https://www.derbylane.com",
+  "http": 200,
+  "hash": "f9bdd661c2aa46dcc41d4c8e4f32d7e14048234907932f200b66b38f0f65212a",
+  "address": "10490 Gandy Boulevard North",
+  "phone": "(727) 812-3339",
+  "ts": "2026-03-25T23:39:32.326719+00:00",
+  "batch": "7c5bde4d-2c64-491a-a6ff-0d19bc681b62"
+}

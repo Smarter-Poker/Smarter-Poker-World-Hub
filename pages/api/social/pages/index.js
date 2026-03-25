@@ -17,9 +17,13 @@ import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+let _supabase = null;
 function getSupabase() {
-    if (!supabaseUrl || !supabaseServiceKey) return null;
-    return createClient(supabaseUrl, supabaseServiceKey);
+    if (!_supabase) {
+        if (!supabaseUrl || !supabaseServiceKey) return null;
+        _supabase = createClient(supabaseUrl, supabaseServiceKey);
+    }
+    return _supabase;
 }
 
 function generateSlug(name) {
