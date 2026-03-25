@@ -7,11 +7,15 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-const GIPHY_API_KEY = process.env.GIPHY_API_KEY || 'GRZ1Yjou2kmUFz1jcXP0S2skHrMZOFoQ';
+const GIPHY_API_KEY = process.env.GIPHY_API_KEY;
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    if (!GIPHY_API_KEY) {
+        return res.status(200).json({ success: false, error: 'GIPHY API key is not configured', gifs: [] });
     }
 
     const { q, offset = 0, limit = 20, type = 'gif' } = req.query;

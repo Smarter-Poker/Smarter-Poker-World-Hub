@@ -330,10 +330,10 @@ function SectionNav() {
     return (
         <div style={{
             position: 'sticky', top: 56, zIndex: 90,
-            background: 'rgba(10,14,26,0.85)', backdropFilter: 'blur(12px)',
+            background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)',
             padding: '8px 16px', margin: '0 -16px 16px',
             display: 'flex', gap: 6, overflowX: 'auto',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid #DADDE1',
         }}>
             {SECTION_NAV_ITEMS.map(s => (
                 <button
@@ -342,13 +342,13 @@ function SectionNav() {
                     onClick={() => scrollTo(s.id)}
                     style={{
                         padding: '6px 14px', borderRadius: 20,
-                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
-                        color: '#b0b0c8', fontSize: 12, fontWeight: 600,
+                        background: '#E4E6EB', border: '1px solid #DADDE1',
+                        color: '#65676B', fontSize: 12, fontWeight: 600,
                         cursor: 'pointer', whiteSpace: 'nowrap',
                         transition: 'all 0.2s ease',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,245,255,0.15)'; e.currentTarget.style.color = '#00f5ff'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#b0b0c8'; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#1877F2'; e.currentTarget.style.color = '#ffffff'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#E4E6EB'; e.currentTarget.style.color = '#65676B'; }}
                 >{s.label}</button>
             ))}
         </div>
@@ -694,7 +694,7 @@ function HomeCasinoSelector({ value, onChange }) {
                                 borderBottom: `1px solid ${C.border}`,
                                 cursor: 'pointer', textAlign: 'left', color: C.text,
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#F0F2F5'}
                             onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
                         >
                             <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{venue.name}</div>
@@ -2012,8 +2012,8 @@ export default function ProfilePage() {
                                     }}
                                     style={{
                                         flex: 1, padding: 12, fontSize: 15, borderRadius: 8,
-                                        border: `1px solid ${C.border}`, background: C.inputBg,
-                                        color: C.inputText, boxSizing: 'border-box', cursor: 'pointer',
+                                        border: `1px solid ${C.border}`, background: '#ffffff',
+                                        color: '#000000', boxSizing: 'border-box', cursor: 'pointer',
                                     }}
                                 >
                                     <option value="">Month</option>
@@ -2316,6 +2316,22 @@ export default function ProfilePage() {
                                                 updated_at: new Date().toISOString(),
                                             }),
                                         });
+                                        // Full 4-layer sync for undo save
+                                        window.dispatchEvent(new CustomEvent('profile-updated', {
+                                            detail: {
+                                                full_name: `${(undoSnapshot.first_name || '').trim()} ${(undoSnapshot.last_name || '').trim()}`.trim(),
+                                                first_name: (undoSnapshot.first_name || '').trim(),
+                                                last_name: (undoSnapshot.last_name || '').trim(),
+                                                username: undoSnapshot.username,
+                                                avatar_url: undoSnapshot.avatar_url,
+                                            }
+                                        }));
+                                        try {
+                                            const cacheKey = `sp-profile-cache-${undoSnapshot.username}`;
+                                            localStorage.removeItem(cacheKey);
+                                            broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
+                                            broadcastSync('smarter_poker_avatar_sync', 'refresh');
+                                        } catch { /* noop */ }
                                         busEmit.dataMutated('profile');
                                         setMessage('Undo successful — previous profile restored.');
                                     } catch (e) {
