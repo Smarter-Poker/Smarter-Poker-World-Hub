@@ -197,6 +197,14 @@ DEFAULT_HOURS = {
 }
 
 
+def is_empty(val):
+    """Check if a value is effectively empty (None, empty string, or placeholder)."""
+    if not val:
+        return True
+    s = str(val).strip().lower()
+    return s in ('', '-', 'none', 'n/a', 'not available', 'not listed', 'tbd', 'unknown', 'null')
+
+
 def main():
     with open(VENUES_FILE, 'r') as f:
         data = json.load(f)
@@ -210,29 +218,29 @@ def main():
         
         # Apply known corrections for specific fields if missing
         for field in ['phone', 'website', 'address', 'hours', 'games_offered']:
-            if field in corrections and (not venue.get(field) or venue.get(field, '').strip() == ''):
+            if field in corrections and is_empty(venue.get(field)):
                 venue[field] = corrections[field]
                 stats[field] += 1
                 
         # Apply PokerAtlas URL from corrections
-        if 'poker_atlas_url' in corrections and not venue.get('poker_atlas_url'):
+        if 'poker_atlas_url' in corrections and is_empty(venue.get('poker_atlas_url')):
             venue['poker_atlas_url'] = corrections['poker_atlas_url']
             stats['poker_atlas_url'] += 1
             
         # Default games_offered for any venue that still doesn't have it
-        if not venue.get('games_offered') or venue.get('games_offered', '').strip() == '':
+        if is_empty(venue.get('games_offered')):
             vtype = venue.get('venue_type', 'casino')
             venue['games_offered'] = DEFAULT_GAMES.get(vtype, 'NLH')
             stats['games_offered'] += 1
 
         # Default hours for any venue that still doesn't have it
-        if not venue.get('hours') or venue.get('hours', '').strip() == '':
+        if is_empty(venue.get('hours')):
             vtype = venue.get('venue_type', 'casino')
             venue['hours'] = DEFAULT_HOURS.get(vtype, 'Hours Vary')
             stats['hours'] += 1
 
         # If missing website but has poker_atlas_url, use PA as the website reference
-        if (not venue.get('website') or venue.get('website', '').strip() == '') and venue.get('poker_atlas_url'):
+        if is_empty(venue.get('website')) and venue.get('poker_atlas_url'):
             venue['website'] = venue['poker_atlas_url']
             stats['website'] += 1
 
@@ -253,7 +261,7 @@ def main():
     # Final audit
     missing = {}
     for field in ['phone', 'website', 'address', 'hours', 'games_offered', 'poker_atlas_url']:
-        count = sum(1 for v in venues if not v.get(field) or v.get(field, '').strip() == '')
+        count = sum(1 for v in venues if is_empty(v.get(field)))
         if count > 0:
             missing[field] = count
     

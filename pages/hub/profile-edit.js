@@ -191,28 +191,33 @@ function ProfileCompletionBar({ profile }) {
     );
 }
 
-// ── Floating Toast Notification ──
-function Toast({ message, onDismiss }) {
+// ── Animated Toast Notification — slide-in/out with color coding ──
+function Toast({ message, onDismiss, isExiting }) {
     if (!message) return null;
     const isError = message.includes('Error');
+    const isUndo = message.includes('Undo');
+    const bgColor = isError ? '#1a0a0a' : isUndo ? '#1a1400' : '#0a1a0a';
+    const borderColor = isError ? 'rgba(255,80,80,0.4)' : isUndo ? 'rgba(255,215,0,0.4)' : 'rgba(0,245,255,0.4)';
+    const textColor = isError ? '#ff8888' : isUndo ? '#ffd700' : '#b0f0ff';
+    const icon = isError ? '⚠️' : isUndo ? '↩️' : '✅';
     return (
         <div style={{
             position: 'fixed', bottom: 24, right: 24, zIndex: 10001,
-            maxWidth: 380, minWidth: 240,
-            background: isError ? '#1a0a0a' : '#0a1a0a',
-            border: `1px solid ${isError ? 'rgba(255,80,80,0.4)' : 'rgba(0,245,255,0.4)'}`,
+            maxWidth: 400, minWidth: 240,
+            background: bgColor,
+            border: `1px solid ${borderColor}`,
             borderRadius: 12, padding: '14px 20px',
-            boxShadow: isError
-                ? '0 8px 32px rgba(255,80,80,0.15)'
-                : '0 8px 32px rgba(0,245,255,0.15)',
+            boxShadow: `0 8px 32px ${borderColor.replace('0.4', '0.2')}`,
             display: 'flex', alignItems: 'center', gap: 12,
-            animation: 'toastSlideIn 0.3s ease-out',
+            animation: isExiting ? 'toastSlideOut 0.3s ease-in forwards' : 'toastSlideIn 0.3s ease-out',
             cursor: 'pointer',
+            backdropFilter: 'blur(12px)',
         }} onClick={onDismiss}>
-            <div style={{ fontSize: 22, flexShrink: 0 }}>{isError ? '⚠️' : '✅'}</div>
-            <div style={{ fontSize: 13, color: isError ? '#ff8888' : '#b0f0ff', lineHeight: 1.4, fontWeight: 500 }}>
+            <div style={{ fontSize: 22, flexShrink: 0 }}>{icon}</div>
+            <div style={{ fontSize: 13, color: textColor, lineHeight: 1.4, fontWeight: 500, flex: 1 }}>
                 {message}
             </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>✕</div>
         </div>
     );
 }
@@ -254,9 +259,22 @@ function ProfileSkeleton() {
     );
 }
 
-// ── Collapsible Section with animated expand/collapse ──
+// ── Collapsible Section with localStorage memory ──
 function CollapsibleSection({ id, title, icon, children, defaultOpen = true }) {
-    const [open, setOpen] = useState(defaultOpen);
+    const [open, setOpen] = useState(() => {
+        try {
+            const saved = localStorage.getItem(`sp-section-${id}`);
+            if (saved !== null) return saved === 'true';
+        } catch { /* noop */ }
+        return defaultOpen;
+    });
+    const toggle = () => {
+        setOpen(o => {
+            const next = !o;
+            try { localStorage.setItem(`sp-section-${id}`, String(next)); } catch { /* noop */ }
+            return next;
+        });
+    };
     return (
         <div id={id} data-section={id} style={{
             background: C.card, borderRadius: 12, marginBottom: 16,
@@ -265,7 +283,7 @@ function CollapsibleSection({ id, title, icon, children, defaultOpen = true }) {
         }}>
             <button
                 type="button"
-                onClick={() => setOpen(o => !o)}
+                onClick={toggle}
                 style={{
                     width: '100%', padding: '16px 20px',
                     background: 'transparent', border: 'none', cursor: 'pointer',
@@ -717,11 +735,24 @@ export default function ProfilePage() {
     const [usernameStatus, setUsernameStatus] = useState('idle'); // 'idle' | 'checking' | 'available' | 'taken'
     const usernameCheckRef = useRef(null);
 
-    // Auto-dismiss success messages after 3.5 seconds
+    // Auto-save debounce ref (5 seconds of inactivity)
+    const autoSaveRef = useRef(null);
+    const [savePhase, setSavePhase] = useState(null); // 'Validating' | 'Saving' | 'Syncing' | null
+
+    // Undo last save state
+    const [undoSnapshot, setUndoSnapshot] = useState(null);
+    const undoTimerRef = useRef(null);
+
+    // Toast exit animation
+    const [toastExiting, setToastExiting] = useState(false);
+
+    // Auto-dismiss success messages after 3.5 seconds with exit animation
     useEffect(() => {
         if (message && !message.includes('Error')) {
-            const timer = setTimeout(() => setMessage(''), 3500);
-            return () => clearTimeout(timer);
+            setToastExiting(false);
+            const exitTimer = setTimeout(() => setToastExiting(true), 3000);
+            const removeTimer = setTimeout(() => { setMessage(''); setToastExiting(false); }, 3300);
+            return () => { clearTimeout(exitTimer); clearTimeout(removeTimer); };
         }
     }, [message]);
 
@@ -949,7 +980,18 @@ export default function ProfilePage() {
         if (socialFields[field]) {
             value = stripSocialHandle(value, socialFields[field]);
         }
+        // Username format enforcement: lowercase alphanumeric + underscores only
+        if (field === 'username' && value) {
+            value = value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+        }
         setProfile(prev => ({ ...prev, [field]: value }));
+
+        // Auto-save debounce: save after 5 seconds of inactivity
+        if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
+        autoSaveRef.current = setTimeout(() => {
+            const saveBtn = document.querySelector('[data-save-btn]');
+            if (saveBtn && !saveBtn.disabled) saveBtn.click();
+        }, 5000);
 
         // Username uniqueness check (debounced)
         if (field === 'username') {
@@ -1251,6 +1293,7 @@ export default function ProfilePage() {
         }
         setSaving(true);
         setMessage('');
+        setSavePhase('Validating');
 
         // ── CRITICAL: Use direct PostgREST fetch — NOT supabase.update() ──
         // supabase.update() triggers autoRefreshToken → if refresh fails → SIGNED_OUT event
@@ -1303,6 +1346,7 @@ export default function ProfilePage() {
         // Get user's JWT from localStorage for authenticated write
         const userToken = getProfileJwt();
 
+        setSavePhase('Saving');
         let error = null;
         try {
             const res = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}`, {
@@ -1324,10 +1368,17 @@ export default function ProfilePage() {
         }
 
         setSaving(false);
+        setSavePhase(null);
         if (error) {
             setMessage(`Error saving profile: ${error.message || error.code || JSON.stringify(error)}`);
             console.error('Profile save error:', error);
         } else {
+            setSavePhase('Syncing');
+            // ── UNDO: Store snapshot before overwriting originalProfile ──
+            setUndoSnapshot({ ...originalProfile });
+            if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+            undoTimerRef.current = setTimeout(() => setUndoSnapshot(null), 10000);
+
             // ── OPTIMISTIC: Update originalProfile immediately (already succeeded) ──
             setOriginalProfile({ ...profile });
 
@@ -1364,8 +1415,9 @@ export default function ProfilePage() {
                 broadcastSync('smarter_poker_avatar_sync', 'refresh');
             } catch { /* noop */ }
 
+            setSavePhase(null);
             // Show success toast (non-blocking)
-            setMessage('Profile saved successfully!');
+            setMessage(undoSnapshot ? 'Profile saved! Tap to Undo (10s)' : 'Profile saved successfully!');
         }
     };
 
@@ -1728,7 +1780,7 @@ export default function ProfilePage() {
                 {/* Main Content */}
                 <div style={{ maxWidth: 800, margin: '80px auto 40px', padding: '0 16px' }}>
                     {/* Non-blocking Toast notification */}
-                    <Toast message={message} onDismiss={() => setMessage('')} />
+                    <Toast message={message} onDismiss={() => { setMessage(''); setToastExiting(false); }} isExiting={toastExiting} />
 
                     {/* Profile Completion Progress Bar */}
                     <ProfileCompletionBar profile={profile} />
@@ -2194,8 +2246,32 @@ export default function ProfilePage() {
                         />
                     </CollapsibleSection>
 
-                    {/* Save + Discard Buttons */}
-                    <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                    {/* View Public Profile Link */}
+                    {profile.username && (
+                        <div style={{ textAlign: 'center', marginTop: 4, marginBottom: 8 }}>
+                            <a
+                                href={`/hub/social-media/profile/${profile.username}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    fontSize: 13, color: '#00f5ff', textDecoration: 'none',
+                                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                                    padding: '8px 16px', borderRadius: 20,
+                                    background: 'rgba(0,245,255,0.06)',
+                                    border: '1px solid rgba(0,245,255,0.15)',
+                                    transition: 'all 0.2s ease',
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,245,255,0.12)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,245,255,0.06)'; }}
+                            >
+                                View My Public Profile
+                                <span style={{ fontSize: 11 }}>↗</span>
+                            </a>
+                        </div>
+                    )}
+
+                    {/* Save + Discard + Undo Buttons */}
+                    <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
                         {isDirty && (
                             <button
                                 onClick={() => {
@@ -2215,6 +2291,51 @@ export default function ProfilePage() {
                                 Discard Changes
                             </button>
                         )}
+                        {undoSnapshot && !isDirty && (
+                            <button
+                                onClick={async () => {
+                                    // Restore snapshot and save to DB
+                                    setProfile({ ...undoSnapshot });
+                                    setOriginalProfile({ ...undoSnapshot });
+                                    setUndoSnapshot(null);
+                                    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+                                    // Persist undo to database
+                                    try {
+                                        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+                                        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                                        const undoToken = getProfileJwt();
+                                        await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}`, {
+                                            method: 'PATCH',
+                                            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${undoToken}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                                            body: JSON.stringify({
+                                                first_name: (undoSnapshot.first_name || '').trim(),
+                                                last_name: (undoSnapshot.last_name || '').trim(),
+                                                full_name: `${(undoSnapshot.first_name || '').trim()} ${(undoSnapshot.last_name || '').trim()}`.trim(),
+                                                username: (undoSnapshot.username || '').trim() || null,
+                                                bio: undoSnapshot.bio, city: undoSnapshot.city, state: undoSnapshot.state,
+                                                country: undoSnapshot.country, phone: undoSnapshot.phone, email: undoSnapshot.email,
+                                                updated_at: new Date().toISOString(),
+                                            }),
+                                        });
+                                        busEmit.dataMutated('profile');
+                                        setMessage('Undo successful — previous profile restored.');
+                                    } catch (e) {
+                                        console.error('Undo save error:', e);
+                                        setMessage('Error: Could not undo. Please try again.');
+                                    }
+                                }}
+                                style={{
+                                    flex: '0 0 auto', padding: '16px 24px',
+                                    background: 'rgba(255,215,0,0.08)', color: '#FFD700',
+                                    border: '2px solid rgba(255,215,0,0.4)', borderRadius: 8,
+                                    fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    animation: 'undoPulse 2s ease-in-out infinite',
+                                }}
+                            >
+                                Undo Save
+                            </button>
+                        )}
                         <button
                             data-save-btn="true"
                             onClick={handleSave}
@@ -2230,7 +2351,10 @@ export default function ProfilePage() {
                                 position: 'relative'
                             }}
                         >
-                            {saving ? 'Saving...' : isDirty ? 'Save Profile (Unsaved Changes)' : 'Save Profile'}
+                            {saving
+                                ? (savePhase ? `${savePhase}...` : 'Saving...')
+                                : isDirty ? 'Save Profile (Unsaved Changes)' : 'Save Profile'
+                            }
                         </button>
                     </div>
                 </div>
@@ -2575,6 +2699,14 @@ export default function ProfilePage() {
                 @keyframes toastSlideIn {
                     from { opacity: 0; transform: translateX(60px); }
                     to { opacity: 1; transform: translateX(0); }
+                }
+                @keyframes toastSlideOut {
+                    from { opacity: 1; transform: translateX(0); }
+                    to { opacity: 0; transform: translateX(60px); }
+                }
+                @keyframes undoPulse {
+                    0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0.3); }
+                    50% { box-shadow: 0 0 12px 4px rgba(255,215,0,0.15); }
                 }
                 @keyframes avatarSpin {
                     to { transform: rotate(360deg); }

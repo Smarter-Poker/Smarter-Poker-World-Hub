@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser, getAccessToken } from '../../lib/authUtils';
-import { busEmit } from '../../engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import Link from 'next/link';
 import GiphyPicker from '../shared/GiphyPicker';
 
@@ -99,6 +99,24 @@ export function ReelsViewer({ onClose }) {
                     }
                 });
         }
+    }, []);
+
+    // EventBus listeners — sync like/bookmark from other viewers
+    useEffect(() => {
+        const handleLikeBus = (event) => {
+            const d = event?.payload;
+            if (d?.postId) setLiked(prev => ({ ...prev, [d.postId]: d.added }));
+        };
+        const handleBookmarkBus = (event) => {
+            const d = event?.payload;
+            if (d?.postId) setSaved(prev => ({ ...prev, [d.postId]: d.added }));
+        };
+        eventBus.on(EventType.SOCIAL_POST_LIKED, handleLikeBus);
+        eventBus.on(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
+        return () => {
+            eventBus.off(EventType.SOCIAL_POST_LIKED, handleLikeBus);
+            eventBus.off(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
+        };
     }, []);
 
     // Reset paused state when changing reels + track view
@@ -386,10 +404,12 @@ export function ReelsViewer({ onClose }) {
             const diffY = startY - endY;
             const diffX = startX - endX;
             if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 50) {
+                try { navigator?.vibrate?.(10); } catch {}
                 if (diffY > 0) goNext();   // Swipe up = next
                 else goPrev();              // Swipe down = prev
             }
             if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                try { navigator?.vibrate?.(10); } catch {}
                 if (diffX > 0) goNext();   // Swipe left = next
                 else goPrev();              // Swipe right = prev
             }
@@ -407,9 +427,27 @@ export function ReelsViewer({ onClose }) {
         return (
             <div style={{
                 position: 'fixed', inset: 0, background: C.bg, zIndex: 10000,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20,
             }}>
-                <div style={{ color: C.text, fontSize: 18 }}>Loading Reels...</div>
+                <div style={{
+                    width: 280, height: 500, borderRadius: 16,
+                    background: 'linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'shimmerReels 1.5s linear infinite',
+                }} />
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div style={{
+                        width: 40, height: 40, borderRadius: '50%',
+                        background: 'linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmerReels 1.5s linear infinite',
+                    }} />
+                    <div>
+                        <div style={{ width: 100, height: 12, borderRadius: 6, background: '#1a1a1a', marginBottom: 6 }} />
+                        <div style={{ width: 50, height: 8, borderRadius: 4, background: '#1a1a1a' }} />
+                    </div>
+                </div>
+                <style>{`@keyframes shimmerReels { to { background-position-x: -200%; } }`}</style>
             </div>
         );
     }
@@ -526,6 +564,11 @@ export function ReelsViewer({ onClose }) {
                         if (currentIndex < reels.length - 1) goNext();
                     }}
                 />
+
+                {/* Preload next video */}
+                {reels[currentIndex + 1]?.video_url && (
+                    <link rel="preload" href={reels[currentIndex + 1].video_url} as="video" />
+                )}
 
                 {/* Play Button Overlay — only when paused */}
                 {paused && (

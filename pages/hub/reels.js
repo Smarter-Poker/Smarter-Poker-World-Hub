@@ -16,7 +16,7 @@ import { reelsPreferences, savedReelsService } from '../../src/services/preferen
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import UploadReelModal from '../../src/components/reels/UploadReelModal';
 import { saveAppSetting } from '../../src/lib/appSettingsSync';
-import { busEmit } from '../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../src/engine/EventBus';
 
 const C = {
     bg: '#000000',
@@ -464,6 +464,7 @@ export default function ReelsPage() {
                 e.preventDefault();
                 e.stopPropagation();
 
+                try { navigator?.vibrate?.(10); } catch {}
                 if (diff > 0) {
                     // Swipe up = next
                     if (currentIndexRef.current < reelsLengthRef.current - 1) {
@@ -519,6 +520,33 @@ export default function ReelsPage() {
     return () => { supabase.removeChannel(_ch); };
   }, [user?.id]);
 
+    // EventBus listeners — sync state from other video viewers
+    useEffect(() => {
+        const handleLikeBus = (event) => {
+            const d = event?.payload;
+            if (d?.postId) {
+                setLiked(prev => ({ ...prev, [d.postId]: d.added }));
+            }
+        };
+        const handleBookmarkBus = (event) => {
+            const d = event?.payload;
+            if (d?.postId && user?.id) {
+                setSavedReels(prev => {
+                    const newSet = new Set(prev);
+                    if (d.added) newSet.add(d.postId);
+                    else newSet.delete(d.postId);
+                    return newSet;
+                });
+            }
+        };
+        eventBus.on(EventType.SOCIAL_POST_LIKED, handleLikeBus);
+        eventBus.on(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
+        return () => {
+            eventBus.off(EventType.SOCIAL_POST_LIKED, handleLikeBus);
+            eventBus.off(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
+        };
+    }, [user?.id]);
+
 
     if (loading) {
         return (
@@ -531,8 +559,28 @@ export default function ReelsPage() {
                 <div style={{
                     position: 'fixed', inset: 0, background: C.bg,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexDirection: 'column', gap: 20,
                 }}>
-                    <div style={{ color: C.text, fontSize: 18 }}>Loading Reels...</div>
+                    {/* Shimmer skeleton */}
+                    <div style={{
+                        width: 280, height: 500, borderRadius: 16,
+                        background: 'linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 1.5s linear infinite',
+                    }} />
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        <div style={{
+                            width: 44, height: 44, borderRadius: '50%',
+                            background: 'linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%)',
+                            backgroundSize: '200% 100%',
+                            animation: 'shimmer 1.5s linear infinite',
+                        }} />
+                        <div>
+                            <div style={{ width: 120, height: 14, borderRadius: 7, background: '#1a1a1a', marginBottom: 6 }} />
+                            <div style={{ width: 60, height: 10, borderRadius: 5, background: '#1a1a1a' }} />
+                        </div>
+                    </div>
+                    <style jsx>{`@keyframes shimmer { to { background-position-x: -200%; } }`}</style>
                 </div>
             </>
         );
@@ -720,6 +768,13 @@ export default function ReelsPage() {
                     </div>
                 )}
 
+                {/* Bottom gradient for text readability */}
+                <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0, height: 300,
+                    background: 'linear-gradient(transparent, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.9))',
+                    pointerEvents: 'none', zIndex: 90,
+                }} />
+
                 {/* Author info overlay */}
                 <div style={{
                     position: 'absolute', bottom: 120, left: 16, right: 80, zIndex: 100,
@@ -781,7 +836,9 @@ export default function ReelsPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
-                        <span style={{ color: showCommentPanel ? '#1877F2' : 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Comment</span>
+                        <span style={{ color: showCommentPanel ? '#1877F2' : 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                            {comments.length > 0 ? comments.length : 'Comment'}
+                        </span>
                     </button>
 
                     {/* Share */}

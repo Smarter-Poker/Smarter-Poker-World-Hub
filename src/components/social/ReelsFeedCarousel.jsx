@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useSupabase } from '../../providers/SupabaseProvider';
-import { busEmit } from '../../engine/EventBus';
+import { busEmit, busOn, busOff, EVENT_TYPES } from '../../engine/EventBus';
 import { getAccessToken } from '../../lib/authUtils';
 import Link from 'next/link';
 import GiphyPicker from '../shared/GiphyPicker';
@@ -281,6 +281,22 @@ function ReelViewer({ reels, startIndex, onClose }) {
             });
     }, [authUser?.id]);
 
+    // EventBus listeners — sync like/bookmark from other viewers
+    useEffect(() => {
+        const handleLikeBus = (data) => {
+            if (data?.postId) setLiked(prev => ({ ...prev, [data.postId]: data.added }));
+        };
+        const handleBookmarkBus = (data) => {
+            if (data?.postId) setSaved(prev => ({ ...prev, [data.postId]: data.added }));
+        };
+        busOn(EVENT_TYPES.SOCIAL_POST_LIKED, handleLikeBus);
+        busOn(EVENT_TYPES.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
+        return () => {
+            busOff(EVENT_TYPES.SOCIAL_POST_LIKED, handleLikeBus);
+            busOff(EVENT_TYPES.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
+        };
+    }, []);
+
     // Initialize counts from reel data
     useEffect(() => {
         const lc = {}, cc = {};
@@ -320,10 +336,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
             const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
             const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
             if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
+                try { navigator?.vibrate?.(10); } catch {}
                 if (dy < 0) goNext();  // Swipe up = next
                 else goPrev();         // Swipe down = prev
             }
             if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+                try { navigator?.vibrate?.(10); } catch {}
                 if (dx < 0) goNext();  // Swipe left = next
                 else goPrev();         // Swipe right = prev
             }
@@ -646,6 +664,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             if (currentIndex < reels.length - 1) goNext();
                         }}
                     />
+                )}
+
+                {/* Preload next video */}
+                {reels[currentIndex + 1]?.video_url && !isYouTubeUrl(reels[currentIndex + 1].video_url) && (
+                    <link rel="preload" href={reels[currentIndex + 1].video_url} as="video" />
                 )}
 
                 {/* Author overlay */}
