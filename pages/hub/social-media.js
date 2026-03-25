@@ -2529,13 +2529,20 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                             <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{c.authorName}</div>
                                             {c.text && <div style={{ fontSize: 14, color: C.text }}>{renderMentions(c.text)}</div>}
                                             {c.mediaUrl && (
-                                                <img
-                                                    src={c.mediaUrl}
-                                                    alt={c.mediaType === 'gif' ? 'GIF' : 'Image'}
-                                                    style={{ maxWidth: 220, maxHeight: 180, borderRadius: 8, marginTop: c.text ? 6 : 0, display: 'block', cursor: 'pointer' }}
-                                                    onClick={() => { if (c.mediaType !== 'gif') { setLightboxImages([c.mediaUrl]); setLightboxIndex(0); setLightboxUrl(c.mediaUrl); } }}
-                                                    loading="lazy"
-                                                />
+                                                <div style={{ position: 'relative', display: 'inline-block', marginTop: c.text ? 6 : 0 }}>
+                                                    <img
+                                                        src={c.mediaUrl}
+                                                        alt={c.mediaType === 'gif' ? 'GIF' : 'Image'}
+                                                        style={{ maxWidth: 220, maxHeight: 180, borderRadius: 8, display: 'block', cursor: 'pointer' }}
+                                                        onClick={() => { setLightboxImages([c.mediaUrl]); setLightboxIndex(0); setLightboxUrl(c.mediaUrl); }}
+                                                        loading="lazy"
+                                                        onError={e => { e.target.style.display = 'none'; }}
+                                                    />
+                                                    {c.mediaType === 'gif' && (
+                                                        <span style={{ position: 'absolute', bottom: 6, left: 6, background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 4, letterSpacing: 0.5 }}>GIF</span>
+                                                    )}
+                                                </div>
+                                            )}
                                             )}
                                         </div>
                                     )}
