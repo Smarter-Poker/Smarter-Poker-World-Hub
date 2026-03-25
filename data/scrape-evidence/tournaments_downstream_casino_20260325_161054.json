@@ -1,0 +1,73 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/downstream-casino-quapaw/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:10:54.737099+00:00",
+    "scrape_html_hash": "fc4c9d42e80fc632f015d330ffa78d29b5e890252e076ecfcdc76be3cbd9d9c1",
+    "scrape_byte_count": 72586,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Downstream Casino",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 220,
+      "game_type": "NLH",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "fc4c9d42e80fc632f015d330ffa78d29b5e890252e076ecfcdc76be3cbd9d9c1",
+      "scrape_timestamp": "2026-03-25T21:10:54.737099+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/downstream-casino-quapaw/tournaments"
+    },
+    {
+      "venue_name": "Downstream Casino",
+      "day_of_week": "Thursday",
+      "start_time": "10:00 AM",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "fc4c9d42e80fc632f015d330ffa78d29b5e890252e076ecfcdc76be3cbd9d9c1",
+      "scrape_timestamp": "2026-03-25T21:10:54.737099+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/downstream-casino-quapaw/tournaments"
+    },
+    {
+      "venue_name": "Downstream Casino",
+      "day_of_week": "Thursday",
+      "start_time": "7:00pm",
+      "buy_in": 75,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "fc4c9d42e80fc632f015d330ffa78d29b5e890252e076ecfcdc76be3cbd9d9c1",
+      "scrape_timestamp": "2026-03-25T21:10:54.737099+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/downstream-casino-quapaw/tournaments"
+    },
+    {
+      "venue_name": "Downstream Casino",
+      "day_of_week": "friday",
+      "start_time": "7:00pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "fc4c9d42e80fc632f015d330ffa78d29b5e890252e076ecfcdc76be3cbd9d9c1",
+      "scrape_timestamp": "2026-03-25T21:10:54.737099+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/downstream-casino-quapaw/tournaments"
+    },
+    {
+      "venue_name": "Downstream Casino",
+      "day_of_week": "saturday",
+      "start_time": "1:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "fc4c9d42e80fc632f015d330ffa78d29b5e890252e076ecfcdc76be3cbd9d9c1",
+      "scrape_timestamp": "2026-03-25T21:10:54.737099+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/downstream-casino-quapaw/tournaments"
+    }
+  ]
+}

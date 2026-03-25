@@ -1,0 +1,109 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/shuffle-512-austin/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:25:46.135946+00:00",
+    "scrape_html_hash": "51e65be495cd5fe9a5d42fcc4c99c402c93a76a08e50c5ebd0f97ab3d8d3c3e7",
+    "scrape_byte_count": 70268,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Shuffle 512",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 3,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "51e65be495cd5fe9a5d42fcc4c99c402c93a76a08e50c5ebd0f97ab3d8d3c3e7",
+      "scrape_timestamp": "2026-03-25T21:25:46.135946+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-512-austin/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 512",
+      "day_of_week": "Wednesday",
+      "start_time": "7:00pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "51e65be495cd5fe9a5d42fcc4c99c402c93a76a08e50c5ebd0f97ab3d8d3c3e7",
+      "scrape_timestamp": "2026-03-25T21:25:46.135946+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-512-austin/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 512",
+      "day_of_week": "Friday",
+      "start_time": "7:00pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "51e65be495cd5fe9a5d42fcc4c99c402c93a76a08e50c5ebd0f97ab3d8d3c3e7",
+      "scrape_timestamp": "2026-03-25T21:25:46.135946+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-512-austin/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 512",
+      "day_of_week": "Sunday",
+      "start_time": "7:00pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "51e65be495cd5fe9a5d42fcc4c99c402c93a76a08e50c5ebd0f97ab3d8d3c3e7",
+      "scrape_timestamp": "2026-03-25T21:25:46.135946+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-512-austin/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 512",
+      "day_of_week": "Tuesday",
+      "start_time": "7:00pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "51e65be495cd5fe9a5d42fcc4c99c402c93a76a08e50c5ebd0f97ab3d8d3c3e7",
+      "scrape_timestamp": "2026-03-25T21:25:46.135946+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-512-austin/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 512",
+      "day_of_week": "Thursday",
+      "start_time": "7:00pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "51e65be495cd5fe9a5d42fcc4c99c402c93a76a08e50c5ebd0f97ab3d8d3c3e7",
+      "scrape_timestamp": "2026-03-25T21:25:46.135946+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-512-austin/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 512",
+      "day_of_week": "Saturday",
+      "start_time": "7:00pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "51e65be495cd5fe9a5d42fcc4c99c402c93a76a08e50c5ebd0f97ab3d8d3c3e7",
+      "scrape_timestamp": "2026-03-25T21:25:46.135946+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-512-austin/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 512",
+      "day_of_week": "Monday",
+      "start_time": "7:00pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "51e65be495cd5fe9a5d42fcc4c99c402c93a76a08e50c5ebd0f97ab3d8d3c3e7",
+      "scrape_timestamp": "2026-03-25T21:25:46.135946+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-512-austin/tournaments"
+    }
+  ]
+}

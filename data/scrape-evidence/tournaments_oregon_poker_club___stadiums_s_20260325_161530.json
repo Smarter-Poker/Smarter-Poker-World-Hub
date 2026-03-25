@@ -1,0 +1,61 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/oregon-poker-club-stadiums-sports-bar-portland/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:15:30.982979+00:00",
+    "scrape_html_hash": "d166d979c55a08fbb8f2c4f2d4b5e858951754802704bd8573cffe5016af81f3",
+    "scrape_byte_count": 73644,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Oregon Poker Club - Stadiums Sports Bar",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "d166d979c55a08fbb8f2c4f2d4b5e858951754802704bd8573cffe5016af81f3",
+      "scrape_timestamp": "2026-03-25T21:15:30.982979+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/oregon-poker-club-stadiums-sports-bar-portland/tournaments"
+    },
+    {
+      "venue_name": "Oregon Poker Club - Stadiums Sports Bar",
+      "day_of_week": "Thursday",
+      "start_time": "6:00pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "d166d979c55a08fbb8f2c4f2d4b5e858951754802704bd8573cffe5016af81f3",
+      "scrape_timestamp": "2026-03-25T21:15:30.982979+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/oregon-poker-club-stadiums-sports-bar-portland/tournaments"
+    },
+    {
+      "venue_name": "Oregon Poker Club - Stadiums Sports Bar",
+      "day_of_week": "Saturday",
+      "start_time": "5:00pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "d166d979c55a08fbb8f2c4f2d4b5e858951754802704bd8573cffe5016af81f3",
+      "scrape_timestamp": "2026-03-25T21:15:30.982979+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/oregon-poker-club-stadiums-sports-bar-portland/tournaments"
+    },
+    {
+      "venue_name": "Oregon Poker Club - Stadiums Sports Bar",
+      "day_of_week": "Tuesday",
+      "start_time": "6:00pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "d166d979c55a08fbb8f2c4f2d4b5e858951754802704bd8573cffe5016af81f3",
+      "scrape_timestamp": "2026-03-25T21:15:30.982979+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/oregon-poker-club-stadiums-sports-bar-portland/tournaments"
+    }
+  ]
+}

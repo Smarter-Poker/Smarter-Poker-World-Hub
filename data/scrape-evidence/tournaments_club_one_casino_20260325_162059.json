@@ -1,0 +1,133 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/club-one-casino-fresno/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:20:59.153105+00:00",
+    "scrape_html_hash": "c42fbce9325401df54637d9320d38698462356d85ad5f238511cafeec370d585",
+    "scrape_byte_count": 68303,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Club One Casino",
+      "day_of_week": "Sunday",
+      "start_time": "6:15pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c42fbce9325401df54637d9320d38698462356d85ad5f238511cafeec370d585",
+      "scrape_timestamp": "2026-03-25T21:20:59.153105+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/club-one-casino-fresno/tournaments"
+    },
+    {
+      "venue_name": "Club One Casino",
+      "day_of_week": "Saturday",
+      "start_time": "10:15am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c42fbce9325401df54637d9320d38698462356d85ad5f238511cafeec370d585",
+      "scrape_timestamp": "2026-03-25T21:20:59.153105+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/club-one-casino-fresno/tournaments"
+    },
+    {
+      "venue_name": "Club One Casino",
+      "day_of_week": "Sunday",
+      "start_time": "12:15pm",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c42fbce9325401df54637d9320d38698462356d85ad5f238511cafeec370d585",
+      "scrape_timestamp": "2026-03-25T21:20:59.153105+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/club-one-casino-fresno/tournaments"
+    },
+    {
+      "venue_name": "Club One Casino",
+      "day_of_week": "monday",
+      "start_time": "10:15am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c42fbce9325401df54637d9320d38698462356d85ad5f238511cafeec370d585",
+      "scrape_timestamp": "2026-03-25T21:20:59.153105+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/club-one-casino-fresno/tournaments"
+    },
+    {
+      "venue_name": "Club One Casino",
+      "day_of_week": "tuesday",
+      "start_time": "6:15pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c42fbce9325401df54637d9320d38698462356d85ad5f238511cafeec370d585",
+      "scrape_timestamp": "2026-03-25T21:20:59.153105+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/club-one-casino-fresno/tournaments"
+    },
+    {
+      "venue_name": "Club One Casino",
+      "day_of_week": "wednesday",
+      "start_time": "10:15am",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c42fbce9325401df54637d9320d38698462356d85ad5f238511cafeec370d585",
+      "scrape_timestamp": "2026-03-25T21:20:59.153105+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/club-one-casino-fresno/tournaments"
+    },
+    {
+      "venue_name": "Club One Casino",
+      "day_of_week": "thursday",
+      "start_time": "6:15pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c42fbce9325401df54637d9320d38698462356d85ad5f238511cafeec370d585",
+      "scrape_timestamp": "2026-03-25T21:20:59.153105+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/club-one-casino-fresno/tournaments"
+    },
+    {
+      "venue_name": "Club One Casino",
+      "day_of_week": "sunday",
+      "start_time": "12:15pm",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c42fbce9325401df54637d9320d38698462356d85ad5f238511cafeec370d585",
+      "scrape_timestamp": "2026-03-25T21:20:59.153105+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/club-one-casino-fresno/tournaments"
+    },
+    {
+      "venue_name": "Club One Casino",
+      "day_of_week": "Wednesday",
+      "start_time": "10:15am",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c42fbce9325401df54637d9320d38698462356d85ad5f238511cafeec370d585",
+      "scrape_timestamp": "2026-03-25T21:20:59.153105+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/club-one-casino-fresno/tournaments"
+    },
+    {
+      "venue_name": "Club One Casino",
+      "day_of_week": "Saturday",
+      "start_time": "10:15am",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "c42fbce9325401df54637d9320d38698462356d85ad5f238511cafeec370d585",
+      "scrape_timestamp": "2026-03-25T21:20:59.153105+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/club-one-casino-fresno/tournaments"
+    }
+  ]
+}

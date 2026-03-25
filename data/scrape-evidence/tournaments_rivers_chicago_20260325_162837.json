@@ -1,0 +1,37 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/rivers-casino-des-plaines/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:28:37.492296+00:00",
+    "scrape_html_hash": "6174c3e34d2ff4020f8593a2f1bdf1b3306aea05c4ce60e448c4946261247ea0",
+    "scrape_byte_count": 61030,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Rivers Chicago",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6174c3e34d2ff4020f8593a2f1bdf1b3306aea05c4ce60e448c4946261247ea0",
+      "scrape_timestamp": "2026-03-25T21:28:37.492296+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/rivers-casino-des-plaines/tournaments"
+    },
+    {
+      "venue_name": "Rivers Chicago",
+      "day_of_week": "Monday",
+      "start_time": "11:00am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6174c3e34d2ff4020f8593a2f1bdf1b3306aea05c4ce60e448c4946261247ea0",
+      "scrape_timestamp": "2026-03-25T21:28:37.492296+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/rivers-casino-des-plaines/tournaments"
+    }
+  ]
+}

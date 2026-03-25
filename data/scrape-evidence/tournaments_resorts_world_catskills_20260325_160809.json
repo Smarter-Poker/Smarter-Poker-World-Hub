@@ -1,0 +1,73 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/resorts-world-catski-monticello/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:08:09.480409+00:00",
+    "scrape_html_hash": "f1b962ac63666a6faa870247726e0e330f1f67b499422dbb623d1394cebb02a1",
+    "scrape_byte_count": 68805,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Resorts World Catskills",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f1b962ac63666a6faa870247726e0e330f1f67b499422dbb623d1394cebb02a1",
+      "scrape_timestamp": "2026-03-25T21:08:09.480409+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/resorts-world-catski-monticello/tournaments"
+    },
+    {
+      "venue_name": "Resorts World Catskills",
+      "day_of_week": "Thursday",
+      "start_time": "6:15pm",
+      "buy_in": 125,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f1b962ac63666a6faa870247726e0e330f1f67b499422dbb623d1394cebb02a1",
+      "scrape_timestamp": "2026-03-25T21:08:09.480409+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/resorts-world-catski-monticello/tournaments"
+    },
+    {
+      "venue_name": "Resorts World Catskills",
+      "day_of_week": "Saturday",
+      "start_time": "11:15am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f1b962ac63666a6faa870247726e0e330f1f67b499422dbb623d1394cebb02a1",
+      "scrape_timestamp": "2026-03-25T21:08:09.480409+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/resorts-world-catski-monticello/tournaments"
+    },
+    {
+      "venue_name": "Resorts World Catskills",
+      "day_of_week": "Tuesday",
+      "start_time": "10:30am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f1b962ac63666a6faa870247726e0e330f1f67b499422dbb623d1394cebb02a1",
+      "scrape_timestamp": "2026-03-25T21:08:09.480409+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/resorts-world-catski-monticello/tournaments"
+    },
+    {
+      "venue_name": "Resorts World Catskills",
+      "day_of_week": "Friday",
+      "start_time": "10:30am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f1b962ac63666a6faa870247726e0e330f1f67b499422dbb623d1394cebb02a1",
+      "scrape_timestamp": "2026-03-25T21:08:09.480409+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/resorts-world-catski-monticello/tournaments"
+    }
+  ]
+}

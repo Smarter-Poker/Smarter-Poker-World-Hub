@@ -1,0 +1,49 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/muskegon-poker-room/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:30:11.382176+00:00",
+    "scrape_html_hash": "6c4f03429c1ccc5ba12288fca81ffe8ea2019b71278cfe07e87feea2c1a4918a",
+    "scrape_byte_count": 66404,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Muskegon Poker Room",
+      "day_of_week": "Sunday",
+      "start_time": "2:00pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6c4f03429c1ccc5ba12288fca81ffe8ea2019b71278cfe07e87feea2c1a4918a",
+      "scrape_timestamp": "2026-03-25T21:30:11.382176+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/muskegon-poker-room/tournaments"
+    },
+    {
+      "venue_name": "Muskegon Poker Room",
+      "day_of_week": "Friday",
+      "start_time": "6:00pm",
+      "buy_in": 40,
+      "game_type": "nlh",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6c4f03429c1ccc5ba12288fca81ffe8ea2019b71278cfe07e87feea2c1a4918a",
+      "scrape_timestamp": "2026-03-25T21:30:11.382176+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/muskegon-poker-room/tournaments"
+    },
+    {
+      "venue_name": "Muskegon Poker Room",
+      "day_of_week": "Sunday",
+      "start_time": "3:00pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "6c4f03429c1ccc5ba12288fca81ffe8ea2019b71278cfe07e87feea2c1a4918a",
+      "scrape_timestamp": "2026-03-25T21:30:11.382176+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/muskegon-poker-room/tournaments"
+    }
+  ]
+}

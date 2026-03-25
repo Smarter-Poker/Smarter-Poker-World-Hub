@@ -1,0 +1,145 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:20:08.167382+00:00",
+    "scrape_html_hash": "54597a70b4ddfbdc1a925d089adf3e2712163355c32c0a03deb757a2dd94e576",
+    "scrape_byte_count": 73737,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Normandie Casino",
+      "day_of_week": "Sunday",
+      "start_time": "3:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "54597a70b4ddfbdc1a925d089adf3e2712163355c32c0a03deb757a2dd94e576",
+      "scrape_timestamp": "2026-03-25T21:20:08.167382+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments"
+    },
+    {
+      "venue_name": "Normandie Casino",
+      "day_of_week": "Tuesday",
+      "start_time": "1:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "54597a70b4ddfbdc1a925d089adf3e2712163355c32c0a03deb757a2dd94e576",
+      "scrape_timestamp": "2026-03-25T21:20:08.167382+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments"
+    },
+    {
+      "venue_name": "Normandie Casino",
+      "day_of_week": "Wednesday",
+      "start_time": "1:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "54597a70b4ddfbdc1a925d089adf3e2712163355c32c0a03deb757a2dd94e576",
+      "scrape_timestamp": "2026-03-25T21:20:08.167382+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments"
+    },
+    {
+      "venue_name": "Normandie Casino",
+      "day_of_week": "Thursday",
+      "start_time": "1:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "54597a70b4ddfbdc1a925d089adf3e2712163355c32c0a03deb757a2dd94e576",
+      "scrape_timestamp": "2026-03-25T21:20:08.167382+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments"
+    },
+    {
+      "venue_name": "Normandie Casino",
+      "day_of_week": "Friday",
+      "start_time": "1:00pm",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "54597a70b4ddfbdc1a925d089adf3e2712163355c32c0a03deb757a2dd94e576",
+      "scrape_timestamp": "2026-03-25T21:20:08.167382+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments"
+    },
+    {
+      "venue_name": "Normandie Casino",
+      "day_of_week": "Saturday",
+      "start_time": "3:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "54597a70b4ddfbdc1a925d089adf3e2712163355c32c0a03deb757a2dd94e576",
+      "scrape_timestamp": "2026-03-25T21:20:08.167382+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments"
+    },
+    {
+      "venue_name": "Normandie Casino",
+      "day_of_week": "Monday",
+      "start_time": "1:00pm",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "54597a70b4ddfbdc1a925d089adf3e2712163355c32c0a03deb757a2dd94e576",
+      "scrape_timestamp": "2026-03-25T21:20:08.167382+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments"
+    },
+    {
+      "venue_name": "Normandie Casino",
+      "day_of_week": "Thursday",
+      "start_time": "3:00pm",
+      "buy_in": 130,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "54597a70b4ddfbdc1a925d089adf3e2712163355c32c0a03deb757a2dd94e576",
+      "scrape_timestamp": "2026-03-25T21:20:08.167382+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments"
+    },
+    {
+      "venue_name": "Normandie Casino",
+      "day_of_week": "Saturday",
+      "start_time": "4:00pm",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "54597a70b4ddfbdc1a925d089adf3e2712163355c32c0a03deb757a2dd94e576",
+      "scrape_timestamp": "2026-03-25T21:20:08.167382+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments"
+    },
+    {
+      "venue_name": "Normandie Casino",
+      "day_of_week": "Monday",
+      "start_time": "5:00pm",
+      "buy_in": 300,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "54597a70b4ddfbdc1a925d089adf3e2712163355c32c0a03deb757a2dd94e576",
+      "scrape_timestamp": "2026-03-25T21:20:08.167382+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments"
+    },
+    {
+      "venue_name": "Normandie Casino",
+      "day_of_week": "Wednesday",
+      "start_time": "5:00pm",
+      "buy_in": 125,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "54597a70b4ddfbdc1a925d089adf3e2712163355c32c0a03deb757a2dd94e576",
+      "scrape_timestamp": "2026-03-25T21:20:08.167382+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments"
+    }
+  ]
+}

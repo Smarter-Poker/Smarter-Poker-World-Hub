@@ -1,0 +1,49 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/foxwoods-mashantucket/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:16:40.553018+00:00",
+    "scrape_html_hash": "109fde56231b4ba40eec36ed82ac06a8580f8d8255c428faae95236c64466b65",
+    "scrape_byte_count": 70025,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Foxwoods Resort Casino",
+      "day_of_week": "Sunday",
+      "start_time": "9:00am",
+      "buy_in": 395,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "109fde56231b4ba40eec36ed82ac06a8580f8d8255c428faae95236c64466b65",
+      "scrape_timestamp": "2026-03-25T21:16:40.553018+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/foxwoods-mashantucket/tournaments"
+    },
+    {
+      "venue_name": "Foxwoods Resort Casino",
+      "day_of_week": "Thursday",
+      "start_time": "10:10am",
+      "buy_in": 195,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "109fde56231b4ba40eec36ed82ac06a8580f8d8255c428faae95236c64466b65",
+      "scrape_timestamp": "2026-03-25T21:16:40.553018+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/foxwoods-mashantucket/tournaments"
+    },
+    {
+      "venue_name": "Foxwoods Resort Casino",
+      "day_of_week": "Sunday",
+      "start_time": "10:10am",
+      "buy_in": 1195,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "109fde56231b4ba40eec36ed82ac06a8580f8d8255c428faae95236c64466b65",
+      "scrape_timestamp": "2026-03-25T21:16:40.553018+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/foxwoods-mashantucket/tournaments"
+    }
+  ]
+}

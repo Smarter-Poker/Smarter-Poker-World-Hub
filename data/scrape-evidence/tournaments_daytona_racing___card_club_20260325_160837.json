@@ -1,0 +1,97 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/daytona-beach/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:08:37.959172+00:00",
+    "scrape_html_hash": "7a8171f1f097e309d12523911df9c94f0bd71e6493d10fb0b3d4449a289101b3",
+    "scrape_byte_count": 79058,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Daytona Racing & Card Club",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 165,
+      "game_type": "nlh",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7a8171f1f097e309d12523911df9c94f0bd71e6493d10fb0b3d4449a289101b3",
+      "scrape_timestamp": "2026-03-25T21:08:37.959172+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/daytona-beach/tournaments"
+    },
+    {
+      "venue_name": "Daytona Racing & Card Club",
+      "day_of_week": "Tuesday",
+      "start_time": "12:10pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7a8171f1f097e309d12523911df9c94f0bd71e6493d10fb0b3d4449a289101b3",
+      "scrape_timestamp": "2026-03-25T21:08:37.959172+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/daytona-beach/tournaments"
+    },
+    {
+      "venue_name": "Daytona Racing & Card Club",
+      "day_of_week": "Thursday",
+      "start_time": "12:10pm",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7a8171f1f097e309d12523911df9c94f0bd71e6493d10fb0b3d4449a289101b3",
+      "scrape_timestamp": "2026-03-25T21:08:37.959172+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/daytona-beach/tournaments"
+    },
+    {
+      "venue_name": "Daytona Racing & Card Club",
+      "day_of_week": "friday",
+      "start_time": "7:10pm",
+      "buy_in": 165,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7a8171f1f097e309d12523911df9c94f0bd71e6493d10fb0b3d4449a289101b3",
+      "scrape_timestamp": "2026-03-25T21:08:37.959172+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/daytona-beach/tournaments"
+    },
+    {
+      "venue_name": "Daytona Racing & Card Club",
+      "day_of_week": "Sunday",
+      "start_time": "12:10pm",
+      "buy_in": 165,
+      "game_type": "nlh",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7a8171f1f097e309d12523911df9c94f0bd71e6493d10fb0b3d4449a289101b3",
+      "scrape_timestamp": "2026-03-25T21:08:37.959172+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/daytona-beach/tournaments"
+    },
+    {
+      "venue_name": "Daytona Racing & Card Club",
+      "day_of_week": "Wednesday",
+      "start_time": "3:10pm",
+      "buy_in": 70,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7a8171f1f097e309d12523911df9c94f0bd71e6493d10fb0b3d4449a289101b3",
+      "scrape_timestamp": "2026-03-25T21:08:37.959172+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/daytona-beach/tournaments"
+    },
+    {
+      "venue_name": "Daytona Racing & Card Club",
+      "day_of_week": "Friday",
+      "start_time": "12:10pm",
+      "buy_in": 115,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7a8171f1f097e309d12523911df9c94f0bd71e6493d10fb0b3d4449a289101b3",
+      "scrape_timestamp": "2026-03-25T21:08:37.959172+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/daytona-beach/tournaments"
+    }
+  ]
+}

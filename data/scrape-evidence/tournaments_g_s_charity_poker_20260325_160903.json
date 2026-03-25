@@ -1,0 +1,145 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:09:03.242315+00:00",
+    "scrape_html_hash": "2b140743bb0f5205bbc026a838e57ae46cded1e98e963f7d9ea0b99b3de7a81d",
+    "scrape_byte_count": 72182,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "G's Charity Poker",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2b140743bb0f5205bbc026a838e57ae46cded1e98e963f7d9ea0b99b3de7a81d",
+      "scrape_timestamp": "2026-03-25T21:09:03.242315+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township/tournaments"
+    },
+    {
+      "venue_name": "G's Charity Poker",
+      "day_of_week": "Friday",
+      "start_time": "1:00pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2b140743bb0f5205bbc026a838e57ae46cded1e98e963f7d9ea0b99b3de7a81d",
+      "scrape_timestamp": "2026-03-25T21:09:03.242315+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township/tournaments"
+    },
+    {
+      "venue_name": "G's Charity Poker",
+      "day_of_week": "Saturday",
+      "start_time": "12:00pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2b140743bb0f5205bbc026a838e57ae46cded1e98e963f7d9ea0b99b3de7a81d",
+      "scrape_timestamp": "2026-03-25T21:09:03.242315+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township/tournaments"
+    },
+    {
+      "venue_name": "G's Charity Poker",
+      "day_of_week": "Sunday",
+      "start_time": "7:00pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2b140743bb0f5205bbc026a838e57ae46cded1e98e963f7d9ea0b99b3de7a81d",
+      "scrape_timestamp": "2026-03-25T21:09:03.242315+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township/tournaments"
+    },
+    {
+      "venue_name": "G's Charity Poker",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2b140743bb0f5205bbc026a838e57ae46cded1e98e963f7d9ea0b99b3de7a81d",
+      "scrape_timestamp": "2026-03-25T21:09:03.242315+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township/tournaments"
+    },
+    {
+      "venue_name": "G's Charity Poker",
+      "day_of_week": "Thursday",
+      "start_time": "7:00pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2b140743bb0f5205bbc026a838e57ae46cded1e98e963f7d9ea0b99b3de7a81d",
+      "scrape_timestamp": "2026-03-25T21:09:03.242315+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township/tournaments"
+    },
+    {
+      "venue_name": "G's Charity Poker",
+      "day_of_week": "Saturday",
+      "start_time": "12:00pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2b140743bb0f5205bbc026a838e57ae46cded1e98e963f7d9ea0b99b3de7a81d",
+      "scrape_timestamp": "2026-03-25T21:09:03.242315+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township/tournaments"
+    },
+    {
+      "venue_name": "G's Charity Poker",
+      "day_of_week": "saturday",
+      "start_time": "7:00pm",
+      "buy_in": 140,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2b140743bb0f5205bbc026a838e57ae46cded1e98e963f7d9ea0b99b3de7a81d",
+      "scrape_timestamp": "2026-03-25T21:09:03.242315+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township/tournaments"
+    },
+    {
+      "venue_name": "G's Charity Poker",
+      "day_of_week": "Thursday",
+      "start_time": "12:00pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2b140743bb0f5205bbc026a838e57ae46cded1e98e963f7d9ea0b99b3de7a81d",
+      "scrape_timestamp": "2026-03-25T21:09:03.242315+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township/tournaments"
+    },
+    {
+      "venue_name": "G's Charity Poker",
+      "day_of_week": "Friday",
+      "start_time": "12:00pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2b140743bb0f5205bbc026a838e57ae46cded1e98e963f7d9ea0b99b3de7a81d",
+      "scrape_timestamp": "2026-03-25T21:09:03.242315+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township/tournaments"
+    },
+    {
+      "venue_name": "G's Charity Poker",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "2b140743bb0f5205bbc026a838e57ae46cded1e98e963f7d9ea0b99b3de7a81d",
+      "scrape_timestamp": "2026-03-25T21:09:03.242315+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township/tournaments"
+    }
+  ]
+}

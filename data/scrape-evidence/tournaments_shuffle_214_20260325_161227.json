@@ -1,0 +1,193 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+    "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+    "scrape_byte_count": 77688,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 7000,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Monday",
+      "start_time": "2:00pm",
+      "buy_in": 0,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Tuesday",
+      "start_time": "2:00pm",
+      "buy_in": 0,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Wednesday",
+      "start_time": "2:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Thursday",
+      "start_time": "2:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Friday",
+      "start_time": "2:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Saturday",
+      "start_time": "12:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Tuesday",
+      "start_time": "11:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Wednesday",
+      "start_time": "11:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Thursday",
+      "start_time": "11:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Friday",
+      "start_time": "11:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Saturday",
+      "start_time": "11:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "Sunday",
+      "start_time": "1:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_name": "Shuffle 214",
+      "day_of_week": "sunday",
+      "start_time": "2:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cfa917b43b47cd62069318bd4b33bed1c75a10deacd2ae52d82a5e96daa700a2",
+      "scrape_timestamp": "2026-03-25T21:12:27.740110+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/grand-sierra-reno/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:13:21.481558+00:00",
+    "scrape_html_hash": "313c752f5f3d28841ee845473ca932e317a09ebab8c0bc9f4fa2745d210a547b",
+    "scrape_byte_count": 76236,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Grand Sierra Resort",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "313c752f5f3d28841ee845473ca932e317a09ebab8c0bc9f4fa2745d210a547b",
+      "scrape_timestamp": "2026-03-25T21:13:21.481558+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/grand-sierra-reno/tournaments"
+    },
+    {
+      "venue_name": "Grand Sierra Resort",
+      "day_of_week": "Tuesday",
+      "start_time": "6:00pm",
+      "buy_in": 75,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "313c752f5f3d28841ee845473ca932e317a09ebab8c0bc9f4fa2745d210a547b",
+      "scrape_timestamp": "2026-03-25T21:13:21.481558+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/grand-sierra-reno/tournaments"
+    },
+    {
+      "venue_name": "Grand Sierra Resort",
+      "day_of_week": "Thursday",
+      "start_time": "6:00pm",
+      "buy_in": 75,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "313c752f5f3d28841ee845473ca932e317a09ebab8c0bc9f4fa2745d210a547b",
+      "scrape_timestamp": "2026-03-25T21:13:21.481558+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/grand-sierra-reno/tournaments"
+    },
+    {
+      "venue_name": "Grand Sierra Resort",
+      "day_of_week": "Saturday",
+      "start_time": "1:00pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "313c752f5f3d28841ee845473ca932e317a09ebab8c0bc9f4fa2745d210a547b",
+      "scrape_timestamp": "2026-03-25T21:13:21.481558+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/grand-sierra-reno/tournaments"
+    },
+    {
+      "venue_name": "Grand Sierra Resort",
+      "day_of_week": "Sunday",
+      "start_time": "6:00pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "313c752f5f3d28841ee845473ca932e317a09ebab8c0bc9f4fa2745d210a547b",
+      "scrape_timestamp": "2026-03-25T21:13:21.481558+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/grand-sierra-reno/tournaments"
+    },
+    {
+      "venue_name": "Grand Sierra Resort",
+      "day_of_week": "Sunday",
+      "start_time": "6:00pm",
+      "buy_in": 350,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "313c752f5f3d28841ee845473ca932e317a09ebab8c0bc9f4fa2745d210a547b",
+      "scrape_timestamp": "2026-03-25T21:13:21.481558+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/grand-sierra-reno/tournaments"
+    }
+  ]
+}

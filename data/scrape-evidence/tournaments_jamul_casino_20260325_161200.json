@@ -1,0 +1,97 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/jamul-casino/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:12:00.093578+00:00",
+    "scrape_html_hash": "df50b3a9253201d1ac14f79afc089a9c79b1a0c60095319f29bd80453d71659c",
+    "scrape_byte_count": 81422,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Jamul Casino",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "df50b3a9253201d1ac14f79afc089a9c79b1a0c60095319f29bd80453d71659c",
+      "scrape_timestamp": "2026-03-25T21:12:00.093578+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jamul-casino/tournaments"
+    },
+    {
+      "venue_name": "Jamul Casino",
+      "day_of_week": "sunday",
+      "start_time": "4:00pm",
+      "buy_in": 125,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "df50b3a9253201d1ac14f79afc089a9c79b1a0c60095319f29bd80453d71659c",
+      "scrape_timestamp": "2026-03-25T21:12:00.093578+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jamul-casino/tournaments"
+    },
+    {
+      "venue_name": "Jamul Casino",
+      "day_of_week": "Tuesday",
+      "start_time": "10:00am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "df50b3a9253201d1ac14f79afc089a9c79b1a0c60095319f29bd80453d71659c",
+      "scrape_timestamp": "2026-03-25T21:12:00.093578+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jamul-casino/tournaments"
+    },
+    {
+      "venue_name": "Jamul Casino",
+      "day_of_week": "Wednesday",
+      "start_time": "10:00am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "df50b3a9253201d1ac14f79afc089a9c79b1a0c60095319f29bd80453d71659c",
+      "scrape_timestamp": "2026-03-25T21:12:00.093578+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jamul-casino/tournaments"
+    },
+    {
+      "venue_name": "Jamul Casino",
+      "day_of_week": "Thursday",
+      "start_time": "10:00am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "df50b3a9253201d1ac14f79afc089a9c79b1a0c60095319f29bd80453d71659c",
+      "scrape_timestamp": "2026-03-25T21:12:00.093578+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jamul-casino/tournaments"
+    },
+    {
+      "venue_name": "Jamul Casino",
+      "day_of_week": "Friday",
+      "start_time": "10:00am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "df50b3a9253201d1ac14f79afc089a9c79b1a0c60095319f29bd80453d71659c",
+      "scrape_timestamp": "2026-03-25T21:12:00.093578+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jamul-casino/tournaments"
+    },
+    {
+      "venue_name": "Jamul Casino",
+      "day_of_week": "Saturday",
+      "start_time": "10:00am",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "df50b3a9253201d1ac14f79afc089a9c79b1a0c60095319f29bd80453d71659c",
+      "scrape_timestamp": "2026-03-25T21:12:00.093578+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jamul-casino/tournaments"
+    }
+  ]
+}

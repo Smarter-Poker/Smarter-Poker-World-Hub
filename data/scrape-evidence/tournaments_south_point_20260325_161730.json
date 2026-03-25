@@ -1,0 +1,109 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:17:30.057765+00:00",
+    "scrape_html_hash": "7ac0b3f5105ac2e0221655521505ad056cc8f2b1c0b81ab9b120a17d8818364f",
+    "scrape_byte_count": 101677,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "South Point",
+      "day_of_week": "Sunday",
+      "start_time": "10:10am",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7ac0b3f5105ac2e0221655521505ad056cc8f2b1c0b81ab9b120a17d8818364f",
+      "scrape_timestamp": "2026-03-25T21:17:30.057765+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "South Point",
+      "day_of_week": "Monday",
+      "start_time": "10:10am",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7ac0b3f5105ac2e0221655521505ad056cc8f2b1c0b81ab9b120a17d8818364f",
+      "scrape_timestamp": "2026-03-25T21:17:30.057765+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "South Point",
+      "day_of_week": "Tuesday",
+      "start_time": "10:10am",
+      "buy_in": 120,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7ac0b3f5105ac2e0221655521505ad056cc8f2b1c0b81ab9b120a17d8818364f",
+      "scrape_timestamp": "2026-03-25T21:17:30.057765+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "South Point",
+      "day_of_week": "Wednesday",
+      "start_time": "10:10am",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7ac0b3f5105ac2e0221655521505ad056cc8f2b1c0b81ab9b120a17d8818364f",
+      "scrape_timestamp": "2026-03-25T21:17:30.057765+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "South Point",
+      "day_of_week": "Thursday",
+      "start_time": "10:10am",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7ac0b3f5105ac2e0221655521505ad056cc8f2b1c0b81ab9b120a17d8818364f",
+      "scrape_timestamp": "2026-03-25T21:17:30.057765+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "South Point",
+      "day_of_week": "Friday",
+      "start_time": "10:10am",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7ac0b3f5105ac2e0221655521505ad056cc8f2b1c0b81ab9b120a17d8818364f",
+      "scrape_timestamp": "2026-03-25T21:17:30.057765+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "South Point",
+      "day_of_week": "Saturday",
+      "start_time": "10:10am",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7ac0b3f5105ac2e0221655521505ad056cc8f2b1c0b81ab9b120a17d8818364f",
+      "scrape_timestamp": "2026-03-25T21:17:30.057765+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "South Point",
+      "day_of_week": "Friday",
+      "start_time": "2:10pm",
+      "buy_in": 120,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "7ac0b3f5105ac2e0221655521505ad056cc8f2b1c0b81ab9b120a17d8818364f",
+      "scrape_timestamp": "2026-03-25T21:17:30.057765+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/tournaments"
+    }
+  ]
+}

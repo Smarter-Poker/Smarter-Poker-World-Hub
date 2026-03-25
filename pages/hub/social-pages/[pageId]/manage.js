@@ -158,6 +158,10 @@ export default function ManageSocialPage() {
                 // Reset slug status since it's now the saved slug
                 setSlugStatus(null);
                 setSlugError('');
+                // If slug changed, update the URL so fetchPage/realtime don't use the stale slug
+                if (json.data.slug && json.data.slug !== pageId) {
+                    router.replace(`/hub/social-pages/${json.data.slug}/manage`, undefined, { shallow: true });
+                }
             } else {
                 setMessage('Error: ' + (json.error || 'Failed to save'));
             }

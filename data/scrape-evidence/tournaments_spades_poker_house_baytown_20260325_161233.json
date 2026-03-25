@@ -1,0 +1,73 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/spades-poker-house-baytown/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:12:33.545910+00:00",
+    "scrape_html_hash": "248953055c68f48e6db01c142bdec177a691f06ed54f9d9b2d7f824c4710e7b9",
+    "scrape_byte_count": 67299,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Spades Poker House Baytown",
+      "day_of_week": "Sunday",
+      "start_time": "5:00pm",
+      "buy_in": 150,
+      "game_type": "NLH",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "248953055c68f48e6db01c142bdec177a691f06ed54f9d9b2d7f824c4710e7b9",
+      "scrape_timestamp": "2026-03-25T21:12:33.545910+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/spades-poker-house-baytown/tournaments"
+    },
+    {
+      "venue_name": "Spades Poker House Baytown",
+      "day_of_week": "MONDAY",
+      "start_time": "6:30pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "248953055c68f48e6db01c142bdec177a691f06ed54f9d9b2d7f824c4710e7b9",
+      "scrape_timestamp": "2026-03-25T21:12:33.545910+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/spades-poker-house-baytown/tournaments"
+    },
+    {
+      "venue_name": "Spades Poker House Baytown",
+      "day_of_week": "Friday",
+      "start_time": "6:30pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "248953055c68f48e6db01c142bdec177a691f06ed54f9d9b2d7f824c4710e7b9",
+      "scrape_timestamp": "2026-03-25T21:12:33.545910+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/spades-poker-house-baytown/tournaments"
+    },
+    {
+      "venue_name": "Spades Poker House Baytown",
+      "day_of_week": "Monday",
+      "start_time": "6:30pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "248953055c68f48e6db01c142bdec177a691f06ed54f9d9b2d7f824c4710e7b9",
+      "scrape_timestamp": "2026-03-25T21:12:33.545910+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/spades-poker-house-baytown/tournaments"
+    },
+    {
+      "venue_name": "Spades Poker House Baytown",
+      "day_of_week": "wednesday",
+      "start_time": "6:30pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "248953055c68f48e6db01c142bdec177a691f06ed54f9d9b2d7f824c4710e7b9",
+      "scrape_timestamp": "2026-03-25T21:12:33.545910+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/spades-poker-house-baytown/tournaments"
+    }
+  ]
+}

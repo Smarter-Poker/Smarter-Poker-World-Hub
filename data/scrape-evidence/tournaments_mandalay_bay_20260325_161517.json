@@ -1,0 +1,97 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:15:17.038099+00:00",
+    "scrape_html_hash": "f9ed743f506b4f58215a8fc29dbb63d344961fac732976087e54f1d0bc8eb173",
+    "scrape_byte_count": 77001,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Mandalay Bay",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f9ed743f506b4f58215a8fc29dbb63d344961fac732976087e54f1d0bc8eb173",
+      "scrape_timestamp": "2026-03-25T21:15:17.038099+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Mandalay Bay",
+      "day_of_week": "Monday",
+      "start_time": "1:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f9ed743f506b4f58215a8fc29dbb63d344961fac732976087e54f1d0bc8eb173",
+      "scrape_timestamp": "2026-03-25T21:15:17.038099+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Mandalay Bay",
+      "day_of_week": "Wednesday",
+      "start_time": "1:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f9ed743f506b4f58215a8fc29dbb63d344961fac732976087e54f1d0bc8eb173",
+      "scrape_timestamp": "2026-03-25T21:15:17.038099+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Mandalay Bay",
+      "day_of_week": "Thursday",
+      "start_time": "1:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f9ed743f506b4f58215a8fc29dbb63d344961fac732976087e54f1d0bc8eb173",
+      "scrape_timestamp": "2026-03-25T21:15:17.038099+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Mandalay Bay",
+      "day_of_week": "Friday",
+      "start_time": "1:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f9ed743f506b4f58215a8fc29dbb63d344961fac732976087e54f1d0bc8eb173",
+      "scrape_timestamp": "2026-03-25T21:15:17.038099+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Mandalay Bay",
+      "day_of_week": "Saturday",
+      "start_time": "1:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f9ed743f506b4f58215a8fc29dbb63d344961fac732976087e54f1d0bc8eb173",
+      "scrape_timestamp": "2026-03-25T21:15:17.038099+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas/tournaments"
+    },
+    {
+      "venue_name": "Mandalay Bay",
+      "day_of_week": "saturday",
+      "start_time": "8:00pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "f9ed743f506b4f58215a8fc29dbb63d344961fac732976087e54f1d0bc8eb173",
+      "scrape_timestamp": "2026-03-25T21:15:17.038099+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas/tournaments"
+    }
+  ]
+}

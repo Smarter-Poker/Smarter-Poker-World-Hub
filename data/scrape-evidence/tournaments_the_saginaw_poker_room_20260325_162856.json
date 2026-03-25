@@ -1,0 +1,73 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/the-saginaw-poker-room/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:28:56.075829+00:00",
+    "scrape_html_hash": "9f7ffc4aed54483c08239a2d26b0c7a752bb22e5f945db1c37ca4741b3e0e2b2",
+    "scrape_byte_count": 65841,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "The Saginaw Poker Room",
+      "day_of_week": "Sunday",
+      "start_time": "5:00pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9f7ffc4aed54483c08239a2d26b0c7a752bb22e5f945db1c37ca4741b3e0e2b2",
+      "scrape_timestamp": "2026-03-25T21:28:56.075829+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/the-saginaw-poker-room/tournaments"
+    },
+    {
+      "venue_name": "The Saginaw Poker Room",
+      "day_of_week": "Saturday",
+      "start_time": "5:30pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9f7ffc4aed54483c08239a2d26b0c7a752bb22e5f945db1c37ca4741b3e0e2b2",
+      "scrape_timestamp": "2026-03-25T21:28:56.075829+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/the-saginaw-poker-room/tournaments"
+    },
+    {
+      "venue_name": "The Saginaw Poker Room",
+      "day_of_week": "Monday",
+      "start_time": "6:30pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9f7ffc4aed54483c08239a2d26b0c7a752bb22e5f945db1c37ca4741b3e0e2b2",
+      "scrape_timestamp": "2026-03-25T21:28:56.075829+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/the-saginaw-poker-room/tournaments"
+    },
+    {
+      "venue_name": "The Saginaw Poker Room",
+      "day_of_week": "saturday",
+      "start_time": "5:30pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9f7ffc4aed54483c08239a2d26b0c7a752bb22e5f945db1c37ca4741b3e0e2b2",
+      "scrape_timestamp": "2026-03-25T21:28:56.075829+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/the-saginaw-poker-room/tournaments"
+    },
+    {
+      "venue_name": "The Saginaw Poker Room",
+      "day_of_week": "Sunday",
+      "start_time": "5:30pm",
+      "buy_in": 30,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9f7ffc4aed54483c08239a2d26b0c7a752bb22e5f945db1c37ca4741b3e0e2b2",
+      "scrape_timestamp": "2026-03-25T21:28:56.075829+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/the-saginaw-poker-room/tournaments"
+    }
+  ]
+}

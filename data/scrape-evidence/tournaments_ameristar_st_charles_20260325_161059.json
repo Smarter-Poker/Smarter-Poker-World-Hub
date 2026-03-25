@@ -1,0 +1,85 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/ameristar-st-charles-st-charles/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:10:59.194468+00:00",
+    "scrape_html_hash": "9ad66336d8fa53856e2cecaaa174589af97268aa67ecdce833943d2f654490aa",
+    "scrape_byte_count": 64692,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Ameristar St Charles",
+      "day_of_week": "Sunday",
+      "start_time": "8:00am",
+      "buy_in": 250,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9ad66336d8fa53856e2cecaaa174589af97268aa67ecdce833943d2f654490aa",
+      "scrape_timestamp": "2026-03-25T21:10:59.194468+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/ameristar-st-charles-st-charles/tournaments"
+    },
+    {
+      "venue_name": "Ameristar St Charles",
+      "day_of_week": "Wednesday",
+      "start_time": "10:00am",
+      "buy_in": 300,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9ad66336d8fa53856e2cecaaa174589af97268aa67ecdce833943d2f654490aa",
+      "scrape_timestamp": "2026-03-25T21:10:59.194468+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/ameristar-st-charles-st-charles/tournaments"
+    },
+    {
+      "venue_name": "Ameristar St Charles",
+      "day_of_week": "Thursday",
+      "start_time": "10:00am",
+      "buy_in": 265,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9ad66336d8fa53856e2cecaaa174589af97268aa67ecdce833943d2f654490aa",
+      "scrape_timestamp": "2026-03-25T21:10:59.194468+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/ameristar-st-charles-st-charles/tournaments"
+    },
+    {
+      "venue_name": "Ameristar St Charles",
+      "day_of_week": "Friday",
+      "start_time": "10:00am",
+      "buy_in": 265,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9ad66336d8fa53856e2cecaaa174589af97268aa67ecdce833943d2f654490aa",
+      "scrape_timestamp": "2026-03-25T21:10:59.194468+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/ameristar-st-charles-st-charles/tournaments"
+    },
+    {
+      "venue_name": "Ameristar St Charles",
+      "day_of_week": "Saturday",
+      "start_time": "10:00am",
+      "buy_in": 265,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9ad66336d8fa53856e2cecaaa174589af97268aa67ecdce833943d2f654490aa",
+      "scrape_timestamp": "2026-03-25T21:10:59.194468+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/ameristar-st-charles-st-charles/tournaments"
+    },
+    {
+      "venue_name": "Ameristar St Charles",
+      "day_of_week": "Sunday",
+      "start_time": "11:00am",
+      "buy_in": 1110,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "9ad66336d8fa53856e2cecaaa174589af97268aa67ecdce833943d2f654490aa",
+      "scrape_timestamp": "2026-03-25T21:10:59.194468+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/ameristar-st-charles-st-charles/tournaments"
+    }
+  ]
+}

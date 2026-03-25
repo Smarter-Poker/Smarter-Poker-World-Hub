@@ -1,0 +1,61 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/stones-gambling-hall-citrus-heights/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:06:31.723230+00:00",
+    "scrape_html_hash": "e4c4f62534c3f81f6560c6a957a5eb2d16354504855f9719fcfafea37b2d777e",
+    "scrape_byte_count": 71541,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Stones Gambling Hall",
+      "day_of_week": "Sunday",
+      "start_time": "10:30am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "e4c4f62534c3f81f6560c6a957a5eb2d16354504855f9719fcfafea37b2d777e",
+      "scrape_timestamp": "2026-03-25T21:06:31.723230+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/stones-gambling-hall-citrus-heights/tournaments"
+    },
+    {
+      "venue_name": "Stones Gambling Hall",
+      "day_of_week": "Thursday",
+      "start_time": "10:30am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "e4c4f62534c3f81f6560c6a957a5eb2d16354504855f9719fcfafea37b2d777e",
+      "scrape_timestamp": "2026-03-25T21:06:31.723230+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/stones-gambling-hall-citrus-heights/tournaments"
+    },
+    {
+      "venue_name": "Stones Gambling Hall",
+      "day_of_week": "Saturday",
+      "start_time": "10:30am",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "e4c4f62534c3f81f6560c6a957a5eb2d16354504855f9719fcfafea37b2d777e",
+      "scrape_timestamp": "2026-03-25T21:06:31.723230+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/stones-gambling-hall-citrus-heights/tournaments"
+    },
+    {
+      "venue_name": "Stones Gambling Hall",
+      "day_of_week": "Tuesday",
+      "start_time": "10:30am",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "e4c4f62534c3f81f6560c6a957a5eb2d16354504855f9719fcfafea37b2d777e",
+      "scrape_timestamp": "2026-03-25T21:06:31.723230+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/stones-gambling-hall-citrus-heights/tournaments"
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/tch-social-las-colinas-irving/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:26:12.996447+00:00",
+    "scrape_html_hash": "4c4ba7e0e98bd1779daf90862697a86cf3ddd41f7b3c81fad385e667eab16e6a",
+    "scrape_byte_count": 72554,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "TCH Social Las Colinas",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 250,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "4c4ba7e0e98bd1779daf90862697a86cf3ddd41f7b3c81fad385e667eab16e6a",
+      "scrape_timestamp": "2026-03-25T21:26:12.996447+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/tch-social-las-colinas-irving/tournaments"
+    },
+    {
+      "venue_name": "TCH Social Las Colinas",
+      "day_of_week": "Wednesday",
+      "start_time": "1:00pm",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "4c4ba7e0e98bd1779daf90862697a86cf3ddd41f7b3c81fad385e667eab16e6a",
+      "scrape_timestamp": "2026-03-25T21:26:12.996447+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/tch-social-las-colinas-irving/tournaments"
+    },
+    {
+      "venue_name": "TCH Social Las Colinas",
+      "day_of_week": "Friday",
+      "start_time": "1:00pm",
+      "buy_in": 150,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "4c4ba7e0e98bd1779daf90862697a86cf3ddd41f7b3c81fad385e667eab16e6a",
+      "scrape_timestamp": "2026-03-25T21:26:12.996447+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/tch-social-las-colinas-irving/tournaments"
+    },
+    {
+      "venue_name": "TCH Social Las Colinas",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 40,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "4c4ba7e0e98bd1779daf90862697a86cf3ddd41f7b3c81fad385e667eab16e6a",
+      "scrape_timestamp": "2026-03-25T21:26:12.996447+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/tch-social-las-colinas-irving/tournaments"
+    },
+    {
+      "venue_name": "TCH Social Las Colinas",
+      "day_of_week": "Tuesday",
+      "start_time": "1:00pm",
+      "buy_in": 100,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "4c4ba7e0e98bd1779daf90862697a86cf3ddd41f7b3c81fad385e667eab16e6a",
+      "scrape_timestamp": "2026-03-25T21:26:12.996447+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/tch-social-las-colinas-irving/tournaments"
+    },
+    {
+      "venue_name": "TCH Social Las Colinas",
+      "day_of_week": "Thursday",
+      "start_time": "1:00pm",
+      "buy_in": 125,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "4c4ba7e0e98bd1779daf90862697a86cf3ddd41f7b3c81fad385e667eab16e6a",
+      "scrape_timestamp": "2026-03-25T21:26:12.996447+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/tch-social-las-colinas-irving/tournaments"
+    },
+    {
+      "venue_name": "TCH Social Las Colinas",
+      "day_of_week": "Saturday",
+      "start_time": "11:00am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "4c4ba7e0e98bd1779daf90862697a86cf3ddd41f7b3c81fad385e667eab16e6a",
+      "scrape_timestamp": "2026-03-25T21:26:12.996447+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/tch-social-las-colinas-irving/tournaments"
+    },
+    {
+      "venue_name": "TCH Social Las Colinas",
+      "day_of_week": "Monday",
+      "start_time": "1:00pm",
+      "buy_in": 100,
+      "game_type": "omaha",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "4c4ba7e0e98bd1779daf90862697a86cf3ddd41f7b3c81fad385e667eab16e6a",
+      "scrape_timestamp": "2026-03-25T21:26:12.996447+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/tch-social-las-colinas-irving/tournaments"
+    }
+  ]
+}
