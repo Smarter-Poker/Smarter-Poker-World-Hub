@@ -137,7 +137,7 @@ export function ReelsViewer({ onClose }) {
             eventBus.off(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
             eventBus.off(EventType.SOCIAL_COMMENT_ADDED, handleCommentBus);
         };
-    }, []);
+    }, [currentUserId]);
 
     // Reset paused state when changing reels + track view
     useEffect(() => {

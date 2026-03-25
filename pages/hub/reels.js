@@ -83,6 +83,8 @@ export default function ReelsPage() {
     const [overlayVisible, setOverlayVisible] = useState(true);
     const overlayTimerRef = useRef(null);
     const viewedReelsRef = useRef(new Set());
+    const [refreshing, setRefreshing] = useState(false);
+    const pullStartY = useRef(null);
 
     // Reels preferences state
     const [preferences, setPreferences] = useState({
@@ -93,21 +95,18 @@ export default function ReelsPage() {
     });
 
     // Load sound preference from localStorage on mount
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         if (typeof window !== 'undefined') {
             const savedPref = localStorage.getItem('reels-sound-enabled');
             if (savedPref === 'true') {
                 setUserWantsSound(true);
             }
         }
-    return () => _c.abort();
-  }, []);
+    }, []);
 
     // Load user and preferences
-    useEffect(() => {    const _c = new AbortController();
-
-        const loadUserData = async(signal) => {
+    useEffect(() => {
+        const loadUserData = async () => {
             const authUser = getAuthUser();
             setUser(authUser);
 
@@ -134,8 +133,7 @@ export default function ReelsPage() {
             }
         };
         loadUserData();
-    return () => _c.abort();
-  }, []);
+    }, []);
 
     // YouTube API: Send command to iframe via postMessage
     const sendYouTubeCommand = (command, args = []) => {
@@ -150,8 +148,7 @@ export default function ReelsPage() {
 
     // Auto-play immediately on load (muted videos comply with browser autoplay policy)
     // Then auto-unmute since user explicitly came here to watch videos with sound
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         if (!loading && reels.length > 0) {
             // Wait for iframe to load, then force play + unmute
             const timer = setTimeout(() => {
@@ -164,7 +161,8 @@ export default function ReelsPage() {
                 setMuted(false);
             }, 500); // Give iframe time to initialize YouTube API
             return () => clearTimeout(timer);
-        }}, [currentIndex, loading, reels.length]);
+        }
+    }, [currentIndex, loading, reels.length]);
 
     const handleUnmute = () => {
         sendYouTubeCommand('unMute');
@@ -188,11 +186,9 @@ export default function ReelsPage() {
         }
     };
 
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         loadReels();
-    return () => _c.abort();
-  }, []);
+    }, []);
 
     const loadReels = async(signal) => {
         setLoading(true);
@@ -278,8 +274,12 @@ export default function ReelsPage() {
                     profiles: profileMap[video.author_id] || { username: 'Anonymous' },
                 }));
 
-                // Shuffle for variety
-                const shuffled = mappedReels.sort(() => Math.random() - 0.5);
+                // Fisher-Yates shuffle for unbiased randomization
+                const shuffled = [...mappedReels];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
                 setReels(shuffled);
 
                 // Initialize like/comment/view counts from loaded data
@@ -341,6 +341,25 @@ export default function ReelsPage() {
         try {
             const nextPage = page + 1;
             const offset = nextPage * 50;
+            const allNewVideos = [];
+
+            // Fetch more social_reels
+            const { data: reelsData } = await supabase
+                .from('social_reels')
+                .select('id, author_id, caption, video_url, view_count, like_count, comment_count, created_at, is_public')
+                .eq('is_public', true)
+                .order('created_at', { ascending: false })
+                .range(offset, offset + 49);
+            if (reelsData && reelsData.length > 0) {
+                allNewVideos.push(...reelsData.map(reel => ({
+                    id: reel.id, author_id: reel.author_id, video_url: reel.video_url,
+                    caption: reel.caption, like_count: reel.like_count || 0,
+                    comment_count: reel.comment_count || 0, view_count: reel.view_count || 0,
+                    created_at: reel.created_at, source: 'reels',
+                })));
+            }
+
+            // Fetch more social_posts with YouTube links
             const { data: postsData } = await supabase
                 .from('social_posts')
                 .select('id, author_id, content, media_urls, like_count, comment_count, created_at, visibility')
@@ -352,24 +371,40 @@ export default function ReelsPage() {
                 const url = p.media_urls?.[0];
                 return url && (url.includes('youtube.com') || url.includes('youtu.be'));
             });
-            if (videos.length === 0) {
+            if (videos.length > 0) {
+                allNewVideos.push(...videos.map(v => ({
+                    id: v.id, author_id: v.author_id, video_url: v.media_urls[0],
+                    caption: v.content, like_count: v.like_count || 0,
+                    comment_count: v.comment_count || 0, view_count: 0,
+                    created_at: v.created_at, source: 'posts',
+                })));
+            }
+
+            if (allNewVideos.length === 0) {
                 setHasMore(false);
             } else {
-                const authorIds = [...new Set(videos.map(v => v.author_id))];
-                const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url, full_name').in('id', authorIds);
-                const pm = {}; (profiles || []).forEach(p => { pm[p.id] = p; });
-                const mapped = videos.map(v => ({
-                    id: v.id, video_url: v.media_urls[0], caption: v.content,
-                    like_count: v.like_count || 0, comment_count: v.comment_count || 0, view_count: 0,
-                    created_at: v.created_at, profiles: pm[v.author_id] || { username: 'Anonymous' },
-                }));
-                setReels(prev => [...prev, ...mapped]);
-                const lc = {}, cc = {}, vc = {};
-                mapped.forEach(r => { lc[r.id] = r.like_count || 0; cc[r.id] = r.comment_count || 0; vc[r.id] = r.view_count || 0; });
-                setLikeCounts(prev => ({ ...prev, ...lc }));
-                setCommentCounts(prev => ({ ...prev, ...cc }));
-                setViewCounts(prev => ({ ...prev, ...vc }));
-                setPage(nextPage);
+                // Deduplicate against already-loaded reels
+                const existingIds = new Set(reels.map(r => r.id));
+                const uniqueNew = allNewVideos.filter(v => !existingIds.has(v.id));
+                if (uniqueNew.length === 0) {
+                    setHasMore(false);
+                } else {
+                    const authorIds = [...new Set(uniqueNew.map(v => v.author_id))];
+                    const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url, full_name').in('id', authorIds);
+                    const pm = {}; (profiles || []).forEach(p => { pm[p.id] = p; });
+                    const mapped = uniqueNew.map(v => ({
+                        id: v.id, video_url: v.video_url, caption: v.caption,
+                        like_count: v.like_count, comment_count: v.comment_count, view_count: v.view_count,
+                        created_at: v.created_at, profiles: pm[v.author_id] || { username: 'Anonymous' },
+                    }));
+                    setReels(prev => [...prev, ...mapped]);
+                    const lc = {}, cc = {}, vc = {};
+                    mapped.forEach(r => { lc[r.id] = r.like_count || 0; cc[r.id] = r.comment_count || 0; vc[r.id] = r.view_count || 0; });
+                    setLikeCounts(prev => ({ ...prev, ...lc }));
+                    setCommentCounts(prev => ({ ...prev, ...cc }));
+                    setViewCounts(prev => ({ ...prev, ...vc }));
+                    setPage(nextPage);
+                }
             }
         } catch (e) { console.error('Load more error:', e); }
         setLoadingMore(false);
@@ -431,8 +466,10 @@ export default function ReelsPage() {
 
     const handleComment = async () => {
         if (!currentReel) return;
+        const wasOpen = showCommentPanel;
         setShowCommentPanel(prev => !prev);
-        if (!showCommentPanel && comments.length === 0) {
+        // Always fetch fresh comments when opening (not closing)
+        if (!wasOpen) {
             try {
                 const { data } = await supabase
                     .from('social_comments')
@@ -492,13 +529,11 @@ export default function ReelsPage() {
     };
 
     // Reset comment panel when switching reels
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         setShowCommentPanel(false);
         setComments([]);
         setCommentText('');
-    return () => _c.abort();
-  }, [currentIndex]);
+    }, [currentIndex]);
 
     const handleSave = async () => {
         if (!currentReel || !user) return;
@@ -559,8 +594,7 @@ export default function ReelsPage() {
     handleCommentRef.current = handleComment;
 
     // Keyboard navigation
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         const handleKey = (e) => {
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goNext();
             if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') goPrev();
@@ -571,21 +605,20 @@ export default function ReelsPage() {
             if (e.key === 'c' || e.key === 'C') handleCommentRef.current?.();
         };
         window.addEventListener('keydown', handleKey);
-        return () => window.removeEventListener('keydown', handleKey);}, [currentIndex, router]);
+        return () => window.removeEventListener('keydown', handleKey);
+    }, [currentIndex, router]);
 
     // Use refs to avoid stale closures in event handlers
     const currentIndexRef = useRef(currentIndex);
     const reelsLengthRef = useRef(reels.length);
 
-    useEffect(() => {    const _c = new AbortController();
+    useEffect(() => {
         currentIndexRef.current = currentIndex;
-    return () => _c.abort();
-  }, [currentIndex]);
+    }, [currentIndex]);
 
-    useEffect(() => {    const _c = new AbortController();
+    useEffect(() => {
         reelsLengthRef.current = reels.length;
-    return () => _c.abort();
-  }, [reels.length]);
+    }, [reels.length]);
 
     // Slide helper for event handlers (uses refs, no stale closures)
     const slideToNext = () => {
@@ -622,16 +655,28 @@ export default function ReelsPage() {
     });
 
     // DOCUMENT-LEVEL touch capture to intercept BEFORE YouTube iframe gets them
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         const handleTouchStart = (e) => {
             touchStartY.current = e.touches[0].clientY;
+            // Track pull-to-refresh start when at first reel
+            if (currentIndexRef.current === 0) {
+                pullStartY.current = e.touches[0].clientY;
+            }
         };
 
         const handleTouchEnd = (e) => {
             const endY = e.changedTouches[0].clientY;
             const diff = touchStartY.current - endY;
-            const threshold = 50; // Lower threshold for more responsive swipes
+            const threshold = 50;
+
+            // Pull-to-refresh: pull down while at reel 0
+            if (pullStartY.current !== null && currentIndexRef.current === 0 && diff < -100) {
+                pullStartY.current = null;
+                setRefreshing(true);
+                loadReels().finally(() => setRefreshing(false));
+                return;
+            }
+            pullStartY.current = null;
 
             if (Math.abs(diff) > threshold) {
                 e.preventDefault();
@@ -639,10 +684,8 @@ export default function ReelsPage() {
 
                 try { navigator?.vibrate?.(10); } catch {}
                 if (diff > 0) {
-                    // Swipe up = next
                     slideToNextRef.current();
                 } else {
-                    // Swipe down = previous
                     slideToPrevRef.current();
                 }
             }
@@ -666,34 +709,30 @@ export default function ReelsPage() {
             try {
                 if (typeof e.data !== 'string') return;
                 const data = JSON.parse(e.data);
-                // YouTube iframe API sends onStateChange with info.playerState
                 if (data?.event === 'onStateChange' && data?.info === 0) {
-                    // 0 = ended — auto-advance to next reel
                     slideToNextRef.current();
                 }
-                // Track progress from infoDelivery messages
                 if (data?.info?.currentTime !== undefined && data?.info?.duration) {
                     const pct = (data.info.currentTime / data.info.duration) * 100;
                     setVideoProgress(Math.min(100, Math.max(0, pct)));
                 }
-                // Also handle ended state via infoDelivery format
                 if (data?.info?.playerState === 0) {
                     slideToNextRef.current();
                 }
             } catch {}
         };
 
-        // CAPTURE phase - intercepts before iframe
         document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
         document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
         window.addEventListener('wheel', handleWheel, { passive: true });
         window.addEventListener('message', handleYTMessage);
-        return () => { _c.abort();
+        return () => {
             document.removeEventListener('touchstart', handleTouchStart, { capture: true });
             document.removeEventListener('touchend', handleTouchEnd, { capture: true });
             window.removeEventListener('wheel', handleWheel);
             window.removeEventListener('message', handleYTMessage);
-        };}, []);
+        };
+    }, []);
   // Realtime subscription — live updates
   useEffect(() => {
     if (!user?.id) return;
@@ -771,7 +810,7 @@ export default function ReelsPage() {
                     {/* Shimmer skeleton */}
                     <div style={{
                         width: 280, height: 500, borderRadius: 16,
-                        background: 'linear-gradient, paddingBottom: 70(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%)',
+                        background: 'linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%)',
                         backgroundSize: '200% 100%',
                         animation: 'shimmer 1.5s linear infinite',
                     }} />
@@ -998,17 +1037,29 @@ export default function ReelsPage() {
                         cursor: 'pointer',
                     }}
                 />
-                {/* CENTER ZONE - tap to toggle overlay */}
+                {/* CENTER ZONE - tap to toggle overlay, double-tap to like */}
                 <div
                     onClick={() => {
-                        setOverlayVisible(v => {
-                            const next = !v;
-                            clearTimeout(overlayTimerRef.current);
-                            if (next) {
-                                overlayTimerRef.current = setTimeout(() => setOverlayVisible(false), 3000);
+                        const now = Date.now();
+                        if (now - lastTapRef.current < 300) {
+                            // Double tap = like
+                            if (!liked[currentReel?.id]) {
+                                handleLike();
+                                setShowHeart(true);
+                                setTimeout(() => setShowHeart(false), 800);
                             }
-                            return next;
-                        });
+                        } else {
+                            // Single tap = toggle overlay
+                            setOverlayVisible(v => {
+                                const next = !v;
+                                clearTimeout(overlayTimerRef.current);
+                                if (next) {
+                                    overlayTimerRef.current = setTimeout(() => setOverlayVisible(false), 3000);
+                                }
+                                return next;
+                            });
+                        }
+                        lastTapRef.current = now;
                     }}
                     style={{
                         position: 'absolute',
@@ -1204,25 +1255,7 @@ export default function ReelsPage() {
                     }}>Link Copied</div>
                 )}
 
-                {/* Center double-tap zone */}
-                <div
-                    onClick={(e) => {
-                        const now = Date.now();
-                        if (now - lastTapRef.current < 300) {
-                            // Double tap!
-                            if (!liked[currentReel?.id]) {
-                                handleLike();
-                                setShowHeart(true);
-                                setTimeout(() => setShowHeart(false), 800);
-                            }
-                        }
-                        lastTapRef.current = now;
-                    }}
-                    style={{
-                        position: 'absolute', top: '20%', left: '15%',
-                        width: '70%', height: '40%', zIndex: 55,
-                    }}
-                />
+
 
                 {/* Heart burst + slide animation CSS */}
                 <style jsx>{`
@@ -1306,11 +1339,40 @@ export default function ReelsPage() {
                     </div>
                 )}
 
-                {/* Preload next reel thumbnail in background */}
+                {/* Preload next reel — hidden iframe for instant switching */}
                 {reels[currentIndex + 1] && (() => {
                     const nextVid = getYouTubeVideoId(reels[currentIndex + 1]?.video_url);
-                    return nextVid ? <img src={`https://img.youtube.com/vi/${nextVid}/hqdefault.jpg`} style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} alt="" /> : null;
+                    return nextVid ? (
+                        <>
+                            <img src={`https://img.youtube.com/vi/${nextVid}/hqdefault.jpg`} style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} alt="" />
+                            <iframe
+                                src={`https://www.youtube-nocookie.com/embed/${nextVid}?autoplay=0&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
+                                title="Preload"
+                                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                                tabIndex={-1}
+                                aria-hidden="true"
+                            />
+                        </>
+                    ) : null;
                 })()}
+
+                {/* Pull-to-refresh indicator */}
+                {refreshing && (
+                    <div style={{
+                        position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)',
+                        zIndex: 200, display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '8px 18px', borderRadius: 20,
+                        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                    }}>
+                        <div style={{
+                            width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)',
+                            borderTopColor: 'white', borderRadius: '50%',
+                            animation: 'spin 0.8s linear infinite',
+                        }} />
+                        <span style={{ color: 'white', fontSize: 13, fontWeight: 500 }}>Refreshing...</span>
+                    </div>
+                )}
 
                 {/* Swipe instruction + position */}
                 {!showCommentPanel && (
