@@ -561,11 +561,7 @@ export default function ReelsPage() {
                     return newSet;
                 });
             } else {
-                await savedReelsService.saveReel(user.id, {
-                    id: currentReel.id,
-                    video_url: currentReel.video_url,
-                    caption: currentReel.caption
-                });
+                await savedReelsService.saveReel(user.id, currentReel.id);
                 setSavedReels(prev => new Set([...prev, currentReel.id]));
             }
             busEmit.socialPostBookmarked(currentReel.id, user.id, { added: !isSaved });

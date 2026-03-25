@@ -112,69 +112,31 @@ export const friendPreferences = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const reelsPreferences = {
+    // Get preferences (localStorage only — reels_preferences column not yet in profiles DB)
     async get(userId) {
-        try {
-            const local = {
-                autoplay: localStorage.getItem('reels-autoplay') !== 'false',
-                soundOnScroll: localStorage.getItem('reels-sound-on-scroll') !== 'false',
-                dataSaver: localStorage.getItem('reels-data-saver') === 'true',
-                showCaptions: localStorage.getItem('reels-show-captions') !== 'false'
-            };
-
-            if (userId) {
-                const { data } = await supabase
-                    .from('profiles')
-                    .select('reels_preferences')
-                    .eq('id', userId)
-                    .maybeSingle();
-
-                if (data?.reels_preferences) {
-                    return data.reels_preferences;
-                }
-            }
-
-            return local;
-        } catch (error) {
-            console.error('[Preferences] Error getting reels preferences:', error);
-            return {
-                autoplay: true,
-                soundOnScroll: true,
-                dataSaver: false,
-                showCaptions: true
-            };
-        }
+        return {
+            autoplay: localStorage.getItem('reels-autoplay') !== 'false',
+            soundOnScroll: localStorage.getItem('reels-sound-on-scroll') !== 'false',
+            dataSaver: localStorage.getItem('reels-data-saver') === 'true',
+            showCaptions: localStorage.getItem('reels-show-captions') !== 'false'
+        };
     },
 
+    // Update preferences (localStorage only — DB sync disabled until reels_preferences column exists)
     async update(userId, preferences) {
-        try {
-            if (preferences.autoplay !== undefined) {
-                localStorage.setItem('reels-autoplay', preferences.autoplay.toString());
-            }
-            if (preferences.soundOnScroll !== undefined) {
-                localStorage.setItem('reels-sound-on-scroll', preferences.soundOnScroll.toString());
-            }
-            if (preferences.dataSaver !== undefined) {
-                localStorage.setItem('reels-data-saver', preferences.dataSaver.toString());
-            }
-            if (preferences.showCaptions !== undefined) {
-                localStorage.setItem('reels-show-captions', preferences.showCaptions.toString());
-            }
-
-            if (userId) {
-                const { data, error } = await supabase.rpc('update_reels_preferences', {
-                    p_user_id: userId,
-                    p_preferences: preferences
-                });
-
-                if (error) throw error;
-                return data;
-            }
-
-            return preferences;
-        } catch (error) {
-            console.error('[Preferences] Error updating reels preferences:', error);
-            throw error;
+        if (preferences.autoplay !== undefined) {
+            localStorage.setItem('reels-autoplay', preferences.autoplay.toString());
         }
+        if (preferences.soundOnScroll !== undefined) {
+            localStorage.setItem('reels-sound-on-scroll', preferences.soundOnScroll.toString());
+        }
+        if (preferences.dataSaver !== undefined) {
+            localStorage.setItem('reels-data-saver', preferences.dataSaver.toString());
+        }
+        if (preferences.showCaptions !== undefined) {
+            localStorage.setItem('reels-show-captions', preferences.showCaptions.toString());
+        }
+        return preferences;
     }
 };
 
@@ -324,10 +286,7 @@ export const savedReelsService = {
         try {
             const { data, error } = await supabase
                 .from('saved_reels')
-                .select(`
-                    *,
-                    reel:social_reels(*)
-                `)
+                .select('id, user_id, reel_id, saved_at')
                 .eq('user_id', userId)
                 .order('saved_at', { ascending: false });
 
