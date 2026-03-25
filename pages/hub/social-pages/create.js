@@ -54,6 +54,7 @@ export default function CreateSocialPage() {
     // Custom URL slug checking
     const [slugStatus, setSlugStatus] = useState(null);
     const [slugError, setSlugError] = useState('');
+    const [slugSuggestions, setSlugSuggestions] = useState([]);
     const slugTimerRef = useRef(null);
 
     const { user, checking: authChecking } = useRequireAuth('/hub/social-pages/create');
@@ -255,6 +256,7 @@ export default function CreateSocialPage() {
                                             update('slug', suggested);
                                             setSlugStatus(null);
                                             setSlugError('');
+                                            setSlugSuggestions([]);
                                             if (slugTimerRef.current) clearTimeout(slugTimerRef.current);
                                             if (suggested.length >= 3) {
                                                 setSlugStatus('checking');
@@ -265,6 +267,7 @@ export default function CreateSocialPage() {
                                                         if (json.success) {
                                                             setSlugStatus(json.available ? 'available' : 'taken');
                                                             setSlugError(json.error || '');
+                                                            setSlugSuggestions(json.suggestions || []);
                                                         }
                                                     } catch { setSlugStatus(null); }
                                                 }, 500);
@@ -351,6 +354,7 @@ export default function CreateSocialPage() {
                                                 update('slug', raw);
                                                 setSlugStatus(null);
                                                 setSlugError('');
+                                                setSlugSuggestions([]);
                                                 if (slugTimerRef.current) clearTimeout(slugTimerRef.current);
                                                 if (raw.length >= 3) {
                                                     setSlugStatus('checking');
@@ -361,6 +365,7 @@ export default function CreateSocialPage() {
                                                             if (json.success) {
                                                                 setSlugStatus(json.available ? 'available' : 'taken');
                                                                 setSlugError(json.error || '');
+                                                                setSlugSuggestions(json.suggestions || []);
                                                                 if (json.formatted && json.formatted !== raw) {
                                                                     update('slug', json.formatted);
                                                                 }
@@ -411,6 +416,38 @@ export default function CreateSocialPage() {
                                         <p style={{ fontSize: 11, marginTop: 4, marginBottom: 0, color: '#42B72A', fontWeight: 500 }}>
                                             Available: smarter.poker/hub/social-pages/{form.slug}
                                         </p>
+                                    )}
+                                    {slugSuggestions.length > 0 && slugStatus === 'taken' && (
+                                        <div style={{ marginTop: 6 }}>
+                                            <p style={{ fontSize: 11, color: C.textSec, margin: '0 0 4px', fontWeight: 500 }}>Try these instead:</p>
+                                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                {slugSuggestions.map(s => (
+                                                    <button key={s} onClick={() => {
+                                                        update('slug', s);
+                                                        setSlugStatus('checking');
+                                                        setSlugError('');
+                                                        setSlugSuggestions([]);
+                                                        if (slugTimerRef.current) clearTimeout(slugTimerRef.current);
+                                                        slugTimerRef.current = setTimeout(async () => {
+                                                            try {
+                                                                const res = await fetch(`/api/social/pages/check-slug?slug=${encodeURIComponent(s)}`);
+                                                                const json = await res.json();
+                                                                if (json.success) {
+                                                                    setSlugStatus(json.available ? 'available' : 'taken');
+                                                                    setSlugError(json.error || '');
+                                                                    setSlugSuggestions(json.suggestions || []);
+                                                                }
+                                                            } catch { setSlugStatus(null); }
+                                                        }, 200);
+                                                    }} style={{
+                                                        padding: '4px 10px', borderRadius: 12, fontSize: 12,
+                                                        border: `1px solid ${C.blue}`, background: '#E7F3FF',
+                                                        color: C.blue, cursor: 'pointer', fontWeight: 500,
+                                                        fontFamily: 'inherit',
+                                                    }}>{s}</button>
+                                                ))}
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
 

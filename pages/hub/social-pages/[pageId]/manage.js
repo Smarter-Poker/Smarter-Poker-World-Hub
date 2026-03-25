@@ -42,6 +42,7 @@ export default function ManageSocialPage() {
     // Custom URL slug checking
     const [slugStatus, setSlugStatus] = useState(null); // null | 'checking' | 'available' | 'taken' | 'invalid'
     const [slugError, setSlugError] = useState('');
+    const [slugSuggestions, setSlugSuggestions] = useState([]);
     const slugTimerRef = useRef(null);
     const tabRef = useRef('settings');
 
@@ -397,6 +398,7 @@ export default function ManageSocialPage() {
                                                     setForm(f => ({ ...f, slug: raw }));
                                                     setSlugStatus(null);
                                                     setSlugError('');
+                                                    setSlugSuggestions([]);
                                                     if (slugTimerRef.current) clearTimeout(slugTimerRef.current);
                                                     if (raw.length >= 3) {
                                                         setSlugStatus('checking');
@@ -407,6 +409,7 @@ export default function ManageSocialPage() {
                                                                 if (json.success) {
                                                                     setSlugStatus(json.available ? 'available' : 'taken');
                                                                     setSlugError(json.error || '');
+                                                                    setSlugSuggestions(json.suggestions || []);
                                                                     if (json.formatted && json.formatted !== raw) {
                                                                         setForm(f => ({ ...f, slug: json.formatted }));
                                                                     }
@@ -466,6 +469,38 @@ export default function ManageSocialPage() {
                                             <p style={{ fontSize: 11, marginTop: 6, marginBottom: 0, color: C.textSec }}>
                                                 Your page will be at: <strong>smarter.poker/hub/social-pages/{form.slug}</strong>
                                             </p>
+                                        )}
+                                        {slugSuggestions.length > 0 && slugStatus === 'taken' && (
+                                            <div style={{ marginTop: 6 }}>
+                                                <p style={{ fontSize: 11, color: C.textSec, margin: '0 0 4px', fontWeight: 500 }}>Try these instead:</p>
+                                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                    {slugSuggestions.map(s => (
+                                                        <button key={s} onClick={() => {
+                                                            setForm(f => ({ ...f, slug: s }));
+                                                            setSlugStatus('checking');
+                                                            setSlugError('');
+                                                            setSlugSuggestions([]);
+                                                            if (slugTimerRef.current) clearTimeout(slugTimerRef.current);
+                                                            slugTimerRef.current = setTimeout(async () => {
+                                                                try {
+                                                                    const res = await fetch(`/api/social/pages/check-slug?slug=${encodeURIComponent(s)}&page_id=${page.id}`);
+                                                                    const json = await res.json();
+                                                                    if (json.success) {
+                                                                        setSlugStatus(json.available ? 'available' : 'taken');
+                                                                        setSlugError(json.error || '');
+                                                                        setSlugSuggestions(json.suggestions || []);
+                                                                    }
+                                                                } catch { setSlugStatus(null); }
+                                                            }, 200);
+                                                        }} style={{
+                                                            padding: '4px 10px', borderRadius: 12, fontSize: 12,
+                                                            border: `1px solid ${C.blue}`, background: '#E7F3FF',
+                                                            color: C.blue, cursor: 'pointer', fontWeight: 500,
+                                                            fontFamily: 'inherit',
+                                                        }}>{s}</button>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
 

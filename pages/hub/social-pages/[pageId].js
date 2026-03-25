@@ -14,6 +14,21 @@ import SkeletonLight from '../../../src/components/ui/SkeletonLight';
 import { supabase } from '../../../src/lib/supabase';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
+// Lightweight QR Code component — uses Google Charts API (zero dependencies)
+function QRCanvas({ value, size = 140 }) {
+    if (!value) return null;
+    const qrSrc = `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${encodeURIComponent(value)}&choe=UTF-8`;
+    return (
+        <img
+            src={qrSrc}
+            alt="QR Code"
+            width={size}
+            height={size}
+            style={{ borderRadius: 8, border: '1px solid #E4E6EB' }}
+        />
+    );
+}
+
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
     border: '#DADDE1', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A', red: '#FA383E',
@@ -385,8 +400,14 @@ export default function SocialPageDetail() {
                 json = await res.json();
             } else {
                 const res = await fetch(`/api/social/pages?slug=${pageId}${userParam}`, { signal });
-                if (!res.ok) throw new Error(`Request failed (${res.status})`);
                 json = await res.json();
+
+                // #4: Handle slug history redirect (old slug → new slug)
+                if (json.success && json.redirect && json.new_slug) {
+                    router.replace(`/hub/social-pages/${json.new_slug}`, undefined, { shallow: false });
+                    return;
+                }
+                if (!res.ok && !json.success) throw new Error(`Request failed (${res.status})`);
             }
 
             if (json.success && json.data) {
@@ -1042,6 +1063,24 @@ export default function SocialPageDetail() {
                                 }}>
                                     Copy Link
                                 </button>
+
+                                {/* QR Code Widget */}
+                                {page.slug && (() => {
+                                    const qrUrl = typeof window !== 'undefined'
+                                        ? `${window.location.origin}/hub/social-pages/${page.slug}`
+                                        : `https://smarter.poker/hub/social-pages/${page.slug}`;
+                                    return (
+                                        <div style={{ marginTop: 12, textAlign: 'center' }}>
+                                            <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 8px', fontWeight: 500 }}>
+                                                Scan QR Code
+                                            </p>
+                                            <QRCanvas value={qrUrl} size={140} />
+                                            <p style={{ fontSize: 10, color: C.textSec, margin: '6px 0 0' }}>
+                                                Print for flyers and table signs
+                                            </p>
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             {/* Invite Friends Card */}

@@ -96,7 +96,39 @@ export default async function handler(req, res) {
                   .eq('slug', slug)
                   .maybeSingle();
 
-              if (error || !data) return res.status(404).json({ success: false, error: 'Page not found' });
+              // #4: Slug history redirect — check if this was an old slug
+              if (error || !data) {
+                  const { data: historyEntry } = await getSupabase()
+                      .from('slug_history')
+                      .select('new_slug, page_id')
+                      .eq('old_slug', slug)
+                      .order('changed_at', { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+
+                  if (historyEntry && historyEntry.new_slug) {
+                      return res.status(200).json({
+                          success: true,
+                          redirect: true,
+                          new_slug: historyEntry.new_slug,
+                      });
+                  }
+                  return res.status(404).json({ success: false, error: 'Page not found' });
+              }
+
+              // #8: Fire-and-forget view count increment
+              getSupabase()
+                  .rpc('increment_page_views', { page_uuid: data.id })
+                  .then(() => {})
+                  .catch(() => {
+                      // Fallback: direct update if RPC doesn't exist
+                      getSupabase()
+                          .from('social_pages')
+                          .update({ view_count: (data.view_count || 0) + 1 })
+                          .eq('id', data.id)
+                          .then(() => {})
+                          .catch(() => {});
+                  });
 
               // Enrich with owner profile (same as ID lookup)
               let owner = null;
@@ -346,6 +378,15 @@ export default async function handler(req, res) {
                       if (slugTaken) {
                           return res.status(409).json({ success: false, error: 'This custom URL is already taken' });
                       }
+                      // #4: Save old slug to history for redirect support
+                      if (existing.slug) {
+                          await getSupabase().from('slug_history').insert({
+                              page_id: id,
+                              old_slug: existing.slug,
+                              new_slug: updates.slug,
+                              reason: 'changed',
+                          });
+                      }
                   }
               } else {
                   // Don't allow setting slug to empty
@@ -446,12 +487,22 @@ export default async function handler(req, res) {
           // Verify ownership via JWT user
           const { data: existing } = await getSupabase()
               .from('social_pages')
-              .select('owner_id')
+              .select('owner_id, slug')
               .eq('id', id)
               .maybeSingle();
 
           if (!existing || existing.owner_id !== authUser.id) {
               return res.status(403).json({ success: false, error: 'Not authorized — only the page owner can delete' });
+          }
+
+          // #4/#10: Save slug to history before deletion (enables cooldown)
+          if (existing.slug) {
+              await getSupabase().from('slug_history').insert({
+                  page_id: id,
+                  old_slug: existing.slug,
+                  new_slug: null,
+                  reason: 'deleted',
+              });
           }
 
           const { error } = await getSupabase()
