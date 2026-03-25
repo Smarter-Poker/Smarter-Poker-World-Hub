@@ -15,11 +15,13 @@ export default function CheckInModal({ onSelect, onClose }) {
 
     // Auto-focus search input on mount
     useEffect(() => {
-        setTimeout(() => inputRef.current?.focus(), 100);
+        const timer = setTimeout(() => inputRef.current?.focus(), 100);
+        return () => clearTimeout(timer);
     }, []);
 
-    // Fetch nearby venues on mount if GPS available
+    // Fetch nearby venues on mount if GPS available (with unmount guard)
     useEffect(() => {
+        let cancelled = false;
         if (!navigator.geolocation) return;
         setGpsLoading(true);
         navigator.geolocation.getCurrentPosition(
@@ -28,15 +30,17 @@ export default function CheckInModal({ onSelect, onClose }) {
                     const { latitude, longitude } = pos.coords;
                     const res = await fetch(`/api/poker/venues?lat=${latitude}&lng=${longitude}&radius=80&limit=8`);
                     const data = await res.json();
+                    if (cancelled) return;
                     const venues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
                     // Map distance_mi from venue API to distance for display
                     setNearbyVenues(venues.map(v => ({ ...v, distance: v.distance_mi ?? v.distance ?? null })));
                 } catch { /* silent */ }
-                setGpsLoading(false);
+                if (!cancelled) setGpsLoading(false);
             },
-            () => setGpsLoading(false),
+            () => { if (!cancelled) setGpsLoading(false); },
             { enableHighAccuracy: true, timeout: 6000 }
         );
+        return () => { cancelled = true; };
     }, []);
 
     // Search venues by query
@@ -49,6 +53,11 @@ export default function CheckInModal({ onSelect, onClose }) {
             setResults(data?.data || data?.venues || (Array.isArray(data) ? data : []));
         } catch { setResults([]); }
         setLoading(false);
+    }, []);
+
+    // Cleanup debounce timer on unmount to prevent memory leak
+    useEffect(() => {
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
     }, []);
 
     // Debounced search

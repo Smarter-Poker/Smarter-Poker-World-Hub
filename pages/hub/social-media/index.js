@@ -1185,8 +1185,8 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     const handlePost = async () => {
         // Double-submit guard — prevents race condition before React re-renders disabled state
         if (isPosting) return;
-        // Allow posting if there's content, media, OR a link preview
-        if (!content.trim() && !media.length && !linkPreview) return;
+        // Allow posting if there's content, media, link preview, OR a check-in venue
+        if (!content.trim() && !media.length && !linkPreview && !checkInVenue) return;
         setError('');
         let urls = media.map(m => m.url);
         let type = media.some(m => m.type === 'video') ? 'video' : media.length ? 'photo' : 'text';
@@ -1236,7 +1236,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                 try {
                     const token = await getAccessToken();
                     if (token) {
-                        await fetch('/api/poker/checkins', {
+                        const checkinRes = await fetch('/api/poker/checkins', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                             body: JSON.stringify({
@@ -1245,9 +1245,22 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                                 message: cleanContent || null,
                             }),
                         });
+                        if (checkinRes.ok) {
+                            setCheckInVenue(null);
+                        } else if (checkinRes.status === 429) {
+                            // Already checked in at this venue within 4 hours — still clear UI
+                            setCheckInVenue(null);
+                        } else {
+                            console.warn('[CheckIn] API returned', checkinRes.status);
+                            setCheckInVenue(null);
+                        }
+                    } else {
+                        setCheckInVenue(null);
                     }
-                } catch (e) { console.warn('[CheckIn] Failed to record check-in:', e.message); }
-                setCheckInVenue(null);
+                } catch (e) {
+                    console.warn('[CheckIn] Failed to record check-in:', e.message);
+                    setCheckInVenue(null);
+                }
             }
             setContent(''); setMedia([]); setLinkPreview(null); try { localStorage.removeItem('sp-post-draft'); } catch {}
         }
