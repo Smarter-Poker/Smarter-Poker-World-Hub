@@ -370,7 +370,7 @@ export default function ReelsPage() {
     // Track view count on reel change
     useEffect(() => {
         if (currentReel?.id) {
-            supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'view_count' }).catch(() => {});
+            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'view_count' }); } catch {} })();
         }
     }, [currentIndex]);
 
@@ -395,12 +395,12 @@ export default function ReelsPage() {
                     .eq('post_id', postId)
                     .eq('user_id', user.id);
                 busEmit.socialPostLiked(postId, user.id, { added: false, reactionType: 'like' });
-                supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' }).catch(() => {});
+                try { await supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' }); } catch {}
             } else {
                 await supabase.from('social_likes')
                     .insert({ post_id: postId, user_id: user.id, reaction_type: 'like' });
                 busEmit.socialPostLiked(postId, user.id, { added: true, reactionType: 'like' });
-                supabase.rpc('increment_post_count', { p_post_id: postId, p_field: 'like_count' }).catch(() => {});
+                try { await supabase.rpc('increment_post_count', { p_post_id: postId, p_field: 'like_count' }); } catch {}
             }
         } catch (err) {
             // Rollback on error
@@ -443,7 +443,7 @@ export default function ReelsPage() {
                 .insert({ post_id: currentReel.id, author_id: user.id, content: text });
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, user.id);
-            supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }).catch(() => {});
+            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             setComments(prev => prev.filter(c => c.id !== tempId));
@@ -463,7 +463,7 @@ export default function ReelsPage() {
             }
             setShareToast(true);
             setTimeout(() => setShareToast(false), 2000);
-            supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }).catch(() => {});
+            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {}
             if (user?.id) busEmit.socialPostShared(currentReel.id, user.id);
         } catch {
             setShareToast(true);
