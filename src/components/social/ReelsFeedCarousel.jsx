@@ -221,13 +221,47 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [reelComments, setReelComments] = useState([]);
     const [commentText, setCommentText] = useState('');
     const [showOverlay, setShowOverlay] = useState(false);
+    const [shareToast, setShareToast] = useState(false);
+    const [showHeart, setShowHeart] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [likeCounts, setLikeCounts] = useState({});
+    const [commentCounts, setCommentCounts] = useState({});
     const commentInputRef = useRef(null);
     const videoRef = useRef(null);
     const containerRef = useRef(null);
     const overlayTimerRef = useRef(null);
     const touchStartRef = useRef({ x: 0, y: 0 });
+    const likeDebounceRef = useRef(false);
+    const lastTapRef = useRef(0);
+    const progressRAF = useRef(null);
 
     const currentReel = reels[currentIndex];
+
+    // Pre-fetch existing likes on mount
+    useEffect(() => {
+        if (!authUser?.id) return;
+        supabase.from('social_likes')
+            .select('post_id')
+            .eq('user_id', authUser.id)
+            .then(({ data }) => {
+                if (data) {
+                    const likeMap = {};
+                    data.forEach(row => { likeMap[row.post_id] = true; });
+                    setLiked(likeMap);
+                }
+            });
+    }, [authUser?.id]);
+
+    // Initialize counts from reel data
+    useEffect(() => {
+        const lc = {}, cc = {};
+        reels.forEach(r => {
+            lc[r.id] = r.like_count || 0;
+            cc[r.id] = r.comment_count || 0;
+        });
+        setLikeCounts(lc);
+        setCommentCounts(cc);
+    }, [reels]);
 
     const goNext = () => {
         if (currentIndex < reels.length - 1) setCurrentIndex(prev => prev + 1);
@@ -275,10 +309,16 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     const handleLike = async () => {
         if (!currentReel || !authUser?.id) return;
+        // Debounce: prevent rapid-fire
+        if (likeDebounceRef.current) return;
+        likeDebounceRef.current = true;
+        setTimeout(() => { likeDebounceRef.current = false; }, 300);
+
         const currentId = currentReel.id;
         const userId = authUser.id;
         const wasLiked = liked[currentId];
         setLiked(prev => ({ ...prev, [currentId]: !prev[currentId] }));
+        setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? -1 : 1)) }));
 
         try {
             if (wasLiked) {
@@ -287,14 +327,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     .eq('post_id', currentId)
                     .eq('user_id', userId);
                 busEmit.socialPostLiked(currentId, userId, { added: false, reactionType: 'like' });
+                supabase.rpc('decrement_post_count', { p_post_id: currentId, p_field: 'like_count' }).catch(() => {});
             } else {
                 await supabase.from('social_likes')
                     .insert({ post_id: currentId, user_id: userId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentId, userId, { added: true, reactionType: 'like' });
+                supabase.rpc('increment_post_count', { p_post_id: currentId, p_field: 'like_count' }).catch(() => {});
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);
             setLiked(prev => ({ ...prev, [currentId]: wasLiked }));
+            setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? 1 : -1)) }));
         }
     };
 
@@ -334,6 +377,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, authUser.id);
             supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }).catch(() => {});
+            setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             setReelComments(prev => prev.filter(c => c.id !== tempId));
         }
@@ -350,9 +394,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 await navigator.clipboard.writeText(url);
             }
         } catch { /* user cancelled or clipboard failed */ }
+        setShareToast(true);
+        setTimeout(() => setShareToast(false), 2000);
         // Increment share_count in Supabase
         supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }).catch(() => {});
-        busEmit.socialPostShared?.(currentReel.id, authUser?.id);
     };
 
     // Reset on reel change
@@ -378,14 +423,39 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     if (!currentReel) return null;
 
+    // Double-tap to like + single-tap overlay
     const handleTap = () => {
-        if (!showOverlay) {
-            setShowOverlay(true);
-        } else {
-            // Reset timer directly (setShowOverlay(true) is a no-op when already true)
-            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+        const now = Date.now();
+        const DOUBLE_TAP_WINDOW = 300;
+        if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
+            // Double-tap = like (if not already liked)
+            if (!liked[currentReel.id] && authUser?.id) {
+                handleLike();
+                setShowHeart(true);
+                setTimeout(() => setShowHeart(false), 800);
+            }
+            lastTapRef.current = 0;
+            return;
         }
+        lastTapRef.current = now;
+        // Single tap (after 300ms delay fails to double-tap)
+        setTimeout(() => {
+            if (lastTapRef.current !== now) return; // was overridden by double-tap
+            if (!showOverlay) {
+                setShowOverlay(true);
+            } else {
+                if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+            }
+        }, DOUBLE_TAP_WINDOW);
+    };
+
+    // Progress bar update loop for native videos
+    const updateProgress = () => {
+        if (videoRef.current && videoRef.current.duration) {
+            setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
+        }
+        progressRAF.current = requestAnimationFrame(updateProgress);
     };
 
     return (
@@ -438,6 +508,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         muted={muted}
                         playsInline
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onPlay={() => { progressRAF.current = requestAnimationFrame(updateProgress); }}
+                        onPause={() => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); }}
+                        onEnded={() => {
+                            if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+                            setProgress(0);
+                            if (currentIndex < reels.length - 1) goNext();
+                        }}
                     />
                 )}
 
@@ -489,7 +566,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
                         <span style={{ fontSize: 24 }}>{liked[currentReel.id] ? '❤️' : '👍'}</span>
-                        <span style={{ fontSize: 10, fontWeight: 500 }}>Like</span>
+                        <span style={{ fontSize: 10, fontWeight: 500 }}>{likeCounts[currentReel.id] || 0}</span>
                     </button>
                     <button onClick={() => {}} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
@@ -503,7 +580,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
                         <span style={{ fontSize: 24 }}>💬</span>
-                        <span style={{ fontSize: 10, fontWeight: 500 }}>Comment</span>
+                        <span style={{ fontSize: 10, fontWeight: 500 }}>{commentCounts[currentReel.id] || 0}</span>
                     </button>
                     <button onClick={() => {}} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
@@ -527,6 +604,49 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         <span style={{ fontSize: 10, fontWeight: 500 }}>{muted ? 'Unmute' : 'Mute'}</span>
                     </button>
                 </div>
+
+                {/* Double-tap heart burst */}
+                {showHeart && (
+                    <div style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        fontSize: 80, pointerEvents: 'none', zIndex: 25,
+                        animation: 'heartBurst 0.8s ease-out forwards',
+                    }}>❤️</div>
+                )}
+
+                {/* Progress bar for native videos */}
+                {!isYouTubeUrl(currentReel.video_url) && progress > 0 && (
+                    <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        height: 3, background: 'rgba(255,255,255,0.2)', zIndex: 25,
+                    }}>
+                        <div style={{
+                            width: `${progress}%`, height: '100%',
+                            background: 'linear-gradient(90deg, #FF2D55, #FF6B6B)',
+                            transition: 'width 0.1s linear',
+                        }} />
+                    </div>
+                )}
+
+                {/* Share Toast */}
+                {shareToast && (
+                    <div style={{
+                        position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)',
+                        background: 'rgba(255,255,255,0.15)', color: 'white',
+                        padding: '8px 20px', borderRadius: 20, fontSize: 14, zIndex: 30,
+                        backdropFilter: 'blur(10px)',
+                    }}>Link Copied</div>
+                )}
+
+                {/* Heart burst animation CSS */}
+                <style jsx>{`
+                    @keyframes heartBurst {
+                        0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
+                        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+                        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+                    }
+                `}</style>
 
                 {/* Counter */}
                 <div style={{

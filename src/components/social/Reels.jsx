@@ -44,10 +44,17 @@ export function ReelsViewer({ onClose }) {
     const [reelComments, setReelComments] = useState([]);
     const [shareToast, setShareToast] = useState(false);
     const [showOverlay, setShowOverlay] = useState(false);
+    const [showHeart, setShowHeart] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [likeCounts, setLikeCounts] = useState({});
+    const [commentCounts, setCommentCounts] = useState({});
     const videoRef = useRef(null);
     const containerRef = useRef(null);
     const commentInputRef = useRef(null);
     const overlayTimerRef = useRef(null);
+    const likeDebounceRef = useRef(false);
+    const lastTapRef = useRef(0);
+    const progressRAF = useRef(null);
 
     useEffect(() => {
         loadReels();
@@ -95,7 +102,17 @@ export function ReelsViewer({ onClose }) {
                 .order('created_at', { ascending: false })
                 .limit(50);
 
-            if (data) setReels(data);
+            if (data) {
+                setReels(data);
+                // Initialize counts from reel data
+                const lc = {}, cc = {};
+                data.forEach(r => {
+                    lc[r.id] = r.like_count || 0;
+                    cc[r.id] = r.comment_count || 0;
+                });
+                setLikeCounts(lc);
+                setCommentCounts(cc);
+            }
         } catch (e) {
             console.error('Load reels error:', e);
         }
@@ -118,8 +135,14 @@ export function ReelsViewer({ onClose }) {
 
     const handleLike = async () => {
         if (!currentReel || !currentUserId) return;
+        // Debounce: prevent rapid-fire
+        if (likeDebounceRef.current) return;
+        likeDebounceRef.current = true;
+        setTimeout(() => { likeDebounceRef.current = false; }, 300);
+
         const wasLiked = liked[currentReel.id];
         setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
+        setLikeCounts(prev => ({ ...prev, [currentReel.id]: Math.max(0, (prev[currentReel.id] || 0) + (wasLiked ? -1 : 1)) }));
 
         try {
             if (wasLiked) {
@@ -128,14 +151,17 @@ export function ReelsViewer({ onClose }) {
                     .eq('post_id', currentReel.id)
                     .eq('user_id', currentUserId);
                 busEmit.socialPostLiked(currentReel.id, currentUserId, { added: false, reactionType: 'like' });
+                supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }).catch(() => {});
             } else {
                 await supabase.from('social_likes')
                     .insert({ post_id: currentReel.id, user_id: currentUserId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentReel.id, currentUserId, { added: true, reactionType: 'like' });
+                supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }).catch(() => {});
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);
             setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
+            setLikeCounts(prev => ({ ...prev, [currentReel.id]: Math.max(0, (prev[currentReel.id] || 0) + (wasLiked ? 1 : -1)) }));
         }
     };
 
@@ -173,6 +199,7 @@ export function ReelsViewer({ onClose }) {
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, currentUserId);
             supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }).catch(() => {});
+            setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             // Rollback optimistic comment on failure
             setReelComments(prev => prev.filter(c => c.id !== tempId));
@@ -197,7 +224,6 @@ export function ReelsViewer({ onClose }) {
         setTimeout(() => setShareToast(false), 2000);
         // Increment share_count + EventBus
         supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }).catch(() => {});
-        busEmit.socialPostShared?.(currentReel.id, currentUserId);
     };
 
     // Reset comment drawer on reel change
@@ -285,23 +311,46 @@ export function ReelsViewer({ onClose }) {
     const handleTap = (e) => {
         // Don't trigger on comment drawer clicks
         if (showCommentInput) return;
-        if (!showOverlay) {
-            setShowOverlay(true);
-        } else {
-            // Tap while overlay visible = toggle play/pause
-            if (videoRef.current) {
-                if (videoRef.current.paused) {
-                    videoRef.current.play();
-                    setPaused(false);
-                } else {
-                    videoRef.current.pause();
-                    setPaused(true);
-                }
+        const now = Date.now();
+        const DOUBLE_TAP_WINDOW = 300;
+        if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
+            // Double-tap = like
+            if (!liked[currentReel?.id] && currentUserId) {
+                handleLike();
+                setShowHeart(true);
+                setTimeout(() => setShowHeart(false), 800);
             }
-            // Reset timer directly (setShowOverlay(true) is a no-op when already true)
-            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+            lastTapRef.current = 0;
+            return;
         }
+        lastTapRef.current = now;
+        setTimeout(() => {
+            if (lastTapRef.current !== now) return;
+            if (!showOverlay) {
+                setShowOverlay(true);
+            } else {
+                // Tap while overlay visible = toggle play/pause
+                if (videoRef.current) {
+                    if (videoRef.current.paused) {
+                        videoRef.current.play();
+                        setPaused(false);
+                    } else {
+                        videoRef.current.pause();
+                        setPaused(true);
+                    }
+                }
+                if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+            }
+        }, DOUBLE_TAP_WINDOW);
+    };
+
+    // Progress bar update loop
+    const updateProgress = () => {
+        if (videoRef.current && videoRef.current.duration) {
+            setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
+        }
+        progressRAF.current = requestAnimationFrame(updateProgress);
     };
 
     return (
@@ -342,6 +391,13 @@ export function ReelsViewer({ onClose }) {
                     muted={muted}
                     playsInline
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onPlay={() => { progressRAF.current = requestAnimationFrame(updateProgress); }}
+                    onPause={() => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); }}
+                    onEnded={() => {
+                        if (progressRAF.current) cancelAnimationFrame(progressRAF.current);
+                        setProgress(0);
+                        if (currentIndex < reels.length - 1) goNext();
+                    }}
                 />
 
                 {/* Play Button Overlay — only when paused */}
@@ -409,7 +465,7 @@ export function ReelsViewer({ onClose }) {
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
                         <span style={{ fontSize: 22 }}>{liked[currentReel?.id] ? '❤️' : '👍'}</span>
-                        <span style={{ fontSize: 9, fontWeight: 500 }}>Like</span>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>{likeCounts[currentReel?.id] || 0}</span>
                     </button>
                     <button onClick={() => {}} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
@@ -423,7 +479,7 @@ export function ReelsViewer({ onClose }) {
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
                         <span style={{ fontSize: 22 }}>💬</span>
-                        <span style={{ fontSize: 9, fontWeight: 500 }}>Comment</span>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>{commentCounts[currentReel?.id] || 0}</span>
                     </button>
                     <button onClick={() => {}} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
@@ -500,6 +556,39 @@ export function ReelsViewer({ onClose }) {
                         backdropFilter: 'blur(10px)',
                     }}>Link Copied</div>
                 )}
+
+                {/* Double-tap heart burst */}
+                {showHeart && (
+                    <div style={{
+                        position: 'absolute', top: '50%', left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        fontSize: 80, pointerEvents: 'none', zIndex: 25,
+                        animation: 'heartBurstReels 0.8s ease-out forwards',
+                    }}>❤️</div>
+                )}
+
+                {/* Progress bar for native videos */}
+                {progress > 0 && (
+                    <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        height: 3, background: 'rgba(255,255,255,0.2)', zIndex: 25,
+                    }}>
+                        <div style={{
+                            width: `${progress}%`, height: '100%',
+                            background: 'linear-gradient(90deg, #FF2D55, #FF6B6B)',
+                            transition: 'width 0.1s linear',
+                        }} />
+                    </div>
+                )}
+
+                {/* Heart burst animation CSS */}
+                <style jsx>{`
+                    @keyframes heartBurstReels {
+                        0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
+                        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+                        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+                    }
+                `}</style>
 
                 {/* Navigation indicators */}
                 <div style={{

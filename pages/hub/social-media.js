@@ -531,8 +531,13 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
     const containerRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(true);
     const [showOverlay, setShowOverlay] = useState(false);
+    const [showHeart, setShowHeart] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [shareToast, setShareToast] = useState(false);
     const overlayTimerRef = useRef(null);
     const touchStartRef = useRef({ x: 0, y: 0 });
+    const lastTapRef = useRef(0);
+    const progressRAF = useRef(null);
 
     // Auto-hide overlay after 2 seconds
     useEffect(() => {
@@ -569,25 +574,46 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
         };
     }, [onClose]);
 
+    // Double-tap to like + single-tap overlay
     const handleTap = (e) => {
-        // If overlay is hidden, show it. If overlay is showing, toggle play/pause.
-        if (!showOverlay) {
-            setShowOverlay(true);
-        } else {
-            // Tap while overlay visible = play/pause
-            if (videoRef.current) {
-                if (videoRef.current.paused) {
-                    videoRef.current.play();
-                    setIsPlaying(true);
-                } else {
-                    videoRef.current.pause();
-                    setIsPlaying(false);
-                }
-            }
-            // Reset the 2s timer directly (setShowOverlay(true) is a no-op when already true)
-            if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+        const now = Date.now();
+        const DOUBLE_TAP_WINDOW = 300;
+        if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
+            // Double-tap = like
+            onLike?.();
+            setShowHeart(true);
+            setTimeout(() => setShowHeart(false), 800);
+            lastTapRef.current = 0;
+            return;
         }
+        lastTapRef.current = now;
+        setTimeout(() => {
+            if (lastTapRef.current !== now) return;
+            if (!showOverlay) {
+                setShowOverlay(true);
+            } else {
+                // Tap while overlay visible = play/pause
+                if (videoRef.current) {
+                    if (videoRef.current.paused) {
+                        videoRef.current.play();
+                        setIsPlaying(true);
+                    } else {
+                        videoRef.current.pause();
+                        setIsPlaying(false);
+                    }
+                }
+                if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+            }
+        }, DOUBLE_TAP_WINDOW);
+    };
+
+    // Progress bar update loop
+    const updateProgress = () => {
+        if (videoRef.current && videoRef.current.duration) {
+            setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
+        }
+        progressRAF.current = requestAnimationFrame(updateProgress);
     };
 
     return (
@@ -636,6 +662,8 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                         width: 'auto', height: '100%',
                         objectFit: 'contain', cursor: 'pointer'
                     }}
+                    onPlay={() => { progressRAF.current = requestAnimationFrame(updateProgress); }}
+                    onPause={() => { if (progressRAF.current) cancelAnimationFrame(progressRAF.current); }}
                 />
             )}
 
@@ -705,7 +733,7 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                     <span style={{ fontSize: 24 }}>🔖</span>
                     <span style={{ fontSize: 10, fontWeight: 500 }}>Save</span>
                 </button>
-                <button onClick={onShare} style={{
+                <button onClick={() => { onShare?.(); setShareToast(true); setTimeout(() => setShareToast(false), 2000); }} style={{
                     background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                     alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                 }}>
@@ -720,6 +748,49 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                     <span style={{ fontSize: 10, fontWeight: 500 }}>Jarvis</span>
                 </button>
             </div>
+
+            {/* Double-tap heart burst */}
+            {showHeart && (
+                <div style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: 80, pointerEvents: 'none', zIndex: 10003,
+                    animation: 'heartBurstFS 0.8s ease-out forwards',
+                }}>❤️</div>
+            )}
+
+            {/* Progress bar */}
+            {!isYouTubeUrl(videoUrl) && progress > 0 && (
+                <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                    height: 3, background: 'rgba(255,255,255,0.2)', zIndex: 10003,
+                }}>
+                    <div style={{
+                        width: `${progress}%`, height: '100%',
+                        background: 'linear-gradient(90deg, #FF2D55, #FF6B6B)',
+                        transition: 'width 0.1s linear',
+                    }} />
+                </div>
+            )}
+
+            {/* Share Toast */}
+            {shareToast && (
+                <div style={{
+                    position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)',
+                    background: 'rgba(255,255,255,0.15)', color: 'white',
+                    padding: '8px 20px', borderRadius: 20, fontSize: 14, zIndex: 10003,
+                    backdropFilter: 'blur(10px)',
+                }}>Link Copied</div>
+            )}
+
+            {/* Heart burst animation CSS */}
+            <style jsx>{`
+                @keyframes heartBurstFS {
+                    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
+                    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+                    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+                }
+            `}</style>
 
             {/* Paused indicator */}
             {!isPlaying && !isYouTubeUrl(videoUrl) && (
@@ -2588,12 +2659,22 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             if (!file || !currentUserId) return;
                             setUploadingCommentImage(true);
                             try {
-                                const ext = file.name.split('.').pop();
-                                const path = `comment-images/${currentUserId}/${Date.now()}.${ext}`;
-                                const { error } = await supabase.storage.from('social_media').upload(path, file, { cacheControl: '31536000', upsert: false });
-                                if (error) { toast.error('Image upload failed'); console.error('[Comment] Upload error:', error); setUploadingCommentImage(false); return; }
-                                const { data: { publicUrl } } = supabase.storage.from('social_media').getPublicUrl(path);
-                                setCommentMediaUrl(publicUrl);
+                                const formData = new FormData();
+                                formData.append('image', file);
+                                const token = getAccessToken();
+                                const resp = await fetch('/api/social/upload-comment-image', {
+                                    method: 'POST',
+                                    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                                    body: formData,
+                                });
+                                const result = await resp.json();
+                                if (!resp.ok || !result.success) {
+                                    toast.error(result.error || 'Image upload failed');
+                                    console.error('[Comment] Upload error:', result.error);
+                                    setUploadingCommentImage(false);
+                                    return;
+                                }
+                                setCommentMediaUrl(result.url);
                                 setCommentMediaType('image');
                             } catch (err) {
                                 console.error('[Comment] Upload exception:', err);
