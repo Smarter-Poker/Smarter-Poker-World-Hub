@@ -912,6 +912,36 @@ export default function ReelsPage() {
                     }}>❤️</div>
                 )}
 
+                {/* Share Toast */}
+                {shareToast && (
+                    <div style={{
+                        position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)',
+                        background: 'rgba(255,255,255,0.15)', color: 'white',
+                        padding: '8px 20px', borderRadius: 20, fontSize: 14, zIndex: 200,
+                        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+                    }}>Link Copied</div>
+                )}
+
+                {/* Center double-tap zone */}
+                <div
+                    onClick={(e) => {
+                        const now = Date.now();
+                        if (now - lastTapRef.current < 300) {
+                            // Double tap!
+                            if (!liked[currentReel?.id]) {
+                                handleLike();
+                                setShowHeart(true);
+                                setTimeout(() => setShowHeart(false), 800);
+                            }
+                        }
+                        lastTapRef.current = now;
+                    }}
+                    style={{
+                        position: 'absolute', top: '20%', left: '15%',
+                        width: '70%', height: '40%', zIndex: 55,
+                    }}
+                />
+
                 {/* Heart burst animation CSS */}
                 <style jsx>{`
                     @keyframes heartBurstReelsPage {
