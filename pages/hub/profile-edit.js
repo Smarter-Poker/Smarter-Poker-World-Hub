@@ -789,7 +789,7 @@ export default function ProfilePage() {
                 'phone','email','website','twitter','instagram','tiktok','telegram',
                 'hendon_url','favorite_game','favorite_hand','favorite_hand_plo',
                 'home_casino','birth_year','birthday','card_back_preference'];
-            const isDirty = fields.some(f => (profile[f] || '') !== (originalProfile[f] || ''));
+            const isDirty = fields.some(f => String(profile[f] || '') !== String(originalProfile[f] || ''));
             if (isDirty) {
                 e.preventDefault();
                 e.returnValue = '';
@@ -940,7 +940,7 @@ export default function ProfilePage() {
             'phone','email','website','twitter','instagram','tiktok','telegram',
             'hendon_url','favorite_game','favorite_hand','favorite_hand_plo',
             'home_casino','birth_year','birthday','card_back_preference'];
-        return fields.some(f => (profile[f] || '') !== (originalProfile[f] || ''));
+        return fields.some(f => String(profile[f] || '') !== String(originalProfile[f] || ''));
     })();
 
     const updateField = (field) => (value) => {
