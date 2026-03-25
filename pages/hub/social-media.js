@@ -1237,7 +1237,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
         <div style={{ background: C.card, borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.1)', marginBottom: 2, position: 'relative' }}>
             {/* Identity Switcher Banner - only for Commander users */}
             {hasClubPage && (
-                <div ref={identityPickerRef} style={{ padding: '8px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+                <div ref={identityPickerRef} style={{ padding: '8px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', transition: 'background 0.3s ease' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.textSec }}>
                         <span>Posting As</span>
                         <button
@@ -1308,14 +1308,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                                 onMouseEnter={e => { if (!isClubMode) e.currentTarget.style.background = '#F0F2F5'; }}
                                 onMouseLeave={e => { if (!isClubMode) e.currentTarget.style.background = 'transparent'; }}
                             >
-                                <div style={{
-                                    width: 36, height: 36, borderRadius: '50%',
-                                    background: clubPage?.avatar_url ? `url(${clubPage.avatar_url}) center/cover` : '#1877F2',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    color: 'white', fontSize: 14, fontWeight: 700, flexShrink: 0
-                                }}>
-                                    {!clubPage?.avatar_url && (clubPage?.name?.[0] || 'C')}
-                                </div>
+                                <Avatar src={clubPage?.avatar_url} name={clubPage?.name || 'Club'} size={36} />
                                 <div>
                                     <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{clubPage?.name || 'Club Page'}</div>
                                     <div style={{ fontSize: 12, color: C.textSec }}>Club Page</div>
@@ -1326,17 +1319,11 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                     )}
                 </div>
             )}
-            <div style={{ padding: 12, display: 'flex', gap: 8 }}>
+            <div style={{ padding: 12, display: 'flex', gap: 8, transition: 'all 0.25s ease' }}>
                 {isClubMode && clubPage ? (
-                    <div style={{
-                        width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                        background: clubPage.avatar_url ? `url(${clubPage.avatar_url}) center/cover` : '#1877F2',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'white', fontSize: 16, fontWeight: 700,
-                        border: '2px solid #1877F2'
-                    }}>
-                        {!clubPage.avatar_url && (clubPage.name?.[0] || 'C')}
-                    </div>
+                    <Link href={`/hub/social-pages/${clubPage.id}`} style={{ display: 'block', cursor: 'pointer', flexShrink: 0, borderRadius: '50%', border: '2px solid #1877F2', transition: 'transform 0.2s ease' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                        <Avatar src={clubPage.avatar_url} name={clubPage.name || 'Club'} size={40} />
+                    </Link>
                 ) : (
                     <Link href="/hub/profile" style={{ display: 'block', cursor: 'pointer' }}>
                         <Avatar src={user?.avatar} name={user?.name} size={40} />
