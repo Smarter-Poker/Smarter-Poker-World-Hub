@@ -66,6 +66,7 @@ export default function ReelsPage() {
     const touchStartY = useRef(0);
     const lastTapRef = useRef(0);
     const likeDebounceRef = useRef(false);
+    const slideDebounceRef = useRef(false);
     const router = useRouter();
     const [user, setUser] = useState(null);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -555,7 +556,6 @@ export default function ReelsPage() {
     // Use refs to avoid stale closures in event handlers
     const currentIndexRef = useRef(currentIndex);
     const reelsLengthRef = useRef(reels.length);
-    const slideDebounceRef = useRef(false);
 
     useEffect(() => {    const _c = new AbortController();
         currentIndexRef.current = currentIndex;
