@@ -1,7 +1,7 @@
 /**
- * HAND OF THE DAY API
+ * HAND OF THE DAY API (v2 — Rewired to training_question_cache)
  * ═══════════════════════════════════════════════════════════════════════════
- * GET  - Returns today's curated daily challenge hand (seeded by date)
+ * GET  - Returns today's curated daily challenge (random from training_question_cache)
  * POST - Records a user's daily challenge completion
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -21,6 +21,7 @@ function getSupabase() {
     }
     return _supabase;
 }
+
 // Deterministic hash from date string to get consistent daily question
 function dateHash(dateStr) {
     let hash = 0;
@@ -41,15 +42,19 @@ export default async function handler(req, res) {
 
       if (req.method === 'GET') {
           res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-          // GET: Return today's daily challenge hand
+          // GET: Return today's daily challenge hand from training_question_cache
           try {
               const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
               const dailyId = `daily-${today}`;
 
-              // Get total question count first
+              // ═══════════════════════════════════════════════════════════════
+              // PULL FROM training_question_cache (same pipeline as arena)
+              // Only select PIO and CHART engine questions (not SCENARIO/psychology)
+              // ═══════════════════════════════════════════════════════════════
               const { count } = await getSupabase()
-                  .from('training_questions')
-                  .select('*', { count: 'exact', head: true });
+                  .from('training_question_cache')
+                  .select('*', { count: 'exact', head: true })
+                  .in('engine_type', ['PIO', 'CHART']);
 
               if (!count || count === 0) {
                   return res.status(200).json({
@@ -63,9 +68,10 @@ export default async function handler(req, res) {
               // Use date hash to pick a consistent question for the day
               const offset = dateHash(today) % count;
 
-              const { data: question, error } = await getSupabase()
-                  .from('training_questions')
-                  .select('*')
+              const { data: cached, error } = await getSupabase()
+                  .from('training_question_cache')
+                  .select('question_data, question_id, game_id, engine_type, level')
+                  .in('engine_type', ['PIO', 'CHART'])
                   .range(offset, offset)
                   .maybeSingle();
 
@@ -73,6 +79,89 @@ export default async function handler(req, res) {
                   console.error('[HandOfTheDay] Query error:', error);
                   return res.status(500).json({ success: false, error: 'Failed to fetch daily hand' });
               }
+
+              if (!cached || !cached.question_data) {
+                  return res.status(200).json({
+                      success: true,
+                      dailyId,
+                      question: null,
+                      message: 'No question data found',
+                  });
+              }
+
+              // ═══════════════════════════════════════════════════════════════
+              // MAP question_data to the daily challenge display format
+              // ═══════════════════════════════════════════════════════════════
+              const qd = cached.question_data;
+              const scenario = qd.scenario || {};
+
+              // Extract hero hand in specific card format (e.g. "AhKs")
+              let heroHand = '';
+              if (qd.heroCards && Array.isArray(qd.heroCards) && qd.heroCards.length >= 2) {
+                  heroHand = qd.heroCards.join('');
+              } else if (scenario.heroHand) {
+                  heroHand = scenario.heroHand;
+              } else if (qd.heroHand) {
+                  heroHand = qd.heroHand;
+              }
+
+              // Extract board cards
+              let boardCards = [];
+              if (qd.boardCards && Array.isArray(qd.boardCards)) {
+                  boardCards = qd.boardCards;
+              } else if (scenario.board) {
+                  // Parse board string like "Jh 7s 2d" or "Jh7s2d"
+                  const clean = scenario.board.replace(/\s+/g, '');
+                  for (let i = 0; i < clean.length; i += 2) {
+                      if (i + 1 < clean.length) boardCards.push(clean.substring(i, i + 2));
+                  }
+              }
+
+              // Ensure 4 options (4-option mandate)
+              let options = qd.options || [];
+              if (options.length < 4) {
+                  const defaults = [
+                      { id: 'a', text: 'Fold' },
+                      { id: 'b', text: 'Call' },
+                      { id: 'c', text: 'Raise' },
+                      { id: 'd', text: 'All-In' }
+                  ];
+                  // Fill missing options
+                  while (options.length < 4) {
+                      const next = defaults[options.length];
+                      if (next && !options.find(o => o.text === next.text)) {
+                          options.push(next);
+                      } else {
+                          options.push({ id: String.fromCharCode(97 + options.length), text: `Option ${options.length + 1}` });
+                      }
+                  }
+              }
+
+              // Build the question object that daily-challenge.js expects
+              const question = {
+                  id: cached.question_id || dailyId,
+                  game_id: cached.game_id,
+                  engine_type: cached.engine_type,
+                  level: cached.level,
+                  // Fields that daily-challenge.js looks for:
+                  hero_hand: heroHand,
+                  hero_position: scenario.heroPosition || '',
+                  street: scenario.street || 'flop',
+                  board_cards: boardCards,
+                  scenario_text: qd.question || scenario.context || `What is the GTO play?`,
+                  options: options.map(o => o.text || o),
+                  choices: options.map(o => o.text || o),
+                  correct_answer: qd.correctAnswerText || (options.find(o => o.id === qd.correctAnswer)?.text) || 'Raise',
+                  gto_action: qd.correctAnswerText || 'Raise',
+                  explanation: qd.explanation || '',
+                  gto_explanation: qd.explanation || '',
+                  action_breakdown: qd.gtoFrequencies || null,
+                  gto_frequencies: qd.gtoFrequencies || null,
+                  // Pass through raw data for rich display
+                  heroCards: qd.heroCards || [],
+                  evData: qd.evData || null,
+                  scenario: scenario,
+              };
 
               // Calculate expiry (midnight UTC tomorrow)
               const tomorrow = new Date();
