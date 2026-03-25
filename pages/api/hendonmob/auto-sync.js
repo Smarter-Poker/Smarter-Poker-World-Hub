@@ -110,7 +110,8 @@ export default async function handler(req, res) {
         let query = getSupabase()
             .from('profiles')
             .select('id, full_name, hendon_url')
-            .not('hendon_url', 'is', null);
+            .not('hendon_url', 'is', null)
+            .neq('hendon_url', '');
 
         // Optional: single user mode
         const { userId } = req.query;

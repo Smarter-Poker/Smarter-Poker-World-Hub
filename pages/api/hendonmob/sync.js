@@ -50,10 +50,10 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             success: true,
-            total_cashes: profile?.hendon_total_cashes || null,
-            total_earnings: profile?.hendon_total_earnings || null,
-            biggest_cash: profile?.hendon_biggest_cash || null,
-            hendon_url: profile?.hendon_url || null,
+            total_cashes: profile?.hendon_total_cashes ?? null,
+            total_earnings: profile?.hendon_total_earnings ?? null,
+            biggest_cash: profile?.hendon_biggest_cash ?? null,
+            hendon_url: profile?.hendon_url ?? null,
             source: 'database',
         });
     }
@@ -82,25 +82,40 @@ export default async function handler(req, res) {
     }
 
     // Validate client-provided stats
-    if (!clientStats || (!clientStats.totalCashes && !clientStats.totalEarnings)) {
+    if (!clientStats || (clientStats.totalCashes == null && clientStats.totalEarnings == null)) {
         return res.status(400).json({
             success: false,
             error: 'No stats provided. Please enter your cashes and/or earnings.',
         });
     }
 
-    const tc = parseInt(clientStats.totalCashes, 10);
-    const te = parseFloat(clientStats.totalEarnings);
+    const tc = clientStats.totalCashes != null ? parseInt(clientStats.totalCashes, 10) : null;
+    const te = clientStats.totalEarnings != null ? parseFloat(clientStats.totalEarnings) : null;
+    const bc = clientStats.biggestCash != null ? parseFloat(clientStats.biggestCash) : null;
 
-    // Basic sanity check
-    if ((tc > 0 || te > 0) && tc < 100000 && te < 500000000) {
-        // Only update existing DB columns
-        const updateData = {};
-        if (tc > 0) updateData.hendon_total_cashes = tc;
-        if (te > 0) updateData.hendon_total_earnings = te;
-        const bc = clientStats.biggestCash ? parseFloat(clientStats.biggestCash) : null;
-        if (bc > 0) updateData.hendon_biggest_cash = bc;
+    // Basic sanity check — values must be non-negative and within reason
+    if ((tc != null && (isNaN(tc) || tc < 0 || tc >= 100000)) ||
+        (te != null && (isNaN(te) || te < 0 || te >= 500000000))) {
+        return res.status(400).json({
+            success: false,
+            error: 'Invalid stats values. Cashes must be 0-99999, earnings must be non-negative.',
+        });
+    }
 
+    // Build update — only include fields that have real values
+    const updateData = {};
+    if (tc != null && !isNaN(tc)) updateData.hendon_total_cashes = tc;
+    if (te != null && !isNaN(te)) updateData.hendon_total_earnings = te;
+    if (bc != null && !isNaN(bc) && bc >= 0) updateData.hendon_biggest_cash = bc;
+
+    if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({
+            success: false,
+            error: 'No valid stats to save.',
+        });
+    }
+
+    {
         const { error: updateError } = await getSupabase()
             .from('profiles')
             .update(updateData)
@@ -113,17 +128,12 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             success: true,
-            total_cashes: tc || null,
-            total_earnings: te || null,
-            biggest_cash: bc || null,
+            total_cashes: tc ?? null,
+            total_earnings: te ?? null,
+            biggest_cash: bc ?? null,
             source: 'client_update',
         });
     }
-
-    return res.status(400).json({
-        success: false,
-        error: 'Invalid stats values. Cashes must be 1-99999, earnings must be positive.',
-    });
 
   } catch (err) {
     console.error('[API Error]', err);

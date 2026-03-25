@@ -71,6 +71,7 @@ import toast from '../../src/stores/toastStore';
 import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
+import GiphyPicker from '../../src/components/shared/GiphyPicker';
 
 // Light Theme Colors (SmarterPoker-style)
 const C = {
@@ -1548,6 +1549,12 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [editCommentText, setEditCommentText] = useState('');
     const [deletingCommentId, setDeletingCommentId] = useState(null); // graceful delete confirm
     const commentInputRef = useRef(null); // auto-focus on open
+    // GIF + Image attachment state for comments
+    const [showCommentGifPicker, setShowCommentGifPicker] = useState(false);
+    const [commentMediaUrl, setCommentMediaUrl] = useState(null);
+    const [commentMediaType, setCommentMediaType] = useState(null); // 'gif' | 'image'
+    const [uploadingCommentImage, setUploadingCommentImage] = useState(false);
+    const commentFileInputRef = useRef(null);
     // Phase 3: See More, lightbox, double-tap, comment scroll
     const [expanded, setExpanded] = useState(false);
     const [lightboxUrl, setLightboxUrl] = useState(null);
@@ -1639,7 +1646,9 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                         authorUsername: author?.username || null,
                                         time: 'Just now',
                                         likeCount: 0,
-                                        isLikedByMe: false
+                                        isLikedByMe: false,
+                                        mediaUrl: payload.mediaUrl || null,
+                                        mediaType: payload.mediaType || null,
                                     }];
                                 });
                             } catch (e) { console.warn('[Social] Real-time comment inject failed:', e.message); }
@@ -1771,7 +1780,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             // Step 1: Fetch comments and embedded likes
             const COMMENT_PAGE_SIZE = 50;
             const { data: commentsData, error: commentsError } = await supabase.from('social_comments')
-                .select('id, content, created_at, author_id, parent_id, social_comment_likes(id, user_id)')
+                .select('id, content, created_at, author_id, parent_id, media_url, media_type, social_comment_likes(id, user_id)')
                 .eq('post_id', post.id)
                 .order('created_at', { ascending: true })
                 .range(offset, offset + COMMENT_PAGE_SIZE - 1);
@@ -1820,7 +1829,9 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     authorUsername: author.username || null,
                     time: timeAgo(c.created_at),
                     likeCount: likes.length,
-                    isLikedByMe: likes.some(like => like.user_id === currentUserId)
+                    isLikedByMe: likes.some(like => like.user_id === currentUserId),
+                    mediaUrl: c.media_url || null,
+                    mediaType: c.media_type || null,
                 };
             });
             setComments(prev => offset === 0 ? newComments : [...prev, ...newComments]);
@@ -1910,7 +1921,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     );
 
     const handleSubmitComment = async () => {
-        if (!newComment.trim() || !currentUserId || submittingComment) return;
+        if ((!newComment.trim() && !commentMediaUrl) || !currentUserId || submittingComment) return;
         setSubmittingComment(true);
         
         // Stop typing indicator immediately on submit
@@ -1925,8 +1936,13 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
         // Capture values and clear input immediately for snappy UX
         const commentText = newComment.trim();
         const parentInfo = replyingTo;
+        const mediaUrl = commentMediaUrl;
+        const mediaType = commentMediaType;
         setNewComment('');
         setReplyingTo(null);
+        setCommentMediaUrl(null);
+        setCommentMediaType(null);
+        setShowCommentGifPicker(false);
         
         // Optimistic insert: show comment instantly with a temporary ID
         const tempId = `temp-${Date.now()}`;
@@ -1939,15 +1955,18 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             authorAvatar: currentUserAvatar,
             time: 'Just now',
             likeCount: 0,
-            isLikedByMe: false
+            isLikedByMe: false,
+            mediaUrl: mediaUrl || null,
+            mediaType: mediaType || null,
         };
         setComments(prev => [...prev, optimisticComment]);
         setCommentCount(prev => prev + 1);
         if (onComment) onComment(post.id);
         
         try {
-            const payload = { post_id: post.id, author_id: currentUserId, content: commentText };
+            const payload = { post_id: post.id, author_id: currentUserId, content: commentText || '' };
             if (parentInfo) payload.parent_id = parentInfo.id;
+            if (mediaUrl) { payload.media_url = mediaUrl; payload.media_type = mediaType; }
             
             const { data, error } = await supabase.from('social_comments').insert(payload).select('id, content, created_at, parent_id').maybeSingle();
             if (!error && data) {
@@ -2429,7 +2448,16 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                     ) : (
                                         <div style={{ background: C.bg, borderRadius: 12, padding: '6px 10px', display: 'inline-block', minWidth: '80%' }}>
                                             <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{c.authorName}</div>
-                                            <div style={{ fontSize: 14, color: C.text }}>{renderMentions(c.text)}</div>
+                                            {c.text && <div style={{ fontSize: 14, color: C.text }}>{renderMentions(c.text)}</div>}
+                                            {c.mediaUrl && (
+                                                <img
+                                                    src={c.mediaUrl}
+                                                    alt={c.mediaType === 'gif' ? 'GIF' : 'Image'}
+                                                    style={{ maxWidth: 220, maxHeight: 180, borderRadius: 8, marginTop: c.text ? 6 : 0, display: 'block', cursor: 'pointer' }}
+                                                    onClick={() => { if (c.mediaType !== 'gif') { setLightboxImages([c.mediaUrl]); setLightboxIndex(0); setLightboxUrl(c.mediaUrl); } }}
+                                                    loading="lazy"
+                                                />
+                                            )}
                                         </div>
                                     )}
                                     {/* Comment Meta row: Time, Like, Reply, Edit, Delete, Count */}
@@ -2515,57 +2543,127 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         </div>
                     )}
                     <div ref={commentEndRef} />
-                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    {/* GIF Picker for comments */}
+                    {showCommentGifPicker && (
+                        <div style={{ marginTop: 8, marginBottom: 4 }}>
+                            <GiphyPicker
+                                compact
+                                onSelect={(gifUrl) => {
+                                    setCommentMediaUrl(gifUrl);
+                                    setCommentMediaType('gif');
+                                    setShowCommentGifPicker(false);
+                                }}
+                                onClose={() => setShowCommentGifPicker(false)}
+                            />
+                        </div>
+                    )}
+
+                    {/* Media preview before submitting */}
+                    {commentMediaUrl && (
+                        <div style={{ marginTop: 8, position: 'relative', display: 'inline-block' }}>
+                            <img src={commentMediaUrl} alt={commentMediaType === 'gif' ? 'GIF' : 'Image'} style={{ maxWidth: 180, maxHeight: 140, borderRadius: 10, border: `1px solid ${C.border}`, display: 'block' }} />
+                            <button
+                                onClick={() => { setCommentMediaUrl(null); setCommentMediaType(null); }}
+                                style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                                title="Remove"
+                            >&times;</button>
+                        </div>
+                    )}
+
+                    {/* Hidden file input for image upload */}
+                    <input
+                        type="file"
+                        accept="image/*"
+                        ref={commentFileInputRef}
+                        style={{ display: 'none' }}
+                        onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file || !currentUserId) return;
+                            setUploadingCommentImage(true);
+                            try {
+                                const ext = file.name.split('.').pop();
+                                const path = `comment-images/${currentUserId}/${Date.now()}.${ext}`;
+                                const { error } = await supabase.storage.from('social_media').upload(path, file, { cacheControl: '31536000', upsert: false });
+                                if (error) { toast.error('Image upload failed'); console.error('[Comment] Upload error:', error); setUploadingCommentImage(false); return; }
+                                const { data: { publicUrl } } = supabase.storage.from('social_media').getPublicUrl(path);
+                                setCommentMediaUrl(publicUrl);
+                                setCommentMediaType('image');
+                            } catch (err) {
+                                console.error('[Comment] Upload exception:', err);
+                                toast.error('Could not upload image');
+                            }
+                            setUploadingCommentImage(false);
+                            e.target.value = ''; // reset file input
+                        }}
+                    />
+
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'flex-end' }}>
                         <Avatar src={currentUserAvatar} name={currentUserName} size={28} />
-                        <textarea 
-                            value={newComment} 
-                            onChange={e => {
-                                setNewComment(e.target.value);
-                                // Auto-grow textarea
-                                e.target.style.height = 'auto';
-                                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-                                // Broadcast typing indicator
-                                if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
-                                try {
-                                    const ch = supabase.channel('social-feed');
-                                    ch.send({ type: 'broadcast', event: 'typing', payload: {
-                                        post_id: post.id, user_id: currentUserId,
-                                        name: currentUserName, avatar_url: currentUserAvatar, isTyping: true
-                                    }}).catch(() => {});
-                                } catch {}
-                                typingDebounceRef.current = setTimeout(() => {
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
+                            <textarea 
+                                value={newComment} 
+                                onChange={e => {
+                                    setNewComment(e.target.value);
+                                    // Auto-grow textarea
+                                    e.target.style.height = 'auto';
+                                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                                    // Broadcast typing indicator
+                                    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
                                     try {
-                                        supabase.channel('social-feed').send({ type: 'broadcast', event: 'typing', payload: {
+                                        const ch = supabase.channel('social-feed');
+                                        ch.send({ type: 'broadcast', event: 'typing', payload: {
                                             post_id: post.id, user_id: currentUserId,
-                                            name: currentUserName, avatar_url: currentUserAvatar, isTyping: false
+                                            name: currentUserName, avatar_url: currentUserAvatar, isTyping: true
                                         }}).catch(() => {});
                                     } catch {}
-                                }, 3000);
-                            }}
-                            onKeyDown={e => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSubmitComment();
-                                }
-                                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                                    e.preventDefault();
-                                    handleSubmitComment();
-                                }
-                            }}
-                            placeholder={replyingTo ? `Reply to ${replyingTo.name}...` : "Write a comment..."} 
-                            style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none', fontFamily: 'inherit', resize: 'none', overflow: 'hidden', minHeight: 36, maxHeight: 120, lineHeight: 1.4, boxSizing: 'border-box' }} 
-                            autoFocus={!!replyingTo}
-                            ref={commentInputRef}
-                            maxLength={2000}
-                            rows={1}
-                            aria-label="Write a comment"
-                        />
+                                    typingDebounceRef.current = setTimeout(() => {
+                                        try {
+                                            supabase.channel('social-feed').send({ type: 'broadcast', event: 'typing', payload: {
+                                                post_id: post.id, user_id: currentUserId,
+                                                name: currentUserName, avatar_url: currentUserAvatar, isTyping: false
+                                            }}).catch(() => {});
+                                        } catch {}
+                                    }, 3000);
+                                }}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSubmitComment();
+                                    }
+                                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                        e.preventDefault();
+                                        handleSubmitComment();
+                                    }
+                                }}
+                                placeholder={replyingTo ? `Reply to ${replyingTo.name}...` : "Write a comment..."} 
+                                style={{ flex: 1, padding: '8px 14px', borderRadius: 18, border: 'none', background: C.bg, fontSize: 14, outline: 'none', fontFamily: 'inherit', resize: 'none', overflow: 'hidden', minHeight: 36, maxHeight: 120, lineHeight: 1.4, boxSizing: 'border-box' }} 
+                                autoFocus={!!replyingTo}
+                                ref={commentInputRef}
+                                maxLength={2000}
+                                rows={1}
+                                aria-label="Write a comment"
+                            />
+                            {/* GIF + Image toolbar row */}
+                            <div style={{ display: 'flex', gap: 6, paddingLeft: 14, paddingTop: 4 }}>
+                                <button
+                                    onClick={() => setShowCommentGifPicker(!showCommentGifPicker)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: showCommentGifPicker ? C.blue : C.textSec, fontWeight: 700, fontSize: 12, padding: '2px 6px', borderRadius: 4, letterSpacing: 0.5 }}
+                                    title="Add a GIF"
+                                >GIF</button>
+                                <button
+                                    onClick={() => commentFileInputRef.current?.click()}
+                                    disabled={uploadingCommentImage}
+                                    style={{ background: 'none', border: 'none', cursor: uploadingCommentImage ? 'wait' : 'pointer', color: C.textSec, fontSize: 16, padding: '0 4px', opacity: uploadingCommentImage ? 0.5 : 1 }}
+                                    title="Attach an image"
+                                >{uploadingCommentImage ? '...' : '📷'}</button>
+                            </div>
+                        </div>
                         {newComment.length > 1800 && (
                             <span style={{ fontSize: 11, color: newComment.length >= 2000 ? '#FA383E' : C.textSec, alignSelf: 'center', whiteSpace: 'nowrap' }}>
                                 {2000 - newComment.length}
                             </span>
                         )}
-                        <button onClick={handleSubmitComment} disabled={!newComment.trim() || submittingComment} style={{ background: 'none', border: 'none', cursor: 'pointer', color: newComment.trim() && !submittingComment ? C.blue : C.textSec, fontWeight: 600, fontSize: 13, opacity: submittingComment ? 0.5 : 1 }}>{submittingComment ? '...' : 'Post'}</button>
+                        <button onClick={handleSubmitComment} disabled={(!newComment.trim() && !commentMediaUrl) || submittingComment} style={{ background: 'none', border: 'none', cursor: 'pointer', color: (newComment.trim() || commentMediaUrl) && !submittingComment ? C.blue : C.textSec, fontWeight: 600, fontSize: 13, opacity: submittingComment ? 0.5 : 1, alignSelf: 'flex-end', paddingBottom: 4 }}>{submittingComment ? '...' : 'Post'}</button>
                     </div>
                 </div>
             )}

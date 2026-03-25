@@ -11,6 +11,7 @@ import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import { enqueueMutation } from '../../engine/OfflineSyncQueue';
 import { useMessengerService } from '../../hooks/useMessengerService';
+import GiphyPicker from '../shared/GiphyPicker';
 
 // ─── Lazy Supabase Getter ──────────────────────────────────────────────
 let _supabase = null;
@@ -1872,34 +1873,13 @@ export const ChatWindow = ({
                 </div>
             )}
 
-            {/* P9-2: GIF Search Panel */}
+            {/* P9-2: GIF Search Panel — GIPHY-backed */}
             {showGifPanel && (
-                <div className="emoji-picker-overlay" style={{ maxHeight: 300, overflowY: 'auto' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <strong>Send a GIF</strong>
-                        <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => { setShowGifPanel(false); setGifResults([]); setGifSearchTerm(''); }}>✕</button>
-                    </div>
-                    <input
-                        type="text"
-                        placeholder="Search GIFs..."
-                        value={gifSearchTerm}
-                        onChange={e => handleGifSearch(e.target.value)}
-                        style={{ width: '100%', border: '1px solid #ddd', borderRadius: 6, padding: '5px 8px', fontSize: 11, marginBottom: 6, boxSizing: 'border-box' }}
-                        autoFocus
+                <div className="emoji-picker-overlay" style={{ padding: 0, overflow: 'hidden' }}>
+                    <GiphyPicker
+                        onSelect={(gifUrl) => sendGif(gifUrl)}
+                        onClose={() => { setShowGifPanel(false); setGifResults([]); setGifSearchTerm(''); }}
                     />
-                    {gifResults.length > 0 && (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
-                            {gifResults.map(gif => (
-                                <img
-                                    key={gif.id}
-                                    src={gif.url}
-                                    alt="GIF"
-                                    onClick={() => sendGif(gif.url)}
-                                    style={{ width: '100%', borderRadius: 6, cursor: 'pointer', maxHeight: 80, objectFit: 'cover' }}
-                                />
-                            ))}
-                        </div>
-                    )}
                 </div>
             )}
 

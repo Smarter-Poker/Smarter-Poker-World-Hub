@@ -1597,7 +1597,7 @@ export default function ProfilePage() {
                                     });
                                     const dbData = await dbRes.json();
 
-                                    if (dbRes.ok && dbData.success && (dbData.total_cashes || dbData.total_earnings)) {
+                                    if (dbRes.ok && dbData.success && (dbData.total_cashes != null || dbData.total_earnings != null)) {
                                         // DB has data — use it
                                         setProfile(prev => ({
                                             ...prev,
