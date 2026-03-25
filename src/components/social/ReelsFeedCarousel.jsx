@@ -285,7 +285,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
     useEffect(() => {
         const handleLikeBus = (event) => {
             const d = event?.payload;
-            if (d?.postId) setLiked(prev => ({ ...prev, [d.postId]: d.added }));
+            if (d?.postId) {
+                setLiked(prev => ({ ...prev, [d.postId]: d.added }));
+                setLikeCounts(prev => ({
+                    ...prev,
+                    [d.postId]: Math.max(0, (prev[d.postId] || 0) + (d.added ? 1 : -1))
+                }));
+            }
         };
         const handleBookmarkBus = (event) => {
             const d = event?.payload;
