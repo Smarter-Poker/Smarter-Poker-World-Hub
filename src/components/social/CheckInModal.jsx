@@ -12,6 +12,13 @@ export default function CheckInModal({ onSelect, onClose }) {
     const [nearbyVenues, setNearbyVenues] = useState([]);
     const inputRef = useRef(null);
     const debounceRef = useRef(null);
+    const isMountedRef = useRef(true);
+
+    // Track mount state for async guard
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => { isMountedRef.current = false; };
+    }, []);
 
     // Auto-focus search input on mount
     useEffect(() => {
@@ -43,16 +50,16 @@ export default function CheckInModal({ onSelect, onClose }) {
         return () => { cancelled = true; };
     }, []);
 
-    // Search venues by query
+    // Search venues by query (with unmount guard for in-flight fetches)
     const searchVenues = useCallback(async (q) => {
-        if (!q.trim()) { setResults([]); return; }
-        setLoading(true);
+        if (!q.trim()) { if (isMountedRef.current) setResults([]); return; }
+        if (isMountedRef.current) setLoading(true);
         try {
             const res = await fetch(`/api/poker/venues?search=${encodeURIComponent(q)}&limit=10`);
             const data = await res.json();
-            setResults(data?.data || data?.venues || (Array.isArray(data) ? data : []));
-        } catch { setResults([]); }
-        setLoading(false);
+            if (isMountedRef.current) setResults(data?.data || data?.venues || (Array.isArray(data) ? data : []));
+        } catch { if (isMountedRef.current) setResults([]); }
+        if (isMountedRef.current) setLoading(false);
     }, []);
 
     // Cleanup debounce timer on unmount to prevent memory leak
