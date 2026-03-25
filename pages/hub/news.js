@@ -1479,17 +1479,20 @@ export default function NewsHub() {
                                 )}
                             </div>
 
+                            {activeSection === 'news' ? (
+                                <>
+                                    {/* News Grid - 6 Source-Specific Boxes */}
+                                    <section className="news-section">
                                         {filteredNews.length === 0 && searchQuery ? (
                                             <div className="no-results">
                                                 <Globe size={48} />
                                                 <p>No articles found for "{searchQuery}"</p>
-                                                <button onClick={() => { setSearchQuery(''); setActiveTab('all'); fetchNews(); }}>
+                                                <button onClick={() => { setSearchQuery(''); setActiveTab('all'); }}>
                                                     Clear filters
                                                 </button>
                                             </div>
                                         ) : (
                                             <div className="news-grid">
-                                                {/* Show 1 article per source - 6 dedicated source boxes (always 6) */}
                                                 {topArticles.map((article, index) => (
                                                     <NewsBox
                                                         key={article.id}
@@ -1505,47 +1508,23 @@ export default function NewsHub() {
                                             </div>
                                         )}
 
-                                        {/* More Stories Button - Clickable */}
-                                        {remainingStories.length > 0 && !showAllStories && (
-                                            <motion.button
-                                                className="more-stories"
-                                                onClick={() => setShowAllStories(true)}
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                            >
-                                                <span>{remainingStories.length} more stories available</span>
-                                                <ChevronDown size={16} />
-                                            </motion.button>
-                                        )}
-                                    </section>
-
-                                    {/* Additional Stories (shown when expanded) */}
-                                    <AnimatePresence>
-                                        {remainingStories.length > 0 && showAllStories && (
-                                            <motion.section
-                                                className="more-section"
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: 'auto' }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                transition={{ duration: 0.3 }}
-                                            >
-                                                <h2 className="section-title">
-                                                    <Newspaper size={18} /> More Stories
-                                                    <button
-                                                        className="collapse-btn"
-                                                        onClick={() => setShowAllStories(false)}
-                                                    >
-                                                        Collapse
-                                                    </button>
+                                        {/* Infinite Scroll More Stories */}
+                                        {remainingStories.length > 0 && (
+                                            <div className="more-stories-section">
+                                                <h2 className="section-title" style={{ fontSize: '14px', margin: '16px 0 8px' }}>
+                                                    <Newspaper size={16} /> {activeSourceFilters.length > 0 ? `Filtered Stories (${remainingStories.length})` : `More Stories (${remainingStories.length})`}
                                                 </h2>
                                                 <div className="news-list">
-                                                    {remainingStories.map((article) => (
+                                                    {remainingStories.slice(0, visibleStories).map((article) => (
                                                         <motion.div
                                                             key={article.id}
                                                             className="news-list-item"
                                                             whileHover={{ x: 4 }}
                                                             onClick={() => openArticle(article)}
                                                         >
+                                                            {(article.views || 0) > 50 && (
+                                                                <span className="trending-badge">🔥</span>
+                                                            )}
                                                             <img
                                                                 src={article.image_url ? (article.image_url.includes('cardplayer.com') ? `/api/proxy?url=${encodeURIComponent(article.image_url)}` : article.image_url) : (FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news)}
                                                                 alt=""
@@ -1555,18 +1534,29 @@ export default function NewsHub() {
                                                             <div className="list-content">
                                                                 <h4>{article.title}</h4>
                                                                 <div className="list-meta">
-                                                                    <span>{article.source_name || article.author_name || 'Source'}</span>
+                                                                    <span style={{ color: SOURCE_COLORS[article.source_name] || '#888' }}>{article.source_name || 'Source'}</span>
                                                                     <span>•</span>
                                                                     <span>{timeAgo(article.published_at)}</span>
+                                                                    {(article.views || 0) > 0 && <><span>•</span><span><Eye size={10} /> {formatViews(article.views)}</span></>}
                                                                 </div>
                                                             </div>
                                                             <ChevronRight size={16} className="list-arrow" />
                                                         </motion.div>
                                                     ))}
                                                 </div>
-                                            </motion.section>
+                                                {visibleStories < remainingStories.length && (
+                                                    <motion.button
+                                                        className="load-more-btn"
+                                                        onClick={() => setVisibleStories(prev => prev + 10)}
+                                                        whileHover={{ scale: 1.02 }}
+                                                        whileTap={{ scale: 0.98 }}
+                                                    >
+                                                        Load More ({remainingStories.length - visibleStories} remaining)
+                                                    </motion.button>
+                                                )}
+                                            </div>
                                         )}
-                                    </AnimatePresence>
+                                    </section>
 
                                     {/* Reels Preview Section - Shows on News tab */}
                                     <section className="reels-preview-section">
@@ -2077,6 +2067,183 @@ export default function NewsHub() {
                     /* REMOVED DUPLICATE SECTION-TABS RULES - See lines ~1782-1791 for authoritative CSS */
 
                     /* REMOVED DUPLICATE ICON RULES - See lines ~1819-1840 for authoritative icon CSS */
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* SKELETON SHIMMER LOADING */
+                    /* ═══════════════════════════════════════════════ */
+                    .skeleton-grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 16px;
+                        padding: 15px;
+                        max-width: 1400px;
+                        margin: 0 auto;
+                    }
+                    .skeleton-card {
+                        background: #1a1c1e;
+                        border-radius: 16px;
+                        overflow: hidden;
+                        border: 2px solid rgba(180,195,220,0.2);
+                    }
+                    .skeleton-image {
+                        height: 200px;
+                        background: #252729;
+                    }
+                    .skeleton-content {
+                        padding: 14px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                    }
+                    .skeleton-line {
+                        height: 14px;
+                        border-radius: 6px;
+                        background: #252729;
+                    }
+                    .shimmer {
+                        background: linear-gradient(90deg, #252729 25%, #2d3033 50%, #252729 75%);
+                        background-size: 200% 100%;
+                        animation: shimmer 1.5s ease-in-out infinite;
+                    }
+                    @keyframes shimmer {
+                        0% { background-position: 200% 0; }
+                        100% { background-position: -200% 0; }
+                    }
+                    @media (max-width: 768px) {
+                        .skeleton-grid { grid-template-columns: 1fr; padding: 8px; }
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* BREAKING NEWS TICKER */
+                    /* ═══════════════════════════════════════════════ */
+                    .breaking-ticker {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 8px 14px;
+                        margin-bottom: 10px;
+                        background: rgba(229, 57, 53, 0.1);
+                        border: 1px solid rgba(229, 57, 53, 0.4);
+                        border-radius: 10px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        overflow: hidden;
+                    }
+                    .breaking-ticker:hover {
+                        background: rgba(229, 57, 53, 0.2);
+                    }
+                    .breaking-badge {
+                        flex-shrink: 0;
+                        padding: 2px 8px;
+                        background: #e53935;
+                        color: #fff;
+                        font-size: 10px;
+                        font-weight: 800;
+                        letter-spacing: 1px;
+                        border-radius: 4px;
+                        animation: pulse-badge 2s ease-in-out infinite;
+                    }
+                    @keyframes pulse-badge {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.6; }
+                    }
+                    .breaking-text {
+                        font-size: 13px;
+                        color: rgba(255, 255, 255, 0.85);
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* SOURCE FILTER CHIPS */
+                    /* ═══════════════════════════════════════════════ */
+                    .source-filters {
+                        display: flex;
+                        gap: 6px;
+                        flex-wrap: wrap;
+                        margin-bottom: 10px;
+                        justify-content: center;
+                    }
+                    .source-chip {
+                        display: flex;
+                        align-items: center;
+                        gap: 5px;
+                        padding: 4px 10px;
+                        background: rgba(255, 255, 255, 0.04);
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 16px;
+                        color: rgba(255, 255, 255, 0.55);
+                        font-size: 11px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .source-chip:hover {
+                        background: rgba(255, 255, 255, 0.08);
+                        color: #fff;
+                    }
+                    .source-chip.active {
+                        background: color-mix(in srgb, var(--source-color) 20%, transparent);
+                        border-color: var(--source-color);
+                        color: var(--source-color);
+                    }
+                    .source-chip.clear {
+                        color: #e53935;
+                        border-color: rgba(229, 57, 53, 0.3);
+                    }
+                    .chip-dot {
+                        width: 6px;
+                        height: 6px;
+                        border-radius: 50%;
+                        background: var(--source-color);
+                        flex-shrink: 0;
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* TRENDING BADGE & LOAD MORE */
+                    /* ═══════════════════════════════════════════════ */
+                    .trending-badge {
+                        position: absolute;
+                        top: 4px;
+                        left: 4px;
+                        font-size: 12px;
+                        z-index: 2;
+                    }
+                    .news-list-item {
+                        position: relative;
+                    }
+                    .load-more-btn {
+                        display: block;
+                        width: 100%;
+                        padding: 12px;
+                        margin-top: 8px;
+                        background: rgba(94, 245, 240, 0.08);
+                        border: 1px solid rgba(94, 245, 240, 0.25);
+                        border-radius: 10px;
+                        color: #5ef5f0;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .load-more-btn:hover {
+                        background: rgba(94, 245, 240, 0.15);
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* DARK MODE IMAGE VIGNETTE */
+                    /* ═══════════════════════════════════════════════ */
+                    .box-overlay {
+                        background: linear-gradient(
+                            to bottom,
+                            transparent 40%,
+                            rgba(0, 0, 0, 0.7) 100%
+                        ) !important;
+                    }
+                    .list-thumb {
+                        border-radius: 8px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+                    }
 
                     /* Layout */
                     .layout {
