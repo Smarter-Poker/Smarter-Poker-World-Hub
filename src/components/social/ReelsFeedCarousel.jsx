@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useSupabase } from '../../providers/SupabaseProvider';
-import { busEmit, busOn, busOff, EVENT_TYPES } from '../../engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import { getAccessToken } from '../../lib/authUtils';
 import Link from 'next/link';
 import GiphyPicker from '../shared/GiphyPicker';
@@ -283,17 +283,19 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     // EventBus listeners — sync like/bookmark from other viewers
     useEffect(() => {
-        const handleLikeBus = (data) => {
-            if (data?.postId) setLiked(prev => ({ ...prev, [data.postId]: data.added }));
+        const handleLikeBus = (event) => {
+            const d = event?.payload;
+            if (d?.postId) setLiked(prev => ({ ...prev, [d.postId]: d.added }));
         };
-        const handleBookmarkBus = (data) => {
-            if (data?.postId) setSaved(prev => ({ ...prev, [data.postId]: data.added }));
+        const handleBookmarkBus = (event) => {
+            const d = event?.payload;
+            if (d?.postId) setSaved(prev => ({ ...prev, [d.postId]: d.added }));
         };
-        busOn(EVENT_TYPES.SOCIAL_POST_LIKED, handleLikeBus);
-        busOn(EVENT_TYPES.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
+        eventBus.on(EventType.SOCIAL_POST_LIKED, handleLikeBus);
+        eventBus.on(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
         return () => {
-            busOff(EVENT_TYPES.SOCIAL_POST_LIKED, handleLikeBus);
-            busOff(EVENT_TYPES.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
+            eventBus.off(EventType.SOCIAL_POST_LIKED, handleLikeBus);
+            eventBus.off(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
         };
     }, []);
 
