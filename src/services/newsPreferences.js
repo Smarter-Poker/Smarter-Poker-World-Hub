@@ -3,7 +3,7 @@
  * Manages user preferences for the News page
  */
 
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase';
 
 /**
  * Get user's news preferences

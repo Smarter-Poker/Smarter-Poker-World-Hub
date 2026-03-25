@@ -1103,21 +1103,23 @@ export const ChatWindow = ({
         setShowEmojiPicker(null);
     };
 
-    // P9-1: GIF Reaction Handler (P10-11: Debounced)
+    // P9-1: GIF Reaction Handler — uses GIPHY proxy (P10-11: Debounced)
     const searchGifReactions = async (keyword) => {
         setGifReactionSearch(keyword);
         if (!keyword.trim()) { setGifReactionResults([]); return; }
         if (gifDebounceRef.current) clearTimeout(gifDebounceRef.current);
         gifDebounceRef.current = setTimeout(async () => {
             try {
-                const res = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(keyword + ' reaction')}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=sp_messenger&limit=8&media_filter=tinygif`);
+                const res = await fetch(`/api/messenger/gif-search?q=${encodeURIComponent(keyword + ' reaction')}&limit=8`);
                 const data = await res.json();
-                setGifReactionResults((data.results || []).map(r => ({
-                    id: r.id,
-                    url: r.media_formats?.tinygif?.url || r.media_formats?.gif?.url || '',
-                    preview: r.media_formats?.nanogif?.url || r.media_formats?.tinygif?.url || ''
-                })));
-            } catch (err) { console.warn('[GIF Reaction] Tenor search failed:', err); }
+                if (data.success) {
+                    setGifReactionResults(data.gifs.map(g => ({
+                        id: g.id,
+                        url: g.url,
+                        preview: g.preview || g.url,
+                    })));
+                }
+            } catch (err) { console.warn('[GIF Reaction] Search failed:', err); }
         }, 300);
     };
 

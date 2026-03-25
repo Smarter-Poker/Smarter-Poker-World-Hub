@@ -954,7 +954,7 @@ export default function ProfilePage() {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    });
+    }, [saving, user, photoGalleryOpen, reelsGalleryOpen, livesGalleryOpen, coverEditorOpen, libraryOpen]);
 
     // ── Dirty check helper — detects unsaved changes ──
     const isDirty = (() => {
@@ -1148,6 +1148,7 @@ export default function ProfilePage() {
 
             setCoverUploadPhase(null);
             setProfile(prev => ({ ...prev, cover_photo_url: publicUrl, cover_photo_position: '50% 50%' }));
+            setOriginalProfile(prev => ({ ...prev, cover_photo_url: publicUrl, cover_photo_position: '50% 50%' }));
             setMessage('Cover photo uploaded! Drag to reposition.');
             setCoverEditorOpen(true);
 
@@ -1166,6 +1167,7 @@ export default function ProfilePage() {
                 broadcastSync('smarter_poker_avatar_sync', 'refresh');
             } catch { /* noop */ }
             busEmit.dataMutated('profile');
+            setOriginalProfile(prev => ({ ...prev, cover_photo_url: publicUrl, cover_photo_position: '50% 50%' }));
         } catch (error) {
             setCoverUploadPhase(null);
             setMessage('Error uploading cover photo: ' + error.message);
@@ -1227,6 +1229,7 @@ export default function ProfilePage() {
         }
 
         setProfile(prev => ({ ...prev, cover_photo_url: null, cover_photo_position: '50% 50%' }));
+        setOriginalProfile(prev => ({ ...prev, cover_photo_url: null, cover_photo_position: '50% 50%' }));
         setMessage('Cover photo removed!');
 
         // ── CRITICAL: Dispatch bus event so profile page updates in real-time ──
@@ -1244,6 +1247,7 @@ export default function ProfilePage() {
             broadcastSync('smarter_poker_avatar_sync', 'refresh');
         } catch { /* noop */ }
         busEmit.dataMutated('profile');
+        setOriginalProfile(prev => ({ ...prev, cover_photo_url: null, cover_photo_position: '50% 50%' }));
     };
 
     const handleSave = async () => {
@@ -1581,6 +1585,7 @@ export default function ProfilePage() {
                                 return;
                             }
                             setProfile(prev => ({ ...prev, cover_photo_position: positionStr }));
+                            setOriginalProfile(prev => ({ ...prev, cover_photo_position: positionStr }));
                             setCoverEditorOpen(false);
                             setMessage('Cover photo position saved!');
                             if (typeof window !== 'undefined') {
@@ -1595,6 +1600,7 @@ export default function ProfilePage() {
                                 broadcastSync('smarter_poker_avatar_sync', 'refresh');
                             } catch { /* noop */ }
                             busEmit.dataMutated('profile');
+                            setOriginalProfile(prev => ({ ...prev, cover_photo_position: positionStr }));
                         }}
                     />
                 )}
