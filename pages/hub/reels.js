@@ -78,6 +78,7 @@ export default function ReelsPage() {
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [viewCounts, setViewCounts] = useState({});
+    const [videoProgress, setVideoProgress] = useState(0);
 
     // Reels preferences state
     const [preferences, setPreferences] = useState({
@@ -370,6 +371,7 @@ export default function ReelsPage() {
     // Track view count on reel change
     useEffect(() => {
         if (currentReel?.id) {
+            setVideoProgress(0); // Reset progress bar
             (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'view_count' }); } catch {} })();
         }
     }, [currentIndex]);
@@ -651,7 +653,12 @@ export default function ReelsPage() {
                     // 0 = ended — auto-advance to next reel
                     slideToNextRef.current();
                 }
-                // Also handle the "infoDelivery" format
+                // Track progress from infoDelivery messages
+                if (data?.info?.currentTime !== undefined && data?.info?.duration) {
+                    const pct = (data.info.currentTime / data.info.duration) * 100;
+                    setVideoProgress(Math.min(100, Math.max(0, pct)));
+                }
+                // Also handle ended state via infoDelivery format
                 if (data?.info?.playerState === 0) {
                     slideToNextRef.current();
                 }
@@ -933,6 +940,27 @@ export default function ReelsPage() {
                             }}
                         />
                     ) : null}
+                </div>
+
+                {/* Video Progress Bar */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '100%',
+                    height: 3,
+                    background: 'rgba(255,255,255,0.15)',
+                    zIndex: 60,
+                    pointerEvents: 'none',
+                }}>
+                    <div style={{
+                        width: `${videoProgress}%`,
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #00d4ff, #7c3aed)',
+                        borderRadius: '0 2px 2px 0',
+                        transition: 'width 0.3s linear',
+                        boxShadow: '0 0 8px rgba(0,212,255,0.5)',
+                    }} />
                 </div>
 
                 {/* INVISIBLE TAP ZONES - for navigation */}

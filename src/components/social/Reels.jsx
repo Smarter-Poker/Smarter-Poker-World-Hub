@@ -120,11 +120,22 @@ export function ReelsViewer({ onClose }) {
             const d = event?.payload;
             if (d?.postId) setSaved(prev => ({ ...prev, [d.postId]: d.added }));
         };
+        const handleCommentBus = (event) => {
+            const d = event?.payload;
+            if (d?.postId) {
+                setCommentCounts(prev => ({
+                    ...prev,
+                    [d.postId]: (prev[d.postId] || 0) + 1
+                }));
+            }
+        };
         eventBus.on(EventType.SOCIAL_POST_LIKED, handleLikeBus);
         eventBus.on(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
+        eventBus.on(EventType.SOCIAL_COMMENT_ADDED, handleCommentBus);
         return () => {
             eventBus.off(EventType.SOCIAL_POST_LIKED, handleLikeBus);
             eventBus.off(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
+            eventBus.off(EventType.SOCIAL_COMMENT_ADDED, handleCommentBus);
         };
     }, []);
 
@@ -135,7 +146,7 @@ export function ReelsViewer({ onClose }) {
         setProgress(0);
         // Track view count
         if (reels[currentIndex]?.id) {
-            supabase.rpc('increment_post_count', { p_post_id: reels[currentIndex].id, p_field: 'view_count' }).catch(() => {});
+            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reels[currentIndex].id, p_field: 'view_count' }); } catch {} })();
         }
     }, [currentIndex]);
 
@@ -240,12 +251,12 @@ export function ReelsViewer({ onClose }) {
                     .eq('post_id', currentReel.id)
                     .eq('user_id', currentUserId);
                 busEmit.socialPostLiked(currentReel.id, currentUserId, { added: false, reactionType: 'like' });
-                supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }).catch(() => {});
+                try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch {}
             } else {
                 await supabase.from('social_likes')
                     .insert({ post_id: currentReel.id, user_id: currentUserId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentReel.id, currentUserId, { added: true, reactionType: 'like' });
-                supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }).catch(() => {});
+                try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch {}
             }
         } catch (err) {
             console.warn('Reel like persistence failed:', err.message);
@@ -295,7 +306,7 @@ export function ReelsViewer({ onClose }) {
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, currentUserId);
-            supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }).catch(() => {});
+            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
             setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
         } catch {
             // Rollback optimistic comment on failure
@@ -357,7 +368,7 @@ export function ReelsViewer({ onClose }) {
         setShareToast(true);
         setTimeout(() => setShareToast(false), 2000);
         // Increment share_count + EventBus
-        supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }).catch(() => {});
+        (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {} })();
         if (currentUserId) busEmit.socialPostShared(currentReel.id, currentUserId);
     };
 

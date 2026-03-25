@@ -204,7 +204,7 @@ export default async function handler(req, res) {
           .from('tournament_series')
           .select('*')
           .order('start_date', { ascending: true })
-          .limit(parsedLimit);
+          .limit(Math.min(parsedLimit, 999));
 
         if (upcoming === 'true') {
           const today = new Date().toISOString().split('T')[0];
@@ -247,7 +247,7 @@ export default async function handler(req, res) {
             .from('poker_series')
             .select('*')
             .order('start_date', { ascending: true })
-            .limit(500);
+            .limit(999);
 
           if (upcoming === 'true') {
             const today = new Date().toISOString().split('T')[0];
@@ -364,12 +364,23 @@ export default async function handler(req, res) {
           .filter(Boolean);
 
         if (seriesUids.length > 0) {
-          const { data: allEvents } = await getSupabase()
-            .from('poker_events')
-            .select('*')
-            .in('series_uid', seriesUids)
-            .order('start_date', { ascending: true })
-            .limit(2000);
+          // Paginated fetch to bypass Supabase 1000-row limit
+          let allEvents = [];
+          const PAGE = 999;
+          for (let page = 0; page < 5; page++) {
+            const { data: evtPage } = await getSupabase()
+              .from('poker_events')
+              .select('*')
+              .in('series_uid', seriesUids)
+              .order('start_date', { ascending: true })
+              .range(page * PAGE, (page + 1) * PAGE - 1);
+            if (evtPage && evtPage.length > 0) {
+              allEvents = allEvents.concat(evtPage);
+              if (evtPage.length < PAGE) break; // no more pages
+            } else {
+              break;
+            }
+          }
 
           if (allEvents && allEvents.length > 0) {
             const eventsBySeries = {};

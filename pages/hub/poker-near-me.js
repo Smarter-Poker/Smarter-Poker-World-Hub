@@ -1246,7 +1246,7 @@ export default function PokerNearMePage() {
 
     const fetchTours = async () => {
         try {
-            const params = new URLSearchParams({ include_series: 'true', limit: '30' });
+            const params = new URLSearchParams({ include_series: 'true', limit: '999' });
             if (filters.tourType !== 'all') {
                 params.set('type', filters.tourType);
             }
@@ -1265,7 +1265,7 @@ export default function PokerNearMePage() {
 
     const fetchSeries = async () => {
         try {
-            const params = new URLSearchParams({ upcoming: 'true', limit: '70' });
+            const params = new URLSearchParams({ upcoming: 'true', limit: '999' });
 
             const today = new Date();
             const endDate = new Date();
@@ -1290,7 +1290,7 @@ export default function PokerNearMePage() {
 
     const fetchDailyTournaments = async () => {
         try {
-            const params = new URLSearchParams({ limit: '100' });
+            const params = new URLSearchParams({ limit: '999' });
             params.set('day', filters.selectedDay);
 
             if (selectedCity && selectedCity.state) {
