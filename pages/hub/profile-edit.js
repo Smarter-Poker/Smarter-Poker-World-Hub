@@ -1078,6 +1078,7 @@ export default function ProfilePage() {
             broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
             broadcastSync('smarter_poker_avatar_sync', 'refresh');
         } catch { /* noop */ }
+        busEmit.dataMutated('profile');
 
         // Award profile pic diamonds (fire-and-forget, 10 one-time)
         claimReward('/api/rewards/profile-pic', { userId: user.id }, 'Profile Picture Uploaded');
@@ -1164,6 +1165,7 @@ export default function ProfilePage() {
                 broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
                 broadcastSync('smarter_poker_avatar_sync', 'refresh');
             } catch { /* noop */ }
+            busEmit.dataMutated('profile');
         } catch (error) {
             setCoverUploadPhase(null);
             setMessage('Error uploading cover photo: ' + error.message);
@@ -1241,6 +1243,7 @@ export default function ProfilePage() {
             broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
             broadcastSync('smarter_poker_avatar_sync', 'refresh');
         } catch { /* noop */ }
+        busEmit.dataMutated('profile');
     };
 
     const handleSave = async () => {
@@ -2559,6 +2562,10 @@ export default function ProfilePage() {
                     to { opacity: 1; transform: translateX(0); }
                 }
                 @keyframes avatarSpin {
+                    to { transform: rotate(360deg); }
+                }
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
                     to { transform: rotate(360deg); }
                 }
                 /* Mobile responsive grids */
