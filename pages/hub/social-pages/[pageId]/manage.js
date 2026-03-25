@@ -50,7 +50,10 @@ export default function ManageSocialPage() {
         if (!pageId || !user) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/social/pages?id=${pageId}&user_id=${user.id}`);
+            // Detect UUID vs slug and use appropriate API parameter
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pageId);
+            const param = isUUID ? `id=${pageId}` : `slug=${pageId}`;
+            const res = await fetch(`/api/social/pages?${param}&user_id=${user.id}`);
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success && json.data) {
@@ -90,20 +93,22 @@ export default function ManageSocialPage() {
   // Realtime subscription — live updates
   useEffect(() => {
 
-    if (!router.isReady) return null;
+    if (!router.isReady) return;
 
-    if (!pageId) return;
+    if (!pageId || !page) return;
+    // Always use the resolved page.id (UUID) for realtime, not the raw URL param
+    const resolvedId = page.id;
     const _ch = supabase
-      .channel(`social-page-mgr:${pageId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'social_pages', filter: `id=eq.${pageId}` }, () => {
+      .channel(`social-page-mgr:${resolvedId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'social_pages', filter: `id=eq.${resolvedId}` }, () => {
         fetchPage();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${pageId}` }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${resolvedId}` }, () => {
         if (tab === 'posts') fetchPosts();
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [pageId, tab, fetchPage]);
+  }, [pageId, page, tab, fetchPage]);
 
     const fetchMembers = async () => {
         try {

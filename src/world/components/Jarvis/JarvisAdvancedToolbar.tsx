@@ -29,7 +29,7 @@ import { GoalTracker } from './GoalTracker';
 import { TiltJournal } from './TiltJournal';
 import { StudyPlanAI } from './StudyPlanAI';
 import { SessionSummary } from './SessionSummary';
-import { BankrollSync } from './BankrollSync';
+
 
 interface Message {
     id: string;
@@ -50,7 +50,7 @@ type ToolId =
     | 'session' | 'opponent' | 'tournament' | 'planner' | 'debate'
     | 'training' | 'pio'
     // Phase 2 tools
-    | 'library' | 'preflop' | 'icm' | 'reference' | 'drill' | 'goals' | 'tilt' | 'study' | 'recap' | 'bankroll'
+    | 'library' | 'preflop' | 'icm' | 'reference' | 'drill' | 'goals' | 'tilt' | 'study' | 'recap'
     | null;
 
 const TOOLS = [
@@ -82,8 +82,7 @@ const TOOLS = [
     { id: 'goals' as ToolId, icon: '🎯', label: 'Goals', category: 'Progress' },
     { id: 'tilt' as ToolId, icon: '😤', label: 'Tilt', category: 'Mental' },
     { id: 'study' as ToolId, icon: '📖', label: 'Study Plan', category: 'Learning' },
-    { id: 'recap' as ToolId, icon: '📝', label: 'Recap', category: 'Session' },
-    { id: 'bankroll' as ToolId, icon: '💰', label: 'Bankroll', category: 'Money' }
+
 ];
 
 export function JarvisAdvancedToolbar({
@@ -322,12 +321,7 @@ export function JarvisAdvancedToolbar({
                             onClose={() => setActiveTool(null)}
                         />
                     )}
-                    {activeTool === 'bankroll' && (
-                        <BankrollSync
-                            onAskJarvis={onAskQuestion}
-                            onClose={() => setActiveTool(null)}
-                        />
-                    )}
+
                 </div>
             )}
         </div>

@@ -1410,7 +1410,7 @@
         }
       ],
       "source_url": "bestbetjax.com",
-      "last_scraped": "2026-03-25T07:54:32Z"
+      "last_scraped": "2026-03-25T14:17:02Z"
     },
     {
       "venue_name": "bestbet Orange Park",
@@ -1509,7 +1509,7 @@
         }
       ],
       "source_url": "bestbetjax.com",
-      "last_scraped": "2026-03-25T07:55:14Z"
+      "last_scraped": "2026-03-25T14:17:28Z"
     },
     {
       "venue_name": "bestbet St. Augustine",
@@ -1608,7 +1608,7 @@
         }
       ],
       "source_url": "bestbetjax.com",
-      "last_scraped": "2026-03-25T07:55:42Z"
+      "last_scraped": "2026-03-25T14:17:53Z"
     },
     {
       "venue_name": "Peppermill Resort Spa Casino",
@@ -2390,7 +2390,7 @@
         }
       ],
       "source_url": "seminolehardrockhollywood.com",
-      "last_scraped": "2026-03-25T07:47:41Z"
+      "last_scraped": "2026-03-25T14:10:51Z"
     },
     {
       "venue_name": "Seminole Hard Rock Tampa",
@@ -2867,7 +2867,7 @@
         }
       ],
       "source_url": "seminolehardrocktampa.com",
-      "last_scraped": "2026-03-25T07:48:10Z"
+      "last_scraped": "2026-03-25T14:10:59Z"
     },
     {
       "venue_name": "MGM Grand Poker Room",
@@ -4496,7 +4496,7 @@
         }
       ],
       "source_url": "mgmgranddetroit.com",
-      "last_scraped": "2026-03-25T08:04:08Z"
+      "last_scraped": "2026-03-25T14:03:02Z"
     },
     {
       "venue_name": "MotorCity Casino Hotel",
@@ -5088,7 +5088,7 @@
         }
       ],
       "source_url": "firekeeperscasino.com",
-      "last_scraped": "2026-03-25T08:04:45Z"
+      "last_scraped": "2026-03-25T14:03:35Z"
     },
     {
       "venue_name": "Soaring Eagle Casino",
@@ -5115,7 +5115,7 @@
         }
       ],
       "source_url": "soaringeaglecasino.com",
-      "last_scraped": "2026-03-25T08:04:55Z"
+      "last_scraped": "2026-03-25T14:03:45Z"
     },
     {
       "venue_name": "Gun Lake Casino",
@@ -5187,7 +5187,7 @@
         }
       ],
       "source_url": "gunlakecasino.com",
-      "last_scraped": "2026-03-25T08:05:06Z"
+      "last_scraped": "2026-03-25T14:03:52Z"
     },
     {
       "venue_name": "Turning Stone Resort",
@@ -8322,7 +8322,7 @@
         }
       ],
       "source_url": "derbylane.com",
-      "last_scraped": "2026-03-25T07:49:56Z"
+      "last_scraped": "2026-03-25T14:12:15Z"
     },
     {
       "venue_name": "Palm Beach Kennel Club",
@@ -8673,7 +8673,7 @@
         }
       ],
       "source_url": "pbkennelclub.com",
-      "last_scraped": "2026-03-25T07:56:05Z"
+      "last_scraped": "2026-03-25T14:18:18Z"
     },
     {
       "venue_name": "One-Eyed Jacks Poker",
@@ -8681,7 +8681,7 @@
       "state": "FL",
       "schedules": [
         {
-          "day_of_week": "Tuesday",
+          "day_of_week": "Wednesday",
           "start_time": "11:30AM",
           "buy_in": 250,
           "game_type": "NLH",
@@ -8691,7 +8691,7 @@
         }
       ],
       "source_url": "skcpoker.com",
-      "last_scraped": "2026-03-25T07:54:09Z"
+      "last_scraped": "2026-03-25T14:16:31Z"
     },
     {
       "venue_name": "Daytona Racing & Card Club",
@@ -8925,7 +8925,7 @@
         }
       ],
       "source_url": "daytonabeachpoker.com",
-      "last_scraped": "2026-03-25T07:51:13Z"
+      "last_scraped": "2026-03-25T14:13:25Z"
     },
     {
       "venue_name": "Orange City Racing & Card Club",
@@ -9240,7 +9240,7 @@
         }
       ],
       "source_url": "orangecitypoker.com",
-      "last_scraped": "2026-03-25T07:50:44Z"
+      "last_scraped": "2026-03-25T14:13:03Z"
     },
     {
       "venue_name": "Oxford Downs Poker Room",
@@ -9249,7 +9249,7 @@
       "schedules": [
         {
           "day_of_week": "Daily",
-          "start_time": "11:15AM",
+          "start_time": "6:15PM",
           "buy_in": 500,
           "game_type": "NLH",
           "format": null,
@@ -9258,26 +9258,17 @@
         },
         {
           "day_of_week": "Daily",
-          "start_time": "3:15PM",
-          "buy_in": 65,
+          "start_time": "11:15AM",
+          "buy_in": 70,
           "game_type": "NLH",
-          "format": "Turbo",
-          "guaranteed": null,
-          "tournament_name": null
-        },
-        {
-          "day_of_week": "Daily",
-          "start_time": "6:15PM",
-          "buy_in": 90,
-          "game_type": "Omaha",
           "format": "Bounty",
           "guaranteed": null,
           "tournament_name": null
         },
         {
-          "day_of_week": "Sunday",
-          "start_time": "11:15AM",
-          "buy_in": 70,
+          "day_of_week": "Daily",
+          "start_time": "3:15PM",
+          "buy_in": 10,
           "game_type": "NLH",
           "format": "Bounty",
           "guaranteed": null,
@@ -9510,6 +9501,15 @@
         },
         {
           "day_of_week": "Daily",
+          "start_time": "3:15PM",
+          "buy_in": 65,
+          "game_type": "NLH",
+          "format": null,
+          "guaranteed": null,
+          "tournament_name": null
+        },
+        {
+          "day_of_week": "Daily",
           "start_time": "6:15PM",
           "buy_in": 90,
           "game_type": "NLH",
@@ -9617,7 +9617,7 @@
           "tournament_name": null
         },
         {
-          "day_of_week": "Daily",
+          "day_of_week": "Sunday",
           "start_time": "11:15AM",
           "buy_in": 70,
           "game_type": "NLH",
@@ -9671,15 +9671,6 @@
           "tournament_name": null
         },
         {
-          "day_of_week": "Daily",
-          "start_time": "3:15PM",
-          "buy_in": 90,
-          "game_type": "Omaha",
-          "format": "Bounty",
-          "guaranteed": null,
-          "tournament_name": null
-        },
-        {
           "day_of_week": "Tuesday",
           "start_time": "11:15AM",
           "buy_in": 65,
@@ -9690,7 +9681,7 @@
         }
       ],
       "source_url": "oxforddowns.com",
-      "last_scraped": "2026-03-25T07:50:10Z"
+      "last_scraped": "2026-03-25T14:12:37Z"
     },
     {
       "venue_name": "Ebro Poker Room",
@@ -9726,7 +9717,7 @@
         }
       ],
       "source_url": "goebro.com",
-      "last_scraped": "2026-03-25T07:51:27Z"
+      "last_scraped": "2026-03-25T14:13:33Z"
     },
     {
       "venue_name": "Final Table Poker Club",
@@ -12982,7 +12973,7 @@
         }
       ],
       "source_url": "caesars.com",
-      "last_scraped": "2026-03-25T07:48:37Z"
+      "last_scraped": "2026-03-25T14:11:09Z"
     },
     {
       "venue_name": "Casino Miami",
@@ -13000,7 +12991,7 @@
         }
       ],
       "source_url": "playcasinomiami.com",
-      "last_scraped": "2026-03-25T07:49:28Z"
+      "last_scraped": "2026-03-25T14:11:51Z"
     },
     {
       "venue_name": "The Big Easy Casino",
@@ -13081,7 +13072,7 @@
         }
       ],
       "source_url": "thebigeasycasino.com",
-      "last_scraped": "2026-03-25T07:49:38Z"
+      "last_scraped": "2026-03-25T14:12:01Z"
     },
     {
       "venue_name": "Commerce Casino",
@@ -14998,7 +14989,7 @@
         }
       ],
       "source_url": "islandresortandcasino.com",
-      "last_scraped": "2026-03-25T08:05:32Z"
+      "last_scraped": "2026-03-25T14:04:27Z"
     },
     {
       "venue_name": "G's Charity Poker",
@@ -15160,7 +15151,7 @@
         }
       ],
       "source_url": "https://www.facebook.com/GsCharityPoker",
-      "last_scraped": "2026-03-25T08:09:08Z"
+      "last_scraped": "2026-03-25T14:09:16Z"
     },
     {
       "venue_name": "Kings Poker Room",
@@ -15223,7 +15214,7 @@
         }
       ],
       "source_url": "https://www.facebook.com/KingsPokerRoomGR",
-      "last_scraped": "2026-03-25T08:06:32Z"
+      "last_scraped": "2026-03-25T14:05:56Z"
     },
     {
       "venue_name": "Paradise Poker",
@@ -15304,7 +15295,7 @@
         }
       ],
       "source_url": "https://www.facebook.com/ParadisePokerUtica",
-      "last_scraped": "2026-03-25T08:07:03Z"
+      "last_scraped": "2026-03-25T14:06:29Z"
     },
     {
       "venue_name": "Rosemack Poker Room",
@@ -15403,7 +15394,7 @@
         }
       ],
       "source_url": "https://www.facebook.com/RosemackPokerRoom",
-      "last_scraped": "2026-03-25T08:07:16Z"
+      "last_scraped": "2026-03-25T14:09:52Z"
     },
     {
       "venue_name": "Ace High Poker Club",
@@ -15529,7 +15520,7 @@
         }
       ],
       "source_url": "https://www.facebook.com/AceHighPokerOxford",
-      "last_scraped": "2026-03-25T08:08:42Z"
+      "last_scraped": "2026-03-25T14:08:37Z"
     },
     {
       "venue_name": "Last Frontier Casino",

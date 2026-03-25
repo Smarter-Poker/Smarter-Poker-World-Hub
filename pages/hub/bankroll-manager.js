@@ -57,7 +57,7 @@ import TripTracker from '../../src/components/bankroll/TripTracker';
 import TokeTracker from '../../src/components/bankroll/TokeTracker';
 import CategoryOverview from '../../src/components/bankroll/CategoryOverview';
 // Phase 8: Institutional Integrity Components
-import BankBalanceWidget from '../../src/components/bankroll/BankBalanceWidget';
+
 import AdvancedTaxReport from '../../src/components/bankroll/AdvancedTaxReport';
 import SocialStakingProfile from '../../src/components/bankroll/SocialStakingProfile';
 import TournamentCalendar from '../../src/components/bankroll/TournamentCalendar';
@@ -82,7 +82,7 @@ const SIDEBAR_SECTIONS = [
   { id: 'staking', label: 'Staking Tracker', icon: '' },
   { id: 'toke-tracker', label: 'Toke Tracker', icon: '' },
   { id: 'tax', label: 'Tax Reports', icon: '' },
-  { id: 'bank-sync', label: 'Bank Sync', icon: '' },
+
   { id: 'staking-profile', label: 'Staking Profile', icon: '' },
   { id: 'tournament-calendar', label: 'Tournament Calendar', icon: '' },
   { id: 'reports', label: 'Reports', icon: '' },
@@ -700,8 +700,7 @@ export default function BankrollManagerPage() {
       setActiveSection('tax');
     } else if (sectionId === 'receipts') {
       setActiveSection('receipts');
-    } else if (sectionId === 'bank-sync') {
-      setActiveSection('bank-sync');
+
     } else if (sectionId === 'staking-profile') {
       setActiveSection('staking-profile');
     } else if (sectionId === 'tournament-calendar') {
@@ -892,6 +891,23 @@ export default function BankrollManagerPage() {
 
             {/* Main Content - Switches based on activeSection */}
             <main className="bankroll-main-content" style={styles.mainContent}>
+              {/* Mobile Navigation — horizontal pill bar, visible only on mobile via CSS */}
+              <div className="bankroll-mobile-nav">
+                {SIDEBAR_SECTIONS.map((section) => {
+                  const isDashboard = section.id === 'dashboard';
+                  const onSubPage = activeSection !== 'dashboard';
+                  const displayLabel = isDashboard && onSubPage ? '← Back' : section.label;
+                  return (
+                    <button
+                      key={section.id}
+                      className={`bankroll-mobile-nav-item${activeSection === section.id && !section.action ? ' active' : ''}`}
+                      onClick={() => section.action ? setShowAdjustModal(true) : handleSidebarClick(section.id)}
+                    >
+                      {displayLabel}
+                    </button>
+                  );
+                })}
+              </div>
 
               {/* Header */}
               <div className="bankroll-content-header" style={styles.contentHeader}>
@@ -907,7 +923,7 @@ export default function BankrollManagerPage() {
                   {activeSection === 'rules' && 'Bankroll Rules'}
                   {activeSection === 'staking' && 'Staking Tracker'}
                   {activeSection === 'toke-tracker' && 'Toke Tracker'}
-                  {activeSection === 'bank-sync' && 'Bank Sync'}
+
                   {activeSection === 'staking-profile' && 'Staking Profile'}
                   {activeSection === 'tournament-calendar' && 'Tournament Calendar'}
                 </h1>
@@ -1107,12 +1123,7 @@ export default function BankrollManagerPage() {
                     {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
                     <BankrollTrendChart entries={chartEntries} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
 
-                    {/* Phase 8: Bank Balance Widget */}
-                    <div style={{ marginBottom: 16 }}>
-                      <HubErrorBoundary name="Bank Balance Widget">
-                        <BankBalanceWidget bankrollTotal={stats?.totalBankroll || 0} />
-                      </HubErrorBoundary>
-                    </div>
+
 
                     {/* Filters Row */}
                     <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
@@ -1757,16 +1768,7 @@ export default function BankrollManagerPage() {
                 </div>
               )}
 
-              {/* Phase 8: Bank Sync — Mocked Plaid Account Linking */}
-              {activeSection === 'bank-sync' && (
-                <div style={styles.activitySection}>
-                  <BankrollProGate userId={userId}>
-                    <HubErrorBoundary name="Bank Sync">
-                      <BankBalanceWidget bankrollTotal={stats?.totalBankroll || 0} />
-                    </HubErrorBoundary>
-                  </BankrollProGate>
-                </div>
-              )}
+
 
               {/* Phase 8: Advanced Tax Report — State-Level */}
               {activeSection === 'advanced-tax' && (

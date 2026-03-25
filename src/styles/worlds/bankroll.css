@@ -160,3 +160,175 @@ body.world-bankroll-manager {
 .bankroll-page .leaflet-pane * {
     border: unset !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KEYFRAME ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes metalGlow { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes scanLine { 0% { top: 0; } 100% { top: 100%; } }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE NAVIGATION — Horizontal scrollable pill bar
+   Hidden on desktop, shown on mobile when sidebar is hidden
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.bankroll-mobile-nav {
+    display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — @media (max-width: 768px)
+   DO NOT REMOVE THESE RULES. They are the sole mobile layout for Bankroll Manager.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    /* Hide desktop sidebar on mobile */
+    .bankroll-sidebar {
+        display: none !important;
+    }
+
+    /* Stack layout vertically */
+    .bankroll-main-layout {
+        flex-direction: column !important;
+    }
+
+    /* Compact padding for mobile */
+    .bankroll-main-content {
+        padding: 12px 12px !important;
+    }
+
+    .bankroll-content-header {
+        margin-bottom: 12px !important;
+    }
+
+    .bankroll-page-title {
+        font-size: 18px !important;
+    }
+
+    .bankroll-log-btn {
+        padding: 8px 16px !important;
+        font-size: 13px !important;
+    }
+
+    .bankroll-stats-grid {
+        gap: 8px !important;
+        margin-bottom: 16px !important;
+    }
+
+    /* Show mobile horizontal pill navigation */
+    .bankroll-mobile-nav {
+        display: flex !important;
+        overflow-x: auto;
+        gap: 6px;
+        padding: 0 0 12px 0;
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .bankroll-mobile-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .bankroll-mobile-nav-item {
+        flex-shrink: 0;
+        padding: 7px 14px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.04);
+        color: rgba(255,255,255,0.6);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        font-family: Inter, -apple-system, sans-serif;
+        transition: all 0.15s ease;
+    }
+
+    .bankroll-mobile-nav-item.active {
+        background: rgba(35,116,225,0.2);
+        border-color: #2374e1;
+        color: #2374e1;
+        font-weight: 600;
+    }
+
+    /* Compact 2-column filter grid on mobile */
+    .bankroll-filters-row {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+        padding-bottom: 4px;
+    }
+
+    .bankroll-filters-row > div {
+        position: relative;
+        min-width: 0;
+    }
+
+    .bankroll-filters-row button {
+        padding: 6px 8px !important;
+        font-size: 11px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100% !important;
+        min-height: 32px;
+        touch-action: manipulation;
+    }
+
+    .bankroll-dropdown-menu {
+        min-width: 160px !important;
+        z-index: 9999 !important;
+        max-height: 50vh !important;
+    }
+
+    /* Horizontally scrollable analytics cards on mobile */
+    .bankroll-analytics-slider {
+        display: flex !important;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        gap: 12px;
+        padding-bottom: 8px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .bankroll-analytics-slider::-webkit-scrollbar {
+        display: none;
+    }
+
+    .bankroll-analytics-slider > * {
+        flex: 0 0 85%;
+        scroll-snap-align: start;
+        min-width: 0;
+        height: 300px !important;
+        min-height: 300px !important;
+        max-height: 300px !important;
+        overflow: auto;
+    }
+
+    /* Wrap active trip banner on mobile */
+    .bankroll-active-trip {
+        flex-wrap: wrap;
+        gap: 10px !important;
+    }
+
+    /* Smaller stat values on mobile */
+    .bankroll-stat-value {
+        font-size: 20px !important;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DESKTOP — Force-hide mobile nav on desktop
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 769px) {
+    .bankroll-mobile-nav {
+        display: none !important;
+    }
+}
