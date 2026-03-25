@@ -73,21 +73,27 @@ export default async function handler(req, res) {
                         .delete()
                         .eq('venue_id', vid);
 
+                    // Get venue name from the batch data
+                    const venueName = venueData.venue_name || venueData.name || null;
+
                     const tournamentRows = tournaments
                         .filter(t => t.day_of_week) // must have at least a day
                         .map(t => ({
                             venue_id: vid,
+                            venue_name: venueName || null,
                             day_of_week: String(t.day_of_week).trim(),
                             start_time: t.start_time ? String(t.start_time).trim() : null,
+                            tournament_name: t.tournament_name ? String(t.tournament_name).trim() : null,
                             buy_in: t.buy_in != null && !isNaN(t.buy_in) ? parseFloat(t.buy_in) : null,
+                            rebuy_addon: t.rebuy_addon ? String(t.rebuy_addon).trim() : null,
+                            starting_stack: t.starting_stack != null && !isNaN(t.starting_stack) ? parseInt(t.starting_stack, 10) : null,
+                            blind_levels: t.blind_levels ? String(t.blind_levels).trim() : null,
                             game_type: t.game_type ? String(t.game_type).trim().toUpperCase() : null,
                             format: t.format ? String(t.format).trim() : null,
                             guaranteed: t.guaranteed != null && !isNaN(t.guaranteed) ? parseFloat(t.guaranteed) : null,
-                            starting_stack: t.starting_stack != null && !isNaN(t.starting_stack) ? parseInt(t.starting_stack, 10) : null,
-                            blind_levels: t.blind_levels ? String(t.blind_levels).trim() : null,
-                            notes: t.notes ? String(t.notes).trim() : null,
                             source_url: source_url || null,
-                            scraped_at: new Date().toISOString(),
+                            last_scraped: new Date().toISOString(),
+                            is_active: true,
                         }));
 
                     if (tournamentRows.length > 0) {
