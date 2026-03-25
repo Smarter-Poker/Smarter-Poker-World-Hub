@@ -13,7 +13,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { reelsPreferences, savedReelsService } from '../../src/services/preferences-service';
-import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
+import { getAuthUser } from '../../src/lib/authUtils';
 import UploadReelModal from '../../src/components/reels/UploadReelModal';
 import { saveAppSetting } from '../../src/lib/appSettingsSync';
 import { busEmit, eventBus, EventType } from '../../src/engine/EventBus';
