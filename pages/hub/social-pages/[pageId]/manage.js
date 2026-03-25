@@ -43,6 +43,7 @@ export default function ManageSocialPage() {
     const [slugStatus, setSlugStatus] = useState(null); // null | 'checking' | 'available' | 'taken' | 'invalid'
     const [slugError, setSlugError] = useState('');
     const slugTimerRef = useRef(null);
+    const tabRef = useRef('settings');
 
     const { user, checking: authChecking } = useRequireAuth(`/hub/social-pages/${pageId}/manage`);
     useTrainingBus('social-pages-manage');
@@ -86,12 +87,18 @@ export default function ManageSocialPage() {
 
     useEffect(() => { const _c = new AbortController(); fetchPage(_c.signal); return () => _c.abort(); }, [fetchPage]);
 
+    // Cleanup slug debounce timer on unmount
+    useEffect(() => {
+        return () => { if (slugTimerRef.current) clearTimeout(slugTimerRef.current); };
+    }, []);
+
     useEffect(() => {
         if (!page) return;
+        tabRef.current = tab;
         if (tab === 'members') fetchMembers();
         if (tab === 'posts') fetchPosts();
     }, [tab, page]);
-  // Realtime subscription — live updates
+  // Realtime subscription — live updates (stable deps, no tab recreation)
   useEffect(() => {
 
     if (!router.isReady) return;
@@ -105,11 +112,11 @@ export default function ManageSocialPage() {
         fetchPage();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${resolvedId}` }, () => {
-        if (tab === 'posts') fetchPosts();
+        if (tabRef.current === 'posts') fetchPosts();
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [pageId, page, tab, fetchPage]);
+  }, [pageId, page, fetchPage]);
 
     const fetchMembers = async () => {
         try {
@@ -458,9 +465,9 @@ export default function ManageSocialPage() {
                                         )}
                                     </div>
 
-                                    <button onClick={handleSave} disabled={saving || slugStatus === 'taken' || slugStatus === 'invalid'} style={{
+                                    <button onClick={handleSave} disabled={saving || slugStatus === 'checking' || slugStatus === 'taken' || slugStatus === 'invalid'} style={{
                                         width: '100%', padding: '12px 0', borderRadius: 8, border: 'none',
-                                        background: (saving || slugStatus === 'taken' || slugStatus === 'invalid') ? '#CCD0D5' : C.blue, color: '#fff',
+                                        background: (saving || slugStatus === 'checking' || slugStatus === 'taken' || slugStatus === 'invalid') ? '#CCD0D5' : C.blue, color: '#fff',
                                         fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginTop: 8,
                                     }}>
                                         {saving ? 'Saving...' : 'Save Settings'}

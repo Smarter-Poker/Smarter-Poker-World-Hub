@@ -1,0 +1,17 @@
+{
+  "venue": "Del Lago Resort",
+  "slug": "del-lago-waterloo",
+  "url": "https://www.pokeratlas.com/poker-room/del-lago-waterloo",
+  "data": {
+    "address": "1133 Route 414",
+    "city": "Waterloo",
+    "state": "NY",
+    "phone": "(315) 946-1759",
+    "lat": 42.96733,
+    "lng": -76.84724,
+    "website": "https://dellagoresort.com/poker/"
+  },
+  "hash": "69cb263d8666f582e630f1830557eaf714d401cee82971793d3b117a5485b3ea",
+  "ts": "2026-03-25T18:29:47.804071+00:00",
+  "batch": "7557fadf-d777-4891-9078-5eb307303f3f"
+}

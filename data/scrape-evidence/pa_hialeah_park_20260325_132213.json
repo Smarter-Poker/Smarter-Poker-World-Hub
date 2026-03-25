@@ -1,0 +1,17 @@
+{
+  "venue": "Hialeah Park",
+  "slug": "hialeah-park",
+  "url": "https://www.pokeratlas.com/poker-room/hialeah-park",
+  "data": {
+    "address": "100 E 32nd St",
+    "city": "Hialeah",
+    "state": "FL",
+    "phone": "(305) 885-8000",
+    "lat": 25.85159,
+    "lng": -80.26946,
+    "website": "http://hialeahparkcasino.com/"
+  },
+  "hash": "5c66de52ceb693d46e59f44a51a6c5ec970f3774a862ecaa5a2dee20717e9129",
+  "ts": "2026-03-25T18:22:13.761801+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}

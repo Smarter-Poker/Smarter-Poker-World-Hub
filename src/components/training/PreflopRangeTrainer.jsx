@@ -12,6 +12,26 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { classifyMove, CLASSIFICATION_CONFIG } from '../../hooks/useGTOWScore';
+import { getCardImagePath } from './Card';
+
+// Convert abstract hand notation ("K5o", "AKs", "TT") to two specific card objects with suits
+function handToCards(hand) {
+    if (!hand) return [{ rank: 'A', suit: 'h' }, { rank: 'K', suit: 's' }];
+    if (hand.length === 2) {
+        // Pair: "AA", "KK" → same rank, different suits
+        return [{ rank: hand[0], suit: 'h' }, { rank: hand[1], suit: 's' }];
+    }
+    if (hand.length === 3) {
+        const r1 = hand[0], r2 = hand[1], flag = hand[2];
+        if (flag === 's') {
+            // Suited: "AKs" → both spades
+            return [{ rank: r1, suit: 's' }, { rank: r2, suit: 's' }];
+        }
+        // Offsuit: "K5o" → hearts + diamonds
+        return [{ rank: r1, suit: 'h' }, { rank: r2, suit: 'd' }];
+    }
+    return [{ rank: hand[0] || 'A', suit: 'h' }, { rank: hand[1] || 'K', suit: 's' }];
+}
 
 // ═══ STANDARD GTO PREFLOP RANGES (RFI — Raise First In) ═══
 // These are simplified solver-derived open-raising ranges by position (6-max, 100BB)
@@ -322,7 +342,29 @@ export default function PreflopRangeTrainer({ onExit }) {
                         style={S.handDisplay}
                     >
                         <div style={S.handLabel}>Your Hand ({position})</div>
-                        <div style={S.handValue}>{currentHand}</div>
+                        <div style={S.handCards}>
+                            {handToCards(currentHand).map((card, i) => (
+                                <motion.img
+                                    key={`${currentHand}-${i}`}
+                                    src={getCardImagePath(card.rank, card.suit)}
+                                    alt={`${card.rank}${card.suit}`}
+                                    initial={{ y: 30, opacity: 0, rotateZ: i === 0 ? -20 : 20 }}
+                                    animate={{ y: 0, opacity: 1, rotateZ: i === 0 ? -8 : 6 }}
+                                    transition={{ delay: i * 0.1, duration: 0.3, type: 'spring' }}
+                                    style={{
+                                        width: 72, height: 101,
+                                        borderRadius: 6,
+                                        boxShadow: '0 4px 16px rgba(0,0,0,0.5), 0 0 20px rgba(0,212,255,0.15)',
+                                        marginLeft: i > 0 ? -18 : 0,
+                                        transformOrigin: 'bottom center',
+                                        pointerEvents: 'none',
+                                        userSelect: 'none',
+                                    }}
+                                    draggable={false}
+                                />
+                            ))}
+                        </div>
+                        <div style={S.handNotation}>{currentHand}</div>
                         {streak >= 3 && (
                             <div style={{ fontSize: 11, color: '#f97316' }}>
                                 {streak} streak
@@ -684,10 +726,13 @@ const S = {
     handLabel: {
         fontSize: 11, color: '#94a3b8', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase',
     },
-    handValue: {
-        fontSize: 36, fontWeight: 'bold', color: '#00d4ff',
-        fontFamily: "'Orbitron', monospace", letterSpacing: 3,
-        textShadow: '0 0 20px rgba(0,212,255,0.5)',
+    handCards: {
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: 0, marginBottom: 4,
+    },
+    handNotation: {
+        fontSize: 13, fontWeight: 'bold', color: '#64748b',
+        fontFamily: "'Orbitron', monospace", letterSpacing: 2,
     },
     actionBar: {
         display: 'flex', gap: 8, padding: '0 16px 12px', justifyContent: 'center',

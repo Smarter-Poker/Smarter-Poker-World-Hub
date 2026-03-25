@@ -1,0 +1,17 @@
+{
+  "venue": "Poker Palace",
+  "slug": "palace-station-las-vegas",
+  "url": "https://www.pokeratlas.com/poker-room/palace-station-las-vegas",
+  "data": {
+    "address": "2411 W. Sahara Ave",
+    "city": "Las Vegas",
+    "state": "NV",
+    "phone": "(702) 367-2453",
+    "lat": 36.14274,
+    "lng": -115.1746,
+    "website": "http://www.stationcasinospoker.com/casinos/palace-station.php"
+  },
+  "hash": "5926d8f87b412eadc554d53c2acf3c8deab056d38968eb5834b0ac46f36c3e5e",
+  "ts": "2026-03-25T18:28:33.559322+00:00",
+  "batch": "7557fadf-d777-4891-9078-5eb307303f3f"
+}
