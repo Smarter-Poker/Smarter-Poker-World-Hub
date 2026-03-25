@@ -217,7 +217,12 @@ function ReelCard({ reel, onClick }) {
 function ReelViewer({ reels, startIndex, onClose }) {
     const { user: authUser } = useSupabase();
     const [currentIndex, setCurrentIndex] = useState(startIndex);
-    const [muted, setMuted] = useState(false);
+    const [muted, setMuted] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('reel-muted') !== 'false';
+        }
+        return false;
+    });
     const [liked, setLiked] = useState({});
     const [showComments, setShowComments] = useState(false);
     const [reelComments, setReelComments] = useState([]);
@@ -228,6 +233,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [progress, setProgress] = useState(0);
     const [likeCounts, setLikeCounts] = useState({});
     const [commentCounts, setCommentCounts] = useState({});
+    const [saved, setSaved] = useState({});
+    const [slideDir, setSlideDir] = useState(null);
     // GIF + Image state for reel comments
     const [showReelGifPicker, setShowReelGifPicker] = useState(false);
     const [reelCommentMediaUrl, setReelCommentMediaUrl] = useState(null);
@@ -511,10 +518,19 @@ function ReelViewer({ reels, startIndex, onClose }) {
     useEffect(() => {
         const handleKey = (e) => {
             if (showComments && e.target.tagName === 'INPUT') return;
-            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goNext();
-            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goPrev();
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { setSlideDir('up'); goNext(); }
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { setSlideDir('down'); goPrev(); }
             if (e.key === 'Escape') { if (showComments) setShowComments(false); else onClose(); }
-            if (e.key === 'm') setMuted(prev => !prev);
+            if (e.key === 'm' || e.key === 'M') {
+                setMuted(prev => {
+                    const next = !prev;
+                    localStorage.setItem('reel-muted', String(next));
+                    return next;
+                });
+            }
+            if (e.key === 'l' || e.key === 'L') { handleLike(); haptic(15); }
+            if (e.key === 's' || e.key === 'S') handleSave();
+            if (e.key === 'c' || e.key === 'C') handleToggleComments();
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
@@ -776,6 +792,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                     <img src={c.profiles?.avatar_url || '/default-avatar.png'} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
                                     <div style={{ flex: 1 }}>
                                         <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 600 }}>{c.profiles?.username || 'User'}</span>
+                                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>{c.created_at ? timeAgo(c.created_at) : ''}</span>
                                         {c.content && <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, margin: '2px 0 0' }}>{c.content}</p>}
                                         {c.media_url && (
                                             <img src={c.media_url} alt={c.media_type === 'gif' ? 'GIF' : 'Image'}

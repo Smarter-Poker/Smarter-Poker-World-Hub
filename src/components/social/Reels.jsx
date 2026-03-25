@@ -36,7 +36,12 @@ export function ReelsViewer({ onClose }) {
     const [reels, setReels] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [muted, setMuted] = useState(true);
+    const [muted, setMuted] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('reel-muted') !== 'false';
+        }
+        return true;
+    });
     const [paused, setPaused] = useState(false);
     const [liked, setLiked] = useState({});
     const [currentUserId, setCurrentUserId] = useState(null);
@@ -339,7 +344,16 @@ export function ReelsViewer({ onClose }) {
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goNext();
             if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') goPrev();
             if (e.key === 'Escape') onClose();
-            if (e.key === 'm') setMuted(prev => !prev);
+            if (e.key === 'm' || e.key === 'M') {
+                setMuted(prev => {
+                    const next = !prev;
+                    localStorage.setItem('reel-muted', String(next));
+                    return next;
+                });
+            }
+            if (e.key === 'l' || e.key === 'L') { handleLike(); haptic(15); }
+            if (e.key === 's' || e.key === 'S') handleSave();
+            if (e.key === 'c' || e.key === 'C') handleOpenComments();
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
@@ -622,6 +636,7 @@ export function ReelsViewer({ onClose }) {
                                     <img src={c.profiles?.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
                                     <div style={{ flex: 1 }}>
                                         <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{c.profiles?.username || 'User'}</span>
+                                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>{c.created_at ? timeAgo(c.created_at) : ''}</span>
                                         {c.content && <span style={{ color: C.textSec, fontSize: 13, marginLeft: 8 }}>{c.content}</span>}
                                         {c.media_url && (
                                             <img src={c.media_url} alt={c.media_type === 'gif' ? 'GIF' : 'Image'}

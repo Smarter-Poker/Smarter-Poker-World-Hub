@@ -1093,7 +1093,7 @@ export default function ProfilePage() {
             return;
         }
 
-        setMessage('Compressing & uploading cover photo...');
+        setCoverUploadPhase('Compressing');
 
         try {
             // Compress before upload (max 1600px wide)
@@ -1101,6 +1101,7 @@ export default function ProfilePage() {
 
             // Replace file reference with compressed version
             const uploadFile = compressed;
+            setCoverUploadPhase('Uploading');
             // Use the server-side upload proxy (service role key) to bypass storage RLS
             const formData = new FormData();
             formData.append('file', uploadFile);
@@ -1125,6 +1126,7 @@ export default function ProfilePage() {
             }
 
             const publicUrl = uploadJson.url;
+            setCoverUploadPhase('Saving');
 
             // Update database — direct PostgREST (avoids SIGNED_OUT cascade)
             const _coverUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -1143,6 +1145,7 @@ export default function ProfilePage() {
                 return;
             }
 
+            setCoverUploadPhase(null);
             setProfile(prev => ({ ...prev, cover_photo_url: publicUrl, cover_photo_position: '50% 50%' }));
             setMessage('Cover photo uploaded! Drag to reposition.');
             setCoverEditorOpen(true);
@@ -1162,6 +1165,7 @@ export default function ProfilePage() {
                 broadcastSync('smarter_poker_avatar_sync', 'refresh');
             } catch { /* noop */ }
         } catch (error) {
+            setCoverUploadPhase(null);
             setMessage('Error uploading cover photo: ' + error.message);
             console.error('Upload error:', error);
         }
@@ -1517,6 +1521,25 @@ export default function ProfilePage() {
                         {profile.cover_photo_url ? 'Change Cover' : 'Add Cover Photo'}
                     </div>
 
+                    {/* Cover Upload Progress Overlay */}
+                    {coverUploadPhase && (
+                        <div style={{
+                            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                            background: 'rgba(0,0,0,0.7)', display: 'flex',
+                            flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            borderRadius: '12px 12px 0 0', zIndex: 5,
+                        }}>
+                            <div style={{
+                                width: 40, height: 40, border: '3px solid rgba(255,255,255,0.2)',
+                                borderTop: '3px solid #00f5ff', borderRadius: '50%',
+                                animation: 'spin 0.8s linear infinite',
+                            }} />
+                            <div style={{ color: '#fff', fontSize: 14, fontWeight: 600, marginTop: 10 }}>
+                                {coverUploadPhase}...
+                            </div>
+                        </div>
+                    )}
+
                     {/* Profile Avatar - MOVED outside overflow:hidden container */}
                 </div>
 
@@ -1674,6 +1697,27 @@ export default function ProfilePage() {
                             }}
                         >
                             Share Profile
+                        </button>
+                        <button
+                            onClick={() => window.open(`/hub/user/${profile.username || user?.id}`, '_blank')}
+                            style={{
+                                background: 'transparent',
+                                color: '#00f5ff',
+                                border: '1px solid rgba(0,245,255,0.3)',
+                                borderRadius: 8,
+                                padding: '10px 16px',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,245,255,0.1)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                            View Public Profile
                         </button>
                         <button
                             onClick={() => router.push('/hub/avatars')}
@@ -1839,11 +1883,10 @@ export default function ProfilePage() {
                             <ProfileField label="State" value={profile.state} onChange={updateField('state')} placeholder="Nevada" maxLength={100} />
                             <ProfileField label="Country" value={profile.country} onChange={updateField('country')} placeholder="USA" maxLength={100} />
                         </div>
-                    </div>
+                    </CollapsibleSection>
 
                     {/* Contact & Social */}
-                    <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>🔗 Contact & Social</h3>
+                    <CollapsibleSection id="sec-social" title="Contact & Social" icon="🔗">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                             <ProfileField label="Email" value={profile.email} onChange={updateField('email')} type="email" placeholder="you@example.com" icon="✉️" maxLength={100} />
                             <ProfileField label="Phone" value={profile.phone} onChange={updateField('phone')} type="tel" placeholder="+1 555 123 4567" icon="📱" maxLength={20} />
@@ -1853,11 +1896,10 @@ export default function ProfilePage() {
                             <ProfileField label="TikTok" value={profile.tiktok} onChange={updateField('tiktok')} placeholder="username" icon="🎵" maxLength={100} />
                             <ProfileField label="Telegram" value={profile.telegram} onChange={updateField('telegram')} placeholder="username" icon="✈️" maxLength={100} />
                         </div>
-                    </div>
+                    </CollapsibleSection>
 
                     {/* Card Deck Preference */}
-                    <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600, color: C.text }}>🎴 Card Deck Preference</h3>
+                    <CollapsibleSection id="sec-cards" title="Card Deck Preference" icon="🎴">
                         <p style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>
                             Choose your preferred card back design. This will be used across all games (Training, Club Arena, Diamond Arena).
                         </p>
@@ -1870,7 +1912,7 @@ export default function ProfilePage() {
                                     style={{
                                         cursor: 'pointer',
                                         borderRadius: 8,
-                                        border: profile.card_back_preference === deck ? '3px solid #FFD700' : '2px solid #DADDE1',
+                                        border: profile.card_back_preference === deck ? '3px solid #FFD700' : `2px solid ${C.border}`,
                                         padding: 8,
                                         textAlign: 'center',
                                         transition: 'all 0.2s ease',
@@ -1903,11 +1945,10 @@ export default function ProfilePage() {
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </CollapsibleSection>
 
                     {/* Poker Info */}
-                    <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>Poker Info</h3>
+                    <CollapsibleSection id="sec-poker" title="Poker Info" icon="\u2660\uFE0F">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                             <ProfileField label="Favorite Game" value={profile.favorite_game} onChange={updateField('favorite_game')} placeholder="No Limit Hold'em" icon="" />
                             <ProfileField label="Birth Year" value={profile.birth_year} onChange={updateField('birth_year')} placeholder="1990" icon="🎂" />
@@ -1933,8 +1974,8 @@ export default function ProfilePage() {
                                     }}
                                     style={{
                                         flex: 1, padding: 12, fontSize: 15, borderRadius: 8,
-                                        border: `1px solid ${C.border}`, background: '#ffffff',
-                                        color: '#000000', boxSizing: 'border-box', cursor: 'pointer',
+                                        border: `1px solid ${C.border}`, background: C.inputBg,
+                                        color: C.inputText, boxSizing: 'border-box', cursor: 'pointer',
                                     }}
                                 >
                                     <option value="">Month</option>
@@ -1953,8 +1994,8 @@ export default function ProfilePage() {
                                     }}
                                     style={{
                                         width: 80, padding: 12, fontSize: 15, borderRadius: 8,
-                                        border: `1px solid ${C.border}`, background: '#ffffff',
-                                        color: '#000000', boxSizing: 'border-box', cursor: 'pointer',
+                                        border: `1px solid ${C.border}`, background: C.inputBg,
+                                        color: C.inputText, boxSizing: 'border-box', cursor: 'pointer',
                                     }}
                                 >
                                     <option value="">Day</option>
@@ -1977,8 +2018,8 @@ export default function ProfilePage() {
                                     }}
                                     style={{
                                         width: 100, padding: 12, fontSize: 15, borderRadius: 8,
-                                        border: `1px solid ${C.border}`, background: '#ffffff',
-                                        color: '#000000', boxSizing: 'border-box', cursor: 'pointer',
+                                        border: `1px solid ${C.border}`, background: C.inputBg,
+                                        color: C.inputText, boxSizing: 'border-box', cursor: 'pointer',
                                     }}
                                 >
                                     <option value="">Year</option>
@@ -2017,11 +2058,10 @@ export default function ProfilePage() {
                             gameType="plo"
                             onChangeValue={updateField('favorite_hand_plo')}
                         />
-                    </div>
+                    </CollapsibleSection>
 
                     {/* HendonMob Integration / Poker Resume */}
-                    <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600, color: C.text }}>Poker Resume</h3>
+                    <CollapsibleSection id="sec-resume" title="Poker Resume" icon="\uD83C\uDFC6">
                         <p style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>
                             Link your Hendon Mob profile to automatically display your tournament stats.
                             Stats are synced directly from HendonMob.
@@ -2143,7 +2183,7 @@ export default function ProfilePage() {
                             }}
                             isRefreshing={isRefreshing}
                         />
-                    </div>
+                    </CollapsibleSection>
 
                     {/* Save + Discard Buttons */}
                     <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
