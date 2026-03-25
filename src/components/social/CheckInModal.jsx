@@ -26,10 +26,11 @@ export default function CheckInModal({ onSelect, onClose }) {
             async (pos) => {
                 try {
                     const { latitude, longitude } = pos.coords;
-                    const res = await fetch(`/api/poker/venues?lat=${latitude}&lng=${longitude}&radius=50&limit=8&sort=distance`);
+                    const res = await fetch(`/api/poker/venues?lat=${latitude}&lng=${longitude}&radius=80&limit=8`);
                     const data = await res.json();
                     const venues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-                    setNearbyVenues(venues);
+                    // Map distance_mi from venue API to distance for display
+                    setNearbyVenues(venues.map(v => ({ ...v, distance: v.distance_mi ?? v.distance ?? null })));
                 } catch { /* silent */ }
                 setGpsLoading(false);
             },
@@ -43,7 +44,7 @@ export default function CheckInModal({ onSelect, onClose }) {
         if (!q.trim()) { setResults([]); return; }
         setLoading(true);
         try {
-            const res = await fetch(`/api/poker/venues?q=${encodeURIComponent(q)}&limit=10`);
+            const res = await fetch(`/api/poker/venues?search=${encodeURIComponent(q)}&limit=10`);
             const data = await res.json();
             setResults(data?.data || data?.venues || (Array.isArray(data) ? data : []));
         } catch { setResults([]); }

@@ -72,6 +72,7 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import GiphyPicker from '../../../src/components/shared/GiphyPicker';
+import CheckInModal from '../../../src/components/social/CheckInModal';
 
 // Light Theme Colors (SmarterPoker-style)
 const C = {
@@ -853,6 +854,9 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     const [cursorPosition, setCursorPosition] = useState(0);
     // 🔗 LINK PREVIEW STATE - SmarterPoker-style auto-detect
     const [linkPreview, setLinkPreview] = useState(null); // { url, title, image, domain }
+    // 📍 CHECK-IN STATE
+    const [checkInVenue, setCheckInVenue] = useState(null);
+    const [showCheckInModal, setShowCheckInModal] = useState(false);
     const [linkLoading, setLinkLoading] = useState(false);
     const [showIdentityPicker, setShowIdentityPicker] = useState(false);
     const identityPickerRef = useRef(null);
@@ -1226,7 +1230,27 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
         }
         // DEBUG: log linkPreview before passing to parent
         const ok = await onPost(cleanContent, urls, type, mentions, linkPreview, postVisibility);
-        if (ok) { setContent(''); setMedia([]); setLinkPreview(null); try { localStorage.removeItem('sp-post-draft'); } catch {} }
+        if (ok) {
+            // 📍 If check-in venue selected, create venue_checkins record
+            if (checkInVenue) {
+                try {
+                    const token = await getAccessToken();
+                    if (token) {
+                        await fetch('/api/poker/checkins', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({
+                                venue_id: checkInVenue.id,
+                                user_name: user?.name || 'Player',
+                                message: cleanContent || null,
+                            }),
+                        });
+                    }
+                } catch (e) { console.warn('[CheckIn] Failed to record check-in:', e.message); }
+                setCheckInVenue(null);
+            }
+            setContent(''); setMedia([]); setLinkPreview(null); try { localStorage.removeItem('sp-post-draft'); } catch {}
+        }
         else setError('Unable to post at this time. Please try again later.');
     };
 
@@ -1544,6 +1568,21 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >Reels</Link>
                     <span style={{ color: '#BCC0C4' }}>·</span>
+                    <button
+                        onClick={() => setShowCheckInModal(true)}
+                        style={{
+                            padding: '6px 8px', borderRadius: 6,
+                            border: 'none', background: checkInVenue ? '#E7F3FF' : 'transparent', cursor: 'pointer',
+                            color: checkInVenue ? '#1877F2' : '#65676B', fontSize: 14, fontWeight: 600,
+                            transition: 'background 0.2s', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4,
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = checkInVenue ? '#D4E6FA' : '#F0F2F5'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = checkInVenue ? '#E7F3FF' : 'transparent'}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                        Check In
+                    </button>
+                    <span style={{ color: '#BCC0C4' }}>·</span>
                     <Link
                         href="/hub/friends"
                         style={{
@@ -1574,9 +1613,44 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                     <button onClick={() => setPostVisibility(v => v === 'public' ? 'friends' : 'public')} style={{ background: 'none', border: `1px solid ${C.border}`, borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 12, color: C.textSec, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }} title={postVisibility === 'public' ? 'Visible to everyone' : 'Visible to friends only'}>
                         {postVisibility === 'public' ? '🌐 Public' : '🔒 Friends'}
                     </button>
-                    <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview) ? 0.5 : 1, flex: 1 }}>Post</button>
+                    <button onClick={handlePost} disabled={isPosting || (!content.trim() && !media.length && !linkPreview && !checkInVenue)} style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', fontWeight: 600, cursor: 'pointer', opacity: isPosting || (!content.trim() && !media.length && !linkPreview && !checkInVenue) ? 0.5 : 1, flex: 1 }}>Post</button>
                 </div>
             </div>
+            {/* 📍 Check-In Venue Badge */}
+            {checkInVenue && (
+                <div style={{
+                    margin: '0 12px 8px', padding: '8px 12px', borderRadius: 8,
+                    background: '#E7F3FF', border: '1px solid #B8D4F0',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1877F2" strokeWidth="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#1877F2' }}>
+                        Checking in at {checkInVenue.name}
+                    </span>
+                    <button
+                        onClick={() => setCheckInVenue(null)}
+                        style={{
+                            border: 'none', background: 'none', cursor: 'pointer',
+                            color: '#65676B', fontSize: 16, padding: 0, lineHeight: 1,
+                        }}
+                    >×</button>
+                </div>
+            )}
+            {/* 📍 Check-In Modal */}
+            {showCheckInModal && (
+                <CheckInModal
+                    onSelect={(venue) => {
+                        setCheckInVenue(venue);
+                        // Auto-populate post content
+                        if (!content.trim()) {
+                            setContent(`Checked in at ${venue.name}${venue.city ? ` — ${venue.city}` : ''}${venue.state ? `, ${venue.state}` : ''}`);
+                        }
+                    }}
+                    onClose={() => setShowCheckInModal(false)}
+                />
+            )}
         </div>
     );
 }
