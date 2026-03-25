@@ -1421,6 +1421,8 @@ export default function NewsHub() {
                 />
 
                 <div className={`news-hub ${darkMode ? '' : 'light'}`}>
+                    {/* Scroll Progress Bar */}
+                    <div className="scroll-progress" style={{ width: `${scrollProgress}%` }} />
                     <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
 
                     {/* Hamburger Menu */}
@@ -1493,8 +1495,11 @@ export default function NewsHub() {
                         {/* Left Column - News Boxes */}
                         <main className="main-content">
                             {/* SMARTER.POKER NEWS Title */}
-                            <h1 style={{ textAlign: 'center', margin: '0 0 6px 0', padding: 0, fontSize: '1.6rem', fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase', color: '#5ef5f0', textShadow: '0 0 8px rgba(94,245,240,0.6), 0 0 20px rgba(94,245,240,0.3)', fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+                            <h1 style={{ textAlign: 'center', margin: '0 0 6px 0', padding: 0, fontSize: '1.6rem', fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase', color: '#5ef5f0', textShadow: '0 0 8px rgba(94,245,240,0.6), 0 0 20px rgba(94,245,240,0.3)', fontFamily: "'Inter', 'Segoe UI', sans-serif", position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%', gap: '8px' }}>
                                 SMARTER.POKER <span style={{ color: '#fff', textShadow: '0 0 8px rgba(255,255,255,0.4)' }}>NEWS</span>
+                                {newArticleCount > 0 && (
+                                    <span className="new-article-dot">{newArticleCount} new</span>
+                                )}
                             </h1>
 
                             {/* Auto-refresh indicator */}
@@ -1626,10 +1631,18 @@ export default function NewsHub() {
                                             </button>
                                         </div>
                                         {reels.length > 0 ? (
-                                            <div className="reels-carousel">
-                                                {reels.slice(0, 10).map((reel, idx) => (
-                                                    <ReelCard key={reel.id} reel={reel} onClick={() => openReelViewer(idx)} />
-                                                ))}
+                                            <div className="reels-carousel-wrapper">
+                                                <button className="carousel-arrow carousel-left" onClick={() => reelsCarouselRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}>
+                                                    <ChevronLeft size={20} />
+                                                </button>
+                                                <div className="reels-carousel" ref={reelsCarouselRef}>
+                                                    {reels.slice(0, 10).map((reel, idx) => (
+                                                        <ReelCard key={reel.id} reel={reel} onClick={() => openReelViewer(idx)} />
+                                                    ))}
+                                                </div>
+                                                <button className="carousel-arrow carousel-right" onClick={() => reelsCarouselRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}>
+                                                    <ChevronRight size={20} />
+                                                </button>
                                             </div>
                                         ) : (
                                             <p style={{ color: '#888', padding: '20px', textAlign: 'center' }}>Loading Reels...</p>
@@ -1705,7 +1718,7 @@ export default function NewsHub() {
                                 <ul className="trending-list">
                                     {trendingNews.map((article, i) => (
                                         <li key={article.id} onClick={() => openArticle(article)}>
-                                            <span className="rank">{i + 1}</span>
+                                            <span className={`rank ${i < 3 ? `medal-${i + 1}` : ''}`}>{i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1)}</span>
                                             <img
                                                 src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
                                                 alt=""
@@ -2299,6 +2312,123 @@ export default function NewsHub() {
                         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
                     }
 
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 2: SCROLL PROGRESS BAR */
+                    /* ═══════════════════════════════════════════════ */
+                    .scroll-progress {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        height: 3px;
+                        background: linear-gradient(90deg, #5ef5f0, #00d4ff);
+                        z-index: 99999;
+                        transition: width 0.1s linear;
+                        box-shadow: 0 0 8px rgba(94, 245, 240, 0.5);
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 2: SOURCE ACCENT LEFT STRIPE */
+                    /* ═══════════════════════════════════════════════ */
+                    .news-box::before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 4px;
+                        height: 100%;
+                        background: var(--src-accent, #5ef5f0);
+                        z-index: 101;
+                        border-radius: 16px 0 0 16px;
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 2: READING TIME BADGE */
+                    /* ═══════════════════════════════════════════════ */
+                    .read-time-badge {
+                        position: absolute;
+                        bottom: 12px;
+                        left: 12px;
+                        display: flex;
+                        align-items: center;
+                        gap: 3px;
+                        padding: 3px 7px;
+                        background: rgba(0, 0, 0, 0.75);
+                        backdrop-filter: blur(4px);
+                        border-radius: 6px;
+                        font-size: 10px;
+                        font-weight: 500;
+                        color: rgba(255, 255, 255, 0.8);
+                        z-index: 10;
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 2: ARTICLE EXCERPT */
+                    /* ═══════════════════════════════════════════════ */
+                    .box-excerpt {
+                        font-size: 11px;
+                        color: rgba(255, 255, 255, 0.45);
+                        margin: 2px 0 4px;
+                        line-height: 1.4;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 2: NEW ARTICLE NOTIFICATION DOT */
+                    /* ═══════════════════════════════════════════════ */
+                    .new-article-dot {
+                        font-size: 10px;
+                        font-weight: 700;
+                        padding: 2px 8px;
+                        background: #e53935;
+                        color: #fff;
+                        border-radius: 10px;
+                        letter-spacing: 0.5px;
+                        text-transform: uppercase;
+                        text-shadow: none;
+                        animation: pulse-badge 2s ease-in-out infinite;
+                    }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 2: REELS CAROUSEL ARROWS */
+                    /* ═══════════════════════════════════════════════ */
+                    .reels-carousel-wrapper {
+                        position: relative;
+                    }
+                    .carousel-arrow {
+                        position: absolute;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        width: 36px;
+                        height: 36px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: rgba(0, 0, 0, 0.7);
+                        backdrop-filter: blur(8px);
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        border-radius: 50%;
+                        color: #fff;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        z-index: 10;
+                    }
+                    .carousel-arrow:hover {
+                        background: rgba(94, 245, 240, 0.3);
+                        border-color: #5ef5f0;
+                    }
+                    .carousel-left { left: -12px; }
+                    .carousel-right { right: -12px; }
+
+                    /* ═══════════════════════════════════════════════ */
+                    /* PHASE 2: TRENDING MEDAL STYLING */
+                    /* ═══════════════════════════════════════════════ */
+                    .rank.medal-1, .rank.medal-2, .rank.medal-3 {
+                        font-size: 18px;
+                        line-height: 1;
+                    }
                     /* Layout */
                     .layout {
                         display: grid;
