@@ -235,6 +235,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [commentCounts, setCommentCounts] = useState({});
     const [saved, setSaved] = useState({});
     const [slideDir, setSlideDir] = useState(null);
+    const [captionExpanded, setCaptionExpanded] = useState(false);
     // GIF + Image state for reel comments
     const [showReelGifPicker, setShowReelGifPicker] = useState(false);
     const [reelCommentMediaUrl, setReelCommentMediaUrl] = useState(null);
@@ -524,6 +525,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setCommentText('');
         setShowOverlay(false);
         setProgress(0);
+        setCaptionExpanded(false);
         // Deduplicated view count — only fire once per reel per session
         const reelId = reels[currentIndex]?.id;
         if (reelId && !viewedReelsRef.current.has(reelId)) {
@@ -577,6 +579,22 @@ function ReelViewer({ reels, startIndex, onClose }) {
             if (e.key === 'm' || e.key === 'M') {
                 setMuted(prev => {
                     const next = !prev;
+                    // Send YouTube command via postMessage
+                    const iframe = containerRef.current?.querySelector('iframe');
+                    if (iframe?.contentWindow) {
+                        iframe.contentWindow.postMessage(JSON.stringify({
+                            event: 'command',
+                            func: next ? 'mute' : 'unMute',
+                            args: []
+                        }), '*');
+                        if (!next) {
+                            iframe.contentWindow.postMessage(JSON.stringify({
+                                event: 'command',
+                                func: 'setVolume',
+                                args: [100]
+                            }), '*');
+                        }
+                    }
                     localStorage.setItem('reel-muted', String(next));
                     return next;
                 });
@@ -654,6 +672,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 }}
             >✕</button>
 
+            {/* Reel position counter */}
+            <div style={{
+                position: 'absolute', top: 24, left: '50%', transform: 'translateX(-50%)',
+                color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 500,
+                zIndex: 10, pointerEvents: 'none',
+            }}>{currentIndex + 1} / {reels.length}</div>
+
             {/* Reel container - FULLSCREEN TikTok-style */}
             <div style={{
                 width: '100vw', height: '100vh',
@@ -664,7 +689,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                         <iframe
                             key={currentReel.id}
-                            src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&rel=0&modestbranding=1&playsinline=1&controls=1&showinfo=0&iv_load_policy=3&fs=0&disablekb=0&cc_load_policy=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+                            src={`https://www.youtube-nocookie.com/embed/${getYouTubeVideoId(currentReel.video_url)}?autoplay=1&rel=0&modestbranding=1&playsinline=1&controls=1&showinfo=0&iv_load_policy=3&fs=0&disablekb=0&cc_load_policy=0&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
                             style={{ width: '100%', height: '100%', border: 'none' }}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
@@ -691,10 +716,27 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     />
                 )}
 
-                {/* Preload next video */}
-                {reels[currentIndex + 1]?.video_url && !isYouTubeUrl(reels[currentIndex + 1].video_url) && (
-                    <link rel="preload" href={reels[currentIndex + 1].video_url} as="video" />
-                )}
+                {/* Preload next video — hidden iframe for YouTube, link preload for native */}
+                {reels[currentIndex + 1]?.video_url && (() => {
+                    const nextUrl = reels[currentIndex + 1].video_url;
+                    if (isYouTubeUrl(nextUrl)) {
+                        const nextVid = getYouTubeVideoId(nextUrl);
+                        return nextVid ? (
+                            <>
+                                <img src={`https://img.youtube.com/vi/${nextVid}/hqdefault.jpg`} style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} alt="" />
+                                <iframe
+                                    src={`https://www.youtube-nocookie.com/embed/${nextVid}?autoplay=0&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
+                                    title="Preload"
+                                    style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                                    tabIndex={-1}
+                                    aria-hidden="true"
+                                />
+                            </>
+                        ) : null;
+                    } else {
+                        return <link rel="preload" href={nextUrl} as="video" />;
+                    }
+                })()}
 
                 {/* Author overlay */}
                 <div style={{
@@ -718,11 +760,21 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             </div>
                         </div>
                     </Link>
-                    {currentReel.caption && (
-                        <p style={{ color: 'white', fontSize: 14, margin: 0, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
-                            {currentReel.caption}
-                        </p>
-                    )}
+                    {currentReel.caption && (() => {
+                        const MAX_LEN = 100;
+                        const isLong = currentReel.caption.length > MAX_LEN;
+                        return (
+                            <p style={{ color: 'white', fontSize: 14, margin: 0, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+                                {captionExpanded || !isLong ? currentReel.caption : `${currentReel.caption.slice(0, MAX_LEN)}...`}
+                                {isLong && (
+                                    <span
+                                        onClick={(e) => { e.stopPropagation(); setCaptionExpanded(!captionExpanded); }}
+                                        style={{ color: 'rgba(255,255,255,0.6)', cursor: 'pointer', marginLeft: 4, fontSize: 13 }}
+                                    >{captionExpanded ? ' Less' : ' See More'}</span>
+                                )}
+                            </p>
+                        );
+                    })()}
                 </div>
 
                 {/* Bottom Overlay — tap to reveal, auto-hides after 2s */}
@@ -957,16 +1009,51 @@ export function ReelsFeedCarousel() {
     const loadReels = async () => {
         setLoading(true);
         try {
-            const { data } = await supabase
+            const allReels = [];
+
+            // Fetch from social_reels
+            const { data: reelsData } = await supabase
                 .from('social_reels')
                 .select(`
-                    *,
+                    id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public,
                     profiles:author_id (id, username, avatar_url, full_name)
                 `)
+                .eq('is_public', true)
                 .order('created_at', { ascending: false })
                 .limit(20);
+            if (reelsData) allReels.push(...reelsData);
 
-            if (data) setReels(data);
+            // Also fetch social_posts with YouTube URLs
+            const { data: postsData } = await supabase
+                .from('social_posts')
+                .select('id, author_id, content, media_urls, like_count, comment_count, created_at, visibility')
+                .eq('visibility', 'public')
+                .not('media_urls', 'is', null)
+                .order('created_at', { ascending: false })
+                .limit(30);
+            const ytPosts = (postsData || []).filter(p => {
+                const url = p.media_urls?.[0];
+                return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+            });
+            if (ytPosts.length > 0) {
+                const authorIds = [...new Set(ytPosts.map(p => p.author_id))];
+                const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url, full_name').in('id', authorIds);
+                const pm = {}; (profiles || []).forEach(p => { pm[p.id] = p; });
+                const existingIds = new Set(allReels.map(r => r.id));
+                ytPosts.forEach(p => {
+                    if (!existingIds.has(p.id)) {
+                        allReels.push({
+                            id: p.id, author_id: p.author_id,
+                            video_url: p.media_urls[0], caption: p.content,
+                            like_count: p.like_count || 0, comment_count: p.comment_count || 0,
+                            view_count: 0, created_at: p.created_at,
+                            profiles: pm[p.author_id] || { username: 'Anonymous' },
+                        });
+                    }
+                });
+            }
+
+            setReels(allReels);
         } catch (e) {
             console.error('Load reels error:', e);
         }
