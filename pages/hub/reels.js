@@ -208,7 +208,7 @@ export default function ReelsPage() {
             // Load from social_posts (posts with YouTube videos in media_urls)
             const { data: postsData } = await supabase
                 .from('social_posts')
-                .select('id, author_id, content, media_urls, like_count, comment_count, view_count, created_at, visibility')
+                .select('id, author_id, content, media_urls, like_count, comment_count, created_at, visibility')
                 .eq('visibility', 'public')
                 .not('media_urls', 'is', null)
                 .order('created_at', { ascending: false })
@@ -248,7 +248,7 @@ export default function ReelsPage() {
                         caption: post.content,
                         like_count: post.like_count || 0,
                         comment_count: post.comment_count || 0,
-                        view_count: post.view_count || 0,
+                        view_count: 0,
                         created_at: post.created_at,
                         source: 'posts'
                     })));
@@ -343,7 +343,7 @@ export default function ReelsPage() {
             const offset = nextPage * 50;
             const { data: postsData } = await supabase
                 .from('social_posts')
-                .select('id, author_id, content, media_urls, like_count, comment_count, view_count, created_at, visibility')
+                .select('id, author_id, content, media_urls, like_count, comment_count, created_at, visibility')
                 .eq('visibility', 'public')
                 .not('media_urls', 'is', null)
                 .order('created_at', { ascending: false })
@@ -360,7 +360,7 @@ export default function ReelsPage() {
                 const pm = {}; (profiles || []).forEach(p => { pm[p.id] = p; });
                 const mapped = videos.map(v => ({
                     id: v.id, video_url: v.media_urls[0], caption: v.content,
-                    like_count: v.like_count || 0, comment_count: v.comment_count || 0, view_count: v.view_count || 0,
+                    like_count: v.like_count || 0, comment_count: v.comment_count || 0, view_count: 0,
                     created_at: v.created_at, profiles: pm[v.author_id] || { username: 'Anonymous' },
                 }));
                 setReels(prev => [...prev, ...mapped]);
