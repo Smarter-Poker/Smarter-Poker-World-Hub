@@ -1,0 +1,17 @@
+{
+  "venue": "Turning Stone",
+  "slug": "turning-stone-verona",
+  "url": "https://www.pokeratlas.com/poker-room/turning-stone-verona",
+  "data": {
+    "address": "5218 Patrick Road",
+    "city": "Verona",
+    "state": "NY",
+    "phone": "(315) 361-8676",
+    "lat": 43.11505,
+    "lng": -75.58864,
+    "website": "http://turningstone.com/"
+  },
+  "hash": "162b950a556d457340c9f44cf5baadcb246a6ad8e5d98c66a583ef18f3c94dd5",
+  "ts": "2026-03-25T19:19:25.105252+00:00",
+  "batch": "20a913b4-06fd-4dd8-b6e7-2608ec6c22da"
+}

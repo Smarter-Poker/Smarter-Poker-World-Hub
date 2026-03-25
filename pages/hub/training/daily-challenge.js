@@ -14,9 +14,36 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
-import Card, { parseCards } from '../../../src/components/training/Card';
+import Card, { parseCards, getCardImagePath } from '../../../src/components/training/Card';
 import { authedFetch, getAuthUser } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+
+/**
+ * Convert abstract hand notation (A5s, KK, K5o) OR specific (Ah5s) to card objects.
+ * Falls back to parseCards for specific notation with explicit suits.
+ */
+function handToCards(hand) {
+    if (!hand) return [];
+    // If hand has 4+ chars and every other char is a suit letter, use parseCards
+    if (hand.length >= 4 && /^[AKQJT2-9][hdsc][AKQJT2-9][hdsc]$/i.test(hand.slice(0, 4))) {
+        return parseCards(hand);
+    }
+    // Abstract notation: "AA", "AKs", "K5o"
+    if (hand.length === 2) {
+        // Pair: "AA", "KK"
+        return [{ rank: hand[0], suit: 'h' }, { rank: hand[1], suit: 's' }];
+    }
+    if (hand.length === 3) {
+        const r1 = hand[0], r2 = hand[1], flag = hand[2];
+        if (flag === 's') {
+            return [{ rank: r1, suit: 's' }, { rank: r2, suit: 's' }];
+        }
+        return [{ rank: r1, suit: 'h' }, { rank: r2, suit: 'd' }];
+    }
+    // Fallback: try parseCards
+    const parsed = parseCards(hand);
+    return parsed.length > 0 ? parsed : [];
+}
 
 
 const DAILY_CHALLENGE_DIAMOND_REWARD = 25;
@@ -656,7 +683,7 @@ export default function DailyChallengePage() {
                       YOUR HAND
                     </div>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
-                      {parseCards(heroHand).map((c, i) => (
+                      {handToCards(heroHand).map((c, i) => (
                         <Card key={i} rank={c.rank} suit={c.suit} size="small" />
                       ))}
                     </div>
