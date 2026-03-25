@@ -1998,10 +1998,7 @@ export default function ProfilePage() {
 
                     {/* Poker Info */}
                     <CollapsibleSection id="sec-poker" title="Poker Info" icon="♠️">
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                            <ProfileField label="Favorite Game" value={profile.favorite_game} onChange={updateField('favorite_game')} placeholder="No Limit Hold'em" icon="" />
-                            <ProfileField label="Birth Year" value={profile.birth_year} onChange={updateField('birth_year')} placeholder="1990" icon="🎂" />
-                        </div>
+                        <ProfileField label="Favorite Game" value={profile.favorite_game} onChange={updateField('favorite_game')} placeholder="No Limit Hold'em" icon="" />
 
                         {/* Birthday — Dropdown Selectors */}
                         <div style={{ marginTop: 16 }}>
@@ -2043,8 +2040,8 @@ export default function ProfilePage() {
                                     }}
                                     style={{
                                         width: 80, padding: 12, fontSize: 15, borderRadius: 8,
-                                        border: `1px solid ${C.border}`, background: C.inputBg,
-                                        color: C.inputText, boxSizing: 'border-box', cursor: 'pointer',
+                                        border: `1px solid ${C.border}`, background: '#ffffff',
+                                        color: '#000000', boxSizing: 'border-box', cursor: 'pointer',
                                     }}
                                 >
                                     <option value="">Day</option>
@@ -2067,8 +2064,8 @@ export default function ProfilePage() {
                                     }}
                                     style={{
                                         width: 100, padding: 12, fontSize: 15, borderRadius: 8,
-                                        border: `1px solid ${C.border}`, background: C.inputBg,
-                                        color: C.inputText, boxSizing: 'border-box', cursor: 'pointer',
+                                        border: `1px solid ${C.border}`, background: '#ffffff',
+                                        color: '#000000', boxSizing: 'border-box', cursor: 'pointer',
                                     }}
                                 >
                                     <option value="">Year</option>
