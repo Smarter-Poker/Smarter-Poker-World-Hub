@@ -661,7 +661,7 @@ function HomeCasinoSelector({ value, onChange }) {
             {showDropdown && suggestions.length > 0 && (
                 <div style={{
                     position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-                    background: '#ffffff', border: `1px solid ${C.border}`,
+                    background: C.card, border: `1px solid ${C.border}`,
                     borderRadius: 8, overflow: 'hidden', zIndex: 100,
                     maxHeight: 240, overflowY: 'auto',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
@@ -1592,7 +1592,9 @@ export default function ProfilePage() {
                                 const cacheKey = `sp-profile-cache-${profile.username}`;
                                 localStorage.removeItem(cacheKey);
                                 broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
+                                broadcastSync('smarter_poker_avatar_sync', 'refresh');
                             } catch { /* noop */ }
+                            busEmit.dataMutated('profile');
                         }}
                     />
                 )}
@@ -2115,6 +2117,17 @@ export default function ProfilePage() {
                                             hendon_biggest_cash: dbData.biggest_cash,
                                         }));
                                         busEmit.dataMutated('profile');
+                                        // Dispatch profile-updated + cache invalidation for cross-tab sync
+                                        if (typeof window !== 'undefined') {
+                                            window.dispatchEvent(new CustomEvent('profile-updated', {
+                                                detail: { hendon_total_cashes: dbData.total_cashes, hendon_total_earnings: dbData.total_earnings }
+                                            }));
+                                        }
+                                        try {
+                                            const cacheKey = `sp-profile-cache-${profile.username}`;
+                                            localStorage.removeItem(cacheKey);
+                                            broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
+                                        } catch { /* noop */ }
                                         setMessage('✅ Stats refreshed successfully!');
                                         setIsRefreshing(false);
                                         return;
@@ -2174,6 +2187,17 @@ export default function ProfilePage() {
                                             hendon_biggest_cash: postData.biggest_cash,
                                         }));
                                         busEmit.dataMutated('profile');
+                                        // Dispatch profile-updated + cache invalidation for cross-tab sync
+                                        if (typeof window !== 'undefined') {
+                                            window.dispatchEvent(new CustomEvent('profile-updated', {
+                                                detail: { hendon_total_cashes: postData.total_cashes, hendon_total_earnings: postData.total_earnings }
+                                            }));
+                                        }
+                                        try {
+                                            const cacheKey = `sp-profile-cache-${profile.username}`;
+                                            localStorage.removeItem(cacheKey);
+                                            broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
+                                        } catch { /* noop */ }
                                         setMessage('✅ Stats saved successfully! Your Poker Resume is now live.');
                                     } else {
                                         setMessage(`❌ ${postData.error || 'Could not save stats.'}`);
