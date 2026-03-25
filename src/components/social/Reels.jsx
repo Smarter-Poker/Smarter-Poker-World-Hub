@@ -197,7 +197,7 @@ export function ReelsViewer({ onClose }) {
             const { data } = await supabase
                 .from('social_reels')
                 .select(`
-                    *,
+                    id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public,
                     profiles:author_id (id, username, avatar_url, full_name)
                 `)
                 .eq('is_public', true)

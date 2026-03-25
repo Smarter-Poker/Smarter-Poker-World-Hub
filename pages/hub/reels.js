@@ -51,6 +51,7 @@ export default function ReelsPage() {
     const [reels, setReels] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [muted, setMuted] = useState(true); // MUST be true for autoplay to work
     const [userWantsSound, setUserWantsSound] = useState(false); // localStorage preference
     // Auto-play immediately - no tap required since videos are muted (browser policy compliant)
@@ -295,9 +296,20 @@ export default function ReelsPage() {
             }
         } catch (e) {
             console.error('Load reels error:', e);
+            setLoadError(true);
         }
         setLoading(false);
     };
+
+    // Deep-link: if ?id= is in URL, scroll to that reel after load
+    useEffect(() => {
+        if (reels.length > 0 && router.query.id) {
+            const targetIdx = reels.findIndex(r => r.id === router.query.id);
+            if (targetIdx >= 0 && targetIdx !== currentIndex) {
+                setCurrentIndex(targetIdx);
+            }
+        }
+    }, [reels.length, router.query.id]);
 
 
     const currentReel = reels[currentIndex];
@@ -599,7 +611,18 @@ export default function ReelsPage() {
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goNext();
             if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') goPrev();
             if (e.key === 'Escape') router.push('/hub/social-media');
-            if (e.key === 'm' || e.key === 'M') setMuted(prev => !prev);
+            if (e.key === 'm' || e.key === 'M') {
+                setMuted(prev => {
+                    const next = !prev;
+                    if (next) {
+                        sendYouTubeCommand('mute');
+                    } else {
+                        sendYouTubeCommand('unMute');
+                        sendYouTubeCommand('setVolume', [100]);
+                    }
+                    return next;
+                });
+            }
             if (e.key === 'l' || e.key === 'L') { handleLikeRef.current?.(); haptic(15); }
             if (e.key === 's' || e.key === 'S') handleSaveRef.current?.();
             if (e.key === 'c' || e.key === 'C') handleCommentRef.current?.();
@@ -827,6 +850,35 @@ export default function ReelsPage() {
                         </div>
                     </div>
                     <style jsx>{`@keyframes shimmer { to { background-position-x: -200%; } }`}</style>
+                </div>
+            </>
+        );
+    }
+
+    if (loadError && !reels.length) {
+        return (
+            <>
+                <Head><title>Reels | Smarter Poker</title></Head>
+                <div style={{
+                    position: 'fixed', inset: 0, background: C.bg,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <h1 style={{ color: C.text, fontSize: 24, fontWeight: 700, marginTop: 16, marginBottom: 8 }}>
+                        Failed To Load Reels
+                    </h1>
+                    <p style={{ color: C.textSec, fontSize: 14, marginBottom: 24, textAlign: 'center', maxWidth: 280 }}>
+                        Check your connection and try again.
+                    </p>
+                    <button
+                        onClick={() => { setLoadError(false); loadReels(); }}
+                        style={{
+                            padding: '12px 32px',
+                            background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)',
+                            color: 'white', borderRadius: 8, fontWeight: 600, border: 'none',
+                            cursor: 'pointer', fontSize: 15,
+                        }}
+                    >Try Again</button>
                 </div>
             </>
         );

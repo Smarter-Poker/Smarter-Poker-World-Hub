@@ -317,7 +317,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             eventBus.off(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
             eventBus.off(EventType.SOCIAL_COMMENT_ADDED, handleCommentBus);
         };
-    }, []);
+    }, [authUser?.id]);
 
     // Initialize counts from reel data
     useEffect(() => {
@@ -414,6 +414,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const handleToggleComments = async () => {
         const opening = !showComments;
         setShowComments(opening);
+        // Always fetch fresh comments when opening
         if (opening && currentReel?.id) {
             try {
                 const { data } = await supabase
