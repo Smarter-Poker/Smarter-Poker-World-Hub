@@ -13,6 +13,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { getAuthUser } from '../lib/authUtils';
 
 const ActiveIdentityContext = createContext({
     activeIdentity: { mode: 'personal', clubPage: null },
@@ -50,11 +51,11 @@ export function ActiveIdentityProvider({ children }) {
     useEffect(() => {
         const detectClubPage = async () => {
             try {
-                // ── Step 1: Get userId from Supabase session ──
-                // Use getSession() (reads localStorage) instead of getUser() (network call) 
-                // to avoid AbortError storm from navigator.locks killing the request
-                const _aic_session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-                const userId = _aic_session?.user?.id || null;
+                // ── Step 1: Get userId from localStorage (AbortError-immune) ──
+                // Uses the proven getAuthUser() utility which reads smarter-poker-auth
+                // with 3-level fallback (explicit key → legacy sb-* keys → cached header user)
+                const authUser = getAuthUser();
+                const userId = authUser?.id || null;
 
                 if (!userId) return; // Not logged in, nothing to detect
 

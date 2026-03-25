@@ -3,7 +3,7 @@
  */
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
@@ -46,7 +46,13 @@ export default function CreateSocialPage() {
         is_public: true,
         allow_member_posts: true,
         require_post_approval: false,
+        slug: '',
     });
+
+    // Custom URL slug checking
+    const [slugStatus, setSlugStatus] = useState(null);
+    const [slugError, setSlugError] = useState('');
+    const slugTimerRef = useRef(null);
 
     const { user, checking: authChecking } = useRequireAuth('/hub/social-pages/create');
     useTrainingBus('social-pages-create');
@@ -64,13 +70,16 @@ export default function CreateSocialPage() {
 
         try {
             const token = getAccessToken();
+            const body = { ...form, owner_id: user.id };
+            // Only send slug if user explicitly set one
+            if (!body.slug || !body.slug.trim()) delete body.slug;
             const res = await fetch('/api/social/pages', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ ...form, owner_id: user.id }),
+                body: JSON.stringify(body),
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
@@ -233,6 +242,96 @@ export default function CreateSocialPage() {
                                     </div>
                                 </div>
 
+                                {/* Custom URL (Optional) */}
+                                <div>
+                                    <label style={labelStyle}>Custom URL (Optional)</label>
+                                    <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 6px' }}>
+                                        Leave blank for an auto-generated URL
+                                    </p>
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: 0,
+                                        border: `1px solid ${slugStatus === 'available' ? '#42B72A' : slugStatus === 'taken' || slugStatus === 'invalid' ? '#FA383E' : C.border}`,
+                                        borderRadius: 8, overflow: 'hidden', background: C.bg,
+                                        transition: 'border-color 0.2s',
+                                    }}>
+                                        <span style={{
+                                            padding: '10px 10px 10px 12px', fontSize: 12, color: C.textSec,
+                                            whiteSpace: 'nowrap', background: '#E4E6EB', borderRight: `1px solid ${C.border}`,
+                                            fontWeight: 500,
+                                        }}>
+                                            smarter.poker/.../
+                                        </span>
+                                        <input
+                                            type="text"
+                                            value={form.slug}
+                                            onChange={e => {
+                                                const raw = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').substring(0, 60);
+                                                update('slug', raw);
+                                                setSlugStatus(null);
+                                                setSlugError('');
+                                                if (slugTimerRef.current) clearTimeout(slugTimerRef.current);
+                                                if (raw.length >= 3) {
+                                                    setSlugStatus('checking');
+                                                    slugTimerRef.current = setTimeout(async () => {
+                                                        try {
+                                                            const res = await fetch(`/api/social/pages/check-slug?slug=${encodeURIComponent(raw)}`);
+                                                            const json = await res.json();
+                                                            if (json.success) {
+                                                                setSlugStatus(json.available ? 'available' : 'taken');
+                                                                setSlugError(json.error || '');
+                                                                if (json.formatted && json.formatted !== raw) {
+                                                                    update('slug', json.formatted);
+                                                                }
+                                                            }
+                                                        } catch {
+                                                            setSlugStatus(null);
+                                                        }
+                                                    }, 500);
+                                                } else if (raw.length > 0) {
+                                                    setSlugStatus('invalid');
+                                                    setSlugError('Must be at least 3 characters');
+                                                }
+                                            }}
+                                            placeholder="my-poker-club"
+                                            style={{
+                                                flex: 1, padding: '10px 12px', border: 'none', fontSize: 14,
+                                                fontFamily: 'inherit', outline: 'none', background: 'transparent',
+                                                color: C.text, minWidth: 0,
+                                            }}
+                                        />
+                                        <div style={{ padding: '0 10px', display: 'flex', alignItems: 'center' }}>
+                                            {slugStatus === 'checking' && (
+                                                <div style={{
+                                                    width: 14, height: 14, borderRadius: '50%',
+                                                    border: `2px solid ${C.border}`, borderTopColor: C.blue,
+                                                    animation: 'spin 0.6s linear infinite',
+                                                }} />
+                                            )}
+                                            {slugStatus === 'available' && (
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#42B72A" strokeWidth="3">
+                                                    <polyline points="20 6 9 17 4 12" />
+                                                </svg>
+                                            )}
+                                            {(slugStatus === 'taken' || slugStatus === 'invalid') && (
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FA383E" strokeWidth="3">
+                                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {slugError && (
+                                        <p style={{ fontSize: 11, marginTop: 4, marginBottom: 0, color: '#FA383E', fontWeight: 500 }}>
+                                            {slugError}
+                                        </p>
+                                    )}
+                                    {slugStatus === 'available' && (
+                                        <p style={{ fontSize: 11, marginTop: 4, marginBottom: 0, color: '#42B72A', fontWeight: 500 }}>
+                                            Available: smarter.poker/hub/social-pages/{form.slug}
+                                        </p>
+                                    )}
+                                </div>
+
                                 {/* Settings */}
                                 <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
                                     <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 12px' }}>Settings</h3>
@@ -266,10 +365,10 @@ export default function CreateSocialPage() {
                                     ))}
                                 </div>
 
-                                <button onClick={handleSubmit} disabled={submitting} style={{
+                                <button onClick={handleSubmit} disabled={submitting || slugStatus === 'taken' || slugStatus === 'invalid'} style={{
                                     width: '100%', padding: '12px 0', borderRadius: 8, border: 'none',
-                                    background: submitting ? '#CCD0D5' : C.blue, color: '#fff',
-                                    fontSize: 15, fontWeight: 700, cursor: submitting ? 'default' : 'pointer',
+                                    background: (submitting || slugStatus === 'taken' || slugStatus === 'invalid') ? '#CCD0D5' : C.blue, color: '#fff',
+                                    fontSize: 15, fontWeight: 700, cursor: (submitting || slugStatus === 'taken' || slugStatus === 'invalid') ? 'default' : 'pointer',
                                     fontFamily: 'inherit', marginTop: 8,
                                 }}>
                                     {submitting ? 'Creating...' : 'Create Page'}
@@ -279,6 +378,9 @@ export default function CreateSocialPage() {
                     </div>
                 </div>
             </div>
+            <style jsx global>{`
+                @keyframes spin { to { transform: rotate(360deg); } }
+            `}</style>
         </>
     );
 }

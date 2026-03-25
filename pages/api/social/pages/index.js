@@ -10,6 +10,7 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { requireAuth } from '../../../../src/lib/auth-middleware';
+import { formatSlug, validateSlug } from './check-slug';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
@@ -203,14 +204,30 @@ export default async function handler(req, res) {
           const { name, page_type, description, category, avatar_url, cover_url,
               website, contact_email, phone, location_city, location_state,
               linked_venue_id, is_public, allow_member_posts, require_post_approval,
-              metadata } = req.body;
+              metadata, slug: rawSlug } = req.body;
           const owner_id = authUser.id;
 
           if (!name || !page_type) {
               return res.status(400).json({ success: false, error: 'name and page_type are required' });
           }
 
-          const slug = generateSlug(name);
+          // Custom slug: validate if provided, otherwise auto-generate
+          let slug;
+          if (rawSlug && rawSlug.trim()) {
+              slug = formatSlug(rawSlug);
+              const validation = validateSlug(slug);
+              if (!validation.valid) {
+                  return res.status(400).json({ success: false, error: validation.error });
+              }
+              // Check uniqueness
+              const { data: existing } = await getSupabase()
+                  .from('social_pages').select('id').eq('slug', slug).maybeSingle();
+              if (existing) {
+                  return res.status(409).json({ success: false, error: 'This custom URL is already taken' });
+              }
+          } else {
+              slug = generateSlug(name);
+          }
           const referralCode = slug.substring(0, 20) + '-' + Math.random().toString(36).substring(2, 6);
 
           const { data, error } = await getSupabase()
@@ -304,12 +321,34 @@ export default async function handler(req, res) {
           // Verify ownership and get existing data for change detection
           const { data: existing } = await getSupabase()
               .from('social_pages')
-              .select('owner_id, name, avatar_url, cover_url, description, location_city, location_state, page_type, metadata')
+              .select('owner_id, name, slug, avatar_url, cover_url, description, location_city, location_state, page_type, metadata')
               .eq('id', id)
               .maybeSingle();
 
           if (!existing || existing.owner_id !== owner_id) {
               return res.status(403).json({ success: false, error: 'Not authorized' });
+          }
+
+          // Validate custom slug if being updated
+          if (updates.slug !== undefined) {
+              if (updates.slug && updates.slug.trim()) {
+                  updates.slug = formatSlug(updates.slug);
+                  const validation = validateSlug(updates.slug);
+                  if (!validation.valid) {
+                      return res.status(400).json({ success: false, error: validation.error });
+                  }
+                  // Check uniqueness (exclude this page)
+                  if (updates.slug !== existing.slug) {
+                      const { data: slugTaken } = await getSupabase()
+                          .from('social_pages').select('id').eq('slug', updates.slug).neq('id', id).maybeSingle();
+                      if (slugTaken) {
+                          return res.status(409).json({ success: false, error: 'This custom URL is already taken' });
+                      }
+                  }
+              } else {
+                  // Don't allow setting slug to empty
+                  delete updates.slug;
+              }
           }
 
           const { data, error } = await getSupabase()
