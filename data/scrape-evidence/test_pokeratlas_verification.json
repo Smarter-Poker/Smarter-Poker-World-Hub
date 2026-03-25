@@ -1,0 +1,13 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T16:28:52.871240+00:00",
+    "scrape_html_hash": "eef826590a6377b0872454464516da2892d8c13b7640abba6a297dc44d7473cc",
+    "scrape_byte_count": 47622,
+    "scrape_script": "test_scrapling_e2e.py"
+  },
+  "test_type": "e2e_verification",
+  "page_title_found": true,
+  "body_preview": "<!DOCTYPE html> <html lang=\"en\">   <head>     <title>Poker Room Tournaments, Series, Special Events Schedules &amp; Listings</title> <meta name=\"description\" content=\"Visit PokerAtlas for details on e"
+}
