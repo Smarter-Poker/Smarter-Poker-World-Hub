@@ -124,10 +124,10 @@ async function fetchWithRetry(url, options = {}, maxRetries = 3) {
   throw lastError;
 }
 
-// ─── Pod → Feature mapping ───
 const POD_FEATURES = {
   search: { title: 'Search Venues', tab: 'venues' },
   nearme: { title: 'Near Me', tab: 'nearnow' },
+  homegames: { title: 'Home Games', tab: 'homegames' },
   livegames: { title: 'Live Games', tab: 'live' },
   mapview: { title: 'Map View', tab: 'map' },
   tours: { title: 'Tours', tab: 'tours' },
@@ -959,6 +959,51 @@ export default function PokerNearMeLobby() {
               >
                 {loading ? 'Loading...' : 'Load More Venues'}
               </button>
+            )}
+          </div>
+        );
+        break;
+
+      case 'homegames':
+        component = (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Home Games</span>
+              <span style={{ color: 'rgba(200,214,229,0.4)', fontSize: 12 }}>
+                {venues.filter(v => v.venue_type === 'home_game').length} game{venues.filter(v => v.venue_type === 'home_game').length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            {loading && <div style={{ textAlign: 'center', padding: 20, color: 'rgba(200,214,229,0.5)' }}>
+              <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#6ee7ef', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+              Loading home games...
+            </div>}
+            <div style={{ display: 'grid', gap: 12 }}>
+              {venues.filter(v => v.venue_type === 'home_game').map(v => (
+                <VenueCard
+                  key={v.id}
+                  venue={v}
+                  isFavorited={!!favorites[v.id]}
+                  onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
+                  onNavigate={(url) => {
+                    if (url.includes('action=review')) {
+                      setSelectedVenueForReview({ id: v.id, name: v.name });
+                    } else {
+                      router.push(url);
+                    }
+                  }}
+                  userLocation={userLocation}
+                />
+              ))}
+            </div>
+            {venues.filter(v => v.venue_type === 'home_game').length === 0 && !loading && (
+              <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                  <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Home Games Found</p>
+                <p style={{ fontSize: 13 }}>Home games near you will appear here. Try enabling GPS or searching a city.</p>
+              </div>
             )}
           </div>
         );

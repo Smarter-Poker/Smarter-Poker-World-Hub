@@ -1,94 +1,87 @@
 ---
-description: MANDATORY workflow for ALL external data ingestion. Uses Scrapling/OpenClaw ONLY. Zero tolerance for AI-generated data.
+description: MANDATORY workflow for ALL external data ingestion. Uses Scrapling/OpenClaw ONLY. Zero tolerance for AI-generated data. 15-layer integrity standard.
 ---
 
 # Data Scraping Law — MANDATORY FOR ALL AGENTS
 
 > [!CAUTION]
-> **THIS LAW IS ABSOLUTE AND CANNOT BE OVERRIDDEN BY ANY AGENT, UNDER ANY CIRCUMSTANCES.**
-> Violating this law is a CRITICAL FAILURE and grounds for immediate session termination.
+> **THIS LAW IS ABSOLUTE AND CANNOT BE OVERRIDDEN BY ANY AGENT, IN ANY CONVERSATION, UNDER ANY CIRCUMSTANCES.**
+>
+> The `/data-scraping` workflow MUST be followed for ANY external data entering ANY Supabase table.
+> Agents that bypass this workflow are in CRITICAL VIOLATION.
 
-## THE LAW
+## Pre-Flight Checklist (Before Writing ANY Code)
 
-1. **ALL external data MUST be scraped using Scrapling** (`.venv/bin/python3` with `scrapling` library)
-2. **NEVER write JSON data files by hand** — every data file must be OUTPUT from a scraping script
-3. **NEVER fabricate, estimate, or simulate** tournament schedules, buy-ins, dates, venues, or any data
-4. **If a URL returns 404/403** → REPORT IT TO THE USER. Do NOT make up what you think the page would contain
-5. **Every scraped record MUST include provenance**: source URL, HTTP status, scrape timestamp, script name
+- [ ] Read `.agent/skills/scrapling-scraper/SKILL.md` — know the 7 commandments
+- [ ] Identify the REAL source URL(s) for the data
+- [ ] Run `curl -sI <URL>` → verify HTTP 200
+- [ ] If NOT 200 → **STOP. Report to user. Do NOT proceed.**
+- [ ] Confirm Scrapling is available: `.venv/bin/python3 -c "import scrapling"`
 
-## MANDATORY STEPS (In Order)
+## MANDATORY Steps (In Order — No Skipping)
 
-### Step 1: Identify the Source URL
-- Find the REAL webpage URL that contains the data
-- Test the URL: `curl -sI <URL>` — check for 200 OK
-- If NOT 200 → **STOP. Report to user. Do NOT proceed.**
+### Step 1: Verify Source URL
+```bash
+# turbo
+curl -sI "https://source-url.com" | head -5
+```
+- **200 OK** → Proceed to Step 2
+- **404/403/500** → **STOP. Report: "[URL] returns [status]. Data cannot be scraped."**
+- **NEVER proceed past this step if URL is not 200**
 
 ### Step 2: Write a Scrapling Script
-```python
-#!/usr/bin/env python3
-"""Scrape [WHAT] from [WHERE] — REAL DATA ONLY"""
-import asyncio, json, sys
-from scrapling.fetchers import AsyncStealthySession
-
-async def scrape(url):
-    async with AsyncStealthySession(headless=True, solve_cloudflare=True) as session:
-        page = await session.fetch(url)
-        if page.status != 200:
-            print(f'FAILED: HTTP {page.status} for {url}')
-            return None
-        body = page.body.decode('utf-8', errors='ignore')
-        # Parse REAL data from the page using CSS selectors
-        # ...
-        return {'source_url': url, 'http_status': page.status, 'data': [...]}
-```
+- Use the mandatory template from `SKILL.md` (includes provenance capture)
+- Script MUST output: `scrape_url`, `scrape_http_status`, `scrape_timestamp`, `scrape_html_hash`
+- Script MUST save evidence to `data/scrape-evidence/`
+- Script MUST use `.venv/bin/python3` with Scrapling
 
 ### Step 3: Execute the Scraper
 // turbo
 ```bash
-/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.venv/bin/python3 scripts/<scraper>.py
+/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.venv/bin/python3 scripts/<scraper>.py "<url>"
+```
+- Capture stdout/stderr
+- Verify output JSON has provenance fields
+- If scraper fails → debug and retry, do NOT hand-write output
+
+### Step 4: Anti-Hallucination Check
+Run these checks on the output (ALL must pass):
+- [ ] Less than 90% of buy-in values are round numbers
+- [ ] Records have varying timestamps (not all identical)
+- [ ] Source URL confirmed 200 OK
+- [ ] Event names are specific (not generic `$X NLH` pattern)
+- [ ] At least some optional fields are null (real data has gaps)
+
+### Step 5: Pre-Seed Verification
+- Fetch the source URL again independently
+- Spot-check 3 random records against the live page HTML
+- If ANY record doesn't match → reject the entire batch
+
+### Step 6: Seed to Supabase (With Provenance)
+- Every record MUST include: `data_quality = 'scraped_verified'`
+- Every record MUST include: `scrape_url`, `scrape_timestamp`, `scrape_html_hash`
+- Log to `data_audit_log` table with full scrape proof
+
+### Step 7: Commit with Provenance
+```
+git commit -m "Scraped [N] [records] from [URL] (HTTP 200) via Scrapling — [hash]"
 ```
 
-### Step 4: Verify Output
-- Check the scraper output JSON has `source_url` and `http_status: 200`
-- Verify the data matches what's visible on the webpage
-- Sample 3-5 records and spot-check against the live site
+## What To Do When Source URLs Are NOT Available
 
-### Step 5: Seed to Supabase
-- Only seed data from verified scraper output
-- Include `scrape_source`, `scrape_timestamp` in every row
-
-### Step 6: Commit with Provenance
-- Commit message MUST include: URLs scraped, record count, HTTP statuses
-- Example: `"Scraped 45 events from pokeratlas.com (HTTP 200) via Scrapling"`
-
-## RED FLAGS — Signs of AI-Generated Data
-
-If you see ANY of these in a data file, it is FAKE and must be rejected:
-
-| Red Flag | Example |
-|----------|---------|
-| 97%+ round buy-in numbers | $400, $600, $1,100 |
-| All files have same timestamp | `last_updated: 2026-01-26` |
-| Source URL returns 404 | `wsop.com/2026/` → 404 |
-| Uniform event naming | `$X NLH`, `$X Deep Stack` pattern |
-| No HTML artifacts in data | Real scraped data is messy |
-| No scraper output file exists | The script was never run |
-
-## Scrapling Environment
-
-```bash
-# Python venv with Scrapling installed:
-/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.venv/bin/python3
-
-# Verify:
-.venv/bin/python3 -c "import scrapling; print(f'Scrapling v{scrapling.__version__}')"
-```
-
-## What To Do When Source URLs Don't Exist
-
-Many tour schedules are published in waves. If a URL returns 404:
-
-1. **Report to user**: "The 2026 WSOP schedule has not been published yet on wsop.com"
-2. **Check alternatives**: PokerAtlas, CardPlayer, HendonMob often aggregate published schedules
-3. **Only scrape what exists**: If only 20 events are published, scrape 20 — do NOT fill in the other 67
+1. **Report honestly**: "The 2026 WSOP schedule has not been published on wsop.com"
+2. **Check alternatives**: PokerAtlas, CardPlayer, HendonMob
+3. **Only include confirmed data**: If only 10 events are published, scrape 10
 4. **Set `data_quality = 'pending'`** for tours that haven't published yet
+5. **NEVER** fabricate what you think the schedule will look like
+
+## Things That Are NEVER Acceptable
+
+| Action | Why It's Forbidden |
+|--------|-------------------|
+| Writing a JSON file by hand | Fabricated data, regardless of accuracy |
+| Citing a URL that returns 404 as a source | Fraudulent provenance |
+| Using "AI knowledge" of tournament schedules | AI knowledge ≠ verified data |
+| Filling gaps with estimated values | Missing data > fake data |
+| Seeding data without `scrape_html_hash` | No cryptographic proof |
+| Skipping Step 1 (URL verification) | The entire pipeline depends on this |

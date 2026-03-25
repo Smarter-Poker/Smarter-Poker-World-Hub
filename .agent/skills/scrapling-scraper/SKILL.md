@@ -5,42 +5,66 @@ description: Cloudflare-bypassing web scraper using Scrapling + camoufox. Use th
 
 # Scrapling Web Scraper Skill
 
-## MANDATORY LAW: REAL DATA ONLY
+## MANDATORY LAW: REAL DATA ONLY — 15-LAYER INTEGRITY STANDARD
 
-> **THIS LAW IS ABSOLUTE AND CANNOT BE OVERRIDDEN**
+> **THIS LAW IS ABSOLUTE AND CANNOT BE OVERRIDDEN BY ANY AGENT, IN ANY CONVERSATION, UNDER ANY CIRCUMSTANCES.**
 >
-> 1. **ONLY extract data that is EXPLICITLY LABELED on the source page.**
->    Every value must trace to a labeled element (e.g., `<span class="label">Total Earnings</span><span>$123,456</span>`).
+> **Violating this law is a CRITICAL FAILURE. There are ZERO exceptions.**
+
+### The 7 Commandments
+> 1. **ONLY extract data that is EXPLICITLY PRESENT on the source page.**
+>    Every value must trace to a real HTML element found via CSS selector or regex on the live page.
 >
-> 2. **NEVER guess, assume, infer, or simulate any scraped value.**
->    If a stat is not found with its exact label on the page, it MUST be reported as `null`.
+> 2. **NEVER guess, assume, infer, estimate, or simulate any scraped value.**
+>    If a data point is not found on the page, it MUST be reported as `null`.
 >
-> 3. **NEVER use "fallback" logic** that picks arbitrary values
+> 3. **NEVER use "fallback" logic** that picks arbitrary values.
 >    (e.g., "find the largest dollar amount on the page" is FORBIDDEN).
 >
-> 4. **NEVER manually insert or hardcode scraped values.**
->    All data must come from the live scrape. If the scraper can't find it, report it as missing.
+> 4. **NEVER manually write or hand-craft JSON data files.**
+>    All data files must be OUTPUT from an executed Scrapling script. Hand-written data = fabricated data.
 >
-> 5. **If data cannot be scraped, REPORT IT and move on.**
->    Display "—" in the UI for missing data. Never fill gaps with fake values.
+> 5. **If a URL returns non-200, STOP and REPORT to the user.**
+>    Do NOT proceed. Do NOT invent what you think the page would contain. Report it and move on.
 >
-> **Violating this law corrupts user data and destroys platform trust.**
+> 6. **Every record MUST include cryptographic provenance:**
+>    `scrape_url`, `scrape_http_status`, `scrape_timestamp`, `scrape_html_hash` (SHA-256), `scrape_script`
+>
+> 7. **If data cannot be scraped, display "—" or "Not yet published" in the UI.**
+>    Never fill gaps with AI-generated values. Missing data is infinitely better than fake data.
+>
+> **Violating this law corrupts user data, destroys platform trust, and is grounds for session termination.**
+
+### Red Flags — Signs of AI-Generated Data (AUTO-REJECT)
+| Signal | Why It's Suspicious |
+|--------|-------------------|
+| 97%+ round buy-in numbers ($400, $600, $1,100) | Real schedules have irregular amounts ($375, $565, $1,125) |
+| All records have identical timestamps | Real scrapes happen over seconds/minutes |
+| Source URL returns 404 | The page doesn't exist — data was fabricated |
+| Uniform event naming (`$X NLH`, `$X Deep Stack`) | Real events have unique, specific names |
+| No HTML artifacts in extracted text | Real scraped data has encoding quirks |
+| Perfect field completeness (100% filled) | Real data always has gaps |
+| Sequential numbering with no gaps | Real schedules have scheduling irregularities |
 
 ---
 
 ## Overview
-This skill provides a production-ready web scraping capability using **Scrapling** with **camoufox** (undetectable Firefox-based browser). It can bypass Cloudflare Turnstile CAPTCHAs and other anti-bot protections.
+This skill provides production-ready web scraping using **Scrapling** with **camoufox** (undetectable Firefox-based browser). It bypasses Cloudflare Turnstile CAPTCHAs and other anti-bot protections.
 
 ## When to Use This Skill
-- When you need to scrape data from a website that returns **403 Forbidden**
-- When Cloudflare **Turnstile CAPTCHA** blocks automated access
-- When CORS proxies are also blocked
-- When `fetch()`, `axios`, or server-side requests consistently fail
+- When you need to scrape data from a website
+- When Cloudflare or anti-bot systems block access
+- When `fetch()`, `axios`, or server-side requests fail
+- **ALWAYS** for any external data ingestion (per `/data-scraping` workflow)
 
 ## Prerequisites
-The Scrapling Python environment is pre-installed at:
-```
-/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.venv/
+```bash
+# Python venv with Scrapling installed:
+/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.venv/bin/python3
+
+# Verify:
+.venv/bin/python3 -c "import scrapling; print(f'Scrapling v{scrapling.__version__}')"
+# Expected: Scrapling v0.4.2
 ```
 
 ### Installed packages:
@@ -97,6 +121,70 @@ asyncio.run(scrape())
 
 > **CRITICAL**: For `StealthySession`, always use `page.body` instead of `page.text`.
 
+## Mandatory Scraper Template (With Full Provenance)
+
+```python
+#!/usr/bin/env python3
+"""
+Scrape [WHAT] from [WHERE] — REAL DATA ONLY
+Outputs: JSON with full cryptographic provenance per Layer 1
+"""
+import asyncio, hashlib, json, sys
+from datetime import datetime, timezone
+
+SCRIPT_NAME = __file__
+
+async def scrape(url):
+    from scrapling.fetchers import AsyncStealthySession
+    
+    async with AsyncStealthySession(headless=True, solve_cloudflare=True) as session:
+        page = await session.fetch(url, google_search=False)
+        
+        # LAYER 1: Capture provenance
+        raw_body = page.body
+        provenance = {
+            'scrape_url': url,
+            'scrape_http_status': page.status,
+            'scrape_timestamp': datetime.now(timezone.utc).isoformat(),
+            'scrape_html_hash': hashlib.sha256(raw_body).hexdigest(),
+            'scrape_byte_count': len(raw_body),
+            'scrape_script': SCRIPT_NAME,
+        }
+        
+        if page.status != 200:
+            print(f'FAILED: HTTP {page.status} for {url}')
+            print(f'PROVENANCE: {json.dumps(provenance)}')
+            return None
+        
+        body = raw_body.decode('utf-8', errors='ignore')
+        
+        # EXTRACT ONLY what is explicitly on the page
+        records = []
+        # ... CSS selector parsing here ...
+        
+        # Attach provenance to every record
+        for r in records:
+            r.update(provenance)
+        
+        return {
+            'provenance': provenance,
+            'records': records,
+            'record_count': len(records),
+        }
+
+if __name__ == '__main__':
+    url = sys.argv[1] if len(sys.argv) > 1 else None
+    if not url:
+        print('Usage: .venv/bin/python3 script.py <URL>')
+        sys.exit(1)
+    result = asyncio.run(scrape(url))
+    if result:
+        print(json.dumps(result, indent=2))
+        # Save evidence
+        with open(f'data/scrape-evidence/{SCRIPT_NAME}_{int(datetime.now().timestamp())}.json', 'w') as f:
+            json.dump(result, f, indent=2)
+```
+
 ## Existing Implementation: HendonMob Scraper
 
 ```bash
@@ -109,54 +197,6 @@ SUPABASE_SERVICE_ROLE_KEY="<key>" \
 # ALL linked users
 SUPABASE_SERVICE_ROLE_KEY="<key>" \
   .venv/bin/python3 scripts/hendon_scraper_scrapling.py --all
-```
-
-## Building a New Scraper
-
-### Template (Real Data Only)
-```python
-#!/usr/bin/env python3
-"""
-REAL DATA ONLY — Never guess, assume, or simulate values.
-Only extract explicitly labeled data from the source page.
-"""
-import asyncio, re, json
-
-async def scrape_site(url):
-    from scrapling.fetchers import AsyncStealthySession
-    
-    async with AsyncStealthySession(headless=True, solve_cloudflare=True) as session:
-        page = await session.fetch(url, google_search=False)
-        
-        if page.status != 200:
-            print(f'Failed: {page.status}')
-            return None
-        
-        body = page.body.decode('utf-8', errors='ignore')
-        data = {}
-        
-        # ONLY extract explicitly labeled values:
-        label_pairs = re.findall(
-            r'<span[^>]*label[^>]*>(.*?)</span>\s*(?:<[^>]*>\s*)*<span[^>]*>(.*?)</span>',
-            body, re.DOTALL | re.IGNORECASE
-        )
-        for raw_label, raw_value in label_pairs:
-            label = re.sub(r'<[^>]+>', '', raw_label).strip()
-            value = re.sub(r'<[^>]+>', '', raw_value).strip()
-            if label and value:
-                data[label] = value
-        
-        # Report what was NOT found
-        if not data:
-            print('WARNING: No labeled data found on page')
-        
-        return data
-
-if __name__ == '__main__':
-    import sys
-    url = sys.argv[1] if len(sys.argv) > 1 else 'https://example.com'
-    result = asyncio.run(scrape_site(url))
-    print(json.dumps(result, indent=2))
 ```
 
 ## Constraints

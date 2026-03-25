@@ -19,16 +19,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 const GRID_HOTSPOTS = [
   // Row 1
   { id: 'nearme', label: 'Poker Near Me' },
-  { id: 'search', label: 'Find Games' },
+  { id: 'homegames', label: 'Home Games' },
   { id: 'livegames', label: 'Live Games' },
   { id: 'tours', label: 'Poker Tours' },
   // Row 2
   { id: 'mapview', label: 'Map View' },
   { id: 'calendar', label: 'Calendar' },
   { id: 'series', label: 'Poker Series' },
-  { id: 'daily', label: 'Daily Grind' },
-  // Row 3
   { id: 'roadtrip', label: 'Trip Planner' },
+  // Row 3
+  { id: 'daily', label: 'Daily Grind' },
   { id: 'favorites', label: 'Saved Venues' },
   { id: 'social', label: 'Friends' },
   { id: 'alerts', label: 'Tournament Alerts' },
@@ -273,7 +273,7 @@ export default function LobbyOverlay({
         <div style={{ position: 'relative', maxWidth: 900, width: '100%' }}>
           {/* The user's exact dynamic image */}
           <img
-            src="/images/lobby-pods/poker-near-me-grid.jpg"
+            src="/images/lobby-pods/poker-near-me-grid.png"
             alt="Poker Near Me Feature Grid"
             style={{
               width: '100%',
