@@ -605,11 +605,14 @@ export default function ReelsPage() {
     handleSaveRef.current = handleSave;
     handleCommentRef.current = handleComment;
 
-    // Keyboard navigation
     useEffect(() => {
         const handleKey = (e) => {
-            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goNext();
-            if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') goPrev();
+            // Don't intercept keyboard while typing in an input/textarea
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') slideToNextRef.current();
+            if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') slideToPrevRef.current();
             if (e.key === 'Escape') router.push('/hub/social-media');
             if (e.key === 'm' || e.key === 'M') {
                 setMuted(prev => {
@@ -629,7 +632,7 @@ export default function ReelsPage() {
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, [currentIndex, router]);
+    }, [router]);
 
     // Use refs to avoid stale closures in event handlers
     const currentIndexRef = useRef(currentIndex);
@@ -738,9 +741,6 @@ export default function ReelsPage() {
                 if (data?.info?.currentTime !== undefined && data?.info?.duration) {
                     const pct = (data.info.currentTime / data.info.duration) * 100;
                     setVideoProgress(Math.min(100, Math.max(0, pct)));
-                }
-                if (data?.info?.playerState === 0) {
-                    slideToNextRef.current();
                 }
             } catch {}
         };

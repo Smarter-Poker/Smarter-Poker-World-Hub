@@ -572,7 +572,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
     // Keyboard navigation
     useEffect(() => {
         const handleKey = (e) => {
-            if (showComments && e.target.tagName === 'INPUT') return;
+            // Don't intercept keyboard while typing in an input/textarea
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
             if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { setSlideDir('up'); goNext(); }
             if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { setSlideDir('down'); goPrev(); }
             if (e.key === 'Escape') { if (showComments) setShowComments(false); else onClose(); }
