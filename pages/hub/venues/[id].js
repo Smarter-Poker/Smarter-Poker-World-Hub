@@ -1200,6 +1200,62 @@ export default function VenueDetailPage() {
               </section>
             )}
 
+            {/* Last Scraped Badge */}
+            {venue.last_scraped && (
+              <div className="last-scraped-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                Data Last Updated: {new Date(venue.last_scraped).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
+            )}
+
+            {/* Venue News & Updates Section */}
+            {venue.venue_news && venue.venue_news.length > 0 && (
+              <section className="venue-news-section">
+                <h2 className="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                    <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+                    <path d="M18 14h-8" />
+                    <path d="M15 18h-5" />
+                    <path d="M10 6h8v4h-8V6Z" />
+                  </svg>
+                  News &amp; Updates
+                  <span className="live-count-badge" style={{ background: 'rgba(0, 212, 255, 0.12)', color: '#00D4FF', borderColor: '#00D4FF40' }}>{venue.venue_news.length}</span>
+                </h2>
+                <div className="venue-news-grid">
+                  {venue.venue_news.map(function (article, idx) {
+                    return (
+                      <div key={article.id || idx} className="venue-news-card">
+                        {article.image_url && (
+                          <div className="news-card-image" style={{ backgroundImage: 'url(' + article.image_url + ')' }} />
+                        )}
+                        <div className="news-card-content">
+                          <h3 className="news-card-title">{article.title}</h3>
+                          {article.content && (
+                            <p className="news-card-excerpt">{article.content.length > 150 ? article.content.substring(0, 150) + '...' : article.content}</p>
+                          )}
+                          <div className="news-card-footer">
+                            {article.published_at && (
+                              <span className="news-card-date">
+                                {new Date(article.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                            )}
+                            {article.source_url && (
+                              <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="news-card-source">
+                                Source
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* ============================================ */}
             {/* WAITLIST BOARD SECTION (Bravo column layout) */}
             {/* ============================================ */}
@@ -2496,6 +2552,85 @@ export default function VenueDetailPage() {
           text-decoration: none;
         }
         .pa-link:hover {
+          text-decoration: underline;
+        }
+
+        /* Last Scraped Badge */
+        .last-scraped-badge {
+          max-width: 900px;
+          margin: 12px auto 0;
+          padding: 8px 16px;
+          font-size: 12px;
+          color: #22c55e;
+          background: rgba(34, 197, 94, 0.06);
+          border: 1px solid rgba(34, 197, 94, 0.2);
+          border-radius: 8px;
+          text-align: center;
+          font-weight: 500;
+        }
+
+        /* Venue News Section */
+        .venue-news-section {
+          max-width: 900px;
+          margin: 32px auto 0;
+          padding: 0 24px;
+        }
+        .venue-news-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 16px;
+        }
+        .venue-news-card {
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          overflow: hidden;
+          transition: border-color 0.2s, transform 0.2s;
+        }
+        .venue-news-card:hover {
+          border-color: rgba(0, 212, 255, 0.25);
+          transform: translateY(-2px);
+        }
+        .news-card-image {
+          width: 100%;
+          height: 140px;
+          background-size: cover;
+          background-position: center;
+          background-color: rgba(255, 255, 255, 0.03);
+        }
+        .news-card-content {
+          padding: 16px;
+        }
+        .news-card-title {
+          font-size: 15px;
+          font-weight: 600;
+          color: #f1f5f9;
+          margin: 0 0 8px;
+          line-height: 1.35;
+        }
+        .news-card-excerpt {
+          font-size: 13px;
+          color: #94a3b8;
+          line-height: 1.5;
+          margin: 0 0 12px;
+        }
+        .news-card-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+        .news-card-date {
+          font-size: 12px;
+          color: #64748b;
+        }
+        .news-card-source {
+          font-size: 12px;
+          color: #00D4FF;
+          font-weight: 600;
+          text-decoration: none;
+        }
+        .news-card-source:hover {
           text-decoration: underline;
         }
 

@@ -607,16 +607,71 @@ export default async function handler(req, res) {
               venues.sort((a, b) => a.distance_km - b.distance_km);
           }
 
-          // --- Single venue by ID: attach daily tournament schedules ---
+          // --- Single venue by ID: attach daily tournament schedules + venue news ---
           if (id && venues.length > 0) {
               const venue = venues[0];
-              const tournamentMatch = findDailyTournaments(venue.name, venue.city, venue.state);
 
-              if (tournamentMatch) {
-                  venue.daily_tournaments = tournamentMatch.schedules || [];
-                  venue.daily_tournaments_source = tournamentMatch.source_url || null;
-              } else {
-                  venue.daily_tournaments = [];
+              // === LIVE DB FIRST: Query Supabase venue_daily_tournaments ===
+              let usedLiveData = false;
+              try {
+                  const { data: liveTourn, error: ltErr } = await getSupabase()
+                      .from('venue_daily_tournaments')
+                      .select('*')
+                      .eq('venue_id', parseInt(id, 10))
+                      .eq('is_active', true)
+                      .order('day_of_week')
+                      .limit(100);
+
+                  if (!ltErr && liveTourn && liveTourn.length > 0) {
+                      // Transform flat DB rows into the grouped format the frontend expects
+                      // Frontend expects: venue.daily_tournaments = [{ source_url, schedules: [{day_of_week, start_time, buy_in, ...}] }]
+                      const sourceUrl = liveTourn[0].source_url || null;
+                      venue.daily_tournaments = [{
+                          source_url: sourceUrl,
+                          schedules: liveTourn.map(t => ({
+                              day_of_week: t.day_of_week,
+                              start_time: t.start_time,
+                              tournament_name: t.tournament_name,
+                              buy_in: t.buy_in,
+                              rebuy_addon: t.rebuy_addon,
+                              starting_stack: t.starting_stack,
+                              blind_levels: t.blind_levels,
+                              game_type: t.game_type,
+                              format: t.format,
+                              guaranteed: t.guaranteed,
+                          })),
+                      }];
+                      venue.daily_tournaments_source = sourceUrl;
+                      venue.last_scraped = liveTourn[0].last_scraped || null;
+                      usedLiveData = true;
+                  }
+              } catch (dbErr) {
+                  console.warn('[venues] Live tournament DB query failed, using static fallback:', dbErr.message);
+              }
+
+              // === STATIC JSON FALLBACK ===
+              if (!usedLiveData) {
+                  const tournamentMatch = findDailyTournaments(venue.name, venue.city, venue.state);
+                  if (tournamentMatch) {
+                      venue.daily_tournaments = tournamentMatch.schedules || [];
+                      venue.daily_tournaments_source = tournamentMatch.source_url || null;
+                  } else {
+                      venue.daily_tournaments = [];
+                  }
+              }
+
+              // === VENUE NEWS from Supabase ===
+              try {
+                  const { data: newsData } = await getSupabase()
+                      .from('venue_news')
+                      .select('id, title, content, source_url, image_url, published_at, scraped_at')
+                      .eq('venue_id', parseInt(id, 10))
+                      .eq('is_active', true)
+                      .order('scraped_at', { ascending: false })
+                      .limit(10);
+                  venue.venue_news = newsData || [];
+              } catch (newsErr) {
+                  venue.venue_news = [];
               }
 
               return res.status(200).json({

@@ -1342,13 +1342,30 @@ export const ChatWindow = ({
             const sb = await getSupabase();
             if (!sb) return;
 
-            const fileExt = file.name.split('.').pop();
+            // Client-side image compression for large images
+            let uploadFile = file;
+            if (file.type.startsWith('image/') && file.type !== 'image/gif' && file.size > 500 * 1024) {
+                try {
+                    const bitmap = await createImageBitmap(file);
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 1200;
+                    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+                    canvas.width = bitmap.width * scale;
+                    canvas.height = bitmap.height * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.82));
+                    uploadFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+                } catch { uploadFile = file; }
+            }
+
+            const fileExt = uploadFile.name.split('.').pop();
             const fileName = `${conversationId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
             const bucketName = 'messenger_media';
 
             const { error } = await sb.storage
                 .from(bucketName)
-                .upload(fileName, file, { cacheControl: '3600', upsert: false });
+                .upload(fileName, uploadFile, { cacheControl: '3600', upsert: false });
 
             if (error) {
                 console.error('[Messenger] File upload failed:', error.message);
@@ -1359,8 +1376,8 @@ export const ChatWindow = ({
                 .from(bucketName)
                 .getPublicUrl(fileName);
 
-            if (file.type.startsWith('image/')) {
-                 onSend?.('', { image: publicUrl, file: { name: file.name, size: (file.size / 1024).toFixed(1) + ' KB', type: file.type } });
+            if (uploadFile.type.startsWith('image/')) {
+                 onSend?.('', { image: publicUrl, file: { name: file.name, size: (uploadFile.size / 1024).toFixed(1) + ' KB', type: uploadFile.type } });
             } else if (file.type.startsWith('video/')) {
                  onSend?.('', { video: publicUrl, file: { name: file.name, size: (file.size / 1024).toFixed(1) + ' KB', type: file.type } });
             } else {
@@ -2573,6 +2590,18 @@ export const ChatWindow = ({
                             value={inputText}
                             onChange={(e) => { handleInputChange(e); const ac = svc.getAutoComplete?.(e.target.value); setAutoCompleteSuggestions(ac || []); }}
                             onKeyPress={handleKeyPress}
+                            onPaste={(e) => {
+                                const items = e.clipboardData?.items;
+                                if (!items) return;
+                                for (const item of items) {
+                                    if (item.type.startsWith('image/')) {
+                                        e.preventDefault();
+                                        const file = item.getAsFile();
+                                        if (file) handleFileUpload({ target: { files: [file] } });
+                                        return;
+                                    }
+                                }
+                            }}
                         />
                         <span style={{ position: 'relative', display: 'inline-flex' }}>
                             <input

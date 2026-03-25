@@ -799,29 +799,6 @@ export default function ProfilePage() {
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [profile, originalProfile]);
 
-    // Award diamonds and XP for profile actions
-    const awardProfileReward = async (reason, diamonds, xp) => {
-        if (!user) return;
-        try {
-            // Award diamonds via diamond_ledger insert
-            if (diamonds > 0) {
-                await supabase.from('diamond_ledger').insert({
-                    user_id: user.id,
-                    amount: diamonds,
-                    type: 'earn',
-                    source: reason,
-                    description: `Profile: ${reason}`
-                });
-            }
-            // Award XP by updating profiles
-            if (xp > 0) {
-                await supabase.rpc('fn_add_xp', { p_user_id: user.id, p_amount: xp });
-            }
-        } catch (e) {
-            console.error('Reward error:', e);
-        }
-    };
-
     useEffect(() => {
         const fetchUser = async () => {
             try {
@@ -1088,6 +1065,7 @@ export default function ProfilePage() {
 
     const handleCoverPhotoUpload = async (e) => {
         const file = e.target.files?.[0];
+        e.target.value = ''; // Reset input so same file can be re-selected
         if (!file || !user) return;
         if (file.size > MAX_UPLOAD_SIZE) {
             setMessage('Error: Cover photo too large (max 5MB). Please choose a smaller image.');
@@ -1141,6 +1119,7 @@ export default function ProfilePage() {
             });
             if (!coverSaveRes.ok) {
                 const errText = await coverSaveRes.text();
+                setCoverUploadPhase(null);
                 setMessage('Error saving cover photo: ' + errText);
                 console.error('Save error:', errText);
                 return;
@@ -2535,6 +2514,10 @@ export default function ProfilePage() {
                                                                     l.id === live.id ? { ...l, is_posted: true, is_draft: false } : l
                                                                 ));
                                                                 setMessage('Live stream posted to your feed!');
+                                                                busEmit.dataMutated('social');
+                                                                try {
+                                                                    broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey: 'social-feed', action: 'invalidate', ts: Date.now() });
+                                                                } catch { /* noop */ }
                                                             } catch (e) {
                                                                 console.error('Error posting live stream:', e);
                                                                 setMessage('Error posting live stream: ' + (e.message || 'Unknown error'));
@@ -2560,6 +2543,11 @@ export default function ProfilePage() {
                                                                     });
                                                                     if (!delRes.ok) throw new Error(await delRes.text());
                                                                     setUserLives(prev => prev.filter(l => l.id !== live.id));
+                                                                    setMessage('Live stream deleted.');
+                                                                    busEmit.dataMutated('social');
+                                                                    try {
+                                                                        broadcastSync('smarter_poker_cache_sync', { type: 'cache_sync', cacheKey: 'social-feed', action: 'invalidate', ts: Date.now() });
+                                                                    } catch { /* noop */ }
                                                                 } catch (e) {
                                                                     console.error('Error deleting live stream:', e);
                                                                     setMessage('Error deleting live stream: ' + (e.message || 'Unknown error'));
