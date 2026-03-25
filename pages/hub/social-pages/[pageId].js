@@ -408,6 +408,9 @@ export default function SocialPageDetail() {
     const [notifyEnabled, setNotifyEnabled] = useState(false);
     const [togglingNotify, setTogglingNotify] = useState(false);
 
+    // Media lightbox
+    const [lightboxMedia, setLightboxMedia] = useState(null); // { list, index }
+
     // Toast notification system
     const [toastMsg, setToastMsg] = useState(null);
     const toastTimerRef = useRef(null);
@@ -526,7 +529,7 @@ export default function SocialPageDetail() {
 
     // Tab from URL query (#deep linking)
     useEffect(() => {
-        if (router.query.tab && ['posts','about','members','reviews','games'].includes(router.query.tab)) {
+        if (router.query.tab && ['posts','about','members','reviews','games','media'].includes(router.query.tab)) {
             setActiveTab(router.query.tab);
         }
     }, [router.query.tab]);
@@ -918,8 +921,22 @@ export default function SocialPageDetail() {
                 <div style={{
                     height: 200, background: page.cover_url
                         ? `url(${page.cover_url}) center/cover` : `linear-gradient(135deg, ${pageColor}, #8b5cf6)`,
-                    paddingTop: 56,
-                }} />
+                    paddingTop: 56, position: 'relative',
+                }}>
+                    {isPageOwner && (
+                        <button onClick={() => router.push(`/hub/social-pages/${pageId}/manage`)} style={{
+                            position: 'absolute', bottom: 12, right: 12, padding: '6px 14px', borderRadius: 8,
+                            background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', fontSize: 12,
+                            fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', backdropFilter: 'blur(4px)',
+                            display: 'flex', alignItems: 'center', gap: 4,
+                        }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
+                            </svg>
+                            Edit Cover
+                        </button>
+                    )}
+                </div>
 
                 {/* Page Info Header */}
                 <div style={{ background: C.card, borderBottom: `1px solid ${C.border}` }}>
@@ -1033,7 +1050,7 @@ export default function SocialPageDetail() {
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: 0, borderTop: `1px solid ${C.border}` }}>
-                            {['posts', 'about', 'members', 'reviews', 'games'].map(t => (
+                            {['posts', 'about', 'members', 'reviews', 'games', 'media'].map(t => (
                                 <button key={t} onClick={() => setActiveTab(t)} style={{
                                     padding: '12px 16px', border: 'none', background: 'none',
                                     fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
@@ -1479,6 +1496,39 @@ export default function SocialPageDetail() {
                                     )}
                                 </div>
                             )}
+
+                            {/* Media Gallery Tab */}
+                            {activeTab === 'media' && (() => {
+                                const allMedia = posts.flatMap(p => (p.media_urls || []).map(url => ({ url, postId: p.id, author: p.author, created_at: p.created_at })));
+                                return (
+                                    <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 20 }}>
+                                        <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px' }}>
+                                            Media {allMedia.length > 0 && `(${allMedia.length})`}
+                                        </h2>
+                                        {allMedia.length === 0 ? (
+                                            <div style={{ textAlign: 'center', padding: 30 }}>
+                                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CCD0D5" strokeWidth="1.5">
+                                                    <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
+                                                </svg>
+                                                <p style={{ fontSize: 14, color: C.textSec, marginTop: 12 }}>No media shared yet.</p>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, borderRadius: 8, overflow: 'hidden' }}>
+                                                {allMedia.map((m, i) => (
+                                                    <div key={i} onClick={() => setLightboxMedia({ list: allMedia, index: i })} style={{
+                                                        aspectRatio: '1', cursor: 'pointer', overflow: 'hidden', position: 'relative',
+                                                    }}>
+                                                        <img src={m.url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.2s' }}
+                                                            onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
+                                                            onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         {/* Sidebar */}
@@ -1749,6 +1799,44 @@ export default function SocialPageDetail() {
                       </div>
                   </div>
               )}
+
+              {/* Lightbox Modal */}
+              {lightboxMedia && (() => {
+                  const { list, index } = lightboxMedia;
+                  const item = list[index];
+                  return (
+                      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onClick={() => setLightboxMedia(null)}>
+                          {/* Close */}
+                          <button onClick={() => setLightboxMedia(null)} style={{
+                              position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', border: 'none',
+                              borderRadius: '50%', width: 40, height: 40, cursor: 'pointer', color: '#fff', fontSize: 20, zIndex: 2,
+                          }}>&times;</button>
+                          {/* Prev */}
+                          {index > 0 && (
+                              <button onClick={e => { e.stopPropagation(); setLightboxMedia({ list, index: index - 1 }); }} style={{
+                                  position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)',
+                                  background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+                                  width: 44, height: 44, cursor: 'pointer', color: '#fff', fontSize: 22, zIndex: 2,
+                              }}>&lsaquo;</button>
+                          )}
+                          {/* Image */}
+                          <img src={item?.url} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 8 }} />
+                          {/* Next */}
+                          {index < list.length - 1 && (
+                              <button onClick={e => { e.stopPropagation(); setLightboxMedia({ list, index: index + 1 }); }} style={{
+                                  position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
+                                  background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+                                  width: 44, height: 44, cursor: 'pointer', color: '#fff', fontSize: 22, zIndex: 2,
+                              }}>&rsaquo;</button>
+                          )}
+                          {/* Counter */}
+                          <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', color: '#fff', fontSize: 14, fontWeight: 600 }}>
+                              {index + 1} / {list.length}
+                          </div>
+                      </div>
+                  );
+              })()}
 
               {/* Report Modal (#6) */}
               {showReportModal && (

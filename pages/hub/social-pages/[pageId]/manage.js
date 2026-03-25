@@ -537,9 +537,31 @@ export default function ManageSocialPage() {
                                                 <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
                                                     {m.profile?.full_name || m.profile?.username || 'Unknown'}
                                                 </div>
-                                                <div style={{ fontSize: 12, color: C.textSec, textTransform: 'capitalize' }}>
-                                                    {m.role}
-                                                </div>
+                                                {m.role === 'owner' ? (
+                                                    <div style={{ fontSize: 12, color: C.blue, fontWeight: 600 }}>Owner</div>
+                                                ) : (
+                                                    <select value={m.role || 'follower'} onChange={async (e) => {
+                                                        const newRole = e.target.value;
+                                                        try {
+                                                            const token = getAccessToken();
+                                                            await fetch('/api/social/pages/follow', {
+                                                                method: 'PUT',
+                                                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                                                body: JSON.stringify({ page_id: page.id, follower_id: m.user_id, role: newRole }),
+                                                            });
+                                                            setMembers(prev => prev.map(mm => mm.id === m.id ? { ...mm, role: newRole } : mm));
+                                                            setMessage(`Role updated to ${newRole}`);
+                                                        } catch (err) { setMessage('Failed to update role'); }
+                                                    }} style={{
+                                                        fontSize: 12, padding: '2px 6px', borderRadius: 6,
+                                                        border: `1px solid ${C.border}`, background: C.bg,
+                                                        color: C.text, fontFamily: 'inherit', cursor: 'pointer',
+                                                    }}>
+                                                        <option value="follower">Follower</option>
+                                                        <option value="moderator">Moderator</option>
+                                                        <option value="admin">Admin</option>
+                                                    </select>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -597,10 +619,12 @@ export default function ManageSocialPage() {
                                     {/* Overview Stats Grid */}
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
                                         {[
+                                            { label: 'Page Views', value: page.view_count || 0, color: '#0EA5E9', icon: '👁' },
                                             { label: 'Followers', value: page.follower_count || 0, color: C.blue, icon: '👥' },
                                             { label: 'Total Posts', value: posts.length, color: C.green, icon: '📝' },
                                             { label: 'Total Likes', value: posts.reduce((sum, p) => sum + (p.like_count || 0), 0), color: C.orange, icon: '👍' },
                                             { label: 'Total Comments', value: posts.reduce((sum, p) => sum + (p.comment_count || 0), 0), color: '#9333EA', icon: '💬' },
+                                            { label: 'Avg Rating', value: page.avg_rating ? page.avg_rating.toFixed(1) : '—', color: '#F59E0B', icon: '⭐' },
                                         ].map(s => (
                                             <div key={s.label} style={{
                                                 background: C.bg, borderRadius: 12, padding: 16, textAlign: 'center',
