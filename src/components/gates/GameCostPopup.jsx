@@ -24,12 +24,15 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
     const [dismissed, setDismissed] = useState(true);
 
     useEffect(() => {
-        if (isVip) return;
+        // Guard: never show for VIP users, and wait for userId to resolve
+        if (isVip || !userId) return;
         async function checkDismissal() {
             const isDismissed = await checkPopupDismissed(userId, key);
             if (!isDismissed) {
                 setDismissed(false);
-                setTimeout(() => setShow(true), 800);
+                // Delay 2500ms to ensure DiamondEngine.isVIP() has time to resolve
+                // (avoids race condition where popup flashes before VIP status loads)
+                setTimeout(() => setShow(true), 2500);
             }
         }
         checkDismissal();

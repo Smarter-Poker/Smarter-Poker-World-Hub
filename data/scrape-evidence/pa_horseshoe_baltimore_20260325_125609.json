@@ -1,0 +1,17 @@
+{
+  "venue": "Horseshoe Baltimore",
+  "slug": "horseshoe-baltimore",
+  "url": "https://www.pokeratlas.com/poker-room/horseshoe-baltimore",
+  "data": {
+    "address": "1525 Russell Street",
+    "city": "Baltimore",
+    "state": "MD",
+    "phone": "(844) 777-7463",
+    "lat": 39.27351,
+    "lng": -76.62748,
+    "website": "http://www.caesars.com/baltimore/casino.html"
+  },
+  "hash": "d487106df590458af5782874ccbcd9c6a75d4e7d65bb28e67bf1c037bc9d3fe6",
+  "ts": "2026-03-25T17:56:09.526409+00:00",
+  "batch": "5370bb76-c24f-40df-b9a1-fcdbd0a4281c"
+}
