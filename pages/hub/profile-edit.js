@@ -795,15 +795,21 @@ export default function ProfilePage() {
             if (_a) { const p = JSON.parse(_a); if (p?.access_token) _rmJwt = p.access_token; }
         } catch { /* noop */ }
 
-        const rmRes = await fetch(`${_rmUrl}/rest/v1/profiles?id=eq.${user.id}`, {
-            method: 'PATCH',
-            headers: { 'apikey': _rmKey, 'Authorization': `Bearer ${_rmJwt}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-            body: JSON.stringify({ cover_photo_url: null, cover_photo_position: '50% 50%', updated_at: new Date().toISOString() }),
-        });
-        if (!rmRes.ok) {
-            const errText = await rmRes.text();
-            setMessage('Error removing cover photo: ' + errText);
-            console.error('Update error:', errText);
+        try {
+            const rmRes = await fetch(`${_rmUrl}/rest/v1/profiles?id=eq.${user.id}`, {
+                method: 'PATCH',
+                headers: { 'apikey': _rmKey, 'Authorization': `Bearer ${_rmJwt}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                body: JSON.stringify({ cover_photo_url: null, cover_photo_position: '50% 50%', updated_at: new Date().toISOString() }),
+            });
+            if (!rmRes.ok) {
+                const errText = await rmRes.text();
+                setMessage('Error removing cover photo: ' + errText);
+                console.error('Update error:', errText);
+                return;
+            }
+        } catch (fetchErr) {
+            setMessage('Error removing cover photo: ' + fetchErr.message);
+            console.error('Cover remove fetch error:', fetchErr);
             return;
         }
 
@@ -1120,14 +1126,20 @@ export default function ProfilePage() {
                                 if (_a) { const p = JSON.parse(_a); if (p?.access_token) _posJwt = p.access_token; }
                             } catch { /* noop */ }
 
-                            const posRes = await fetch(`${_posUrl}/rest/v1/profiles?id=eq.${user.id}`, {
-                                method: 'PATCH',
-                                headers: { 'apikey': _posKey, 'Authorization': `Bearer ${_posJwt}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-                                body: JSON.stringify({ cover_photo_position: positionStr, updated_at: new Date().toISOString() }),
-                            });
-                            if (!posRes.ok) {
-                                const errText = await posRes.text();
-                                setMessage('Error saving position: ' + errText);
+                            try {
+                                const posRes = await fetch(`${_posUrl}/rest/v1/profiles?id=eq.${user.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'apikey': _posKey, 'Authorization': `Bearer ${_posJwt}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                                    body: JSON.stringify({ cover_photo_position: positionStr, updated_at: new Date().toISOString() }),
+                                });
+                                if (!posRes.ok) {
+                                    const errText = await posRes.text();
+                                    setMessage('Error saving position: ' + errText);
+                                    return;
+                                }
+                            } catch (fetchErr) {
+                                setMessage('Error saving position: ' + fetchErr.message);
+                                console.error('Reposition fetch error:', fetchErr);
                                 return;
                             }
                             setProfile(prev => ({ ...prev, cover_photo_position: positionStr }));

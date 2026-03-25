@@ -931,6 +931,19 @@ export default function NewsHub() {
 
     // Core State
     const [searchQuery, setSearchQuery] = useState('');
+    const [sourceFilters, setSourceFilters] = useState({});
+    const [visibleStories, setVisibleStories] = useState(10);
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+
+    // Source accent colors for color-coded borders
+    const SOURCE_COLORS = {
+        'PokerNews': '#e53935',
+        'MSPT': '#1565c0',
+        'CardPlayer': '#43a047',
+        'WSOP': '#f9a825',
+        'Poker.org': '#7b1fa2',
+        'Pokerfuse': '#00897b'
+    };
 
     // Persisted filters for activeTab and activeSection
     const { filters, setFilter } = usePersistedFilters('news', {
@@ -969,8 +982,17 @@ export default function NewsHub() {
     const newsParams = new URLSearchParams({ limit: '100' });
     if (activeTab !== 'all') newsParams.set('category', activeTab);
     if (searchQuery) newsParams.set('search', searchQuery);
-    const { data: newsData, isLoading: loading } = useSWR(`/api/news/articles?${newsParams}`, jsonFetch);
+    const { data: newsData, isLoading: loading, mutate: refreshNews } = useSWR(`/api/news/articles?${newsParams}`, jsonFetch);
     const news = (newsData?.success && newsData.data?.length) ? newsData.data : (typeof FALLBACK_NEWS !== 'undefined' ? FALLBACK_NEWS : []);
+
+    // Track when data was last refreshed
+    React.useEffect(() => {
+        if (newsData && !loading) setLastRefreshed(new Date());
+    }, [newsData, loading]);
+
+    // Toggle source filter
+    const toggleSource = (src) => setSourceFilters(prev => ({ ...prev, [src]: !prev[src] }));
+    const activeSourceFilters = Object.keys(sourceFilters).filter(k => sourceFilters[k]);
 
 
     // Article reader state - uses server-side proxy to display articles in-app
@@ -1269,8 +1291,15 @@ export default function NewsHub() {
         return true;
     });
 
-    // Remaining stories = articles not in the top 6 boxes
-    const remainingStories = filteredNews.filter(a => !topArticleIds.includes(a.id));
+    // Remaining stories = articles not in the top 6 boxes, with optional source filtering
+    const remainingStories = filteredNews.filter(a => {
+        if (topArticleIds.includes(a.id)) return false;
+        if (activeSourceFilters.length > 0 && !activeSourceFilters.includes(a.source_name)) return false;
+        return true;
+    });
+
+    // Breaking news = most recent article from top sources
+    const breakingNews = news.find(a => a.source_name !== 'Smarter.Poker' && (Date.now() - new Date(a.published_at).getTime()) < 3600000);
 
     // Trending = sorted by views
     const trendingNews = [...news].filter(a => a.source_name !== 'Smarter.Poker')
@@ -1390,11 +1419,18 @@ export default function NewsHub() {
                         )}
                     </AnimatePresence>
 
-                    {/* Loading State */}
+                    {/* Skeleton Loading State */}
                     {loading && (
-                        <div className="loading">
-                            <Loader className="spinner" size={32} />
-                            <span>Loading Latest News...</span>
+                        <div className="skeleton-grid">
+                            {[...Array(6)].map((_, i) => (
+                                <div key={i} className="skeleton-card">
+                                    <div className="skeleton-image shimmer" />
+                                    <div className="skeleton-content">
+                                        <div className="skeleton-line shimmer" style={{ width: '85%' }} />
+                                        <div className="skeleton-line shimmer" style={{ width: '60%' }} />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
 
@@ -1403,18 +1439,45 @@ export default function NewsHub() {
                         {/* Left Column - News Boxes */}
                         <main className="main-content">
                             {/* SMARTER.POKER NEWS Title */}
-                            <h1 style={{ textAlign: 'center', margin: '0 0 12px 0', padding: 0, fontSize: '1.6rem', fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase', color: '#5ef5f0', textShadow: '0 0 8px rgba(94,245,240,0.6), 0 0 20px rgba(94,245,240,0.3)', fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+                            <h1 style={{ textAlign: 'center', margin: '0 0 6px 0', padding: 0, fontSize: '1.6rem', fontWeight: 700, letterSpacing: '3px', textTransform: 'uppercase', color: '#5ef5f0', textShadow: '0 0 8px rgba(94,245,240,0.6), 0 0 20px rgba(94,245,240,0.3)', fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
                                 SMARTER.POKER <span style={{ color: '#fff', textShadow: '0 0 8px rgba(255,255,255,0.4)' }}>NEWS</span>
                             </h1>
 
-                            {activeSection === 'news' ? (
-                                <>
-                                    {/* News Grid - 6 Source-Specific Boxes */}
-                                    <section className="news-section">
-                                        {/* Section Title - Removed Icon from here */}
-                                        <div className="section-title">
-                                            {/* Icon moved to header */}
-                                        </div>
+                            {/* Auto-refresh indicator */}
+                            {lastRefreshed && (
+                                <div style={{ textAlign: 'center', fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                    <span>Updated {timeAgo(lastRefreshed)}</span>
+                                    <button onClick={() => refreshNews()} style={{ background: 'none', border: 'none', color: '#5ef5f0', cursor: 'pointer', fontSize: '11px', padding: 0, textDecoration: 'underline' }}>Refresh</button>
+                                </div>
+                            )}
+
+                            {/* Breaking News Ticker */}
+                            {breakingNews && (
+                                <div className="breaking-ticker" onClick={() => openArticle(breakingNews)}>
+                                    <span className="breaking-badge">BREAKING</span>
+                                    <span className="breaking-text">{breakingNews.title}</span>
+                                </div>
+                            )}
+
+                            {/* Source Filter Chips */}
+                            <div className="source-filters">
+                                {VALID_SOURCES.map(src => (
+                                    <button
+                                        key={src}
+                                        className={`source-chip ${sourceFilters[src] ? 'active' : ''}`}
+                                        onClick={() => toggleSource(src)}
+                                        style={{ '--source-color': SOURCE_COLORS[src] || '#5ef5f0' }}
+                                    >
+                                        <span className="chip-dot" />
+                                        {src}
+                                    </button>
+                                ))}
+                                {activeSourceFilters.length > 0 && (
+                                    <button className="source-chip clear" onClick={() => setSourceFilters({})}>
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
 
                                         {filteredNews.length === 0 && searchQuery ? (
                                             <div className="no-results">
