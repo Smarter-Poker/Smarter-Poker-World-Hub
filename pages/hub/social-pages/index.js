@@ -108,6 +108,12 @@ function PageCard({ page, isFollowing, onFollow, onView }) {
                     </p>
                 )}
 
+                {page.slug && (
+                    <p style={{ fontSize: 11, color: C.blue, margin: '4px 0 0', fontWeight: 500 }}>
+                        smarter.poker/.../{ page.slug }
+                    </p>
+                )}
+
                 <div style={{ display: 'flex', gap: 12, margin: '8px 0', fontSize: 12, color: C.textSec }}>
                     <span>{page.follower_count || 0} followers</span>
                     <span>{page.post_count || 0} posts</span>

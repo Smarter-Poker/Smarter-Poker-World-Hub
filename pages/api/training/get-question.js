@@ -183,15 +183,17 @@ export default async function handler(req, res) {
 
 
           // ═══════════════════════════════════════════════════════════════════
-          // STEP 4: GROK AI — SCENARIO (Psychology) GAMES ONLY
-          // BUG-E FIX: Removed Grok fallback for PIO/CHART games.
-          // Grok generates hallucinated GTO data that violates the deterministic standard.
-          // Only SCENARIO (psychology) games use Grok since they have no solver data by design.
+          // STEP 4: GROK AI FALLBACK — ALL GAMES
+          // When both deterministic engine and cache return nothing, fall back
+          // to Grok AI to ensure every game has content. Questions are clearly
+          // labeled as GROK_GTO source (not solver-verified).
           // ═══════════════════════════════════════════════════════════════════
-          if (!question && preferredEngine === 'SCENARIO') {
-              question = await generateQuestionWithGrok(gameId, 'SCENARIO', level, gameType, game, gameConfig);
+          if (!question) {
+              const grokEngine = preferredEngine === 'SCENARIO' ? 'SCENARIO' : engineType;
+              console.log(`[Training] ⚠️ Falling back to Grok AI for ${gameId} (engine: ${grokEngine})`);
+              question = await generateQuestionWithGrok(gameId, grokEngine, level, gameType, game, gameConfig);
 
-              // Save to cache for future use
+              // Save to cache for future use (avoids repeated Grok calls)
               if (question) {
                   try {
                       await getSupabase()
@@ -199,7 +201,7 @@ export default async function handler(req, res) {
                           .insert({
                               question_id: question.id,
                               game_id: gameId,
-                              engine_type: 'SCENARIO',
+                              engine_type: grokEngine,
                               game_type: gameType,
                               level: parseInt(level, 10),
                               question_data: question,

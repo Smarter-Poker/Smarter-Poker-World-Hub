@@ -454,27 +454,47 @@ export class DeterministicGTOEngine {
         const villainPosition = VILLAIN_MAP[heroPosition] || 'BB';
         const estimatedPot = strategyMatrix.pot || POT_BY_STREET[scenario.street] || 6;
 
-        // ═══ BUILD OPTIONS ═══
-        // Show up to 4 valid actions with proper labels
+        // ═══ BUILD OPTIONS (4-OPTION MANDATE) ═══
+        // Start with real solver actions
         const options = validActions.slice(0, 4).map(action => ({
             id: action,
             text: this.getActionLabel(action, estimatedPot),
             frequency: gtoFrequencies[action],
         }));
 
-        // Ensure at least 2 options (add filler if needed)
-        if (options.length < 2) {
-            const fillers = ['f', 'c', 'b33', 'allin'].filter(
-                a => !validActions.includes(a)
-            );
-            while (options.length < 2 && fillers.length > 0) {
-                const filler = fillers.shift();
-                options.push({
-                    id: filler,
-                    text: ACTION_LABELS[filler] || filler,
-                    frequency: 0,
-                });
-                gtoFrequencies[filler] = 0;
+        // PAD to exactly 4 options using standard poker actions
+        // Priority: Fold, Check/Call, Raise, All-In (contextually appropriate)
+        if (options.length < 4) {
+            const existingIds = new Set(options.map(o => o.id));
+            // Choose fillers based on street context
+            const hasCheck = existingIds.has('c') || existingIds.has('x');
+            const hasFold = existingIds.has('f');
+            const hasBet = [...existingIds].some(id => id.startsWith('b'));
+            const hasRaise = [...existingIds].some(id => id.startsWith('r'));
+            const hasAllIn = existingIds.has('allin');
+
+            // Build contextual filler list
+            const fillers = [];
+            if (!hasFold) fillers.push({ id: 'f', text: 'Fold' });
+            if (!hasCheck) fillers.push({ id: 'c', text: 'Check' });
+            if (!hasBet && !hasRaise) fillers.push({ id: 'r', text: 'Raise' });
+            if (!hasAllIn) fillers.push({ id: 'allin', text: 'All-In' });
+            // Extra fillers if still not enough
+            if (!existingIds.has('b33')) fillers.push({ id: 'b33', text: 'Bet 33%' });
+            if (!existingIds.has('b66')) fillers.push({ id: 'b66', text: 'Bet 67%' });
+            if (!existingIds.has('b100')) fillers.push({ id: 'b100', text: 'Bet Pot' });
+
+            for (const filler of fillers) {
+                if (options.length >= 4) break;
+                if (!existingIds.has(filler.id)) {
+                    options.push({
+                        id: filler.id,
+                        text: filler.text,
+                        frequency: 0,
+                    });
+                    gtoFrequencies[filler.id] = 0;
+                    existingIds.add(filler.id);
+                }
             }
         }
 
@@ -507,6 +527,8 @@ export class DeterministicGTOEngine {
                 isMixedStrategy,
             },
             heroCards: parseHandToCards(heroHand, board),
+            // SYS-002 FIX: Populate boardCards array for PNG card rendering
+            boardCards: board.length > 0 ? board : [],
             question: `You hold ${heroHand} on the ${scenario.street}. Board: ${board.join(' ')}. What is the GTO play?`,
             options,
             correctAnswer: optimalAction,
