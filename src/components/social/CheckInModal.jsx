@@ -1,15 +1,68 @@
 /**
  * CheckInModal.jsx — Venue picker for social media check-ins.
- * Searches poker venues by name/city and shows GPS-nearby results.
+ * Searches poker venues by name/city, shows GPS-nearby results,
+ * auto-suggests recent check-in venues, and displays today's check-in counts.
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-export default function CheckInModal({ onSelect, onClose }) {
+// Venue card sub-component with optional check-in count badge
+function VenueCard({ venue, onSelect, checkinCount }) {
+    return (
+        <button
+            onClick={() => onSelect(venue)}
+            style={{
+                display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                padding: '10px 8px', border: 'none', background: 'transparent',
+                borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#f0f2f5'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        >
+            <div style={{
+                width: 40, height: 40, borderRadius: 8,
+                background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+            }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                </svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                    fontSize: 14, fontWeight: 600, color: '#1c1e21',
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>{venue.name}</div>
+                <div style={{ fontSize: 12, color: '#65676B', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>{[venue.city, venue.state].filter(Boolean).join(', ')}</span>
+                    {venue.distance != null && <span>· {venue.distance < 1 ? '<1' : Math.round(venue.distance)} mi</span>}
+                </div>
+            </div>
+            {/* Check-in count badge */}
+            {checkinCount > 0 && (
+                <div style={{
+                    padding: '3px 8px', borderRadius: 12,
+                    background: '#FFF3E0', color: '#E65100',
+                    fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                }}>
+                    {checkinCount} today
+                </div>
+            )}
+        </button>
+    );
+}
+
+export default function CheckInModal({ onSelect, onClose, userId }) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [gpsLoading, setGpsLoading] = useState(false);
     const [nearbyVenues, setNearbyVenues] = useState([]);
+    const [recentVenues, setRecentVenues] = useState([]); // Auto-suggest recent check-ins
+    const [checkinCounts, setCheckinCounts] = useState({}); // { venueId: count }
     const inputRef = useRef(null);
     const debounceRef = useRef(null);
     const isMountedRef = useRef(true);
@@ -26,6 +79,47 @@ export default function CheckInModal({ onSelect, onClose }) {
         return () => clearTimeout(timer);
     }, []);
 
+    // Fetch user's recent check-in venues (auto-suggest)
+    useEffect(() => {
+        if (!userId) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch(`/api/poker/checkins?user_id=${userId}`);
+                const data = await res.json();
+                if (cancelled || !data.success) return;
+                const checkins = data.checkins || [];
+                // De-duplicate by venue_id, keep most recent, limit to 3
+                const seen = new Set();
+                const unique = [];
+                for (const c of checkins) {
+                    if (!seen.has(c.venue_id)) {
+                        seen.add(c.venue_id);
+                        unique.push(c);
+                    }
+                    if (unique.length >= 3) break;
+                }
+                // Resolve venue names from the venues API
+                if (unique.length > 0 && isMountedRef.current) {
+                    const venuePromises = unique.map(c =>
+                        fetch(`/api/poker/venues?id=${c.venue_id}`).then(r => r.json()).catch(() => null)
+                    );
+                    const venueResults = await Promise.all(venuePromises);
+                    if (cancelled) return;
+                    const resolved = venueResults
+                        .map((vr, i) => {
+                            const venueData = vr?.data?.[0] || vr?.venues?.[0] || (Array.isArray(vr) ? vr[0] : null);
+                            if (!venueData) return null;
+                            return { ...venueData, lastCheckin: unique[i].created_at };
+                        })
+                        .filter(Boolean);
+                    if (isMountedRef.current) setRecentVenues(resolved);
+                }
+            } catch { /* silent */ }
+        })();
+        return () => { cancelled = true; };
+    }, [userId]);
+
     // Fetch nearby venues on mount if GPS available (with unmount guard)
     useEffect(() => {
         let cancelled = false;
@@ -39,8 +133,12 @@ export default function CheckInModal({ onSelect, onClose }) {
                     const data = await res.json();
                     if (cancelled) return;
                     const venues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-                    // Map distance_mi from venue API to distance for display
-                    setNearbyVenues(venues.map(v => ({ ...v, distance: v.distance_mi ?? v.distance ?? null })));
+                    const mapped = venues.map(v => ({ ...v, distance: v.distance_mi ?? v.distance ?? null }));
+                    setNearbyVenues(mapped);
+                    // Batch-fetch check-in counts for nearby venues
+                    if (mapped.length > 0) {
+                        fetchCheckinCounts(mapped.map(v => v.id));
+                    }
                 } catch { /* silent */ }
                 if (!cancelled) setGpsLoading(false);
             },
@@ -48,6 +146,25 @@ export default function CheckInModal({ onSelect, onClose }) {
             { enableHighAccuracy: true, timeout: 6000 }
         );
         return () => { cancelled = true; };
+    }, []);
+
+    // Batch-fetch check-in counts for a list of venue IDs
+    const fetchCheckinCounts = useCallback(async (venueIds) => {
+        try {
+            const results = await Promise.all(
+                venueIds.map(id =>
+                    fetch(`/api/poker/checkins?venue_id=${id}&count_only=true`)
+                        .then(r => r.json())
+                        .catch(() => ({ success: false }))
+                )
+            );
+            if (!isMountedRef.current) return;
+            const counts = {};
+            results.forEach((r, i) => {
+                if (r.success && r.count > 0) counts[venueIds[i]] = r.count;
+            });
+            setCheckinCounts(prev => ({ ...prev, ...counts }));
+        } catch { /* silent */ }
     }, []);
 
     // Search venues by query (with unmount guard for in-flight fetches)
@@ -81,6 +198,7 @@ export default function CheckInModal({ onSelect, onClose }) {
 
     const displayVenues = query.trim() ? results : nearbyVenues;
     const sectionLabel = query.trim() ? 'Search Results' : (nearbyVenues.length > 0 ? 'Nearby Venues' : '');
+    const showRecent = !query.trim() && recentVenues.length > 0;
 
     return (
         <div
@@ -151,6 +269,29 @@ export default function CheckInModal({ onSelect, onClose }) {
 
                 {/* Results */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px 12px' }}>
+                    {/* Recent Check-Ins (auto-suggest) */}
+                    {showRecent && (
+                        <>
+                            <div style={{
+                                padding: '4px 8px 8px', fontSize: 12, fontWeight: 600,
+                                color: '#65676B', textTransform: 'uppercase', letterSpacing: 0.5,
+                                display: 'flex', alignItems: 'center', gap: 6,
+                            }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#65676B" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                                </svg>
+                                Recent
+                            </div>
+                            {recentVenues.map(v => (
+                                <VenueCard key={`recent-${v.id}`} venue={v} onSelect={handleSelect} checkinCount={checkinCounts[v.id]} />
+                            ))}
+                            {nearbyVenues.length > 0 && (
+                                <div style={{ height: 1, background: '#e4e6ea', margin: '8px 8px 4px' }} />
+                            )}
+                        </>
+                    )}
+
+                    {/* Section Label */}
                     {sectionLabel && (
                         <div style={{
                             padding: '4px 8px 8px', fontSize: 12, fontWeight: 600,
@@ -166,47 +307,14 @@ export default function CheckInModal({ onSelect, onClose }) {
                         </div>
                     )}
 
-                    {!loading && !gpsLoading && displayVenues.length === 0 && (
+                    {!loading && !gpsLoading && displayVenues.length === 0 && !showRecent && (
                         <div style={{ padding: 24, textAlign: 'center', color: '#65676B', fontSize: 14 }}>
                             {query ? 'No venues found' : 'Enable location or search for a venue'}
                         </div>
                     )}
 
                     {displayVenues.map(v => (
-                        <button
-                            key={v.id}
-                            onClick={() => handleSelect(v)}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                                padding: '10px 8px', border: 'none', background: 'transparent',
-                                borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                                transition: 'background 0.15s',
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = '#f0f2f5'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        >
-                            <div style={{
-                                width: 40, height: 40, borderRadius: 8,
-                                background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                flexShrink: 0,
-                            }}>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                                    <circle cx="12" cy="10" r="3" />
-                                </svg>
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{
-                                    fontSize: 14, fontWeight: 600, color: '#1c1e21',
-                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                }}>{v.name}</div>
-                                <div style={{ fontSize: 12, color: '#65676B' }}>
-                                    {[v.city, v.state].filter(Boolean).join(', ')}
-                                    {v.distance != null && ` · ${v.distance < 1 ? '<1' : Math.round(v.distance)} mi`}
-                                </div>
-                            </div>
-                        </button>
+                        <VenueCard key={v.id} venue={v} onSelect={handleSelect} checkinCount={checkinCounts[v.id]} />
                     ))}
                 </div>
             </div>

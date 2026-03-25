@@ -1654,6 +1654,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
             {/* 📍 Check-In Modal */}
             {showCheckInModal && (
                 <CheckInModal
+                    userId={user?.id}
                     onSelect={(venue) => {
                         setCheckInVenue(venue);
                         // Auto-populate post content
@@ -2311,6 +2312,25 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                     })()}
                 </div>
             )}
+            {/* 📍 Check-in venue badge — shown on posts with "Checked in at" content */}
+            {post.content && /^Checked in at /i.test(post.content) && (() => {
+                const match = post.content.match(/^Checked in at (.+?)(?:\s*[—–-]\s*.+)?$/i);
+                const venueName = match?.[1] || post.content.replace(/^Checked in at /i, '').split('—')[0].trim();
+                return (
+                    <div style={{
+                        margin: '0 12px 10px', padding: '6px 12px', borderRadius: 8,
+                        background: '#E7F3FF', border: '1px solid #B8D4F0',
+                        display: 'flex', alignItems: 'center', gap: 8,
+                    }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1877F2" strokeWidth="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#1877F2' }}>
+                            {venueName}
+                        </span>
+                    </div>
+                );
+            })()}
             {/* Media Grid - supports up to 10 images/videos */}
             {post.mediaUrls?.length > 0 && (
                 <div style={{ padding: post.mediaUrls.length > 1 ? '0 2px 2px' : 0 }}>

@@ -411,6 +411,11 @@ export default function SocialPageDetail() {
     // Media lightbox
     const [lightboxMedia, setLightboxMedia] = useState(null); // { list, index }
 
+    // Venue check-ins (shown on venue-type pages)
+    const [venueCheckins, setVenueCheckins] = useState([]);
+    const [resolvedVenueId, setResolvedVenueId] = useState(null);
+    const [checkinCount, setCheckinCount] = useState(0);
+
     // Toast notification system
     const [toastMsg, setToastMsg] = useState(null);
     const toastTimerRef = useRef(null);
@@ -587,6 +592,29 @@ export default function SocialPageDetail() {
         setGamesLoading(false);
     }, [page]);
     useEffect(() => { if (page && activeTab === 'games') fetchGames(); }, [fetchGames, page, activeTab]);
+
+    // Fetch venue check-ins (resolves venue_id from page name)
+    const fetchVenueCheckins = useCallback(async () => {
+        if (!page?.name) return;
+        try {
+            // Resolve venue_id from page name via venues search API
+            const searchRes = await fetch(`/api/poker/venues?search=${encodeURIComponent(page.name)}&limit=3`);
+            const searchData = await searchRes.json();
+            const venues = searchData?.data || searchData?.venues || (Array.isArray(searchData) ? searchData : []);
+            // Find exact or close name match
+            const match = venues.find(v => v.name?.toLowerCase() === page.name?.toLowerCase()) || venues[0];
+            if (!match?.id) return;
+            setResolvedVenueId(match.id);
+            // Fetch recent check-ins for this venue
+            const checkinsRes = await fetch(`/api/poker/checkins?venue_id=${match.id}`);
+            const checkinsData = await checkinsRes.json();
+            if (checkinsData.success) {
+                setVenueCheckins((checkinsData.checkins || []).slice(0, 5));
+                setCheckinCount(checkinsData.count || 0);
+            }
+        } catch (e) { console.error('Venue checkins fetch error:', e); }
+    }, [page]);
+    useEffect(() => { if (page && activeTab === 'posts') fetchVenueCheckins(); }, [fetchVenueCheckins, page, activeTab]);
 
     const handleSeatAction = async (gameId, actionType) => {
         if (seatAction) return;
@@ -1143,6 +1171,53 @@ export default function SocialPageDetail() {
                                                 }}>
                                                     {posting ? 'Posting...' : 'Post'}
                                                 </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Recently Checked In */}
+                                    {venueCheckins.length > 0 && (
+                                        <div style={{
+                                            background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
+                                            padding: 16, marginBottom: 16,
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" strokeWidth="2">
+                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                                                        <circle cx="12" cy="10" r="3" />
+                                                    </svg>
+                                                    <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Recently Checked In</span>
+                                                </div>
+                                                {checkinCount > 0 && (
+                                                    <span style={{
+                                                        padding: '3px 10px', borderRadius: 12,
+                                                        background: '#FFF3E0', color: '#E65100',
+                                                        fontSize: 12, fontWeight: 700,
+                                                    }}>
+                                                        {checkinCount} today
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                                {venueCheckins.map(ci => (
+                                                    <div key={ci.id} style={{
+                                                        display: 'flex', alignItems: 'center', gap: 8,
+                                                        padding: '6px 12px', borderRadius: 20,
+                                                        background: '#F0F2F5', fontSize: 13,
+                                                    }}>
+                                                        <div style={{
+                                                            width: 24, height: 24, borderRadius: '50%',
+                                                            background: C.blue, color: '#fff',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontSize: 11, fontWeight: 700, flexShrink: 0,
+                                                        }}>
+                                                            {(ci.user_name || '?')[0].toUpperCase()}
+                                                        </div>
+                                                        <span style={{ fontWeight: 600, color: C.text }}>{ci.user_name}</span>
+                                                        <span style={{ color: C.textSec, fontSize: 11 }}>{timeAgo(ci.created_at)}</span>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     )}
