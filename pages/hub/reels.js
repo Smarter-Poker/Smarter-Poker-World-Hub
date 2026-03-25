@@ -17,7 +17,7 @@ import { getAuthUser } from '../../src/lib/authUtils';
 import UploadReelModal from '../../src/components/reels/UploadReelModal';
 import { saveAppSetting } from '../../src/lib/appSettingsSync';
 import { busEmit, eventBus, EventType } from '../../src/engine/EventBus';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
+
 
 const C = {
     bg: '#000000',
@@ -1322,7 +1322,6 @@ export default function ReelsPage() {
                                 {hasMore ? 'Loading more...' : 'You\'ve seen all reels'}
                             </span>
                         )}
-                      <BottomNavBar />
                     </div>
                 )}
 
