@@ -416,7 +416,7 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
     const charCount = value ? String(value).length : 0;
     return (
         <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C.textSec, marginBottom: 4, textTransform: 'capitalize' }}>
                 {icon && <span style={{ marginRight: 6 }}>{icon}</span>}
                 {label}
             </label>
@@ -755,11 +755,12 @@ export default function ProfilePage() {
         }
     }, [message]);
 
-    // Cleanup auto-save + undo timer refs on unmount (prevent ghost timeouts)
+    // Cleanup auto-save + undo timer + username check refs on unmount (prevent ghost timeouts)
     useEffect(() => {
         return () => {
             if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
             if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+            if (usernameCheckRef.current) clearTimeout(usernameCheckRef.current);
         };
     }, []);
 
@@ -1893,7 +1894,7 @@ export default function ProfilePage() {
                                     label="Username"
                                     value={profile.username}
                                     onChange={updateField('username')}
-                                    placeholder="@johndoe"
+                                    placeholder="@JohnDoe"
                                     icon="@"
                                     maxLength={30}
                                     suffix={usernameStatus === 'checking' ? '⟳' : usernameStatus === 'available' ? '✅' : usernameStatus === 'taken' ? '❌' : null}
@@ -1939,10 +1940,10 @@ export default function ProfilePage() {
                             <ProfileField label="Email" value={profile.email} onChange={updateField('email')} type="email" placeholder="you@example.com" icon="✉️" maxLength={100} />
                             <ProfileField label="Phone" value={profile.phone} onChange={updateField('phone')} type="tel" placeholder="+1 555 123 4567" icon="📱" maxLength={20} />
                             <ProfileField label="Website" value={profile.website} onChange={updateField('website')} placeholder="https://yoursite.com" icon="🌐" maxLength={200} />
-                            <ProfileField label="Twitter/X" value={profile.twitter} onChange={updateField('twitter')} placeholder="username" icon="𝕏" maxLength={100} />
-                            <ProfileField label="Instagram" value={profile.instagram} onChange={updateField('instagram')} placeholder="username" icon="📸" maxLength={100} />
-                            <ProfileField label="TikTok" value={profile.tiktok} onChange={updateField('tiktok')} placeholder="username" icon="🎵" maxLength={100} />
-                            <ProfileField label="Telegram" value={profile.telegram} onChange={updateField('telegram')} placeholder="username" icon="✈️" maxLength={100} />
+                            <ProfileField label="Twitter/X" value={profile.twitter} onChange={updateField('twitter')} placeholder="Username" icon="𝕏" maxLength={100} />
+                            <ProfileField label="Instagram" value={profile.instagram} onChange={updateField('instagram')} placeholder="Username" icon="📸" maxLength={100} />
+                            <ProfileField label="TikTok" value={profile.tiktok} onChange={updateField('tiktok')} placeholder="Username" icon="🎵" maxLength={100} />
+                            <ProfileField label="Telegram" value={profile.telegram} onChange={updateField('telegram')} placeholder="Username" icon="✈️" maxLength={100} />
                         </div>
                     </CollapsibleSection>
 
