@@ -501,6 +501,15 @@ export default function SocialPageDetail() {
                                     {page.category && page.category !== 'general' && ` - ${page.category}`}
                                     {' '} - {page.follower_count || 0} followers
                                 </p>
+                                {page.slug && (
+                                    <p style={{ fontSize: 13, color: C.blue, margin: '4px 0 0', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2.5">
+                                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                        </svg>
+                                        smarter.poker/.../{ page.slug }
+                                    </p>
+                                )}
                             </div>
                         </div>
 

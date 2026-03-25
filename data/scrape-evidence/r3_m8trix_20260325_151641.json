@@ -1,0 +1,18 @@
+{
+  "venue": "M8trix",
+  "slug": "casino-m8trix-san-jose",
+  "url": "https://www.pokeratlas.com/poker-room/casino-m8trix-san-jose",
+  "data": {
+    "address": "1887 Matrix Blvd",
+    "state": "CA",
+    "phone": "(408) 244-3333 ext. 160",
+    "lat": 37.37127,
+    "lng": -121.91956,
+    "website": "http://casinom8trix.com/"
+  },
+  "hash": "772578f226962267e11ded0ae9c70ed7ca0563e016f705a4807604ac70bfbe45",
+  "bytes": 59421,
+  "http_status": 200,
+  "ts": "2026-03-25T20:16:41.397874+00:00",
+  "batch": "8a2a072d-bce3-46d2-a0e9-02209805d948"
+}

@@ -3,13 +3,14 @@
  */
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { motion } from 'framer-motion';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import { supabase } from '../../../src/lib/supabase';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -57,6 +58,25 @@ export default function CreateSocialPage() {
 
     const { user, checking: authChecking } = useRequireAuth('/hub/social-pages/create');
     useTrainingBus('social-pages-create');
+
+    // Club Commander access gate
+    const [isCommander, setIsCommander] = useState(null); // null=checking, true/false=result
+    useEffect(() => {
+        if (!user?.id) return;
+        (async () => {
+            try {
+                // Check if user owns any clubs OR is admin/owner in club_members
+                const { data: ownedClubs } = await supabase
+                    .from('clubs').select('id').eq('owner_id', user.id).limit(1);
+                if (ownedClubs && ownedClubs.length > 0) { setIsCommander(true); return; }
+
+                const { data: memberRoles } = await supabase
+                    .from('club_members').select('id').eq('user_id', user.id)
+                    .in('role', ['owner', 'admin']).limit(1);
+                setIsCommander(memberRoles && memberRoles.length > 0);
+            } catch { setIsCommander(false); }
+        })();
+    }, [user]);
 
     function update(field, value) {
         setForm(prev => ({ ...prev, [field]: value }));
@@ -134,6 +154,40 @@ export default function CreateSocialPage() {
                     </button>
 
                     <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 24 }}>
+                        {isCommander === null ? (
+                            /* Loading Commander check */
+                            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                                <div style={{
+                                    width: 32, height: 32, border: '3px solid #E4E6EB',
+                                    borderTopColor: C.blue, borderRadius: '50%',
+                                    animation: 'spin 0.8s linear infinite', margin: '0 auto 12px',
+                                }} />
+                                <p style={{ color: C.textSec, fontSize: 14 }}>Checking Access...</p>
+                            </div>
+                        ) : isCommander === false ? (
+                            /* Blocked — not a Commander */
+                            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CCD0D5" strokeWidth="1.5">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
+                                <h2 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: '16px 0 8px' }}>
+                                    Club Commander Required
+                                </h2>
+                                <p style={{ fontSize: 14, color: C.textSec, margin: '0 0 20px', lineHeight: 1.5 }}>
+                                    Creating Social Pages is available to Club Commander account holders.
+                                    Set up your club first to unlock this feature.
+                                </p>
+                                <button onClick={() => router.push('/hub/commander')} style={{
+                                    padding: '10px 24px', background: C.blue, border: 'none',
+                                    borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 600,
+                                    cursor: 'pointer', fontFamily: 'inherit',
+                                }}>
+                                    Go to Club Commander
+                                </button>
+                            </div>
+                        ) : (
+                        <>
                         <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: '0 0 4px' }}>
                             Create a Page
                         </h1>
@@ -397,6 +451,8 @@ export default function CreateSocialPage() {
                                     {submitting ? 'Creating...' : 'Create Page'}
                                 </button>
                             </div>
+                        )}
+                        </>
                         )}
                     </div>
                 </div>
