@@ -82,6 +82,7 @@ export default function ReelsPage() {
     const [videoProgress, setVideoProgress] = useState(0);
     const [overlayVisible, setOverlayVisible] = useState(true);
     const overlayTimerRef = useRef(null);
+    const viewedReelsRef = useRef(new Set());
 
     // Reels preferences state
     const [preferences, setPreferences] = useState({
@@ -379,7 +380,11 @@ export default function ReelsPage() {
             setOverlayVisible(true);
             clearTimeout(overlayTimerRef.current);
             overlayTimerRef.current = setTimeout(() => setOverlayVisible(false), 3000);
-            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'view_count' }); } catch {} })();
+            // Deduplicated view count — only fire once per reel per session
+            if (!viewedReelsRef.current.has(currentReel.id)) {
+                viewedReelsRef.current.add(currentReel.id);
+                (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'view_count' }); } catch {} })();
+            }
         }
     }, [currentReel?.id]);
 
@@ -1306,6 +1311,9 @@ export default function ReelsPage() {
                     <div style={{
                         position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100,
+                        opacity: overlayVisible ? 1 : 0,
+                        transition: 'opacity 0.35s ease',
+                        pointerEvents: 'none',
                     }}>
                         {loadingMore ? (
                             <div style={{
