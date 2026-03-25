@@ -130,7 +130,7 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, icon
 function PokerResumeBadge({ hendonData, onRefresh, isRefreshing, syncStatus }) {
     if (!hendonData?.hendon_url) return null;
 
-    const hasData = hendonData.total_cashes || hendonData.total_earnings;
+    const hasData = hendonData.total_cashes != null || hendonData.total_earnings != null;
 
     return (
         <div style={{

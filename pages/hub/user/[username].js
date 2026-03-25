@@ -110,7 +110,7 @@ function FriendAvatar({ friend, currentUserFriends = [] }) {
 // Poker Resume Badge - Always shows, with placeholder if no HendonMob linked
 function PokerResumeBadge({ hendonData, isOwnProfile = false, onOpenResume }) {
     const hasHendon = hendonData?.hendon_url;
-    const hasData = hendonData?.hendon_total_cashes || hendonData?.hendon_total_earnings;
+    const hasData = hendonData?.hendon_total_cashes != null || hendonData?.hendon_total_earnings != null;
 
     return (
         <div style={{

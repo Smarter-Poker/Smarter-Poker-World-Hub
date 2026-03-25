@@ -15,7 +15,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const MANUS_API_KEY = process.env.MANUS_API_KEY || '';
 const MANUS_API_URL = 'https://api.manus.ai/v1/tasks';
-const AUTO_SYNC_SECRET = process.env.HENDON_AUTO_SYNC_SECRET || 'hendon-sync-2026';
+const AUTO_SYNC_SECRET = process.env.HENDON_AUTO_SYNC_SECRET || '';
 
 let _supabase = null;
 function getSupabase() {
