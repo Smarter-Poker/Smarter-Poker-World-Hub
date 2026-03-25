@@ -54,32 +54,211 @@ function getDaysInMonth(month, year) {
     return 31;
 }
 
-// formatFavoriteHand removed — replaced by visual FavoriteHandPicker component
+// ── Image compression utility — reduces upload size 60-80% ──
+async function compressImage(file, maxWidth = 1200, quality = 0.85) {
+    return new Promise((resolve) => {
+        // Skip non-image files or very small files
+        if (!file.type.startsWith('image/') || file.size < 50000) {
+            resolve(file);
+            return;
+        }
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            // Skip if already small enough
+            if (img.width <= maxWidth && file.size < 200000) {
+                resolve(file);
+                return;
+            }
+            const canvas = document.createElement('canvas');
+            const ratio = Math.min(maxWidth / img.width, 1);
+            canvas.width = Math.round(img.width * ratio);
+            canvas.height = Math.round(img.height * ratio);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+                if (!blob) { resolve(file); return; }
+                const compressed = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
+                console.log(`[Compress] ${(file.size/1024).toFixed(0)}KB → ${(compressed.size/1024).toFixed(0)}KB (${Math.round((1-compressed.size/file.size)*100)}% reduction)`);
+                resolve(compressed);
+            }, 'image/jpeg', quality);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+    });
+}
 
-function Avatar({ src, size = 120, onUpload }) {
+// ── Profile Completion Progress Bar ──
+function ProfileCompletionBar({ profile }) {
+    const fields = [
+        { key: 'avatar_url', label: 'Profile Photo', weight: 15 },
+        { key: 'cover_photo_url', label: 'Cover Photo', weight: 10 },
+        { key: 'username', label: 'Username', weight: 15 },
+        { key: 'bio', label: 'Bio', weight: 15 },
+        { key: 'first_name', label: 'First Name', weight: 10 },
+        { key: 'birthday', label: 'Birthday', weight: 5 },
+        { key: 'home_casino', label: 'Home Casino', weight: 10 },
+        { key: 'favorite_game', label: 'Favorite Game', weight: 5 },
+        { key: 'favorite_hand', label: 'Favorite Hand', weight: 5 },
+        { key: 'hendon_url', label: 'Poker Resume', weight: 10 },
+    ];
+    const completed = fields.filter(f => {
+        const val = profile[f.key];
+        if (!val) return false;
+        if (typeof val === 'string' && !val.trim()) return false;
+        return true;
+    });
+    const totalWeight = fields.reduce((s, f) => s + f.weight, 0);
+    const earnedWeight = completed.reduce((s, f) => s + f.weight, 0);
+    const percent = Math.round((earnedWeight / totalWeight) * 100);
+    const missing = fields.filter(f => !completed.includes(f));
+
+    if (percent >= 100) return null; // Don't show if complete
+
+    const barColor = percent >= 80 ? '#00f5ff' : percent >= 50 ? '#FFD700' : '#ff6b6b';
+
+    return (
+        <div style={{
+            background: '#0f1528', borderRadius: 12, padding: 16, marginBottom: 16,
+            border: '1px solid rgba(255,255,255,0.08)'
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#e0e0e8' }}>Profile Strength</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: barColor }}>{percent}%</span>
+            </div>
+            <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{
+                    height: '100%', width: `${percent}%`, borderRadius: 4,
+                    background: `linear-gradient(90deg, ${barColor}, ${barColor}aa)`,
+                    transition: 'width 0.6s ease-out',
+                }} />
+            </div>
+            {missing.length > 0 && missing.length <= 4 && (
+                <div style={{ fontSize: 11, color: '#8888a0', marginTop: 8 }}>
+                    Add: {missing.map(f => f.label).join(', ')}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── Floating Toast Notification ──
+function Toast({ message, onDismiss }) {
+    if (!message) return null;
+    const isError = message.includes('Error');
+    return (
+        <div style={{
+            position: 'fixed', bottom: 24, right: 24, zIndex: 10001,
+            maxWidth: 380, minWidth: 240,
+            background: isError ? '#1a0a0a' : '#0a1a0a',
+            border: `1px solid ${isError ? 'rgba(255,80,80,0.4)' : 'rgba(0,245,255,0.4)'}`,
+            borderRadius: 12, padding: '14px 20px',
+            boxShadow: isError
+                ? '0 8px 32px rgba(255,80,80,0.15)'
+                : '0 8px 32px rgba(0,245,255,0.15)',
+            display: 'flex', alignItems: 'center', gap: 12,
+            animation: 'toastSlideIn 0.3s ease-out',
+            cursor: 'pointer',
+        }} onClick={onDismiss}>
+            <div style={{ fontSize: 22, flexShrink: 0 }}>{isError ? '⚠️' : '✅'}</div>
+            <div style={{ fontSize: 13, color: isError ? '#ff8888' : '#b0f0ff', lineHeight: 1.4, fontWeight: 500 }}>
+                {message}
+            </div>
+        </div>
+    );
+}
+
+// ── Loading Skeleton with shimmer ──
+function ProfileSkeleton() {
+    const shimmer = `
+        @keyframes profileShimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+    `;
+    const bar = (w, h = 16, mb = 12) => ({
+        width: w, height: h, borderRadius: h / 2, marginBottom: mb,
+        background: 'linear-gradient(90deg, #1a1e30 25%, #252a3e 50%, #1a1e30 75%)',
+        backgroundSize: '200% 100%',
+        animation: 'profileShimmer 1.5s ease-in-out infinite',
+    });
+    return (
+        <div style={{ minHeight: '100vh', background: '#0a0e1a' }}>
+            <style>{shimmer}</style>
+            {/* Cover area */}
+            <div style={{ height: 200, ...bar('100%', 200, 0), borderRadius: 0 }} />
+            {/* Avatar */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: -60, position: 'relative', zIndex: 2 }}>
+                <div style={{ ...bar(120, 120, 0), borderRadius: '50%', border: '4px solid #0a0e1a' }} />
+            </div>
+            {/* Stats */}
+            <div style={{ display: 'flex', justifyContent: 'space-around', padding: '60px 40px 20px', maxWidth: 600, margin: '0 auto' }}>
+                {[1,2,3,4].map(i => <div key={i} style={{ textAlign: 'center' }}><div style={bar(48, 24, 6)} /><div style={bar(56, 12)} /></div>)}
+            </div>
+            {/* Fields */}
+            <div style={{ maxWidth: 600, margin: '0 auto', padding: '0 20px' }}>
+                <div style={bar('100%', 48, 16)} />
+                <div style={bar('100%', 48, 16)} />
+                <div style={bar('60%', 48, 16)} />
+            </div>
+        </div>
+    );
+}
+
+function Avatar({ src, size = 120, onUpload, uploadPhase }) {
     const fileRef = useRef(null);
 
     const handleFileChange = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
         if (onUpload) onUpload(file);
+        // Reset input so same file can be re-selected
+        e.target.value = '';
     };
 
+    const isUploading = !!uploadPhase;
+
     return (
-        <div style={{ position: 'relative', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}>
+        <div style={{ position: 'relative', cursor: isUploading ? 'wait' : 'pointer' }} onClick={(e) => { if (isUploading) return; e.stopPropagation(); fileRef.current?.click(); }}>
             <img
                 src={src || '/default-avatar.png'}
                 alt="Profile"
-                style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: '4px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+                style={{
+                    width: size, height: size, borderRadius: '50%', objectFit: 'cover',
+                    border: '4px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    filter: isUploading ? 'brightness(0.5)' : 'none',
+                    transition: 'filter 0.3s ease',
+                }}
             />
+            {/* Upload progress overlay */}
+            {isUploading && (
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, width: size, height: size,
+                    borderRadius: '50%', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: 4,
+                }}>
+                    <div style={{
+                        width: 28, height: 28, borderRadius: '50%',
+                        border: '3px solid rgba(255,255,255,0.2)',
+                        borderTopColor: '#00f5ff',
+                        animation: 'avatarSpin 0.8s linear infinite',
+                    }} />
+                    <div style={{ fontSize: 10, color: '#00f5ff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        {uploadPhase}
+                    </div>
+                </div>
+            )}
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFileChange} />
-            <div style={{
-                position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, borderRadius: '50%',
-                background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)', border: `1px solid ${C.border}`
-            }}>
-                📷
-            </div>
+            {!isUploading && (
+                <div style={{
+                    position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, borderRadius: '50%',
+                    background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)', border: `1px solid ${C.border}`
+                }}>
+                    📷
+                </div>
+            )}
         </div>
     );
 }
@@ -384,6 +563,7 @@ export default function ProfilePage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
+    const [avatarUploadPhase, setAvatarUploadPhase] = useState(null); // 'Compressing' | 'Uploading' | 'Saving' | null
 
     // Auto-dismiss success messages after 3.5 seconds
     useEffect(() => {
@@ -606,16 +786,22 @@ export default function ProfilePage() {
 
     const handleAvatarUpload = async (file) => {
         if (!user) return;
-        setMessage('Uploading avatar...');
 
-        const fileExt = file.name.split('.').pop();
+        // Phase 1: Compress
+        setAvatarUploadPhase('Compressing');
+        const compressed = await compressImage(file, 800, 0.85);
+
+        // Phase 2: Upload to storage
+        setAvatarUploadPhase('Uploading');
+        const fileExt = compressed.name.split('.').pop();
         const filePath = `${user.id}/avatar_${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
             .from('avatars')
-            .upload(filePath, file, { upsert: true });
+            .upload(filePath, compressed, { upsert: true });
 
         if (uploadError) {
+            setAvatarUploadPhase(null);
             setMessage('Error uploading avatar: ' + uploadError.message);
             console.error('Upload error:', uploadError);
             return;
@@ -623,7 +809,8 @@ export default function ProfilePage() {
 
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
 
-        // Auto-save to database immediately — direct PostgREST (avoids SIGNED_OUT cascade)
+        // Phase 3: Save to database
+        setAvatarUploadPhase('Saving');
         const _supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const _supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
         const _avatarToken = getProfileJwt();
@@ -636,15 +823,18 @@ export default function ProfilePage() {
             });
             if (!avatarRes.ok) {
                 const errText = await avatarRes.text();
+                setAvatarUploadPhase(null);
                 setMessage('Error saving avatar: ' + errText);
                 console.error('Save error:', errText);
                 return;
             }
         } catch (fetchErr) {
+            setAvatarUploadPhase(null);
             setMessage('Error saving avatar: ' + fetchErr.message);
             return;
         }
 
+        setAvatarUploadPhase(null);
         setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
 
         // ── CRITICAL: Dispatch bus event so header updates in real-time ──
@@ -672,12 +862,17 @@ export default function ProfilePage() {
         const file = e.target.files?.[0];
         if (!file || !user) return;
 
-        setMessage('Uploading cover photo...');
+        setMessage('Compressing & uploading cover photo...');
 
         try {
+            // Compress before upload (max 1600px wide)
+            const compressed = await compressImage(file, 1600, 0.85);
+
+            // Replace file reference with compressed version
+            const uploadFile = compressed;
             // Use the server-side upload proxy (service role key) to bypass storage RLS
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', uploadFile);
             formData.append('folder', 'covers');
             formData.append('prefix', user.id);
 
@@ -894,19 +1089,16 @@ export default function ProfilePage() {
             setMessage(`Error saving profile: ${error.message || error.code || JSON.stringify(error)}`);
             console.error('Profile save error:', error);
         } else {
-            // Fire Phase 2 diamond reward claims (fire-and-forget with toast)
+            // ── OPTIMISTIC: Update originalProfile immediately (already succeeded) ──
+            setOriginalProfile({ ...profile });
 
-            // Profile pic reward (10💎, one-time, backend deduplicates)
+            // Fire Phase 2 diamond reward claims (fire-and-forget with toast)
             if (profile.avatar_url) {
                 claimReward('/api/rewards/profile-pic', { userId: user.id }, 'Profile Picture Uploaded');
             }
-
-            // HendonMob link reward (25💎, one-time)
             if (profile.hendon_url && profile.hendon_url.trim().length >= 5) {
                 claimReward('/api/rewards/hendonmob-link', { userId: user.id }, 'HendonMob Profile Linked');
             }
-
-            // Profile completion reward (50💎, one-time — avatar + bio + username)
             if (profile.avatar_url && profile.bio && profile.username) {
                 claimReward('/api/rewards/profile-complete', { userId: user.id }, 'Profile Completed');
             }
@@ -933,14 +1125,12 @@ export default function ProfilePage() {
                 broadcastSync('smarter_poker_avatar_sync', 'refresh');
             } catch { /* noop */ }
 
-            // Show success and stay on page
+            // Show success toast (non-blocking)
             setMessage('Profile saved successfully!');
-            setOriginalProfile({ ...profile });
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
-    if (loading) return <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
+    if (loading) return <ProfileSkeleton />;
     if (!user) return <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
             <h2>Please Log In To View Your Profile</h2>
@@ -1080,7 +1270,7 @@ export default function ProfilePage() {
 
                 {/* Profile Avatar - overlapping cover photo bottom */}
                 <div style={{ position: 'relative', zIndex: 2, marginTop: -60, display: 'flex', justifyContent: 'center' }}>
-                    <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} />
+                    <Avatar src={profile.avatar_url} size={120} onUpload={handleAvatarUpload} uploadPhase={avatarUploadPhase} />
                 </div>
 
                 {/* Cover Photo Reposition Editor Modal */}
@@ -1219,53 +1409,11 @@ export default function ProfilePage() {
 
                 {/* Main Content */}
                 <div style={{ maxWidth: 800, margin: '80px auto 40px', padding: '0 16px' }}>
-                    {message && (() => {
-                        const isError = message.includes('Error');
-                        return (
-                        <div style={{
-                            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                            background: 'rgba(0,0,0,0.6)', zIndex: 9999,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            padding: 16,
-                        }} onClick={() => setMessage('')}>
-                            <div style={{
-                                background: isError ? '#1a1a2e' : '#0a0e27',
-                                border: isError
-                                    ? '2px solid #c62828'
-                                    : '2px solid #00f5ff',
-                                borderRadius: 16, padding: 28, maxWidth: 400, width: '100%',
-                                textAlign: 'center',
-                                boxShadow: isError
-                                    ? '0 8px 32px rgba(198,40,40,0.3)'
-                                    : '0 8px 32px rgba(0,245,255,0.2)',
-                            }} onClick={e => e.stopPropagation()}>
-                                <div style={{
-                                    fontSize: 40, marginBottom: 12,
-                                }}>{isError ? '⚠️' : '✅'}</div>
-                                <div style={{
-                                    fontSize: 16, fontWeight: 600, marginBottom: 12,
-                                    color: isError ? '#ff6b6b' : '#00f5ff',
-                                }}>{isError ? 'Save Error' : 'Saved'}</div>
-                                <div style={{
-                                    fontSize: 14, color: '#a0a0b8', lineHeight: 1.5,
-                                    marginBottom: isError ? 20 : 0, wordBreak: 'break-word',
-                                }}>{message}</div>
-                                {isError && (
-                                    <button
-                                        onClick={() => setMessage('')}
-                                        style={{
-                                            padding: '10px 32px', borderRadius: 8,
-                                            border: 'none', fontWeight: 600, fontSize: 14,
-                                            cursor: 'pointer', marginTop: 16,
-                                            background: '#c62828',
-                                            color: 'white',
-                                        }}
-                                    >Dismiss</button>
-                                )}
-                            </div>
-                        </div>
-                        );
-                    })()}
+                    {/* Non-blocking Toast notification */}
+                    <Toast message={message} onDismiss={() => setMessage('')} />
+
+                    {/* Profile Completion Progress Bar */}
+                    <ProfileCompletionBar profile={profile} />
 
                     {/* Social Stats Row */}
                     <div style={{
@@ -2019,6 +2167,16 @@ export default function ProfilePage() {
                     </div>
                 </div>
             )}
+            {/* Global CSS keyframes for toast and avatar spinner */}
+            <style>{`
+                @keyframes toastSlideIn {
+                    from { opacity: 0; transform: translateX(60px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+                @keyframes avatarSpin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
         </>
     );
 }
