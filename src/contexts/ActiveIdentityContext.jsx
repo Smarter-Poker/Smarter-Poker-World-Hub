@@ -200,6 +200,49 @@ export function ActiveIdentityProvider({ children }) {
         return () => { mounted = false; }; // Cleanup: mark as unmounted
     }, []); // Only on mount
 
+    // ── Club Avatar Live Sync ──
+    // Refreshes club page data when tab regains focus or every 5 minutes.
+    // Catches name/avatar changes made in Commander without requiring a page reload.
+    useEffect(() => {
+        if (!availableClubPage?.id) return;
+        let mounted = true;
+
+        const refreshClubData = async () => {
+            try {
+                const res = await fetch(`/api/social/pages?id=${availableClubPage.id}`);
+                if (!mounted || !res.ok) return;
+                const json = await res.json();
+                if (!mounted || !json.success || !json.data) return;
+                const fresh = json.data;
+
+                // Update availableClubPage if name or avatar changed
+                if (fresh.name !== availableClubPage.name || fresh.avatar_url !== availableClubPage.avatar_url) {
+                    const updated = { id: fresh.id, name: fresh.name, avatar_url: fresh.avatar_url, page_type: fresh.page_type || 'club' };
+                    setAvailableClubPage(updated);
+                    // Also update active identity if currently in club mode
+                    setActiveIdentity(prev => {
+                        if (prev.mode !== 'club' || prev.clubPage?.id !== fresh.id) return prev;
+                        return { ...prev, clubPage: updated };
+                    });
+                    console.log('[ActiveIdentity] Club data refreshed:', fresh.name);
+                }
+            } catch (e) { /* silent — non-critical refresh */ }
+        };
+
+        // Refresh on tab focus
+        const handleVisibility = () => { if (document.visibilityState === 'visible') refreshClubData(); };
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        // Periodic refresh every 5 minutes
+        const interval = setInterval(refreshClubData, 5 * 60 * 1000);
+
+        return () => {
+            mounted = false;
+            document.removeEventListener('visibilitychange', handleVisibility);
+            clearInterval(interval);
+        };
+    }, [availableClubPage?.id]);
+
     const value = {
         activeIdentity,
         switchToPersonal,

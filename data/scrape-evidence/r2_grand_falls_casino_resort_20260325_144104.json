@@ -1,0 +1,16 @@
+{
+  "venue": "Grand Falls Casino Resort",
+  "slug": "grand-falls-larchwood",
+  "url": "https://www.pokeratlas.com/poker-room/grand-falls-larchwood",
+  "data": {
+    "address": "1415 Grand Falls Blvd",
+    "state": "IA",
+    "phone": "(712) 777-7777",
+    "lat": 43.49836,
+    "lng": -96.50342,
+    "website": "http://www.grandfallscasinoresort.com/"
+  },
+  "hash": "23a91ae54d23cea2fea606320362648a93214600d2d54ee4f78f87989fbc5a60",
+  "ts": "2026-03-25T19:41:04.362929+00:00",
+  "batch": "fb9fb135-76e1-4182-aeba-43d7bcdbf5ab"
+}

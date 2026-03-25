@@ -71,7 +71,7 @@ export default function CreateSocialPage() {
 
         try {
             const token = getAccessToken();
-            const body = { ...form, owner_id: user.id };
+            const body = { ...form };
             // Only send slug if user explicitly set one
             if (!body.slug || !body.slug.trim()) delete body.slug;
             const res = await fetch('/api/social/pages', {

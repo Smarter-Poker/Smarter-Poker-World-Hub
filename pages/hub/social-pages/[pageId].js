@@ -256,6 +256,11 @@ export default function SocialPageDetail() {
                 setPage(json.data);
                 setIsFollowing(json.data.is_following || false);
                 if (json.data.owner_id === user?.id) setUserRole('owner');
+
+                // SEO: Redirect UUID URLs to slug URLs for canonical consolidation
+                if (isUUID && json.data.slug && typeof window !== 'undefined') {
+                    router.replace(`/hub/social-pages/${json.data.slug}`, undefined, { shallow: true });
+                }
             }
         } catch (e) {
             if (e.name !== 'AbortError') console.error('Failed to fetch page:', e);
@@ -444,10 +449,17 @@ export default function SocialPageDetail() {
     return (
         <>
             <SEOHead
-                title={`${page.name} | Smarter.Poker`}
+                title={page.name}
                 description={page.description || `Follow ${page.name} on Smarter.Poker`}
                 ogImage={page.avatar_url || page.cover_url}
-                canonicalUrl={`https://smarter.poker/hub/social-pages/${page.slug || page.id}`}
+                canonical={`/hub/social-pages/${page.slug || page.id}`}
+                jsonLd={{
+                    '@type': 'Organization',
+                    name: page.name,
+                    description: page.description || `${page.name} on Smarter.Poker`,
+                    url: `https://smarter.poker/hub/social-pages/${page.slug || page.id}`,
+                    ...(page.avatar_url ? { logo: page.avatar_url } : {}),
+                }}
             />
             <UniversalHeader />
 
@@ -520,7 +532,34 @@ export default function SocialPageDetail() {
                             )}
                         </div>
 
-                        {/* Tabs */}
+                        {/* Mobile Share Bar (hidden on desktop where sidebar has share widget) */}
+                        <div className="mobile-share-bar" style={{
+                            display: 'none', alignItems: 'center', gap: 8,
+                            padding: '10px 0', borderTop: `1px solid ${C.border}`,
+                        }}>
+                            <div style={{
+                                flex: 1, padding: '8px 12px', borderRadius: 8,
+                                background: C.bg, fontSize: 12, color: C.blue,
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                border: `1px solid ${C.border}`,
+                            }}>
+                                {typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page.slug || page.id}` : ''}
+                            </div>
+                            <button onClick={() => {
+                                const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
+                                if (navigator.share) {
+                                    navigator.share({ title: page.name, url }).catch(() => {});
+                                } else {
+                                    navigator.clipboard.writeText(url).catch(() => {});
+                                }
+                            }} style={{
+                                padding: '8px 14px', borderRadius: 8, border: 'none',
+                                background: C.blue, color: '#fff', fontSize: 12, fontWeight: 600,
+                                cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                            }}>
+                                Share
+                            </button>
+                        </div>
                         <div style={{ display: 'flex', gap: 0, borderTop: `1px solid ${C.border}` }}>
                             {['posts', 'about', 'members'].map(t => (
                                 <button key={t} onClick={() => setActiveTab(t)} style={{
@@ -763,6 +802,9 @@ export default function SocialPageDetail() {
                 @media (max-width: 768px) {
                     div[style*="grid-template-columns: 1fr 320px"] {
                         grid-template-columns: 1fr !important;
+                    }
+                    .mobile-share-bar {
+                        display: flex !important;
                     }
                 }
             `}</style>

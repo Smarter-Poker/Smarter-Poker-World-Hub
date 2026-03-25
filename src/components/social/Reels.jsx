@@ -106,8 +106,7 @@ export function ReelsViewer({ onClose }) {
         const handleLikeBus = (event) => {
             const d = event?.payload;
             if (d?.postId) {
-                setLiked(prev => ({ ...prev, [d.postId]: d.added }));
-                // Only adjust count for events from OTHER components (avoid double-count with optimistic update)
+                // Only update count for OTHER users to avoid conflicting with optimistic update
                 if (d.userId !== currentUserId) {
                     setLikeCounts(prev => ({
                         ...prev,
@@ -125,7 +124,7 @@ export function ReelsViewer({ onClose }) {
             if (d?.postId) {
                 setCommentCounts(prev => ({
                     ...prev,
-                    [d.postId]: (prev[d.postId] || 0) + 1
+                    [d.postId]: Math.max(0, (prev[d.postId] || 0) + (d.removed ? -1 : 1))
                 }));
             }
         };
