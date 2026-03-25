@@ -1676,6 +1676,15 @@ export default function NewsHub() {
                                 </div>
                             </div>
 
+                            {/* Phase 5: Reading Stats Bar */}
+                            {(readArticles.length > 0 || bookmarks.length > 0) && (
+                                <div className="reading-stats-bar">
+                                    {readArticles.length > 0 && <span>{readArticles.length} read</span>}
+                                    {bookmarks.length > 0 && <span>{bookmarks.length} bookmarked</span>}
+                                    {uniqueSourcesRead > 0 && <span>{uniqueSourcesRead} sources explored</span>}
+                                </div>
+                            )}
+
                             {activeSection === 'news' ? (
                                 <>
                                     {/* News Grid - 6 Source-Specific Boxes */}
@@ -1722,10 +1731,13 @@ export default function NewsHub() {
                                                     {remainingStories.slice(0, visibleStories).map((article) => (
                                                         <motion.div
                                                             key={article.id}
-                                                            className="news-list-item"
+                                                            className={`news-list-item ${readArticles.includes(article.id) ? 'read' : ''}`}
                                                             whileHover={{ x: 4 }}
                                                             onClick={() => openArticle(article)}
                                                         >
+                                                            {isNewArticle(article) && (
+                                                                <span className="new-badge">NEW</span>
+                                                            )}
                                                             {(article.views || 0) > 50 && (
                                                                 <span className="trending-badge">🔥</span>
                                                             )}
@@ -1741,10 +1753,18 @@ export default function NewsHub() {
                                                                     <span style={{ color: SOURCE_COLORS[article.source_name] || '#888' }}>{article.source_name || 'Source'}</span>
                                                                     <span>•</span>
                                                                     <span>{timeAgo(article.published_at)}</span>
+                                                                    {article.category && <span className="category-pill" style={{ background: `rgba(${article.category === 'tournament' ? '251,191,36' : article.category === 'strategy' ? '124,58,237' : article.category === 'industry' ? '34,197,94' : '59,130,246'}, 0.2)`, color: article.category === 'tournament' ? '#fbbf24' : article.category === 'strategy' ? '#a78bfa' : article.category === 'industry' ? '#22c55e' : '#3b82f6' }}>{article.category}</span>}
                                                                     {(article.views || 0) > 0 && <><span>•</span><span><Eye size={10} /> {formatViews(article.views)}</span></>}
                                                                 </div>
                                                             </div>
-                                                            <ChevronRight size={16} className="list-arrow" />
+                                                            <div className="list-actions" onClick={(e) => e.stopPropagation()}>
+                                                                <button onClick={(e) => { e.stopPropagation(); toggleBookmark(article.id, article); }} title="Bookmark">
+                                                                    {bookmarks.includes(article.id) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+                                                                </button>
+                                                                <button onClick={(e) => { e.stopPropagation(); handleShare(article); }} title="Share">
+                                                                    <Share2 size={14} />
+                                                                </button>
+                                                            </div>
                                                         </motion.div>
                                                     ))}
                                                 </div>
@@ -2440,6 +2460,87 @@ export default function NewsHub() {
                         border-radius: 50%;
                         background: var(--source-color);
                         flex-shrink: 0;
+                    }
+                    .chip-count {
+                        background: rgba(255,255,255,0.08);
+                        padding: 0 5px;
+                        border-radius: 8px;
+                        font-size: 10px;
+                        font-weight: 600;
+                        color: rgba(255,255,255,0.5);
+                        margin-left: 2px;
+                    }
+                    .source-chip.active .chip-count {
+                        background: color-mix(in srgb, var(--source-color) 30%, transparent);
+                        color: var(--source-color);
+                    }
+                    .reading-stats-bar {
+                        display: flex;
+                        gap: 16px;
+                        padding: 6px 12px;
+                        background: rgba(94,245,240,0.05);
+                        border-radius: 8px;
+                        margin-bottom: 8px;
+                        font-size: 11px;
+                        color: rgba(255,255,255,0.45);
+                        align-items: center;
+                        justify-content: center;
+                        border: 1px solid rgba(94,245,240,0.08);
+                    }
+                    .new-badge {
+                        position: absolute;
+                        top: 6px;
+                        left: 6px;
+                        background: linear-gradient(135deg, #00d4ff, #5ef5f0);
+                        color: #000;
+                        font-size: 8px;
+                        font-weight: 800;
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        letter-spacing: 1px;
+                        z-index: 5;
+                        text-transform: uppercase;
+                    }
+                    .category-pill {
+                        padding: 1px 6px;
+                        border-radius: 6px;
+                        font-size: 9px;
+                        font-weight: 600;
+                        text-transform: capitalize;
+                        letter-spacing: 0.3px;
+                    }
+                    .news-list-item .list-actions {
+                        display: flex;
+                        gap: 4px;
+                        align-items: center;
+                        margin-left: auto;
+                        flex-shrink: 0;
+                        opacity: 0;
+                        transition: opacity 0.2s;
+                    }
+                    .news-list-item:hover .list-actions {
+                        opacity: 1;
+                    }
+                    .news-list-item .list-actions button {
+                        background: rgba(255,255,255,0.06);
+                        border: none;
+                        color: rgba(255,255,255,0.5);
+                        cursor: pointer;
+                        padding: 4px;
+                        border-radius: 6px;
+                        transition: all 0.15s;
+                        display: flex;
+                        align-items: center;
+                    }
+                    .news-list-item .list-actions button:hover {
+                        background: rgba(94,245,240,0.15);
+                        color: #5ef5f0;
+                    }
+                    .news-list-item.read {
+                        opacity: 0.6;
+                    }
+                    .news-list-item.read:hover {
+                        opacity: 1;
                     }
 
                     /* ═══════════════════════════════════════════════ */
