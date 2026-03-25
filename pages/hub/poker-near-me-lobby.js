@@ -964,13 +964,14 @@ export default function PokerNearMeLobby() {
         );
         break;
 
-      case 'homegames':
+      case 'homegames': {
+        const homeGames = venues.filter(v => v.venue_type === 'home_game');
         component = (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Home Games</span>
               <span style={{ color: 'rgba(200,214,229,0.4)', fontSize: 12 }}>
-                {venues.filter(v => v.venue_type === 'home_game').length} game{venues.filter(v => v.venue_type === 'home_game').length !== 1 ? 's' : ''}
+                {homeGames.length} game{homeGames.length !== 1 ? 's' : ''}
               </span>
             </div>
             {loading && <div style={{ textAlign: 'center', padding: 20, color: 'rgba(200,214,229,0.5)' }}>
@@ -978,7 +979,7 @@ export default function PokerNearMeLobby() {
               Loading home games...
             </div>}
             <div style={{ display: 'grid', gap: 12 }}>
-              {venues.filter(v => v.venue_type === 'home_game').map(v => (
+              {homeGames.map(v => (
                 <VenueCard
                   key={v.id}
                   venue={v}
@@ -995,7 +996,7 @@ export default function PokerNearMeLobby() {
                 />
               ))}
             </div>
-            {venues.filter(v => v.venue_type === 'home_game').length === 0 && !loading && (
+            {homeGames.length === 0 && !loading && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
@@ -1008,6 +1009,7 @@ export default function PokerNearMeLobby() {
           </div>
         );
         break;
+      }
 
       case 'nearme':
         component = (
