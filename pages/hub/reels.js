@@ -293,11 +293,11 @@ export default function ReelsPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: currentReel.id, user_id: user.id, interaction_type: 'like' })
                 });
+                busEmit.socialPostLiked(currentReel.id, user.id, { added: !wasLiked, reactionType: 'like' });
             } catch (e) {
                 setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
             }
         }
-        busEmit.socialPostLiked(currentReel.id, user?.id, { added: !wasLiked, reactionType: 'like' });
         setLikeBusy(false);
     };
 
@@ -330,9 +330,9 @@ export default function ReelsPage() {
                 setComments(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);
             }
             setCommentText('');
+            busEmit.socialCommentAdded(currentReel.id, user?.id);
         } catch (e) { console.error('Submit comment:', e); }
         setSubmittingComment(false);
-        busEmit.socialCommentAdded(currentReel.id, user?.id);
     };
 
     const handleShare = async () => {
@@ -375,22 +375,26 @@ export default function ReelsPage() {
 
         const isSaved = savedReels.has(currentReel.id);
 
-        if (isSaved) {
-            await savedReelsService.unsaveReel(user.id, currentReel.id);
-            setSavedReels(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(currentReel.id);
-                return newSet;
-            });
-        } else {
-            await savedReelsService.saveReel(user.id, {
-                id: currentReel.id,
-                video_url: currentReel.video_url,
-                caption: currentReel.caption
-            });
-            setSavedReels(prev => new Set([...prev, currentReel.id]));
+        try {
+            if (isSaved) {
+                await savedReelsService.unsaveReel(user.id, currentReel.id);
+                setSavedReels(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(currentReel.id);
+                    return newSet;
+                });
+            } else {
+                await savedReelsService.saveReel(user.id, {
+                    id: currentReel.id,
+                    video_url: currentReel.video_url,
+                    caption: currentReel.caption
+                });
+                setSavedReels(prev => new Set([...prev, currentReel.id]));
+            }
+            busEmit.socialPostBookmarked(currentReel.id, user.id, { added: !isSaved });
+        } catch (err) {
+            console.warn('Save reel failed:', err);
         }
-        busEmit.socialPostBookmarked(currentReel.id, user?.id, { added: !isSaved });
     };
 
     // Hamburger menu handlers

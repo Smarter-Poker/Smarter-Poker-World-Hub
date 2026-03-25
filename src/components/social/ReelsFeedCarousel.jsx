@@ -510,10 +510,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     post_id: currentReel.id, user_id: authUser.id, interaction_type: 'bookmark'
                 });
             }
+            busEmit.socialPostBookmarked(currentReel.id, authUser.id, { added: !wasSaved });
         } catch {
             setSaved(prev => ({ ...prev, [currentReel.id]: wasSaved }));
         }
-        busEmit.socialPostBookmarked(currentReel.id, authUser.id, { added: !wasSaved });
     };
 
     // Keyboard navigation

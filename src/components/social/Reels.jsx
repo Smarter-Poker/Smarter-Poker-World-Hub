@@ -133,10 +133,10 @@ export function ReelsViewer({ onClose }) {
                     post_id: currentReel.id, user_id: currentUserId, interaction_type: 'bookmark'
                 });
             }
+            busEmit.socialPostBookmarked(currentReel.id, currentUserId, { added: !wasSaved });
         } catch {
             setSaved(prev => ({ ...prev, [currentReel.id]: wasSaved }));
         }
-        busEmit.socialPostBookmarked(currentReel.id, currentUserId, { added: !wasSaved });
     };
 
     // Auto-hide overlay after 2 seconds
