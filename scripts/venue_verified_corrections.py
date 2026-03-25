@@ -92,8 +92,8 @@ VERIFIED = {
     415: {"address": "101 S Cass Lake Rd", "phone": "(248) 682-6300"},                 # Waterford Card Room — casinocity.com, threehundredbowl.com
     442: {"address": "101 S Cass Lake Rd", "phone": "(248) 682-6300"},                 # Waterford (dup)
     434: {"address": "257 Ladd Rd", "phone": "(248) 705-0809"},                        # All Star Poker — casinocity.com, pokerdiscover.com
-    419: {"address": "5841 Telegraph Rd"},                                               # Momo's Poker Room — casinocity.com, pokeratlas.com
-    438: {"address": "5841 Telegraph Rd"},                                               # Momo's (dup)
+    419: {"address": "5841 Telegraph Rd", "phone": "(313) 492-2692"},                  # Momo's Poker Room — casinocity.com, pokeratlas.com
+    438: {"address": "5841 Telegraph Rd", "phone": "(313) 492-2692"},                  # Momo's (dup)
     418: {"address": "3546 S Lapeer Rd", "phone": "(810) 678-3801"},                   # Legends Poker Metamora — lapeerareachamber.org, pokeratlas.com
     437: {"address": "3546 S Lapeer Rd", "phone": "(810) 678-3801"},                   # Legends (dup)
     403: {"address": "3317 E Bristol Rd", "phone": "(810) 853-7343"},                  # Burton Eagles — pokerdiscover.com, casinocity.com
@@ -105,10 +105,55 @@ VERIFIED = {
     445: {"address": "12330 James St", "phone": "(616) 396-6869"},                     # Poker Zone Holland — giftly.com, themogh.org
     408: {"address": "1405 E M-21"},                                                    # Owosso Poker Room — michigan.gov
     420: {"address": "35 W High St"},                                                    # Ace High Poker Club — acehighpokerclub.com [Note: in Oxford OH, not MI]
+    446: {"address": "6209 Division Ave S", "phone": "(616) 550-7399"},                # King's Charity Poker GR — same as 406
+    436: {"address": "5841 Telegraph Rd"},                                               # MO's Poker Room — listed near Momo's
 
     # --- TEXAS (final batch) ---
     248: {"address": "8988 Glenmont Dr", "phone": "(281) 699-3330"},                    # Fortune Poker Club — pokeratlas.com
+    260: {"address": "5020 50th St, Suite 103", "phone": "(806) 893-2472"},             # Matador Poker House — pokeratlas.com
+    269: {"address": "102 E Washington Ave, Suite 304", "phone": "(936) 285-9988"},     # River Rats Poker Club — riverratspokerclub.com
+
+    # --- CALIFORNIA ---
+    303: {"address": "709 Pacific Ave", "phone": "(831) 423-6257"},                    # Oceanview Casino — casinocity.com, pokeratlas.com
+    304: {"address": "9850 E Front Rd", "phone": "(805) 466-7950"},                    # Outlaws Card Parlour — worldcasinodirectory.com, pokeratlas.com
+    305: {"address": "204 Carmel Ave", "phone": "(831) 384-0925"},                     # Casino Monterey — casinosavenue.com, apple.com, pokeratlas.com
+
+    # --- WASHINGTON ---
+    328: {"address": "838 Valley Mall Pkwy", "phone": "(509) 888-2003"},               # Clearwater Saloon — visitwenatchee.org
+    329: {"address": "4801 Tieton Dr", "phone": "(509) 966-1070"},                     # Club 48 Poker Room — nobhillbowl.com (at 48th & Tieton)
+
+    # --- MONTANA ---
+    344: {"address": "4055 Brooks St", "phone": "(406) 251-5402"},                     # Silver Slipper — pokeratlas.com, chipy.com
+    345: {"address": "6 Rimrock Ln"},                                                    # Rimrock Lodge — pokeratlas.com, rimrocklodgemontana.com
+    350: {"address": "101 N 28th St", "phone": "(406) 259-5148"},                      # Queen of Hearts — pokeratlas.com, queenofheartscardclub.com
+
+    # --- OREGON ---
+    377: {"address": "322 E Main St", "phone": "(541) 944-9694"},                      # Medford Social Club — casinocity.com, thehendonmob.com
+    378: {"address": "231 SW Ankeny St", "phone": "(503) 381-0769"},                   # Oregon Poker Club Kit Kat — casinocity.com, kitkatpdx.com
+    379: {"address": "529 SW 4th Ave", "phone": "(503) 228-7605"},                     # Oregon Poker Club Rialto — rialtopoolroom.com
+    380: {"address": "16065 SE McLoughlin Blvd", "phone": "(503) 915-9530"},           # Oregon Poker Club Stadiums — pokeratlas.com, casinocity.com
+    381: {"address": "1244 Walnut St", "phone": "(541) 784-5354"},                     # The Club House — casinocity.com
+    382: {"address": "3297 SE Salem Ave", "phone": "(541) 981-2728"},                  # Diamond Poker Club — thediamondpokerclub.com, pokeratlas.com
+    384: {"address": "120 SW J St", "phone": "(541) 295-9532"},                        # Grants Pass Poker Room — grantspasspokerroom.com, pokerdiscover.com
+    385: {"address": "1020 Green Acres Rd, Suite 13", "phone": "(541) 485-0090"},      # High Mountain Poker — highmountainpoker.com, pokeratlas.com
+    387: {"address": "917 NE Greenwood Ave", "phone": "(541) 508-9123"},               # Bend Poker Room — bendpokerroom.com, bendsource.com
+    388: {"address": "1680 Coburg Rd, Suite 110", "phone": "(541) 653-8707"},          # International Poker Eugene — homepokergames.com
+
+    # --- NEW HAMPSHIRE ---
+    389: {"address": "1279 S Willow St", "phone": "(603) 668-6591"},                   # Manchester Poker — revocasino.com, pokerdiscover.com
+    392: {"address": "310 Daniel Webster Hwy, Suite 102", "phone": "(603) 751-6274"},  # Nash Casino Poker — thenashcasino.com, nashuachamber.com
+    393: {"address": "369 Miracle Mile", "phone": "(603) 678-5906"},                   # Lebanon Poker Room — worldcasinodirectory.com, revocasino.com
+    462: {"address": "319 New Zealand Rd", "phone": "(603) 474-3065"},                 # Seabrook Poker Room — worldcasinodirectory.com, livefreeandplay.com
+
+    # --- MINNESOTA ---
+    464: {"address": "1009 Central Ave NW", "phone": "(218) 773-1129"},                # American Legion EGF — visitgrandforks.com, freepokernetwork.com
+    467: {"address": "8060 State Hwy 55"},                                               # Billy's Rockford Bar — billysrockfordbar-rachelsplace.com
+
+    # --- OHIO / GEORGIA / INDIANA ---
+    481: {"address": "554 W Main St", "phone": "(678) 316-8588"},                      # Little Kings and Queens — pokerdiscover.com
+    482: {"address": "3233 St Joe Center Rd", "phone": "(260) 739-7297"},              # Elks #155 — pokeratlas.com, elks.org
 }
+
 
 # DEFAULT_HOURS and DEFAULT_GAMES by venue_type — for venues not in VERIFIED
 DEFAULT_HOURS = {

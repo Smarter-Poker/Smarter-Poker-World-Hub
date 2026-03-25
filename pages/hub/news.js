@@ -963,10 +963,23 @@ export default function NewsHub() {
     const reelsCarouselRef = useRef(null);
 
     // Phase 3 State
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    const [viewMode, setViewMode] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('news_view_mode') || 'grid';
+        }
+        return 'grid';
+    });
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [searchFocused, setSearchFocused] = useState(false);
     const [focusedArticleIdx, setFocusedArticleIdx] = useState(-1);
+
+    // Phase 4: Persist viewMode
+    const handleViewModeChange = useCallback((mode) => {
+        setViewMode(mode);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('news_view_mode', mode);
+        }
+    }, []);
 
     // Source accent colors for color-coded borders
     const SOURCE_COLORS = {
@@ -1057,8 +1070,20 @@ export default function NewsHub() {
         return () => window.removeEventListener('scroll', handleScrollFAB);
     }, []);
 
-    // Toggle source filter
-    const toggleSource = (src) => setSourceFilters(prev => ({ ...prev, [src]: !prev[src] }));
+    // Toggle source filter (Phase 4: update URL for deep linking)
+    const toggleSource = (src) => {
+        setSourceFilters(prev => {
+            const next = { ...prev, [src]: !prev[src] };
+            // Update URL with active source filters for deep linking
+            const active = Object.keys(next).filter(k => next[k]);
+            if (active.length === 1) {
+                router.replace({ pathname: router.pathname, query: { source: active[0] } }, undefined, { shallow: true });
+            } else {
+                router.replace({ pathname: router.pathname }, undefined, { shallow: true });
+            }
+            return next;
+        });
+    };
     const activeSourceFilters = Object.keys(sourceFilters).filter(k => sourceFilters[k]);
 
 
@@ -1071,16 +1096,11 @@ export default function NewsHub() {
     const openReelViewer = (index) => { setReelViewerIndex(index); setReelViewerOpen(true); };
 
 
-    // Handle query parameters for deep linking
+    // Handle query parameters for deep linking (Phase 4: fixed source filter binding)
     useEffect(() => {
-        if (router.query.tab) {
-            setActiveTab(router.query.tab);
-        }
         if (router.query.source) {
-            setSourceFilter(router.query.source);
-        }
-        if (router.query.filter) {
-            setCategoryFilter(router.query.filter);
+            const src = router.query.source;
+            setSourceFilters(prev => ({ ...prev, [src]: true }));
         }
     }, [router.query]);
     const [email, setEmail] = useState('');
@@ -1238,7 +1258,27 @@ export default function NewsHub() {
         }
     };
 
-    // Share functions
+    // Share functions (Phase 4: Web Share API with fallback)
+    const handleShare = useCallback(async (article) => {
+        const url = `https://smarter.poker/hub/article?id=${article.id}`;
+        // Try native Web Share API first (mobile Safari/Chrome)
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            try {
+                await navigator.share({
+                    title: article.title,
+                    text: `Check out this poker news: ${article.title}`,
+                    url
+                });
+                return; // Native share handled it
+            } catch (err) {
+                if (err.name === 'AbortError') return; // User cancelled
+                // Fall through to modal
+            }
+        }
+        // Fallback: show share modal
+        setShareArticle(article);
+    }, []);
+
     const shareToTwitter = (article) => {
         const url = `https://smarter.poker/hub/article?id=${article.id}`;
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(url)}`, '_blank');
@@ -1251,8 +1291,12 @@ export default function NewsHub() {
 
     const copyLink = async (article) => {
         const url = `https://smarter.poker/hub/article?id=${article.id}`;
-        await navigator.clipboard.writeText(url);
-        fireConfetti({ particleCount: 30, spread: 40, origin: { y: 0.7 } });
+        try {
+            await navigator.clipboard.writeText(url);
+            fireConfetti({ particleCount: 30, spread: 40, origin: { y: 0.7 } });
+        } catch (err) {
+            console.warn('Clipboard write failed:', err);
+        }
     };
 
     // Refresh button handler (triggers SWR revalidation)
@@ -1596,10 +1640,10 @@ export default function NewsHub() {
                                     )}
                                 </div>
                                 <div className="view-toggle">
-                                    <button className={viewMode === 'grid' ? 'active' : ''} onClick={() => setViewMode('grid')} title="Grid View">
+                                    <button className={viewMode === 'grid' ? 'active' : ''} onClick={() => handleViewModeChange('grid')} title="Grid View">
                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
                                     </button>
-                                    <button className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')} title="List View">
+                                    <button className={viewMode === 'list' ? 'active' : ''} onClick={() => handleViewModeChange('list')} title="List View">
                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="1" y="7" width="14" height="2" rx="1"/><rect x="1" y="12" width="14" height="2" rx="1"/></svg>
                                     </button>
                                     {bookmarks.length > 0 && (
@@ -1636,7 +1680,7 @@ export default function NewsHub() {
                                                             onOpen={openArticle}
                                                             isBookmarked={bookmarks.includes(article.id)}
                                                             onBookmark={toggleBookmark}
-                                                            onShare={setShareArticle}
+                                                            onShare={handleShare}
                                                             isRead={readArticles.includes(article.id)}
                                                         />
                                                     </motion.div>

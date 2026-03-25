@@ -54,17 +54,18 @@ export default function ReelsPage() {
     const [userWantsSound, setUserWantsSound] = useState(false); // localStorage preference
     // Auto-play immediately - no tap required since videos are muted (browser policy compliant)
     const [liked, setLiked] = useState({});
-    const [shareMsg, setShareMsg] = useState('');
+    const [likeCounts, setLikeCounts] = useState({});
+    const [shareToast, setShareToast] = useState(false);
     const [showCommentPanel, setShowCommentPanel] = useState(false);
     const [comments, setComments] = useState([]);
     const [commentText, setCommentText] = useState('');
     const [submittingComment, setSubmittingComment] = useState(false);
-    const [likeBusy, setLikeBusy] = useState(false);
-    const [shareBusy, setShareBusy] = useState(false);
+    const [commentCounts, setCommentCounts] = useState({});
     const containerRef = useRef(null);
     const iframeRef = useRef(null);
     const touchStartY = useRef(0);
     const lastTapRef = useRef(0);
+    const likeDebounceRef = useRef(false);
     const router = useRouter();
     const [user, setUser] = useState(null);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -108,6 +109,17 @@ export default function ReelsPage() {
                 const saved = await savedReelsService.getSavedReels(authUser.id);
                 const savedIds = new Set(saved.map(item => item.reel_id));
                 setSavedReels(savedIds);
+
+                // Pre-fetch existing likes
+                const { data: likeData } = await supabase
+                    .from('social_likes')
+                    .select('post_id')
+                    .eq('user_id', authUser.id);
+                if (likeData) {
+                    const likeMap = {};
+                    likeData.forEach(l => { likeMap[l.post_id] = true; });
+                    setLiked(likeMap);
+                }
             }
         };
         loadUserData();
@@ -281,24 +293,38 @@ export default function ReelsPage() {
     }, [currentIndex]);
 
     const handleLike = async () => {
-        if (!currentReel || likeBusy) return;
-        setLikeBusy(true);
-        const wasLiked = liked[currentReel.id];
-        setLiked(prev => ({ ...prev, [currentReel.id]: !wasLiked }));
+        if (!currentReel?.id || !user?.id) return;
+        // Debounce: prevent rapid-fire
+        if (likeDebounceRef.current) return;
+        likeDebounceRef.current = true;
+        setTimeout(() => { likeDebounceRef.current = false; }, 300);
+
+        const postId = currentReel.id;
+        const wasLiked = liked[postId];
+        // Optimistic update
+        setLiked(prev => ({ ...prev, [postId]: !wasLiked }));
+        setLikeCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || currentReel.like_count || 0) + (wasLiked ? -1 : 1)) }));
         haptic(wasLiked ? 5 : 15);
-        if (user?.id) {
-            try {
-                await authedFetch('/api/social/interactions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ post_id: currentReel.id, user_id: user.id, interaction_type: 'like' })
-                });
-                busEmit.socialPostLiked(currentReel.id, user.id, { added: !wasLiked, reactionType: 'like' });
-            } catch (e) {
-                setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
+
+        try {
+            if (wasLiked) {
+                await supabase.from('social_likes')
+                    .delete()
+                    .eq('post_id', postId)
+                    .eq('user_id', user.id);
+                busEmit.socialPostLiked(postId, user.id, { added: false, reactionType: 'like' });
+                supabase.rpc('decrement_post_count', { p_post_id: postId, p_field: 'like_count' }).catch(() => {});
+            } else {
+                await supabase.from('social_likes')
+                    .insert({ post_id: postId, user_id: user.id, reaction_type: 'like' });
+                busEmit.socialPostLiked(postId, user.id, { added: true, reactionType: 'like' });
+                supabase.rpc('increment_post_count', { p_post_id: postId, p_field: 'like_count' }).catch(() => {});
             }
+        } catch (err) {
+            // Rollback on error
+            setLiked(prev => ({ ...prev, [postId]: wasLiked }));
+            setLikeCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || 0) + (wasLiked ? 1 : -1)) }));
         }
-        setLikeBusy(false);
     };
 
     const handleComment = async () => {
@@ -306,58 +332,60 @@ export default function ReelsPage() {
         setShowCommentPanel(prev => !prev);
         if (!showCommentPanel && comments.length === 0) {
             try {
-                const res = await fetch('/api/social/interactions?post_id=' + currentReel.id + '&type=comment');
-                if (!res.ok) throw new Error(`Request failed (${res.status})`);
-                const json = await res.json();
-                setComments(json.comments || []);
+                const { data } = await supabase
+                    .from('social_comments')
+                    .select('id, content, created_at, media_url, media_type, profiles:author_id(username, avatar_url)')
+                    .eq('post_id', currentReel.id)
+                    .order('created_at', { ascending: true })
+                    .limit(50);
+                setComments(data || []);
+                setCommentCounts(prev => ({ ...prev, [currentReel.id]: (data || []).length }));
             } catch (e) { console.error('Load comments:', e); }
         }
     };
 
     const submitComment = async () => {
-        if (!commentText.trim()) return;
-        if (!user?.id) return;
+        if (!commentText.trim() || !user?.id || !currentReel?.id) return;
+        const text = commentText.trim();
+        const tempId = Date.now();
         setSubmittingComment(true);
+        setCommentText('');
+        // Optimistic comment
+        setComments(prev => [...prev, {
+            id: tempId, content: text,
+            profiles: { username: 'You', avatar_url: null },
+            created_at: new Date().toISOString(),
+        }]);
         try {
-            const res = await authedFetch('/api/social/interactions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post_id: currentReel.id, user_id: user.id, interaction_type: 'comment', content: commentText.trim() })
-            });
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const json = await res.json();
-            if (json.comment) {
-                setComments(prev => [...prev, { ...json.comment, author: { username: 'You' } }]);
-            }
-            setCommentText('');
-            busEmit.socialCommentAdded(currentReel.id, user?.id);
-        } catch (e) { console.error('Submit comment:', e); }
+            const { error } = await supabase.from('social_comments')
+                .insert({ post_id: currentReel.id, author_id: user.id, content: text });
+            if (error) throw error;
+            busEmit.socialCommentAdded(currentReel.id, user.id);
+            supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }).catch(() => {});
+            setCommentCounts(prev => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
+        } catch {
+            setComments(prev => prev.filter(c => c.id !== tempId));
+        }
         setSubmittingComment(false);
     };
 
     const handleShare = async () => {
-        if (!currentReel || shareBusy) return;
-        setShareBusy(true);
+        if (!currentReel?.id) return;
         haptic(10);
         const url = window.location.origin + '/hub/reels?id=' + currentReel.id;
         try {
-            await navigator.clipboard.writeText(url);
-            setShareMsg('Copied!');
-            setTimeout(() => setShareMsg(''), 2000);
-            if (user?.id) {
-                authedFetch('/api/social/interactions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ post_id: currentReel.id, user_id: user.id, interaction_type: 'share' })
-                }).catch(() => { }).finally(() => setShareBusy(false));
-                busEmit.socialPostShared(currentReel.id, user.id);
+            if (navigator.share) {
+                await navigator.share({ title: 'Poker Reel', url });
             } else {
-                setShareBusy(false);
+                await navigator.clipboard.writeText(url);
             }
+            setShareToast(true);
+            setTimeout(() => setShareToast(false), 2000);
+            supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }).catch(() => {});
+            if (user?.id) busEmit.socialPostShared(currentReel.id, user.id);
         } catch {
-            setShareMsg('Failed');
-            setTimeout(() => setShareMsg(''), 2000);
-            setShareBusy(false);
+            setShareToast(true);
+            setTimeout(() => setShareToast(false), 2000);
         }
     };
 
@@ -826,7 +854,7 @@ export default function ReelsPage() {
                     }}>
                         <svg width="32" height="32" viewBox="0 0 24 24" fill={liked[currentReel?.id] ? '#ef4444' : 'none'} stroke={liked[currentReel?.id] ? '#ef4444' : 'white'} strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
                         <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                            {(currentReel?.like_count || 0) + (liked[currentReel?.id] ? 1 : 0)}
+                            {likeCounts[currentReel?.id] ?? (currentReel?.like_count || 0)}
                         </span>
                     </button>
 
@@ -847,7 +875,7 @@ export default function ReelsPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
-                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>{shareMsg || 'Share'}</span>
+                        <span style={{ color: 'white', fontSize: 12, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Share</span>
                     </button>
 
                     {/* Save */}
@@ -921,9 +949,9 @@ export default function ReelsPage() {
                                         width: 32, height: 32, borderRadius: '50%', background: '#333',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         fontSize: 14, color: 'white', flexShrink: 0
-                                    }}>{(c.author?.username || 'U').charAt(0).toUpperCase()}</div>
+                                    }}>{(c.profiles?.username || c.author?.username || 'U').charAt(0).toUpperCase()}</div>
                                     <div>
-                                        <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{c.author?.username || 'User'}</span>
+                                        <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{c.profiles?.username || c.author?.username || 'User'}</span>
                                         <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 2 }}>{c.content}</div>
                                     </div>
                                 </div>
