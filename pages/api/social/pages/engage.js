@@ -114,24 +114,6 @@ export default async function handler(req, res) {
               });
           }
 
-
-                      if (pageData && pageData.owner_id !== user_id) {
-                          const commenterName = profile?.full_name || profile?.username || 'Someone';
-                          await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
-                              method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '' },
-                              body: JSON.stringify({
-                                  title: '💬 New Comment',
-                                  message: `${commenterName} commented on a post in "${pageData.name}"`,
-                                  externalUserIds: [pageData.owner_id],
-                                  url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/social-pages/${postData.page_id}`,
-                                  data: { type: 'page_comment', page_id: postData.page_id, post_id }
-                              }),
-                          });
-                      }
-                  }
-              } catch (notifErr) { console.error('Comment notification error:', notifErr); }
-          }
-
           return res.status(400).json({ success: false, error: 'Invalid action. Use "like" or "comment"' });
 
       } else if (req.method === 'GET') {
@@ -174,7 +156,7 @@ export default async function handler(req, res) {
           if (!authUser) return;
 
           const { id, type } = req.query;
-          const user_id = authUser.id; // Use authenticated user, not query param
+          const user_id = authUser.id;
 
           if (!id) {
               return res.status(400).json({ success: false, error: 'id required' });
