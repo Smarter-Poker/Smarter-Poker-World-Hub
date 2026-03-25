@@ -5339,7 +5339,9 @@ function SocialMediaPage() {
                         commentId: payload.new.id,
                         content: payload.new.content,
                         authorId: payload.new.author_id,
-                        parentId: payload.new.parent_id || null
+                        parentId: payload.new.parent_id || null,
+                        mediaUrl: payload.new.media_url || null,
+                        mediaType: payload.new.media_type || null
                     }, 'SocialRealtime');
                 }
             })
