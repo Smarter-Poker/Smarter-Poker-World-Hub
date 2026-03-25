@@ -1702,10 +1702,13 @@ export default function ProfilePage() {
                     {/* Profile Completion Progress Bar */}
                     <ProfileCompletionBar profile={profile} />
 
+                    {/* Section Jump Navigation */}
+                    <SectionNav />
+
                     {/* Social Stats Row */}
                     <div style={{
-                        background: C.card, borderRadius: 8, padding: 16, marginBottom: 16,
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                        background: C.card, borderRadius: 12, padding: 16, marginBottom: 16,
+                        border: `1px solid ${C.border}`,
                         display: 'flex', justifyContent: 'space-around', textAlign: 'center'
                     }}>
                         <div style={{ cursor: 'pointer' }} onClick={() => router.push('/hub/friends')}>
@@ -1789,20 +1792,34 @@ export default function ProfilePage() {
                     )}
 
                     {/* Basic Info */}
-                    <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>👤 Basic Information</h3>
+                    <CollapsibleSection id="sec-basic" title="Basic Information" icon="👤">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
                             <ProfileField label="First Name" value={profile.first_name} onChange={updateField('first_name')} placeholder="John" icon="📛" maxLength={50} />
                             <ProfileField label="Last Name" value={profile.last_name} onChange={updateField('last_name')} placeholder="Doe" icon="📛" maxLength={50} />
-                            <ProfileField
-                                label="Username"
-                                value={profile.username}
-                                onChange={updateField('username')}
-                                placeholder="@johndoe"
-                                icon="@"
-                                maxLength={30}
-                                suffix={usernameStatus === 'checking' ? '⟳' : usernameStatus === 'available' ? '✅' : usernameStatus === 'taken' ? '❌' : null}
-                            />
+                            <div>
+                                <ProfileField
+                                    label="Username"
+                                    value={profile.username}
+                                    onChange={updateField('username')}
+                                    placeholder="@johndoe"
+                                    icon="@"
+                                    maxLength={30}
+                                    suffix={usernameStatus === 'checking' ? '⟳' : usernameStatus === 'available' ? '✅' : usernameStatus === 'taken' ? '❌' : null}
+                                />
+                                {/* Username validation label */}
+                                {usernameStatus !== 'idle' && (
+                                    <div style={{
+                                        fontSize: 11, fontWeight: 600, marginTop: -12, marginBottom: 8, paddingLeft: 2,
+                                        color: usernameStatus === 'available' ? '#42B72A'
+                                            : usernameStatus === 'taken' ? '#FA383E'
+                                            : '#888'
+                                    }}>
+                                        {usernameStatus === 'checking' && 'Checking availability...'}
+                                        {usernameStatus === 'available' && 'Username is available'}
+                                        {usernameStatus === 'taken' && 'Username is already taken'}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <ProfileField label="Bio" value={profile.bio} onChange={updateField('bio')} type="textarea" placeholder="Tell Us About Yourself And Your Poker Journey..." icon="" maxLength={500} showCount />
 
@@ -1813,11 +1830,10 @@ export default function ProfilePage() {
                             onViewAll={() => setLibraryOpen(true)}
                             limit={6}
                         />
-                    </div>
+                    </CollapsibleSection>
 
                     {/* Location */}
-                    <div style={{ background: C.card, borderRadius: 8, padding: 20, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600, color: C.text }}>Location</h3>
+                    <CollapsibleSection id="sec-location" title="Location" icon="📍">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
                             <ProfileField label="City" value={profile.city} onChange={updateField('city')} placeholder="Las Vegas" maxLength={100} />
                             <ProfileField label="State" value={profile.state} onChange={updateField('state')} placeholder="Nevada" maxLength={100} />

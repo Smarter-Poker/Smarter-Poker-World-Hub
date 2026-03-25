@@ -1,0 +1,43 @@
+# Venue Intelligence Scraper — Automated Schedule
+# Runs every 3 days (Mon/Thu at midnight EST) 
+# Uses Manus AI (OpenClaw) + Scrapling for venue data extraction
+#
+# Priority:
+#   Tier 1: Venue direct websites (354 venues)
+#   Tier 2: PokerAtlas fallback (47 venues without websites)
+
+name: Venue Scraper Auto-Sync
+
+on:
+  schedule:
+    # Every Monday and Thursday at 5:00 AM UTC (midnight EST)
+    - cron: '0 5 * * 1,4'
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  scrape-venues:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Trigger Venue Scraper
+        run: |
+          echo "🏪 Triggering venue scraper at $(date)"
+          
+          RESPONSE=$(curl -s --max-time 120 \
+            "https://smarter.poker/api/venue-scraper/trigger?key=${{ secrets.VENUE_SCRAPER_SECRET }}")
+          
+          echo "Response: $RESPONSE"
+          
+          # Check for success
+          if echo "$RESPONSE" | grep -q '"success":true'; then
+            echo "✅ Venue scraper triggered successfully"
+          else
+            echo "❌ Venue scraper trigger failed"
+            exit 1
+          fi
+
+      - name: Log Summary
+        if: always()
+        run: |
+          echo "🏁 Venue scraper workflow completed at $(date)"

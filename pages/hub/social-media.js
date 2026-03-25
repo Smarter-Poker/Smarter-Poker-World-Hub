@@ -2660,8 +2660,24 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             if (!file || !currentUserId) return;
                             setUploadingCommentImage(true);
                             try {
+                                // Client-side compression for large images
+                                let uploadFile = file;
+                                if (file.size > 500 * 1024 && file.type !== 'image/gif') {
+                                    try {
+                                        const bitmap = await createImageBitmap(file);
+                                        const canvas = document.createElement('canvas');
+                                        const maxDim = 1200;
+                                        const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+                                        canvas.width = bitmap.width * scale;
+                                        canvas.height = bitmap.height * scale;
+                                        const ctx = canvas.getContext('2d');
+                                        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                                        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.82));
+                                        uploadFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+                                    } catch { uploadFile = file; }
+                                }
                                 const formData = new FormData();
-                                formData.append('image', file);
+                                formData.append('image', uploadFile);
                                 const token = getAccessToken();
                                 const resp = await fetch('/api/social/upload-comment-image', {
                                     method: 'POST',
@@ -2731,6 +2747,53 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 maxLength={2000}
                                 rows={1}
                                 aria-label="Write a comment"
+                                onPaste={(e) => {
+                                    const items = e.clipboardData?.items;
+                                    if (!items) return;
+                                    for (const item of items) {
+                                        if (item.type.startsWith('image/')) {
+                                            e.preventDefault();
+                                            const file = item.getAsFile();
+                                            if (file && currentUserId) {
+                                                setUploadingCommentImage(true);
+                                                (async () => {
+                                                    try {
+                                                        let uploadFile = file;
+                                                        if (file.size > 500 * 1024 && file.type !== 'image/gif') {
+                                                            try {
+                                                                const bitmap = await createImageBitmap(file);
+                                                                const canvas = document.createElement('canvas');
+                                                                const maxDim = 1200;
+                                                                const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+                                                                canvas.width = bitmap.width * scale;
+                                                                canvas.height = bitmap.height * scale;
+                                                                const ctx = canvas.getContext('2d');
+                                                                ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                                                                const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.82));
+                                                                uploadFile = new File([blob], 'pasted.jpg', { type: 'image/jpeg' });
+                                                            } catch { uploadFile = file; }
+                                                        }
+                                                        const formData = new FormData();
+                                                        formData.append('image', uploadFile);
+                                                        const token = getAccessToken();
+                                                        const resp = await fetch('/api/social/upload-comment-image', {
+                                                            method: 'POST',
+                                                            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                                                            body: formData,
+                                                        });
+                                                        const result = await resp.json();
+                                                        if (resp.ok && result.success) {
+                                                            setCommentMediaUrl(result.url);
+                                                            setCommentMediaType('image');
+                                                        }
+                                                    } catch (err) { console.error('[Comment] Paste upload error:', err); }
+                                                    setUploadingCommentImage(false);
+                                                })();
+                                            }
+                                            return;
+                                        }
+                                    }
+                                }}
                             />
                             {/* GIF + Image toolbar row */}
                             <div style={{ display: 'flex', gap: 6, paddingLeft: 14, paddingTop: 4 }}>
