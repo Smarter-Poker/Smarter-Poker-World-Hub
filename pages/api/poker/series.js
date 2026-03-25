@@ -199,6 +199,7 @@ export default async function handler(req, res) {
       // Try Supabase first
       let seriesData = null;
       try {
+        // Query both tournament_series AND poker_series tables for maximum coverage
         let query = getSupabase()
           .from('tournament_series')
           .select('*')
@@ -215,7 +216,6 @@ export default async function handler(req, res) {
         }
 
         if (tour) {
-          // BUG #270 FIX: Sanitize to prevent PostgREST filter injection
           const safeTour = tour.replace(/[,().]/g, ' ').trim();
           if (safeTour) {
               query = query.or(`tour.ilike.%${safeTour}%,short_name.ilike.%${safeTour}%`);
@@ -240,8 +240,68 @@ export default async function handler(req, res) {
 
         const { data, error } = await query;
 
-        if (!error && data && data.length > 0) {
-          seriesData = data;
+        // Also fetch from poker_series (which has series_uid for event linking)
+        let pokerSeriesData = [];
+        try {
+          let psQuery = getSupabase()
+            .from('poker_series')
+            .select('*')
+            .order('start_date', { ascending: true })
+            .limit(300);
+
+          if (upcoming === 'true') {
+            const today = new Date().toISOString().split('T')[0];
+            psQuery = psQuery.gte('start_date', today);
+          }
+
+          const { data: psData } = await psQuery;
+          pokerSeriesData = psData || [];
+        } catch (psErr) {
+          // poker_series unavailable
+        }
+
+        // Merge: combine both, dedup by name
+        const mergedMap = new Map();
+        if (!error && data) {
+          for (const s of data) {
+            const key = (s.name || s.series_name || '').toLowerCase();
+            mergedMap.set(key, {
+              ...s,
+              series_uid: s.series_uid || null,
+            });
+          }
+        }
+        // Overlay poker_series data (has series_uid)
+        for (const ps of pokerSeriesData) {
+          const key = (ps.series_name || ps.name || '').toLowerCase();
+          if (mergedMap.has(key)) {
+            const existing = mergedMap.get(key);
+            existing.series_uid = existing.series_uid || ps.series_uid;
+          } else {
+            mergedMap.set(key, {
+              id: ps.id,
+              name: ps.series_name || ps.name,
+              short_name: ps.tour,
+              series_uid: ps.series_uid,
+              tour: ps.tour,
+              venue: ps.venue_name,
+              city: ps.city,
+              state: ps.state,
+              start_date: ps.start_date,
+              end_date: ps.end_date,
+              total_events: ps.event_count,
+              series_type: (ps.tier === 'A' ? 'major' : ps.tier === 'B' ? 'circuit' : 'regional'),
+              source_url: ps.source_url,
+            });
+          }
+        }
+
+        const merged = [...mergedMap.values()].sort((a, b) =>
+          (a.start_date || '').localeCompare(b.start_date || '')
+        );
+
+        if (merged.length > 0) {
+          seriesData = merged;
         }
       } catch (dbErr) {
         // DB unavailable, fall through to JSON
@@ -296,6 +356,49 @@ export default async function handler(req, res) {
 
       const total = seriesData.length;
       const limited = seriesData.slice(0, parsedLimit);
+
+      // Enrich each series with events from poker_events table
+      try {
+        const seriesUids = limited
+          .map(s => s.series_uid)
+          .filter(Boolean);
+
+        if (seriesUids.length > 0) {
+          const { data: allEvents } = await getSupabase()
+            .from('poker_events')
+            .select('*')
+            .in('series_uid', seriesUids)
+            .order('start_date', { ascending: true });
+
+          if (allEvents && allEvents.length > 0) {
+            const eventsBySeries = {};
+            for (const evt of allEvents) {
+              if (!eventsBySeries[evt.series_uid]) eventsBySeries[evt.series_uid] = [];
+              eventsBySeries[evt.series_uid].push(evt);
+            }
+            for (const s of limited) {
+              if (s.series_uid && eventsBySeries[s.series_uid]) {
+                s.events = eventsBySeries[s.series_uid];
+                s.events_count = eventsBySeries[s.series_uid].length;
+              }
+            }
+          }
+        }
+      } catch (evtErr) {
+        // Events enrichment failed, continue without events
+        console.error('Events enrichment error:', evtErr.message);
+      }
+
+      // For series without DB events, try JSON fallback
+      for (const s of limited) {
+        if (!s.events || s.events.length === 0) {
+          const jsonEvents = loadEventsForSeries(s);
+          if (jsonEvents && jsonEvents.length > 0) {
+            s.events = jsonEvents;
+            s.events_count = jsonEvents.length;
+          }
+        }
+      }
 
       return res.status(200).json({
         success: true,
