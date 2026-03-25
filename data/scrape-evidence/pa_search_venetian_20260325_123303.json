@@ -1,0 +1,18 @@
+{
+  "venue_name": "Venetian",
+  "slug_tried": "venetian-las-vegas",
+  "pa_url": "https://www.pokeratlas.com/poker-room/venetian-las-vegas",
+  "data": {
+    "address": "3355 Las Vegas Blvd. South",
+    "city": "Las Vegas",
+    "state": "NV",
+    "phone": "(702) 414-7657",
+    "lat": 36.1238067,
+    "lng": -115.1683189,
+    "website": "https://www.venetianlasvegas.com/casino/poker.html",
+    "pa_name": "Venetian Las Vegas"
+  },
+  "hash": "cc519a402cf28bb146955545bff442b56518c1cce3b6a5cb58fa435b50bdc3ac",
+  "timestamp": "2026-03-25T17:33:03.235841+00:00",
+  "batch_id": "5b259756-1276-494f-aad5-285e11f1c53b"
+}

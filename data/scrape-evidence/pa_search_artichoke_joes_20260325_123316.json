@@ -1,0 +1,18 @@
+{
+  "venue_name": "Artichoke Joes",
+  "slug_tried": "artichoke-joes-san-bruno",
+  "pa_url": "https://www.pokeratlas.com/poker-room/artichoke-joes-san-bruno",
+  "data": {
+    "address": "659 Huntington Avenue",
+    "city": "San Bruno",
+    "state": "CA",
+    "phone": "(650) 589-8812",
+    "lat": 37.62798,
+    "lng": -122.4107,
+    "website": "https://www.artichokejoes.com/index.php",
+    "pa_name": "Artichoke Joe's Casino"
+  },
+  "hash": "24ee9a7199e575428156e2161912729285c2ba4b1897a9b7485966708b57153b",
+  "timestamp": "2026-03-25T17:33:16.631264+00:00",
+  "batch_id": "5b259756-1276-494f-aad5-285e11f1c53b"
+}
