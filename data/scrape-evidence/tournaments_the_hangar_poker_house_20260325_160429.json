@@ -1,0 +1,97 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/the-hangar-poker-house-humble/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:04:29.354132+00:00",
+    "scrape_html_hash": "cf4c4acb4d34aaa6fce44be9378f19dbbdc4499ddc0b407ee935a6e415ada7cd",
+    "scrape_byte_count": 69792,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "The Hangar Poker House",
+      "day_of_week": "Sunday",
+      "start_time": "4:00pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf4c4acb4d34aaa6fce44be9378f19dbbdc4499ddc0b407ee935a6e415ada7cd",
+      "scrape_timestamp": "2026-03-25T21:04:29.354132+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/the-hangar-poker-house-humble/tournaments"
+    },
+    {
+      "venue_name": "The Hangar Poker House",
+      "day_of_week": "Thursday",
+      "start_time": "5:15pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf4c4acb4d34aaa6fce44be9378f19dbbdc4499ddc0b407ee935a6e415ada7cd",
+      "scrape_timestamp": "2026-03-25T21:04:29.354132+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/the-hangar-poker-house-humble/tournaments"
+    },
+    {
+      "venue_name": "The Hangar Poker House",
+      "day_of_week": "friday",
+      "start_time": "5:15pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf4c4acb4d34aaa6fce44be9378f19dbbdc4499ddc0b407ee935a6e415ada7cd",
+      "scrape_timestamp": "2026-03-25T21:04:29.354132+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/the-hangar-poker-house-humble/tournaments"
+    },
+    {
+      "venue_name": "The Hangar Poker House",
+      "day_of_week": "saturday",
+      "start_time": "5:15pm",
+      "buy_in": 130,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf4c4acb4d34aaa6fce44be9378f19dbbdc4499ddc0b407ee935a6e415ada7cd",
+      "scrape_timestamp": "2026-03-25T21:04:29.354132+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/the-hangar-poker-house-humble/tournaments"
+    },
+    {
+      "venue_name": "The Hangar Poker House",
+      "day_of_week": "sunday",
+      "start_time": "5:15pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf4c4acb4d34aaa6fce44be9378f19dbbdc4499ddc0b407ee935a6e415ada7cd",
+      "scrape_timestamp": "2026-03-25T21:04:29.354132+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/the-hangar-poker-house-humble/tournaments"
+    },
+    {
+      "venue_name": "The Hangar Poker House",
+      "day_of_week": "Tuesday",
+      "start_time": "5:15pm",
+      "buy_in": 0,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf4c4acb4d34aaa6fce44be9378f19dbbdc4499ddc0b407ee935a6e415ada7cd",
+      "scrape_timestamp": "2026-03-25T21:04:29.354132+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/the-hangar-poker-house-humble/tournaments"
+    },
+    {
+      "venue_name": "The Hangar Poker House",
+      "day_of_week": "Sunday",
+      "start_time": "5:15pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "cf4c4acb4d34aaa6fce44be9378f19dbbdc4499ddc0b407ee935a6e415ada7cd",
+      "scrape_timestamp": "2026-03-25T21:04:29.354132+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/the-hangar-poker-house-humble/tournaments"
+    }
+  ]
+}

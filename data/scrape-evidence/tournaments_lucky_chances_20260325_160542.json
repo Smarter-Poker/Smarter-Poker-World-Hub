@@ -1,0 +1,97 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/lucky-chances-colma/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:05:42.300429+00:00",
+    "scrape_html_hash": "8acfba3d59caee46ddee72ade039c78e069a11e38321b32892f4573cabeb1ffd",
+    "scrape_byte_count": 70164,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Lucky Chances",
+      "day_of_week": "Sunday",
+      "start_time": "9:30am",
+      "buy_in": 300,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8acfba3d59caee46ddee72ade039c78e069a11e38321b32892f4573cabeb1ffd",
+      "scrape_timestamp": "2026-03-25T21:05:42.300429+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/lucky-chances-colma/tournaments"
+    },
+    {
+      "venue_name": "Lucky Chances",
+      "day_of_week": "Thursday",
+      "start_time": "9:30am",
+      "buy_in": 165,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8acfba3d59caee46ddee72ade039c78e069a11e38321b32892f4573cabeb1ffd",
+      "scrape_timestamp": "2026-03-25T21:05:42.300429+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/lucky-chances-colma/tournaments"
+    },
+    {
+      "venue_name": "Lucky Chances",
+      "day_of_week": "Saturday",
+      "start_time": "9:30am",
+      "buy_in": 240,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8acfba3d59caee46ddee72ade039c78e069a11e38321b32892f4573cabeb1ffd",
+      "scrape_timestamp": "2026-03-25T21:05:42.300429+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/lucky-chances-colma/tournaments"
+    },
+    {
+      "venue_name": "Lucky Chances",
+      "day_of_week": "Wednesday",
+      "start_time": "9:30am",
+      "buy_in": 165,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8acfba3d59caee46ddee72ade039c78e069a11e38321b32892f4573cabeb1ffd",
+      "scrape_timestamp": "2026-03-25T21:05:42.300429+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/lucky-chances-colma/tournaments"
+    },
+    {
+      "venue_name": "Lucky Chances",
+      "day_of_week": "Friday",
+      "start_time": "9:30am",
+      "buy_in": 240,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8acfba3d59caee46ddee72ade039c78e069a11e38321b32892f4573cabeb1ffd",
+      "scrape_timestamp": "2026-03-25T21:05:42.300429+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/lucky-chances-colma/tournaments"
+    },
+    {
+      "venue_name": "Lucky Chances",
+      "day_of_week": "Sunday",
+      "start_time": "9:30am",
+      "buy_in": 840,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8acfba3d59caee46ddee72ade039c78e069a11e38321b32892f4573cabeb1ffd",
+      "scrape_timestamp": "2026-03-25T21:05:42.300429+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/lucky-chances-colma/tournaments"
+    },
+    {
+      "venue_name": "Lucky Chances",
+      "day_of_week": "sunday",
+      "start_time": "9:30am",
+      "buy_in": 840,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "8acfba3d59caee46ddee72ade039c78e069a11e38321b32892f4573cabeb1ffd",
+      "scrape_timestamp": "2026-03-25T21:05:42.300429+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/lucky-chances-colma/tournaments"
+    }
+  ]
+}

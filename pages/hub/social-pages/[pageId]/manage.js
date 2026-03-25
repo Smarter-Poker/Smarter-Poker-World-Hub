@@ -96,7 +96,7 @@ export default function ManageSocialPage() {
         if (!page) return;
         tabRef.current = tab;
         if (tab === 'members') fetchMembers();
-        if (tab === 'posts') fetchPosts();
+        if (tab === 'posts' || tab === 'analytics') fetchPosts();
     }, [tab, page]);
   // Realtime subscription — live updates (stable deps, no tab recreation)
   useEffect(() => {

@@ -1,0 +1,85 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/jokers-of-aggieland-poker-club-college-station/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:05:00.001788+00:00",
+    "scrape_html_hash": "e0a9155a08f07b3c819c61814adf4a0082252e6fde7f8f991c4b1ab9bc0bed78",
+    "scrape_byte_count": 66066,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Jokers of Aggieland Poker Club",
+      "day_of_week": "Sunday",
+      "start_time": "2:00pm",
+      "buy_in": 2000,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "e0a9155a08f07b3c819c61814adf4a0082252e6fde7f8f991c4b1ab9bc0bed78",
+      "scrape_timestamp": "2026-03-25T21:05:00.001788+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jokers-of-aggieland-poker-club-college-station/tournaments"
+    },
+    {
+      "venue_name": "Jokers of Aggieland Poker Club",
+      "day_of_week": "sunday",
+      "start_time": "3:30pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "e0a9155a08f07b3c819c61814adf4a0082252e6fde7f8f991c4b1ab9bc0bed78",
+      "scrape_timestamp": "2026-03-25T21:05:00.001788+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jokers-of-aggieland-poker-club-college-station/tournaments"
+    },
+    {
+      "venue_name": "Jokers of Aggieland Poker Club",
+      "day_of_week": "monday",
+      "start_time": "6:30pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "e0a9155a08f07b3c819c61814adf4a0082252e6fde7f8f991c4b1ab9bc0bed78",
+      "scrape_timestamp": "2026-03-25T21:05:00.001788+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jokers-of-aggieland-poker-club-college-station/tournaments"
+    },
+    {
+      "venue_name": "Jokers of Aggieland Poker Club",
+      "day_of_week": "tuesday",
+      "start_time": "7:00pm",
+      "buy_in": 20,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "e0a9155a08f07b3c819c61814adf4a0082252e6fde7f8f991c4b1ab9bc0bed78",
+      "scrape_timestamp": "2026-03-25T21:05:00.001788+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jokers-of-aggieland-poker-club-college-station/tournaments"
+    },
+    {
+      "venue_name": "Jokers of Aggieland Poker Club",
+      "day_of_week": "thursday",
+      "start_time": "7:00pm",
+      "buy_in": 50,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "e0a9155a08f07b3c819c61814adf4a0082252e6fde7f8f991c4b1ab9bc0bed78",
+      "scrape_timestamp": "2026-03-25T21:05:00.001788+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jokers-of-aggieland-poker-club-college-station/tournaments"
+    },
+    {
+      "venue_name": "Jokers of Aggieland Poker Club",
+      "day_of_week": "sunday",
+      "start_time": "3:00pm",
+      "buy_in": 60,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "e0a9155a08f07b3c819c61814adf4a0082252e6fde7f8f991c4b1ab9bc0bed78",
+      "scrape_timestamp": "2026-03-25T21:05:00.001788+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/jokers-of-aggieland-poker-club-college-station/tournaments"
+    }
+  ]
+}

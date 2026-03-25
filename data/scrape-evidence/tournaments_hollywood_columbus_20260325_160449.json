@@ -1,0 +1,133 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/hollywood-columbus/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:04:49.528141+00:00",
+    "scrape_html_hash": "be2892a740e41b66dfe483c13ae1e3b67518a5f2dabe9b819b5c59459a5966c8",
+    "scrape_byte_count": 82092,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Hollywood Columbus",
+      "day_of_week": "Sunday",
+      "start_time": "10:00am",
+      "buy_in": 160,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "be2892a740e41b66dfe483c13ae1e3b67518a5f2dabe9b819b5c59459a5966c8",
+      "scrape_timestamp": "2026-03-25T21:04:49.528141+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-columbus/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Columbus",
+      "day_of_week": "Tuesday",
+      "start_time": "12:15pm",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "be2892a740e41b66dfe483c13ae1e3b67518a5f2dabe9b819b5c59459a5966c8",
+      "scrape_timestamp": "2026-03-25T21:04:49.528141+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-columbus/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Columbus",
+      "day_of_week": "Thursday",
+      "start_time": "12:15pm",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "be2892a740e41b66dfe483c13ae1e3b67518a5f2dabe9b819b5c59459a5966c8",
+      "scrape_timestamp": "2026-03-25T21:04:49.528141+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-columbus/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Columbus",
+      "day_of_week": "Friday",
+      "start_time": "12:15pm",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "be2892a740e41b66dfe483c13ae1e3b67518a5f2dabe9b819b5c59459a5966c8",
+      "scrape_timestamp": "2026-03-25T21:04:49.528141+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-columbus/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Columbus",
+      "day_of_week": "Sunday",
+      "start_time": "12:15pm",
+      "buy_in": 160,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "be2892a740e41b66dfe483c13ae1e3b67518a5f2dabe9b819b5c59459a5966c8",
+      "scrape_timestamp": "2026-03-25T21:04:49.528141+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-columbus/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Columbus",
+      "day_of_week": "Monday",
+      "start_time": "12:15pm",
+      "buy_in": 70,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "be2892a740e41b66dfe483c13ae1e3b67518a5f2dabe9b819b5c59459a5966c8",
+      "scrape_timestamp": "2026-03-25T21:04:49.528141+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-columbus/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Columbus",
+      "day_of_week": "Wednesday",
+      "start_time": "12:15pm",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "be2892a740e41b66dfe483c13ae1e3b67518a5f2dabe9b819b5c59459a5966c8",
+      "scrape_timestamp": "2026-03-25T21:04:49.528141+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-columbus/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Columbus",
+      "day_of_week": "Saturday",
+      "start_time": "12:15pm",
+      "buy_in": 350,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "be2892a740e41b66dfe483c13ae1e3b67518a5f2dabe9b819b5c59459a5966c8",
+      "scrape_timestamp": "2026-03-25T21:04:49.528141+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-columbus/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Columbus",
+      "day_of_week": "Monday",
+      "start_time": "12:15pm",
+      "buy_in": 80,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "be2892a740e41b66dfe483c13ae1e3b67518a5f2dabe9b819b5c59459a5966c8",
+      "scrape_timestamp": "2026-03-25T21:04:49.528141+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-columbus/tournaments"
+    },
+    {
+      "venue_name": "Hollywood Columbus",
+      "day_of_week": "sunday",
+      "start_time": "12:15pm",
+      "buy_in": 160,
+      "game_type": "Holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "be2892a740e41b66dfe483c13ae1e3b67518a5f2dabe9b819b5c59459a5966c8",
+      "scrape_timestamp": "2026-03-25T21:04:49.528141+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hollywood-columbus/tournaments"
+    }
+  ]
+}
