@@ -241,6 +241,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [reelCommentMediaType, setReelCommentMediaType] = useState(null);
     const [uploadingReelImage, setUploadingReelImage] = useState(false);
     const commentInputRef = useRef(null);
+    const viewedReelsRef = useRef(new Set());
     const reelFileInputRef = useRef(null);
     const videoRef = useRef(null);
     const containerRef = useRef(null);
@@ -522,9 +523,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setCommentText('');
         setShowOverlay(false);
         setProgress(0);
-        // Track view count
-        if (reels[currentIndex]?.id) {
-            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reels[currentIndex].id, p_field: 'view_count' }); } catch {} })();
+        // Deduplicated view count — only fire once per reel per session
+        const reelId = reels[currentIndex]?.id;
+        if (reelId && !viewedReelsRef.current.has(reelId)) {
+            viewedReelsRef.current.add(reelId);
+            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch {} })();
         }
     }, [currentIndex]);
 
