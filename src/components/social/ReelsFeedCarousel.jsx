@@ -249,6 +249,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const likeDebounceRef = useRef(false);
     const lastTapRef = useRef(0);
     const progressRAF = useRef(null);
+    const handleLikeRef = useRef(null);
+    const handleSaveRef = useRef(null);
+    const handleCommentsRef = useRef(null);
 
     const currentReel = reels[currentIndex];
 
@@ -516,6 +519,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
     };
 
+    // Keep handler refs fresh for keyboard shortcuts
+    handleLikeRef.current = handleLike;
+    handleSaveRef.current = handleSave;
+    handleCommentsRef.current = handleToggleComments;
+
     // Keyboard navigation
     useEffect(() => {
         const handleKey = (e) => {
@@ -530,9 +538,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     return next;
                 });
             }
-            if (e.key === 'l' || e.key === 'L') { handleLike(); haptic(15); }
-            if (e.key === 's' || e.key === 'S') handleSave();
-            if (e.key === 'c' || e.key === 'C') handleToggleComments();
+            if (e.key === 'l' || e.key === 'L') { handleLikeRef.current?.(); haptic(15); }
+            if (e.key === 's' || e.key === 'S') handleSaveRef.current?.();
+            if (e.key === 'c' || e.key === 'C') handleCommentsRef.current?.();
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);

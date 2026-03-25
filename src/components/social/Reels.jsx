@@ -62,6 +62,9 @@ export function ReelsViewer({ onClose }) {
     const likeDebounceRef = useRef(false);
     const lastTapRef = useRef(0);
     const progressRAF = useRef(null);
+    const handleLikeRef = useRef(null);
+    const handleSaveRef = useRef(null);
+    const handleCommentsRef = useRef(null);
     // GIF + Image state for reel comments
     const [showReelGifPicker, setShowReelGifPicker] = useState(false);
     const [reelCommentMediaUrl, setReelCommentMediaUrl] = useState(null);
@@ -338,6 +341,11 @@ export function ReelsViewer({ onClose }) {
         setReelComments([]);
     }, [currentIndex]);
 
+    // Keep handler refs fresh for keyboard shortcuts
+    handleLikeRef.current = handleLike;
+    handleSaveRef.current = handleSave;
+    handleCommentsRef.current = handleOpenComments;
+
     // Keyboard navigation
     useEffect(() => {
         const handleKey = (e) => {
@@ -353,9 +361,9 @@ export function ReelsViewer({ onClose }) {
                     return next;
                 });
             }
-            if (e.key === 'l' || e.key === 'L') { handleLike(); haptic(15); }
-            if (e.key === 's' || e.key === 'S') handleSave();
-            if (e.key === 'c' || e.key === 'C') handleOpenComments();
+            if (e.key === 'l' || e.key === 'L') { handleLikeRef.current?.(); haptic(15); }
+            if (e.key === 's' || e.key === 'S') handleSaveRef.current?.();
+            if (e.key === 'c' || e.key === 'C') handleCommentsRef.current?.();
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
