@@ -1402,20 +1402,9 @@ export default function NewsHub() {
                     <div className="layout">
                         {/* Left Column - News Boxes */}
                         <main className="main-content">
-                            {/* Section Tabs - Inline above content */}
-                            <div className="section-tabs" style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-                                <button
-                                    className={`section-tab-img ${activeSection === 'news' ? 'active' : ''}`}
-                                    onClick={() => setActiveSection('news')}
-                                >
-                                    <Image src="/images/btn-news.png" alt="News" width={144} height={85} style={{ width: 'auto', height: '55px', maxWidth: '100%', display: 'block' }} />
-                                </button>
-                                <button
-                                    className={`section-tab-img ${activeSection === 'reels' ? 'active' : ''}`}
-                                    onClick={() => setActiveSection('reels')}
-                                >
-                                    <Image src="/images/btn-reels.png" alt="Reels" width={144} height={85} style={{ width: 'auto', height: '55px', maxWidth: '100%', display: 'block' }} />
-                                </button>
+                            {/* SMARTER.POKER NEWS Banner */}
+                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                                <Image src="/images/smarter-poker-news-banner.png" alt="Smarter.Poker News" width={600} height={180} style={{ width: '100%', maxWidth: '500px', height: 'auto', display: 'block' }} priority />
                             </div>
 
                             {/* Stories Section */}
