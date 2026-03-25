@@ -3,14 +3,14 @@
  * Manages user's bookmarked news articles
  */
 
-import { getSupabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 /**
  * Get all bookmarked articles for a user
  */
 export async function getNewsBookmarks(userId) {
     try {
-        const { data, error } = await getSupabase()
+        const { data, error } = await supabase
             .from('news_bookmarks')
             .select('*')
             .eq('user_id', userId)
@@ -33,7 +33,7 @@ export async function getNewsBookmarks(userId) {
  */
 export async function addNewsBookmark(userId, articleId, articleData = {}) {
     try {
-        const { data, error } = await getSupabase()
+        const { data, error } = await supabase
             .from('news_bookmarks')
             .insert({
                 user_id: userId,
@@ -63,7 +63,7 @@ export async function addNewsBookmark(userId, articleId, articleData = {}) {
  */
 export async function removeNewsBookmark(userId, articleId) {
     try {
-        const { error } = await getSupabase()
+        const { error } = await supabase
             .from('news_bookmarks')
             .delete()
             .eq('user_id', userId)
@@ -86,7 +86,7 @@ export async function removeNewsBookmark(userId, articleId) {
  */
 export async function isArticleBookmarked(userId, articleId) {
     try {
-        const { data, error } = await getSupabase()
+        const { data, error } = await supabase
             .from('news_bookmarks')
             .select('id')
             .eq('user_id', userId)

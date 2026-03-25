@@ -22,7 +22,7 @@ import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import useSWR from 'swr';
-import { getSupabase } from '../../src/lib/supabase';
+import { supabase } from '../../src/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 // confetti loaded lazily on first use
 let _confetti = null;
@@ -1129,8 +1129,7 @@ export default function NewsHub() {
     // TIER 3 REALTIME: News Updates
     // ═══════════════════════════════════════════════════════════════════════════
     useEffect(() => {
-        const sb = getSupabase();
-        const newsChannel = sb
+        const newsChannel = supabase
             .channel('news-live')
             .on('postgres_changes', {
                 event: 'INSERT',
@@ -1143,7 +1142,7 @@ export default function NewsHub() {
             .subscribe();
 
         return () => {
-            sb.removeChannel(newsChannel);
+            supabase.removeChannel(newsChannel);
         };
     }, []);
 

@@ -3,7 +3,7 @@
  * Manages user preferences for the News page
  */
 
-import { getSupabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 /**
  * Get user's news preferences
@@ -16,7 +16,7 @@ export async function getNewsPreferences(userId) {
     }
 
     try {
-        const { data, error } = await getSupabase()
+        const { data, error } = await supabase
             .from('profiles')
             .select('news_preferences')
             .eq('id', userId)
@@ -47,7 +47,7 @@ export async function updateNewsPreferences(userId, preferences) {
     }
 
     try {
-        const { data, error } = await getSupabase().rpc('update_page_preferences', {
+        const { data, error } = await supabase.rpc('update_page_preferences', {
             p_user_id: userId,
             p_column_name: 'news_preferences',
             p_preferences: preferences,
