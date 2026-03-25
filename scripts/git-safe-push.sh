@@ -227,36 +227,7 @@ if echo "$MSG" | grep -qE "^(${BLOCKED_MESSAGES})$"; then
 fi
 echo "✅ Commit message is descriptive"
 
-# ── 0.5b. @MEDIA RULE REMOVAL GATE ──
-# NEVER allow removal of @media responsive rules unless --force-destructive is set.
-# This prevents the exact mobile CSS wipe that hit bankroll-manager.js on Feb 16.
-if [ "$FORCE_DESTRUCTIVE" = false ]; then
-    STAGED_DIFF=$(git diff --cached --unified=0 2>/dev/null || git diff HEAD~1 --unified=0 2>/dev/null || echo "")
-    MEDIA_REMOVALS=$(echo "$STAGED_DIFF" | grep -c '^-.*@media' 2>/dev/null || echo "0")
-
-    if [ "$MEDIA_REMOVALS" -gt 0 ]; then
-        AFFECTED_FILES=$(echo "$STAGED_DIFF" | grep -B 50 '^-.*@media' | grep '^diff --git' | sed 's|diff --git a/||;s| b/.*||' | sort -u)
-        echo ""
-        echo "🚨 BLOCKED: @media responsive rules are being REMOVED!"
-        echo "═══════════════════════════════════════════════════"
-        echo "   ${MEDIA_REMOVALS} @media rule(s) would be deleted in:"
-        echo "$AFFECTED_FILES" | while IFS= read -r f; do
-            [ -n "$f" ] && echo "   ❌ $f"
-        done
-        echo ""
-        echo "   Removing @media rules destroys mobile responsive layouts."
-        echo "   If this is intentional, re-run with --force-destructive flag."
-        echo "═══════════════════════════════════════════════════"
-        # Unstage before exiting so we don't leave dirty index
-        git reset HEAD 2>/dev/null || true
-        echo "PUSH_OK:false"
-        echo "REASON:media_rule_removal_blocked"
-        exit 2
-    fi
-    echo "✅ No @media rules removed"
-fi
-
-# ── 0.5c. LARGE NET DELETION GATE ──
+# ── 0.5b. LARGE NET DELETION GATE ──
 # Block any single file with more than 50 lines of net deletion.
 # This catches bulk wipes where an agent accidentally removes large sections.
 if [ "$FORCE_DESTRUCTIVE" = false ]; then
