@@ -1,0 +1,181 @@
+{
+  "provenance": {
+    "scrape_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments",
+    "scrape_http_status": 200,
+    "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+    "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+    "scrape_byte_count": 81967,
+    "scrape_script": "scripts/scrape_pokeratlas_tournaments.py",
+    "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b"
+  },
+  "tournaments": [
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 600,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Tuesday",
+      "start_time": "11:00am",
+      "buy_in": 150,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Wednesday",
+      "start_time": "11:00am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Thursday",
+      "start_time": "11:00am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Friday",
+      "start_time": "11:00am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Saturday",
+      "start_time": "11:00am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Monday",
+      "start_time": "6:00pm",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Wednesday",
+      "start_time": "6:00pm",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Saturday",
+      "start_time": "11:00am",
+      "buy_in": 400,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Friday",
+      "start_time": "11:00am",
+      "buy_in": 140,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Monday",
+      "start_time": "11:00am",
+      "buy_in": 200,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Thursday",
+      "start_time": "11:00am",
+      "buy_in": 800,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Friday",
+      "start_time": "11:00am",
+      "buy_in": 800,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    },
+    {
+      "venue_name": "Seminole Hard Rock Hollywood",
+      "day_of_week": "Sunday",
+      "start_time": "12:00pm",
+      "buy_in": 800,
+      "game_type": "holdem",
+      "data_quality": "scraped_verified",
+      "scrape_html_hash": "a8dcf2ce5630112fc72d5c7879557b855cab4bde46f85d16b9b8aff880256082",
+      "scrape_timestamp": "2026-03-25T21:05:58.952218+00:00",
+      "scrape_batch_id": "3265b03f-fa2a-4b85-ab86-420be0816d5b",
+      "source_url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale/tournaments"
+    }
+  ]
+}
