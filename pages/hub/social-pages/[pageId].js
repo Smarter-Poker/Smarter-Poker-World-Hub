@@ -245,9 +245,10 @@ export default function SocialPageDetail() {
         }
     };
 
-    // Owner identity detection
+    // Owner identity detection — works regardless of active identity mode
+    // userRole is already set by the API (detected via page.owner_id === user.id)
     const isPageOwner = userRole === 'owner';
-    const isOwnerOnOwnPage = isPageOwner && page && clubPage?.id === page.id;
+    const isOwnerOnOwnPage = isPageOwner && !!page;
 
 
 
