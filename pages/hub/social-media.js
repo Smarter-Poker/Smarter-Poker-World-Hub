@@ -2432,10 +2432,16 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                                 maxLength={2000}
                                                 style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 10px', fontSize: 14, outline: 'none', resize: 'vertical', minHeight: 40, fontFamily: 'inherit', boxSizing: 'border-box' }}
                                             />
+                                            {c.mediaUrl && (
+                                                <div style={{ marginTop: 6 }}>
+                                                    <img src={c.mediaUrl} alt={c.mediaType === 'gif' ? 'GIF' : 'Image'} style={{ maxWidth: 120, maxHeight: 80, borderRadius: 6, opacity: 0.7 }} loading="lazy" />
+                                                    <div style={{ fontSize: 10, color: C.textSec, marginTop: 2 }}>{c.mediaType === 'gif' ? 'GIF attached' : 'Image attached'}</div>
+                                                </div>
+                                            )}
                                             <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'flex-end' }}>
                                                 <button onClick={() => setEditingCommentId(null)} style={{ padding: '4px 12px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 12, fontWeight: 500 }}>Cancel</button>
                                                 <button onClick={async () => {
-                                                    if (!editCommentText.trim()) return;
+                                                    if (!editCommentText.trim() && !c.mediaUrl) return;
                                                     const { error } = await supabase.from('social_comments').update({ content: editCommentText.trim() }).eq('id', c.id).eq('author_id', currentUserId);
                                                     if (!error) {
                                                         setComments(prev => prev.map(cm => cm.id === c.id ? { ...cm, text: editCommentText.trim() } : cm));
@@ -2443,7 +2449,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                                     } else {
                                                         toast.error('Could not update comment');
                                                     }
-                                                }} disabled={!editCommentText.trim()} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: editCommentText.trim() ? 1 : 0.5 }}>Save</button>
+                                                }} disabled={!editCommentText.trim() && !c.mediaUrl} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: C.blue, color: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, opacity: (editCommentText.trim() || c.mediaUrl) ? 1 : 0.5 }}>Save</button>
                                             </div>
                                         </div>
                                     ) : (
