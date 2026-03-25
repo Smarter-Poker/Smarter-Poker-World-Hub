@@ -240,25 +240,33 @@ export default async function handler(req, res) {
               if (!qData.options) qData.options = [];
               // Normalize options to object format: { id, text, frequency }
               qData.options = qData.options.map((opt, idx) => {
-                  if (typeof opt === 'string') return { id: String.fromCharCode(97 + idx), text: opt, frequency: 0 };
-                  return { id: opt.id || String.fromCharCode(97 + idx), text: opt.text || opt, frequency: opt.frequency || 0 };
+                  if (typeof opt === 'string') return { id: `opt_${idx}`, text: opt, frequency: 0 };
+                  return { id: opt.id || `opt_${idx}`, text: opt.text || String(opt), frequency: opt.frequency || 0 };
               });
 
               if (qData.options.length < 4 && !scenario.isPsychology) {
                   const existingTexts = new Set(qData.options.map(o => (o.text || '').toLowerCase()));
                   const existingIds = new Set(qData.options.map(o => o.id));
+                  // Use semantic IDs matching solver convention to avoid collisions
                   const fillers = [
-                      { text: 'Fold' }, { text: 'Check' }, { text: 'Call' },
-                      { text: 'Raise' }, { text: 'All-In' },
-                      { text: 'Bet 33%' }, { text: 'Bet Pot' },
+                      { id: 'f', text: 'Fold' },
+                      { id: 'x', text: 'Check' },
+                      { id: 'call', text: 'Call' },
+                      { id: 'r', text: 'Raise' },
+                      { id: 'allin', text: 'All-In' },
+                      { id: 'b33', text: 'Bet 33%' },
+                      { id: 'b100', text: 'Bet Pot' },
                   ];
                   for (const filler of fillers) {
                       if (qData.options.length >= 4) break;
-                      if (!existingTexts.has(filler.text.toLowerCase())) {
-                          const newId = String.fromCharCode(97 + qData.options.length);
-                          qData.options.push({ id: newId, text: filler.text, frequency: 0 });
-                          existingTexts.add(filler.text.toLowerCase());
-                      }
+                      // Skip if text OR id already exists
+                      if (existingTexts.has(filler.text.toLowerCase())) continue;
+                      // Generate a unique ID that doesn't collide
+                      let newId = filler.id;
+                      if (existingIds.has(newId)) newId = `pad_${filler.id}`;
+                      qData.options.push({ id: newId, text: filler.text, frequency: 0 });
+                      existingTexts.add(filler.text.toLowerCase());
+                      existingIds.add(newId);
                   }
               }
 
