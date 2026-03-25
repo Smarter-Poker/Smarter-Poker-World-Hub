@@ -574,10 +574,13 @@ export default function ReelsPage() {
             const d = event?.payload;
             if (d?.postId) {
                 setLiked(prev => ({ ...prev, [d.postId]: d.added }));
-                setLikeCounts(prev => ({
-                    ...prev,
-                    [d.postId]: Math.max(0, (prev[d.postId] || 0) + (d.added ? 1 : -1))
-                }));
+                // Only adjust count for events from OTHER components (avoid double-count with optimistic update)
+                if (d.userId !== user?.id) {
+                    setLikeCounts(prev => ({
+                        ...prev,
+                        [d.postId]: Math.max(0, (prev[d.postId] || 0) + (d.added ? 1 : -1))
+                    }));
+                }
             }
         };
         const handleBookmarkBus = (event) => {
