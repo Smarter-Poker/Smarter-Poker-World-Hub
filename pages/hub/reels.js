@@ -371,7 +371,7 @@ export default function ReelsPage() {
     // Haptic helper
     const haptic = (ms = 10) => { try { navigator?.vibrate?.(ms); } catch {} };
 
-    // Track view count on reel change
+    // Track view count on reel change + auto-hide overlay
     useEffect(() => {
         if (currentReel?.id) {
             setVideoProgress(0); // Reset progress bar
@@ -381,7 +381,7 @@ export default function ReelsPage() {
             overlayTimerRef.current = setTimeout(() => setOverlayVisible(false), 3000);
             (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'view_count' }); } catch {} })();
         }
-    }, [currentIndex]);
+    }, [currentReel?.id]);
 
     const handleLike = async () => {
         if (!currentReel?.id || !user?.id) return;
@@ -882,6 +882,7 @@ export default function ReelsPage() {
                 <div style={{
                     opacity: overlayVisible ? 1 : 0,
                     transition: 'opacity 0.35s ease',
+                    pointerEvents: overlayVisible ? 'auto' : 'none',
                     position: 'absolute', top: 20, right: 16, zIndex: 100,
                     display: 'flex', gap: 12, padding: '6px 14px', borderRadius: 20,
                     background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
