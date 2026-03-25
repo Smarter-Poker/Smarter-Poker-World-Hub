@@ -616,7 +616,7 @@ export default function ProfilePage() {
         setMessage('Uploading avatar...');
 
         const fileExt = file.name.split('.').pop();
-        const filePath = `${user.id}/avatar.${fileExt}`;
+        const filePath = `${user.id}/avatar_${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
             .from('avatars')
@@ -842,7 +842,7 @@ export default function ProfilePage() {
             full_name: `${(profile.first_name || '').trim()} ${(profile.last_name || '').trim()}`.trim(),
             first_name: (profile.first_name || '').trim(),
             last_name: (profile.last_name || '').trim(),
-            username: profile.username,
+            username: (profile.username || '').trim() || null,
             bio: profile.bio,
             city: profile.city,
             state: profile.state,
