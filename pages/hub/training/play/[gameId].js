@@ -11,7 +11,6 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import LevelSelector from '../../../../src/components/training/LevelSelector';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 
 export default function TrainingPlayPage() {
     const bus = useTrainingBus('training-play');
@@ -81,7 +80,6 @@ export default function TrainingPlayPage() {
                     userId={userId}
                     gameId={gameId}
                 />
-              <BottomNavBar />
             </div>
         </>
     );

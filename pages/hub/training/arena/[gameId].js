@@ -17,7 +17,6 @@ import { getAuthUser } from '../../../../src/lib/authUtils';
 import { getGameById } from '../../../../src/data/TRAINING_LIBRARY';
 import ErrorBanner from '../../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../../src/components/training/ConnectionToast';
-import BottomNavBar from '../../../../src/components/ui/BottomNavBar';
 
 const GodModeArena = dynamic(() => import('../../../../src/components/training/GodModeArena'), {
     ssr: false,
@@ -99,7 +98,6 @@ export default function TrainingArenaPage() {
                 fontFamily: "'Inter', -apple-system, sans-serif",
             }}>
                 Loading...
-              <BottomNavBar />
             </div>
         );
     }
