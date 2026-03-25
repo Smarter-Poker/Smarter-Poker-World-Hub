@@ -1,0 +1,18 @@
+{
+  "venue_name": "Peppermill",
+  "slug_tried": "peppermill-reno",
+  "pa_url": "https://www.pokeratlas.com/poker-room/peppermill-reno",
+  "data": {
+    "address": "2707 South Virginia St.",
+    "city": "Reno",
+    "state": "NV",
+    "phone": "(775) 689-7275",
+    "lat": 39.4988,
+    "lng": -119.8,
+    "website": "http://www.peppermillreno.com/gaming/poker/",
+    "pa_name": "Peppermill Casino"
+  },
+  "hash": "9ae203a3bb0092c8537cec2822b693b394ab5ef088cae882ee60a0d9883efe13",
+  "timestamp": "2026-03-25T17:31:50.265153+00:00",
+  "batch_id": "5b259756-1276-494f-aad5-285e11f1c53b"
+}

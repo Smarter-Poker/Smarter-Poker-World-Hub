@@ -1,0 +1,18 @@
+{
+  "venue_name": "Resorts World",
+  "slug_tried": "resorts-world-las-vegas",
+  "pa_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
+  "data": {
+    "address": "3000 S. Las Vegas Blvd.",
+    "city": "Las Vegas",
+    "state": "NV",
+    "phone": "(702) 676-7680",
+    "lat": 36.13504,
+    "lng": -115.1671655,
+    "website": "https://www.rwlasvegas.com/",
+    "pa_name": "Resorts World Las Vegas"
+  },
+  "hash": "7cb1494782f36bcca89b77956b925c869b42d0e8a84c23bc3a68fb555a0d7640",
+  "timestamp": "2026-03-25T17:32:11.187913+00:00",
+  "batch_id": "5b259756-1276-494f-aad5-285e11f1c53b"
+}

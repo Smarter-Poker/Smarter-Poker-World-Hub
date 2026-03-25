@@ -1,0 +1,18 @@
+{
+  "venue_name": "Atlantis Casino",
+  "slug_tried": "atlantis-casino-reno",
+  "pa_url": "https://www.pokeratlas.com/poker-room/atlantis-casino-reno",
+  "data": {
+    "address": "3800 S. Virginia Street",
+    "city": "Reno",
+    "state": "NV",
+    "phone": "(775) 954-4142",
+    "lat": 39.4889,
+    "lng": -119.795,
+    "website": "https://atlantiscasino.com/casino/games/poker",
+    "pa_name": "Atlantis Casino"
+  },
+  "hash": "7ad998d98a90f04d952f83711cea23ebd7fde38f98fe24251d0c63e573601498",
+  "timestamp": "2026-03-25T17:30:04.470744+00:00",
+  "batch_id": "5b259756-1276-494f-aad5-285e11f1c53b"
+}

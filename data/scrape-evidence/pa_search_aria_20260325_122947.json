@@ -1,0 +1,18 @@
+{
+  "venue_name": "Aria",
+  "slug_tried": "aria-las-vegas",
+  "pa_url": "https://www.pokeratlas.com/poker-room/aria-las-vegas",
+  "data": {
+    "address": "3730 Las Vegas Blvd.",
+    "city": "Las Vegas",
+    "state": "NV",
+    "phone": "(702) 590-7230",
+    "lat": 36.10666,
+    "lng": -115.17691,
+    "website": "https://www.aria.com/en/casino/poker.html",
+    "pa_name": "Aria Casino"
+  },
+  "hash": "d03d76ba821c0ff2ed649ff6542d873e1f8e6ae930f1a0a30b15c5b189c5bd23",
+  "timestamp": "2026-03-25T17:29:47.776141+00:00",
+  "batch_id": "5b259756-1276-494f-aad5-285e11f1c53b"
+}

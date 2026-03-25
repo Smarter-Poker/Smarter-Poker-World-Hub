@@ -1,0 +1,18 @@
+{
+  "venue_name": "Mandalay Bay",
+  "slug_tried": "mandalay-bay-las-vegas",
+  "pa_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas",
+  "data": {
+    "address": "3950 Las Vegas Blvd. South",
+    "city": "Las Vegas",
+    "state": "NV",
+    "phone": "(702) 632-7790",
+    "lat": 36.0918,
+    "lng": -115.174,
+    "website": "http://www.mandalaybay.com/casino/poker/",
+    "pa_name": "Mandalay Bay"
+  },
+  "hash": "7ffc3e4a85aa432c18203fc0e1abebb3486d108a012e771831bc1aa58499f09d",
+  "timestamp": "2026-03-25T17:31:26.284908+00:00",
+  "batch_id": "5b259756-1276-494f-aad5-285e11f1c53b"
+}

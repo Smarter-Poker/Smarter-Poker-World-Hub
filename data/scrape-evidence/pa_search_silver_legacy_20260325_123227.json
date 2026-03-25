@@ -1,0 +1,18 @@
+{
+  "venue_name": "Silver Legacy",
+  "slug_tried": "silver-legacy-reno",
+  "pa_url": "https://www.pokeratlas.com/poker-room/silver-legacy-reno",
+  "data": {
+    "address": "407 N. Virginia Street",
+    "city": "Reno",
+    "state": "NV",
+    "phone": "(775) 329-4777",
+    "lat": 39.53042,
+    "lng": -119.81509,
+    "website": "https://www.silverlegacyreno.com/gaming/poker-room",
+    "pa_name": "Silver Legacy Casino"
+  },
+  "hash": "263680e4ab3d2f0338e480b3824ef91c9d9f1475d9f7039eb9e5094b849b0524",
+  "timestamp": "2026-03-25T17:32:27.819423+00:00",
+  "batch_id": "5b259756-1276-494f-aad5-285e11f1c53b"
+}

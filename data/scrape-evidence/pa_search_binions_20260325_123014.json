@@ -1,0 +1,18 @@
+{
+  "venue_name": "Binions",
+  "slug_tried": "binions-las-vegas",
+  "pa_url": "https://www.pokeratlas.com/poker-room/binions-las-vegas",
+  "data": {
+    "address": "128 Fremont Street",
+    "city": "Las Vegas",
+    "state": "NV",
+    "phone": "(702) 366-7361",
+    "lat": 36.1713,
+    "lng": -115.144,
+    "website": "http://www.binions.com/gaming/poker_room.php",
+    "pa_name": "Binion's Casino"
+  },
+  "hash": "9760b96d49a1d5b04406dbc4877aef492f1752153e274044d78e25185963ff84",
+  "timestamp": "2026-03-25T17:30:14.351907+00:00",
+  "batch_id": "5b259756-1276-494f-aad5-285e11f1c53b"
+}
