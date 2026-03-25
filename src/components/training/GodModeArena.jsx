@@ -11,15 +11,19 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import GameUIRouter from './GameUIRouter';
 import TrainerConfigModal from './TrainerConfigModal';
 import HandReplayViewer from './HandReplayViewer';
 import PositionStatsPanel from './PositionStatsPanel';
 import PreflopRangeTrainer from './PreflopRangeTrainer';
-import SPRTrainer from '../../../pages/hub/training/spr-trainer';
-import QuizGauntlet from '../../../pages/hub/training/quiz-gauntlet';
 import LifetimeStatsCard from './LifetimeStatsCard';
 import SessionHistoryList from './SessionHistoryList';
+
+// DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
+// These page-level components are only used for specific gameIds, so lazy-loading is fine
+const SPRTrainer = dynamic(() => import('../../../pages/hub/training/spr-trainer'), { ssr: false });
+const QuizGauntlet = dynamic(() => import('../../../pages/hub/training/quiz-gauntlet'), { ssr: false });
 
 // Components defined locally within this file or in other imports
 import useGTOTrainer from '../../hooks/useGTOTrainer';
