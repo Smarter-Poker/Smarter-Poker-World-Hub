@@ -448,6 +448,14 @@ export default function ReelsPage() {
         setShowCaptions: (val) => updatePreference('showCaptions', val)
     });
 
+    // Handler refs — prevent stale closures in keyboard shortcuts
+    const handleLikeRef = useRef(handleLike);
+    const handleSaveRef = useRef(handleSave);
+    const handleCommentRef = useRef(handleComment);
+    handleLikeRef.current = handleLike;
+    handleSaveRef.current = handleSave;
+    handleCommentRef.current = handleComment;
+
     // Keyboard navigation
     useEffect(() => {    const _c = new AbortController();
 
@@ -455,7 +463,10 @@ export default function ReelsPage() {
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goNext();
             if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') goPrev();
             if (e.key === 'Escape') router.push('/hub/social-media');
-            if (e.key === 'm') setMuted(prev => !prev);
+            if (e.key === 'm' || e.key === 'M') setMuted(prev => !prev);
+            if (e.key === 'l' || e.key === 'L') { handleLikeRef.current?.(); haptic(15); }
+            if (e.key === 's' || e.key === 'S') handleSaveRef.current?.();
+            if (e.key === 'c' || e.key === 'C') handleCommentRef.current?.();
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);}, [currentIndex, router]);

@@ -981,6 +981,16 @@ export default function NewsHub() {
         }
     }, []);
 
+    // Phase 5: Track last visit for "NEW" badges
+    const [lastVisitTimestamp, setLastVisitTimestamp] = useState(null);
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('news_last_visit');
+            if (stored) setLastVisitTimestamp(new Date(stored));
+            // Update last visit to now
+            localStorage.setItem('news_last_visit', new Date().toISOString());
+        }
+    }, []);
     // Source accent colors for color-coded borders
     const SOURCE_COLORS = {
         'PokerNews': '#e53935',
@@ -1416,6 +1426,19 @@ export default function NewsHub() {
     const trendingNews = [...news].filter(a => a.source_name !== 'Smarter.Poker')
         .sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
 
+    // Phase 5: Source article counts for chip badges
+    const sourceCounts = {};
+    news.forEach(a => { if (a.source_name) sourceCounts[a.source_name] = (sourceCounts[a.source_name] || 0) + 1; });
+
+    // Phase 5: New-since-last-visit helper
+    const isNewArticle = (article) => {
+        if (!lastVisitTimestamp || !article.published_at) return false;
+        return new Date(article.published_at) > lastVisitTimestamp;
+    };
+
+    // Phase 5: Reading session stats
+    const uniqueSourcesRead = [...new Set(news.filter(a => readArticles.includes(a.id)).map(a => a.source_name))].length;
+
     // Keyboard navigation (J=next, K=prev, Enter=open)
     // NOTE: Must be placed AFTER topArticles/remainingStories const declarations to avoid TDZ
     useEffect(() => {
@@ -1607,6 +1630,7 @@ export default function NewsHub() {
                                     >
                                         <span className="chip-dot" />
                                         {src}
+                                        {sourceCounts[src] > 0 && <span className="chip-count">{sourceCounts[src]}</span>}
                                     </button>
                                 ))}
                                 {activeSourceFilters.length > 0 && (

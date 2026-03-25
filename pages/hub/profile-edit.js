@@ -755,6 +755,14 @@ export default function ProfilePage() {
         }
     }, [message]);
 
+    // Cleanup auto-save + undo timer refs on unmount (prevent ghost timeouts)
+    useEffect(() => {
+        return () => {
+            if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
+            if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+        };
+    }, []);
+
     // Social stats and friends
     const [socialStats, setSocialStats] = useState({ friends: 0, followers: 0, following: 0, posts: 0 });
     const [friends, setFriends] = useState([]);
@@ -985,11 +993,12 @@ export default function ProfilePage() {
         }
         setProfile(prev => ({ ...prev, [field]: value }));
 
-        // Auto-save debounce: save after 5 seconds of inactivity
+        // Auto-save debounce: save after 5 seconds of inactivity (only if dirty)
         if (autoSaveRef.current) clearTimeout(autoSaveRef.current);
         autoSaveRef.current = setTimeout(() => {
+            // Re-check isDirty at fire time — profile/originalProfile may have changed
             const saveBtn = document.querySelector('[data-save-btn]');
-            if (saveBtn && !saveBtn.disabled) saveBtn.click();
+            if (saveBtn && !saveBtn.disabled && saveBtn.textContent.includes('Unsaved')) saveBtn.click();
         }, 5000);
 
         // Username uniqueness check (debounced)
@@ -1366,9 +1375,9 @@ export default function ProfilePage() {
             error = { message: fetchErr.message };
         }
 
-        setSaving(false);
-        setSavePhase(null);
         if (error) {
+            setSaving(false);
+            setSavePhase(null);
             setMessage(`Error saving profile: ${error.message || error.code || JSON.stringify(error)}`);
             console.error('Profile save error:', error);
         } else {
@@ -1414,6 +1423,7 @@ export default function ProfilePage() {
                 broadcastSync('smarter_poker_avatar_sync', 'refresh');
             } catch { /* noop */ }
 
+            setSaving(false);
             setSavePhase(null);
             // Show success toast (non-blocking)
             setMessage(undoSnapshot ? 'Profile saved! Tap to Undo (10s)' : 'Profile saved successfully!');
