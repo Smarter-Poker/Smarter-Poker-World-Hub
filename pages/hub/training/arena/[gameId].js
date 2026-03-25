@@ -9,7 +9,7 @@
  */
 
 import { useRouter } from 'next/router';
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
@@ -43,6 +43,68 @@ const GodModeArena = dynamic(() => import('../../../../src/components/training/G
         </div>
     ),
 });
+
+// ═══ DEBUG ERROR BOUNDARY — captures exact crash message ═══
+class ArenaErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null, errorInfo: null };
+    }
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+    componentDidCatch(error, errorInfo) {
+        this.setState({ errorInfo });
+        console.error('[ArenaErrorBoundary] Crash:', error?.message, error?.stack);
+    }
+    render() {
+        if (this.state.hasError) {
+            const err = this.state.error;
+            return (
+                <div style={{
+                    minHeight: '100vh',
+                    background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#94a3b8', fontFamily: "'Inter', sans-serif", padding: 24,
+                }}>
+                    <div style={{ maxWidth: 600, textAlign: 'center' }}>
+                        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+                        <h2 style={{ color: '#ef4444', fontSize: 22, marginBottom: 12 }}>Arena Crash Detected</h2>
+                        <div style={{
+                            background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                            borderRadius: 8, padding: 16, textAlign: 'left', fontSize: 13,
+                            fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                            maxHeight: 300, overflow: 'auto', marginBottom: 16,
+                        }}>
+                            <div style={{ color: '#ef4444', fontWeight: 'bold', marginBottom: 8 }}>
+                                {err?.message || 'Unknown error'}
+                            </div>
+                            <div style={{ color: '#64748b', fontSize: 11 }}>
+                                {err?.stack?.substring(0, 800) || 'No stack trace'}
+                            </div>
+                            {this.state.errorInfo?.componentStack && (
+                                <div style={{ color: '#475569', fontSize: 11, marginTop: 8 }}>
+                                    {this.state.errorInfo.componentStack.substring(0, 500)}
+                                </div>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => window.location.reload()}
+                            style={{
+                                background: '#00d4ff', color: '#000', border: 'none',
+                                padding: '10px 24px', borderRadius: 8, fontSize: 14,
+                                fontWeight: 600, cursor: 'pointer',
+                            }}
+                        >
+                            Reload Arena
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 export default function TrainingArenaPage() {
     const router = useRouter();
@@ -108,15 +170,17 @@ export default function TrainingArenaPage() {
                 <title>{gameName} — Level {level} | Smarter.Poker GTO Training</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             </Head>
-            <GodModeArena
-                userId={userId || `anon-${Date.now()}`}
-                gameId={gameId}
-                gameName={gameName}
-                level={level}
-                sessionId={sessionId || `session-${Date.now()}`}
-                onComplete={handleComplete}
-                onExit={handleExit}
-            />
+            <ArenaErrorBoundary>
+                <GodModeArena
+                    userId={userId || `anon-${Date.now()}`}
+                    gameId={gameId}
+                    gameName={gameName}
+                    level={level}
+                    sessionId={sessionId || `session-${Date.now()}`}
+                    onComplete={handleComplete}
+                    onExit={handleExit}
+                />
+            </ArenaErrorBoundary>
             {fetchError && <ErrorBanner message={fetchError} onRetry={() => setFetchError(null)} />}
             <ConnectionToast />
         </>

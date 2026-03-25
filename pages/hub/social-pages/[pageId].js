@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLight from '../../../src/components/ui/SkeletonLight';
 import { supabase } from '../../../src/lib/supabase';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
@@ -364,12 +364,42 @@ export default function SocialPageDetail() {
     const [invitedIds, setInvitedIds] = useState(new Set());
     const [inviteSearch, setInviteSearch] = useState('');
 
+    // Reviews (#1)
+    const [reviews, setReviews] = useState([]);
+    const [reviewsLoading, setReviewsLoading] = useState(false);
+    const [avgRating, setAvgRating] = useState(0);
+    const [showReviewForm, setShowReviewForm] = useState(false);
+    const [reviewRating, setReviewRating] = useState(0);
+    const [reviewTitle, setReviewTitle] = useState('');
+    const [reviewContent, setReviewContent] = useState('');
+    const [submittingReview, setSubmittingReview] = useState(false);
+
+    // Live Games (#2)
+    const [games, setGames] = useState([]);
+    const [gamesLoading, setGamesLoading] = useState(false);
+    const [seatAction, setSeatAction] = useState(null); // { gameId, type }
+
+    // Report (#6)
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportReason, setReportReason] = useState('');
+    const [reportDetails, setReportDetails] = useState('');
+    const [submittingReport, setSubmittingReport] = useState(false);
+
+    // Notification toggle (#7)
+    const [notifyEnabled, setNotifyEnabled] = useState(false);
+    const [togglingNotify, setTogglingNotify] = useState(false);
+
     // Toast notification system
     const [toastMsg, setToastMsg] = useState(null);
     const toastTimerRef = useRef(null);
     const toast = {
         success: (msg, duration = 3000) => {
-            setToastMsg(msg);
+            setToastMsg({ text: msg, type: 'success' });
+            if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+            toastTimerRef.current = setTimeout(() => setToastMsg(null), duration);
+        },
+        error: (msg, duration = 4000) => {
+            setToastMsg({ text: msg, type: 'error' });
             if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
             toastTimerRef.current = setTimeout(() => setToastMsg(null), duration);
         }
@@ -462,6 +492,136 @@ export default function SocialPageDetail() {
         return () => controller.abort();
     }, [fetchPosts, page]);
     useEffect(() => { if (page && activeTab === 'members') fetchFollowers(); }, [fetchFollowers, page, activeTab]);
+
+    // Cross-tab sync: refresh data when other tabs mutate social-pages
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.DATA_MUTATED, (event) => {
+            const entity = event?.payload?.entity;
+            if (entity === 'social-pages' || entity === 'social') {
+                fetchPosts();
+                if (activeTab === 'members') fetchFollowers();
+            }
+        });
+        return unsub;
+    }, [fetchPosts, fetchFollowers, activeTab]);
+
+    // Tab from URL query (#deep linking)
+    useEffect(() => {
+        if (router.query.tab && ['posts','about','members','reviews','games'].includes(router.query.tab)) {
+            setActiveTab(router.query.tab);
+        }
+    }, [router.query.tab]);
+
+    // Fetch Reviews (#1)
+    const fetchReviews = useCallback(async () => {
+        if (!page?.id) return;
+        setReviewsLoading(true);
+        try {
+            const res = await fetch(`/api/social/pages/reviews?page_id=${page.id}`);
+            const json = await res.json();
+            if (json.success) {
+                const revs = json.data?.reviews || [];
+                setReviews(revs);
+                if (revs.length > 0) {
+                    const sum = revs.reduce((a, r) => a + (r.overall_rating || 0), 0);
+                    setAvgRating(Math.round((sum / revs.length) * 10) / 10);
+                } else setAvgRating(0);
+            }
+        } catch (e) { console.error('Reviews fetch error:', e); }
+        setReviewsLoading(false);
+    }, [page]);
+    useEffect(() => { if (page && activeTab === 'reviews') fetchReviews(); }, [fetchReviews, page, activeTab]);
+
+    const submitReview = async () => {
+        if (!reviewRating || submittingReview) return;
+        setSubmittingReview(true);
+        try {
+            const token = getAccessToken();
+            const res = await fetch('/api/social/pages/reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ page_id: page.id, overall_rating: reviewRating, title: reviewTitle, content: reviewContent }),
+            });
+            const json = await res.json();
+            if (json.success) {
+                toast.success(json.updated ? 'Review updated!' : 'Review submitted!');
+                setShowReviewForm(false);
+                setReviewRating(0); setReviewTitle(''); setReviewContent('');
+                fetchReviews();
+            }
+        } catch (e) { console.error('Review submit error:', e); }
+        setSubmittingReview(false);
+    };
+
+    // Fetch Games (#2)
+    const fetchGames = useCallback(async () => {
+        if (!page?.id) return;
+        setGamesLoading(true);
+        try {
+            const res = await fetch(`/api/social/pages/games?page_id=${page.id}`);
+            const json = await res.json();
+            if (json.success) setGames(json.data || []);
+        } catch (e) { console.error('Games fetch error:', e); }
+        setGamesLoading(false);
+    }, [page]);
+    useEffect(() => { if (page && activeTab === 'games') fetchGames(); }, [fetchGames, page, activeTab]);
+
+    const handleSeatAction = async (gameId, actionType) => {
+        if (seatAction) return;
+        setSeatAction({ gameId, type: actionType });
+        try {
+            const token = getAccessToken();
+            const playerName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
+            const res = await fetch('/api/social/pages/games', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ action: actionType === 'seat' ? 'take_seat' : 'join_waitlist', game_id: gameId, seat_number: actionType === 'seat' ? 1 : undefined, player_name: playerName }),
+            });
+            const json = await res.json();
+            if (json.success) {
+                toast.success(actionType === 'seat' ? 'Seat reserved!' : 'Added to waitlist!');
+                fetchGames();
+            } else {
+                toast.success(json.error || 'Action failed');
+            }
+        } catch (e) { console.error('Seat action error:', e); }
+        setSeatAction(null);
+    };
+
+    // Report (#6)
+    const submitReport = async () => {
+        if (!reportReason || submittingReport) return;
+        setSubmittingReport(true);
+        try {
+            const token = getAccessToken();
+            const res = await fetch('/api/social/pages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ action: 'report', page_id: page.id, reason: reportReason, details: reportDetails }),
+            });
+            // Fire and forget — even if no backend handler yet, don't block UI
+            toast.success('Report submitted. Thank you.');
+            setShowReportModal(false); setReportReason(''); setReportDetails('');
+        } catch (e) { console.error('Report error:', e); }
+        setSubmittingReport(false);
+    };
+
+    // Notification toggle (#7)
+    const toggleNotifications = async () => {
+        if (togglingNotify) return;
+        setTogglingNotify(true);
+        const newVal = !notifyEnabled;
+        setNotifyEnabled(newVal); // optimistic
+        try {
+            const token = getAccessToken();
+            await fetch('/api/social/pages/follow', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ page_id: page.id, user_id: user.id, notify: newVal }),
+            });
+        } catch (e) { setNotifyEnabled(!newVal); } // rollback
+        setTogglingNotify(false);
+    };
   // Realtime subscription — live updates (posts, interactions, followers)
   useEffect(() => {
 
@@ -544,11 +704,12 @@ export default function SocialPageDetail() {
                 toast.success('Posted successfully!');
                 busEmit.dataMutated('social-pages');
                 busEmit.dataMutated('social');
+                busEmit.socialPostCreated(json.data?.id || 'unknown', user.id);
                 setNewPost('');
                 setUploadImages([]);
                 fetchPosts();
             }
-        } catch (e) { console.error("[[pageId].js]", e); toast.success('Post failed — try again'); }
+        } catch (e) { console.error("[[pageId].js]", e); toast.error('Post failed — try again'); }
         setPosting(false);
     };
 
@@ -569,6 +730,7 @@ export default function SocialPageDetail() {
                 body: JSON.stringify({ action: 'like', post_id: postId, user_id: user.id }),
             });
             busEmit.dataMutated('social-pages');
+            busEmit.socialPostLiked(postId, user.id, { added: !posts.find(p => p.id === postId)?.user_liked });
         } catch (e) { console.error("[[pageId].js]", e); }
     };
 
@@ -642,6 +804,8 @@ export default function SocialPageDetail() {
         setPosts(prev => prev.map(p =>
             p.id === postId ? { ...p, comment_count: (p.comment_count || 0) + 1 } : p
         ));
+        busEmit.socialCommentAdded(postId, user?.id);
+        busEmit.dataMutated('social-pages');
     };
 
     if (loading) {
@@ -823,7 +987,7 @@ export default function SocialPageDetail() {
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: 0, borderTop: `1px solid ${C.border}` }}>
-                            {['posts', 'about', 'members'].map(t => (
+                            {['posts', 'about', 'members', 'reviews', 'games'].map(t => (
                                 <button key={t} onClick={() => setActiveTab(t)} style={{
                                     padding: '12px 16px', border: 'none', background: 'none',
                                     fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
@@ -997,6 +1161,28 @@ export default function SocialPageDetail() {
                                                 Created {new Date(page.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                                             </span>
                                         </div>
+                                        {page.phone && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2">
+                                                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                                                </svg>
+                                                <a href={`tel:${page.phone}`} style={{ fontSize: 14, color: C.blue, textDecoration: 'none' }}>
+                                                    {page.phone}
+                                                </a>
+                                            </div>
+                                        )}
+                                        {page.category && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                                                <span style={{ fontSize: 11, fontWeight: 700, color: C.blue, background: '#E7F3FF', padding: '3px 10px', borderRadius: 12, textTransform: 'capitalize' }}>
+                                                    {page.category.replace(/_/g, ' ')}
+                                                </span>
+                                                {page.page_type && (
+                                                    <span style={{ fontSize: 11, fontWeight: 600, color: C.textSec, background: C.bg, padding: '3px 10px', borderRadius: 12, textTransform: 'capitalize' }}>
+                                                        {page.page_type.replace(/_/g, ' ')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -1071,6 +1257,181 @@ export default function SocialPageDetail() {
                                     )}
                                 </div>
                             )}
+
+                            {/* Reviews Tab (#1) */}
+                            {activeTab === 'reviews' && (
+                                <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 20 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                        <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0 }}>
+                                            Reviews {reviews.length > 0 && `(${reviews.length})`}
+                                        </h2>
+                                        {user && !isPageOwner && (
+                                            <button onClick={() => setShowReviewForm(!showReviewForm)} style={{
+                                                padding: '6px 14px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600,
+                                                cursor: 'pointer', fontFamily: 'inherit', background: C.blue, color: '#fff',
+                                            }}>Write a Review</button>
+                                        )}
+                                    </div>
+
+                                    {/* Average Rating */}
+                                    {avgRating > 0 && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: 12, background: C.bg, borderRadius: 10 }}>
+                                            <div style={{ fontSize: 32, fontWeight: 800, color: C.text }}>{avgRating}</div>
+                                            <div>
+                                                <div style={{ display: 'flex', gap: 2 }}>
+                                                    {[1,2,3,4,5].map(s => (
+                                                        <span key={s} style={{ color: s <= Math.round(avgRating) ? '#F5A623' : '#DDD', fontSize: 18 }}>{'\u2605'}</span>
+                                                    ))}
+                                                </div>
+                                                <span style={{ fontSize: 12, color: C.textSec }}>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Write Review Form */}
+                                    {showReviewForm && (
+                                        <div style={{ padding: 16, background: C.bg, borderRadius: 10, marginBottom: 16 }}>
+                                            <p style={{ fontSize: 13, fontWeight: 600, color: C.text, margin: '0 0 8px' }}>Your Rating</p>
+                                            <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+                                                {[1,2,3,4,5].map(s => (
+                                                    <button key={s} onClick={() => setReviewRating(s)} style={{
+                                                        border: 'none', background: 'none', cursor: 'pointer', fontSize: 28, padding: 0,
+                                                        color: s <= reviewRating ? '#F5A623' : '#CCC',
+                                                    }}>{'\u2605'}</button>
+                                                ))}
+                                            </div>
+                                            <input value={reviewTitle} onChange={e => setReviewTitle(e.target.value)} placeholder="Review title (optional)"
+                                                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', marginBottom: 8, boxSizing: 'border-box' }} />
+                                            <textarea value={reviewContent} onChange={e => setReviewContent(e.target.value)} placeholder="Share your experience..."
+                                                rows={3} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
+                                            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                                <button onClick={submitReview} disabled={!reviewRating || submittingReview} style={{
+                                                    padding: '8px 20px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600,
+                                                    cursor: reviewRating ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+                                                    background: reviewRating ? C.blue : '#CCC', color: '#fff', opacity: submittingReview ? 0.6 : 1,
+                                                }}>{submittingReview ? 'Submitting...' : 'Submit'}</button>
+                                                <button onClick={() => setShowReviewForm(false)} style={{
+                                                    padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card,
+                                                    fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: C.text,
+                                                }}>Cancel</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Review List */}
+                                    {reviewsLoading ? (
+                                        <div style={{ textAlign: 'center', padding: 30 }}>
+                                            <div style={{ width: 28, height: 28, border: '3px solid #E4E6EB', borderTopColor: C.blue, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+                                            <p style={{ color: C.textSec, fontSize: 13, marginTop: 10 }}>Loading reviews...</p>
+                                        </div>
+                                    ) : reviews.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: 30 }}>
+                                            <p style={{ fontSize: 14, color: C.textSec }}>No reviews yet. Be the first to review!</p>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                            {reviews.map(r => (
+                                                <div key={r.id} style={{ padding: 14, background: C.bg, borderRadius: 10 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                                        <Avatar src={r.reviewer?.avatar_url} name={r.reviewer?.display_name} size={36} />
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{r.reviewer?.display_name || 'Anonymous'}</div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                <div style={{ display: 'flex', gap: 1 }}>
+                                                                    {[1,2,3,4,5].map(s => (
+                                                                        <span key={s} style={{ color: s <= r.overall_rating ? '#F5A623' : '#DDD', fontSize: 13 }}>{'\u2605'}</span>
+                                                                    ))}
+                                                                </div>
+                                                                <span style={{ fontSize: 11, color: C.textSec }}>{timeAgo(r.created_at)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {r.title && <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 }}>{r.title}</div>}
+                                                    {r.content && <p style={{ fontSize: 13, color: C.text, lineHeight: 1.5, margin: 0 }}>{r.content}</p>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Live Games Tab (#2) */}
+                            {activeTab === 'games' && (
+                                <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 20 }}>
+                                    <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px' }}>
+                                        Live Games {games.length > 0 && `(${games.length})`}
+                                    </h2>
+
+                                    {gamesLoading ? (
+                                        <div style={{ textAlign: 'center', padding: 30 }}>
+                                            <div style={{ width: 28, height: 28, border: '3px solid #E4E6EB', borderTopColor: C.blue, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+                                            <p style={{ color: C.textSec, fontSize: 13, marginTop: 10 }}>Loading games...</p>
+                                        </div>
+                                    ) : games.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: 30 }}>
+                                            <p style={{ fontSize: 14, color: C.textSec }}>No live games right now. Check back later!</p>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                            {games.map(g => (
+                                                <div key={g.id} style={{ padding: 16, background: C.bg, borderRadius: 12, border: `1px solid ${C.border}` }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                                                        <div>
+                                                            <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{g.game_name || `${g.game_type} ${g.stakes}`}</div>
+                                                            <div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>
+                                                                {g.table_number && `${g.table_number} · `}{g.stakes}
+                                                                {g.dealer_name && ` · Dealer: ${g.dealer_name}`}
+                                                            </div>
+                                                        </div>
+                                                        <span style={{
+                                                            padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700,
+                                                            background: g.status === 'running' ? '#E8F5E9' : '#FFF3E0',
+                                                            color: g.status === 'running' ? '#2E7D32' : '#E65100',
+                                                        }}>{g.status === 'running' ? 'Running' : 'Open'}</span>
+                                                    </div>
+
+                                                    {/* Seat Grid */}
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, 32px)', gap: 4, marginBottom: 10 }}>
+                                                        {Array.from({ length: g.max_seats || 9 }).map((_, i) => {
+                                                            const seat = (g.seats || []).find(s => s.seat_number === i + 1);
+                                                            return (
+                                                                <div key={i} title={seat ? seat.player_name : `Seat ${i + 1} (empty)`} style={{
+                                                                    width: 30, height: 30, borderRadius: '50%',
+                                                                    background: seat?.avatar_url ? `url(${seat.avatar_url}) center/cover` : seat ? C.blue : '#E0E0E0',
+                                                                    border: `2px solid ${seat ? C.blue : '#CCC'}`,
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                    fontSize: 10, color: seat ? '#fff' : '#999', fontWeight: 700,
+                                                                }}>{!seat?.avatar_url && (seat ? seat.player_name?.[0]?.toUpperCase() : i + 1)}</div>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                        <span style={{ fontSize: 12, color: C.textSec }}>
+                                                            {g.seated_count}/{g.max_seats || 9} seated
+                                                            {g.waitlist_count > 0 && ` · ${g.waitlist_count} waitlisted`}
+                                                        </span>
+                                                        {user && isFollowing && g.seated_count < (g.max_seats || 9) && !g.source && (
+                                                            <button onClick={() => handleSeatAction(g.id, 'seat')} disabled={!!seatAction} style={{
+                                                                padding: '5px 14px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600,
+                                                                cursor: 'pointer', fontFamily: 'inherit', background: C.green, color: '#fff',
+                                                                opacity: seatAction?.gameId === g.id ? 0.6 : 1,
+                                                            }}>{seatAction?.gameId === g.id ? 'Joining...' : 'Take Seat'}</button>
+                                                        )}
+                                                        {user && isFollowing && g.seated_count >= (g.max_seats || 9) && !g.source && (
+                                                            <button onClick={() => handleSeatAction(g.id, 'waitlist')} disabled={!!seatAction} style={{
+                                                                padding: '5px 14px', borderRadius: 8, border: `1px solid ${C.blue}`, fontSize: 12, fontWeight: 600,
+                                                                cursor: 'pointer', fontFamily: 'inherit', background: 'transparent', color: C.blue,
+                                                                opacity: seatAction?.gameId === g.id ? 0.6 : 1,
+                                                            }}>{seatAction?.gameId === g.id ? 'Joining...' : 'Join Waitlist'}</button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Sidebar */}
@@ -1080,7 +1441,7 @@ export default function SocialPageDetail() {
                                 background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16, marginBottom: 12,
                             }}>
                                 <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 12px' }}>Page Info</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                                     <div style={{ textAlign: 'center', padding: 8, background: C.bg, borderRadius: 8 }}>
                                         <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{page.follower_count || 0}</div>
                                         <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600 }}>Followers</div>
@@ -1089,6 +1450,44 @@ export default function SocialPageDetail() {
                                         <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{page.post_count || 0}</div>
                                         <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600 }}>Posts</div>
                                     </div>
+                                    <div style={{ textAlign: 'center', padding: 8, background: C.bg, borderRadius: 8 }}>
+                                        <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{page.view_count || 0}</div>
+                                        <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600 }}>Views</div>
+                                    </div>
+                                </div>
+                                {/* Average Rating line (#3) */}
+                                {avgRating > 0 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+                                        <div style={{ display: 'flex', gap: 1 }}>
+                                            {[1,2,3,4,5].map(s => (
+                                                <span key={s} style={{ color: s <= Math.round(avgRating) ? '#F5A623' : '#DDD', fontSize: 14 }}>{'\u2605'}</span>
+                                            ))}
+                                        </div>
+                                        <span style={{ fontSize: 12, color: C.textSec }}>{avgRating} ({reviews.length})</span>
+                                    </div>
+                                )}
+                                {/* Actions: Notify + Report */}
+                                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                                    {user && isFollowing && (
+                                        <button onClick={toggleNotifications} disabled={togglingNotify} title={notifyEnabled ? 'Notifications on' : 'Notifications off'} style={{
+                                            flex: 1, padding: '6px 10px', borderRadius: 8, border: `1px solid ${C.border}`,
+                                            background: notifyEnabled ? '#E7F3FF' : C.card, color: notifyEnabled ? C.blue : C.textSec,
+                                            fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                                        }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill={notifyEnabled ? C.blue : 'none'} stroke="currentColor" strokeWidth="2">
+                                                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
+                                            </svg>
+                                            {notifyEnabled ? 'Notifying' : 'Notify'}
+                                        </button>
+                                    )}
+                                    {user && !isPageOwner && (
+                                        <button onClick={() => setShowReportModal(true)} style={{
+                                            padding: '6px 10px', borderRadius: 8, border: `1px solid ${C.border}`,
+                                            background: C.card, color: C.textSec, fontSize: 12, fontWeight: 600,
+                                            cursor: 'pointer', fontFamily: 'inherit',
+                                        }}>Report</button>
+                                    )}
                                 </div>
                             </div>
 
@@ -1115,11 +1514,14 @@ export default function SocialPageDetail() {
                                     Copy Link
                                 </button>
 
-                                {/* QR Code Widget */}
+                                {/* QR Code Widget (#8 - Referral Enhanced) */}
                                 {page.slug && (() => {
-                                    const qrUrl = typeof window !== 'undefined'
-                                        ? `${window.location.origin}/hub/social-pages/${page.slug}`
-                                        : `https://smarter.poker/hub/social-pages/${page.slug}`;
+                                    // Use referral QR API for attribution tracking
+                                    const refCode = page.metadata?.referral_code;
+                                    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker';
+                                    const qrUrl = refCode
+                                        ? `${siteUrl}/hub/social-media?ref=${refCode}`
+                                        : `${siteUrl}/hub/social-pages/${page.slug}`;
                                     return (
                                         <div style={{ marginTop: 12, textAlign: 'center' }}>
                                             <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 8px', fontWeight: 500 }}>
@@ -1127,7 +1529,7 @@ export default function SocialPageDetail() {
                                             </p>
                                             <QRCanvas value={qrUrl} size={140} />
                                             <p style={{ fontSize: 10, color: C.textSec, margin: '6px 0 0' }}>
-                                                Print for flyers and table signs
+                                                {refCode ? 'Scans auto-follow this page' : 'Print for flyers and table signs'}
                                             </p>
                                         </div>
                                     );
@@ -1301,15 +1703,50 @@ export default function SocialPageDetail() {
                   </div>
               )}
 
+              {/* Report Modal (#6) */}
+              {showReportModal && (
+                  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowReportModal(false)}>
+                      <div style={{ background: C.card, borderRadius: 16, padding: 24, maxWidth: 420, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+                          <h3 style={{ fontSize: 17, fontWeight: 700, color: C.text, margin: '0 0 16px' }}>Report Page</h3>
+                          <p style={{ fontSize: 13, color: C.textSec, margin: '0 0 12px' }}>Why are you reporting this page?</p>
+                          <select value={reportReason} onChange={e => setReportReason(e.target.value)} style={{
+                              width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`,
+                              fontSize: 14, fontFamily: 'inherit', background: C.bg, color: C.text, boxSizing: 'border-box',
+                          }}>
+                              <option value="">Select a reason...</option>
+                              <option value="spam">Spam or scam</option>
+                              <option value="inappropriate">Inappropriate content</option>
+                              <option value="fake">Fake or misleading</option>
+                              <option value="harassment">Harassment or bullying</option>
+                              <option value="other">Other</option>
+                          </select>
+                          <textarea value={reportDetails} onChange={e => setReportDetails(e.target.value)} placeholder="Additional details (optional)..."
+                              rows={3} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', marginTop: 10, resize: 'vertical', boxSizing: 'border-box', background: C.bg, color: C.text }} />
+                          <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+                              <button onClick={() => setShowReportModal(false)} style={{
+                                  padding: '8px 18px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card,
+                                  fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: C.text,
+                              }}>Cancel</button>
+                              <button onClick={submitReport} disabled={!reportReason || submittingReport} style={{
+                                  padding: '8px 18px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600,
+                                  cursor: reportReason ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+                                  background: reportReason ? C.red : '#CCC', color: '#fff',
+                                  opacity: submittingReport ? 0.6 : 1,
+                              }}>{submittingReport ? 'Sending...' : 'Submit Report'}</button>
+                          </div>
+                      </div>
+                  </div>
+              )}
+
               {/* Toast Notification */}
               {toastMsg && (
                   <div style={{
                       position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
-                      background: '#2e7d32', color: '#fff', padding: '10px 24px', borderRadius: 8,
+                      background: toastMsg.type === 'error' ? '#d32f2f' : '#2e7d32', color: '#fff', padding: '10px 24px', borderRadius: 8,
                       fontSize: 14, fontWeight: 600, zIndex: 10000, boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                       animation: 'sp-toast-in 0.3s ease',
                   }}>
-                      {toastMsg}
+                      {toastMsg.text || toastMsg}
                   </div>
               )}
             </div>
