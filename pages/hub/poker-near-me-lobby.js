@@ -1223,7 +1223,7 @@ export default function PokerNearMeLobby() {
               style={{
                 position: 'fixed', bottom: 0, left: 0, right: 0,
                 maxHeight: '82vh', zIndex: 51,
-                background: 'linear-gradient(160deg, rgba(18, 24, 40, 0.97), rgba(8, 12, 22, 0.98))',
+                background: 'linear-gradient, paddingBottom: 70(160deg, rgba(18, 24, 40, 0.97), rgba(8, 12, 22, 0.98))',
                 borderTop: '1px solid rgba(110, 231, 239, 0.15)',
                 borderRadius: '20px 20px 0 0',
                 boxShadow: '0 -8px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(110, 231, 239, 0.04)',

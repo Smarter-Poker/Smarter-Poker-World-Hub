@@ -754,7 +754,7 @@ export default function ReelsPage() {
                     {/* Shimmer skeleton */}
                     <div style={{
                         width: 280, height: 500, borderRadius: 16,
-                        background: 'linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%)',
+                        background: 'linear-gradient, paddingBottom: 70(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%)',
                         backgroundSize: '200% 100%',
                         animation: 'shimmer 1.5s linear infinite',
                     }} />

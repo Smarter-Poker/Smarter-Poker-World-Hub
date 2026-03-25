@@ -9,5 +9,5 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function MTTPage() {
     useTrainingBus('trivia-mtt');
-    return <><StrategyTrivia mode="mtt" /><BottomNavBar /></>;
+    return <div style={{ paddingBottom: 70 }}><StrategyTrivia mode="mtt" /><BottomNavBar /></div>;
 }

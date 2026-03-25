@@ -489,7 +489,7 @@ export default function TimeAttackPage() {
 
             <style jsx>{`
                 .time-attack-page {
-                    min-height: 100vh;
+                    min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;
                     background-color: #000000;
                     font-family: 'Inter', -apple-system, sans-serif;

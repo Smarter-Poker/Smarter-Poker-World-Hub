@@ -64,7 +64,7 @@ export default function PokerTablePage() {
   if (!tableId || !userId) {
     return (
       <div style={{
-        width: '100%', height: '100vh',
+        width: '100%', height: '100vh', paddingBottom: 70,
         background: '#050505',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: '#8a8a9a', fontSize: 16,

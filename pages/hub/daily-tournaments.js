@@ -427,7 +427,7 @@ export default function DailyTournaments() {
                     }
 
                     .dt-page {
-                        min-height: 100vh;
+                        min-height: 100vh; padding-bottom: 70px;
                         position: relative;
                         color: #fff;
                         font-family: 'Rajdhani', 'Inter', -apple-system, sans-serif;

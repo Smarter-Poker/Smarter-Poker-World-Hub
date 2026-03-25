@@ -436,7 +436,7 @@ export default function PokerPagesPage() {
 
             <style jsx>{`
                 .pages-wrapper {
-                    min-height: 100vh;
+                    min-height: 100vh; padding-bottom: 70px;
                     background: #F0F2F5;
                     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                     padding-bottom: 72px;

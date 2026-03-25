@@ -789,7 +789,7 @@ const styles = `
   }
 
   .series-page {
-    min-height: 100vh;
+    min-height: 100vh; padding-bottom: 70px;
     background: radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
                 radial-gradient(ellipse at 80% 20%, rgba(0, 212, 255, 0.06) 0%, transparent 50%),
                 linear-gradient(180deg, #030712 0%, #0f172a 100%);

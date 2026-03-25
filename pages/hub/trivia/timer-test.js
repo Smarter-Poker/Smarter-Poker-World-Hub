@@ -70,7 +70,7 @@ export default function TimerTest() {
 
             <div style={{
                 width: '100vw',
-                height: '100vh',
+                height: '100vh', paddingBottom: 70,
                 background: '#0a0a0a',
                 display: 'flex',
                 justifyContent: 'center',

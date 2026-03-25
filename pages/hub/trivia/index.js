@@ -185,7 +185,7 @@ export default function TriviaHubPage() {
 
             <style jsx>{`
                 .trivia-page {
-                    min-height: 100vh;
+                    min-height: 100vh; padding-bottom: 70px;
                     background: url('/images/trivia/trivia-bg.jpg') center center / cover no-repeat fixed;
                     background-color: #0a1628;
                     font-family: 'Inter', -apple-system, sans-serif;

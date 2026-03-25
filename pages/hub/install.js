@@ -97,7 +97,7 @@ export default function InstallPage() {
                 title="Install Smarter.Poker — iPad & Android App"
                 description="Get Smarter.Poker on your iPad or Android device. Add to home screen for a native app experience — free, no app store required."
             />
-            <div className="min-h-screen bg-gradient-to-br from-[#0a0a15] via-[#0f1029] to-[#0a0a15] text-white font-['Inter']">
+            <div className="min-h-screen bg-gradient-to-br from-[#0a0a15] via-[#0f1029] to-[#0a0a15] text-white font-['Inter']" style={{ paddingBottom: 70 }}>
 
                 {/* Hero */}
                 <div className="relative overflow-hidden">

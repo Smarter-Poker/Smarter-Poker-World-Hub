@@ -2014,7 +2014,7 @@ export default function NewsHub() {
 
                     <style jsx>{`
                     .news-hub {
-                        min-height: 100vh;
+                        min-height: 100vh; padding-bottom: 70px;
                         background: #18191A;
                         color: #E4E6EB;
                         font-family: 'Inter', -apple-system, sans-serif;

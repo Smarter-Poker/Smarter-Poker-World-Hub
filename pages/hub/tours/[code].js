@@ -674,7 +674,7 @@ const styles = `
 
   .tour-page {
     font-family: 'Rajdhani', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    min-height: 100vh;
+    min-height: 100vh; padding-bottom: 70px;
     background: radial-gradient(ellipse at top, #0f172a 0%, #030712 50%),
                 radial-gradient(ellipse at bottom right, #1e1b4b 0%, #030712 50%);
     background-color: #030712;

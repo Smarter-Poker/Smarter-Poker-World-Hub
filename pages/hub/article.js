@@ -153,7 +153,7 @@ export default function ArticlePage() {
             <div className="article-page loading">
                 <div className="spinner" />
                 <style jsx>{`
-                    .article-page { min-height: 100vh; background: #0a0a12; display: flex; align-items: center; justify-content: center; }
+                    .article-page { min-height: 100vh; padding-bottom: 70px; background: #0a0a12; display: flex; align-items: center; justify-content: center; }
                     .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #00d4ff; border-radius: 50%; animation: spin 1s linear infinite; }
                     @keyframes spin { to { transform: rotate(360deg); } }
                 `}</style>

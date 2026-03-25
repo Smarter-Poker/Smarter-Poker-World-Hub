@@ -360,7 +360,7 @@ export default function PromotionsPage() {
 
             <style jsx>{`
                 .promos-wrapper {
-                    min-height: 100vh;
+                    min-height: 100vh; padding-bottom: 70px;
                     background: ${C.bg};
                     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                     padding-bottom: 72px;

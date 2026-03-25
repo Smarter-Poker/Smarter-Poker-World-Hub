@@ -2067,7 +2067,7 @@ export default function VenueDetailPage() {
         }
 
         .venue-page {
-          min-height: 100vh;
+          min-height: 100vh; padding-bottom: 70px;
           background: linear-gradient(180deg, #030712 0%, #0f172a 100%);
           font-family: 'Rajdhani', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           color: #e2e8f0;

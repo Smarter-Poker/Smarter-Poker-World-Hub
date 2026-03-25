@@ -41,7 +41,7 @@ export default function PokerLobbyPage() {
   };
 
   return (
-    <>
+    <div style={{ paddingBottom: 70 }}>
       <SEOHead
         title="Poker Lobby | Smarter.Poker"
         description="Browse and join live poker tables. No Limit Hold'em, PLO, Short Deck — play real-time multiplayer poker."
@@ -54,6 +54,6 @@ export default function PokerLobbyPage() {
         onJoinTable={handleJoinTable}
       />
       <BottomNavBar />
-    </>
+    </div>
   );
 }

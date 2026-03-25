@@ -9,5 +9,5 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function GTOPage() {
     useTrainingBus('trivia-gto');
-    return <><StrategyTrivia mode="gto" /><BottomNavBar /></>;
+    return <div style={{ paddingBottom: 70 }}><StrategyTrivia mode="gto" /><BottomNavBar /></div>;
 }

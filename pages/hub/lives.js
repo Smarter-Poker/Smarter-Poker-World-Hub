@@ -269,7 +269,7 @@ export default function LivesPage() {
                         left: 0,
                         right: 0,
                         padding: '16px 20px',
-                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
+                        background: 'linear-gradient, paddingBottom: 70(to bottom, rgba(0,0,0,0.8), transparent)',
                         zIndex: 100,
                         display: 'flex',
                         alignItems: 'center',

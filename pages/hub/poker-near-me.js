@@ -2647,7 +2647,7 @@ export default function PokerNearMePage() {
 
                     <style jsx global>{`
                     .pnm-page {
-                        min-height: 100vh;
+                        min-height: 100vh; padding-bottom: 70px;
                         position: relative;
                         color: #fff;
                         font-family: 'Inter', -apple-system, sans-serif;

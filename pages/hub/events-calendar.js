@@ -687,7 +687,7 @@ export default function EventsCalendarPage() {
         .ec-page {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           background: ${C.bg};
-          min-height: 100vh;
+          min-height: 100vh; padding-bottom: 70px;
           padding-bottom: 60px;
         }
 

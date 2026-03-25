@@ -9,5 +9,5 @@ import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function CASHPage() {
     useTrainingBus('trivia-cash');
-    return <><StrategyTrivia mode="cash" /><BottomNavBar /></>;
+    return <div style={{ paddingBottom: 70 }}><StrategyTrivia mode="cash" /><BottomNavBar /></div>;
 }
