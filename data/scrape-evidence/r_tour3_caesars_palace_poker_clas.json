@@ -1,0 +1,11 @@
+{
+  "name": "Caesars Palace Poker Classic",
+  "type": "series",
+  "source": "https://www.caesars.com/caesars-palace",
+  "http": 200,
+  "hash": "f820efb2f277585f9f85fb67d2f0ebd330183d4cc858ed573852b22450300aad",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:28:56.215061+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}

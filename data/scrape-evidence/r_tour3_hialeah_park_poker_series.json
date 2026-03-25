@@ -1,0 +1,11 @@
+{
+  "name": "Hialeah Park Poker Series",
+  "type": "series",
+  "source": "https://www.hialeahparkcasino.com",
+  "http": 200,
+  "hash": "769ad91d80a586d4a87d108e62451ce68e2b18c840ad1696d78570b0b9646c10",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:31:48.010480+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}

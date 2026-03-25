@@ -1,0 +1,11 @@
+{
+  "name": "Black Hawk Poker Classic",
+  "type": "series",
+  "source": "https://www.monarchblackhawk.com",
+  "http": 200,
+  "hash": "1b86b449f2c3533805eedbfe15b0e827b3252d1b376fffac703468c8424341df",
+  "address": "488 Main Street",
+  "phone": "1-303-582-1000",
+  "ts": "2026-03-25T23:26:05.846048+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}

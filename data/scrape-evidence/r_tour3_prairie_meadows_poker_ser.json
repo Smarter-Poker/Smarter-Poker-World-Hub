@@ -1,0 +1,11 @@
+{
+  "name": "Prairie Meadows Poker Series",
+  "type": "series",
+  "source": "https://www.prairiemeadows.com",
+  "http": 200,
+  "hash": "bc17cbb5f4f02cd757ff99985d34e4457bd604ce50d3fb559b6e6febeb66956c",
+  "address": "1 Prairie Meadows Dr",
+  "phone": "",
+  "ts": "2026-03-25T23:28:21.141700+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "Cache Creek Poker Classic",
+  "type": "series",
+  "source": "https://www.cachecreek.com",
+  "http": 200,
+  "hash": "df8bf9d3bea81ba51ff3128ff678f51147cb2af4a32933e448157fc922771602",
+  "address": "14455 Highway 16",
+  "phone": "+1-530-796-3118",
+  "ts": "2026-03-25T23:31:05.145599+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}

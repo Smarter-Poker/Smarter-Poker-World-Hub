@@ -1,0 +1,11 @@
+{
+  "name": "Horseshoe Las Vegas Poker Series",
+  "type": "series",
+  "source": "https://www.caesars.com/horseshoe-las-vegas",
+  "http": 200,
+  "hash": "cff0b4a1d4598455c4c0bb768aacc095f981795c14785c6213f5212e4fb06509",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:29:52.247723+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}

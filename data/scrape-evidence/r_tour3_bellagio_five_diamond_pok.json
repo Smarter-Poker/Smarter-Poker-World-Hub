@@ -1,0 +1,11 @@
+{
+  "name": "Bellagio Five Diamond Poker Classic",
+  "type": "series",
+  "source": "https://www.bellagio.com",
+  "http": 200,
+  "hash": "7365edb8eaf31d3740e35b9560b2f00aaf4f99ad4495c99e027f261d6b01a64a",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:29:06.543273+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}

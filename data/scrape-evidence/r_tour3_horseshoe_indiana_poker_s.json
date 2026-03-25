@@ -1,0 +1,11 @@
+{
+  "name": "Horseshoe Indiana Poker Series",
+  "type": "series",
+  "source": "https://www.caesars.com/horseshoe-indiana",
+  "http": 200,
+  "hash": "8f1cf8d856f50bd786315209ac2407b5a37977ffcba50b6aa277b6eb9a3be5d2",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:26:54.639241+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}

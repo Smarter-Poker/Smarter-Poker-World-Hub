@@ -1,0 +1,11 @@
+{
+  "name": "Palms Poker Series",
+  "type": "series",
+  "source": "https://www.palms.com",
+  "http": 200,
+  "hash": "701a3708aa1c9ddff5b4b259413d109b531c899b65de795c82f48a2d86f4c612",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:37:15.237359+00:00",
+  "batch": "7c5bde4d-2c64-491a-a6ff-0d19bc681b62"
+}

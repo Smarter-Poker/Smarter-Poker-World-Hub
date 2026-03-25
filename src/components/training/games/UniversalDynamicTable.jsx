@@ -957,6 +957,45 @@ function UniversalDynamicTable({
         }
     }, [questionNumber]);
 
+    // ═══ CARD PARSING (moved up — must be before handStrength useMemo) ═══
+    const scenario = question?.scenario || {};
+    const board = scenario.board || '';
+    const rawHeroCards = question?.heroCards || scenario.heroHand || scenario.heroCards || 'AsKs';
+    const heroCards = useMemo(() => {
+        if (Array.isArray(rawHeroCards)) return rawHeroCards;
+        if (typeof rawHeroCards === 'string' && rawHeroCards.length >= 4) {
+            return [rawHeroCards.substring(0, 2), rawHeroCards.substring(2, 4)];
+        }
+        // Handle 3-char abstract notation: "K8s" (suited), "ATo" (offsuit)
+        if (typeof rawHeroCards === 'string' && rawHeroCards.length === 3) {
+            const r1 = rawHeroCards[0], r2 = rawHeroCards[1], suitFlag = rawHeroCards[2];
+            if (suitFlag === 's') return [`${r1}s`, `${r2}s`]; // Both spades for suited
+            if (suitFlag === 'o') return [`${r1}h`, `${r2}d`]; // Mixed suits for offsuit
+            return [`${r1}h`, `${r2}s`]; // Default
+        }
+        // Handle 2-char pairs: "AA", "KK"
+        if (typeof rawHeroCards === 'string' && rawHeroCards.length === 2) {
+            return [`${rawHeroCards[0]}h`, `${rawHeroCards[1]}s`];
+        }
+        return ['As', 'Ks']; // Fallback
+    }, [rawHeroCards]);
+
+    const boardCards = useMemo(() => {
+        if (Array.isArray(board)) return board;
+        if (typeof board === 'string' && board.length > 0) {
+            // Handle "Jh 7s 2d" or "Jh7s2d"
+            const cleaned = board.replace(/\s+/g, '');
+            const cards = [];
+            for (let i = 0; i < cleaned.length; i += 2) {
+                if (i + 1 < cleaned.length) {
+                    cards.push(cleaned.substring(i, i + 2));
+                }
+            }
+            return cards;
+        }
+        return [];
+    }, [board]);
+
     // PHASE 5: Hand Strength evaluation
     const handStrength = useMemo(() => {
         if (showFeedback) return null;
@@ -1233,7 +1272,7 @@ function UniversalDynamicTable({
     // DYNAMIC DATA EXTRACTION FROM QUESTION
     // ═══════════════════════════════════════════════════════════════════════
 
-    const scenario = question?.scenario || {};
+    // scenario already defined above (before handStrength useMemo)
 
     // Core question data
     const questionText = question?.question || question?.text || 'Loading question...';
@@ -1260,48 +1299,12 @@ function UniversalDynamicTable({
     const heroStack = scenario.heroStack || scenario.stackDepth || 100;
     const villainStack = scenario.villainStack || 100;
     const pot = scenario.pot || 0;
-    const board = scenario.board || '';
+    // board already defined above (before handStrength useMemo)
     const villainPosition = scenario.villainPosition || 'BB';
     const villainAction = scenario.action || scenario.villainAction || '';
     const street = scenario.street || '';
 
-    // Parse hero cards - can be "AhKs" or ["Ah", "Ks"] or from scenario
-    const rawHeroCards = question?.heroCards || scenario.heroHand || scenario.heroCards || 'AsKs';
-    const heroCards = useMemo(() => {
-        if (Array.isArray(rawHeroCards)) return rawHeroCards;
-        if (typeof rawHeroCards === 'string' && rawHeroCards.length >= 4) {
-            return [rawHeroCards.substring(0, 2), rawHeroCards.substring(2, 4)];
-        }
-        // Handle 3-char abstract notation: "K8s" (suited), "ATo" (offsuit)
-        if (typeof rawHeroCards === 'string' && rawHeroCards.length === 3) {
-            const r1 = rawHeroCards[0], r2 = rawHeroCards[1], suitFlag = rawHeroCards[2];
-            if (suitFlag === 's') return [`${r1}s`, `${r2}s`]; // Both spades for suited
-            if (suitFlag === 'o') return [`${r1}h`, `${r2}d`]; // Mixed suits for offsuit
-            return [`${r1}h`, `${r2}s`]; // Default
-        }
-        // Handle 2-char pairs: "AA", "KK"
-        if (typeof rawHeroCards === 'string' && rawHeroCards.length === 2) {
-            return [`${rawHeroCards[0]}h`, `${rawHeroCards[1]}s`];
-        }
-        return ['As', 'Ks']; // Fallback
-    }, [rawHeroCards]);
-
-    // Parse board cards
-    const boardCards = useMemo(() => {
-        if (Array.isArray(board)) return board;
-        if (typeof board === 'string' && board.length > 0) {
-            // Handle "Jh 7s 2d" or "Jh7s2d"
-            const cleaned = board.replace(/\s+/g, '');
-            const cards = [];
-            for (let i = 0; i < cleaned.length; i += 2) {
-                if (i + 1 < cleaned.length) {
-                    cards.push(cleaned.substring(i, i + 2));
-                }
-            }
-            return cards;
-        }
-        return [];
-    }, [board]);
+    // heroCards and boardCards already defined above (before handStrength useMemo)
 
     // Play card deal sound when board cards appear (new question)
     const prevQuestionNum = useRef(questionNumber);

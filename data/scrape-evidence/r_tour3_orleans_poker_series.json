@@ -1,0 +1,11 @@
+{
+  "name": "Orleans Poker Series",
+  "type": "series",
+  "source": "https://www.orleanscasino.com",
+  "http": 200,
+  "hash": "b0f776ffad8c89455dbdfc10cb76b7639b21cd84e9ccfb539acc59d8e36ea076",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:29:32.174677+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}

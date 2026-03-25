@@ -1,0 +1,11 @@
+{
+  "name": "Boomtown Poker Series",
+  "type": "series",
+  "source": "https://www.boomtownneworleans.com",
+  "http": 200,
+  "hash": "47c88e51c40ca75f74609b2a8d426983c2d5f81ea99e0cd90b76993b22307d65",
+  "address": "4132 Peters Road",
+  "phone": "702-797-1215",
+  "ts": "2026-03-25T23:28:39.540497+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}

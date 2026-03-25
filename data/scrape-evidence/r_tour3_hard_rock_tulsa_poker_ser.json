@@ -1,0 +1,11 @@
+{
+  "name": "Hard Rock Tulsa Poker Series",
+  "type": "series",
+  "source": "https://www.hardrockcasinotulsa.com",
+  "http": 200,
+  "hash": "0ce0cdcfd40a523ed434a563908e96aac2310660539c875f457f16652e04f8cf",
+  "address": "777 W. Cherokee Street",
+  "phone": "+1-800-760-6700",
+  "ts": "2026-03-25T23:25:29.813110+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}

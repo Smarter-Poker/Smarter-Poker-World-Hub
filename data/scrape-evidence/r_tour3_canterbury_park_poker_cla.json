@@ -1,0 +1,11 @@
+{
+  "name": "Canterbury Park Poker Classic",
+  "type": "series",
+  "source": "https://www.canterburypark.com",
+  "http": 200,
+  "hash": "5eb78a88b10fba9193131aaac73a2eb554658bba4a2e1b8d600fdee452249b00",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:26:25.893144+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}

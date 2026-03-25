@@ -1,0 +1,11 @@
+{
+  "name": "Caesars AC Poker Classic",
+  "type": "series",
+  "source": "https://www.caesars.com/caesars-ac",
+  "http": 200,
+  "hash": "83ccceafaac8ba0ca21a7df5ec1332c32ded3a7a9f91057d10401a81ba4665fd",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:32:55.176345+00:00",
+  "batch": "0a5b5f22-edb0-46c2-86f5-9384dc3d5913"
+}
