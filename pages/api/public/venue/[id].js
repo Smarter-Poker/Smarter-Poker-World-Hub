@@ -427,6 +427,21 @@ export default async function handler(req, res) {
         captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-promotions', venue_id: String(id) } });
       }
 
+      // Fetch scraped venue news (from venue scraper pipeline)
+      let venueNews = [];
+      try {
+        const { data: newsData } = await getSupabase()
+          .from('venue_news')
+          .select('id, title, content, source_url, image_url, published_at, scraped_at')
+          .eq('venue_id', id)
+          .eq('is_active', true)
+          .order('scraped_at', { ascending: false })
+          .limit(10);
+        venueNews = newsData || [];
+      } catch (newsErr) {
+        console.warn('[venue-detail] Venue news query failed (pv path):', newsErr.message);
+      }
+
       // Calculate waitlist stats if Commander enabled
       let waitlistStats = null;
       if (venue.commander_enabled) {
@@ -463,6 +478,7 @@ export default async function handler(req, res) {
           upcoming_tournaments: tournaments || [],
           daily_schedule: dailyTournaments || [],
           promotions: promotions || [],
+          venue_news: venueNews || [],
           waitlist_stats: waitlistStats,
           links: {
             smarter_poker: `https://smarter.poker/club/${id}`,
