@@ -710,11 +710,6 @@ export default function SocialPageDetail() {
         fetchPage(controller.signal);
         return () => controller.abort();
     }, [fetchPage]);
-    // P7-8: Increment view counter on page load (fire-and-forget)
-    useEffect(() => {
-        if (!page?.id) return;
-        fetch(`/api/social/pages?id=${page.id}&action=view`, { method: 'POST' }).catch(() => {});
-    }, [page?.id]);
     useEffect(() => {
         if (!page) return;
         const controller = new AbortController();
