@@ -1,0 +1,14 @@
+{
+  "venue_id": 1835,
+  "venue_name": "Foxwoods Resort Casino",
+  "url": "https://www.pokeratlas.com/poker-room/foxwoods-mashantucket",
+  "http_status": 200,
+  "scrape_html_hash": "edca7161138b78caca331307322cef7d2449fb282d26fcbcda351e7499e8186e",
+  "byte_count": 59063,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:38:11.279339+00:00",
+  "extracted_data": {
+    "poker_tables": 35,
+    "hours_weekday": "9:00am - 1:00am"
+  }
+}

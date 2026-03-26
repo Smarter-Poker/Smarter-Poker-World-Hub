@@ -1,0 +1,13 @@
+{
+  "venue_id": 1822,
+  "venue_name": "Hustler Casino",
+  "url": "https://www.pokeratlas.com/poker-room/hustler-casino-gardena",
+  "http_status": 200,
+  "scrape_html_hash": "6a806823c4a14065bff563950c62151f3edc37dacf103960747d479f53477eac",
+  "byte_count": 59976,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:36:55.891537+00:00",
+  "extracted_data": {
+    "poker_tables": 50
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "venue_id": 1825,
+  "venue_name": "Seminole Hard Rock Hollywood",
+  "url": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale",
+  "http_status": 200,
+  "scrape_html_hash": "1a990d6f6f65f9f4fbffa542be12d55214899a480d042173d8b1351946d36a57",
+  "byte_count": 61153,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:37:03.527777+00:00",
+  "extracted_data": {
+    "games_offered": [
+      "Mixed",
+      "PLO",
+      "Limit HE",
+      "NLH"
+    ],
+    "poker_tables": 45
+  }
+}

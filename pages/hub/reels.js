@@ -544,6 +544,7 @@ export default function ReelsPage() {
         if (!authorId || !user?.id || authorId === user.id) return;
         const wasFollowing = following[authorId];
         setFollowing(prev => ({ ...prev, [authorId]: !wasFollowing }));
+        haptic(wasFollowing ? 5 : 15);
         try {
             if (wasFollowing) {
                 await supabase.from('social_follows').delete()
@@ -553,6 +554,7 @@ export default function ReelsPage() {
                     follower_id: user.id, following_id: authorId
                 });
             }
+            busEmit.socialFollowChanged && busEmit.socialFollowChanged(authorId, user.id, { added: !wasFollowing });
         } catch {
             setFollowing(prev => ({ ...prev, [authorId]: wasFollowing }));
         }
@@ -678,11 +680,14 @@ export default function ReelsPage() {
         }
     };
 
-    // Reset comment panel when switching reels
+    // Reset comment panel + media state when switching reels
     useEffect(() => {
         setShowCommentPanel(false);
         setComments([]);
         setCommentText('');
+        setShowGifPicker(false);
+        setCommentMediaUrl(null);
+        setCommentMediaType(null);
     }, [currentIndex]);
 
     const handleSave = async () => {
@@ -1230,11 +1235,12 @@ export default function ReelsPage() {
                     onClick={() => {
                         const now = Date.now();
                         if (now - lastTapRef.current < 300) {
-                            // Double tap = like
+                            // Double tap = like (TikTok behavior: always show heart, only toggle if not liked)
+                            setShowHeart(true);
+                            setTimeout(() => setShowHeart(false), 800);
+                            haptic(15);
                             if (!liked[currentReel?.id]) {
                                 handleLike();
-                                setShowHeart(true);
-                                setTimeout(() => setShowHeart(false), 800);
                             }
                         }
                         lastTapRef.current = now;

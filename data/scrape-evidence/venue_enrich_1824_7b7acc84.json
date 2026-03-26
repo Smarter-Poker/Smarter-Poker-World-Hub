@@ -1,0 +1,13 @@
+{
+  "venue_id": 1824,
+  "venue_name": "Thunder Valley Casino",
+  "url": "https://www.pokeratlas.com/poker-room/thunder-valley-lincoln",
+  "http_status": 200,
+  "scrape_html_hash": "d22daa7b78fb82b446d65121df4f449da92cadfe4266a97e54442e3405d96987",
+  "byte_count": 59515,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:37:01.387882+00:00",
+  "extracted_data": {
+    "poker_tables": 28
+  }
+}

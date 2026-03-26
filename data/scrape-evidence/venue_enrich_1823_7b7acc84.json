@@ -1,0 +1,19 @@
+{
+  "venue_id": 1823,
+  "venue_name": "Graton Resort & Casino",
+  "url": "https://www.pokeratlas.com/poker-room/venetian-las-vegas/cash-games",
+  "http_status": 200,
+  "scrape_html_hash": "6e107ecbda2ef789f074069e24a94d755eab054f0f506239978a2b46e68fc0c6",
+  "byte_count": 73577,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:36:58.946318+00:00",
+  "extracted_data": {
+    "games_offered": [
+      "Mixed",
+      "PLO",
+      "Limit HE",
+      "NLH"
+    ],
+    "poker_tables": 50
+  }
+}

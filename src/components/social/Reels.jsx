@@ -233,6 +233,7 @@ export function ReelsViewer({ onClose }) {
         if (!authorId || !currentUserId || authorId === currentUserId) return;
         const wasFollowing = following[authorId];
         setFollowing(prev => ({ ...prev, [authorId]: !prev[authorId] }));
+        haptic(wasFollowing ? 5 : 15);
         try {
             if (wasFollowing) {
                 await supabase.from('social_follows').delete().eq('follower_id', currentUserId).eq('following_id', authorId);
@@ -640,11 +641,12 @@ export function ReelsViewer({ onClose }) {
         const now = Date.now();
         const DOUBLE_TAP_WINDOW = 300;
         if (now - lastTapRef.current < DOUBLE_TAP_WINDOW) {
-            // Double-tap = like
+            // Double-tap = like (TikTok behavior: always show heart, only toggle if not liked)
+            setShowHeart(true);
+            setTimeout(() => setShowHeart(false), 800);
+            haptic(15);
             if (!liked[currentReel?.id] && currentUserId) {
                 handleLike();
-                setShowHeart(true);
-                setTimeout(() => setShowHeart(false), 800);
             }
             lastTapRef.current = 0;
             return;
