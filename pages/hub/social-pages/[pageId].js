@@ -114,7 +114,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
         if (comments.length > 0) { setShowComments(!showComments); return; }
         setLoadingComments(true);
         try {
-            const res = await fetch(`/api/social/pages/engage?post_id=${post.id}`);
+            const res = await fetch(`/api/social/pages/engage?post_id=${post.id}${user ? `&user_id=${user.id}` : ''}`);
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
             if (json.success) setComments(json.data || []);
@@ -557,7 +557,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                                         body: JSON.stringify({ action: 'like_comment', post_id: post.id, comment_id: c.id }),
                                                     }).then(r => r.json()).then(j => {
-                                                        setComments(prev => prev.map(x => x.id === c.id ? { ...x, user_liked_comment: j.liked, comment_like_count: j.liked ? ((x.comment_like_count || 0) + 1) : Math.max(0, (x.comment_like_count || 1) - 1) } : x));
+                                                        if (j.success) setComments(prev => prev.map(x => x.id === c.id ? { ...x, user_liked_comment: j.liked, comment_like_count: j.liked ? ((x.comment_like_count || 0) + 1) : Math.max(0, (x.comment_like_count || 1) - 1) } : x));
                                                     }).catch(() => {});
                                                 }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: c.user_liked_comment ? C.blue : C.textSec, fontSize: 11, padding: 0, fontFamily: 'inherit' }}>
                                                     {c.user_liked_comment ? 'Liked' : 'Like'}{c.comment_like_count > 0 ? ` (${c.comment_like_count})` : ''}

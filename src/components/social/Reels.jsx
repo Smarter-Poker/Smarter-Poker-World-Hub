@@ -80,6 +80,10 @@ export function ReelsViewer({ onClose }) {
     const [reportReason, setReportReason] = useState('');
     const [reportSubmitted, setReportSubmitted] = useState(false);
     const [captionExpanded, setCaptionExpanded] = useState(false);
+    // #8 Share Options Modal
+    const [showShareModal, setShowShareModal] = useState(false);
+    // #7 Animated Like Counter
+    const [likeBounceId, setLikeBounceId] = useState(null);
 
     useEffect(() => {
         loadReels();
@@ -494,25 +498,39 @@ export function ReelsViewer({ onClose }) {
         setUploadingReelImage(false);
     };
 
-    // Share handler
-    const handleShare = async () => {
+    // #8 Share Options Modal handler
+    const handleShare = () => {
         if (!currentReel?.id) return;
-        const url = `${window.location.origin}/hub/reels?id=${currentReel.id}`;
+        haptic(10);
+        setShowShareModal(true);
+    };
+
+    const shareReelUrl = currentReel ? `${window.location.origin}/hub/reels?id=${currentReel.id}` : '';
+
+    const handleShareAction = async (platform) => {
+        setShowShareModal(false);
+        const url = shareReelUrl;
+        const title = 'Check out this poker reel on Smarter.Poker';
         try {
-            await navigator.clipboard.writeText(url);
+            if (platform === 'copy') {
+                await navigator.clipboard.writeText(url);
+                setShareToast(true);
+                setTimeout(() => setShareToast(false), 2000);
+            } else if (platform === 'native' && navigator.share) {
+                await navigator.share({ title, url });
+            } else if (platform === 'x') {
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`, '_blank');
+            } else if (platform === 'facebook') {
+                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+            } else if (platform === 'whatsapp') {
+                window.open(`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`, '_blank');
+            }
+            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {} })();
+            if (currentUserId) busEmit.socialPostShared(currentReel.id, currentUserId);
         } catch {
-            const input = document.createElement('input');
-            input.value = url;
-            document.body.appendChild(input);
-            input.select();
-            document.execCommand('copy');
-            document.body.removeChild(input);
+            setShareToast(true);
+            setTimeout(() => setShareToast(false), 2000);
         }
-        setShareToast(true);
-        setTimeout(() => setShareToast(false), 2000);
-        // Increment share_count + EventBus
-        (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {} })();
-        if (currentUserId) busEmit.socialPostShared(currentReel.id, currentUserId);
     };
 
     // Reset comment drawer + caption + report + GIF + share on reel change
@@ -528,6 +546,7 @@ export function ReelsViewer({ onClose }) {
         setReportReason('');
         setReportSubmitted(false);
         setShareToast(false);
+        setShowShareModal(false);
     }, [currentIndex]);
 
     // Keep handler refs fresh for keyboard shortcuts
@@ -854,8 +873,13 @@ export function ReelsViewer({ onClose }) {
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
-                        <span style={{ fontSize: 22 }}>{liked[currentReel?.id] ? '❤️' : '👍'}</span>
-                        <span style={{ fontSize: 9, fontWeight: 500 }}>{likeCounts[currentReel?.id] || 0}</span>
+                        <span style={{ fontSize: 22 }}>{liked[currentReel?.id] ? '\u2764\uFE0F' : '\uD83D\uDC4D'}</span>
+                        <span style={{
+                            fontSize: 9, fontWeight: 500,
+                            transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                            transform: likeBounceId === currentReel?.id ? 'scale(1.5)' : 'scale(1)',
+                            display: 'inline-block',
+                        }}>{likeCounts[currentReel?.id] || 0}</span>
                     </button>
                     <button onClick={() => { handleDislike(); haptic(10); }} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',

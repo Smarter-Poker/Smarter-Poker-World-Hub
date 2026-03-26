@@ -334,7 +334,10 @@ export default function ReelsPage() {
                     const j = Math.floor(Math.random() * (i + 1));
                     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
                 }
-                setReels(shuffled);
+                // #4 Not Interested — move disliked reels to end of feed
+                const fresh = shuffled.filter(r => !notInterestedIds.has(r.id));
+                const stale = shuffled.filter(r => notInterestedIds.has(r.id));
+                setReels([...fresh, ...stale]);
 
                 // Initialize like/comment/view counts from loaded data
                 const lc = {}, cc = {}, vc = {};
@@ -757,6 +760,7 @@ export default function ReelsPage() {
         setReportReason('');
         setReportSubmitted(false);
         setShareToast(false);
+        setShowShareModal(false);
     }, [currentIndex]);
 
     const handleSave = async () => {

@@ -1266,7 +1266,8 @@ function UniversalDynamicTable({
         // Speed bonus tracking
         const elapsed = (Date.now() - answerStartTime.current) / 1000;
         if (onAnswer) onAnswer(answerId, { answerTimeSeconds: elapsed });
-    }, [showFeedback, onAnswer, options]);
+        try { busEmit('ARENA_HAND_ANSWERED', { answerId, timeSeconds: elapsed, questionNumber, isCorrect: answerId === correctAnswer }); } catch { }
+    }, [showFeedback, onAnswer, options, questionNumber, correctAnswer]);
 
     // Phase 25: Keyboard Shortcuts — UNIFIED handler (1-4, F/C/R, Space/Enter, Esc)
     // This is the SINGLE keyboard handler. Do NOT add duplicates.
@@ -1451,9 +1452,11 @@ function UniversalDynamicTable({
     // Get classification config for display
     const classConfig = computedClassification ? CLASSIFICATION_CONFIG[computedClassification] : null;
 
-    // Reset selectedAnswer on new question
+    // Reset selectedAnswer + feedbackCollapsed on new question (BUG-1 fix)
     React.useEffect(() => {
         setSelectedAnswer(null);
+        setFeedbackCollapsed(false);
+        try { busEmit('ARENA_HAND_LOADED', { questionNumber, gameId: question?.gameId || null }); } catch { }
     }, [questionNumber]);
 
 
