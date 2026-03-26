@@ -249,9 +249,10 @@ export default async function handler(req, res) {
               // Verify requester is page owner before allowing role change
               const { data: pageInfo } = await getSupabase()
                   .from('social_pages').select('owner_id').eq('id', page_id).maybeSingle();
-              if (pageInfo?.owner_id === user_id) {
-                  updates.role = role;
+              if (pageInfo?.owner_id !== user_id) {
+                  return res.status(403).json({ success: false, error: 'Only page owners can change member roles' });
               }
+              updates.role = role;
           }
 
           const { data, error } = await getSupabase()

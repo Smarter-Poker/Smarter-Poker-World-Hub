@@ -559,6 +559,7 @@ export default function ManageSocialPage() {
                                                             const json = await res.json();
                                                             if (!json.success) throw new Error(json.error || 'Update failed');
                                                             setMessage(`Role updated to ${newRole}`);
+                                                            busEmit.dataMutated('social-pages');
                                                         } catch (err) {
                                                             setMembers(prev => prev.map(mm => mm.id === m.id ? { ...mm, role: prevRole } : mm)); // rollback
                                                             setMessage('Failed to update role');
