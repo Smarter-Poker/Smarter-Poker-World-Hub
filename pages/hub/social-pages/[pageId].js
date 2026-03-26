@@ -80,6 +80,25 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     const [editCommentText, setEditCommentText] = useState('');
     // P12-3: Image lightbox
     const [lightboxUrl, setLightboxUrl] = useState(null);
+    // Feature parity: FullScreen video viewer (from social-media)
+    const [fullScreenVideo, setFullScreenVideo] = useState(null);
+
+    // Feature parity: @mention rendering (from social-media)
+    const router = useRouter();
+    const renderMentions = (text) => {
+        if (!text) return text;
+        const parts = text.split(/(@[\w.]+)/g);
+        return parts.map((part, i) => {
+            if (part.startsWith('@')) {
+                const username = part.slice(1);
+                return <a key={i} href={`/hub/user/${username}`}
+                    style={{ color: C.blue, fontWeight: 600, textDecoration: 'none' }}
+                    onClick={(e) => { e.preventDefault(); router.push(`/hub/user/${username}`); }}
+                >{part}</a>;
+            }
+            return part;
+        });
+    };
 
     // Close menu on outside click
     useEffect(() => {
@@ -247,8 +266,8 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                     doubleTapTimer.current = setTimeout(() => setDoubleTapHeart(false), 800);
                 }} style={{ padding: '0 16px 12px', fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap', position: 'relative', cursor: 'default' }}>
                     {post.content.length > 300 && !expanded ? (
-                        <>{post.content.slice(0, 300)}... <button onClick={() => setExpanded(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: C.textSec, padding: 0, fontFamily: 'inherit' }}>See More</button></>
-                    ) : post.content}
+                        <>{renderMentions(post.content.slice(0, 300))}... <button onClick={() => setExpanded(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: C.textSec, padding: 0, fontFamily: 'inherit' }}>See More</button></>
+                    ) : renderMentions(post.content)}
                     {expanded && post.content.length > 300 && (
                         <button onClick={() => setExpanded(false)} style={{ display: 'block', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: C.textSec, padding: '4px 0 0', fontFamily: 'inherit' }}>See Less</button>
                     )}
@@ -263,7 +282,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                 </div>
             ) : null}
 
-            {/* Media — #2 Image Carousel */}
+            {/* Media — #2 Image Carousel with YouTube/Video support (feature parity) */}
             {post.media_urls && post.media_urls.length > 0 && (
                 <div style={{ position: 'relative', overflow: 'hidden' }}
                     onDoubleClick={() => {
@@ -273,7 +292,31 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                         if (doubleTapTimer.current) clearTimeout(doubleTapTimer.current);
                         doubleTapTimer.current = setTimeout(() => setDoubleTapHeart(false), 800);
                     }}>
-                    <img src={post.media_urls[carouselIdx]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} />
+                    {/* Check if media is a YouTube URL or video */}
+                    {post.media_urls.length === 1 && isYouTubeUrl(post.media_urls[0]) ? (
+                        <VideoPostWrapper
+                            url={post.media_urls[0]}
+                            onValidVideoClick={() => setFullScreenVideo(post.media_urls[0])}
+                        >
+                            <VideoThumbnail url={post.media_urls[0]} />
+                        </VideoPostWrapper>
+                    ) : post.media_urls.length === 1 && (post.media_urls[0].endsWith('.mp4') || post.media_urls[0].endsWith('.webm') || post.media_urls[0].endsWith('.mov')) ? (
+                        <div onClick={() => setFullScreenVideo(post.media_urls[0])} style={{ cursor: 'pointer', position: 'relative' }}>
+                            <video src={post.media_urls[0]} style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} muted playsInline preload="metadata" />
+                            <div style={{
+                                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                                width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.9)',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: '#333', fontSize: 28, pointerEvents: 'none',
+                            }}>▶</div>
+                        </div>
+                    ) : (
+                        /* Standard image carousel */
+                        <>
+                            <img src={post.media_urls[carouselIdx]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto', cursor: 'pointer' }}
+                                onClick={() => setLightboxUrl(post.media_urls[carouselIdx])} />
+                        </>
+                    )}
                     {/* P10-1: Image heart animation overlay */}
                     {doubleTapHeart && (
                         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', animation: 'likePopAnim 0.8s ease-out forwards', zIndex: 10 }}>
@@ -282,21 +325,21 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                             </svg>
                         </div>
                     )}
-                    {post.media_urls.length > 1 && (
+                    {post.media_urls.length > 1 && !isYouTubeUrl(post.media_urls[0]) && (
                         <>
                             {carouselIdx > 0 && (
                                 <button onClick={() => setCarouselIdx(i => i - 1)} style={{
                                     position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
                                     width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', color: '#fff',
                                     border: 'none', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}>&lsaquo;</button>
+                                }}>‹</button>
                             )}
                             {carouselIdx < post.media_urls.length - 1 && (
                                 <button onClick={() => setCarouselIdx(i => i + 1)} style={{
                                     position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
                                     width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', color: '#fff',
                                     border: 'none', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}>&rsaquo;</button>
+                                }}>›</button>
                             )}
                             <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 4 }}>
                                 {post.media_urls.map((_, di) => (
@@ -327,21 +370,26 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                 </div>
             )}
 
-            {/* #6 Link Preview */}
+            {/* Link Preview — upgraded to SharedLinkPreviewCard from social-media */}
             {post.link_preview && post.link_preview.url && (
-                <a href={post.link_preview.url} target="_blank" rel="noopener noreferrer" style={{
-                    display: 'block', margin: '0 16px 12px', borderRadius: 10, overflow: 'hidden',
-                    border: `1px solid ${C.border}`, textDecoration: 'none', color: 'inherit',
-                }}>
-                    {post.link_preview.image && (
-                        <img src={post.link_preview.image} alt="" style={{ width: '100%', height: 160, objectFit: 'cover' }} />
-                    )}
-                    <div style={{ padding: '10px 12px', background: C.bg }}>
-                        <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase' }}>{(() => { try { return new URL(post.link_preview.url).hostname; } catch(e) { return post.link_preview.url?.replace(/^https?:\/\//, '').split('/')[0] || 'link'; } })()}</div>
-                        {post.link_preview.title && <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginTop: 2 }}>{post.link_preview.title}</div>}
-                        {post.link_preview.description && <div style={{ fontSize: 13, color: C.textSec, marginTop: 2 }}>{post.link_preview.description.slice(0, 120)}</div>}
-                    </div>
-                </a>
+                <SharedLinkPreviewCard url={post.link_preview.url} />
+            )}
+
+            {/* FullScreen Video Viewer (feature parity with social-media) */}
+            {fullScreenVideo && (
+                <FullScreenVideoViewer
+                    videoUrl={fullScreenVideo}
+                    author={{ name: post.author?.full_name || post.author?.username, avatar: post.author?.avatar_url }}
+                    caption={post.content}
+                    onClose={() => setFullScreenVideo(null)}
+                    onLike={() => { if (!post.user_liked) onLike(post.id); }}
+                    onComment={() => { setFullScreenVideo(null); fetchComments(); }}
+                    onShare={() => {
+                        const url = typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page?.slug || page?.id}` : '';
+                        navigator.clipboard.writeText(url).catch(() => {});
+                        toast.success('Link copied!');
+                    }}
+                />
             )}
 
             {/* Stats — #14 Like animation */}

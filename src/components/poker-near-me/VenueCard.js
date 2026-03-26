@@ -44,6 +44,20 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             <p className="card-location">
                 {venue.address ? (venue.address + ' - ') : ''}{venue.city || ''}{venue.city && venue.state ? ', ' : ''}{venue.state || ''}
             </p>
+            {/* Home Game Host Info */}
+            {venue.venue_type === 'home_game' && venue.host_display_name && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, marginBottom: 4 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span style={{ fontSize: 12, color: '#58a6ff', fontWeight: 600 }}>Hosted by {venue.host_display_name}</span>
+                    {venue.host_username && (
+                        <a href={'/hub/user/' + venue.host_username} onClick={e => e.stopPropagation()} style={{ fontSize: 11, color: '#3fb950', textDecoration: 'underline', marginLeft: 4 }}>Contact Host</a>
+                    )}
+                </div>
+            )}
+            {/* Home Game Description */}
+            {venue.venue_type === 'home_game' && venue.description && (
+                <p style={{ fontSize: 12, color: '#8b949e', marginTop: 2, marginBottom: 6, lineHeight: 1.4, fontStyle: 'italic' }}>{venue.description}</p>
+            )}
             <div className="badge-row">
                 {venue.is_featured && <span className="mini-badge featured-badge">Featured</span>}
                 {isNewcomer && <span className="mini-badge newcomer-badge">Newcomer Friendly</span>}
