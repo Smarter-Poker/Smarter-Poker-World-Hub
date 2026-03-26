@@ -1193,46 +1193,82 @@ export default function PokerNearMeLobby() {
         break;
 
       case 'homegames': {
-        const homeGames = venues.filter(v => v.venue_type === 'home_game');
+        const hgSearch = filters.hgSearch || '';
+        const hgState = filters.hgState || 'all';
+        const hgHasSearched = filters.hgHasSearched || false;
+        let homeGames = venues.filter(v => v.venue_type === 'home_game');
+        if (hgSearch) {
+          const lower = hgSearch.toLowerCase();
+          homeGames = homeGames.filter(v => (v.name || '').toLowerCase().includes(lower) || (v.city || '').toLowerCase().includes(lower) || (v.state || '').toLowerCase().includes(lower));
+        }
+        if (hgState !== 'all') homeGames = homeGames.filter(v => v.state === hgState);
+
         component = (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Home Games</span>
-              <span style={{ color: 'rgba(200,214,229,0.4)', fontSize: 12 }}>
-                {homeGames.length} game{homeGames.length !== 1 ? 's' : ''}
-              </span>
+            {/* Search parameters */}
+            <div style={{ background: 'rgba(212,168,83,0.04)', border: '1px solid rgba(212,168,83,0.15)', borderRadius: 14, padding: 14, marginBottom: 14 }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input type="text" placeholder="Search home games..." value={hgSearch}
+                  onChange={(e) => setFilters(prev => ({ ...prev, hgSearch: e.target.value }))}
+                  style={{ flex: 1, minWidth: 120, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
+                <select value={hgState}
+                  onChange={(e) => setFilters(prev => ({ ...prev, hgState: e.target.value }))}
+                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.2)', borderRadius: 8, padding: '8px 10px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', minWidth: 90 }}>
+                  <option value="all">All States</option>
+                  {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+              </div>
+              <button onClick={() => setFilters(prev => ({ ...prev, hgHasSearched: true }))}
+                style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(212,168,83,0.3)' }}>
+                Find Home Games
+              </button>
             </div>
-            {loading && <div style={{ textAlign: 'center', padding: 20, color: 'rgba(200,214,229,0.5)' }}>
-              <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#6ee7ef', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
-              Loading home games...
-            </div>}
-            <div style={{ display: 'grid', gap: 12 }}>
-              {homeGames.map(v => (
-                <VenueCard
-                  key={v.id}
-                  venue={v}
-                  isFavorited={!!favorites[v.id]}
-                  onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
-                  onNavigate={(url) => {
-                    if (url.includes('action=review')) {
-                      setSelectedVenueForReview({ id: v.id, name: v.name });
-                    } else {
-                      router.push(url);
-                    }
-                  }}
-                  userLocation={userLocation}
-                  checkinCount={checkinCounts[String(v.id)] || 0}
-                />
-              ))}
-            </div>
-            {homeGames.length === 0 && !loading && (
-              <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.5 }}>
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
+
+            {hgHasSearched ? (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, padding: '6px 10px', background: 'rgba(212,168,83,0.06)', borderRadius: 8 }}>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+                    <span style={{ color: '#d4a853', fontWeight: 800 }}>{homeGames.length}</span> home game{homeGames.length !== 1 ? 's' : ''}
+                  </span>
+                  <button onClick={() => setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false }))}
+                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
+                </div>
+                {loading && <div style={{ textAlign: 'center', padding: 20, color: 'rgba(200,214,229,0.5)' }}>
+                  <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#6ee7ef', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+                  Loading home games...
+                </div>}
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {homeGames.map(v => (
+                    <VenueCard
+                      key={v.id}
+                      venue={v}
+                      isFavorited={!!favorites[v.id]}
+                      onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
+                      onNavigate={(url) => {
+                        if (url.includes('action=review')) { setSelectedVenueForReview({ id: v.id, name: v.name }); }
+                        else { router.push(url); }
+                      }}
+                      userLocation={userLocation}
+                      checkinCount={checkinCounts[String(v.id)] || 0}
+                    />
+                  ))}
+                </div>
+                {homeGames.length === 0 && !loading && (
+                  <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
+                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>No Home Games Found</p>
+                    <p style={{ fontSize: 13 }}>Try a different search or state filter.</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '30px 16px' }}>
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.3)" strokeWidth="1" style={{ marginBottom: 14 }}>
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
-                <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Home Games Found</p>
-                <p style={{ fontSize: 13 }}>Home games near you will appear here. Try enabling GPS or searching a city.</p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>Find or List Home Games</p>
+                <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)', lineHeight: 1.5 }}>Search for home games near you or filter by state. Use the search bar above to get started.</p>
               </div>
             )}
           </div>

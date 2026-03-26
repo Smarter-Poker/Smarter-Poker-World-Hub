@@ -71,9 +71,14 @@ export default async function handler(req, res) {
             }
         }
 
-        // Build response
+        // Build response with trend indicators
         const result = sorted.map(s => {
             const venue = venueMap[s.venue_id] || {};
+            // Velocity: what % of 24h activity happened in last 6h
+            const velocityRatio = s.count > 0 ? s.recent6h / s.count : 0;
+            let trend = 'steady';
+            if (velocityRatio > 0.6 && s.recent6h >= 2) trend = 'rising';
+            else if (s.uniqueUsers.size >= 3) trend = 'hot';
             return {
                 venue_id: parseInt(s.venue_id, 10),
                 venue_name: venue.name || `Venue #${s.venue_id}`,
@@ -81,6 +86,7 @@ export default async function handler(req, res) {
                 state: venue.state || null,
                 count: s.count,
                 unique_users: s.uniqueUsers.size,
+                trend,
             };
         }).filter(v => v.venue_name && v.venue_name !== `Venue #${v.venue_id}`);
 
