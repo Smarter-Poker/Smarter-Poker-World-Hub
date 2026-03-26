@@ -434,17 +434,42 @@ export function ReelsViewer({ onClose }) {
     const handleOpenComments = async () => {
         setShowCommentInput(prev => !prev);
         if (!showCommentInput && currentReel?.id) {
+            setCommentPage(0);
             try {
                 const { data } = await supabase
                     .from('social_comments')
                     .select('*, profiles:author_id (username, avatar_url)')
                     .eq('post_id', currentReel.id)
                     .order('created_at', { ascending: true })
-                    .limit(20);
+                    .limit(50);
                 setReelComments(data || []);
+                setHasMoreComments((data || []).length >= 50);
             } catch { setReelComments([]); }
             setTimeout(() => commentInputRef.current?.focus(), 100);
         }
+    };
+
+    // #6 Comment Pagination — Load More
+    const loadMoreComments = async () => {
+        if (!currentReel?.id || loadingMoreComments || !hasMoreComments) return;
+        setLoadingMoreComments(true);
+        const nextPage = commentPage + 1;
+        try {
+            const { data } = await supabase
+                .from('social_comments')
+                .select('*, profiles:author_id (username, avatar_url)')
+                .eq('post_id', currentReel.id)
+                .order('created_at', { ascending: true })
+                .range(nextPage * 50, (nextPage + 1) * 50 - 1);
+            if (data && data.length > 0) {
+                setReelComments(prev => [...prev, ...data]);
+                setCommentPage(nextPage);
+                setHasMoreComments(data.length >= 50);
+            } else {
+                setHasMoreComments(false);
+            }
+        } catch { setHasMoreComments(false); }
+        setLoadingMoreComments(false);
     };
 
     const handleSubmitComment = async (e) => {
