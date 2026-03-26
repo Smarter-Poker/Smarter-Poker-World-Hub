@@ -1881,9 +1881,9 @@ function UniversalDynamicTable({
                         let seatX = seat.x;
                         let seatY = seat.y;
                         if (activeCount <= 2) {
-                            // Force GTO Wizard positions: Hero = bottom-center, Villain = top-center
+                            // Force GTO Wizard positions: Hero = bottom-center rail edge, Villain = top-center rail edge
                             seatX = 50;
-                            seatY = isHero ? 80 : 18;
+                            seatY = isHero ? 85 : 6;
                         }
 
                         return (
