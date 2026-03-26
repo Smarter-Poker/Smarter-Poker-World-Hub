@@ -224,6 +224,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         return false;
     });
     const [liked, setLiked] = useState({});
+    const [disliked, setDisliked] = useState({});
     const [showComments, setShowComments] = useState(false);
     const [reelComments, setReelComments] = useState([]);
     const [commentText, setCommentText] = useState('');
@@ -379,7 +380,6 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     const handleLike = async () => {
         if (!currentReel || !authUser?.id) return;
-        // Debounce: prevent rapid-fire
         if (likeDebounceRef.current) return;
         likeDebounceRef.current = true;
         setTimeout(() => { likeDebounceRef.current = false; }, 300);
@@ -389,18 +389,19 @@ function ReelViewer({ reels, startIndex, onClose }) {
         const wasLiked = liked[currentId];
         setLiked(prev => ({ ...prev, [currentId]: !prev[currentId] }));
         setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? -1 : 1)) }));
+        // Mutual exclusion: remove dislike when liking
+        if (!wasLiked && disliked[currentId]) {
+            setDisliked(prev => ({ ...prev, [currentId]: false }));
+            try { await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'dislike'); } catch {}
+        }
 
         try {
             if (wasLiked) {
-                await supabase.from('social_likes')
-                    .delete()
-                    .eq('post_id', currentId)
-                    .eq('user_id', userId);
+                await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(currentId, userId, { added: false, reactionType: 'like' });
                 try { await supabase.rpc('decrement_post_count', { p_post_id: currentId, p_field: 'like_count' }); } catch {}
             } else {
-                await supabase.from('social_likes')
-                    .insert({ post_id: currentId, user_id: userId, reaction_type: 'like' });
+                await supabase.from('social_likes').insert({ post_id: currentId, user_id: userId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentId, userId, { added: true, reactionType: 'like' });
                 try { await supabase.rpc('increment_post_count', { p_post_id: currentId, p_field: 'like_count' }); } catch {}
             }
@@ -408,6 +409,37 @@ function ReelViewer({ reels, startIndex, onClose }) {
             console.warn('Reel like persistence failed:', err.message);
             setLiked(prev => ({ ...prev, [currentId]: wasLiked }));
             setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? 1 : -1)) }));
+        }
+    };
+
+    const handleDislike = async () => {
+        if (!currentReel || !authUser?.id) return;
+        if (likeDebounceRef.current) return;
+        likeDebounceRef.current = true;
+        setTimeout(() => { likeDebounceRef.current = false; }, 300);
+
+        const currentId = currentReel.id;
+        const userId = authUser.id;
+        const wasDisliked = disliked[currentId];
+        setDisliked(prev => ({ ...prev, [currentId]: !prev[currentId] }));
+        // Mutual exclusion: remove like when disliking
+        if (!wasDisliked && liked[currentId]) {
+            setLiked(prev => ({ ...prev, [currentId]: false }));
+            setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) - 1) }));
+            try {
+                await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'like');
+                try { await supabase.rpc('decrement_post_count', { p_post_id: currentId, p_field: 'like_count' }); } catch {}
+            } catch {}
+        }
+
+        try {
+            if (wasDisliked) {
+                await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'dislike');
+            } else {
+                await supabase.from('social_likes').insert({ post_id: currentId, user_id: userId, reaction_type: 'dislike' });
+            }
+        } catch {
+            setDisliked(prev => ({ ...prev, [currentId]: wasDisliked }));
         }
     };
 
@@ -807,12 +839,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         <span style={{ fontSize: 24 }}>{liked[currentReel.id] ? '❤️' : '👍'}</span>
                         <span style={{ fontSize: 10, fontWeight: 500 }}>{likeCounts[currentReel.id] || 0}</span>
                     </button>
-                    <button onClick={() => {}} style={{
+                    <button onClick={() => { handleDislike(); haptic(10); }} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: disliked[currentReel.id] ? '#ef4444' : 'white',
                     }}>
-                        <span style={{ fontSize: 24 }}>👎</span>
-                        <span style={{ fontSize: 10, fontWeight: 500 }}>Dislike</span>
+                        <span style={{ fontSize: 24 }}>{disliked[currentReel.id] ? '👎🏻' : '👎'}</span>
+                        <span style={{ fontSize: 10, fontWeight: 500 }}>{disliked[currentReel.id] ? 'Disliked' : 'Dislike'}</span>
                     </button>
                     <button onClick={handleToggleComments} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',

@@ -44,6 +44,7 @@ export function ReelsViewer({ onClose }) {
     });
     const [paused, setPaused] = useState(false);
     const [liked, setLiked] = useState({});
+    const [disliked, setDisliked] = useState({});
     const [currentUserId, setCurrentUserId] = useState(null);
     const [showCommentInput, setShowCommentInput] = useState(false);
     const [commentText, setCommentText] = useState('');
@@ -237,7 +238,6 @@ export function ReelsViewer({ onClose }) {
 
     const handleLike = async () => {
         if (!currentReel || !currentUserId) return;
-        // Debounce: prevent rapid-fire
         if (likeDebounceRef.current) return;
         likeDebounceRef.current = true;
         setTimeout(() => { likeDebounceRef.current = false; }, 300);
@@ -245,18 +245,19 @@ export function ReelsViewer({ onClose }) {
         const wasLiked = liked[currentReel.id];
         setLiked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
         setLikeCounts(prev => ({ ...prev, [currentReel.id]: Math.max(0, (prev[currentReel.id] || 0) + (wasLiked ? -1 : 1)) }));
+        // Mutual exclusion: remove dislike when liking
+        if (!wasLiked && disliked[currentReel.id]) {
+            setDisliked(prev => ({ ...prev, [currentReel.id]: false }));
+            try { await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'dislike'); } catch {}
+        }
 
         try {
             if (wasLiked) {
-                await supabase.from('social_likes')
-                    .delete()
-                    .eq('post_id', currentReel.id)
-                    .eq('user_id', currentUserId);
+                await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'like');
                 busEmit.socialPostLiked(currentReel.id, currentUserId, { added: false, reactionType: 'like' });
                 try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch {}
             } else {
-                await supabase.from('social_likes')
-                    .insert({ post_id: currentReel.id, user_id: currentUserId, reaction_type: 'like' });
+                await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: currentUserId, reaction_type: 'like' });
                 busEmit.socialPostLiked(currentReel.id, currentUserId, { added: true, reactionType: 'like' });
                 try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch {}
             }
@@ -264,6 +265,35 @@ export function ReelsViewer({ onClose }) {
             console.warn('Reel like persistence failed:', err.message);
             setLiked(prev => ({ ...prev, [currentReel.id]: wasLiked }));
             setLikeCounts(prev => ({ ...prev, [currentReel.id]: Math.max(0, (prev[currentReel.id] || 0) + (wasLiked ? 1 : -1)) }));
+        }
+    };
+
+    const handleDislike = async () => {
+        if (!currentReel || !currentUserId) return;
+        if (likeDebounceRef.current) return;
+        likeDebounceRef.current = true;
+        setTimeout(() => { likeDebounceRef.current = false; }, 300);
+
+        const wasDisliked = disliked[currentReel.id];
+        setDisliked(prev => ({ ...prev, [currentReel.id]: !prev[currentReel.id] }));
+        // Mutual exclusion: remove like when disliking
+        if (!wasDisliked && liked[currentReel.id]) {
+            setLiked(prev => ({ ...prev, [currentReel.id]: false }));
+            setLikeCounts(prev => ({ ...prev, [currentReel.id]: Math.max(0, (prev[currentReel.id] || 0) - 1) }));
+            try {
+                await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'like');
+                try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'like_count' }); } catch {}
+            } catch {}
+        }
+
+        try {
+            if (wasDisliked) {
+                await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'dislike');
+            } else {
+                await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: currentUserId, reaction_type: 'dislike' });
+            }
+        } catch {
+            setDisliked(prev => ({ ...prev, [currentReel.id]: wasDisliked }));
         }
     };
 
@@ -356,7 +386,7 @@ export function ReelsViewer({ onClose }) {
     // Share handler
     const handleShare = async () => {
         if (!currentReel?.id) return;
-        const url = `${window.location.origin}/app/social/reel/${currentReel.id}`;
+        const url = `${window.location.origin}/hub/reels?id=${currentReel.id}`;
         try {
             await navigator.clipboard.writeText(url);
         } catch {
@@ -658,12 +688,12 @@ export function ReelsViewer({ onClose }) {
                         <span style={{ fontSize: 22 }}>{liked[currentReel?.id] ? '❤️' : '👍'}</span>
                         <span style={{ fontSize: 9, fontWeight: 500 }}>{likeCounts[currentReel?.id] || 0}</span>
                     </button>
-                    <button onClick={() => {}} style={{
+                    <button onClick={() => { handleDislike(); haptic(10); }} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: disliked[currentReel?.id] ? '#ef4444' : 'white',
                     }}>
-                        <span style={{ fontSize: 22 }}>👎</span>
-                        <span style={{ fontSize: 9, fontWeight: 500 }}>Dislike</span>
+                        <span style={{ fontSize: 22 }}>{disliked[currentReel?.id] ? '👎🏻' : '👎'}</span>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>{disliked[currentReel?.id] ? 'Disliked' : 'Dislike'}</span>
                     </button>
                     <button onClick={handleOpenComments} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
