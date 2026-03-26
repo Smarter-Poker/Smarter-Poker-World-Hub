@@ -73,6 +73,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 import GiphyPicker from '../../../src/components/shared/GiphyPicker';
 import CheckInModal from '../../../src/components/social/CheckInModal';
+import TrendingVenues from '../../../src/components/social/TrendingVenues';
 
 // Light Theme Colors (SmarterPoker-style)
 const C = {
@@ -1247,6 +1248,8 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                         });
                         if (checkinRes.ok) {
                             setCheckInVenue(null);
+                            // Success toast with venue name
+                            toast.success(`Checked in at ${checkInVenue.name}`);
                         } else if (checkinRes.status === 429) {
                             // Already checked in at this venue within 4 hours — still clear UI
                             setCheckInVenue(null);
@@ -2314,20 +2317,36 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             )}
             {/* 📍 Check-in venue badge — shown on posts with "Checked in at" content */}
             {post.content && /^Checked in at /i.test(post.content) && (() => {
-                const match = post.content.match(/^Checked in at (.+?)(?:\s*[—–-]\s*.+)?$/i);
+                const match = post.content.match(/^Checked in at (.+?)(?:\s*[—–-]\s*(.+))?$/i);
                 const venueName = match?.[1] || post.content.replace(/^Checked in at /i, '').split('—')[0].trim();
+                const locationText = match?.[2]?.trim() || '';
                 return (
                     <div style={{
-                        margin: '0 12px 10px', padding: '6px 12px', borderRadius: 8,
-                        background: '#E7F3FF', border: '1px solid #B8D4F0',
-                        display: 'flex', alignItems: 'center', gap: 8,
+                        margin: '0 12px 10px', padding: '12px 14px', borderRadius: 10,
+                        background: 'linear-gradient(135deg, #E7F3FF 0%, #F0F7FF 100%)',
+                        border: '1px solid #B8D4F0',
+                        display: 'flex', alignItems: 'center', gap: 10,
                     }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1877F2" strokeWidth="2">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-                        </svg>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#1877F2' }}>
-                            {venueName}
-                        </span>
+                        <div style={{
+                            width: 36, height: 36, borderRadius: 8,
+                            background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                        }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                            </svg>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2' }}>
+                                {venueName}
+                            </div>
+                            {locationText && (
+                                <div style={{ fontSize: 11, color: '#65676B', marginTop: 1 }}>
+                                    {locationText}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 );
             })()}
@@ -7672,6 +7691,18 @@ function SocialMediaPage() {
                                             color: 'white', borderRadius: 6, fontWeight: 600, textDecoration: 'none'
                                         }}>Log In</Link>
                                     </div>
+                                )}
+
+                                {/* Trending Venues Widget */}
+                                {user && (
+                                    <TrendingVenues
+                                        onCheckIn={(venue) => {
+                                            setCheckInVenue(venue);
+                                            if (!content.trim()) {
+                                                setContent(`Checked in at ${venue.name}${venue.city ? ` — ${venue.city}` : ''}${venue.state ? `, ${venue.state}` : ''}`);
+                                            }
+                                        }}
+                                    />
                                 )}
 
                                 {/* LIVE STREAMS SECTION */}

@@ -1,0 +1,97 @@
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
+
+/**
+ * GET /api/poker/checkins/trending
+ * Returns top venues by check-in count in the last 24 hours.
+ * Response: { success: true, venues: [{ venue_id, venue_name, city, state, count }] }
+ */
+export default async function handler(req, res) {
+    if (req.method !== 'GET') {
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+
+    try {
+        const limit = Math.min(parseInt(req.query.limit, 10) || 5, 20);
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+        // Get all check-ins in the last 24 hours
+        const { data: checkins, error } = await getSupabase()
+            .from('venue_checkins')
+            .select('venue_id, user_name')
+            .gte('created_at', twentyFourHoursAgo);
+
+        if (error) {
+            console.error('Trending checkins error:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        if (!checkins || checkins.length === 0) {
+            return res.status(200).json({ success: true, venues: [], total: 0 });
+        }
+
+        // Aggregate by venue_id
+        const countMap = {};
+        for (const c of checkins) {
+            if (!countMap[c.venue_id]) {
+                countMap[c.venue_id] = { venue_id: c.venue_id, count: 0, uniqueUsers: new Set() };
+            }
+            countMap[c.venue_id].count++;
+            countMap[c.venue_id].uniqueUsers.add(c.user_name);
+        }
+
+        // Sort by count descending, take top N
+        const sorted = Object.values(countMap)
+            .sort((a, b) => b.count - a.count)
+            .slice(0, limit);
+
+        // Resolve venue names from poker_venues table
+        const venueIds = sorted.map(v => parseInt(v.venue_id, 10)).filter(n => !isNaN(n) && n > 0);
+        let venueMap = {};
+
+        if (venueIds.length > 0) {
+            const { data: venues } = await getSupabase()
+                .from('poker_venues')
+                .select('id, name, city, state')
+                .in('id', venueIds);
+
+            if (venues) {
+                for (const v of venues) {
+                    venueMap[String(v.id)] = v;
+                }
+            }
+        }
+
+        // Build response
+        const result = sorted.map(s => {
+            const venue = venueMap[s.venue_id] || {};
+            return {
+                venue_id: parseInt(s.venue_id, 10),
+                venue_name: venue.name || `Venue #${s.venue_id}`,
+                city: venue.city || null,
+                state: venue.state || null,
+                count: s.count,
+                unique_users: s.uniqueUsers.size,
+            };
+        }).filter(v => v.venue_name && v.venue_name !== `Venue #${v.venue_id}`);
+
+        return res.status(200).json({
+            success: true,
+            venues: result,
+            total: checkins.length,
+        });
+
+    } catch (err) {
+        console.error('[Trending Checkins Error]', err);
+        return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+}

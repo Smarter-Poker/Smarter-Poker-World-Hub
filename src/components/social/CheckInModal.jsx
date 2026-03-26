@@ -63,6 +63,7 @@ export default function CheckInModal({ onSelect, onClose, userId }) {
     const [nearbyVenues, setNearbyVenues] = useState([]);
     const [recentVenues, setRecentVenues] = useState([]); // Auto-suggest recent check-ins
     const [checkinCounts, setCheckinCounts] = useState({}); // { venueId: count }
+    const [userStats, setUserStats] = useState({ total: 0, venues: 0 }); // User check-in stats
     const inputRef = useRef(null);
     const debounceRef = useRef(null);
     const isMountedRef = useRef(true);
@@ -89,6 +90,11 @@ export default function CheckInModal({ onSelect, onClose, userId }) {
                 const data = await res.json();
                 if (cancelled || !data.success) return;
                 const checkins = data.checkins || [];
+                // Track stats
+                const uniqueVenueIds = new Set(checkins.map(c => c.venue_id));
+                if (isMountedRef.current) {
+                    setUserStats({ total: checkins.length, venues: uniqueVenueIds.size });
+                }
                 // De-duplicate by venue_id, keep most recent, limit to 3
                 const seen = new Set();
                 const unique = [];
@@ -231,6 +237,15 @@ export default function CheckInModal({ onSelect, onClose, userId }) {
                     <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1c1e21' }}>
                         Check In
                     </h3>
+                    {userStats.venues > 0 && (
+                        <span style={{
+                            fontSize: 11, fontWeight: 600, color: '#1877F2',
+                            padding: '3px 8px', borderRadius: 10, background: '#E7F3FF',
+                            marginRight: 'auto', marginLeft: 12,
+                        }}>
+                            {userStats.venues} {userStats.venues === 1 ? 'venue' : 'venues'} visited
+                        </span>
+                    )}
                     <button
                         onClick={onClose}
                         style={{
