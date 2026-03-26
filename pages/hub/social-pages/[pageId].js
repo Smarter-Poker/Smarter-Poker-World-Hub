@@ -921,7 +921,10 @@ export default function SocialPageDetail() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${resolvedId}` }, () => {
         fetchPosts();
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_interactions', filter: `page_id=eq.${resolvedId}` }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_post_likes' }, () => {
+        fetchPosts();
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_page_post_comments' }, () => {
         fetchPosts();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_followers', filter: `page_id=eq.${resolvedId}` }, () => {
