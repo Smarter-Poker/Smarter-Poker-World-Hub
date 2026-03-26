@@ -1530,7 +1530,7 @@ export default function SocialPageDetail() {
                                         <button onClick={(e) => {
                                             e.stopPropagation();
                                             const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
-                                            navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'));
+                                            navigator.clipboard.writeText(url).then(() => toast.success('Link copied!')).catch(() => {});
                                         }} title="Copy page URL" style={{
                                             border: 'none', background: 'none', cursor: 'pointer', padding: '2px 4px',
                                             display: 'inline-flex', alignItems: 'center', borderRadius: 4,
@@ -1668,7 +1668,7 @@ export default function SocialPageDetail() {
                         }}>
                             <button onClick={() => {
                                 const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
-                                navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'));
+                                navigator.clipboard.writeText(url).then(() => toast.success('Link copied!')).catch(() => {});
                             }} style={{
                                 flex: 1, padding: '8px 0', borderRadius: 8, border: `1px solid ${C.border}`,
                                 background: C.bg, fontSize: 12, fontWeight: 600,
@@ -2880,7 +2880,7 @@ export default function SocialPageDetail() {
                                                   disabled={invitedIds.has(friend.id)}
                                                   onClick={() => {
                                                       const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
-                                                      navigator.clipboard.writeText(url);
+                                                      navigator.clipboard.writeText(url).catch(() => {});
                                                       setInvitedIds(prev => new Set([...prev, friend.id]));
                                                       toast.success(`Invite link copied for ${friend.display_name || friend.username}!`);
                                                   }}
@@ -2904,7 +2904,7 @@ export default function SocialPageDetail() {
                           }}>
                               <button onClick={() => {
                                   const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
-                                  navigator.clipboard.writeText(url);
+                                  navigator.clipboard.writeText(url).catch(() => {});
                                   toast.success('Page link copied!');
                               }} style={{
                                   flex: 1, padding: '10px 0', borderRadius: 8, border: 'none',
