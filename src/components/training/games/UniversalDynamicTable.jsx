@@ -1848,10 +1848,7 @@ function UniversalDynamicTable({
 
                 {/* PREMIUM RACETRACK TABLE — GoldenTemplateTable design */}
                 {/* NEW CUSTOM STANDALONE RACETRACK TABLE */}
-                <div style={styles.tableBezel}>
-                    <div style={styles.tableGlowLine}>
-                        <div style={styles.tableFeltPattern} />
-                    </div>
+                <div style={styles.basicTable}>
 
                 {/* DYNAMIC PLAYER SEATS — GTO Wizard style: only Hero + active Villain(s) */}
                 <div style={styles.seatsContainer}>
@@ -2147,7 +2144,7 @@ function UniversalDynamicTable({
                         </div>
                     </motion.div>
                 )}
-                </div> {/* END tableBezel */}
+                </div> {/* END basicTable */}
 
                 {/* Street indicator removed — already shown in header */}
             </div>
@@ -3229,40 +3226,17 @@ const styles = {
     },
 
     // ── NEW CUSTOM STANDALONE RACETRACK TABLE
-    tableBezel: {
+    basicTable: {
         position: 'relative',
         width: '100%',
-        maxWidth: 340,
-        height: 540,
-        borderRadius: 170,
-        background: '#1a1a2e',
-        border: '4px solid #333344',
+        maxWidth: 320,
+        aspectRatio: '1 / 1.6',
+        borderRadius: '50% / 30%', 
+        backgroundColor: '#12301c', // deep green felt
+        border: '14px solid #1a1a1a', // solid dark rail
+        boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
         margin: '0 auto',
         flexShrink: 0,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.8), inset 0 3px 8px rgba(255,255,255,0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    tableGlowLine: {
-        position: 'absolute',
-        inset: 6,
-        borderRadius: 164,
-        border: '2px solid rgba(255, 204, 0, 0.6)',
-        boxShadow: '0 0 12px rgba(255, 204, 0, 0.4), inset 0 0 12px rgba(255, 204, 0, 0.2)',
-        background: 'linear-gradient(180deg, #181b22 0%, #0d0f14 100%)',
-        overflow: 'hidden',
-    },
-    tableFeltPattern: {
-        position: 'absolute',
-        inset: 0,
-        backgroundImage: `
-            linear-gradient(45deg, rgba(255,255,255,0.02) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.02)), 
-            linear-gradient(45deg, rgba(255,255,255,0.02) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.02))
-        `,
-        backgroundSize: '30px 30px',
-        backgroundPosition: '0 0, 15px 15px',
-        zIndex: 0,
     },
 
     seatsContainer: {
