@@ -1128,7 +1128,7 @@ export default function PokerNearMeLobby() {
             <div style={{ background: 'rgba(212,168,83,0.04)', border: '1px solid rgba(212,168,83,0.15)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
               {/* GPS + Distance */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
-                <button onClick={handleGpsToggle}
+                <button onClick={handleGpsClick}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #22c55e' : '1px solid rgba(212,168,83,0.3)', background: userLocation ? 'rgba(34,197,94,0.15)' : 'rgba(212,168,83,0.08)', color: userLocation ? '#22c55e' : '#d4a853', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                   {userLocation ? 'GPS Active' : 'Enable GPS'}
@@ -1386,7 +1386,7 @@ export default function PokerNearMeLobby() {
             <div style={{ background: 'rgba(212,168,83,0.04)', border: '1px solid rgba(212,168,83,0.15)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
               {/* Row 1: GPS + Distance */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
-                <button onClick={handleGpsToggle}
+                <button onClick={handleGpsClick}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #22c55e' : '1px solid rgba(212,168,83,0.3)', background: userLocation ? 'rgba(34,197,94,0.15)' : 'rgba(212,168,83,0.08)', color: userLocation ? '#22c55e' : '#d4a853', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                   {userLocation ? 'GPS Active' : 'Enable GPS'}
