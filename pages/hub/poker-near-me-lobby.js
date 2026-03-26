@@ -1426,22 +1426,22 @@ export default function PokerNearMeLobby() {
 
               {/* Row 2: Venue Type Chips */}
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.35)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Venue Type</div>
+                <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Venue Type</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                   {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'card_room',l:'Card Room'},{k:'poker_club',l:'Poker Club'},{k:'home_game',l:'Home Game'},{k:'charity',l:'Charity'}].map(t => (
                     <button key={t.k} onClick={() => setFilters(prev => ({ ...prev, nmVenueType: t.k }))}
-                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: nmVenueType === t.k ? '1px solid #d4a853' : '1px solid rgba(255,255,255,0.12)', background: nmVenueType === t.k ? 'rgba(212,168,83,0.2)' : 'transparent', color: nmVenueType === t.k ? '#d4a853' : 'rgba(255,255,255,0.5)', transition: 'all 0.15s' }}>{t.l}</button>
+                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: nmVenueType === t.k ? '1px solid #58a6ff' : '1px solid rgba(48,54,61,0.6)', background: nmVenueType === t.k ? 'rgba(88,166,255,0.15)' : 'rgba(22,27,34,0.6)', color: nmVenueType === t.k ? '#58a6ff' : '#8b949e', transition: 'all 0.15s' }}>{t.l}</button>
                   ))}
                 </div>
               </div>
 
               {/* Row 3: Game Type Chips */}
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.35)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Game Type</div>
+                <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Game Type</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                   {[{k:'all',l:'All Games'},{k:'nlh',l:'NLH'},{k:'plo',l:'PLO'},{k:'mixed',l:'Mixed'}].map(g => (
                     <button key={g.k} onClick={() => setFilters(prev => ({ ...prev, nmGameType: g.k }))}
-                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: nmGameType === g.k ? '1px solid #6ee7ef' : '1px solid rgba(255,255,255,0.12)', background: nmGameType === g.k ? 'rgba(110,231,239,0.15)' : 'transparent', color: nmGameType === g.k ? '#6ee7ef' : 'rgba(255,255,255,0.5)', transition: 'all 0.15s' }}>{g.l}</button>
+                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: nmGameType === g.k ? '1px solid #3fb950' : '1px solid rgba(48,54,61,0.6)', background: nmGameType === g.k ? 'rgba(63,185,80,0.15)' : 'rgba(22,27,34,0.6)', color: nmGameType === g.k ? '#3fb950' : '#8b949e', transition: 'all 0.15s' }}>{g.l}</button>
                   ))}
                 </div>
               </div>
@@ -1449,7 +1449,7 @@ export default function PokerNearMeLobby() {
               {/* Row 4: State + Buy-in + Sort */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
                 <select value={nmState} onChange={(e) => setFilters(prev => ({ ...prev, nmState: e.target.value }))}
-                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px', color: '#e0e8f0', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer', minWidth: 85 }}>
+                  style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '6px 10px', color: '#c9d1d9', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer', minWidth: 85 }}>
                   <option value="all">All States</option>
                   {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
                     <option key={st} value={st}>{st}</option>
@@ -1457,12 +1457,12 @@ export default function PokerNearMeLobby() {
                 </select>
                 <input type="number" placeholder="Min $" value={nmMinBuyin}
                   onChange={(e) => setFilters(prev => ({ ...prev, nmMinBuyin: e.target.value }))}
-                  style={{ width: 60, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 11, fontFamily: 'inherit' }} />
+                  style={{ width: 60, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(48,54,61,0.6)', background: '#161b22', color: '#c9d1d9', fontSize: 11, fontFamily: 'inherit' }} />
                 <input type="number" placeholder="Max $" value={nmMaxBuyin}
                   onChange={(e) => setFilters(prev => ({ ...prev, nmMaxBuyin: e.target.value }))}
-                  style={{ width: 60, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 11, fontFamily: 'inherit' }} />
+                  style={{ width: 60, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(48,54,61,0.6)', background: '#161b22', color: '#c9d1d9', fontSize: 11, fontFamily: 'inherit' }} />
                 <select value={nmSort} onChange={(e) => setFilters(prev => ({ ...prev, nmSort: e.target.value }))}
-                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px', color: '#e0e8f0', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '6px 10px', color: '#c9d1d9', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
                   {userLocation && <option value="distance">Nearest First</option>}
                   <option value="trust">Trust Score</option>
                   <option value="name">Name A-Z</option>
@@ -1471,7 +1471,7 @@ export default function PokerNearMeLobby() {
 
               {/* SEARCH BUTTON */}
               <button onClick={triggerNmSearch}
-                style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#000', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.5px', transition: 'transform 0.1s', boxShadow: '0 4px 16px rgba(212,168,83,0.3)' }}>
+                style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: '1px solid rgba(63,185,80,0.4)', background: 'linear-gradient(135deg, #238636, #196c2e)', color: '#ffffff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.5px', transition: 'all 0.15s', boxShadow: '0 4px 16px rgba(35,134,54,0.3)' }}>
                 Search Poker Near Me
               </button>
             </div>
@@ -1479,14 +1479,14 @@ export default function PokerNearMeLobby() {
             {/* ═══ RESULTS — only after Search clicked ═══ */}
             {nmSearched ? (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(212,168,83,0.06)', borderRadius: 10, border: '1px solid rgba(212,168,83,0.1)' }}>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
-                    <span style={{ color: '#d4a853', fontWeight: 800 }}>{nmResults.length}</span> venue{nmResults.length !== 1 ? 's' : ''}
-                    {userLocation && nmRadius !== 'any' && <span> within <span style={{ color: '#6ee7ef' }}>{nmRadius} mi</span></span>}
-                    {nmTournaments.length > 0 && <span> · <span style={{ color: '#22c55e', fontWeight: 700 }}>{nmTournaments.length}</span> tournaments</span>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.6)' }}>
+                  <span style={{ fontSize: 13, color: '#c9d1d9' }}>
+                    <span style={{ color: '#58a6ff', fontWeight: 800 }}>{nmResults.length}</span> venue{nmResults.length !== 1 ? 's' : ''}
+                    {userLocation && nmRadius !== 'any' && <span> within <span style={{ color: '#3fb950' }}>{nmRadius} mi</span></span>}
+                    {nmTournaments.length > 0 && <span> · <span style={{ color: '#d2a8ff', fontWeight: 700 }}>{nmTournaments.length}</span> tournaments</span>}
                   </span>
                   <button onClick={() => setFilters(prev => ({ ...prev, nmState: 'all', nmVenueType: 'all', nmGameType: 'all', nmRadius: '50', nmMinBuyin: '', nmMaxBuyin: '', nmSearched: false }))}
-                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
+                    style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
                 </div>
                 {nmResults.length > 0 ? (
                   <>
@@ -1496,7 +1496,7 @@ export default function PokerNearMeLobby() {
                         return (
                           <div key={v.id} style={{ position: 'relative' }}>
                             {d !== null && d < 99999 && (
-                              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', fontSize: 11, fontWeight: 700, color: '#22c55e' }}>
+                              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(63,185,80,0.15)', border: '1px solid rgba(63,185,80,0.3)', fontSize: 11, fontWeight: 700, color: '#3fb950' }}>
                                 {d < 1 ? `${(d * 5280).toFixed(0)} ft` : `${d.toFixed(1)} mi`}
                               </div>
                             )}
@@ -1510,7 +1510,7 @@ export default function PokerNearMeLobby() {
                     </div>
                     {nmResults.length > 50 && (
                       <button onClick={loadMore} disabled={loading}
-                        style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 12, color: '#6ee7ef', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                        style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(88,166,255,0.08)', border: '1px solid rgba(88,166,255,0.2)', borderRadius: 12, color: '#58a6ff', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
                         {loading ? 'Loading...' : `Load More (${nmResults.length - 50} remaining)`}
                       </button>
                     )}
@@ -1526,17 +1526,17 @@ export default function PokerNearMeLobby() {
             ) : (
               /* ═══ LANDING STATE — before search ═══ */
               <div style={{ textAlign: 'center', padding: '30px 16px' }}>
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.3)" strokeWidth="1" style={{ marginBottom: 16 }}>
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(88,166,255,0.25)" strokeWidth="1" style={{ marginBottom: 16 }}>
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
-                <p style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>Find Poker Anywhere</p>
-                <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)', lineHeight: 1.5, maxWidth: 320, margin: '0 auto' }}>
+                <p style={{ fontSize: 16, fontWeight: 700, color: '#c9d1d9', marginBottom: 8 }}>Find Poker Anywhere</p>
+                <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5, maxWidth: 320, margin: '0 auto' }}>
                   Enable GPS to find games near you, or set your search parameters above and tap Search. Filter by venue type, game type, distance, and buy-in range.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>501</div><div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>Venues</div></div>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#6ee7ef' }}>3,270</div><div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>Tournaments</div></div>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#22c55e' }}>41</div><div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>States</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#58a6ff' }}>501</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d2a8ff' }}>3,270</div><div style={{ fontSize: 11, color: '#8b949e' }}>Tournaments</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>41</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
                 </div>
               </div>
             )}

@@ -1841,7 +1841,7 @@ function UniversalDynamicTable({
                         if (activeCount <= 2) {
                             // Force GTO Wizard positions: Villain inside top quarter, Hero inside bottom quarter
                             seatX = 50;
-                            seatY = isHero ? 108 : -8;
+                            seatY = isHero ? 100 : -8;
                         }
 
                         return (

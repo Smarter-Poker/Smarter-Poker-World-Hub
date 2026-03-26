@@ -99,6 +99,10 @@ export function ReelsViewer({ onClose }) {
     // Phase 6 — Comment engagement
     const [commentLikes, setCommentLikes] = useState({});
     const [replyTo, setReplyTo] = useState(null);
+    // Phase 7 — Power features
+    const [editingComment, setEditingComment] = useState(null);
+    const [editCommentText, setEditCommentText] = useState('');
+    const [playbackSpeed, setPlaybackSpeed] = useState(1);
 
     useEffect(() => {
         loadReels();
@@ -541,6 +545,36 @@ export function ReelsViewer({ onClose }) {
             try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
         } catch { setReelComments(prev); }
+    };
+
+    // Phase 7 — Edit own comment
+    const handleEditComment = (comment) => {
+        setEditingComment(comment.id);
+        setEditCommentText(comment.content || '');
+    };
+    const handleSaveEdit = async (commentId) => {
+        if (!editCommentText.trim() || !currentUserId) return;
+        const orig = reelComments.find(c => c.id === commentId);
+        setReelComments(prev => prev.map(c => c.id === commentId ? { ...c, content: editCommentText.trim() } : c));
+        setEditingComment(null);
+        try {
+            const { error } = await supabase.from('social_comments')
+                .update({ content: editCommentText.trim() }).eq('id', commentId).eq('author_id', currentUserId);
+            if (error) throw error;
+        } catch {
+            if (orig) setReelComments(prev => prev.map(c => c.id === commentId ? orig : c));
+        }
+        setEditCommentText('');
+    };
+
+    // Phase 7 — Playback speed toggle (native video)
+    const handleSpeedToggle = () => {
+        const speeds = [1, 1.25, 1.5, 2, 0.5, 0.75];
+        const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
+        const newSpeed = speeds[nextIdx];
+        setPlaybackSpeed(newSpeed);
+        const video = document.querySelector('video');
+        if (video) video.playbackRate = newSpeed;
     };
 
     // Handle image upload for reel comments
@@ -1048,6 +1082,22 @@ export function ReelsViewer({ onClose }) {
                         <span style={{ fontSize: 18 }}>🚩</span>
                         <span style={{ fontSize: 9, fontWeight: 500 }}>Report</span>
                     </button>
+
+                    {/* Phase 7 — Speed Control */}
+                    <button onClick={handleSpeedToggle} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                        color: playbackSpeed !== 1 ? '#00d4ff' : 'rgba(255,255,255,0.6)',
+                    }}>
+                        <div style={{
+                            width: 26, height: 26, borderRadius: '50%',
+                            background: playbackSpeed !== 1 ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.1)',
+                            border: playbackSpeed !== 1 ? '1px solid rgba(0,212,255,0.4)' : '1px solid rgba(255,255,255,0.2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 9, fontWeight: 700,
+                        }}>{playbackSpeed}x</div>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>Speed</span>
+                    </button>
                 </div>
 
                 {/* Comment Drawer */}
@@ -1071,7 +1121,19 @@ export function ReelsViewer({ onClose }) {
                                     <div style={{ flex: 1 }}>
                                         <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{c.profiles?.username || 'User'}</span>
                                         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>{c.created_at ? timeAgo(c.created_at) : ''}</span>
-                                        {c.content && <span style={{ color: C.textSec, fontSize: 13, marginLeft: 8 }}>{c.content}</span>}
+                                        {/* Phase 7 — Inline edit mode */}
+                                        {editingComment === c.id ? (
+                                            <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
+                                                <input value={editCommentText} onChange={e => setEditCommentText(e.target.value)}
+                                                    onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(c.id); if (e.key === 'Escape') { setEditingComment(null); setEditCommentText(''); } }}
+                                                    style={{ flex: 1, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 8, padding: '6px 10px', color: 'white', fontSize: 13, outline: 'none' }}
+                                                    autoFocus />
+                                                <button onClick={() => handleSaveEdit(c.id)} style={{ background: '#1877F2', border: 'none', borderRadius: 6, padding: '4px 10px', color: 'white', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Save</button>
+                                                <button onClick={() => { setEditingComment(null); setEditCommentText(''); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer' }}>Cancel</button>
+                                            </div>
+                                        ) : (
+                                            c.content && <span style={{ color: C.textSec, fontSize: 13, marginLeft: 8 }}>{c.content}</span>
+                                        )}
                                         {c.media_url && (
                                             <div style={{ position: 'relative', display: 'inline-block', marginTop: 4 }}>
                                                 <img src={c.media_url} alt={c.media_type === 'gif' ? 'GIF' : 'Image'}
@@ -1082,7 +1144,7 @@ export function ReelsViewer({ onClose }) {
                                                 )}
                                             </div>
                                         )}
-                                        {/* Phase 6 — Comment engagement row */}
+                                        {/* Phase 6+7 — Comment engagement row */}
                                         <div style={{ display: 'flex', gap: 14, marginTop: 4, alignItems: 'center' }}>
                                             <button onClick={() => handleCommentLike(c.id)} style={{
                                                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -1093,12 +1155,16 @@ export function ReelsViewer({ onClose }) {
                                                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                                                 color: 'rgba(255,255,255,0.4)', fontSize: 12,
                                             }}>Reply</button>
-                                            {(c.profiles?.username === 'You' || c.author_id === currentUserId) && (
+                                            {(c.profiles?.username === 'You' || c.author_id === currentUserId) && (<>
+                                                <button onClick={() => handleEditComment(c)} style={{
+                                                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                                    color: 'rgba(255,255,255,0.4)', fontSize: 12,
+                                                }}>Edit</button>
                                                 <button onClick={() => handleDeleteComment(c.id)} style={{
                                                     background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                                                     color: 'rgba(255,255,255,0.3)', fontSize: 12, marginLeft: 'auto',
                                                 }}>Delete</button>
-                                            )}
+                                            </>)}
                                         </div>
                                     </div>
                                 </div>

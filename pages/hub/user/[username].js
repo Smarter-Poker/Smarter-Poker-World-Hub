@@ -764,6 +764,7 @@ export default function UserProfilePage() {
     const [checkinStreak, setCheckinStreak] = useState({ currentStreak: 0, longestStreak: 0, totalCheckins: 0 });
     const [checkinBadges, setCheckinBadges] = useState([]);
     const [checkinStats, setCheckinStats] = useState(null);
+    const [checkinHeatmap, setCheckinHeatmap] = useState(null);
 
     // Refs
     const profileMenuRef = useRef(null);
@@ -1187,6 +1188,11 @@ export default function UserProfilePage() {
                     fetch('/api/poker/checkins/stats?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setCheckinStats(j); })
+                        .catch(function () { });
+                    // Fetch check-in heatmap data
+                    fetch('/api/poker/checkins/heatmap?user_id=' + encodeURIComponent(pokerUid), { headers })
+                        .then(function (r) { return r.json(); })
+                        .then(function (j) { if (j.success) setCheckinHeatmap(j); })
                         .catch(function () { });
                 }
 
@@ -2411,6 +2417,32 @@ export default function UserProfilePage() {
                                             {pokerCheckins.length} check-in{pokerCheckins.length !== 1 ? 's' : ''} across {checkinStats?.uniqueVenues || '—'} venues
                                         </div>
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Check-In Heatmap */}
+                            {checkinHeatmap && checkinHeatmap.dailyTotals && checkinHeatmap.totalCheckins > 0 && (
+                                <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                    <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: C.text }}>Activity Pattern</h3>
+                                    <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 60 }}>
+                                        {checkinHeatmap.dailyTotals.map(function (dt) {
+                                            var maxT = Math.max(...checkinHeatmap.dailyTotals.map(function(x) { return x.total; }), 1);
+                                            var pct = Math.max(8, (dt.total / maxT) * 100);
+                                            var intensity = dt.total / maxT;
+                                            var barColor = intensity > 0.7 ? '#22c55e' : intensity > 0.3 ? '#60a5fa' : intensity > 0 ? 'rgba(96,165,250,0.3)' : 'rgba(255,255,255,0.05)';
+                                            return (
+                                                <div key={dt.day} style={{ flex: 1, textAlign: 'center' }}>
+                                                    <div style={{ height: pct + '%', minHeight: 4, background: barColor, borderRadius: 3, transition: 'height 0.4s ease', marginBottom: 4 }} title={dt.day + ': ' + dt.total} />
+                                                    <div style={{ fontSize: 10, color: C.textSec }}>{dt.day}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {checkinHeatmap.peakDay && (
+                                        <div style={{ fontSize: 11, color: C.textSec, marginTop: 8, textAlign: 'center' }}>
+                                            Most active: <b style={{ color: C.text }}>{checkinHeatmap.peakDay}</b> at <b style={{ color: C.text }}>{checkinHeatmap.peakHour > 12 ? (checkinHeatmap.peakHour - 12) + 'p' : (checkinHeatmap.peakHour || 12) + 'a'}</b>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
