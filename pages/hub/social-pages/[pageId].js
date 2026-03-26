@@ -653,8 +653,9 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
 }
 
 export default function SocialPageDetail() {
-    // SWC minifier scope anchors — prevent TDZ name collision
-    var _a = 0, _b = 0, _c = 0, _d = 0, _e = 0;
+    // Hook-based scope anchors — useRef cannot be tree-shaken by SWC
+    const _mountRef = useRef(null);
+    const _stateRef = useRef(null);
     const router = useRouter();
     const { pageId } = router.query;
     const { user } = useAuthUser();
