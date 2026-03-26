@@ -110,12 +110,13 @@ export default async function handler(req, res) {
           }
           const postContent = 'Just checked in at ' + venueName + '! #PokerLife';
           await getSupabase()
-            .from('user_posts')
+            .from('social_posts')
             .insert({
-              user_id: authUser.id,
+              author_id: authUser.id,
               content: postContent,
-              type: 'checkin',
-              venue_id: String(venueIdNum),
+              content_type: 'text',
+              visibility: 'public',
+              metadata: { type: 'checkin', venue_id: venueIdNum },
               created_at: new Date().toISOString(),
             });
         } catch (postErr) {

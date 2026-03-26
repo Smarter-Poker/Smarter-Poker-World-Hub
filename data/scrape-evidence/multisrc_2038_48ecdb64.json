@@ -1,0 +1,18 @@
+{
+  "venue_id": 2038,
+  "venue_name": "Caesars Virginia",
+  "sources": [
+    "PA:200",
+    "Google",
+    "Bravo"
+  ],
+  "batch_id": "48ecdb64-2ab2-4350-b82b-b45df71bc5e0",
+  "timestamp": "2026-03-26T14:16:00.355464+00:00",
+  "extracted": {
+    "games_offered": [
+      "PLO"
+    ],
+    "phone": "(281) 367-5233",
+    "data_quality": "scraped_verified"
+  }
+}

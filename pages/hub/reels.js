@@ -118,6 +118,12 @@ export default function ReelsPage() {
     // Phase 6 — Comment engagement
     const [commentLikes, setCommentLikes] = useState({});
     const [replyTo, setReplyTo] = useState(null);
+    // Phase 7 — Power features
+    const [editingComment, setEditingComment] = useState(null);
+    const [editCommentText, setEditCommentText] = useState('');
+    const [playbackSpeed, setPlaybackSpeed] = useState(1);
+    const [showContextMenu, setShowContextMenu] = useState(false);
+    const longPressTimerRef = useRef(null);
     const pullStartY = useRef(null);
 
     // Reels preferences state
@@ -753,6 +759,41 @@ export default function ReelsPage() {
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
             busEmit.socialCommentDeleted && busEmit.socialCommentDeleted(currentReel.id, user.id);
         } catch { setComments(prev); }
+    };
+
+    // Phase 7 — Edit own comment
+    const handleEditComment = (comment) => {
+        setEditingComment(comment.id);
+        setEditCommentText(comment.content || '');
+    };
+    const handleSaveEdit = async (commentId) => {
+        if (!editCommentText.trim() || !user?.id) return;
+        const orig = comments.find(c => c.id === commentId);
+        setComments(prev => prev.map(c => c.id === commentId ? { ...c, content: editCommentText.trim() } : c));
+        setEditingComment(null);
+        try {
+            const { error } = await supabase.from('social_comments')
+                .update({ content: editCommentText.trim() }).eq('id', commentId).eq('author_id', user.id);
+            if (error) throw error;
+        } catch {
+            if (orig) setComments(prev => prev.map(c => c.id === commentId ? orig : c));
+        }
+        setEditCommentText('');
+    };
+
+    // Phase 7 — Playback speed toggle (YouTube)
+    const handleSpeedToggle = () => {
+        const speeds = [1, 1.25, 1.5, 2, 0.5, 0.75];
+        const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
+        const newSpeed = speeds[nextIdx];
+        setPlaybackSpeed(newSpeed);
+        // Apply to YouTube iframe via postMessage
+        const iframe = document.querySelector('iframe[src*="youtube"]');
+        if (iframe) {
+            iframe.contentWindow?.postMessage(JSON.stringify({
+                event: 'command', func: 'setPlaybackRate', args: [newSpeed]
+            }), '*');
+        }
     };
 
     // #8 Share Options Modal — open modal instead of direct share
@@ -1609,6 +1650,22 @@ export default function ReelsPage() {
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>
                         <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Report</span>
                     </button>
+
+                    {/* Phase 7 — Speed Control */}
+                    <button onClick={handleSpeedToggle} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    }}>
+                        <div style={{
+                            width: 28, height: 28, borderRadius: '50%',
+                            background: playbackSpeed !== 1 ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.1)',
+                            border: playbackSpeed !== 1 ? '1px solid rgba(0,212,255,0.4)' : '1px solid rgba(255,255,255,0.2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: playbackSpeed !== 1 ? '#00d4ff' : 'rgba(255,255,255,0.6)',
+                            fontSize: 10, fontWeight: 700,
+                        }}>{playbackSpeed}x</div>
+                        <span style={{ color: playbackSpeed !== 1 ? '#00d4ff' : 'rgba(255,255,255,0.6)', fontSize: 10, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Speed</span>
+                    </button>
                 </div>
 
                 {/* Instagram-style heart burst with particles */}
@@ -1804,14 +1861,26 @@ export default function ReelsPage() {
                                     <div style={{ flex: 1 }}>
                                         <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{c.profiles?.username || c.author?.username || 'User'}</span>
                                         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>{c.created_at ? timeAgo(c.created_at) : ''}</span>
-                                        {c.content && <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 2 }}>{c.content}</div>}
+                                        {/* Phase 7 — Inline edit mode */}
+                                        {editingComment === c.id ? (
+                                            <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
+                                                <input value={editCommentText} onChange={e => setEditCommentText(e.target.value)}
+                                                    onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(c.id); if (e.key === 'Escape') { setEditingComment(null); setEditCommentText(''); } }}
+                                                    style={{ flex: 1, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 8, padding: '6px 10px', color: 'white', fontSize: 13, outline: 'none' }}
+                                                    autoFocus />
+                                                <button onClick={() => handleSaveEdit(c.id)} style={{ background: '#1877F2', border: 'none', borderRadius: 6, padding: '4px 10px', color: 'white', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Save</button>
+                                                <button onClick={() => { setEditingComment(null); setEditCommentText(''); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer' }}>Cancel</button>
+                                            </div>
+                                        ) : (
+                                            c.content && <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 2 }}>{c.content}</div>
+                                        )}
                                         {c.media_url && (
                                             <img src={c.media_url} alt="" style={{
                                                 maxWidth: 180, maxHeight: 140, borderRadius: 8, marginTop: 6,
                                                 objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)',
                                             }} loading="lazy" />
                                         )}
-                                        {/* Phase 6 — Comment engagement row */}
+                                        {/* Phase 6+7 — Comment engagement row */}
                                         <div style={{ display: 'flex', gap: 14, marginTop: 4, alignItems: 'center' }}>
                                             <button onClick={() => handleCommentLike(c.id)} style={{
                                                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -1822,12 +1891,16 @@ export default function ReelsPage() {
                                                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                                                 color: 'rgba(255,255,255,0.4)', fontSize: 12,
                                             }}>Reply</button>
-                                            {(c.profiles?.username === 'You' || c.author_id === user?.id) && (
+                                            {(c.profiles?.username === 'You' || c.author_id === user?.id) && (<>
+                                                <button onClick={() => handleEditComment(c)} style={{
+                                                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                                    color: 'rgba(255,255,255,0.4)', fontSize: 12,
+                                                }}>Edit</button>
                                                 <button onClick={() => handleDeleteComment(c.id)} style={{
                                                     background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                                                     color: 'rgba(255,255,255,0.3)', fontSize: 12, marginLeft: 'auto',
                                                 }}>Delete</button>
-                                            )}
+                                            </>)}
                                         </div>
                                     </div>
                                 </div>

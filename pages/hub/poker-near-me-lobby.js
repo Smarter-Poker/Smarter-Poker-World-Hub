@@ -970,17 +970,21 @@ export default function PokerNearMeLobby() {
             locationEnabledAt: new Date().toISOString(),
           }).catch(() => {});
         }
-        // Fetch venues with explicit lat/lng to avoid stale closure on userLocation
-        const gpsUrl = `/api/poker/venues?limit=${PAGE_SIZE}&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=100${sortBy ? `&sort=${sortBy}` : ''}`;
+        // Fetch ALL venues with GPS coordinates for distance sorting
+        const gpsUrl = `/api/poker/venues?limit=500&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
         cachedFetch(gpsUrl).then(data => {
           const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
           setVenues(newVenues);
           setHasMore(newVenues.length >= PAGE_SIZE);
           setPage(0);
         }).catch(err => console.error('GPS venue fetch failed:', err));
-        // Auto-open the Search panel to show nearby venue listings sorted by distance
-        setActivePod('search');
+        // Stay in current pod — auto-trigger search with distance sort
+        if (!activePod || activePod === 'search') {
+          setActivePod('nearme');
+        }
         setShowPanel(true);
+        // Auto-trigger the search results display
+        setFilters(prev => ({ ...prev, nmSearched: true, nmSort: 'distance', svHasSearched: true, svSort: 'distance' }));
       },
       (err) => {
         setGpsActive(false);
@@ -1376,23 +1380,45 @@ export default function PokerNearMeLobby() {
         });
 
         const triggerNmSearch = () => {
-          setFilters(prev => ({ ...prev, nmSearched: true }));
-          fetchVenues(searchQuery, 0, false);
+          // Map Pod1 filter keys → API-compatible filter keys and fetch
+          setFilters(prev => ({
+            ...prev,
+            nmSearched: true,
+            selectedState: prev.nmState || 'all',
+            venueType: prev.nmVenueType === 'all' ? undefined : prev.nmVenueType,
+            gameType: prev.nmGameType === 'all' ? undefined : prev.nmGameType,
+            radius: prev.nmRadius === 'any' ? undefined : prev.nmRadius,
+          }));
+          // Build search-specific API URL with all filters
+          const apiState = nmState !== 'all' ? `&state=${nmState}` : '';
+          const apiVenueType = nmVenueType !== 'all' ? `&venue_type=${nmVenueType}` : '';
+          const apiRadius = userLocation && nmRadius !== 'any' ? `&radius=${nmRadius}` : '';
+          const apiLoc = userLocation ? `&lat=${userLocation.lat}&lng=${userLocation.lng}` : '';
+          const apiSort = nmSort ? `&sort=${nmSort}` : '';
+          const apiUrl = `/api/poker/venues?limit=500&offset=0${apiLoc}${apiRadius}${apiState}${apiVenueType}${apiSort}`;
+          setLoading(true);
+          cachedFetch(apiUrl).then(data => {
+            const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+            setVenues(newVenues);
+            setHasMore(newVenues.length >= PAGE_SIZE);
+            setPage(0);
+          }).catch(err => console.error('Search fetch failed:', err))
+          .finally(() => setLoading(false));
         };
 
         component = (
           <div>
             {/* ═══ SEARCH PARAMETERS PANEL ═══ */}
-            <div style={{ background: 'rgba(212,168,83,0.04)', border: '1px solid rgba(212,168,83,0.15)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+            <div style={{ background: 'rgba(13,17,23,0.95)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
               {/* Row 1: GPS + Distance */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
                 <button onClick={handleGpsClick}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #22c55e' : '1px solid rgba(212,168,83,0.3)', background: userLocation ? 'rgba(34,197,94,0.15)' : 'rgba(212,168,83,0.08)', color: userLocation ? '#22c55e' : '#d4a853', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : '1px solid rgba(88,166,255,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : 'rgba(88,166,255,0.08)', color: userLocation ? '#3fb950' : '#58a6ff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                   {userLocation ? 'GPS Active' : 'Enable GPS'}
                 </button>
                 <select value={nmRadius} onChange={(e) => setFilters(prev => ({ ...prev, nmRadius: e.target.value }))}
-                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.2)', borderRadius: 8, padding: '8px 10px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  style={{ background: 'rgba(13,17,23,0.9)', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
                   <option value="5">5 miles</option><option value="10">10 miles</option><option value="25">25 miles</option>
                   <option value="50">50 miles</option><option value="100">100 miles</option><option value="250">250 miles</option><option value="any">Any distance</option>
                 </select>

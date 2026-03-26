@@ -1,0 +1,13 @@
+{
+  "venue_id": 2319,
+  "venue_name": "Harrahs Hoosier Park",
+  "sources": [
+    "PA:200"
+  ],
+  "batch_id": "48ecdb64-2ab2-4350-b82b-b45df71bc5e0",
+  "timestamp": "2026-03-26T14:19:04.490041+00:00",
+  "extracted": {
+    "address": "3000 S. Las Vegas Blvd.",
+    "data_quality": "scraped_verified"
+  }
+}

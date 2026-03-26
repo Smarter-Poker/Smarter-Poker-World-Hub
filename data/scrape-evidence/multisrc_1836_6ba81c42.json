@@ -1,0 +1,12 @@
+{
+  "venue_id": 1836,
+  "venue_name": "MGM National Harbor",
+  "sources": [
+    "Website"
+  ],
+  "batch_id": "6ba81c42-5c59-449f-8e72-ca8d16dbfd88",
+  "timestamp": "2026-03-26T14:16:27.747105+00:00",
+  "fields": [
+    "hours_weekday"
+  ]
+}

@@ -629,6 +629,10 @@ export default function VenueDetailPage() {
             .then(function(r) { return r.json(); })
             .then(function(j) { if (j.success) setVenueActivity({ days: j.days || [], maxCount: j.maxCount || 1 }); })
             .catch(function() { });
+          fetch('/api/poker/checkins/popular-hours?venue_id=' + id)
+            .then(function(r) { return r.json(); })
+            .then(function(j) { if (j.success) setPopularHours({ hours: j.hours || [], busiestHour: j.busiestHour }); })
+            .catch(function() { });
         }, 500);
       })
       .subscribe();
@@ -770,6 +774,10 @@ export default function VenueDetailPage() {
           fetch('/api/poker/checkins/activity?venue_id=' + id)
             .then(function(r) { return r.json(); })
             .then(function(j) { if (j.success) setVenueActivity({ days: j.days || [], maxCount: j.maxCount || 1 }); })
+            .catch(function() { });
+          fetch('/api/poker/checkins/popular-hours?venue_id=' + id)
+            .then(function(r) { return r.json(); })
+            .then(function(j) { if (j.success) setPopularHours({ hours: j.hours || [], busiestHour: j.busiestHour }); })
             .catch(function() { });
         }, 500);
         setTimeout(function () { setCheckinConfirm(false); }, 3000);
