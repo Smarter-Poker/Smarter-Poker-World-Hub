@@ -124,18 +124,26 @@ export default async function handler(req, res) {
           }
 
           if (action === 'comment') {
-              if (!content) {
-                  return res.status(400).json({ success: false, error: 'content required for comments' });
+              // Phase 3: media_url + media_type support for GIF/image comments
+              const media_url = req.body.media_url || null;
+              const media_type = req.body.media_type || null;
+
+              if (!content && !media_url) {
+                  return res.status(400).json({ success: false, error: 'content or media_url required for comments' });
               }
+
+              const insertPayload = {
+                  post_id,
+                  user_id,
+                  content: content || '',
+                  parent_id: parent_id || null
+              };
+              if (media_url) insertPayload.media_url = media_url;
+              if (media_type) insertPayload.media_type = media_type;
 
               const { data, error } = await getSupabase()
                   .from('social_page_post_comments')
-                  .insert({
-                      post_id,
-                      user_id,
-                      content,
-                      parent_id: parent_id || null
-                  })
+                  .insert(insertPayload)
                   .select()
                   .maybeSingle();
 
@@ -163,6 +171,29 @@ export default async function handler(req, res) {
                               body: JSON.stringify({ title: 'New Comment', message: `${cn} commented on a post in "${pg.name}"`, externalUserIds: [pg.owner_id], url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/social-pages/${pd.page_id}`, data: { type: 'page_comment', page_id: pd.page_id, post_id } }),
                           }).catch(() => {});
                       }
+
+                      // Phase 3: @Mention notifications — detect @username and push
+                      if (content) {
+                          try {
+                              const mentions = content.match(/@([\w.]+)/g);
+                              if (mentions && mentions.length > 0) {
+                                  const usernames = mentions.map(m => m.slice(1));
+                                  const { data: mentionedUsers } = await getSupabase()
+                                      .from('profiles').select('id, username').in('username', usernames);
+                                  if (mentionedUsers && mentionedUsers.length > 0) {
+                                      const mentionIds = mentionedUsers.filter(u => u.id !== user_id).map(u => u.id);
+                                      if (mentionIds.length > 0) {
+                                          const cn2 = profile?.full_name || profile?.username || 'Someone';
+                                          const pageName = pg?.name || 'a page';
+                                          fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
+                                              method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': process.env.ADMIN_ROUTE_SECRET || '' },
+                                              body: JSON.stringify({ title: 'You Were Mentioned', message: `${cn2} mentioned you in a comment on "${pageName}"`, externalUserIds: mentionIds, url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/hub/social-pages/${pd.page_id}`, data: { type: 'page_mention', page_id: pd.page_id, post_id } }),
+                                          }).catch(() => {});
+                                      }
+                                  }
+                              }
+                          } catch (mentionErr) { console.error('Mention notification error:', mentionErr); }
+                      }
                   }
               } catch (ne) { console.error('Comment notification error:', ne); }
 
@@ -172,7 +203,28 @@ export default async function handler(req, res) {
               });
           }
 
-          return res.status(400).json({ success: false, error: 'Invalid action. Use "like", "comment", or "like_comment"' });
+          // Phase 3: Bookmark toggle — stored as a like with reaction_type='bookmark'
+          if (action === 'bookmark') {
+              const { data: existing } = await getSupabase()
+                  .from('social_page_post_likes')
+                  .select('id')
+                  .eq('post_id', post_id)
+                  .eq('user_id', user_id)
+                  .eq('reaction_type', 'bookmark')
+                  .maybeSingle();
+
+              if (existing) {
+                  const { error: delErr } = await getSupabase().from('social_page_post_likes').delete().eq('id', existing.id);
+                  if (delErr) return res.status(500).json({ success: false, error: delErr.message });
+                  return res.status(200).json({ success: true, bookmarked: false });
+              } else {
+                  const { error: insErr } = await getSupabase().from('social_page_post_likes').insert({ post_id, user_id, reaction_type: 'bookmark' });
+                  if (insErr) return res.status(500).json({ success: false, error: insErr.message });
+                  return res.status(201).json({ success: true, bookmarked: true });
+              }
+          }
+
+          return res.status(400).json({ success: false, error: 'Invalid action. Use "like", "comment", "like_comment", or "bookmark"' });
 
       } else if (req.method === 'GET') {
           const { post_id, limit = '50' } = req.query;

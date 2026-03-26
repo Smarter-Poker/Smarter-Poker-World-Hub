@@ -82,6 +82,18 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     const [lightboxUrl, setLightboxUrl] = useState(null);
     // Feature parity: FullScreen video viewer (from social-media)
     const [fullScreenVideo, setFullScreenVideo] = useState(null);
+    // Phase 3: Bookmark support (feature parity with social-media)
+    const [bookmarked, setBookmarked] = useState(false);
+    // Phase 3: Comment media (GIF/image attachments)
+    const [commentMediaUrl, setCommentMediaUrl] = useState(null);
+    const [commentMediaType, setCommentMediaType] = useState(null);
+    const [showGifPicker, setShowGifPicker] = useState(false);
+    const [gifSearch, setGifSearch] = useState('');
+    const [gifResults, setGifResults] = useState([]);
+    const [loadingGifs, setLoadingGifs] = useState(false);
+    // Phase 3: Typing indicator
+    const [isTyping, setIsTyping] = useState(false);
+    const typingTimeoutRef = useRef(null);
 
     // Feature parity: @mention rendering (from social-media)
     const router = useRouter();
@@ -392,13 +404,47 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                 />
             )}
 
-            {/* Stats — #14 Like animation */}
+            {/* Check-in venue badge (feature parity with social-media) */}
+            {post.content && /^Checked in at /i.test(post.content) && (() => {
+                const match = post.content.match(/^Checked in at (.+?)(?:\s*[—–]\s*(.+))?$/i);
+                const venueName = match?.[1] || post.content.replace(/^Checked in at /i, '').split('—')[0].trim();
+                const locationText = match?.[2]?.trim() || '';
+                return (
+                    <div style={{
+                        margin: '0 16px 10px', padding: '12px 14px', borderRadius: 10,
+                        background: 'linear-gradient(135deg, #E7F3FF 0%, #F0F7FF 100%)',
+                        border: '1px solid #B8D4F0',
+                        display: 'flex', alignItems: 'center', gap: 10,
+                    }}>
+                        <div style={{
+                            width: 36, height: 36, borderRadius: 8,
+                            background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                        }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                            </svg>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2' }}>{venueName}</div>
+                            {locationText && <div style={{ fontSize: 11, color: '#65676B', marginTop: 1 }}>{locationText}</div>}
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Stats — #14 Like animation + reaction breakdown + view count */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', fontSize: 13, color: C.textSec }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     {likeAnim && <span style={{ display: 'inline-block', animation: 'likePopAnim 0.4s ease-out', color: '#E74C3C', fontSize: 16 }}>{'\u2764'}</span>}
+                    {post.like_count > 0 && <span style={{ display: 'flex', gap: 1 }}>{['👍','❤️','😂'].slice(0, Math.min(3, post.like_count)).map((e,i) => <span key={i} style={{ fontSize: 14 }}>{e}</span>)}</span>}
                     {post.like_count || 0} {(post.like_count || 0) === 1 ? 'like' : 'likes'}
                 </span>
-                <span>{post.comment_count || 0} {(post.comment_count || 0) === 1 ? 'comment' : 'comments'}</span>
+                <span style={{ display: 'flex', gap: 12 }}>
+                    {post.view_count > 0 && <span>{post.view_count > 999 ? (post.view_count / 1000).toFixed(1) + 'k' : post.view_count} view{post.view_count !== 1 ? 's' : ''}</span>}
+                    <span>{post.comment_count || 0} {(post.comment_count || 0) === 1 ? 'comment' : 'comments'}</span>
+                </span>
             </div>
 
             {/* Action Buttons — #13 debounce + #14 animation + P7-1 reactions */}
@@ -462,6 +508,22 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                     },
                     { label: 'Comment', action: fetchComments, onMouseEnter: undefined, onMouseLeave: undefined, onTouchStart: undefined, onTouchEnd: undefined },
                     { label: 'Share', action: () => setShowShareModal(true), onMouseEnter: undefined, onMouseLeave: undefined, onTouchStart: undefined, onTouchEnd: undefined },
+                    { label: bookmarked ? 'Saved' : 'Save', action: async () => {
+                        if (!user) return;
+                        const newState = !bookmarked;
+                        setBookmarked(newState);
+                        try {
+                            const token = getAccessToken();
+                            const res = await fetch('/api/social/pages/engage', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({ action: 'bookmark', post_id: post.id }),
+                            });
+                            const json = await res.json();
+                            if (!json.success) { setBookmarked(!newState); toast.error('Could not save post'); }
+                            else toast.success(newState ? 'Post saved' : 'Post unsaved');
+                        } catch { setBookmarked(!newState); toast.error('Could not save post'); }
+                    }, active: bookmarked, onMouseEnter: undefined, onMouseLeave: undefined, onTouchStart: undefined, onTouchEnd: undefined },
                 ].map((btn, i) => (
                     <button key={i} onClick={btn.action}
                         onMouseEnter={btn.onMouseEnter}
@@ -598,7 +660,17 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                             ) : (
                                                 <div style={{ background: C.bg, borderRadius: 12, padding: '8px 12px' }}>
                                                     <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{c.author?.full_name || c.author?.username || 'Unknown'}</div>
-                                                    <div style={{ fontSize: 13, color: C.text }}>{c.content}</div>
+                                                    <div style={{ fontSize: 13, color: C.text }}>{renderMentions(c.content)}</div>
+                                                    {/* Phase 3: Comment media (GIF/image) display */}
+                                                    {c.media_url && (
+                                                        <div style={{ marginTop: 6 }}>
+                                                            {(c.media_type === 'gif' || c.media_url?.includes('.gif')) ? (
+                                                                <img src={c.media_url} alt="GIF" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }} />
+                                                            ) : (
+                                                                <img src={c.media_url} alt="" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, cursor: 'pointer' }} onClick={() => setLightboxUrl(c.media_url)} />
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                             <div style={{ display: 'flex', gap: 12, padding: '2px 8px', fontSize: 11, color: C.textSec, alignItems: 'center' }}>
@@ -633,7 +705,12 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ background: C.bg, borderRadius: 12, padding: '6px 10px' }}>
                                                     <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{r.author?.full_name || r.author?.username || 'Unknown'}</div>
-                                                    <div style={{ fontSize: 12, color: C.text }}>{r.content}</div>
+                                                    <div style={{ fontSize: 12, color: C.text }}>{renderMentions(r.content)}</div>
+                                                    {r.media_url && (
+                                                        <div style={{ marginTop: 4 }}>
+                                                            <img src={r.media_url} alt="" style={{ maxWidth: '100%', maxHeight: 150, borderRadius: 6 }} />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div style={{ display: 'flex', gap: 10, fontSize: 10, color: C.textSec, padding: '2px 8px' }}>
                                                     <span>{timeAgo(r.created_at)}</span>
@@ -663,40 +740,136 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                     )}
                                 </div>
                             ))}
-                            {/* Main comment input — #11 optimistic */}
+                            {/* Main comment input — #11 optimistic + Phase 3: GIF picker + media */}
                             {user && (
-                                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                                    <Avatar
-                                        src={isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url}
-                                        name={isOwnerOnOwnPage ? page?.name : (user.user_metadata?.full_name || user.email)}
-                                        size={28}
-                                    />
-                                    <div style={{ flex: 1, display: 'flex', gap: 4 }}>
-                                        <input type="text" value={commentText} onChange={e => setCommentText(e.target.value)}
-                                            onKeyDown={e => {
-                                                if (e.key === 'Enter' && commentText.trim()) {
-                                                    const tempComment = { id: `temp-${Date.now()}`, content: commentText.trim(), parent_id: null, created_at: new Date().toISOString(), author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
+                                <div style={{ marginTop: 8 }}>
+                                    {/* Phase 3: Comment media preview */}
+                                    {commentMediaUrl && (
+                                        <div style={{ position: 'relative', marginBottom: 6, display: 'inline-block' }}>
+                                            <img src={commentMediaUrl} alt="" style={{ maxWidth: 200, maxHeight: 120, borderRadius: 8, border: `1px solid ${C.border}` }} />
+                                            <button onClick={() => { setCommentMediaUrl(null); setCommentMediaType(null); }} style={{
+                                                position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%',
+                                                background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer',
+                                                fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}>&times;</button>
+                                        </div>
+                                    )}
+                                    {/* Phase 3: Typing indicator */}
+                                    {isTyping && (
+                                        <div style={{ fontSize: 11, color: C.textSec, padding: '2px 0 4px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            <span style={{ display: 'flex', gap: 2 }}>
+                                                {[0, 1, 2].map(i => <span key={i} style={{
+                                                    width: 5, height: 5, borderRadius: '50%', background: C.textSec, display: 'inline-block',
+                                                    animation: 'sp-bounce 1.4s infinite ease-in-out both', animationDelay: `${i * 0.16}s`,
+                                                }} />)}
+                                            </span>
+                                            <span>typing...</span>
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <Avatar
+                                            src={isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url}
+                                            name={isOwnerOnOwnPage ? page?.name : (user.user_metadata?.full_name || user.email)}
+                                            size={28}
+                                        />
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ display: 'flex', gap: 4 }}>
+                                                <input type="text" value={commentText} onChange={e => {
+                                                    setCommentText(e.target.value);
+                                                    // Typing indicator visual feedback
+                                                    if (e.target.value.trim()) {
+                                                        setIsTyping(true);
+                                                        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                                                        typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
+                                                    } else {
+                                                        setIsTyping(false);
+                                                    }
+                                                }}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter' && (commentText.trim() || commentMediaUrl)) {
+                                                            setIsTyping(false);
+                                                            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                                                            const tempComment = { id: `temp-${Date.now()}`, content: commentText.trim(), parent_id: null, created_at: new Date().toISOString(), media_url: commentMediaUrl, media_type: commentMediaType, author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
+                                                            setComments(prev => [...prev, tempComment]);
+                                                            const txt = commentText.trim(); const mUrl = commentMediaUrl; const mType = commentMediaType;
+                                                            setCommentText(''); setCommentMediaUrl(null); setCommentMediaType(null); setShowGifPicker(false);
+                                                            onComment(post.id);
+                                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, media_url: mUrl, media_type: mType }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
+                                                        }
+                                                    }}
+                                                    placeholder={isOwnerOnOwnPage ? `Comment as ${page?.name}...` : 'Write a comment...'}
+                                                    style={{ flex: 1, padding: '8px 12px', borderRadius: 20, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.bg }} />
+                                                {/* Phase 3: GIF button */}
+                                                <button onClick={() => setShowGifPicker(!showGifPicker)} style={{
+                                                    padding: '6px 10px', borderRadius: 20, border: `1px solid ${C.border}`,
+                                                    background: showGifPicker ? C.blue : 'transparent', color: showGifPicker ? '#fff' : C.textSec,
+                                                    fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                                                }}>GIF</button>
+                                                <button onClick={() => {
+                                                    if (!commentText.trim() && !commentMediaUrl) return;
+                                                    setIsTyping(false);
+                                                    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                                                    const tempComment = { id: `temp-${Date.now()}`, content: commentText.trim(), parent_id: null, created_at: new Date().toISOString(), media_url: commentMediaUrl, media_type: commentMediaType, author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
                                                     setComments(prev => [...prev, tempComment]);
-                                                    const txt = commentText.trim(); setCommentText('');
+                                                    const txt = commentText.trim(); const mUrl = commentMediaUrl; const mType = commentMediaType;
+                                                    setCommentText(''); setCommentMediaUrl(null); setCommentMediaType(null); setShowGifPicker(false);
                                                     onComment(post.id);
-                                                    (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
-                                                }
-                                            }}
-                                            placeholder={isOwnerOnOwnPage ? `Comment as ${page?.name}...` : 'Write A Comment...'}
-                                            style={{ flex: 1, padding: '8px 12px', borderRadius: 20, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.bg }} />
-                                        <button onClick={() => {
-                                            if (!commentText.trim()) return;
-                                            const tempComment = { id: `temp-${Date.now()}`, content: commentText.trim(), parent_id: null, created_at: new Date().toISOString(), author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
-                                            setComments(prev => [...prev, tempComment]);
-                                            const txt = commentText.trim(); setCommentText('');
-                                            onComment(post.id);
-                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
-                                        }} disabled={!commentText.trim()} style={{
-                                            padding: '6px 12px', borderRadius: 20, border: 'none',
-                                            background: commentText.trim() ? C.blue : '#E4E6EB',
-                                            color: commentText.trim() ? '#fff' : C.textSec,
-                                            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                        }}>Post</button>
+                                                    (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, media_url: mUrl, media_type: mType }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
+                                                }} disabled={!commentText.trim() && !commentMediaUrl} style={{
+                                                    padding: '6px 12px', borderRadius: 20, border: 'none',
+                                                    background: (commentText.trim() || commentMediaUrl) ? C.blue : '#E4E6EB',
+                                                    color: (commentText.trim() || commentMediaUrl) ? '#fff' : C.textSec,
+                                                    fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                                }}>Post</button>
+                                            </div>
+                                            {/* Phase 3: GIF Picker */}
+                                            {showGifPicker && (
+                                                <div style={{ marginTop: 6, border: `1px solid ${C.border}`, borderRadius: 12, padding: 8, background: C.card, maxHeight: 260, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                                                    <input type="text" value={gifSearch} onChange={e => {
+                                                        setGifSearch(e.target.value);
+                                                        // Debounced GIF search via Tenor
+                                                        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                                                        typingTimeoutRef.current = setTimeout(async () => {
+                                                            const q = e.target.value.trim() || 'poker';
+                                                            setLoadingGifs(true);
+                                                            try {
+                                                                const r = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(q)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=smarter_poker&limit=20&media_filter=gif`);
+                                                                const d = await r.json();
+                                                                setGifResults((d.results || []).map(g => ({
+                                                                    url: g.media_formats?.gif?.url || g.media_formats?.tinygif?.url || '',
+                                                                    preview: g.media_formats?.tinygif?.url || g.media_formats?.nanogif?.url || '',
+                                                                    title: g.content_description || '',
+                                                                })).filter(g => g.url));
+                                                            } catch { setGifResults([]); }
+                                                            setLoadingGifs(false);
+                                                        }, 400);
+                                                    }} placeholder="Search GIFs..." style={{
+                                                        width: '100%', padding: '6px 10px', borderRadius: 8, border: `1px solid ${C.border}`,
+                                                        fontSize: 12, fontFamily: 'inherit', outline: 'none', background: C.bg, marginBottom: 6, boxSizing: 'border-box',
+                                                    }} />
+                                                    <div style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                                                        {loadingGifs ? (
+                                                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 16, color: C.textSec, fontSize: 12 }}>Searching...</div>
+                                                        ) : gifResults.length === 0 ? (
+                                                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 16, color: C.textSec, fontSize: 12 }}>Search for GIFs above</div>
+                                                        ) : gifResults.map((g, i) => (
+                                                            <img key={i} src={g.preview || g.url} alt={g.title} onClick={() => {
+                                                                setCommentMediaUrl(g.url);
+                                                                setCommentMediaType('gif');
+                                                                setShowGifPicker(false);
+                                                            }} style={{
+                                                                width: '100%', height: 70, objectFit: 'cover', borderRadius: 6,
+                                                                cursor: 'pointer', border: '2px solid transparent',
+                                                            }}
+                                                            onMouseEnter={e => e.target.style.borderColor = C.blue}
+                                                            onMouseLeave={e => e.target.style.borderColor = 'transparent'}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    <div style={{ fontSize: 9, color: C.textSec, textAlign: 'right', marginTop: 4 }}>Powered by Tenor</div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -3074,6 +3247,7 @@ export default function SocialPageDetail() {
                 @keyframes shimmerAnim { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
                 .shimmer { background: linear-gradient(90deg, #E4E6EB 25%, #F0F2F5 50%, #E4E6EB 75%) !important; background-size: 400px 100%; animation: shimmerAnim 1.2s ease-in-out infinite; }
                 @keyframes sp-toast-in { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+                @keyframes sp-bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
                 @media (max-width: 768px) {
                     div[style*="grid-template-columns: 1fr 320px"] {
                         grid-template-columns: 1fr !important;

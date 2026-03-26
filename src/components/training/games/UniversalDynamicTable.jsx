@@ -1916,15 +1916,16 @@ function UniversalDynamicTable({
                                     top: `${seatY}%`,
                                 }}
                             >
-                                {/* Illustrated Avatar — above the badge row */}
+                                {/* Illustrated Avatar — stacked vertically */}
                                 <motion.div
                                     initial={{ scale: 0, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     transition={{ duration: 0.3, delay: 0.1 }}
                                     style={{
-                                        width: isHero ? (isMobile ? 48 : 60) : (isMobile ? 40 : 50),
-                                        height: isHero ? (isMobile ? 58 : 72) : (isMobile ? 48 : 60),
-                                        flexShrink: 0,
+                                        width: isHero ? (isMobile ? 56 : 70) : (isMobile ? 48 : 60),
+                                        height: isHero ? (isMobile ? 67 : 84) : (isMobile ? 58 : 72),
+                                        position: 'relative',
+                                        zIndex: 2,
                                     }}
                                 >
                                     <img
@@ -1940,11 +1941,51 @@ function UniversalDynamicTable({
                                     />
                                 </motion.div>
 
-                                {/* Badge + Cards row (horizontal) */}
-                                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                    {/* Dealer Button */}
+                                {/* Gold Name Badge Container (Relative anchor for absolute decorators) */}
+                                <motion.div
+                                    initial={{ y: 10, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ duration: 0.3, delay: 0.2 }}
+                                    style={{
+                                        background: isHero
+                                            ? 'linear-gradient(180deg, #f0c040 0%, #c4960a 100%)'
+                                            : 'linear-gradient(180deg, #555 0%, #333 100%)',
+                                        border: isHero ? '2px solid #8b6914' : '2px solid #555',
+                                        borderRadius: 8,
+                                        padding: '4px 12px',
+                                        minWidth: 70,
+                                        textAlign: 'center',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                                        marginTop: -8, // Slight overlap with avatar
+                                        position: 'relative',
+                                        zIndex: 3,
+                                    }}
+                                >
+                                    <div style={{
+                                        fontSize: 13,
+                                        fontWeight: 'bold',
+                                        color: isHero ? '#000' : '#ccc',
+                                        textShadow: isHero ? '0 1px 0 rgba(255,255,255,0.3)' : 'none',
+                                        whiteSpace: 'nowrap',
+                                        letterSpacing: 0.5,
+                                    }}>
+                                        {isHero ? (playerName || 'HERO') : (villainPosition || seat.name || 'Villain')}
+                                    </div>
+                                    <div style={{
+                                        fontSize: 13,
+                                        fontWeight: 'bold',
+                                        color: isHero ? '#1a1a00' : '#22c55e',
+                                    }}>
+                                        {stackSize} bb
+                                    </div>
+
+                                    {/* Dealer Button — Absolute LEFT of badge */}
                                     {isButton && (
                                         <div style={{
+                                            position: 'absolute',
+                                            left: -14,
+                                            top: '50%',
+                                            transform: 'translate(-100%, -50%)',
                                             width: 22,
                                             height: 22,
                                             borderRadius: '50%',
@@ -1957,52 +1998,22 @@ function UniversalDynamicTable({
                                             justifyContent: 'center',
                                             boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
                                             border: '2px solid #333',
-                                            flexShrink: 0,
                                         }}>
                                             D
                                         </div>
                                     )}
 
-                                    {/* Gold Name Badge */}
-                                    <motion.div
-                                        initial={{ y: 10, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        transition={{ duration: 0.3, delay: 0.2 }}
-                                        style={{
-                                            background: isHero
-                                                ? 'linear-gradient(180deg, #f0c040 0%, #c4960a 100%)'
-                                                : 'linear-gradient(180deg, #555 0%, #333 100%)',
-                                            border: isHero ? '2px solid #8b6914' : '2px solid #555',
-                                            borderRadius: 8,
-                                            padding: '4px 12px',
-                                            minWidth: 70,
-                                            textAlign: 'center',
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                                            flexShrink: 0,
-                                        }}
-                                    >
-                                        <div style={{
-                                            fontSize: 12,
-                                            fontWeight: 'bold',
-                                            color: isHero ? '#000' : '#ccc',
-                                            textShadow: isHero ? '0 1px 0 rgba(255,255,255,0.3)' : 'none',
-                                            whiteSpace: 'nowrap',
-                                            letterSpacing: 0.5,
-                                        }}>
-                                            {isHero ? (playerName || 'HERO') : (villainPosition || seat.name || 'Villain')}
-                                        </div>
-                                        <div style={{
-                                            fontSize: 13,
-                                            fontWeight: 'bold',
-                                            color: isHero ? '#1a1a00' : '#22c55e',
-                                        }}>
-                                            {stackSize} bb
-                                        </div>
-                                    </motion.div>
-
-                                    {/* Hero: face-up cards TO THE RIGHT */}
+                                    {/* Hero: face-up cards — Absolute RIGHT of badge */}
                                     {isHero && heroCards.length > 0 && (
-                                        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                                        <div style={{
+                                            position: 'absolute',
+                                            right: -8,
+                                            top: '50%',
+                                            transform: 'translate(100%, -50%)',
+                                            display: 'flex',
+                                            gap: 2,
+                                            zIndex: 1, // Behind badge if overlapping
+                                        }}>
                                             {heroCards[0] && (
                                                 <motion.img
                                                     key={`hero-seat-0-${questionNumber}`}
@@ -2012,8 +2023,8 @@ function UniversalDynamicTable({
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     transition={{ delay: 0.1, duration: 0.3, type: 'spring' }}
                                                     style={{
-                                                        width: isMobile ? 34 : 42,
-                                                        height: isMobile ? 48 : 58,
+                                                        width: isMobile ? 36 : 44,
+                                                        height: isMobile ? 52 : 62,
                                                         borderRadius: 4,
                                                         boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
                                                         border: '1.5px solid rgba(255,255,255,0.3)',
@@ -2029,8 +2040,8 @@ function UniversalDynamicTable({
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     transition={{ delay: 0.2, duration: 0.3, type: 'spring' }}
                                                     style={{
-                                                        width: isMobile ? 34 : 42,
-                                                        height: isMobile ? 48 : 58,
+                                                        width: isMobile ? 36 : 44,
+                                                        height: isMobile ? 52 : 62,
                                                         borderRadius: 4,
                                                         marginLeft: -6,
                                                         boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
@@ -2040,9 +2051,18 @@ function UniversalDynamicTable({
                                             )}
                                         </div>
                                     )}
-                                    {/* Villain: face-down cards TO THE RIGHT */}
+
+                                    {/* Villain: face-down cards — Absolute RIGHT of badge */}
                                     {!isHero && !villainFolded && (
-                                        <div style={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                                        <div style={{
+                                            position: 'absolute',
+                                            right: -8,
+                                            top: '50%',
+                                            transform: 'translate(100%, -50%)',
+                                            display: 'flex',
+                                            gap: 1,
+                                            zIndex: 1,
+                                        }}>
                                             <img src="/cards/back.png" alt="" style={{
                                                 width: isMobile ? 18 : 22, height: isMobile ? 26 : 32, borderRadius: 3,
                                                 boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
@@ -2056,7 +2076,7 @@ function UniversalDynamicTable({
                                             }} />
                                         </div>
                                     )}
-                                </div>
+                                </motion.div>
                             </motion.div>
                         );
                     })}
