@@ -950,7 +950,7 @@ function UniversalDynamicTable({
         card: isMobile ? { width: 42, height: 60, borderRadius: 4 } : {},
         boardCard: isMobile ? { width: 40, height: 57, borderRadius: 4 } : {},
         pot: isMobile ? { top: '20%', fontSize: 13 } : {},
-        actionButton: isMobile ? { padding: '10px 4px', minHeight: 44, fontSize: 12 } : {},
+        actionButton: isMobile ? { padding: '10px 4px', minHeight: 50, fontSize: 12 } : {},
         villainCard: isMobile ? { width: 16, height: 22 } : {},
         boardCards: isMobile ? { gap: 3 } : {},
         seat: isMobile ? { gap: 2 } : {},
@@ -2645,6 +2645,24 @@ function UniversalDynamicTable({
                     transition={{ type: 'spring', damping: 22, stiffness: 300 }}
                     style={styles.feedbackInline}
                 >
+                    {/* Collapsible toggle for feedback panel (GAP 9) */}
+                    <button
+                        onClick={() => setFeedbackCollapsed && setFeedbackCollapsed(prev => !prev)}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#64748b',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            letterSpacing: 1,
+                            cursor: 'pointer',
+                            padding: '4px 8px',
+                            alignSelf: 'flex-end',
+                            textTransform: 'uppercase',
+                        }}
+                    >
+                        {feedbackCollapsed ? '▼ Show Details' : '▲ Hide Details'}
+                    </button>
 
                     {/* F5: FULL STRATEGY OVERLAY — Shows all action frequencies as bars during feedback */}
                     <div style={{ width: '100%', marginBottom: 6 }}>
@@ -3674,8 +3692,8 @@ const styles = {
 
     actionButton: {
         position: 'relative',
-        padding: '16px 6px',
-        minHeight: 56,
+        padding: '14px 8px',
+        minHeight: 60,
         fontSize: 14,
         fontWeight: 700,
         fontFamily: "'Inter', sans-serif",
