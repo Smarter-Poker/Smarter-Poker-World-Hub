@@ -211,6 +211,12 @@ export default function VenueDetailPage() {
   // Who's Here state
   const [whosHere, setWhosHere] = useState({ total: 0, people: [], friends: [] });
 
+  // Enhancement suite state
+  const [venueLeaderboard, setVenueLeaderboard] = useState([]);
+  const [venueActivity, setVenueActivity] = useState({ days: [], maxCount: 1 });
+  const [popularHours, setPopularHours] = useState({ hours: [], maxCount: 1, peakHour: '' });
+  const [checkinError, setCheckinError] = useState('');
+
   // Reviews state
   const [reviews, setReviews] = useState([]);
   const [avgRating, setAvgRating] = useState(0);
@@ -395,6 +401,26 @@ export default function VenueDetailPage() {
       .then(function(r) { return r.json(); })
       .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
       .catch(function() { /* silent */ });
+  }, [id]);
+
+  // Fetch venue enhancement data (leaderboard, activity, popular hours)
+  useEffect(function () {
+    if (!id) return;
+    // Leaderboard
+    fetch('/api/poker/checkins/leaderboard?venue_id=' + id + '&period=month')
+      .then(function(r) { return r.json(); })
+      .then(function(j) { if (j.success && j.leaders) setVenueLeaderboard(j.leaders); })
+      .catch(function() { });
+    // 7-day activity
+    fetch('/api/poker/checkins/activity?venue_id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(j) { if (j.success) setVenueActivity({ days: j.days || [], maxCount: j.maxCount || 1 }); })
+      .catch(function() { });
+    // Popular hours
+    fetch('/api/poker/checkins/popular-hours?venue_id=' + id)
+      .then(function(r) { return r.json(); })
+      .then(function(j) { if (j.success) setPopularHours({ hours: j.hours || [], maxCount: j.maxCount || 1, peakHour: j.peakHour || '' }); })
+      .catch(function() { });
   }, [id]);
 
   // Fetch reviews
@@ -677,6 +703,11 @@ export default function VenueDetailPage() {
   var handleCheckin = async function (e) {
     e.preventDefault();
     setCheckinSubmitting(true);
+    setCheckinError('');
+    // Optimistic UI — show checked-in immediately
+    setHasCheckedIn(true);
+    setCheckinConfirm(true);
+    setShowCheckinForm(false);
     try {
       // Prefer authenticated user ID for streak/profile/friend matching
       var authUser = getAuthUser();
@@ -703,12 +734,13 @@ export default function VenueDetailPage() {
           message: checkinMessage.trim() || null,
         }),
       });
-      if (!res.ok) throw new Error('Request failed (' + res.status + ')');
+      if (!res.ok) {
+        var errBody = null;
+        try { errBody = await res.json(); } catch (_e2) {}
+        throw new Error((errBody && errBody.error) || 'Check-in failed (' + res.status + ')');
+      }
       var json = await res.json();
       if (json.success) {
-        setHasCheckedIn(true);
-        setCheckinConfirm(true);
-        setShowCheckinForm(false);
         setCheckinMessage('');
         setCheckinName('');
         await fetchCheckins();
@@ -719,8 +751,16 @@ export default function VenueDetailPage() {
           .catch(function() { });
         try { busEmit.venueCheckinCreated(id, venue?.name || '', userId); } catch (_e) { }
         setTimeout(function () { setCheckinConfirm(false); }, 3000);
+      } else {
+        throw new Error(json.error || 'Check-in failed');
       }
-    } catch (err) { /* silent */ }
+    } catch (err) {
+      // Revert optimistic UI on failure
+      setHasCheckedIn(false);
+      setCheckinConfirm(false);
+      setCheckinError(err.message || 'Check-in failed. Please try again.');
+      setTimeout(function () { setCheckinError(''); }, 5000);
+    }
     finally { setCheckinSubmitting(false); }
   };
 
@@ -1661,7 +1701,120 @@ export default function VenueDetailPage() {
                   <p>No Check-Ins Yet Today. Be The First To Check In!</p>
                 </div>
               )}
+
+              {/* Check-In Error Toast */}
+              {checkinError && (
+                <div style={{
+                  background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
+                  borderRadius: 8, padding: '10px 14px', marginTop: 12,
+                  color: '#ef4444', fontSize: 13, fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: 8
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  {checkinError}
+                </div>
+              )}
             </section>
+
+            {/* ============================================ */}
+            {/* VENUE LEADERBOARD                           */}
+            {/* ============================================ */}
+            {venueLeaderboard.length > 0 && (
+              <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16 }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                  Top Check-In Players
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {venueLeaderboard.map(function (leader, idx) {
+                    var medal = idx === 0 ? '#FFD700' : idx === 1 ? '#C0C0C0' : idx === 2 ? '#CD7F32' : 'rgba(255,255,255,0.2)';
+                    return (
+                      <div key={leader.user_id} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                        borderRadius: 8, background: idx < 3 ? 'rgba(245,158,11,0.06)' : 'transparent',
+                        border: idx < 3 ? '1px solid rgba(245,158,11,0.15)' : '1px solid rgba(255,255,255,0.05)'
+                      }}>
+                        <div style={{
+                          width: 28, height: 28, borderRadius: '50%', background: medal,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 12, fontWeight: 800, color: idx < 3 ? '#000' : '#fff', flexShrink: 0
+                        }}>{idx + 1}</div>
+                        {leader.avatar_url ? (
+                          <img src={leader.avatar_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
+                            {(leader.full_name || leader.user_name || '?').charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {leader.full_name || leader.user_name}
+                          </div>
+                          {leader.username && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>@{leader.username}</div>}
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b' }}>{leader.count}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* ============================================ */}
+            {/* 7-DAY ACTIVITY CHART                        */}
+            {/* ============================================ */}
+            {venueActivity.days.length > 0 && venueActivity.days.some(function(d) { return d.count > 0; }) && (
+              <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16 }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                  7-Day Check-In Activity
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 80 }}>
+                  {venueActivity.days.map(function (d) {
+                    var pct = venueActivity.maxCount > 0 ? (d.count / venueActivity.maxCount) * 100 : 0;
+                    return (
+                      <div key={d.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{d.count || ''}</span>
+                        <div style={{
+                          width: '100%', minHeight: 4, height: Math.max(4, pct * 0.7) + 'px',
+                          borderRadius: 3, background: d.count > 0 ? 'linear-gradient(180deg, #22c55e, #16a34a)' : 'rgba(255,255,255,0.05)',
+                          transition: 'height 0.3s ease'
+                        }} />
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{d.dayName}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* ============================================ */}
+            {/* POPULAR HOURS                               */}
+            {/* ============================================ */}
+            {popularHours.hours.length > 0 && popularHours.hours.some(function(h) { return h.count > 0; }) && (
+              <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16 }}>
+                <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Popular Times
+                </h3>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>Busiest hour: {popularHours.peakHour}</div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 1, height: 50, overflow: 'hidden' }}>
+                  {popularHours.hours.filter(function(h) { return h.hour >= 8 && h.hour <= 23; }).map(function (h) {
+                    var pct = popularHours.maxCount > 0 ? (h.count / popularHours.maxCount) * 100 : 0;
+                    return (
+                      <div key={h.hour} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <div style={{
+                          width: '100%', minHeight: 2, height: Math.max(2, pct * 0.45) + 'px',
+                          borderRadius: 2, background: pct > 70 ? '#a78bfa' : pct > 30 ? 'rgba(167,139,250,0.5)' : 'rgba(255,255,255,0.08)',
+                          transition: 'height 0.3s ease'
+                        }} />
+                        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>{h.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             {/* ============================================ */}
             {/* REVIEWS & RATINGS SECTION                    */}

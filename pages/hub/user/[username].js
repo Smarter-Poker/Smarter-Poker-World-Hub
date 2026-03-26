@@ -762,6 +762,8 @@ export default function UserProfilePage() {
     const [pokerCheckins, setPokerCheckins] = useState([]);
     const [pokerFollowing, setPokerFollowing] = useState([]);
     const [checkinStreak, setCheckinStreak] = useState({ currentStreak: 0, longestStreak: 0, totalCheckins: 0 });
+    const [checkinBadges, setCheckinBadges] = useState([]);
+    const [checkinStats, setCheckinStats] = useState(null);
 
     // Refs
     const profileMenuRef = useRef(null);
@@ -1175,6 +1177,16 @@ export default function UserProfilePage() {
                     fetch('/api/poker/checkins/streak?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setCheckinStreak({ currentStreak: j.currentStreak || 0, longestStreak: j.longestStreak || 0, totalCheckins: j.totalCheckins || 0 }); })
+                        .catch(function () { });
+                    // Fetch check-in badges
+                    fetch('/api/poker/checkins/badges?user_id=' + encodeURIComponent(pokerUid), { headers })
+                        .then(function (r) { return r.json(); })
+                        .then(function (j) { if (j.success && j.badges) setCheckinBadges(j.badges); })
+                        .catch(function () { });
+                    // Fetch check-in aggregate stats
+                    fetch('/api/poker/checkins/stats?user_id=' + encodeURIComponent(pokerUid), { headers })
+                        .then(function (r) { return r.json(); })
+                        .then(function (j) { if (j.success) setCheckinStats(j); })
                         .catch(function () { });
                 }
 
@@ -2307,6 +2319,63 @@ export default function UserProfilePage() {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Check-In Badges */}
+                            {checkinBadges.length > 0 && (
+                                <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                    <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: C.text }}>Check-In Badges</h3>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                        {checkinBadges.map(function (b) {
+                                            var tierColor = b.tier === 'platinum' ? '#e5e7eb' : b.tier === 'gold' ? '#f59e0b' : b.tier === 'silver' ? '#94a3b8' : '#92400e';
+                                            return (
+                                                <div key={b.id} style={{
+                                                    display: 'flex', alignItems: 'center', gap: 6,
+                                                    padding: '6px 10px', borderRadius: 20,
+                                                    background: `${tierColor}15`, border: `1px solid ${tierColor}30`,
+                                                    fontSize: 12, fontWeight: 600, color: tierColor
+                                                }}>
+                                                    <span style={{ fontSize: 14 }}>{b.icon}</span>
+                                                    {b.name}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Check-In Stats Card */}
+                            {checkinStats && checkinStats.totalCheckins > 0 && (
+                                <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                    <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: C.text }}>Check-In Stats</h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                        {[  { val: checkinStats.totalCheckins, label: 'Total Check-Ins', color: '#22c55e' },
+                                            { val: checkinStats.uniqueVenues, label: 'Venues Visited', color: '#3b82f6' },
+                                            { val: checkinStats.uniqueStates, label: 'States', color: '#a78bfa' },
+                                            { val: checkinStats.avgPerWeek, label: 'Avg / Week', color: '#f59e0b' }
+                                        ].map(function (stat) {
+                                            return (
+                                                <div key={stat.label} style={{
+                                                    padding: '12px', borderRadius: 10,
+                                                    background: `${stat.color}10`, border: `1px solid ${stat.color}25`,
+                                                    textAlign: 'center'
+                                                }}>
+                                                    <div style={{ fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.val}</div>
+                                                    <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>{stat.label}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {checkinStats.favoriteVenue && (
+                                        <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)', fontSize: 13 }}>
+                                            <span style={{ color: C.textSec }}>Favorite Venue:</span>{' '}
+                                            <Link href={'/hub/venues/' + checkinStats.favoriteVenue.id} style={{ color: '#f59e0b', fontWeight: 600, textDecoration: 'none' }}>
+                                                {checkinStats.favoriteVenue.name}
+                                            </Link>
+                                            <span style={{ color: C.textSec }}> ({checkinStats.favoriteVenue.count} visits)</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Recent Check-ins */}
                             <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>

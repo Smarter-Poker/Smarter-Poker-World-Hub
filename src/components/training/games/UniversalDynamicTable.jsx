@@ -1881,9 +1881,9 @@ function UniversalDynamicTable({
                         let seatX = seat.x;
                         let seatY = seat.y;
                         if (activeCount <= 2) {
-                            // Force GTO Wizard positions: Hero = bottom-center rail edge, Villain = top-center rail edge
+                            // Force GTO Wizard positions: Villain inside top quarter, Hero inside bottom quarter
                             seatX = 50;
-                            seatY = isHero ? 88 : 2;
+                            seatY = isHero ? 82 : 8;
                         }
 
                         return (
@@ -3457,7 +3457,7 @@ const styles = {
 
     boardCards: {
         position: 'absolute',
-        top: '43%',
+        top: '50%',
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
@@ -3475,7 +3475,7 @@ const styles = {
 
     pot: {
         position: 'absolute',
-        top: '28%',
+        top: '35%',
         left: '50%',
         transform: 'translateX(-50%)',
         color: '#e2e8f0',
