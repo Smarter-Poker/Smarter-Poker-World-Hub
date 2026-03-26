@@ -930,13 +930,27 @@ function UniversalDynamicTable({
         if (heroName) return heroName;
         try {
             if (typeof window === 'undefined') return null;
+            // Primary key: smarter-poker-auth (custom key used by the platform)
+            const authKeys = ['smarter-poker-auth', 'smarter-poker-auth-hardened'];
+            for (const key of authKeys) {
+                const raw = localStorage.getItem(key);
+                if (!raw) continue;
+                const data = JSON.parse(raw);
+                const meta = data?.user?.user_metadata || data?.user_metadata;
+                if (meta?.poker_alias) return meta.poker_alias;
+                if (meta?.full_name) return meta.full_name;
+                if (meta?.name) return meta.name;
+            }
+            // Fallback: standard Supabase key pattern
             const keys = Object.keys(localStorage);
             const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-            if (!sbKey) return null;
-            const session = JSON.parse(localStorage.getItem(sbKey));
-            const meta = session?.user?.user_metadata;
-            return meta?.poker_alias || meta?.full_name || meta?.name || null;
-        } catch { return null; }
+            if (sbKey) {
+                const session = JSON.parse(localStorage.getItem(sbKey));
+                const meta = session?.user?.user_metadata;
+                return meta?.poker_alias || meta?.full_name || meta?.name || null;
+            }
+        } catch { /* silent fallback */ }
+        return null;
     }, [heroName]);
 
     // Phase 3: RNG Mode state

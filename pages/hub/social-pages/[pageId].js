@@ -13,6 +13,12 @@ import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLight from '../../../src/components/ui/SkeletonLight';
 import { supabase } from '../../../src/lib/supabase';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+// Shared social utilities & components (extracted from social-media)
+import { SOCIAL_COLORS, timeAgo as sharedTimeAgo, isYouTubeUrl, getYouTubeVideoId, getYouTubeEmbedUrl } from '../../../src/lib/socialHelpers';
+import { SharedAvatar } from '../../../src/components/social/SharedAvatar';
+import { SharedLinkPreviewCard } from '../../../src/components/social/SharedLinkPreviewCard';
+import { VideoThumbnail, VideoPostWrapper, FullScreenVideoViewer } from '../../../src/components/social/SharedVideoComponents';
+import toast from '../../../src/stores/toastStore';
 
 // Lightweight QR Code component — uses goqr.me API (zero dependencies, no Google Charts)
 function QRCanvas({ value, size = 140 }) {
@@ -30,33 +36,13 @@ function QRCanvas({ value, size = 140 }) {
     );
 }
 
-const C = {
-    bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
-    border: '#DADDE1', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A', red: '#FA383E',
-};
+// Use shared color theme and utilities — single source of truth with social-media
+const C = SOCIAL_COLORS;
+const timeAgo = sharedTimeAgo;
 
-const timeAgo = (d) => {
-    if (!d) return '';
-    const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
-    if (s < 60) return 'Just now';
-    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-    const days = Math.floor(s / 86400);
-    if (days < 30) return `${days}d ago`;
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
-
-function Avatar({ src, name, size = 40 }) {
-    return (
-        <div style={{
-            width: size, height: size, borderRadius: '50%', flexShrink: 0,
-            background: src ? `url(${src}) center/cover` : C.blue,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 700, fontSize: size * 0.4,
-        }}>
-            {!src && (name || '?')[0].toUpperCase()}
-        </div>
-    );
+// Avatar wrapper — uses SharedAvatar for feature parity (online indicator, click-through)
+function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
+    return <SharedAvatar src={src} name={name} size={size} online={online} onClick={onClick} linkTo={linkTo} />;
 }
 
 function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDeleteComment, isPageOwner, page, isOwnerOnOwnPage }) {
