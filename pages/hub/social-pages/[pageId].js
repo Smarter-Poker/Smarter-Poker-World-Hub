@@ -597,7 +597,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                             const tempReply = { id: `temp-${Date.now()}`, content: replyText.trim(), parent_id: c.id, created_at: new Date().toISOString(), author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
                                                             setComments(prev => [...prev, tempReply]);
                                                             const txt = replyText.trim(); setReplyText(''); setReplyTo(null);
-                                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, parent_id: c.id }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempReply.id ? json.data : x)); onComment(post.id); } } else { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } } catch { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } })();
+                                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, parent_id: c.id }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempReply.id ? json.data : x)); onComment(post.id); } } else { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } })();
                                                         }
                                                     }}
                                                     placeholder={`Reply to ${c.author?.full_name || 'comment'}...`}
@@ -623,7 +623,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                     setComments(prev => [...prev, tempComment]);
                                                     const txt = commentText.trim(); setCommentText('');
                                                     onComment(post.id);
-                                                    (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
+                                                    (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
                                                 }
                                             }}
                                             placeholder={isOwnerOnOwnPage ? `Comment as ${page?.name}...` : 'Write A Comment...'}
@@ -634,7 +634,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                             setComments(prev => [...prev, tempComment]);
                                             const txt = commentText.trim(); setCommentText('');
                                             onComment(post.id);
-                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
+                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
                                         }} disabled={!commentText.trim()} style={{
                                             padding: '6px 12px', borderRadius: 20, border: 'none',
                                             background: commentText.trim() ? C.blue : '#E4E6EB',
@@ -652,8 +652,9 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     );
 }
 
-const SocialPageDetail = () => {
-    const _pageMount = Date.now(); // SWC minifier scope anchor
+export default function SocialPageDetail() {
+    // SWC minifier scope anchors — prevent TDZ name collision
+    var _a = 0, _b = 0, _c = 0, _d = 0, _e = 0;
     const router = useRouter();
     const { pageId } = router.query;
     const { user } = useAuthUser();
@@ -2966,5 +2967,3 @@ const SocialPageDetail = () => {
         </>
     );
 }
-
-export default SocialPageDetail;

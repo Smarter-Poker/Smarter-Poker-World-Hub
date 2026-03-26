@@ -1802,10 +1802,25 @@ function UniversalDynamicTable({
                     )}
                 </AnimatePresence>
 
-                {/* CSS Poker Felt Table — GTO Wizard style with felt gradient */}
+                {/* PREMIUM RACETRACK TABLE — GoldenTemplateTable design */}
                 <div style={styles.feltOuter}>
-                    <div style={styles.feltRail} />
-                    <div style={styles.feltSurface} />
+                    {/* OUTER GOLD RAIL */}
+                    <div style={styles.goldRailOuter}>
+                        {/* BLACK GAP */}
+                        <div style={styles.goldRailGap}>
+                            {/* INNER GOLD RAIL */}
+                            <div style={styles.goldRailInner}>
+                                {/* THIN DARK EDGE */}
+                                <div style={styles.goldRailDarkEdge}>
+                                    {/* INNER GLOW LINE */}
+                                    <div style={styles.goldRailGlow}>
+                                        {/* DARK FELT SURFACE */}
+                                        <div style={styles.feltSurface} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* DYNAMIC PLAYER SEATS — GTO Wizard style: only Hero + active Villain(s) */}
@@ -1841,7 +1856,7 @@ function UniversalDynamicTable({
                         if (activeCount <= 2) {
                             // Force GTO Wizard positions: Villain inside top quarter, Hero inside bottom quarter
                             seatX = 50;
-                            seatY = isHero ? 100 : -8;
+                            seatY = isHero ? 88 : 5;
                         }
 
                         return (
@@ -3184,32 +3199,74 @@ const styles = {
         padding: '12px 16px 8px 16px',
     },
 
-    // ── CSS TABLE — GTO Wizard-style minimalist dark oval outline
+    // ── PREMIUM RACETRACK TABLE — GoldenTemplateTable design
     feltOuter: {
         position: 'relative',
         width: '100%',
-        maxWidth: 400,
-        aspectRatio: '1 / 1.2',
-        borderRadius: '50%',
-        background: 'transparent',
+        maxWidth: 420,
+        aspectRatio: '1 / 1.5',
+        borderRadius: '50% / 38%',
+        background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 50%, #050505 100%)',
         margin: '0 auto',
         overflow: 'visible',
         zIndex: 1,
+        boxShadow: `
+            0 25px 80px rgba(0,0,0,0.95),
+            0 8px 30px rgba(0,0,0,0.8),
+            inset 0 -8px 20px rgba(0,0,0,0.6),
+            inset 0 8px 20px rgba(50,50,50,0.2)
+        `,
     },
-    feltRail: {
+    goldRailOuter: {
         position: 'absolute',
-        inset: 0,
-        borderRadius: '50%',
-        border: '3px solid rgba(255, 255, 255, 0.15)',
-        pointerEvents: 'none',
-        zIndex: 1,
-        boxShadow: 'inset 0 0 30px rgba(0,0,0,0.3), 0 0 15px rgba(0,0,0,0.2)',
+        inset: 12,
+        borderRadius: '50% / 37%',
+        background: 'linear-gradient(180deg, #f0d050 0%, #d4a000 25%, #a07800 60%, #705000 100%)',
+        boxShadow: 'inset 0 3px 6px rgba(255,255,180,0.5), inset 0 -3px 6px rgba(0,0,0,0.5)',
+    },
+    goldRailGap: {
+        position: 'absolute',
+        inset: 10,
+        borderRadius: '50% / 36%',
+        background: 'linear-gradient(180deg, #151515 0%, #0a0a0a 100%)',
+    },
+    goldRailInner: {
+        position: 'absolute',
+        inset: 8,
+        borderRadius: '50% / 35%',
+        background: 'linear-gradient(180deg, #ffe070 0%, #e8b810 25%, #b08000 60%, #785500 100%)',
+        boxShadow: 'inset 0 3px 6px rgba(255,255,180,0.6), inset 0 -3px 6px rgba(0,0,0,0.5)',
+    },
+    goldRailDarkEdge: {
+        position: 'absolute',
+        inset: 6,
+        borderRadius: '50% / 34%',
+        background: 'linear-gradient(180deg, #101010 0%, #080808 100%)',
+    },
+    goldRailGlow: {
+        position: 'absolute',
+        inset: 4,
+        borderRadius: '50% / 33%',
+        border: '3px solid rgba(180,140,50,0.35)',
+        background: 'transparent',
     },
     feltSurface: {
         position: 'absolute',
         inset: 0,
-        borderRadius: '50%',
-        background: 'radial-gradient(ellipse at center, rgba(26,62,46,0.6) 0%, rgba(18,42,32,0.4) 60%, rgba(12,28,22,0.3) 100%)',
+        borderRadius: '50% / 33%',
+        background: `radial-gradient(
+            ellipse at 50% 35%,
+            #181818 0%,
+            #121212 25%,
+            #0d0d0d 50%,
+            #080808 75%,
+            #050505 100%
+        )`,
+        boxShadow: `
+            inset 0 0 120px rgba(0,0,0,0.9),
+            inset 0 0 60px rgba(0,0,0,0.7),
+            inset 0 -20px 40px rgba(0,0,0,0.5)
+        `,
     },
 
     seatsContainer: {
