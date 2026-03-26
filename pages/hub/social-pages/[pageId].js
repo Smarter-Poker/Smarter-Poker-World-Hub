@@ -376,7 +376,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 isLikingRef.current = true;
                                 setLikeAnim(true);
                                 setTimeout(() => setLikeAnim(false), 500);
-                                onLike(post.id);
+                                onLike(post.id, r.label.toLowerCase());
                                 setTimeout(() => { isLikingRef.current = false; }, 800);
                                 setShowReactions(false);
                             }} style={{
@@ -723,6 +723,8 @@ export default function SocialPageDetail() {
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const coverInputRef = useRef(null);
     const avatarInputRef = useRef(null);
+    // P10-7: Scroll-to-top
+    const [showScrollTop, setShowScrollTop] = useState(false);
 
     // Toast notification system
     const [toastMsg, setToastMsg] = useState(null);
@@ -1051,6 +1053,10 @@ export default function SocialPageDetail() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_post_likes' }, () => {
         fetchPosts();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_comment_likes' }, () => {
+        // Refresh posts to pick up comment like count changes
+        fetchPosts();
+      })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_page_post_comments' }, () => {
         fetchPosts();
       })
@@ -1062,6 +1068,13 @@ export default function SocialPageDetail() {
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [pageId, page, fetchPosts, fetchFollowers, fetchPage]);
+
+    // P10-7: Scroll listener for scroll-to-top button
+    useEffect(() => {
+        const onScroll = () => setShowScrollTop(window.scrollY > 400);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
 
     const handleFollow = async () => {
         if (!user) { router.push('/auth/login'); return; }
@@ -1135,7 +1148,7 @@ export default function SocialPageDetail() {
         setPosting(false);
     };
 
-    const handleLike = async (postId) => {
+    const handleLike = async (postId, reactionType) => {
         if (!user) return;
         const prevPosts = posts;
         const targetPost = posts.find(p => p.id === postId);
@@ -1152,7 +1165,7 @@ export default function SocialPageDetail() {
             const res = await fetch('/api/social/pages/engage', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ action: 'like', post_id: postId, user_id: user.id }),
+                body: JSON.stringify({ action: 'like', post_id: postId, user_id: user.id, ...(reactionType ? { reaction_type: reactionType } : {}) }),
             });
             if (!res.ok) throw new Error('Like failed');
             busEmit.dataMutated('social-pages');
@@ -1805,6 +1818,10 @@ export default function SocialPageDetail() {
                                                 // Pinned posts always first
                                                 if (a.is_pinned && !b.is_pinned) return -1;
                                                 if (!a.is_pinned && b.is_pinned) return 1;
+                                                // Announcements after pinned, before regular
+                                                const aIsAnn = a.post_type === 'announcement' ? 1 : 0;
+                                                const bIsAnn = b.post_type === 'announcement' ? 1 : 0;
+                                                if (aIsAnn !== bIsAnn) return bIsAnn - aIsAnn;
                                                 if (postSort === 'top') return ((b.like_count || 0) + (b.comment_count || 0)) - ((a.like_count || 0) + (a.comment_count || 0));
                                                 return new Date(b.created_at) - new Date(a.created_at);
                                             })
@@ -2839,6 +2856,23 @@ export default function SocialPageDetail() {
                           </div>
                       </div>
                   </div>
+              )}
+
+              {/* P10-7: Scroll-to-top button */}
+              {showScrollTop && (
+                  <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{
+                      position: 'fixed', bottom: 90, right: 24, width: 44, height: 44,
+                      borderRadius: '50%', border: 'none', background: C.blue, color: '#fff',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.25)', cursor: 'pointer', zIndex: 9998,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'opacity 0.3s, transform 0.3s',
+                      opacity: showScrollTop ? 1 : 0,
+                      transform: showScrollTop ? 'scale(1)' : 'scale(0.7)',
+                  }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="18 15 12 9 6 15" />
+                      </svg>
+                  </button>
               )}
 
               {/* Toast Notification */}
