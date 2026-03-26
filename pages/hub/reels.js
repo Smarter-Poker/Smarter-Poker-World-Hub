@@ -124,6 +124,10 @@ export default function ReelsPage() {
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
     const [showContextMenu, setShowContextMenu] = useState(false);
     const longPressTimerRef = useRef(null);
+    // Phase 8 — Comment sort, char counter, copy link
+    const [commentSort, setCommentSort] = useState('newest');
+    const [copyToast, setCopyToast] = useState(false);
+    const COMMENT_MAX_LENGTH = 280;
     const pullStartY = useRef(null);
 
     // Reels preferences state
@@ -659,7 +663,7 @@ export default function ReelsPage() {
                     .from('social_comments')
                     .select('id, content, created_at, media_url, media_type, profiles:author_id(username, avatar_url)')
                     .eq('post_id', currentReel.id)
-                    .order('created_at', { ascending: true })
+                    .order('created_at', { ascending: commentSort === 'oldest' })
                     .limit(50);
                 setComments(data || []);
                 setHasMoreComments((data || []).length >= 50);
@@ -678,7 +682,7 @@ export default function ReelsPage() {
                 .from('social_comments')
                 .select('id, content, created_at, media_url, media_type, profiles:author_id(username, avatar_url)')
                 .eq('post_id', currentReel.id)
-                .order('created_at', { ascending: true })
+                .order('created_at', { ascending: commentSort === 'oldest' })
                 .range(nextPage * 50, (nextPage + 1) * 50 - 1);
             if (data && data.length > 0) {
                 setComments(prev => [...prev, ...data]);
@@ -1666,6 +1670,21 @@ export default function ReelsPage() {
                         }}>{playbackSpeed}x</div>
                         <span style={{ color: playbackSpeed !== 1 ? '#00d4ff' : 'rgba(255,255,255,0.6)', fontSize: 10, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Speed</span>
                     </button>
+
+                    {/* Phase 8 — Copy Reel Link */}
+                    <button onClick={() => {
+                        const url = `${window.location.origin}/hub/reels?id=${currentReel?.id || ''}`;
+                        navigator.clipboard.writeText(url).then(() => {
+                            setCopyToast(true);
+                            setTimeout(() => setCopyToast(false), 2000);
+                        }).catch(() => {});
+                    }} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Link</span>
+                    </button>
                 </div>
 
                 {/* Instagram-style heart burst with particles */}
@@ -1841,9 +1860,23 @@ export default function ReelsPage() {
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                         }}>
                             <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Comments</span>
-                            <button onClick={() => { setShowCommentPanel(false); setShowGifPicker(false); }} style={{
-                                background: 'none', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer'
-                            }}>x</button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {/* Phase 8 — Sort toggle */}
+                                <button onClick={() => {
+                                    const next = commentSort === 'newest' ? 'oldest' : 'newest';
+                                    setCommentSort(next);
+                                    setComments(prev => [...prev].sort((a, b) =>
+                                        next === 'newest' ? new Date(b.created_at) - new Date(a.created_at) : new Date(a.created_at) - new Date(b.created_at)
+                                    ));
+                                }} style={{
+                                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                                    borderRadius: 12, padding: '3px 10px', fontSize: 10, fontWeight: 600,
+                                    color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
+                                }}>{commentSort === 'newest' ? 'Newest' : 'Oldest'}</button>
+                                <button onClick={() => { setShowCommentPanel(false); setShowGifPicker(false); }} style={{
+                                    background: 'none', border: 'none', color: 'white', fontSize: 20, cursor: 'pointer'
+                                }}>x</button>
+                            </div>
                         </div>
                         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', maxHeight: 250 }}>
                             {comments.length === 0 && (
@@ -1973,9 +2006,10 @@ export default function ReelsPage() {
                             <div style={{ display: 'flex', gap: 8 }}>
                                 <input
                                     value={commentText}
-                                    onChange={e => setCommentText(e.target.value)}
+                                    onChange={e => { if (e.target.value.length <= COMMENT_MAX_LENGTH) setCommentText(e.target.value); }}
                                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
                                     placeholder="Add A Comment..."
+                                    maxLength={COMMENT_MAX_LENGTH}
                                     style={{
                                         flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.1)',
                                         border: 'none', borderRadius: 20, fontSize: 14, color: 'white', outline: 'none'
@@ -1992,8 +2026,25 @@ export default function ReelsPage() {
                                     }}
                                 >{submittingComment ? '...' : 'Post'}</button>
                             </div>
+                            {/* Phase 8 — Character counter */}
+                            {commentText.length > 0 && (
+                                <div style={{ textAlign: 'right', fontSize: 10, color: commentText.length >= COMMENT_MAX_LENGTH - 20 ? '#ef4444' : 'rgba(255,255,255,0.3)', paddingRight: 4 }}>
+                                    {commentText.length}/{COMMENT_MAX_LENGTH}
+                                </div>
+                            )}
                         </div>
                     </div>
+                )}
+
+                {/* Phase 8 — Copy Link Toast */}
+                {copyToast && (
+                    <div style={{
+                        position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)',
+                        background: 'rgba(0,212,255,0.15)', border: '1px solid rgba(0,212,255,0.4)',
+                        borderRadius: 12, padding: '8px 20px', color: '#00d4ff',
+                        fontSize: 13, fontWeight: 600, zIndex: 300, backdropFilter: 'blur(10px)',
+                        animation: 'fadeIn 0.2s ease-out',
+                    }}>Link Copied!</div>
                 )}
 
                 {/* Report Modal */}

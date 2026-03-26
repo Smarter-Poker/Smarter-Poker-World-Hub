@@ -653,18 +653,17 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
 }
 
 export default function SocialPageDetail() {
-    // Hook-based scope anchors — useRef cannot be tree-shaken by SWC
-    const _mountRef = useRef(null);
-    const _stateRef = useRef(null);
+    // State hooks BEFORE useRouter — prevents SWC minifier TDZ collision
+    // (SWC was naming both the function and its first let binding 'k')
+    const [page, setPage] = useState(null);
+    const [loading, setLoading] = useState(true);
     const router = useRouter();
     const { pageId } = router.query;
     const { user } = useAuthUser();
     useTrainingBus('social-page-detail');
     const { isClubMode, clubPage } = useActiveIdentity();
-    const [page, setPage] = useState(null);
     const [posts, setPosts] = useState([]);
     const [followers, setFollowers] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('posts');
     const [isFollowing, setIsFollowing] = useState(false);
     const [userRole, setUserRole] = useState(null);
