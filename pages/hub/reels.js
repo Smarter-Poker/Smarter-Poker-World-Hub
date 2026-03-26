@@ -1321,10 +1321,12 @@ export default function ReelsPage() {
             </Head>
 
             {/* Universal Header */}
-            <UniversalHeader
-                pageDepth={1}
-                onMenuClick={() => setMenuOpen(true)}
-            />
+            <div style={{ opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease', pointerEvents: showOverlay ? 'auto' : 'none', position: 'relative', zIndex: 200 }}>
+                <UniversalHeader
+                    pageDepth={1}
+                    onMenuClick={() => setMenuOpen(true)}
+                />
+            </div>
 
             {/* Hamburger Menu */}
             <HamburgerMenu
@@ -2260,8 +2262,15 @@ export default function ReelsPage() {
                             }} />
                         ) : currentIndex < reels.length - 1 ? (
                             <>
-                                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Swipe Up For Next</span>
-                                <span style={{ fontSize: 20, marginTop: 4, color: 'rgba(255,255,255,0.6)' }}>↑</span>
+                                <div style={{
+                                    position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none',
+                                    animation: 'pulse 2s infinite', zIndex: 90,
+                                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
+                                }}>
+                                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Swipe Up For Next</span>
+                                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16 }}>↑</span>
+                                </div>
                             </>
                         ) : (
                             <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>

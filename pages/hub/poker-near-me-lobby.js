@@ -1587,15 +1587,23 @@ export default function PokerNearMeLobby() {
       }
 
       case 'livegames':
-        component = <LiveGamesFeed 
-          venues={venues} 
-          userLocation={userLocation} 
-          favorites={favorites} 
-          handleToggleFavorite={handleToggleFavorite} 
-          checkinCounts={checkinCounts} 
-          router={router} 
-          setSelectedVenueForReview={setSelectedVenueForReview} 
-        />;
+        component = (
+          <LiveGamesFeed 
+            userLocation={userLocation}
+            allVenues={venues}
+            favorites={favorites || {}}
+            checkinCounts={checkinCounts || {}}
+            onToggleFavorite={handleToggleFavorite}
+            onNavigate={(url, v) => {
+              if (url && url.includes('action=review') && v) {
+                setSelectedVenueForReview({ id: v.id, name: v.name });
+              } else if (url) {
+                router.push(url);
+              }
+            }}
+            renderMap={(liveVenues) => <VenueMapPanel venues={liveVenues} userLocation={userLocation} onVenueSelect={(v) => { setSelectedVenueForReview(null); router.push(`/hub/venues/${v.id}`); }} />}
+          />
+        );
         break;
 
       case 'mapview': {

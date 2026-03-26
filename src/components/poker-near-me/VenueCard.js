@@ -62,6 +62,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 {venue.is_featured && <span className="mini-badge featured-badge">Featured</span>}
                 {isNewcomer && <span className="mini-badge newcomer-badge">Newcomer Friendly</span>}
                 {hasPromo && <span className="mini-badge promo-badge">Active Promo</span>}
+                {venue.live_data && venue.live_data.tables_running > 0 && <span className="mini-badge live-badge" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>LIVE: {venue.live_data.tables_running} Tables</span>}
                 {venue.has_tournaments && <span className="mini-badge tourney-badge">Tournaments</span>}
                 {checkinCount > 0 && <span className="mini-badge" style={{ background: 'rgba(230,81,0,0.15)', color: '#E65100', border: '1px solid rgba(230,81,0,0.3)', cursor: 'pointer' }} onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '#checkins'); }}>{checkinCount} here today</span>}
             </div>
