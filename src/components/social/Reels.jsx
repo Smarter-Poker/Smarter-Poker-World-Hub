@@ -178,9 +178,9 @@ export function ReelsViewer({ onClose }) {
         setPaused(false);
         setShowOverlay(false);
         setProgress(0);
-        // Deduplicated view count — only fire once per reel per session
+        // Deduplicated view count — only fire once per reel per session (auth only)
         const reelId = reels[currentIndex]?.id;
-        if (reelId && !viewedReelsRef.current.has(reelId)) {
+        if (reelId && currentUserId && !viewedReelsRef.current.has(reelId)) {
             viewedReelsRef.current.add(reelId);
             (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch {} })();
         }
@@ -495,16 +495,25 @@ export function ReelsViewer({ onClose }) {
         if (currentUserId) busEmit.socialPostShared(currentReel.id, currentUserId);
     };
 
-    // Reset comment drawer + caption on reel change
+    // Reset comment drawer + caption + report + GIF + share on reel change
     useEffect(() => {
         setShowCommentInput(false);
         setCommentText('');
         setReelComments([]);
         setCaptionExpanded(false);
+        setShowReelGifPicker(false);
+        setReelCommentMediaUrl(null);
+        setReelCommentMediaType(null);
+        setShowReportModal(false);
+        setReportReason('');
+        setReportSubmitted(false);
+        setShareToast(false);
     }, [currentIndex]);
 
     // Keep handler refs fresh for keyboard shortcuts
+    const handleDislikeRef = useRef(null);
     handleLikeRef.current = handleLike;
+    handleDislikeRef.current = handleDislike;
     handleSaveRef.current = handleSave;
     handleCommentsRef.current = handleOpenComments;
 
@@ -524,12 +533,13 @@ export function ReelsViewer({ onClose }) {
                 });
             }
             if (e.key === 'l' || e.key === 'L') { handleLikeRef.current?.(); haptic(15); }
+            if (e.key === 'd' || e.key === 'D') { handleDislikeRef.current?.(); haptic(10); }
             if (e.key === 's' || e.key === 'S') handleSaveRef.current?.();
             if (e.key === 'c' || e.key === 'C') handleCommentsRef.current?.();
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, [currentIndex, onClose]);
+    }, [onClose]);
 
     // Touch/scroll navigation (swipe to next/prev)
     useEffect(() => {

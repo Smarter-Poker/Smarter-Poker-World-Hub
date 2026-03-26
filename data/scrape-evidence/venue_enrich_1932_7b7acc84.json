@@ -1,0 +1,14 @@
+{
+  "venue_id": 1932,
+  "venue_name": "Limelight Card Room",
+  "url": "https://www.pokeratlas.com/poker-room/limelight-card-room-sacramento",
+  "http_status": 200,
+  "scrape_html_hash": "fea8f504491f2fc928ace157943ce70564e0bfa80547016aba3b4006459b6278",
+  "byte_count": 59186,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:45:43.205395+00:00",
+  "extracted_data": {
+    "poker_tables": 3,
+    "hours_weekday": "11:00am - 1:30am"
+  }
+}

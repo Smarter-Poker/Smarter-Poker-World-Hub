@@ -1,0 +1,14 @@
+{
+  "venue_id": 1917,
+  "venue_name": "Shuffle 512",
+  "url": "https://www.pokeratlas.com/poker-room/shuffle-512-austin",
+  "http_status": 200,
+  "scrape_html_hash": "7f66597fded05dc1c32c90c49b044bcb00a12b6b250373b2cd9375b300ed7944",
+  "byte_count": 60794,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:44:21.529478+00:00",
+  "extracted_data": {
+    "poker_tables": 12,
+    "hours_weekday": "24/7"
+  }
+}

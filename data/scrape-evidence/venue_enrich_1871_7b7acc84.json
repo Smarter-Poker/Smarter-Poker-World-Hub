@@ -1,0 +1,13 @@
+{
+  "venue_id": 1871,
+  "venue_name": "MGM Grand Detroit",
+  "url": "https://www.pokeratlas.com/poker-room/mgm-grand-detroit",
+  "http_status": 200,
+  "scrape_html_hash": "6ca4a44bd4ee7bfc4c3f08f9891fd843f4f2da01559894bab485ee27c064397b",
+  "byte_count": 59383,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:39:55.696230+00:00",
+  "extracted_data": {
+    "poker_tables": 14
+  }
+}

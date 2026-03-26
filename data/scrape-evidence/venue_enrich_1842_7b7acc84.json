@@ -1,0 +1,13 @@
+{
+  "venue_id": 1842,
+  "venue_name": "WinStar World Casino",
+  "url": "https://www.pokeratlas.com/poker-room/winstar-casino-thackerville",
+  "http_status": 200,
+  "scrape_html_hash": "5d873d30d02eb37ea344a0f14fccb1797825fae3a3bdf2875d72206228061000",
+  "byte_count": 59864,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:38:41.160760+00:00",
+  "extracted_data": {
+    "poker_tables": 55
+  }
+}

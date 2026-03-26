@@ -1,0 +1,17 @@
+{
+  "venue_id": 1923,
+  "venue_name": "Texas Card House Spring",
+  "url": "https://www.pokeratlas.com/poker-room/texas-card-house-spring",
+  "http_status": 200,
+  "scrape_html_hash": "3f422b9413f5245dcd0036e3a693e09f84ec6abed51b663e126781f6c9e48c00",
+  "byte_count": 61704,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:44:57.451046+00:00",
+  "extracted_data": {
+    "games_offered": [
+      "Limit HE",
+      "NLH"
+    ],
+    "poker_tables": 32
+  }
+}

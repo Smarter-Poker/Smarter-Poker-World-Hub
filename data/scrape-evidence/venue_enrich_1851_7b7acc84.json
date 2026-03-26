@@ -1,0 +1,18 @@
+{
+  "venue_id": 1851,
+  "venue_name": "Beau Rivage",
+  "url": "https://www.pokeratlas.com/poker-room/beau-rivage-biloxi",
+  "http_status": 200,
+  "scrape_html_hash": "3873687c9e22391d0c68e1c3e72f89e77604ea4535b33091f234471a592ce4f4",
+  "byte_count": 60936,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:39:04.906974+00:00",
+  "extracted_data": {
+    "games_offered": [
+      "Mixed",
+      "NLH"
+    ],
+    "poker_tables": 16,
+    "hours_weekday": "10:00am - 4:00am"
+  }
+}

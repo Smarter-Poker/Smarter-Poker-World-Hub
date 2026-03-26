@@ -1,0 +1,14 @@
+{
+  "venue_id": 1875,
+  "venue_name": "Gun Lake Casino",
+  "url": "https://www.pokeratlas.com/poker-room/gun-lake-wayland",
+  "http_status": 200,
+  "scrape_html_hash": "67e0fb4a164cea6987a7308712108932a9c14ed7e83db01b67d2fcd4d2a88a76",
+  "byte_count": 58584,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:39:58.163315+00:00",
+  "extracted_data": {
+    "poker_tables": 8,
+    "hours_weekday": "10:00am - 4:00am"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "venue_id": 1877,
+  "venue_name": "Rivers Casino Schenectady",
+  "url": "https://www.pokeratlas.com/poker-room/rivers-schenectady",
+  "http_status": 200,
+  "scrape_html_hash": "533faabbbc3cc7511fff208a8c857ca7d23b58d62d9cef3c29096b36fd4bf744",
+  "byte_count": 58997,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:40:15.615239+00:00",
+  "extracted_data": {
+    "poker_tables": 16,
+    "hours_weekday": "10:00am - 3:00am"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "venue_id": 1934,
+  "venue_name": "Parkwest Casino Cordova",
+  "url": "https://www.pokeratlas.com/poker-room/parkwest-rancho-cordova",
+  "http_status": 200,
+  "scrape_html_hash": "eaec8048d0510010360ffcbf0aa5fd370e25aab4d7fadde1fbe7a621318f89e0",
+  "byte_count": 56843,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:45:47.569440+00:00",
+  "extracted_data": {
+    "poker_tables": 2
+  }
+}

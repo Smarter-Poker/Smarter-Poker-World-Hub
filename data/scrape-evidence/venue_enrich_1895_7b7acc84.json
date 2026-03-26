@@ -1,0 +1,13 @@
+{
+  "venue_id": 1895,
+  "venue_name": "Snoqualmie Casino",
+  "url": "https://www.pokeratlas.com/poker-room/snoqualmie-casino",
+  "http_status": 200,
+  "scrape_html_hash": "18db5b29e883aeed7d29ea6c98ba863cc7eb4b5c0a64a3c4251767184eab9c5f",
+  "byte_count": 57211,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:41:14.719378+00:00",
+  "extracted_data": {
+    "poker_tables": 4
+  }
+}

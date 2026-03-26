@@ -1,0 +1,14 @@
+{
+  "venue_id": 1870,
+  "venue_name": "MGM Springfield",
+  "url": "https://www.pokeratlas.com/poker-room/mgm-springfield",
+  "http_status": 200,
+  "scrape_html_hash": "b64b06ca3869bce1429566304fb566e61ea8bccc71bc416310c724f5ec714340",
+  "byte_count": 58705,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:39:53.584136+00:00",
+  "extracted_data": {
+    "poker_tables": 16,
+    "hours_weekday": "10:00am - 2:00am"
+  }
+}

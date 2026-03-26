@@ -1,0 +1,13 @@
+{
+  "venue_id": 1893,
+  "venue_name": "Muckleshoot Casino",
+  "url": "https://www.pokeratlas.com/poker-room/muckleshoot-casino-auburn",
+  "http_status": 200,
+  "scrape_html_hash": "31bda0fca1461a3d1395541b5b9df792613b899f3c20939600d9f2ce21d9f559",
+  "byte_count": 57219,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:41:08.924816+00:00",
+  "extracted_data": {
+    "poker_tables": 19
+  }
+}

@@ -468,8 +468,8 @@ export default function ReelsPage() {
         if (currentReel?.id) {
             setVideoProgress(0);
             setCaptionExpanded(false);
-            // Deduplicated view count — only fire once per reel per session
-            if (!viewedReelsRef.current.has(currentReel.id)) {
+            // Deduplicated view count — only fire once per reel per session (auth only)
+            if (user?.id && !viewedReelsRef.current.has(currentReel.id)) {
                 viewedReelsRef.current.add(currentReel.id);
                 (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'view_count' }); } catch {} })();
             }
@@ -608,6 +608,9 @@ export default function ReelsPage() {
         setUploadingImage(false);
     };
 
+    // Upload error toast state
+    const [uploadErrorToast, setUploadErrorToast] = useState(false);
+
     const handleComment = async () => {
         if (!currentReel) return;
         const wasOpen = showCommentPanel;
@@ -680,7 +683,7 @@ export default function ReelsPage() {
         }
     };
 
-    // Reset comment panel + media state when switching reels
+    // Reset comment panel + media + report + share state when switching reels
     useEffect(() => {
         setShowCommentPanel(false);
         setComments([]);
@@ -688,6 +691,10 @@ export default function ReelsPage() {
         setShowGifPicker(false);
         setCommentMediaUrl(null);
         setCommentMediaType(null);
+        setShowReportModal(false);
+        setReportReason('');
+        setReportSubmitted(false);
+        setShareToast(false);
     }, [currentIndex]);
 
     const handleSave = async () => {

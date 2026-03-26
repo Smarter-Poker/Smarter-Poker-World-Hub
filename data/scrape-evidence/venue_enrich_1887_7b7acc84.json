@@ -1,0 +1,13 @@
+{
+  "venue_id": 1887,
+  "venue_name": "Live! Casino Philadelphia",
+  "url": "https://www.pokeratlas.com/poker-room/live-casino-philadelphia",
+  "http_status": 200,
+  "scrape_html_hash": "7930b6ead37f352d577ff7fab087df6b4f36ea134d5ca51575501cd7b70d226f",
+  "byte_count": 59136,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:40:45.956601+00:00",
+  "extracted_data": {
+    "poker_tables": 34
+  }
+}

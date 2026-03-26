@@ -1,0 +1,13 @@
+{
+  "venue_id": 1931,
+  "venue_name": "Capitol Casino",
+  "url": "https://www.pokeratlas.com/poker-room/capitol-casino-sacramento",
+  "http_status": 200,
+  "scrape_html_hash": "3737acd6e381e362ac21af5016a5ad79966d79af1cfc9748a2c0460f5471d86a",
+  "byte_count": 59099,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:45:35.210560+00:00",
+  "extracted_data": {
+    "poker_tables": 12
+  }
+}

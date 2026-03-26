@@ -621,9 +621,16 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setShowOverlay(false);
         setProgress(0);
         setCaptionExpanded(false);
-        // Deduplicated view count — only fire once per reel per session
+        setShowReelGifPicker(false);
+        setReelCommentMediaUrl(null);
+        setReelCommentMediaType(null);
+        setShowReportModal(false);
+        setReportReason('');
+        setReportSubmitted(false);
+        setShareToast(false);
+        // Deduplicated view count — only fire once per reel per session (auth only)
         const reelId = reels[currentIndex]?.id;
-        if (reelId && !viewedReelsRef.current.has(reelId)) {
+        if (reelId && authUser?.id && !viewedReelsRef.current.has(reelId)) {
             viewedReelsRef.current.add(reelId);
             (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch {} })();
         }
@@ -660,7 +667,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
     };
 
     // Keep handler refs fresh for keyboard shortcuts
+    const handleDislikeRef = useRef(null);
     handleLikeRef.current = handleLike;
+    handleDislikeRef.current = handleDislike;
     handleSaveRef.current = handleSave;
     handleCommentsRef.current = handleToggleComments;
 
@@ -697,6 +706,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 });
             }
             if (e.key === 'l' || e.key === 'L') { handleLikeRef.current?.(); haptic(15); }
+            if (e.key === 'd' || e.key === 'D') { handleDislikeRef.current?.(); haptic(10); }
             if (e.key === 's' || e.key === 'S') handleSaveRef.current?.();
             if (e.key === 'c' || e.key === 'C') handleCommentsRef.current?.();
         };

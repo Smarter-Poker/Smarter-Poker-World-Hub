@@ -1,0 +1,13 @@
+{
+  "venue_id": 1927,
+  "venue_name": "Oaks Card Club",
+  "url": "https://www.pokeratlas.com/poker-room/oaks-card-club-emeryville",
+  "http_status": 200,
+  "scrape_html_hash": "5a1845053e83d73c0c201f3eb3aa078fdd6e84efa21f1bb3432b4bf6eea7a3dd",
+  "byte_count": 59142,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:45:28.804392+00:00",
+  "extracted_data": {
+    "poker_tables": 18
+  }
+}

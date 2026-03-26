@@ -1,0 +1,13 @@
+{
+  "venue_id": 1933,
+  "venue_name": "Kings Card Club",
+  "url": "https://www.pokeratlas.com/poker-room/kings-card-club-stockton",
+  "http_status": 200,
+  "scrape_html_hash": "10edc0e2c31a3d151a4188caae1bf6217090f820073154ad7bd8d55a58eb2237",
+  "byte_count": 59206,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:45:45.414755+00:00",
+  "extracted_data": {
+    "poker_tables": 2
+  }
+}

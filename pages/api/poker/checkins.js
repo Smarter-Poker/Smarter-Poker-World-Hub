@@ -143,7 +143,7 @@ export default async function handler(req, res) {
           });
         }
 
-        // User check-in history
+        // User check-in history (enriched with venue names)
         if (user_id) {
           const { data, error } = await getSupabase()
             .from('venue_checkins')
@@ -157,7 +157,27 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: error.message });
           }
 
-          return res.status(200).json({ success: true, checkins: data || [] });
+          // Enrich with venue names from poker_venues
+          let enriched = data || [];
+          if (enriched.length > 0) {
+            const venueIds = [...new Set(enriched.map(c => parseInt(c.venue_id, 10)).filter(n => !isNaN(n) && n > 0))];
+            if (venueIds.length > 0) {
+              const { data: venues } = await getSupabase()
+                .from('poker_venues')
+                .select('id, name, city, state')
+                .in('id', venueIds);
+              if (venues) {
+                const venueMap = {};
+                for (const v of venues) { venueMap[String(v.id)] = v; }
+                enriched = enriched.map(c => {
+                  const venue = venueMap[String(c.venue_id)] || {};
+                  return { ...c, venue_name: venue.name || null, venue_city: venue.city || null, venue_state: venue.state || null };
+                });
+              }
+            }
+          }
+
+          return res.status(200).json({ success: true, checkins: enriched });
         }
 
         return res.status(400).json({ success: false, error: 'venue_id or user_id is required' });

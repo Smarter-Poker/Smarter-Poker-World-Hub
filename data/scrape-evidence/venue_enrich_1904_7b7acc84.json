@@ -1,0 +1,18 @@
+{
+  "venue_id": 1904,
+  "venue_name": "Doghouse Poker Club",
+  "url": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress",
+  "http_status": 200,
+  "scrape_html_hash": "bd2ab0df11e647bbbbe17e0d92dabea08d58d9be7a25ae49b29dbd7de3a89d84",
+  "byte_count": 60707,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:43:37.812726+00:00",
+  "extracted_data": {
+    "games_offered": [
+      "PLO",
+      "NLH"
+    ],
+    "poker_tables": 13,
+    "hours_weekday": "10:00am - 4:00am"
+  }
+}

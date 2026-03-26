@@ -1,0 +1,13 @@
+{
+  "venue_id": 1865,
+  "venue_name": "Parkwest Casino Lodi",
+  "url": "https://www.pokeratlas.com/poker-room/parkwest-lodi",
+  "http_status": 200,
+  "scrape_html_hash": "6a211bd272e9715fdaeda80e5fbec32f4990b3585bd4894e8d464cfba82bb47d",
+  "byte_count": 58486,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:39:49.101578+00:00",
+  "extracted_data": {
+    "poker_tables": 1
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "venue_id": 1879,
+  "venue_name": "Hard Rock Cincinnati",
+  "url": "https://www.pokeratlas.com/poker-room/hard-rock-cincinnati",
+  "http_status": 200,
+  "scrape_html_hash": "a0c9a067857b637ebaca3632e6e783655ebcdf7c030578b293e5d535ed488c65",
+  "byte_count": 58785,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:40:23.607687+00:00",
+  "extracted_data": {
+    "games_offered": [
+      "Mixed"
+    ],
+    "poker_tables": 30
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "venue_id": 1935,
+  "venue_name": "Parkwest Casino Lotus",
+  "url": "https://www.pokeratlas.com/poker-room/lotus-sacramento",
+  "http_status": 200,
+  "scrape_html_hash": "87ef3eeb8b74c4f354623db3977ea938c7cae3d5894d13e3255a3953bf28c13d",
+  "byte_count": 56272,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:45:49.859035+00:00",
+  "extracted_data": {
+    "poker_tables": 5
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "venue_id": 1841,
+  "venue_name": "Hard Rock Tulsa",
+  "url": "https://www.pokeratlas.com/poker-room/hard-rock-tulsa-catoosa",
+  "http_status": 200,
+  "scrape_html_hash": "60194e5925c10a610008d7897e23de5cf7ddd5f127bfce7ca1d1c4c3cd91f8dd",
+  "byte_count": 58960,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:38:37.068177+00:00",
+  "extracted_data": {
+    "poker_tables": 14,
+    "hours_weekday": "12:00pm - 3:00am"
+  }
+}

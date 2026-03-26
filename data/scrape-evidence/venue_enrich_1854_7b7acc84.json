@@ -1,0 +1,14 @@
+{
+  "venue_id": 1854,
+  "venue_name": "Casino Del Sol",
+  "url": "https://www.pokeratlas.com/poker-room/casino-del-sol-tucson",
+  "http_status": 200,
+  "scrape_html_hash": "b636699d25205f29c29237677f921bb1999ff9d275a5e7a487cfb73ae6d0e659",
+  "byte_count": 59589,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:39:18.194896+00:00",
+  "extracted_data": {
+    "poker_tables": 10,
+    "hours_weekday": "12:00pm - 4:00am"
+  }
+}
