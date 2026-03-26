@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       query = query.ilike('venue_name', `%${search}%`);
     }
 
-    const { data, error } = await query.limit(500);
+    const { data, error } = await query.limit(3000);
 
     if (error) {
       console.error('Live tables query error:', error);

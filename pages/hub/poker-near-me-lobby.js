@@ -1587,7 +1587,15 @@ export default function PokerNearMeLobby() {
       }
 
       case 'livegames':
-        component = <LiveGamesFeed userLocation={userLocation} />;
+        component = <LiveGamesFeed 
+          venues={venues} 
+          userLocation={userLocation} 
+          favorites={favorites} 
+          handleToggleFavorite={handleToggleFavorite} 
+          checkinCounts={checkinCounts} 
+          router={router} 
+          setSelectedVenueForReview={setSelectedVenueForReview} 
+        />;
         break;
 
       case 'mapview': {

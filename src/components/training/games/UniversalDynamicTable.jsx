@@ -1847,25 +1847,11 @@ function UniversalDynamicTable({
                 )}
 
                 {/* PREMIUM RACETRACK TABLE — GoldenTemplateTable design */}
-                <div style={styles.feltOuter}>
-                    {/* OUTER GOLD RAIL */}
-                    <div style={styles.goldRailOuter}>
-                        {/* BLACK GAP */}
-                        <div style={styles.goldRailGap}>
-                            {/* INNER GOLD RAIL */}
-                            <div style={styles.goldRailInner}>
-                                {/* THIN DARK EDGE */}
-                                <div style={styles.goldRailDarkEdge}>
-                                    {/* INNER GLOW LINE */}
-                                    <div style={styles.goldRailGlow}>
-                                        {/* DARK FELT SURFACE */}
-                                        <div style={styles.feltSurface} />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                {/* NEW CUSTOM STANDALONE RACETRACK TABLE */}
+                <div style={styles.tableBezel}>
+                    <div style={styles.tableGlowLine}>
+                        <div style={styles.tableFeltPattern} />
                     </div>
-                </div>
 
                 {/* DYNAMIC PLAYER SEATS — GTO Wizard style: only Hero + active Villain(s) */}
                 <div style={styles.seatsContainer}>
@@ -1888,8 +1874,7 @@ function UniversalDynamicTable({
                             || actionHistory.some(a => a.position?.toUpperCase() === seat.name?.toUpperCase());
                         if (!isHero && !isActiveVillain) return null;
 
-                        // Phase 9: GTO Wizard 2-seat override — force Hero bottom-center, Villain top-center
-                        // This prevents overlap regardless of original 6-max/9-max coordinates
+                        // Phase 13: Strict Standalone Table override — force Hero exact bottom edge, Villain exact top edge
                         const activeCount = seats.filter((s, i) => {
                             if (i === heroSeatIndex) return true;
                             return villainPosition?.toUpperCase() === s.name?.toUpperCase()
@@ -1898,9 +1883,9 @@ function UniversalDynamicTable({
                         let seatX = seat.x;
                         let seatY = seat.y;
                         if (activeCount <= 2) {
-                            // Force GTO Wizard positions: Villain inside top quarter, Hero inside bottom quarter
+                            // Strict Absolute positions: Villain exactly at top border, Hero exactly at bottom border
                             seatX = 50;
-                            seatY = isHero ? 88 : 5;
+                            seatY = isHero ? 100 : 0;
                         }
 
                         return (
@@ -2162,6 +2147,7 @@ function UniversalDynamicTable({
                         </div>
                     </motion.div>
                 )}
+                </div> {/* END tableBezel */}
 
                 {/* Street indicator removed — already shown in header */}
             </div>
@@ -3242,74 +3228,41 @@ const styles = {
         padding: '12px 16px 8px 16px',
     },
 
-    // ── PREMIUM RACETRACK TABLE — GoldenTemplateTable design
-    feltOuter: {
+    // ── NEW CUSTOM STANDALONE RACETRACK TABLE
+    tableBezel: {
         position: 'relative',
         width: '100%',
-        maxWidth: 420,
-        aspectRatio: '1 / 1.5',
-        borderRadius: '50% / 38%',
-        background: 'linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 50%, #050505 100%)',
+        maxWidth: 340,
+        height: 540,
+        borderRadius: 170,
+        background: '#1a1a2e',
+        border: '4px solid #333344',
         margin: '0 auto',
-        overflow: 'visible',
-        zIndex: 1,
-        boxShadow: `
-            0 25px 80px rgba(0,0,0,0.95),
-            0 8px 30px rgba(0,0,0,0.8),
-            inset 0 -8px 20px rgba(0,0,0,0.6),
-            inset 0 8px 20px rgba(50,50,50,0.2)
-        `,
+        flexShrink: 0,
+        boxShadow: '0 20px 60px rgba(0,0,0,0.8), inset 0 3px 8px rgba(255,255,255,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    goldRailOuter: {
-        position: 'absolute',
-        inset: 12,
-        borderRadius: '50% / 37%',
-        background: 'linear-gradient(180deg, #f0d050 0%, #d4a000 25%, #a07800 60%, #705000 100%)',
-        boxShadow: 'inset 0 3px 6px rgba(255,255,180,0.5), inset 0 -3px 6px rgba(0,0,0,0.5)',
-    },
-    goldRailGap: {
-        position: 'absolute',
-        inset: 10,
-        borderRadius: '50% / 36%',
-        background: 'linear-gradient(180deg, #151515 0%, #0a0a0a 100%)',
-    },
-    goldRailInner: {
-        position: 'absolute',
-        inset: 8,
-        borderRadius: '50% / 35%',
-        background: 'linear-gradient(180deg, #ffe070 0%, #e8b810 25%, #b08000 60%, #785500 100%)',
-        boxShadow: 'inset 0 3px 6px rgba(255,255,180,0.6), inset 0 -3px 6px rgba(0,0,0,0.5)',
-    },
-    goldRailDarkEdge: {
+    tableGlowLine: {
         position: 'absolute',
         inset: 6,
-        borderRadius: '50% / 34%',
-        background: 'linear-gradient(180deg, #101010 0%, #080808 100%)',
+        borderRadius: 164,
+        border: '2px solid rgba(255, 204, 0, 0.6)',
+        boxShadow: '0 0 12px rgba(255, 204, 0, 0.4), inset 0 0 12px rgba(255, 204, 0, 0.2)',
+        background: 'linear-gradient(180deg, #181b22 0%, #0d0f14 100%)',
+        overflow: 'hidden',
     },
-    goldRailGlow: {
-        position: 'absolute',
-        inset: 4,
-        borderRadius: '50% / 33%',
-        border: '3px solid rgba(180,140,50,0.35)',
-        background: 'transparent',
-    },
-    feltSurface: {
+    tableFeltPattern: {
         position: 'absolute',
         inset: 0,
-        borderRadius: '50% / 33%',
-        background: `radial-gradient(
-            ellipse at 50% 35%,
-            #181818 0%,
-            #121212 25%,
-            #0d0d0d 50%,
-            #080808 75%,
-            #050505 100%
-        )`,
-        boxShadow: `
-            inset 0 0 120px rgba(0,0,0,0.9),
-            inset 0 0 60px rgba(0,0,0,0.7),
-            inset 0 -20px 40px rgba(0,0,0,0.5)
+        backgroundImage: `
+            linear-gradient(45deg, rgba(255,255,255,0.02) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.02)), 
+            linear-gradient(45deg, rgba(255,255,255,0.02) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.02))
         `,
+        backgroundSize: '30px 30px',
+        backgroundPosition: '0 0, 15px 15px',
+        zIndex: 0,
     },
 
     seatsContainer: {
@@ -3317,8 +3270,8 @@ const styles = {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: '90%',
-        height: '90%',
+        width: '100%',
+        height: '100%',
         zIndex: 2,
         pointerEvents: 'none',
     },
@@ -3453,9 +3406,9 @@ const styles = {
 
     boardCards: {
         position: 'absolute',
-        top: '45%',
+        top: '50%',
         left: '50%',
-        transform: 'translateX(-50%)',
+        transform: 'translate(-50%, -50%)',
         display: 'flex',
         gap: 8,
         zIndex: 3,
@@ -3471,9 +3424,9 @@ const styles = {
 
     pot: {
         position: 'absolute',
-        top: '30%',
+        top: '36%',
         left: '50%',
-        transform: 'translateX(-50%)',
+        transform: 'translate(-50%, -50%)',
         color: '#e2e8f0',
         fontSize: 16,
         fontWeight: 800,

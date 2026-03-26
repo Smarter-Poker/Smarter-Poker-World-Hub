@@ -1594,7 +1594,8 @@ export default function SocialPageDetail() {
         setPosts(prev => prev.map(p =>
             p.id === postId ? { ...p, comment_count: (p.comment_count || 0) + 1 } : p
         ));
-        busEmit.socialCommentAdded(postId, user?.id);
+        // Phase 5 Crash Fix: Removed invalid busEmit.socialCommentAdded call that was crashing the app.
+        // EventBus synchronization is now handled directly by the component EventListeners.
         busEmit.dataMutated('social-pages');
     };
 
