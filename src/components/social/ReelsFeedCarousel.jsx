@@ -699,6 +699,21 @@ function ReelViewer({ reels, startIndex, onClose }) {
         } catch { /* silent */ }
     };
 
+    // YouTube auto-advance: listen for onStateChange postMessage (state 0 = ended)
+    useEffect(() => {
+        const handleYTMessage = (event) => {
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                if (data?.event === 'onStateChange' && data?.info === 0) {
+                    // Video ended — auto-advance
+                    if (currentIndex < reels.length - 1) goNext();
+                }
+            } catch { /* not a YouTube message */ }
+        };
+        window.addEventListener('message', handleYTMessage);
+        return () => window.removeEventListener('message', handleYTMessage);
+    }, [currentIndex, reels.length]);
+
     const handleFollow = async () => {
         const authorId = currentReel?.author_id || currentReel?.profiles?.id;
         if (!authorId || !authUser?.id || authorId === authUser.id) return;
@@ -910,6 +925,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 // Force play via YouTube postMessage API
                                 try {
                                     e.target.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+                                    // Listen for stateChange events (for auto-advance)
+                                    e.target.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                                     setTimeout(() => {
                                         e.target.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
                                     }, 500);
@@ -923,7 +940,6 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         key={currentReel.id}
                         src={currentReel.video_url}
                         autoPlay
-                        loop
                         muted={muted}
                         playsInline
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}

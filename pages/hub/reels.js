@@ -1763,6 +1763,7 @@ export default function ReelsPage() {
                                     }}>{(c.profiles?.username || c.author?.username || 'U').charAt(0).toUpperCase()}</div>
                                     <div style={{ flex: 1 }}>
                                         <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{c.profiles?.username || c.author?.username || 'User'}</span>
+                                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>{c.created_at ? timeAgo(c.created_at) : ''}</span>
                                         {c.content && <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 2 }}>{c.content}</div>}
                                         {c.media_url && (
                                             <img src={c.media_url} alt="" style={{
