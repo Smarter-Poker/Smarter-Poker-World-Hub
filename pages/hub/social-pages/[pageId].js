@@ -92,6 +92,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
         document.addEventListener('mousedown', close);
         return () => document.removeEventListener('mousedown', close);
     }, [showMenu]);
+    // P7-1: Cleanup reaction timer on unmount to prevent zombie setState
+    useEffect(() => {
+        return () => { if (reactionTimer.current) clearTimeout(reactionTimer.current); };
+    }, []);
 
     const canManage = isPageOwner || (user && post.author_id === user.id);
 
@@ -348,8 +352,8 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                         clearTimeout(reactionTimer.current);
                         reactionTimer.current = setTimeout(() => setShowReactions(false), 300);
                     } },
-                    { label: 'Comment', action: fetchComments },
-                    { label: 'Share', action: () => setShowShareModal(true) },
+                    { label: 'Comment', action: fetchComments, onMouseEnter: undefined, onMouseLeave: undefined },
+                    { label: 'Share', action: () => setShowShareModal(true), onMouseEnter: undefined, onMouseLeave: undefined },
                 ].map((btn, i) => (
                     <button key={i} onClick={btn.action}
                         onMouseEnter={btn.onMouseEnter}
