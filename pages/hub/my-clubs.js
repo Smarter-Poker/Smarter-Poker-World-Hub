@@ -17,6 +17,8 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import { supabase } from '../../src/lib/supabase';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../src/engine/EventBus';
 import SkeletonLight from '../../src/components/ui/SkeletonLight';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
@@ -423,6 +425,7 @@ function EmptyState({ onSearchFocus }) {
 export default function MyClubsPage() {
     const router = useRouter();
     const searchInputRef = useRef(null);
+    useTrainingBus('my-clubs');
 
     // Auth
     const [user, setUser] = useState(null);
