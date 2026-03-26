@@ -239,6 +239,43 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [slideDir, setSlideDir] = useState(null);
     const [captionExpanded, setCaptionExpanded] = useState(false);
     const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
+    
+    // Phase 9: Long Press Context Menu
+    const [showContextMenu, setShowContextMenu] = useState(false);
+    const longPressTimerRef = useRef(null);
+    const handleTouchStart = () => {
+        longPressTimerRef.current = setTimeout(() => {
+            haptic(20);
+            setShowContextMenu(true);
+        }, 500);
+    };
+    const cancelLongPress = () => {
+        if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+    
+    // Phase 9: Watched Indicator
+    const [watchedReelIds, setWatchedReelIds] = useState([]);
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('smarter-reels-watched');
+            if (stored) {
+                try { setWatchedReelIds(JSON.parse(stored)); } catch {}
+            }
+        }
+    }, []);
+    useEffect(() => {
+        if (!currentReel?.id) return;
+        const watchTimer = setTimeout(() => {
+            setWatchedReelIds(prev => {
+                if (prev.includes(currentReel.id)) return prev;
+                const next = [...prev, currentReel.id].slice(-500);
+                localStorage.setItem('smarter-reels-watched', JSON.stringify(next));
+                return next;
+            });
+        }, 3000); // 3 seconds = watched
+        return () => clearTimeout(watchTimer);
+    }, [currentReel?.id]);
+
     // #8 Share Options Modal
     const [showShareModal, setShowShareModal] = useState(false);
     // #7 Animated Like Counter
@@ -703,11 +740,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
     };
 
     // Share handler
-    // #8 Share Options Modal handler
+    // Phase 9: 1-Click Repost Architecture — open modal AND directly share to feed
     const handleShare = () => {
         if (!currentReel?.id) return;
         haptic(10);
         setShowShareModal(true);
+        if (!sharedToFeed && !sharingToFeed) {
+            handleShareToFeed();
+        }
     };
 
     const shareReelUrl = currentReel ? `${window.location.origin}/hub/social-media?reel=${currentReel.id}` : '';
@@ -762,7 +802,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
             busEmit.socialPostShared(currentReel.id, authUser.id);
             busEmit.dataMutated('social');
             setSharedToFeed(true);
-            setTimeout(() => { setShowShareModal(false); setSharedToFeed(false); }, 1500);
+            // Phase 9: Keep modal open so users can share to outside places
+            setTimeout(() => { setSharedToFeed(false); }, 3000);
         } catch (err) {
             console.warn('Share to feed failed:', err.message);
         }
@@ -971,6 +1012,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
             onClick={handleTap}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={cancelLongPress}
+            onTouchMove={cancelLongPress}
+            onMouseDown={handleTouchStart}
+            onMouseUp={cancelLongPress}
+            onMouseMove={cancelLongPress}
+            onContextMenu={(e) => { e.preventDefault(); setShowContextMenu(true); }}
         >
             {/* Close button */}
             <button
@@ -1074,8 +1122,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid white' }}
                         />
                         <div>
-                            <div style={{ color: 'white', fontWeight: 600 }}>
-                                {currentReel.profiles?.full_name || currentReel.profiles?.username}
+                            <div style={{ color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span>{currentReel.profiles?.full_name || currentReel.profiles?.username}</span>
+                                {watchedReelIds.includes(currentReel?.id) && (
+                                    <span style={{
+                                        fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
+                                        background: 'rgba(255,255,255,0.15)', padding: '2px 6px', borderRadius: 4, backdropFilter: 'blur(4px)',
+                                    }}>Watched</span>
+                                )}
                             </div>
                             <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>
                                 {timeAgo(currentReel.created_at)}
@@ -1287,6 +1341,44 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                     <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{desc}</span>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                )}
+                {/* Phase 9: Long Press Context Menu */}
+                {showContextMenu && (
+                    <div onClick={(e) => { e.stopPropagation(); setShowContextMenu(false); }} style={{
+                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300,
+                    }}>
+                        <div onClick={e => e.stopPropagation()} style={{
+                            background: 'rgba(25, 25, 40, 0.95)', border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: 16, width: 260, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                        }}>
+                            <button onClick={(e) => { e.stopPropagation(); setShowContextMenu(false); handleSave(); }} style={{
+                                background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                padding: '16px 20px', color: 'white', fontSize: 16, fontWeight: 600, textAlign: 'left',
+                                display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                            }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill={saved[currentReel?.id] ? 'white' : 'none'} stroke="white" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> 
+                                {saved[currentReel?.id] ? 'Unsave' : 'Save Reel'}
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); setShowContextMenu(false); handleShare(); }} style={{
+                                background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                padding: '16px 20px', color: 'white', fontSize: 16, fontWeight: 600, textAlign: 'left',
+                                display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                            }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> 
+                                Share / Repost
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); setShowContextMenu(false); handleReport(); }} style={{
+                                background: 'transparent', border: 'none',
+                                padding: '16px 20px', color: '#ff3b30', fontSize: 16, fontWeight: 600, textAlign: 'left',
+                                display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                            }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                                Report
+                            </button>
                         </div>
                     </div>
                 )}

@@ -17,6 +17,12 @@ import { busEmit, eventBus, EventType } from '../../../engine/EventBus';
 // 📷 COVER PHOTO & PROFILE HEADER
 // ═══════════════════════════════════════════════════════════════════════════
 
+const CameraIcon = ({ size = 20, fill = 'currentColor' }) => (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill={fill}>
+        <path d="M4 6h4l1.5-2h5L16 6h4c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2zm8 11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0-8c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3z"/>
+    </svg>
+);
+
 const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessage, isFriend }) => (
     <div className="profile-header">
         {/* Cover Photo */}
@@ -24,7 +30,7 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
             <img src={user.coverPhoto || ''} alt="" style={{ background: '#2d2d2d', objectPosition: user.coverPosition || '50% 50%' }} />
             {isOwnProfile && (
                 <button className="edit-cover-btn">
-                    📷 Edit cover photo
+                    <CameraIcon size={18} /> Edit cover photo
                 </button>
             )}
         </div>
@@ -35,7 +41,9 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
                 <div className="profile-avatar-wrapper">
                     <SPAvatar src={user.avatar} size={168} />
                     {isOwnProfile && (
-                        <button className="edit-avatar-btn">📷</button>
+                        <button className="edit-avatar-btn">
+                            <CameraIcon fill="#050505" />
+                        </button>
                     )}
                 </div>
             </div>
@@ -139,6 +147,9 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
                 font-size: 15px;
                 font-weight: 600;
                 cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
             }
 
             .profile-info-container {
@@ -168,10 +179,20 @@ const ProfileHeader = ({ user, isOwnProfile, onEditProfile, onAddFriend, onMessa
                 right: 8px;
                 width: 36px;
                 height: 36px;
-                background: ${SP_COLORS.bgMain};
-                border: none;
+                background: #E4E6EB;
+                border: 2px solid ${SP_COLORS.bgWhite};
                 border-radius: 50%;
                 cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #050505;
+                transition: background 0.2s;
+                z-index: 2;
+            }
+
+            .edit-avatar-btn:hover {
+                background: #D8DADF;
             }
 
             .profile-details {
