@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
     try {
       // Fetch all active venues from Supabase
-      const { data: venues, error } = await supabase
+      const { data: venues, error } = await getSupabase()
         .from('poker_venues')
         .select(`
           id, name, slug, address, city, state, zip, country,
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
         `)
         .eq('is_active', true)
         .order('name', { ascending: true })
-            .limit(100);
+            .limit(1000);
 
       if (error) {
         console.error('Failed to fetch venues:', error);
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
       const jsonPayload = JSON.stringify({ venues, updated_at: new Date().toISOString(), count: venueCount });
 
       // Try to update a cache record in the database
-      const { error: cacheError } = await supabase
+      const { error: cacheError } = await getSupabase()
         .from('system_cache')
         .upsert({
           cache_key: 'all_venues_json',

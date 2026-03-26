@@ -35,8 +35,8 @@ const TripCostCalculator = dynamic(() => import('../../src/components/poker-near
 const SeasonalCalendar = dynamic(() => import('../../src/components/poker-near-me/SeasonalCalendar'), { ssr: false });
 
 // Page configuration constants
-const PAGE_SIZE = 24;
-const PAGE_SIZE_DAILY = 30;
+const PAGE_SIZE = 50;
+const PAGE_SIZE_DAILY = 50;
 const PAGE_SIZE_LIVE = 30;
 const LIVE_REFRESH_MS = 120000; // 2 minutes
 const SEARCH_DEBOUNCE_MS = 400;
@@ -115,7 +115,7 @@ const POPULAR_CITIES = [
     { name: 'Charlotte', state: 'NC' }, { name: 'Sacramento', state: 'CA' },
 ];
 const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
-const TOTAL_VENUES = 484;
+const TOTAL_VENUES = 501;
 
 
 const VENUE_TYPE_LABELS = {
@@ -341,7 +341,7 @@ function VenueMap({ venues, userLocation }) {
     // Dynamically load Leaflet scripts — deferred until Map tab is selected (~200KB saved on initial load)
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        if (activeTab !== 'map') return; // ← lazy: only load when Map tab is active
+        if (typeof window === 'undefined') return;
 
         // Check if already loaded
         if (window.L && window.L.MarkerClusterGroup) {
@@ -415,7 +415,7 @@ function VenueMap({ venues, userLocation }) {
         };
 
         loadLeaflet();
-    }, [activeTab]); // depends on activeTab — Leaflet only loads when Map tab is selected
+    }, []); // Leaflet loads once on mount (map tab renders conditionally)
 
     // Initialize map once Leaflet is ready
     useEffect(() => {
@@ -639,6 +639,7 @@ export default function PokerNearMePage() {
     const [tours, setTours] = useState([]);
     const [series, setSeries] = useState([]);
     const [dailyTournaments, setDailyTournaments] = useState([]);
+    const [dbStats, setDbStats] = useState({ total: 0, tournaments: 0, states: 0 });
 
     // UI states
     const [loading, setLoading] = useState(true);
@@ -726,7 +727,8 @@ export default function PokerNearMePage() {
             minBuyin: '',
             maxBuyin: '',
             stakes: 'all',
-            gameType: 'all'
+            gameType: 'all',
+            selectedState: 'all'
         };
     });
 
@@ -833,7 +835,7 @@ export default function PokerNearMePage() {
         } catch (e) { /* ignore */ }
         // Fetch fresh and update cache
         fetch('/data/all-venues.json')
-            .then(function (r, { signal }) { return r.json(); })
+            .then(function (r) { return r.json(); })
             .then(function (json) {
                 var v = json.venues || json.data || json || [];
                 var arr = Array.isArray(v) ? v : [];
@@ -851,9 +853,9 @@ export default function PokerNearMePage() {
             });
     }, []);
 
-    // Fetch non-venue data on mount (tours, series, daily tournaments)
+    // Fetch ALL data on mount (venues + tours + series + daily tournaments)
     useEffect(() => {
-        fetchAllData();
+        fetchAllData({ includeVenues: true });
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // When city or GPS location is set, search for venues
@@ -1223,6 +1225,9 @@ export default function PokerNearMePage() {
             if (filters.venueType !== 'all') {
                 params.set('type', filters.venueType);
             }
+            if (filters.selectedState && filters.selectedState !== 'all') {
+                params.set('state', filters.selectedState);
+            }
             if (filters.hasNLH) params.set('hasNLH', 'true');
             if (filters.hasPLO) params.set('hasPLO', 'true');
             if (filters.hasMixed) params.set('hasMixed', 'true');
@@ -1233,6 +1238,15 @@ export default function PokerNearMePage() {
             let filteredData = data || [];
 
             setVenues(filteredData);
+            // Update stats from response
+            if (json.total) {
+                const stateSet = new Set(filteredData.map(v => v.state).filter(Boolean));
+                setDbStats(prev => ({
+                    ...prev,
+                    total: json.total,
+                    states: stateSet.size || prev.states
+                }));
+            }
             if (filteredData.length > 0 && filteredData[0].distance_mi) {
                 setNearestDistance(filteredData[0].distance_mi);
             }
@@ -1297,6 +1311,9 @@ export default function PokerNearMePage() {
             if (selectedCity && selectedCity.state) {
                 params.set('state', selectedCity.state);
             }
+            if (filters.selectedState && filters.selectedState !== 'all') {
+                params.set('state', filters.selectedState);
+            }
             // Also pass GPS-derived state when available
             if (!selectedCity && userLocation) {
                 params.set('lat', userLocation.lat.toString());
@@ -1311,10 +1328,18 @@ export default function PokerNearMePage() {
             if (filters.maxBuyin) {
                 params.set('maxBuyin', filters.maxBuyin);
             }
+            if (filters.gameType && filters.gameType !== 'all') {
+                params.set('game_type', filters.gameType === 'cash' ? 'NLH' : filters.gameType);
+            }
 
             const url = '/api/poker/daily-tournaments?' + params;
             const json = await cachedFetch(url);
-            setDailyTournaments(json.tournaments || []);
+            const tournamentList = json.tournaments || [];
+            setDailyTournaments(tournamentList);
+            // Update dbStats with tournament count
+            if (tournamentList.length > 0) {
+                setDbStats(prev => ({ ...prev, tournaments: json.stats?.total || tournamentList.length }));
+            }
         } catch (e) {
             console.error('Fetch daily tournaments error:', e);
             setDailyTournaments([]);
@@ -1621,7 +1646,8 @@ export default function PokerNearMePage() {
             minBuyin: '',
             maxBuyin: '',
             stakes: 'all',
-            gameType: 'all'
+            gameType: 'all',
+            selectedState: 'all'
         });
     };
 
@@ -1893,11 +1919,9 @@ export default function PokerNearMePage() {
     };
 
     const renderVenues = () => {
-        if (!hasSearched) {
-            return null;
-        }
+        // Always show venues — no gate
 
-        if (venues.length === 0) {
+        if (venues.length === 0 && !venueLoading && !loading) {
             return (
                 <div className="empty-state">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
@@ -1913,6 +1937,23 @@ export default function PokerNearMePage() {
 
         return (
             <>
+                {/* Database Stats Banner */}
+                <div style={{
+                    display: 'flex', justifyContent: 'center', gap: 24, padding: '12px 16px',
+                    background: 'rgba(212,168,83,0.08)', borderRadius: 10,
+                    border: '1px solid rgba(212,168,83,0.15)', marginBottom: 12,
+                    flexWrap: 'wrap'
+                }}>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+                        <span style={{ color: '#d4a853', fontWeight: 800 }}>{dbStats.total || venues.length}</span> Venues
+                    </span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+                        <span style={{ color: '#d4a853', fontWeight: 800 }}>{dbStats.tournaments || dailyTournaments.length}</span> Daily Tournaments
+                    </span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+                        <span style={{ color: '#d4a853', fontWeight: 800 }}>{dbStats.states || '41'}</span> States
+                    </span>
+                </div>
                 {/* Sort & Results Bar */}
                 <div className="results-bar">
                     <span className="results-count">{venues.length} result{venues.length !== 1 ? 's' : ''} found</span>
@@ -2347,7 +2388,7 @@ export default function PokerNearMePage() {
                     cost={25}
                     duration={24}
                     title="Poker Near Me"
-                    description="Access 483+ Live Poker Venues, Tournament Schedules, And Daily Events Worldwide."
+                    description={`Access ${dbStats.total || '500+'} Live Poker Venues, Tournament Schedules, And Daily Events Worldwide.`}
                 >
 
                     {/* ═══ NATIVE CSS SEARCH & FILTER ROW ═══ */}
@@ -2356,7 +2397,7 @@ export default function PokerNearMePage() {
                             <input
                                 type="text"
                                 className="native-search-input"
-                                placeholder="City, State, or Zip"
+                                placeholder="Search venues, cities, states, tours..."
                                 value={searchQuery}
                                 onChange={handleSearchInputChange}
                                 autoComplete="off"
@@ -2479,6 +2520,26 @@ export default function PokerNearMePage() {
                                             <button className={'chip' + (filters.hasMixed ? ' active' : '')}
                                                 onClick={() => setFilters({ ...filters, hasMixed: !filters.hasMixed })}>Mixed</button>
                                         </div>
+                                    </div>
+                                    <div className="filter-group">
+                                        <label>State</label>
+                                        <select
+                                            value={filters.selectedState}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                setFilters(f => ({ ...f, selectedState: val }));
+                                            }}
+                                            style={{
+                                                width: '100%', padding: '10px 12px',
+                                                background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.15)',
+                                                borderRadius: 8, color: '#fff', fontSize: 14, appearance: 'auto'
+                                            }}
+                                        >
+                                            <option value="all">All States</option>
+                                            {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                                                <option key={st} value={st}>{st}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </>
                             )}

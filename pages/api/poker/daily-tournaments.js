@@ -64,7 +64,10 @@ export default async function handler(req, res) {
               type,      // Card Room, Casino, Charity
               minBuyin,
               maxBuyin,
-              limit = 200
+              game_type, // NLH, PLO, Mixed, etc.
+              minGuaranteed, // minimum guaranteed prize pool
+              sort = 'time', // time, buyin, guaranteed
+              limit = 999
           } = req.query;
 
           // Try to get tournaments from database first
@@ -101,6 +104,16 @@ export default async function handler(req, res) {
               if (safeVenue) {
                   query = query.ilike('venue_name', `%${safeVenue}%`);
               }
+          }
+
+          // Filter by game type
+          if (game_type && game_type !== 'all') {
+              query = query.ilike('game_type', `%${game_type}%`);
+          }
+
+          // Filter by minimum guaranteed prize
+          if (minGuaranteed) {
+              query = query.gte('guaranteed', parseInt(minGuaranteed, 10) || 0);
           }
 
           // Filter by buy-in range
@@ -154,8 +167,15 @@ export default async function handler(req, res) {
               tournaments = [];
           }
 
-          // Sort by time
-          tournaments.sort((a, b) => parseTime(a.start_time) - parseTime(b.start_time));
+          // Sort by chosen field
+          if (sort === 'buyin') {
+              tournaments.sort((a, b) => (a.buy_in || 0) - (b.buy_in || 0));
+          } else if (sort === 'guaranteed') {
+              tournaments.sort((a, b) => (b.guaranteed || 0) - (a.guaranteed || 0));
+          } else {
+              // Default: sort by time
+              tournaments.sort((a, b) => parseTime(a.start_time) - parseTime(b.start_time));
+          }
 
           // Group by time slot
           const byTimeSlot = groupByTimeSlot(tournaments);

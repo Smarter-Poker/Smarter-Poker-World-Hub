@@ -1994,24 +1994,7 @@ function UniversalDynamicTable({
                                         </div>
                                     )}
 
-                                    {/* PHASE 5: Hand Strength Indicator (hero only, during decision) */}
-                                    {isHero && handStrength && !showFeedback && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 5 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            style={{
-                                                fontSize: 8, fontWeight: 'bold',
-                                                color: handStrength.color,
-                                                background: `${handStrength.color}15`,
-                                                border: `1px solid ${handStrength.color}33`,
-                                                padding: '1px 6px', borderRadius: 4,
-                                                marginTop: 2, letterSpacing: 0.5,
-                                                textAlign: 'center',
-                                            }}
-                                        >
-                                            {handStrength.label}
-                                        </motion.div>
-                                    )}
+                                    {/* Hand strength moved to GAP 3 hero card display below table */}
                                 </div>
                             </motion.div>
                         );

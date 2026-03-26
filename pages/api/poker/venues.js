@@ -240,7 +240,8 @@ export default async function handler(req, res) {
               hasMixed,
           } = req.query;
 
-          const maxResults = Math.min(parseInt(limit, 10) || 50, 200);
+          const maxResults = Math.min(parseInt(limit, 10) || 500, 500);
+          const offset = parseInt(req.query.offset, 10) || 0;
           let venues = [];
 
           if (id) {
@@ -268,8 +269,51 @@ export default async function handler(req, res) {
                   venues = applyFilters(getJsonVenues(), { id });
               }
           } else {
-              // --- Venue listing: use JSON (complete 483-venue dataset) ---
-              venues = applyFilters(getJsonVenues(), { state, city, type, tournaments, search, featured });
+              // --- Venue listing: Supabase-first (live 500+ venue dataset) ---
+              let usedSupabase = false;
+              try {
+                  let q = getSupabase()
+                      .from('poker_venues')
+                      .select('*')
+                      .eq('is_active', true);
+
+                  if (state) q = q.ilike('state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
+                  if (city) q = q.ilike('city', `%${city}%`);
+                  if (type) q = q.eq('venue_type', type);
+                  if (tournaments === 'true') q = q.eq('has_tournaments', true);
+                  if (featured === 'true') q = q.eq('is_featured', true);
+                  if (search) {
+                      const searchStateAbbrev = resolveStateAbbrev(search.trim());
+                      const cityStateMatch = search.match(/^([^,]+),\s*(.+)$/);
+                      if (cityStateMatch) {
+                          const cityPart = cityStateMatch[1].trim();
+                          const statePart = cityStateMatch[2].trim();
+                          const stateAbbrev = resolveStateAbbrev(statePart);
+                          q = q.ilike('city', `%${cityPart}%`);
+                          if (stateAbbrev) q = q.ilike('state', stateAbbrev);
+                          else q = q.ilike('state', `%${statePart}%`);
+                      } else if (searchStateAbbrev) {
+                          q = q.ilike('state', searchStateAbbrev);
+                      } else {
+                          q = q.or(`name.ilike.%${search}%,city.ilike.%${search}%,address.ilike.%${search}%,state.ilike.%${search}%`);
+                      }
+                  }
+
+                  q = q.order('trust_score', { ascending: false }).range(offset, offset + maxResults - 1);
+                  const { data: dbVenues, error: dbErr, count: dbCount } = await q;
+
+                  if (!dbErr && dbVenues && dbVenues.length > 0) {
+                      venues = dbVenues;
+                      usedSupabase = true;
+                  }
+              } catch (dbErr) {
+                  console.warn('[venues] Supabase query failed, falling back to JSON:', dbErr.message);
+              }
+
+              // JSON fallback if Supabase returned nothing
+              if (!usedSupabase) {
+                  venues = applyFilters(getJsonVenues(), { state, city, type, tournaments, search, featured });
+              }
               venues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
 
               // --- Merge public social pages (clubs, charities, home games) ---
@@ -702,6 +746,7 @@ export default async function handler(req, res) {
               data: limited,
               total,
               hasGpsData: hasGps,
+              offset,
           });
       } catch (error) {
           console.error('Venues API error:', error);
