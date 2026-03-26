@@ -70,6 +70,15 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
     const [editContent, setEditContent] = useState(post.content || '');
     const [confirmDelete, setConfirmDelete] = useState(false);
     const menuRef = useRef(null);
+    // #2 Image carousel
+    const [carouselIdx, setCarouselIdx] = useState(0);
+    // #14 Like animation
+    const [likeAnim, setLikeAnim] = useState(false);
+    // #13 Debounce guard
+    const isLikingRef = useRef(false);
+    // #1 Reply threading
+    const [replyTo, setReplyTo] = useState(null); // comment id
+    const [replyText, setReplyText] = useState('');
 
     // Close menu on outside click
     useEffect(() => {
@@ -216,23 +225,77 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                 </div>
             ) : null}
 
-            {/* Media */}
+            {/* Media — #2 Image Carousel */}
             {post.media_urls && post.media_urls.length > 0 && (
-                <div>{post.media_urls.slice(0, 4).map((url, i) => (
-                    <img key={i} src={url} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto', marginBottom: post.media_urls.length > 1 ? 2 : 0 }} />
-                ))}</div>
+                <div style={{ position: 'relative', overflow: 'hidden' }}>
+                    <img src={post.media_urls[carouselIdx]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} />
+                    {post.media_urls.length > 1 && (
+                        <>
+                            {carouselIdx > 0 && (
+                                <button onClick={() => setCarouselIdx(i => i - 1)} style={{
+                                    position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
+                                    width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', color: '#fff',
+                                    border: 'none', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>&lsaquo;</button>
+                            )}
+                            {carouselIdx < post.media_urls.length - 1 && (
+                                <button onClick={() => setCarouselIdx(i => i + 1)} style={{
+                                    position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                                    width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', color: '#fff',
+                                    border: 'none', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>&rsaquo;</button>
+                            )}
+                            <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 4 }}>
+                                {post.media_urls.map((_, di) => (
+                                    <div key={di} onClick={() => setCarouselIdx(di)} style={{
+                                        width: 8, height: 8, borderRadius: '50%', cursor: 'pointer',
+                                        background: di === carouselIdx ? '#fff' : 'rgba(255,255,255,0.5)',
+                                        border: '1px solid rgba(0,0,0,0.2)',
+                                    }} />
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
             )}
 
-            {/* Stats */}
+            {/* #6 Link Preview */}
+            {post.link_preview && post.link_preview.url && (
+                <a href={post.link_preview.url} target="_blank" rel="noopener noreferrer" style={{
+                    display: 'block', margin: '0 16px 12px', borderRadius: 10, overflow: 'hidden',
+                    border: `1px solid ${C.border}`, textDecoration: 'none', color: 'inherit',
+                }}>
+                    {post.link_preview.image && (
+                        <img src={post.link_preview.image} alt="" style={{ width: '100%', height: 160, objectFit: 'cover' }} />
+                    )}
+                    <div style={{ padding: '10px 12px', background: C.bg }}>
+                        <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase' }}>{new URL(post.link_preview.url).hostname}</div>
+                        {post.link_preview.title && <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginTop: 2 }}>{post.link_preview.title}</div>}
+                        {post.link_preview.description && <div style={{ fontSize: 13, color: C.textSec, marginTop: 2 }}>{post.link_preview.description.slice(0, 120)}</div>}
+                    </div>
+                </a>
+            )}
+
+            {/* Stats — #14 Like animation */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', fontSize: 13, color: C.textSec }}>
-                <span>{post.like_count || 0} likes</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {likeAnim && <span style={{ display: 'inline-block', animation: 'likePopAnim 0.4s ease-out', color: '#E74C3C', fontSize: 16 }}>{'\u2764'}</span>}
+                    {post.like_count || 0} likes
+                </span>
                 <span>{post.comment_count || 0} comments</span>
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons — #13 debounce + #14 animation */}
             <div style={{ display: 'flex', borderTop: `1px solid ${C.border}`, borderBottom: showComments ? `1px solid ${C.border}` : 'none' }}>
                 {[
-                    { label: post.user_liked ? 'Liked' : 'Like', action: () => onLike(post.id), active: post.user_liked },
+                    { label: post.user_liked ? 'Liked' : 'Like', action: () => {
+                        if (isLikingRef.current) return;
+                        isLikingRef.current = true;
+                        setLikeAnim(true);
+                        setTimeout(() => setLikeAnim(false), 500);
+                        onLike(post.id);
+                        setTimeout(() => { isLikingRef.current = false; }, 800);
+                    }, active: post.user_liked },
                     { label: 'Comment', action: fetchComments },
                     { label: 'Share', action: () => setShowShareModal(true) },
                 ].map((btn, i) => (
@@ -312,23 +375,63 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                 </div>
             )}
 
-            {/* Comments */}
+            {/* Comments — #1 threading, #4 likes, #11 optimistic */}
             {showComments && (
                 <div style={{ padding: '8px 16px 12px' }}>
                     {loadingComments ? (
                         <p style={{ fontSize: 13, color: C.textSec, textAlign: 'center' }}>Loading...</p>
                     ) : (
                         <>
-                            {comments.map(c => (
-                                <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                                    <Avatar src={c.author?.avatar_url} name={c.author?.full_name} size={28} />
-                                    <div style={{ background: C.bg, borderRadius: 12, padding: '8px 12px', flex: 1 }}>
-                                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{c.author?.full_name || c.author?.username || 'Unknown'}</div>
-                                        <div style={{ fontSize: 13, color: C.text }}>{c.content}</div>
-                                        <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>{timeAgo(c.created_at)}</div>
+                            {comments.filter(c => !c.parent_id).map(c => (
+                                <div key={c.id}>
+                                    <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+                                        <Avatar src={c.author?.avatar_url} name={c.author?.full_name} size={28} />
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ background: C.bg, borderRadius: 12, padding: '8px 12px' }}>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{c.author?.full_name || c.author?.username || 'Unknown'}</div>
+                                                <div style={{ fontSize: 13, color: C.text }}>{c.content}</div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 12, padding: '2px 8px', fontSize: 11, color: C.textSec }}>
+                                                <span>{timeAgo(c.created_at)}</span>
+                                                {user && <button onClick={() => { setReplyTo(replyTo === c.id ? null : c.id); setReplyText(''); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: C.textSec, fontSize: 11, padding: 0, fontFamily: 'inherit' }}>Reply</button>}
+                                            </div>
+                                        </div>
                                     </div>
+                                    {/* Nested replies */}
+                                    {comments.filter(r => r.parent_id === c.id).map(r => (
+                                        <div key={r.id} style={{ display: 'flex', gap: 8, marginLeft: 36, marginBottom: 4, borderLeft: `2px solid ${C.border}`, paddingLeft: 8 }}>
+                                            <Avatar src={r.author?.avatar_url} name={r.author?.full_name} size={24} />
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ background: C.bg, borderRadius: 12, padding: '6px 10px' }}>
+                                                    <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{r.author?.full_name || r.author?.username || 'Unknown'}</div>
+                                                    <div style={{ fontSize: 12, color: C.text }}>{r.content}</div>
+                                                </div>
+                                                <div style={{ fontSize: 10, color: C.textSec, padding: '2px 8px' }}>{timeAgo(r.created_at)}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {/* Reply input */}
+                                    {replyTo === c.id && user && (
+                                        <div style={{ display: 'flex', gap: 6, marginLeft: 36, marginBottom: 8, marginTop: 4 }}>
+                                            <Avatar src={isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url} name={isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name} size={24} />
+                                            <div style={{ flex: 1, display: 'flex', gap: 4 }}>
+                                                <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter' && replyText.trim()) {
+                                                            const tempReply = { id: `temp-${Date.now()}`, content: replyText.trim(), parent_id: c.id, created_at: new Date().toISOString(), author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
+                                                            setComments(prev => [...prev, tempReply]);
+                                                            const txt = replyText.trim(); setReplyText(''); setReplyTo(null);
+                                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, parent_id: c.id }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempReply.id ? json.data : x)); onComment(post.id); } } else { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } } catch { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } })();
+                                                        }
+                                                    }}
+                                                    placeholder={`Reply to ${c.author?.full_name || 'comment'}...`}
+                                                    style={{ flex: 1, padding: '6px 10px', borderRadius: 16, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: 'inherit', outline: 'none', background: C.bg }} />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
+                            {/* Main comment input — #11 optimistic */}
                             {user && (
                                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                                     <Avatar
@@ -338,10 +441,25 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                                     />
                                     <div style={{ flex: 1, display: 'flex', gap: 4 }}>
                                         <input type="text" value={commentText} onChange={e => setCommentText(e.target.value)}
-                                            onKeyDown={e => e.key === 'Enter' && submitComment()}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter' && commentText.trim()) {
+                                                    const tempComment = { id: `temp-${Date.now()}`, content: commentText.trim(), parent_id: null, created_at: new Date().toISOString(), author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
+                                                    setComments(prev => [...prev, tempComment]);
+                                                    const txt = commentText.trim(); setCommentText('');
+                                                    onComment(post.id);
+                                                    (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
+                                                }
+                                            }}
                                             placeholder={isOwnerOnOwnPage ? `Comment as ${page?.name}...` : 'Write A Comment...'}
                                             style={{ flex: 1, padding: '8px 12px', borderRadius: 20, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.bg }} />
-                                        <button onClick={submitComment} disabled={!commentText.trim()} style={{
+                                        <button onClick={() => {
+                                            if (!commentText.trim()) return;
+                                            const tempComment = { id: `temp-${Date.now()}`, content: commentText.trim(), parent_id: null, created_at: new Date().toISOString(), author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
+                                            setComments(prev => [...prev, tempComment]);
+                                            const txt = commentText.trim(); setCommentText('');
+                                            onComment(post.id);
+                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
+                                        }} disabled={!commentText.trim()} style={{
                                             padding: '6px 12px', borderRadius: 20, border: 'none',
                                             background: commentText.trim() ? C.blue : '#E4E6EB',
                                             color: commentText.trim() ? '#fff' : C.textSec,
@@ -593,20 +711,35 @@ export default function SocialPageDetail() {
     }, [page]);
     useEffect(() => { if (page && activeTab === 'games') fetchGames(); }, [fetchGames, page, activeTab]);
 
-    // Fetch venue check-ins (resolves venue_id from page name)
+    // Fetch venue check-ins (resolves integer venue_id from page data)
     const fetchVenueCheckins = useCallback(async () => {
         if (!page?.name) return;
         try {
-            // Resolve venue_id from page name via venues search API
-            const searchRes = await fetch(`/api/poker/venues?search=${encodeURIComponent(page.name)}&limit=3`);
-            const searchData = await searchRes.json();
-            const venues = searchData?.data || searchData?.venues || (Array.isArray(searchData) ? searchData : []);
-            // Find exact or close name match
-            const match = venues.find(v => v.name?.toLowerCase() === page.name?.toLowerCase()) || venues[0];
-            if (!match?.id) return;
-            setResolvedVenueId(match.id);
+            let intVenueId = null;
+
+            // Priority 1: Use linked_venue_id if the social page is linked to a poker venue
+            if (page.linked_venue_id) {
+                const parsed = parseInt(page.linked_venue_id, 10);
+                if (!isNaN(parsed) && parsed > 0) intVenueId = parsed;
+            }
+
+            // Priority 2: Search venues API by page name, filter to integer-ID matches only
+            if (!intVenueId) {
+                const searchRes = await fetch(`/api/poker/venues?search=${encodeURIComponent(page.name)}&limit=5`);
+                const searchData = await searchRes.json();
+                const venues = (searchData?.data || []).filter(v => {
+                    const numId = parseInt(v.id, 10);
+                    return !isNaN(numId) && numId > 0;
+                });
+                const match = venues.find(v => v.name?.toLowerCase() === page.name?.toLowerCase()) || venues[0];
+                if (match?.id) intVenueId = parseInt(match.id, 10);
+            }
+
+            if (!intVenueId) return; // No real poker venue found — skip silently
+            setResolvedVenueId(intVenueId);
+
             // Fetch recent check-ins for this venue
-            const checkinsRes = await fetch(`/api/poker/checkins?venue_id=${match.id}`);
+            const checkinsRes = await fetch(`/api/poker/checkins?venue_id=${intVenueId}`);
             const checkinsData = await checkinsRes.json();
             if (checkinsData.success) {
                 setVenueCheckins((checkinsData.checkins || []).slice(0, 5));

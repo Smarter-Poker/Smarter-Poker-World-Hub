@@ -174,10 +174,16 @@ export default function CheckInModal({ onSelect, onClose, userId }) {
         try {
             const res = await fetch(`/api/poker/venues?search=${encodeURIComponent(q)}&limit=10`);
             const data = await res.json();
-            if (isMountedRef.current) setResults(data?.data || data?.venues || (Array.isArray(data) ? data : []));
+            const venues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+            if (isMountedRef.current) {
+                setResults(venues);
+                // Fetch check-in counts for integer-ID venues in results
+                const intIds = venues.map(v => parseInt(v.id, 10)).filter(n => !isNaN(n) && n > 0);
+                if (intIds.length > 0) fetchCheckinCounts(intIds);
+            }
         } catch { if (isMountedRef.current) setResults([]); }
         if (isMountedRef.current) setLoading(false);
-    }, []);
+    }, [fetchCheckinCounts]);
 
     // Cleanup debounce timer on unmount to prevent memory leak
     useEffect(() => {
