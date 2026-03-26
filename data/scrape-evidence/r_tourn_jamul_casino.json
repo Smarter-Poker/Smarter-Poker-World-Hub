@@ -1,0 +1,22 @@
+{
+  "venue_id": 1861,
+  "name": "Jamul Casino",
+  "source": "https://www.jamulcasinosd.com/poker-room/",
+  "http": 200,
+  "hash": "ca3cf1f1f2a061268fed61e771511077d15ad0b18b787dd6ffa9e5deab72f870",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "6 keywords + 47 buyins",
+  "keyword_hits": 6,
+  "day_hits": 7,
+  "buyins": [
+    150,
+    400,
+    400,
+    400,
+    400
+  ],
+  "ts": "2026-03-26T00:36:07.739664+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}

@@ -1,0 +1,19 @@
+{
+  "venue_id": 1971,
+  "name": "Paradise Poker",
+  "source": "https://www.pokeratlas.com/poker-room/paradise-poker-utica",
+  "http": 200,
+  "hash": "5fa8aaba81d0701b0807d24969d1947d40632c8dccaccb0aaa91d980f74db2b2",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 7,
+  "buyins": [
+    49,
+    59
+  ],
+  "ts": "2026-03-26T00:49:37.820243+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

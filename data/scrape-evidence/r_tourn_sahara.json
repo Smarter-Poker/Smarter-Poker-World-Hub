@@ -1,0 +1,22 @@
+{
+  "venue_id": 2140,
+  "name": "Sahara",
+  "source": "https://sahara.lv/pokerroom",
+  "http": 200,
+  "hash": "de234fa1eb3bafc06505680b0ee0c064d6742017a141232ffdc5f295efc88807",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "8kw+1270bi",
+  "keyword_hits": 8,
+  "day_hits": 7,
+  "buyins": [
+    25,
+    55,
+    95,
+    54,
+    150
+  ],
+  "ts": "2026-03-26T00:52:58.619528+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

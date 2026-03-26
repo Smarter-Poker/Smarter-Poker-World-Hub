@@ -1,0 +1,18 @@
+{
+  "venue_id": 2189,
+  "name": "Crystal Park Casino",
+  "source": "https://www.crystalparkcasino.com",
+  "http": 200,
+  "hash": "ec87b0b53776e43a045e214a932ad05b6dcc84056f6c03ad2c4ea45c42cb350d",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "2 keywords + 1 buyins",
+  "keyword_hits": 2,
+  "day_hits": 2,
+  "buyins": [
+    100
+  ],
+  "ts": "2026-03-26T00:33:47.162508+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}

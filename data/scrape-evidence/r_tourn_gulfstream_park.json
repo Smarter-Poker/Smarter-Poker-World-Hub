@@ -1,0 +1,22 @@
+{
+  "venue_id": 2230,
+  "name": "Gulfstream Park",
+  "source": "https://www.gulfstreampark.com",
+  "http": 200,
+  "hash": "2e302017eb8dd06b956e7a43c1005f5de38fa5719344b70ec19450c317d6cf93",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "3kw+7d",
+  "keyword_hits": 3,
+  "day_hits": 7,
+  "buyins": [
+    225,
+    200,
+    100,
+    20,
+    20
+  ],
+  "ts": "2026-03-26T00:45:27.485628+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

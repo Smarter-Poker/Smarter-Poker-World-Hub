@@ -1,0 +1,16 @@
+{
+  "venue_id": 2186,
+  "name": "Gardens Casino",
+  "source": "https://www.thegardenscasino.com",
+  "http": 200,
+  "hash": "44b54f11f045740a25f6a5a5e3452dc1fcd146a492b685118db35f0ffba9ab15",
+  "has_tournaments": false,
+  "confidence": "medium",
+  "reason": "too few signals (2 kw, 0 bi)",
+  "keyword_hits": 2,
+  "day_hits": 0,
+  "buyins": [],
+  "ts": "2026-03-26T00:34:17.074644+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}

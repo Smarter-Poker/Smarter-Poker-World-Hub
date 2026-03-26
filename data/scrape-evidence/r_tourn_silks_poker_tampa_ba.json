@@ -1,0 +1,20 @@
+{
+  "venue_id": 1948,
+  "name": "Silks Poker Tampa Bay Downs",
+  "source": "https://www.tampabaydowns.com",
+  "http": 200,
+  "hash": "ba450692171b971378b134d744a1330dfb7ddc8f67fc93b89b36bf8bd8ece9a7",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 7,
+  "buyins": [
+    110,
+    110,
+    200
+  ],
+  "ts": "2026-03-26T00:47:37.709765+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

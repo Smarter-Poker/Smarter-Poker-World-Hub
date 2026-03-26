@@ -1,0 +1,22 @@
+{
+  "venue_id": 2169,
+  "name": "Atlantis Casino",
+  "source": "https://atlantiscasino.com/casino/games/poker",
+  "http": 200,
+  "hash": "200181844e1b6d491b4b5305536bed3e400bc92cc08296126829c7c9396ca632",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "5kw+20bi",
+  "keyword_hits": 5,
+  "day_hits": 6,
+  "buyins": [
+    40,
+    40,
+    50,
+    50,
+    40
+  ],
+  "ts": "2026-03-26T00:51:07.650444+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

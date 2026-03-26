@@ -922,6 +922,7 @@ export default function SocialPageDetail() {
                 body: JSON.stringify({
                     page_id: page.id, author_id: user.id,
                     content: newPost.trim(), content_type: uploadImages.length > 0 ? 'media' : 'text',
+                    visibility: postVisibility,
                     ...(uploadImages.length > 0 ? { media_urls: uploadImages } : {}),
                 }),
             });
@@ -934,6 +935,7 @@ export default function SocialPageDetail() {
                 busEmit.socialPostCreated(json.data?.id || 'unknown', user.id);
                 setNewPost('');
                 setUploadImages([]);
+                setPostVisibility('public');
                 fetchPosts();
             }
         } catch (e) { console.error("[[pageId].js]", e); toast.error('Post failed — try again'); }
@@ -1208,7 +1210,7 @@ export default function SocialPageDetail() {
                                         const res = await fetch('/api/social/pages/follow', {
                                             method: 'PUT',
                                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                                            body: JSON.stringify({ page_id: page.id, notifications_enabled: !notifyEnabled }),
+                                            body: JSON.stringify({ page_id: page.id, notify: !notifyEnabled }),
                                         });
                                         if (res.ok) { setNotifyEnabled(!notifyEnabled); toast.success(notifyEnabled ? 'Notifications off' : 'Notifications on'); }
                                     } catch (e) { console.error(e); }

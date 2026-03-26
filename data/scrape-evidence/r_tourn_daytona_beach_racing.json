@@ -1,0 +1,22 @@
+{
+  "venue_id": 2037,
+  "name": "Daytona Beach Racing and Card Club",
+  "source": "https://www.daytonabeachpoker.com",
+  "http": 200,
+  "hash": "e18015eef0a7e5ea4b56fc25d9a8ccc46a61ac11f671eb619e96a125bfc07203",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 7,
+  "buyins": [
+    750,
+    200,
+    300,
+    500,
+    500
+  ],
+  "ts": "2026-03-26T00:44:50.158484+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

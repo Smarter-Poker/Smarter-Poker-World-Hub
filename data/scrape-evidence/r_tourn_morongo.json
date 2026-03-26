@@ -1,0 +1,22 @@
+{
+  "venue_id": 2194,
+  "name": "Morongo",
+  "source": "http://www.morongocasinoresort.com/",
+  "http": 200,
+  "hash": "1a245386f41dabfeaec894de7a01b80f45c5736fdfd666cffbfa45718846866e",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "3 keywords + 4 days",
+  "keyword_hits": 3,
+  "day_hits": 4,
+  "buyins": [
+    295,
+    130,
+    86,
+    75,
+    70
+  ],
+  "ts": "2026-03-26T00:37:36.665903+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}

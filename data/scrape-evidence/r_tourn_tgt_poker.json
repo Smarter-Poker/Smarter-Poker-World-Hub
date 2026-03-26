@@ -1,0 +1,22 @@
+{
+  "venue_id": 2233,
+  "name": "TGT Poker",
+  "source": "http://tgtpoker.com/",
+  "http": 200,
+  "hash": "3df14f0d59631e83f5a98b9e0e8f03284f0550656a06df47295cbbe104af2527",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "9kw+13bi",
+  "keyword_hits": 9,
+  "day_hits": 7,
+  "buyins": [
+    20,
+    60,
+    120,
+    50,
+    20
+  ],
+  "ts": "2026-03-26T00:47:39.437252+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

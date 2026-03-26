@@ -1,0 +1,19 @@
+{
+  "venue_id": 2243,
+  "name": "Seminole Coconut Creek",
+  "source": "https://www.seminolecoconutcreekcasino.com",
+  "http": 200,
+  "hash": "9fbbf1cce279267fa1550291024812e2595f162ee4d6af6d9f17a46f5357cdfc",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 5,
+  "buyins": [
+    30,
+    150
+  ],
+  "ts": "2026-03-26T00:47:31.609805+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

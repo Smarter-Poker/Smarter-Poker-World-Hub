@@ -1,0 +1,22 @@
+{
+  "venue_id": 2237,
+  "name": "Orange City Racing",
+  "source": "https://www.orangecitypoker.com",
+  "http": 200,
+  "hash": "8e407d04688b7acb2bf0de7921eeee6f8c89a5f1c7d3d917d949cc99a33dcf69",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "3kw+7d",
+  "keyword_hits": 3,
+  "day_hits": 7,
+  "buyins": [
+    300,
+    750,
+    200,
+    500,
+    500
+  ],
+  "ts": "2026-03-26T00:46:33.306946+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

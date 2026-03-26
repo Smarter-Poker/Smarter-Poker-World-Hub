@@ -1,0 +1,19 @@
+{
+  "venue_id": 1979,
+  "name": "Krazy Kopz @ The Ivory Room",
+  "source": "https://www.pokeratlas.com/poker-room/krazy-kopz-the-ivory-room-westland",
+  "http": 200,
+  "hash": "dad4206509c80aef5008bace5e049e6259aabacca8d685282510cb50df5f8542",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 7,
+  "buyins": [
+    49,
+    59
+  ],
+  "ts": "2026-03-26T00:49:17.358559+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

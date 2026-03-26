@@ -1,0 +1,16 @@
+{
+  "venue_id": 2148,
+  "name": "The D",
+  "source": "http://www.thed.com/",
+  "http": 200,
+  "hash": "cd356dde2b4529fe98575163fade39e23c46aef024950fc5562d6e5cc07fca83",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 7,
+  "buyins": [],
+  "ts": "2026-03-26T00:53:25.063636+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

@@ -1,0 +1,22 @@
+{
+  "venue_id": 2036,
+  "name": "Aria Casino",
+  "source": "https://www.aria.com/en/casino/poker.html",
+  "http": 200,
+  "hash": "78f22fc825824ce4f25413f5be9ad1b0805e2e190ec4353cbab53d29fcc6a778",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "4kw+0d",
+  "keyword_hits": 4,
+  "day_hits": 0,
+  "buyins": [
+    150,
+    600,
+    150,
+    150,
+    600
+  ],
+  "ts": "2026-03-26T00:50:59.526834+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

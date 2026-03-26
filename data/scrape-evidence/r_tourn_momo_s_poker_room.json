@@ -1,0 +1,19 @@
+{
+  "venue_id": 1981,
+  "name": "Momo's Poker Room",
+  "source": "https://www.pokeratlas.com/poker-room/momos-taylor",
+  "http": 200,
+  "hash": "bd82f73b2f970c51c2089022edeeb900bb82eccbbda73eca323dab233ec3ccab",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 7,
+  "buyins": [
+    49,
+    59
+  ],
+  "ts": "2026-03-26T00:49:24.906708+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

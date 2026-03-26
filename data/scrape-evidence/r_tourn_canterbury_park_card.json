@@ -1,0 +1,19 @@
+{
+  "venue_id": 1983,
+  "name": "Canterbury Park Card Club",
+  "source": "http://www.canterburypark.com/",
+  "http": 200,
+  "hash": "69b64a9d8c33439c10752d15f2a5f2583b8bc78e84a401d084fb2a6713a32981",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 7,
+  "buyins": [
+    500,
+    500
+  ],
+  "ts": "2026-03-26T00:49:53.987639+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

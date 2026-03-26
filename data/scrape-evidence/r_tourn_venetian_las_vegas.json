@@ -1,0 +1,16 @@
+{
+  "venue_id": 2007,
+  "name": "Venetian Las Vegas",
+  "source": "https://www.venetianlasvegas.com/casino/poker.html",
+  "http": 200,
+  "hash": "a8b9ab1482775c5edf96339ba589baaa667d86364fb328933c65ff8c80757172",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "3kw+7d",
+  "keyword_hits": 3,
+  "day_hits": 7,
+  "buyins": [],
+  "ts": "2026-03-26T00:53:34.190329+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

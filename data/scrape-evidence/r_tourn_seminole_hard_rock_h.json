@@ -1,0 +1,22 @@
+{
+  "venue_id": 1825,
+  "name": "Seminole Hard Rock Hollywood",
+  "source": "https://www.seminolehardrockpokeropen.com/",
+  "http": 200,
+  "hash": "f38b05ba43ec626155d4800d3f051fe40e2131343f1f508d718c31de548582ce",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "10kw+669bi",
+  "keyword_hits": 10,
+  "day_hits": 7,
+  "buyins": [
+    30,
+    200,
+    20,
+    100,
+    150
+  ],
+  "ts": "2026-03-26T00:47:32.454771+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

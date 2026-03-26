@@ -1,0 +1,22 @@
+{
+  "venue_id": 1950,
+  "name": "One-Eyed Jacks Poker",
+  "source": "https://betatjacks.com/",
+  "http": 200,
+  "hash": "ccd86c7ab9e6e7792d8b3e5f6186ad536cae31024132803074d09a5c1790c81c",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "3kw+7d",
+  "keyword_hits": 3,
+  "day_hits": 7,
+  "buyins": [
+    250,
+    250,
+    440,
+    150,
+    150
+  ],
+  "ts": "2026-03-26T00:46:25.794480+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

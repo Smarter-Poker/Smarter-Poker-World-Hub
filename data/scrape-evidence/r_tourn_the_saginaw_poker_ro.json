@@ -1,0 +1,19 @@
+{
+  "venue_id": 1975,
+  "name": "The Saginaw Poker Room",
+  "source": "https://www.pokeratlas.com/poker-room/the-saginaw-poker-room",
+  "http": 200,
+  "hash": "63c667b97104c98ead26502d6a335e17a82b0690d925b7286ae6021ad912e55a",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 7,
+  "buyins": [
+    49,
+    59
+  ],
+  "ts": "2026-03-26T00:49:45.513144+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

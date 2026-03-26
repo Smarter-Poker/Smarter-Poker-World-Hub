@@ -1,0 +1,16 @@
+{
+  "venue_id": 2145,
+  "name": "Binions",
+  "source": "http://www.binions.com/gaming/poker_room.php",
+  "http": 200,
+  "hash": "2c7b7031f34be572fd2ac04662751e77c6376ae25eefa69e4e1a9f5fcbc6068d",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 0,
+  "buyins": [],
+  "ts": "2026-03-26T00:51:23.363459+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

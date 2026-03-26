@@ -1,0 +1,22 @@
+{
+  "venue_id": 2499,
+  "name": "Bellagio Poker Room",
+  "source": "https://www.bellagio.com/en/casino/poker.html",
+  "http": 200,
+  "hash": "f0cdad510918cf89e37439793e09e9c70d00e277072afa2c25cc8e1614b102f1",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "4kw+1d",
+  "keyword_hits": 4,
+  "day_hits": 1,
+  "buyins": [
+    20,
+    300,
+    150,
+    600,
+    150
+  ],
+  "ts": "2026-03-26T00:51:21.557673+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

@@ -1,0 +1,18 @@
+{
+  "venue_id": 2238,
+  "name": "Jacksonville Poker Room",
+  "source": "https://bestbetjax.com/",
+  "http": 200,
+  "hash": "d9b1a2b33f10d05d1b76d6f4ab210bfe724b9c68da5a525abbf40bc7a4587e91",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "2kw+1bi",
+  "keyword_hits": 2,
+  "day_hits": 4,
+  "buyins": [
+    36
+  ],
+  "ts": "2026-03-26T00:45:51.762528+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

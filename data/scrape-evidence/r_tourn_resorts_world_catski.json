@@ -1,0 +1,19 @@
+{
+  "venue_id": 1876,
+  "name": "Resorts World Catskills",
+  "source": "https://rwcatskills.com",
+  "http": 200,
+  "hash": "38ff55fcaba392cc1439e2a777d5acd5ae23b2e3ef10c01bf63e13dfd30029af",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 7,
+  "buyins": [
+    60,
+    60
+  ],
+  "ts": "2026-03-26T00:54:07.044396+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

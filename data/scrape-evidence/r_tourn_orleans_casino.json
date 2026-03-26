@@ -1,0 +1,22 @@
+{
+  "venue_id": 1988,
+  "name": "Orleans Casino",
+  "source": "https://orleans.boydgaming.com/play/poker-room",
+  "http": 200,
+  "hash": "7c984044849f84f47d2d99b72492ce8db9a03b41164b4145a387dfe4149c47d5",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "3kw+0d",
+  "keyword_hits": 3,
+  "day_hits": 0,
+  "buyins": [
+    30,
+    100,
+    300,
+    300,
+    200
+  ],
+  "ts": "2026-03-26T00:52:35.274483+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

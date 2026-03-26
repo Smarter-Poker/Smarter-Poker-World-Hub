@@ -1,0 +1,22 @@
+{
+  "venue_id": 2130,
+  "name": "Wynn",
+  "source": "https://www.wynnlasvegas.com/casino/poker",
+  "http": 200,
+  "hash": "295b9a352a9edcc9a6a1920a3e0a7e00d8f1b17afbb91c0df94adb6acd42b251",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "6kw+17bi",
+  "keyword_hits": 6,
+  "day_hits": 1,
+  "buyins": [
+    400,
+    106,
+    40,
+    400,
+    200
+  ],
+  "ts": "2026-03-26T00:53:49.267988+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

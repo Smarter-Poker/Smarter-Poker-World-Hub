@@ -1,0 +1,22 @@
+{
+  "venue_id": 1944,
+  "name": "Oxford Downs Poker Room",
+  "source": "http://betoxford.com",
+  "http": 200,
+  "hash": "850248c247bb429dc85f4d76893b4c2de4ef1fe4056d06f1baf5ddd4fc5d7bc0",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "10kw+75bi",
+  "keyword_hits": 10,
+  "day_hits": 7,
+  "buyins": [
+    65,
+    42,
+    45,
+    30,
+    90
+  ],
+  "ts": "2026-03-26T00:46:46.294724+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

@@ -1,0 +1,22 @@
+{
+  "venue_id": 1836,
+  "name": "MGM National Harbor",
+  "source": "https://www.mgmnationalharbor.com/en/casino/poker.html",
+  "http": 200,
+  "hash": "37b6b6f5523ab933120579803b58ddad274e3f415a685b2353c30c52217774e6",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "8kw+156bi",
+  "keyword_hits": 8,
+  "day_hits": 7,
+  "buyins": [
+    500,
+    500,
+    300,
+    300,
+    200
+  ],
+  "ts": "2026-03-26T00:48:49.681734+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

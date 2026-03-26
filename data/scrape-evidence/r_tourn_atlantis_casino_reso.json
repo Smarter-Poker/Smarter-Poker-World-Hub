@@ -1,0 +1,22 @@
+{
+  "venue_id": 1992,
+  "name": "Atlantis Casino Resort",
+  "source": "https://www.atlantiscasino.com",
+  "http": 200,
+  "hash": "dd6f48ce5474db32d672c15f8b3991736a238ea5de1091a409147913443478c9",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "2kw+27bi",
+  "keyword_hits": 2,
+  "day_hits": 0,
+  "buyins": [
+    40,
+    40,
+    50,
+    50,
+    40
+  ],
+  "ts": "2026-03-26T00:51:11.446244+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

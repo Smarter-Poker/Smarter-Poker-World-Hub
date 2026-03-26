@@ -1,0 +1,18 @@
+{
+  "venue_id": 2193,
+  "name": "San Manuel",
+  "source": "http://www.sanmanuel.com/",
+  "http": 200,
+  "hash": "0bdc4fcb5d926ce7bb6c3f1bc6cf97389f5db444334b674a94bb7eb03cbbfcdc",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 0,
+  "buyins": [
+    450
+  ],
+  "ts": "2026-03-26T00:40:03.315392+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

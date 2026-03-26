@@ -1,0 +1,19 @@
+{
+  "venue_id": 1993,
+  "name": "Peppermill Resort Spa Casino",
+  "source": "http://www.peppermillreno.com/gaming/poker/",
+  "http": 200,
+  "hash": "368f39e427a3f0ef81d5beac07a30fe48f5bf68a1f127767ee04fa2c58076c8a",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "2kw+2bi",
+  "keyword_hits": 2,
+  "day_hits": 0,
+  "buyins": [
+    25,
+    50
+  ],
+  "ts": "2026-03-26T00:52:41.861613+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

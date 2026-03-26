@@ -1,0 +1,16 @@
+{
+  "venue_id": 2249,
+  "name": "Ebro Greyhound Park",
+  "source": "https://www.goebro.com",
+  "http": 200,
+  "hash": "e6986ba8304af3e1a42054d1dd1454f67a88eab4376ae7bba11bc4177abe8aa4",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 0,
+  "buyins": [],
+  "ts": "2026-03-26T00:45:15.105157+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

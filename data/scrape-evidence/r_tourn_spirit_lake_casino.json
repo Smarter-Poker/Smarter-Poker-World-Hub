@@ -1,0 +1,16 @@
+{
+  "venue_id": 2491,
+  "name": "Spirit Lake Casino",
+  "source": "http://www.spiritlakecasino.com/",
+  "http": 200,
+  "hash": "4e2908f5c58c71a4f11a7ddbb4c89048e3288abdcd666e62879dc5a859a0bd35",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 2,
+  "buyins": [],
+  "ts": "2026-03-26T00:50:30.069854+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

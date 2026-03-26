@@ -1,0 +1,19 @@
+{
+  "venue_id": 2296,
+  "name": "Resorts Casino",
+  "source": "https://www.pokeratlas.com/poker-room/resorts-atlantic-city",
+  "http": 200,
+  "hash": "adf01299caabe33b136f4e5b16e3ee72931fbb1db47b2754db08c23a35cc2f58",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tourn_link",
+  "keyword_hits": 1,
+  "day_hits": 0,
+  "buyins": [
+    49,
+    59
+  ],
+  "ts": "2026-03-26T00:50:45.066482+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

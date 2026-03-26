@@ -1,0 +1,16 @@
+{
+  "venue_id": 1940,
+  "name": "Livermore Casino",
+  "source": "http://www.livermorecasino.net/",
+  "http": 200,
+  "hash": "ed45b661fe1270fe3002c0f1cae85e26c39db7fa2d9bfa6716afd03340a60a18",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "3 keywords + 1 days",
+  "keyword_hits": 3,
+  "day_hits": 1,
+  "buyins": [],
+  "ts": "2026-03-26T00:36:47.458529+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}

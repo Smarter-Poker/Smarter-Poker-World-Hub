@@ -1,0 +1,19 @@
+{
+  "venue_id": 2211,
+  "name": "M8trix",
+  "source": "http://casinom8trix.com/",
+  "http": 200,
+  "hash": "9d653daf686919c5699a041be9165899297b7d4e6b64e63ec691b8701e7913c3",
+  "has_tournaments": false,
+  "confidence": "medium",
+  "reason": "too few signals (0 kw, 2 bi)",
+  "keyword_hits": 0,
+  "day_hits": 2,
+  "buyins": [
+    103,
+    56
+  ],
+  "ts": "2026-03-26T00:37:27.853894+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}

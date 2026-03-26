@@ -1,0 +1,21 @@
+{
+  "venue_id": 2143,
+  "name": "Mandalay Bay",
+  "source": "http://www.mandalaybay.com/casino/poker/",
+  "http": 200,
+  "hash": "dbdbf91ca2ff9e8f774fd6995ba9fd9b7d4bf79ac85bbaf0a7554680dcb1e25d",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "2kw+4bi",
+  "keyword_hits": 2,
+  "day_hits": 3,
+  "buyins": [
+    60,
+    500,
+    60,
+    500
+  ],
+  "ts": "2026-03-26T00:52:21.544777+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

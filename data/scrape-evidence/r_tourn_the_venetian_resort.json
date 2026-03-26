@@ -1,0 +1,16 @@
+{
+  "venue_id": 1818,
+  "name": "The Venetian Resort",
+  "source": "https://www.venetianlasvegas.com/casino/poker.html",
+  "http": 200,
+  "hash": "ae96c09b59eac41ba6a80d5c8f423a854b53e54c3d399255b480c7d38fd2d167",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "3kw+7d",
+  "keyword_hits": 3,
+  "day_hits": 7,
+  "buyins": [],
+  "ts": "2026-03-26T00:53:26.169951+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}

@@ -1,0 +1,22 @@
+{
+  "venue_id": 1941,
+  "name": "Seat Open Poker Room",
+  "source": "http://seatopen.com/locations/cats-paw/",
+  "http": 200,
+  "hash": "f7278dc65124083a59c4cba37287ace818ed0aca9c84da30323e45ff617c96a2",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "3kw+3d",
+  "keyword_hits": 3,
+  "day_hits": 3,
+  "buyins": [
+    80,
+    80,
+    80,
+    80,
+    80
+  ],
+  "ts": "2026-03-26T00:50:15.930412+00:00",
+  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
+  "method": "Scrapling_Fetcher_venue_website"
+}
