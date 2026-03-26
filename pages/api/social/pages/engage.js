@@ -235,6 +235,38 @@ export default async function handler(req, res) {
 
           return res.status(200).json({ success: true, data: enriched });
 
+      } else if (req.method === 'PUT') {
+          // Update comment content
+          const authUser = await requireAuth(req, res);
+          if (!authUser) return;
+
+          const { id, content } = req.body;
+          const user_id = authUser.id;
+
+          if (!id || !content) {
+              return res.status(400).json({ success: false, error: 'id and content required' });
+          }
+
+          // Verify comment ownership
+          const { data: commentData } = await getSupabase()
+              .from('social_page_post_comments')
+              .select('id, user_id')
+              .eq('id', id)
+              .maybeSingle();
+          if (!commentData) return res.status(404).json({ success: false, error: 'Comment not found' });
+          if (commentData.user_id !== user_id) {
+              return res.status(403).json({ success: false, error: 'Not authorized to edit this comment' });
+          }
+
+          const { data, error } = await getSupabase()
+              .from('social_page_post_comments')
+              .update({ content, updated_at: new Date().toISOString() })
+              .eq('id', id)
+              .select()
+              .maybeSingle();
+          if (error) return res.status(500).json({ success: false, error: error.message });
+          return res.status(200).json({ success: true, data });
+
       } else if (req.method === 'DELETE') {
           // Require JWT auth for deleting engagement
           const authUser = await requireAuth(req, res);

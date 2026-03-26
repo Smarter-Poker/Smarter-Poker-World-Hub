@@ -560,7 +560,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                             {editingComment === c.id ? (
                                                 <div style={{ display: 'flex', gap: 4 }}>
                                                     <input type="text" value={editCommentText} onChange={e => setEditCommentText(e.target.value)}
-                                                        onKeyDown={e => { if (e.key === 'Enter' && editCommentText.trim()) { setComments(prev => prev.map(x => x.id === c.id ? { ...x, content: editCommentText.trim() } : x)); setEditingComment(null); } if (e.key === 'Escape') setEditingComment(null); }}
+                                                        onKeyDown={e => { if (e.key === 'Enter' && editCommentText.trim()) { const newContent = editCommentText.trim(); const oldContent = c.content; setComments(prev => prev.map(x => x.id === c.id ? { ...x, content: newContent } : x)); setEditingComment(null); (async () => { try { const token = getAccessToken(); const r = await fetch('/api/social/pages/engage', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id: c.id, content: newContent }) }); if (!r.ok) throw new Error('Edit failed'); } catch { setComments(prev => prev.map(x => x.id === c.id ? { ...x, content: oldContent } : x)); } })(); } if (e.key === 'Escape') setEditingComment(null); }}
                                                         autoFocus style={{ flex: 1, padding: '6px 10px', borderRadius: 12, border: `1px solid ${C.blue}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.bg }} />
                                                     <button onClick={() => setEditingComment(null)} style={{ background: 'none', border: 'none', fontSize: 11, color: C.textSec, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                                                 </div>
@@ -1235,15 +1235,20 @@ export default function SocialPageDetail() {
     const handleDeleteComment = async (postId, commentId) => {
         try {
             const token = getAccessToken();
-            await fetch(`/api/social/pages/engage?id=${commentId}&type=comment`, {
+            const res = await fetch(`/api/social/pages/engage?id=${commentId}&type=comment`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` },
             });
-            // Decrement comment count optimistically
+            if (!res.ok) {
+                const errJson = await res.json().catch(() => ({}));
+                throw new Error(errJson.error || `HTTP ${res.status}`);
+            }
+            // Only decrement after confirmed success
             setPosts(prev => prev.map(p => p.id === postId ? { ...p, comment_count: Math.max(0, (p.comment_count || 0) - 1) } : p));
             busEmit.dataMutated('social-pages');
         } catch (e) {
             console.error('Delete comment error:', e);
+            toast.error('Failed to delete comment');
         }
     };
 
