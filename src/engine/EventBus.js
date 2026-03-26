@@ -85,6 +85,7 @@ export const EventType = {
     SOCIAL_POST_BOOKMARKED: 'SOCIAL_POST_BOOKMARKED',
     SOCIAL_POST_SHARED: 'SOCIAL_POST_SHARED',
     SOCIAL_FEED_REFRESHED: 'SOCIAL_FEED_REFRESHED',
+    VENUE_CHECKIN_CREATED: 'VENUE_CHECKIN_CREATED',
 
     // ── Club Arena Operations ──
     ANNOUNCEMENT_CREATED: 'ANNOUNCEMENT_CREATED',
@@ -371,6 +372,9 @@ const _busEmitMethods = {
 
     socialFeedRefreshed: () =>
         eventBus.emit(EventType.SOCIAL_FEED_REFRESHED, {}, 'SocialFeed'),
+
+    venueCheckinCreated: (venueId, venueName, userId) =>
+        eventBus.emit(EventType.VENUE_CHECKIN_CREATED, { venueId, venueName, userId }, 'SocialCheckIn'),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

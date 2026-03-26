@@ -1249,9 +1249,12 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                         if (checkinRes.ok) {
                             // Capture venue name before clearing state
                             const venueName = checkInVenue.name;
+                            const venueId = checkInVenue.id;
                             setCheckInVenue(null);
                             // Success toast with venue name
                             toast.success(`Checked in at ${venueName}`);
+                            // EventBus emission for cross-component real-time sync
+                            busEmit.venueCheckinCreated(venueId, venueName, user?.id);
                         } else if (checkinRes.status === 429) {
                             // Already checked in at this venue within 4 hours — still clear UI
                             setCheckInVenue(null);
