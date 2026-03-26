@@ -712,14 +712,20 @@ export default function SocialPageDetail() {
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 body: JSON.stringify({ page_id: page.id, overall_rating: reviewRating, title: reviewTitle, content: reviewContent }),
             });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const json = await res.json();
             if (json.success) {
                 toast.success(json.updated ? 'Review updated!' : 'Review submitted!');
                 setShowReviewForm(false);
                 setReviewRating(0); setReviewTitle(''); setReviewContent('');
                 fetchReviews();
+            } else {
+                throw new Error(json.error || 'Review submission failed');
             }
-        } catch (e) { console.error('Review submit error:', e); }
+        } catch (e) {
+            console.error('Review submit error:', e);
+            toast.error('Failed to submit review. Please try again.');
+        }
         setSubmittingReview(false);
     };
 
@@ -792,7 +798,10 @@ export default function SocialPageDetail() {
             } else {
                 toast.error(json.error || 'Action failed');
             }
-        } catch (e) { console.error('Seat action error:', e); }
+        } catch (e) {
+            console.error('Seat action error:', e);
+            toast.error('Failed to join. Please try again.');
+        }
         setSeatAction(null);
     };
 
@@ -807,10 +816,15 @@ export default function SocialPageDetail() {
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 body: JSON.stringify({ action: 'report', page_id: page.id, reason: reportReason, details: reportDetails }),
             });
-            // Fire and forget — even if no backend handler yet, don't block UI
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error || 'Report failed');
             toast.success('Report submitted. Thank you.');
             setShowReportModal(false); setReportReason(''); setReportDetails('');
-        } catch (e) { console.error('Report error:', e); }
+        } catch (e) {
+            console.error('Report error:', e);
+            toast.error('Failed to submit report. Please try again.');
+        }
         setSubmittingReport(false);
     };
 
@@ -822,12 +836,17 @@ export default function SocialPageDetail() {
         setNotifyEnabled(newVal); // optimistic
         try {
             const token = getAccessToken();
-            await fetch('/api/social/pages/follow', {
+            const res = await fetch('/api/social/pages/follow', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({ page_id: page.id, user_id: user.id, notify: newVal }),
+                body: JSON.stringify({ page_id: page.id, notify: newVal }),
             });
-        } catch (e) { setNotifyEnabled(!newVal); } // rollback
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        } catch (e) {
+            console.error('Notification toggle error:', e);
+            setNotifyEnabled(!newVal); // rollback on ANY error
+            toast.error('Failed to update notification preference');
+        }
         setTogglingNotify(false);
     };
   // Realtime subscription — live updates (posts, interactions, followers)

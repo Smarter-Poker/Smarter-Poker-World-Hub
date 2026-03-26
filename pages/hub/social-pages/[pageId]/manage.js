@@ -546,16 +546,23 @@ export default function ManageSocialPage() {
                                                 ) : (
                                                     <select value={m.role || 'follower'} onChange={async (e) => {
                                                         const newRole = e.target.value;
+                                                        const prevRole = m.role;
+                                                        setMembers(prev => prev.map(mm => mm.id === m.id ? { ...mm, role: newRole } : mm)); // optimistic
                                                         try {
                                                             const token = getAccessToken();
-                                                            await fetch('/api/social/pages/follow', {
+                                                            const res = await fetch('/api/social/pages/follow', {
                                                                 method: 'PUT',
                                                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                                                 body: JSON.stringify({ page_id: page.id, follower_id: m.user_id, role: newRole }),
                                                             });
-                                                            setMembers(prev => prev.map(mm => mm.id === m.id ? { ...mm, role: newRole } : mm));
+                                                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                                            const json = await res.json();
+                                                            if (!json.success) throw new Error(json.error || 'Update failed');
                                                             setMessage(`Role updated to ${newRole}`);
-                                                        } catch (err) { setMessage('Failed to update role'); }
+                                                        } catch (err) {
+                                                            setMembers(prev => prev.map(mm => mm.id === m.id ? { ...mm, role: prevRole } : mm)); // rollback
+                                                            setMessage('Failed to update role');
+                                                        }
                                                     }} style={{
                                                         fontSize: 12, padding: '2px 6px', borderRadius: 6,
                                                         border: `1px solid ${C.border}`, background: C.bg,
