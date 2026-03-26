@@ -410,7 +410,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     useEffect(() => {
         if (showOverlay) {
             if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+            overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
         }
         return () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current); };
     }, [showOverlay]);
@@ -1120,8 +1120,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
                         padding: '24px 12px 20px',
                         display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-                        opacity: 1,
-                        pointerEvents: 'auto',
+                        opacity: showOverlay ? 1 : 0,
+                        pointerEvents: showOverlay ? 'auto' : 'none',
+                        transition: 'opacity 0.3s ease',
                         zIndex: 20,
                     }}
                 >
