@@ -652,7 +652,8 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     );
 }
 
-export default function SocialPageDetail() {
+const SocialPageDetail = () => {
+    const _pageMount = Date.now(); // SWC minifier scope anchor
     const router = useRouter();
     const { pageId } = router.query;
     const { user } = useAuthUser();
@@ -2965,3 +2966,5 @@ export default function SocialPageDetail() {
         </>
     );
 }
+
+export default SocialPageDetail;
