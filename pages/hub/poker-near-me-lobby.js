@@ -24,6 +24,7 @@ import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory } from '../../src/services/pokerNearMeSearchHistory';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../src/engine/EventBus';
 // BottomNavBar removed — Poker Near Me has its own navigation grid
 
 // ─── Sound Utilities (Web Audio API — zero-latency, no external assets) ───
@@ -514,12 +515,17 @@ export default function PokerNearMeLobby() {
       delete newState[venueId];
       return newState;
     }),
-    'venue:checkin': (data) => {
-      if (data && data.venueId) {
-        setCheckinCounts(prev => ({ ...prev, [String(data.venueId)]: (prev[String(data.venueId)] || 0) + 1 }));
-      }
-    },
   });
+
+  // ─── Listen for VENUE_CHECKIN_CREATED events to update badge counts in real-time ───
+  useEffect(() => {
+    const unsub = eventBus.on(EventType.VENUE_CHECKIN_CREATED, (payload) => {
+      if (payload && payload.venueId) {
+        setCheckinCounts(prev => ({ ...prev, [String(payload.venueId)]: (prev[String(payload.venueId)] || 0) + 1 }));
+      }
+    });
+    return () => { if (typeof unsub === 'function') unsub(); };
+  }, []);
 
   // ─── Core State ───
   const [activePod, setActivePod] = useState(null);

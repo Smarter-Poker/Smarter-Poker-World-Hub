@@ -653,10 +653,10 @@ function detectActionType(text) {
 // GTO Wizard-style color-coded action buttons — matches their exact scheme
 // CHECK = green passive, FOLD = muted blue-grey, CALL = teal, RAISE/BET = red/salmon
 const ACTION_COLORS = {
-    fold: { bg: '#2a2a35', border: '#5a5a6a', text: '#a0a0b0', accent: '#7a7a8a' },
-    check: { bg: '#2a3a2a', border: '#4a6a4a', text: '#8ab88a', accent: '#67a36f' },
-    call: { bg: '#1e3a4a', border: '#3a6a7a', text: '#7ab8d0', accent: '#5aa0b8' },
-    raise: { bg: '#4a2a2a', border: '#8a4a4a', text: '#d6a0a0', accent: '#d6504a' },
+    fold: { bg: '#32303a', border: '#6b6478', text: '#b0aab8', accent: '#8a8495' },
+    check: { bg: '#1a3b3f', border: '#2d8f7f', text: '#5ee4cc', accent: '#38bfa8' },
+    call: { bg: '#1a2e4a', border: '#3b7dd8', text: '#6bb8f0', accent: '#4d9be6' },
+    raise: { bg: '#3e2020', border: '#d65a50', text: '#f09080', accent: '#e8584e' },
     neutral: { bg: '#2a2a32', border: '#4a4a55', text: '#94a3b8', accent: '#64748b' },
 };
 
@@ -1500,6 +1500,7 @@ function UniversalDynamicTable({
             background: colors.bg,
             borderColor: colors.border,
             color: colors.text,
+            borderLeft: `3px solid ${colors.accent}`,
         };
 
         if (showFeedback) {
@@ -1970,7 +1971,7 @@ function UniversalDynamicTable({
                                         borderColor: isHero ? '#00d4ff' : '#4a4a55',
                                     }}>
                                         <div style={{ ...styles.badgeLabel, color: isHero ? '#00d4ff' : '#94a3b8' }}>
-                                            {isHero ? 'HERO' : seat.name}
+                                            {isHero ? 'HERO' : 'Villain'}
                                         </div>
                                         <div style={styles.badgeStack}>{stackSize} bb</div>
                                     </div>
@@ -3442,7 +3443,7 @@ const styles = {
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
-        gap: 5,
+        gap: 8,
         zIndex: 3,
     },
 

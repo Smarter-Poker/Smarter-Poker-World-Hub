@@ -177,8 +177,12 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
                 <Avatar src={post.author?.avatar_url} name={post.author?.full_name || post.author?.username} size={40} />
                 <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 5 }}>
                         {post.author?.full_name || post.author?.username || 'Unknown'}
+                        {/* P10-9: Owner/Admin badge */}
+                        {isPageOwner && post.author_id === (page?.owner_id || page?.created_by) && (
+                            <span style={{ display: 'inline-block', padding: '1px 6px', borderRadius: 4, background: '#E7F3FF', color: C.blue, fontSize: 10, fontWeight: 700, letterSpacing: 0.3 }}>ADMIN</span>
+                        )}
                     </div>
                     <div style={{ fontSize: 12, color: C.textSec, cursor: 'default' }} title={post.created_at ? new Date(post.created_at).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}>{timeAgo(post.created_at)}</div>
                 </div>
@@ -273,8 +277,23 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
 
             {/* Media — #2 Image Carousel */}
             {post.media_urls && post.media_urls.length > 0 && (
-                <div style={{ position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'relative', overflow: 'hidden' }}
+                    onDoubleClick={() => {
+                        if (!user) return;
+                        if (!post.user_liked) { onLike(post.id); }
+                        setDoubleTapHeart(true);
+                        if (doubleTapTimer.current) clearTimeout(doubleTapTimer.current);
+                        doubleTapTimer.current = setTimeout(() => setDoubleTapHeart(false), 800);
+                    }}>
                     <img src={post.media_urls[carouselIdx]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} />
+                    {/* P10-1: Image heart animation overlay */}
+                    {doubleTapHeart && (
+                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', animation: 'likePopAnim 0.8s ease-out forwards', zIndex: 10 }}>
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="#F02849" stroke="#F02849" strokeWidth="1">
+                                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                            </svg>
+                        </div>
+                    )}
                     {post.media_urls.length > 1 && (
                         <>
                             {carouselIdx > 0 && (
@@ -472,6 +491,15 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                             }}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2" /><polyline points="22,7 12,13 2,7"/></svg>
                                 Share via Email
+                            </a>
+                            {/* P10-4: SMS share */}
+                            <a href={`sms:?body=${encodeURIComponent((post.content?.slice(0, 80) || 'Check this out') + ' ' + shareUrl)}`}
+                                style={{
+                                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
+                                border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, textDecoration: 'none',
+                            }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                                Share via SMS
                             </a>
                         </div>
                     </div>
@@ -1570,9 +1598,10 @@ export default function SocialPageDetail() {
                         {/* P9-3: Sticky tab bar */}
                         <div style={{ display: 'flex', gap: 0, borderTop: `1px solid ${C.border}`, position: 'sticky', top: 56, zIndex: 20, background: C.card, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                             {['posts', 'about', 'members', 'reviews', 'games', 'schedule', 'media'].map(t => {
-                                // P9-8: Tab count badges
+                                // P9-8 + P10-3: Tab count badges
                                 const allMedia = posts.flatMap(p => (p.media_urls || []));
-                                const badge = t === 'members' ? (page?.follower_count || 0)
+                                const badge = t === 'posts' ? posts.length
+                                    : t === 'members' ? (page?.follower_count || 0)
                                     : t === 'reviews' ? reviews.length
                                     : t === 'media' ? allMedia.length
                                     : null;
@@ -2264,10 +2293,12 @@ export default function SocialPageDetail() {
                                         </div>
                                     ) : tournaments.length === 0 ? (
                                         <div style={{ textAlign: 'center', padding: 30 }}>
-                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CCD0D5" strokeWidth="1.5">
-                                                <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#DADDE1" strokeWidth="1.5" style={{ marginBottom: 12 }}>
+                                                <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
+                                                <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
                                             </svg>
-                                            <p style={{ fontSize: 14, color: C.textSec, marginTop: 12 }}>No upcoming tournaments scheduled.</p>
+                                            <p style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No Upcoming Tournaments</p>
+                                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Tournament schedules will appear here when posted.</p>
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
