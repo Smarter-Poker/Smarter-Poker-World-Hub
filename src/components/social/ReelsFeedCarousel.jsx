@@ -238,6 +238,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [saved, setSaved] = useState({});
     const [slideDir, setSlideDir] = useState(null);
     const [captionExpanded, setCaptionExpanded] = useState(false);
+    // #8 Share Options Modal
+    const [showShareModal, setShowShareModal] = useState(false);
+    // #7 Animated Like Counter
+    const [likeBounceId, setLikeBounceId] = useState(null);
     // GIF + Image state for reel comments
     const [showReelGifPicker, setShowReelGifPicker] = useState(false);
     const [reelCommentMediaUrl, setReelCommentMediaUrl] = useState(null);
@@ -428,6 +432,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
         const wasLiked = liked[currentId];
         setLiked(prev => ({ ...prev, [currentId]: !prev[currentId] }));
         setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? -1 : 1)) }));
+        // #7 Animated Like Counter — trigger bounce
+        setLikeBounceId(currentId);
+        setTimeout(() => setLikeBounceId(null), 400);
         // Mutual exclusion: remove dislike when liking
         if (!wasLiked && disliked[currentId]) {
             setDisliked(prev => ({ ...prev, [currentId]: false }));
@@ -572,21 +579,39 @@ function ReelViewer({ reels, startIndex, onClose }) {
     };
 
     // Share handler
-    const handleShare = async () => {
+    // #8 Share Options Modal handler
+    const handleShare = () => {
         if (!currentReel?.id) return;
-        const url = `${window.location.origin}/hub/social-media?reel=${currentReel.id}`;
+        haptic(10);
+        setShowShareModal(true);
+    };
+
+    const shareReelUrl = currentReel ? `${window.location.origin}/hub/social-media?reel=${currentReel.id}` : '';
+
+    const handleShareAction = async (platform) => {
+        setShowShareModal(false);
+        const url = shareReelUrl;
+        const title = 'Check out this poker reel on Smarter.Poker';
         try {
-            if (navigator.share) {
-                await navigator.share({ title: 'Check out this reel on Smarter.Poker', url });
-            } else {
+            if (platform === 'copy') {
                 await navigator.clipboard.writeText(url);
+                setShareToast(true);
+                setTimeout(() => setShareToast(false), 2000);
+            } else if (platform === 'native' && navigator.share) {
+                await navigator.share({ title, url });
+            } else if (platform === 'x') {
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`, '_blank');
+            } else if (platform === 'facebook') {
+                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+            } else if (platform === 'whatsapp') {
+                window.open(`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`, '_blank');
             }
-        } catch { /* user cancelled or clipboard failed */ }
-        setShareToast(true);
-        setTimeout(() => setShareToast(false), 2000);
-        // Increment share_count in Supabase
-        (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {} })();
-        if (authUser?.id) busEmit.socialPostShared(currentReel.id, authUser.id);
+            (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {} })();
+            if (authUser?.id) busEmit.socialPostShared(currentReel.id, authUser.id);
+        } catch {
+            setShareToast(true);
+            setTimeout(() => setShareToast(false), 2000);
+        }
     };
 
     const handleReport = async () => {
@@ -636,6 +661,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setReportReason('');
         setReportSubmitted(false);
         setShareToast(false);
+        setShowShareModal(false);
         // Deduplicated view count — only fire once per reel per session (auth only)
         const reelId = reels[currentIndex]?.id;
         if (reelId && authUser?.id && !viewedReelsRef.current.has(reelId)) {
@@ -931,8 +957,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
-                        <span style={{ fontSize: 24 }}>{liked[currentReel.id] ? '❤️' : '👍'}</span>
-                        <span style={{ fontSize: 10, fontWeight: 500 }}>{likeCounts[currentReel.id] || 0}</span>
+                        <span style={{ fontSize: 24 }}>{liked[currentReel.id] ? '\u2764\uFE0F' : '\uD83D\uDC4D'}</span>
+                        <span style={{
+                            fontSize: 10, fontWeight: 500,
+                            transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                            transform: likeBounceId === currentReel.id ? 'scale(1.5)' : 'scale(1)',
+                            display: 'inline-block',
+                        }}>{likeCounts[currentReel.id] || 0}</span>
                     </button>
                     <button onClick={() => { handleDislike(); haptic(10); }} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
@@ -1010,6 +1041,37 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         padding: '8px 20px', borderRadius: 20, fontSize: 14, zIndex: 30,
                         backdropFilter: 'blur(10px)',
                     }}>Link Copied</div>
+                )}
+
+                {/* #8 Share Options Modal */}
+                {showShareModal && (
+                    <div onClick={() => setShowShareModal(false)} style={{
+                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)',
+                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 40,
+                    }}>
+                        <div onClick={e => e.stopPropagation()} style={{
+                            background: '#1a1a2e', borderRadius: '16px 16px 0 0', padding: '16px 20px 24px',
+                            width: '100%', maxWidth: 400, border: '1px solid rgba(255,255,255,0.1)',
+                        }}>
+                            <div style={{ textAlign: 'center', marginBottom: 4 }}>
+                                <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 2, margin: '0 auto 12px' }} />
+                                <div style={{ color: 'white', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>Share This Reel</div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                                {[{id:'copy',label:'Copy Link',color:'#00d4ff'},{id:'x',label:'X',color:'#fff'},{id:'facebook',label:'Facebook',color:'#1877F2'},{id:'whatsapp',label:'WhatsApp',color:'#25D366'}].map(p => (
+                                    <button key={p.id} onClick={() => handleShareAction(p.id)} style={{
+                                        background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: 12, padding: '14px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                                    }}>
+                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: p.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <span style={{ fontSize: 12, color: p.id === 'x' ? '#000' : '#fff', fontWeight: 700 }}>{p.id === 'copy' ? '\u{1F517}' : p.id === 'x' ? 'X' : p.id === 'facebook' ? 'f' : 'W'}</span>
+                                        </div>
+                                        <span style={{ color: 'white', fontSize: 10, fontWeight: 500 }}>{p.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {/* Heart burst animation CSS */}
