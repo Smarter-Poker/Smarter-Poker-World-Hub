@@ -38,7 +38,8 @@
         "$5/$10"
       ],
       "poker_tables": 37,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1819,
@@ -63,7 +64,8 @@
         "$5/$10"
       ],
       "poker_tables": 22,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1820,
@@ -91,7 +93,8 @@
         "$10/$20"
       ],
       "poker_tables": 200,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1822,
@@ -116,7 +119,8 @@
         "$5/$10"
       ],
       "poker_tables": 80,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1823,
@@ -141,7 +145,8 @@
         "$5/$10"
       ],
       "poker_tables": 20,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1824,
@@ -166,7 +171,8 @@
         "$5/$10"
       ],
       "poker_tables": 25,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1825,
@@ -192,7 +198,8 @@
         "$5/$10"
       ],
       "poker_tables": 45,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1826,
@@ -217,7 +224,8 @@
         "$5/$10"
       ],
       "poker_tables": 46,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1828,
@@ -243,7 +251,8 @@
         "$5/$10"
       ],
       "poker_tables": 40,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1829,
@@ -267,7 +276,8 @@
         "$2/$5"
       ],
       "poker_tables": 25,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1830,
@@ -291,7 +301,8 @@
         "$2/$5"
       ],
       "poker_tables": 30,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1831,
@@ -315,7 +326,8 @@
         "$2/$5"
       ],
       "poker_tables": 30,
-      "hours_weekday": "6 am - 12 pm"
+      "hours_weekday": "6 am - 12 pm",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1832,
@@ -341,7 +353,8 @@
         "$5/$10"
       ],
       "poker_tables": 85,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1833,
@@ -365,7 +378,8 @@
         "$2/$5"
       ],
       "poker_tables": 48,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1834,
@@ -390,7 +404,8 @@
         "$5/$10"
       ],
       "poker_tables": 42,
-      "hours_weekday": "9:00am - 4:00am"
+      "hours_weekday": "9:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1835,
@@ -415,7 +430,8 @@
         "$5/$10"
       ],
       "poker_tables": 100,
-      "hours_weekday": "9:00am - 1:00am"
+      "hours_weekday": "9:00am - 1:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1836,
@@ -440,7 +456,8 @@
         "$5/$10"
       ],
       "poker_tables": 32,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1837,
@@ -464,7 +481,8 @@
         "$2/$5"
       ],
       "poker_tables": 52,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1838,
@@ -488,7 +506,8 @@
         "$2/$5"
       ],
       "poker_tables": 22,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1840,
@@ -512,7 +531,8 @@
         "$2/$5"
       ],
       "poker_tables": 30,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1841,
@@ -536,7 +556,8 @@
         "$2/$5"
       ],
       "poker_tables": 18,
-      "hours_weekday": "12:00pm - 3:00am"
+      "hours_weekday": "12:00pm - 3:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1842,
@@ -560,7 +581,8 @@
         "$2/$5"
       ],
       "poker_tables": 46,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1843,
@@ -584,7 +606,8 @@
         "$2/$5"
       ],
       "poker_tables": 20,
-      "hours_weekday": "10:00am - 6:00am"
+      "hours_weekday": "10:00am - 6:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1844,
@@ -608,7 +631,8 @@
         "$2/$5"
       ],
       "poker_tables": 26,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1847,
@@ -634,7 +658,8 @@
         "$5/$10"
       ],
       "poker_tables": 40,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1849,
@@ -658,7 +683,8 @@
         "$2/$5"
       ],
       "poker_tables": 20,
-      "hours_weekday": "8:00am - 4:00am"
+      "hours_weekday": "8:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1850,
@@ -682,7 +708,8 @@
         "$2/$5"
       ],
       "poker_tables": 14,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1851,
@@ -706,7 +733,8 @@
         "$2/$5"
       ],
       "poker_tables": 16,
-      "hours_weekday": "10:00am - 4:00am"
+      "hours_weekday": "10:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1853,
@@ -731,7 +759,8 @@
         "$5/$10"
       ],
       "poker_tables": 25,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1854,
@@ -751,7 +780,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 10,
-      "hours_weekday": "12:00pm - 4:00am"
+      "hours_weekday": "12:00pm - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1855,
@@ -771,7 +801,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 4,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1856,
@@ -791,7 +822,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 10,
-      "hours_weekday": "12:00pm - 4:00am"
+      "hours_weekday": "12:00pm - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1861,
@@ -811,7 +843,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 12,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1863,
@@ -831,7 +864,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 4,
-      "hours_weekday": "9:00am - 3:00am"
+      "hours_weekday": "9:00am - 3:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1865,
@@ -851,7 +885,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 1,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1867,
@@ -871,7 +906,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 15,
-      "hours_weekday": "11am - 11pm"
+      "hours_weekday": "11am - 11pm",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1870,
@@ -891,7 +927,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 16,
-      "hours_weekday": "10:00am - 2:00am"
+      "hours_weekday": "10:00am - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1871,
@@ -911,7 +948,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 14,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1875,
@@ -931,7 +969,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 8,
-      "hours_weekday": "10:00am - 4:00am"
+      "hours_weekday": "10:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1876,
@@ -951,7 +990,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 19,
-      "hours_weekday": "10:00am - 2:00am"
+      "hours_weekday": "10:00am - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1877,
@@ -971,7 +1011,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 16,
-      "hours_weekday": "10:00am - 3:00am"
+      "hours_weekday": "10:00am - 3:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1879,
@@ -991,7 +1032,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 30,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1880,
@@ -1011,7 +1053,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 34,
-      "hours_weekday": "10:00am - 4:00am"
+      "hours_weekday": "10:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1882,
@@ -1031,7 +1074,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 12,
-      "hours_weekday": "10:00am - 3:00am"
+      "hours_weekday": "10:00am - 3:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1883,
@@ -1051,7 +1095,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 9,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1884,
@@ -1071,7 +1116,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 7,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1885,
@@ -1091,7 +1137,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1887,
@@ -1111,7 +1158,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 34,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1890,
@@ -1131,7 +1179,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 12,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1891,
@@ -1151,7 +1200,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 11,
-      "hours_weekday": "12:00pm - 2:00am"
+      "hours_weekday": "12:00pm - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1893,
@@ -1171,7 +1221,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 19,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1894,
@@ -1191,7 +1242,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 12,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1895,
@@ -1211,7 +1263,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1896,
@@ -1231,7 +1284,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 7,
-      "hours_weekday": "11:00am - 2:00am"
+      "hours_weekday": "11:00am - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1899,
@@ -1252,7 +1306,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 11,
-      "hours_weekday": "1:00pm - 10:30pm"
+      "hours_weekday": "1:00pm - 10:30pm",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1901,
@@ -1272,7 +1327,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 4,
-      "hours_weekday": "6:00pm - 2:30am"
+      "hours_weekday": "6:00pm - 2:30am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1902,
@@ -1292,7 +1348,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 6,
-      "hours_weekday": "11:00am - 3:00am"
+      "hours_weekday": "11:00am - 3:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1903,
@@ -1312,7 +1369,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 5,
-      "hours_weekday": "12:00pm - 5:00am"
+      "hours_weekday": "12:00pm - 5:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1904,
@@ -1333,7 +1391,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 13,
-      "hours_weekday": "10:00am - 4:00am"
+      "hours_weekday": "10:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1906,
@@ -1353,7 +1412,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 8,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1908,
@@ -1373,7 +1433,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 7,
-      "hours_weekday": "6:30pm - 4:00am"
+      "hours_weekday": "6:30pm - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1909,
@@ -1397,7 +1458,8 @@
         "$1/$2"
       ],
       "poker_tables": 8,
-      "hours_weekday": "2pm - 2:59pm"
+      "hours_weekday": "2pm - 2:59pm",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1911,
@@ -1421,7 +1483,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "8PM - 2AM"
+      "hours_weekday": "8PM - 2AM",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1912,
@@ -1441,7 +1504,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 4,
-      "hours_weekday": "3:00pm - 4:00am"
+      "hours_weekday": "3:00pm - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1917,
@@ -1461,7 +1525,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1918,
@@ -1482,7 +1547,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 18,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1919,
@@ -1504,7 +1570,8 @@
         "$20/$40"
       ],
       "poker_tables": 15,
-      "hours_weekday": "5:00pm - 2:00am"
+      "hours_weekday": "5:00pm - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1920,
@@ -1524,7 +1591,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 46,
-      "hours_weekday": "6am - 10am"
+      "hours_weekday": "6am - 10am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1921,
@@ -1545,7 +1613,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 28,
-      "hours_weekday": "3PM - 12AM"
+      "hours_weekday": "3PM - 12AM",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1923,
@@ -1566,7 +1635,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 32,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1924,
@@ -1586,7 +1656,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 23,
-      "hours_weekday": "12:00pm - 2:00am"
+      "hours_weekday": "12:00pm - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1925,
@@ -1606,7 +1677,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 6,
-      "hours_weekday": "4:00pm - 6:00am"
+      "hours_weekday": "4:00pm - 6:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1926,
@@ -1626,7 +1698,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 9,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1927,
@@ -1646,7 +1719,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 18,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1928,
@@ -1666,7 +1740,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 16,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1931,
@@ -1686,7 +1761,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 12,
-      "hours_weekday": "Mo-Su 00:00-24:00"
+      "hours_weekday": "Mo-Su 00:00-24:00",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1932,
@@ -1706,7 +1782,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 3,
-      "hours_weekday": "11:00am - 1:30am"
+      "hours_weekday": "11:00am - 1:30am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1933,
@@ -1726,7 +1803,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 2,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1934,
@@ -1746,7 +1824,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 2,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1935,
@@ -1766,7 +1845,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 5,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1936,
@@ -1786,7 +1866,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 1,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1937,
@@ -1806,7 +1887,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 7,
-      "hours_weekday": "8:00am - 4:00am"
+      "hours_weekday": "8:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1938,
@@ -1826,7 +1908,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 6,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1939,
@@ -1846,7 +1929,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 13,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1940,
@@ -1866,7 +1950,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 5,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1941,
@@ -1886,7 +1971,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 3,
-      "hours_weekday": "3:00pm - 1:00am"
+      "hours_weekday": "3:00pm - 1:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1942,
@@ -1907,7 +1993,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 1,
-      "hours_weekday": "4:00pm - 2:00am"
+      "hours_weekday": "4:00pm - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1943,
@@ -1929,7 +2016,8 @@
         "$500/$200"
       ],
       "poker_tables": 51,
-      "hours_weekday": "10:00am - 4:00am"
+      "hours_weekday": "10:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1944,
@@ -1949,7 +2037,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 30,
-      "hours_weekday": "10 AM - 10 PM"
+      "hours_weekday": "10 AM - 10 PM",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1945,
@@ -1969,7 +2058,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 58,
-      "hours_weekday": "10:00am - 6:00am"
+      "hours_weekday": "10:00am - 6:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1946,
@@ -1989,7 +2079,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 55,
-      "hours_weekday": "10:00am - 4:00am"
+      "hours_weekday": "10:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1947,
@@ -2009,7 +2100,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 25,
-      "hours_weekday": "10:00am - 4:00am"
+      "hours_weekday": "10:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1948,
@@ -2031,7 +2123,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 7,
-      "hours_weekday": "12pm - 12:30pm"
+      "hours_weekday": "12pm - 12:30pm",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1950,
@@ -2051,7 +2144,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 32,
-      "hours_weekday": "10:00am - 2:00am"
+      "hours_weekday": "10:00am - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1951,
@@ -2071,7 +2165,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 38,
-      "hours_weekday": "10:00am - 4:00am"
+      "hours_weekday": "10:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1952,
@@ -2091,7 +2186,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 49,
-      "hours_weekday": "10:00am - 4:00am"
+      "hours_weekday": "10:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1953,
@@ -2111,7 +2207,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 64,
-      "hours_weekday": "9:00am - 3:00am"
+      "hours_weekday": "9:00am - 3:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1954,
@@ -2131,7 +2228,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 15,
-      "hours_weekday": "12:00pm - 4:00am"
+      "hours_weekday": "12:00pm - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1955,
@@ -2151,7 +2249,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 25,
-      "hours_weekday": "9:00am - 3:00am"
+      "hours_weekday": "9:00am - 3:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1956,
@@ -2171,7 +2270,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 22,
-      "hours_weekday": "10:30am - 1:00am"
+      "hours_weekday": "10:30am - 1:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1957,
@@ -2191,7 +2291,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 29,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1958,
@@ -2211,7 +2312,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 1,
-      "hours_weekday": "8:00pm - 2:30am"
+      "hours_weekday": "8:00pm - 2:30am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1959,
@@ -2231,7 +2333,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 2,
-      "hours_weekday": "4:00pm - 2:30am"
+      "hours_weekday": "4:00pm - 2:30am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1960,
@@ -2251,7 +2354,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 6,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1961,
@@ -2271,7 +2375,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 6,
-      "hours_weekday": "10:45am - 2:00am"
+      "hours_weekday": "10:45am - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1962,
@@ -2291,7 +2396,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 29,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1963,
@@ -2311,7 +2417,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 7,
-      "hours_weekday": "4:00pm - 2:00am"
+      "hours_weekday": "4:00pm - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1964,
@@ -2331,7 +2438,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 10,
-      "hours_weekday": "8:00am - 2:00am"
+      "hours_weekday": "8:00am - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1965,
@@ -2351,7 +2459,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 29,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1966,
@@ -2371,7 +2480,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 6,
-      "hours_weekday": "11:00am - 2:00am"
+      "hours_weekday": "11:00am - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1967,
@@ -2391,7 +2501,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 8,
-      "hours_weekday": "11:00am - 1:30am"
+      "hours_weekday": "11:00am - 1:30am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1968,
@@ -2411,7 +2522,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 6,
-      "hours_weekday": "4:00pm - 1:30am"
+      "hours_weekday": "4:00pm - 1:30am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1969,
@@ -2431,7 +2543,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 6,
-      "hours_weekday": "5:00pm - 2:00am"
+      "hours_weekday": "5:00pm - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1970,
@@ -2451,7 +2564,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 9,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1971,
@@ -2471,7 +2585,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 6,
-      "hours_weekday": "11:00am - 6:00pm"
+      "hours_weekday": "11:00am - 6:00pm",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1972,
@@ -2491,7 +2606,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 9,
-      "hours_weekday": "11:00am - 2:00am"
+      "hours_weekday": "11:00am - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1973,
@@ -2511,7 +2627,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 5,
-      "hours_weekday": "11:00am - 2:00am"
+      "hours_weekday": "11:00am - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1975,
@@ -2531,7 +2648,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 8,
-      "hours_weekday": "5:00pm - 2:00am"
+      "hours_weekday": "5:00pm - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1976,
@@ -2551,7 +2669,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 3,
-      "hours_weekday": "11:00am - 2:00am"
+      "hours_weekday": "11:00am - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1977,
@@ -2571,7 +2690,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 8,
-      "hours_weekday": "4:00pm - 2:00am"
+      "hours_weekday": "4:00pm - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1979,
@@ -2591,7 +2711,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 5,
-      "hours_weekday": "10:00am - 2:00am"
+      "hours_weekday": "10:00am - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1980,
@@ -2614,7 +2735,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 29,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1981,
@@ -2635,7 +2757,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 7,
-      "hours_weekday": "5:00pm - 1:30am"
+      "hours_weekday": "5:00pm - 1:30am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1982,
@@ -2658,7 +2781,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 5,
-      "hours_weekday": "6:00pm - 3:00am"
+      "hours_weekday": "6:00pm - 3:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1985,
@@ -2678,7 +2802,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 18,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1988,
@@ -2699,7 +2824,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 34,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1991,
@@ -2719,7 +2845,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 8,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1992,
@@ -2742,7 +2869,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 29,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1994,
@@ -2763,7 +2891,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 7,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1996,
@@ -2785,7 +2914,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 20,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1997,
@@ -2807,7 +2937,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 5,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 1998,
@@ -2830,7 +2961,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 29,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2000,
@@ -2853,11 +2985,12 @@
       ],
       "stakes_cash": null,
       "poker_tables": 29,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2001,
-      "name": "Johnny’s Game ",
+      "name": "Johnny\u2019s Game ",
       "state": "IL",
       "city": "Las Vegas",
       "venue_type": "poker_room",
@@ -2877,7 +3010,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 10,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2010,
@@ -2898,7 +3032,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 8,
-      "hours_weekday": "3:00pm - 2:00am"
+      "hours_weekday": "3:00pm - 2:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2017,
@@ -2919,7 +3054,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 21,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2019,
@@ -2940,7 +3076,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 10,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2020,
@@ -2962,7 +3099,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 11,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2027,
@@ -2982,7 +3120,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2033,
@@ -3003,7 +3142,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 25,
-      "hours_weekday": "11:00am - 1:00am"
+      "hours_weekday": "11:00am - 1:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2037,
@@ -3023,7 +3163,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2038,
@@ -3045,7 +3186,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 21,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2047,
@@ -3065,7 +3207,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 14,
-      "hours_weekday": "10:00am - 4:00am"
+      "hours_weekday": "10:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2051,
@@ -3087,7 +3230,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 8,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2053,
@@ -3109,7 +3253,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 10,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2057,
@@ -3132,7 +3277,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 29,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2059,
@@ -3155,7 +3301,8 @@
       ],
       "stakes_cash": null,
       "poker_tables": 20,
-      "hours_weekday": "10:00am - 4:00am"
+      "hours_weekday": "10:00am - 4:00am",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2120,
@@ -3180,7 +3327,8 @@
         "$5/$10"
       ],
       "poker_tables": 18,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2129,
@@ -3207,7 +3355,8 @@
         "$10/$20"
       ],
       "poker_tables": 24,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2130,
@@ -3235,7 +3384,8 @@
         "$25/$50"
       ],
       "poker_tables": 28,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2132,
@@ -3260,7 +3410,8 @@
         "$5/$10"
       ],
       "poker_tables": 18,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2133,
@@ -3285,7 +3436,8 @@
         "$2/$5"
       ],
       "poker_tables": 16,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2134,
@@ -3310,7 +3462,8 @@
         "$5/$10"
       ],
       "poker_tables": 22,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2136,
@@ -3333,7 +3486,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2137,
@@ -3356,7 +3510,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2138,
@@ -3381,7 +3536,8 @@
         "$5/$10"
       ],
       "poker_tables": 30,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2140,
@@ -3404,7 +3560,8 @@
         "$2/$5"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2141,
@@ -3427,7 +3584,8 @@
         "$2/$5"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2142,
@@ -3450,7 +3608,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2143,
@@ -3473,7 +3632,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2144,
@@ -3497,7 +3657,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2145,
@@ -3519,7 +3680,8 @@
         "$1/$2"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2146,
@@ -3541,7 +3703,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2147,
@@ -3563,7 +3726,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2148,
@@ -3585,7 +3749,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2151,
@@ -3610,7 +3775,8 @@
         "$2/$4 Limit"
       ],
       "poker_tables": 22,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2152,
@@ -3634,7 +3800,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2153,
@@ -3658,7 +3825,8 @@
         "$2/$5"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2154,
@@ -3682,7 +3850,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2156,
@@ -3705,7 +3874,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2157,
@@ -3727,7 +3897,8 @@
         "$1/$2"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2158,
@@ -3749,7 +3920,8 @@
         "$1/$2"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2159,
@@ -3771,7 +3943,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2160,
@@ -3793,7 +3966,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2161,
@@ -3815,7 +3989,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2162,
@@ -3839,7 +4014,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2163,
@@ -3861,7 +4037,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2164,
@@ -3883,7 +4060,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2165,
@@ -3905,7 +4083,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2166,
@@ -3927,7 +4106,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2167,
@@ -3949,7 +4129,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2169,
@@ -3973,7 +4154,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2170,
@@ -3997,7 +4179,8 @@
         "$1/$2"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2172,
@@ -4020,7 +4203,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2173,
@@ -4043,7 +4227,8 @@
         "$2/$5"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2175,
@@ -4066,7 +4251,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2176,
@@ -4088,7 +4274,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2177,
@@ -4112,7 +4299,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2178,
@@ -4134,7 +4322,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2181,
@@ -4156,7 +4345,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2185,
@@ -4182,7 +4372,8 @@
         "$5/$10"
       ],
       "poker_tables": 60,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2186,
@@ -4208,7 +4399,8 @@
         "$2/$5"
       ],
       "poker_tables": 40,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2187,
@@ -4233,7 +4425,8 @@
         "$5/$10"
       ],
       "poker_tables": 45,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2188,
@@ -4258,7 +4451,8 @@
         "$2/$5"
       ],
       "poker_tables": 30,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2189,
@@ -4281,7 +4475,8 @@
         "$2/$5"
       ],
       "poker_tables": 25,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2191,
@@ -4305,7 +4500,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2192,
@@ -4330,7 +4526,8 @@
         "$5/$10"
       ],
       "poker_tables": 22,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2193,
@@ -4356,7 +4553,8 @@
         "$5/$10"
       ],
       "poker_tables": 30,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2194,
@@ -4380,7 +4578,8 @@
         "$2/$5"
       ],
       "poker_tables": 25,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2195,
@@ -4403,7 +4602,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2196,
@@ -4427,7 +4627,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2198,
@@ -4450,7 +4651,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2199,
@@ -4474,7 +4676,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2200,
@@ -4497,7 +4700,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2201,
@@ -4522,7 +4726,8 @@
         "$5/$10"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2202,
@@ -4544,7 +4749,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2203,
@@ -4567,7 +4773,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2204,
@@ -4591,7 +4798,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2205,
@@ -4613,7 +4821,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2206,
@@ -4641,7 +4850,8 @@
         "$10/$20"
       ],
       "poker_tables": 40,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2207,
@@ -4667,7 +4877,8 @@
         "$5/$10"
       ],
       "poker_tables": 35,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2208,
@@ -4693,7 +4904,8 @@
         "$3/$6 Limit"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2211,
@@ -4719,7 +4931,8 @@
         "$5/$10"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2215,
@@ -4743,7 +4956,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2218,
@@ -4768,7 +4982,8 @@
         "$5/$10"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2219,
@@ -4791,7 +5006,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2220,
@@ -4815,7 +5031,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2221,
@@ -4837,7 +5054,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2222,
@@ -4859,7 +5077,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2223,
@@ -4882,7 +5101,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2224,
@@ -4904,7 +5124,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2225,
@@ -4926,7 +5147,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2226,
@@ -4948,7 +5170,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2227,
@@ -4970,7 +5193,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2230,
@@ -4995,7 +5219,8 @@
         "$5/$10"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2233,
@@ -5021,7 +5246,8 @@
         "$5/$10"
       ],
       "poker_tables": 40,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2234,
@@ -5045,7 +5271,8 @@
         "$2/$5"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2235,
@@ -5068,7 +5295,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2237,
@@ -5091,7 +5319,8 @@
         "$2/$5"
       ],
       "poker_tables": 18,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2238,
@@ -5115,7 +5344,8 @@
         "$2/$5"
       ],
       "poker_tables": 30,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2241,
@@ -5138,7 +5368,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2242,
@@ -5161,7 +5392,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2243,
@@ -5186,7 +5418,8 @@
         "$5/$10"
       ],
       "poker_tables": 30,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2244,
@@ -5209,7 +5442,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2245,
@@ -5232,7 +5466,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2246,
@@ -5255,7 +5490,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2247,
@@ -5279,7 +5515,8 @@
         "$2/$5"
       ],
       "poker_tables": 18,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2249,
@@ -5301,7 +5538,8 @@
         "$1/$2"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2251,
@@ -5323,7 +5561,8 @@
         "$1/$2"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2256,
@@ -5346,7 +5585,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2261,
@@ -5370,7 +5610,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2262,
@@ -5397,7 +5638,8 @@
         "$25/$50"
       ],
       "poker_tables": 35,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2263,
@@ -5421,7 +5663,8 @@
         "$2/$5"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2264,
@@ -5447,7 +5690,8 @@
         "$5/$10"
       ],
       "poker_tables": 30,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2270,
@@ -5471,7 +5715,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2274,
@@ -5495,7 +5740,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2276,
@@ -5519,7 +5765,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2281,
@@ -5543,7 +5790,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2284,
@@ -5566,7 +5814,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2286,
@@ -5590,7 +5839,8 @@
         "$2/$5"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2291,
@@ -5614,7 +5864,8 @@
         "$2/$5"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2292,
@@ -5638,7 +5889,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2293,
@@ -5662,7 +5914,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2296,
@@ -5685,7 +5938,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2298,
@@ -5708,7 +5962,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2300,
@@ -5732,7 +5987,8 @@
         "$2/$5"
       ],
       "poker_tables": 30,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2301,
@@ -5756,7 +6012,8 @@
         "$2/$5"
       ],
       "poker_tables": 28,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2302,
@@ -5780,7 +6037,8 @@
         "$2/$5"
       ],
       "poker_tables": 25,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2303,
@@ -5804,7 +6062,8 @@
         "$2/$5"
       ],
       "poker_tables": 25,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2304,
@@ -5828,7 +6087,8 @@
         "$2/$5"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2305,
@@ -5852,7 +6112,8 @@
         "$2/$5"
       ],
       "poker_tables": 18,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2306,
@@ -5876,7 +6137,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2307,
@@ -5900,7 +6162,8 @@
         "$2/$5"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2308,
@@ -5923,7 +6186,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2309,
@@ -5946,7 +6210,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2310,
@@ -5968,7 +6233,8 @@
         "$1/$2"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2313,
@@ -5993,7 +6259,8 @@
         "$5/$10"
       ],
       "poker_tables": 24,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2314,
@@ -6017,7 +6284,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2315,
@@ -6040,7 +6308,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2316,
@@ -6063,7 +6332,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2317,
@@ -6086,7 +6356,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2318,
@@ -6110,7 +6381,8 @@
         "$2/$5"
       ],
       "poker_tables": 30,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2319,
@@ -6133,7 +6405,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2320,
@@ -6157,7 +6430,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2321,
@@ -6180,7 +6454,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2322,
@@ -6203,7 +6478,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2323,
@@ -6226,7 +6502,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2325,
@@ -6250,7 +6527,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2326,
@@ -6274,7 +6552,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2327,
@@ -6298,7 +6577,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2328,
@@ -6321,7 +6601,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2329,
@@ -6345,7 +6626,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2330,
@@ -6370,7 +6652,8 @@
         "$5/$10"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2333,
@@ -6393,7 +6676,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2338,
@@ -6416,7 +6700,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2339,
@@ -6440,7 +6725,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2340,
@@ -6463,7 +6749,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2342,
@@ -6486,7 +6773,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2343,
@@ -6510,7 +6798,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2344,
@@ -6533,7 +6822,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2345,
@@ -6558,7 +6848,8 @@
         "$5/$10"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2346,
@@ -6582,7 +6873,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2347,
@@ -6605,7 +6897,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2416,
@@ -6629,7 +6922,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2417,
@@ -6653,7 +6947,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2418,
@@ -6677,7 +6972,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2419,
@@ -6701,7 +6997,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2421,
@@ -6725,7 +7022,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2430,
@@ -6749,7 +7047,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2433,
@@ -6775,7 +7074,8 @@
         "$5/$10"
       ],
       "poker_tables": 35,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2439,
@@ -6801,7 +7101,8 @@
         "$5/$10"
       ],
       "poker_tables": 30,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2440,
@@ -6825,7 +7126,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2450,
@@ -6849,7 +7151,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2457,
@@ -6873,7 +7176,8 @@
         "$2/$5"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2461,
@@ -6896,7 +7200,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2465,
@@ -6922,7 +7227,8 @@
         "$5/$10"
       ],
       "poker_tables": 32,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2468,
@@ -6945,7 +7251,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2469,
@@ -6970,7 +7277,8 @@
         "$5/$10"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2470,
@@ -6993,7 +7301,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2471,
@@ -7016,7 +7325,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2472,
@@ -7040,7 +7350,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2473,
@@ -7063,7 +7374,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2474,
@@ -7086,7 +7398,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2475,
@@ -7108,7 +7421,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2476,
@@ -7132,7 +7446,8 @@
         "$2/$5"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2477,
@@ -7155,7 +7470,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2478,
@@ -7177,7 +7493,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2479,
@@ -7201,7 +7518,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2480,
@@ -7223,7 +7541,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2481,
@@ -7246,7 +7565,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2482,
@@ -7268,7 +7588,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2483,
@@ -7290,7 +7611,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2485,
@@ -7313,7 +7635,8 @@
         "$2/$5"
       ],
       "poker_tables": 12,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2486,
@@ -7336,7 +7659,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2488,
@@ -7359,7 +7683,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2489,
@@ -7381,7 +7706,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2490,
@@ -7403,7 +7729,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2491,
@@ -7425,7 +7752,8 @@
         "$1/$2"
       ],
       "poker_tables": 4,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2492,
@@ -7448,7 +7776,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2493,
@@ -7471,7 +7800,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2494,
@@ -7495,7 +7825,8 @@
         "$2/$5"
       ],
       "poker_tables": 20,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2495,
@@ -7518,7 +7849,8 @@
         "$2/$5"
       ],
       "poker_tables": 8,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2496,
@@ -7542,7 +7874,8 @@
         "$2/$5"
       ],
       "poker_tables": 15,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2497,
@@ -7565,7 +7898,8 @@
         "$2/$5"
       ],
       "poker_tables": 10,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2498,
@@ -7587,7 +7921,8 @@
         "$1/$2"
       ],
       "poker_tables": 6,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2499,
@@ -7614,7 +7949,8 @@
         "10/20"
       ],
       "poker_tables": 40,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2505,
@@ -7640,7 +7976,8 @@
         "3/5"
       ],
       "poker_tables": 185,
-      "hours_weekday": "24/7"
+      "hours_weekday": "24/7",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2605,
@@ -7658,7 +7995,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2606,
@@ -7676,7 +8014,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2607,
@@ -7694,7 +8033,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2608,
@@ -7712,7 +8052,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2609,
@@ -7730,7 +8071,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2610,
@@ -7748,7 +8090,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2611,
@@ -7766,7 +8109,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2612,
@@ -7784,7 +8128,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2613,
@@ -7802,7 +8147,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2614,
@@ -7820,7 +8166,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2615,
@@ -7838,7 +8185,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2616,
@@ -7856,7 +8204,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2617,
@@ -7874,7 +8223,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2618,
@@ -7892,7 +8242,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2619,
@@ -7910,7 +8261,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2620,
@@ -7928,7 +8280,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2621,
@@ -7946,7 +8299,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2622,
@@ -7964,7 +8318,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2623,
@@ -7982,7 +8337,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2624,
@@ -8000,7 +8356,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2625,
@@ -8018,7 +8375,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2626,
@@ -8036,7 +8394,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2627,
@@ -8054,7 +8413,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2628,
@@ -8072,7 +8432,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2629,
@@ -8090,7 +8451,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2630,
@@ -8108,7 +8470,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2631,
@@ -8126,7 +8489,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2632,
@@ -8144,7 +8508,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2633,
@@ -8162,7 +8527,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2634,
@@ -8180,7 +8546,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2635,
@@ -8198,7 +8565,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2636,
@@ -8216,7 +8584,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2637,
@@ -8234,7 +8603,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2638,
@@ -8252,7 +8622,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2639,
@@ -8270,7 +8641,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2640,
@@ -8288,7 +8660,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2641,
@@ -8306,7 +8679,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2642,
@@ -8324,7 +8698,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2643,
@@ -8342,7 +8717,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2644,
@@ -8360,7 +8736,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2645,
@@ -8378,7 +8755,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2646,
@@ -8396,7 +8774,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2647,
@@ -8414,7 +8793,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2648,
@@ -8432,7 +8812,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2649,
@@ -8450,7 +8831,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2650,
@@ -8468,7 +8850,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2651,
@@ -8486,7 +8869,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2652,
@@ -8504,7 +8888,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2653,
@@ -8522,7 +8907,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2654,
@@ -8540,7 +8926,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2655,
@@ -8558,7 +8945,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2656,
@@ -8576,7 +8964,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2657,
@@ -8594,7 +8983,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2658,
@@ -8612,7 +9002,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2659,
@@ -8630,7 +9021,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2660,
@@ -8648,7 +9040,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2661,
@@ -8666,7 +9059,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2662,
@@ -8684,7 +9078,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2663,
@@ -8702,7 +9097,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2664,
@@ -8720,7 +9116,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2665,
@@ -8738,7 +9135,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2666,
@@ -8756,7 +9154,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2667,
@@ -8774,7 +9173,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2668,
@@ -8792,7 +9192,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2669,
@@ -8810,7 +9211,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2670,
@@ -8828,7 +9230,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2671,
@@ -8846,7 +9249,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2672,
@@ -8864,7 +9268,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2673,
@@ -8882,7 +9287,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2674,
@@ -8900,7 +9306,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2675,
@@ -8918,7 +9325,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2676,
@@ -8936,7 +9344,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2677,
@@ -8954,7 +9363,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2678,
@@ -8972,7 +9382,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2679,
@@ -8990,7 +9401,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2680,
@@ -9008,7 +9420,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2681,
@@ -9026,7 +9439,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2682,
@@ -9044,7 +9458,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2683,
@@ -9062,7 +9477,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2684,
@@ -9080,7 +9496,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2685,
@@ -9098,7 +9515,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2686,
@@ -9116,7 +9534,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2687,
@@ -9134,7 +9553,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2688,
@@ -9152,7 +9572,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2689,
@@ -9170,7 +9591,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2690,
@@ -9188,7 +9610,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2691,
@@ -9206,7 +9629,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2692,
@@ -9224,7 +9648,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2693,
@@ -9242,7 +9667,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2694,
@@ -9260,7 +9686,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2695,
@@ -9278,7 +9705,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2696,
@@ -9296,7 +9724,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2697,
@@ -9314,7 +9743,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2698,
@@ -9332,7 +9762,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2699,
@@ -9350,7 +9781,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2700,
@@ -9368,7 +9800,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2701,
@@ -9386,7 +9819,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2702,
@@ -9404,7 +9838,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2703,
@@ -9422,7 +9857,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2704,
@@ -9440,7 +9876,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2705,
@@ -9458,7 +9895,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2706,
@@ -9476,7 +9914,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2707,
@@ -9494,7 +9933,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2708,
@@ -9512,7 +9952,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2709,
@@ -9530,7 +9971,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2710,
@@ -9548,7 +9990,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2711,
@@ -9566,7 +10009,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2712,
@@ -9584,7 +10028,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2713,
@@ -9602,7 +10047,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2714,
@@ -9620,7 +10066,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2715,
@@ -9638,7 +10085,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2716,
@@ -9656,7 +10104,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2717,
@@ -9674,7 +10123,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2718,
@@ -9692,7 +10142,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2719,
@@ -9710,7 +10161,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2720,
@@ -9728,7 +10180,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2721,
@@ -9746,7 +10199,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2722,
@@ -9764,7 +10218,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2723,
@@ -9782,7 +10237,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2724,
@@ -9800,7 +10256,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2725,
@@ -9818,7 +10275,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2726,
@@ -9836,7 +10294,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2727,
@@ -9854,7 +10313,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2728,
@@ -9872,7 +10332,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2729,
@@ -9890,7 +10351,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2730,
@@ -9908,7 +10370,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2731,
@@ -9926,7 +10389,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2732,
@@ -9944,7 +10408,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2733,
@@ -9962,7 +10427,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2734,
@@ -9980,7 +10446,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2735,
@@ -9998,7 +10465,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2736,
@@ -10016,7 +10484,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2737,
@@ -10034,7 +10503,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2738,
@@ -10052,7 +10522,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2739,
@@ -10070,7 +10541,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2740,
@@ -10088,7 +10560,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2741,
@@ -10106,7 +10579,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2742,
@@ -10124,7 +10598,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2743,
@@ -10142,7 +10617,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2744,
@@ -10160,7 +10636,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2745,
@@ -10178,7 +10655,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2746,
@@ -10196,7 +10674,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2747,
@@ -10214,7 +10693,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2748,
@@ -10232,7 +10712,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2749,
@@ -10250,7 +10731,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2750,
@@ -10268,7 +10750,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2751,
@@ -10286,7 +10769,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2752,
@@ -10304,7 +10788,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2753,
@@ -10322,7 +10807,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2754,
@@ -10340,7 +10826,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2755,
@@ -10358,7 +10845,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2756,
@@ -10376,7 +10864,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2757,
@@ -10394,7 +10883,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2758,
@@ -10412,7 +10902,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2759,
@@ -10430,7 +10921,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2760,
@@ -10448,7 +10940,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2761,
@@ -10466,7 +10959,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2762,
@@ -10484,7 +10978,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2763,
@@ -10502,7 +10997,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2764,
@@ -10520,7 +11016,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 2765,
@@ -10538,7 +11035,8 @@
       "games_offered": null,
       "stakes_cash": null,
       "poker_tables": null,
-      "hours_weekday": null
+      "hours_weekday": null,
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3001,
@@ -10563,7 +11061,8 @@
       "host_user_id": "5ee0f97f-537b-41b2-a6e3-c7dc3b01938e",
       "host_username": "zoey.kaufman.8059",
       "host_display_name": "Zoey Kaufman",
-      "description": "Friendly weekly NLH game. $100 max buy-in. Food and drinks provided."
+      "description": "Friendly weekly NLH game. $100 max buy-in. Food and drinks provided.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3002,
@@ -10590,7 +11089,8 @@
       "host_user_id": "c0553605-4f71-47e0-a127-c37150408196",
       "host_username": "SaltCity",
       "host_display_name": "Donald Takemura",
-      "description": "Serious mixed game. Weekly tournament $50 buy-in. 2 tables available."
+      "description": "Serious mixed game. Weekly tournament $50 buy-in. 2 tables available.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3003,
@@ -10615,7 +11115,8 @@
       "host_user_id": "592d5976-51c1-4091-afd2-904aeb3d3676",
       "host_username": "Gizmo",
       "host_display_name": "Terrence Fairfield",
-      "description": "Chill Saturday night session. Good action, cold beer."
+      "description": "Chill Saturday night session. Good action, cold beer.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3004,
@@ -10641,7 +11142,8 @@
       "host_user_id": "9089aa52-d4dc-4588-88d1-11132a674419",
       "host_username": "Sentinel",
       "host_display_name": "Seraphina Quincey",
-      "description": "High-level strategy game. $200 max buy-in. Serious players only."
+      "description": "High-level strategy game. $200 max buy-in. Serious players only.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3005,
@@ -10666,7 +11168,8 @@
       "host_user_id": "aba9beb0-16b9-420a-8247-f5ceabe76b47",
       "host_username": "nicholas.fontana",
       "host_display_name": "Nicholas Fontana",
-      "description": "Weekend game in Brickell area. $100 buy-in, friendly crowd."
+      "description": "Weekend game in Brickell area. $100 buy-in, friendly crowd.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3006,
@@ -10692,7 +11195,8 @@
       "host_user_id": "fb7c947d-79ce-4706-8c33-bb4f39359c59",
       "host_username": "TexasT",
       "host_display_name": "Bernardo Montemayor",
-      "description": "Multi-table Wednesday game. Both 1/2 and 2/5 running. BBQ included."
+      "description": "Multi-table Wednesday game. Both 1/2 and 2/5 running. BBQ included.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3007,
@@ -10717,7 +11221,8 @@
       "host_user_id": "6443a6ce-03b6-4baa-99ce-381352d2f277",
       "host_username": "SilkRoad",
       "host_display_name": "Esmeralda Villasenor",
-      "description": "PLO-only session. $200 max buy-in. Tech crowd welcome."
+      "description": "PLO-only session. $200 max buy-in. Tech crowd welcome.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3008,
@@ -10742,7 +11247,8 @@
       "host_user_id": "22af2652-f8ae-4b84-8f3d-d2894f435d79",
       "host_username": "Peachtree",
       "host_display_name": "Alondra Beaumont",
-      "description": "Atlanta home game with monthly $30 freezeout tournament."
+      "description": "Atlanta home game with monthly $30 freezeout tournament.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3009,
@@ -10768,7 +11274,8 @@
       "host_user_id": "ef25984c-d13a-4e4d-916a-f3537a40ea71",
       "host_username": "Pulsar",
       "host_display_name": "Percival Langston",
-      "description": "Rotating mixed games every 3rd Saturday. NLH weekly. $150 max."
+      "description": "Rotating mixed games every 3rd Saturday. NLH weekly. $150 max.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3010,
@@ -10793,7 +11300,8 @@
       "host_user_id": "767508e4-917a-496a-8412-c5ea94c80a1e",
       "host_username": "Depot",
       "host_display_name": "Takeshi Mizoguchi",
-      "description": "Chill Chicago Friday night game. Great deep stacks, good players."
+      "description": "Chill Chicago Friday night game. Great deep stacks, good players.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3011,
@@ -10818,7 +11326,8 @@
       "host_user_id": "25e20c49-15d7-410f-bb88-7161d758c9d5",
       "host_username": "Freeway",
       "host_display_name": "Tatiana Sergeyev",
-      "description": "Sunday afternoon sessions in PB. $100 buy-in, turbo structure."
+      "description": "Sunday afternoon sessions in PB. $100 buy-in, turbo structure.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3012,
@@ -10845,7 +11354,8 @@
       "host_user_id": "7d7a80a2-092c-4338-878a-0416611b249c",
       "host_username": "Jax54",
       "host_display_name": "Celina Marchetti",
-      "description": "Two-table Saturday game. NLH and PLO running simultaneously."
+      "description": "Two-table Saturday game. NLH and PLO running simultaneously.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3013,
@@ -10870,7 +11380,8 @@
       "host_user_id": "8e5a0e02-7832-416d-970f-f6f74e181dcb",
       "host_username": "winston.abernathy.86eb",
       "host_display_name": "Winston Abernathy",
-      "description": "Bourbon + poker. Casual Thursday game in East Nashville."
+      "description": "Bourbon + poker. Casual Thursday game in East Nashville.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3014,
@@ -10896,7 +11407,8 @@
       "host_user_id": "fca1720a-eb02-4284-831f-2bd4ba21f04b",
       "host_username": "Laguna",
       "host_display_name": "Milagros Villanueva",
-      "description": "Higher stakes beachside game. $500 max buy-in. Apply to join."
+      "description": "Higher stakes beachside game. $500 max buy-in. Apply to join.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3015,
@@ -10921,7 +11433,8 @@
       "host_user_id": "8f4acae4-1768-426a-bf4b-17d8cad7c02f",
       "host_username": "Warpath",
       "host_display_name": "Sidney Beaufort",
-      "description": "Weekly war room. Monthly bounty tournament included."
+      "description": "Weekly war room. Monthly bounty tournament included.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3016,
@@ -10946,7 +11459,8 @@
       "host_user_id": "3ebc3050-24ab-4eea-a3f1-74fac5f0b7a7",
       "host_username": "LowCountry",
       "host_display_name": "Dorothy Ashbridge",
-      "description": "Southern hospitality + cards. Shrimp & grits on the house."
+      "description": "Southern hospitality + cards. Shrimp & grits on the house.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3017,
@@ -10972,7 +11486,8 @@
       "host_user_id": "484d22c4-ff3c-4430-8058-b6f0d8c2387a",
       "host_username": "Zephyr",
       "host_display_name": "Hayat Barghouti",
-      "description": "Altitude poker. Good mixed action every Saturday."
+      "description": "Altitude poker. Good mixed action every Saturday.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3018,
@@ -10997,7 +11512,8 @@
       "host_user_id": "00000000-0000-0000-0000-000000000087",
       "host_username": "eleanor.schmidt",
       "host_display_name": "Eleanor Schmidt",
-      "description": "Cozy Portland game. Craft beer on tap. $100 max."
+      "description": "Cozy Portland game. Craft beer on tap. $100 max.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3019,
@@ -11023,7 +11539,8 @@
       "host_user_id": "7f348e8f-a98d-4bf8-8f59-e34a78d1f87b",
       "host_username": "Diesel",
       "host_display_name": "Graciela Valenzuela",
-      "description": "Motor City action. Big Saturday game with 2 tables running."
+      "description": "Motor City action. Big Saturday game with 2 tables running.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3020,
@@ -11048,7 +11565,8 @@
       "host_user_id": "ef58b642-df26-41b5-8547-bb279151e844",
       "host_username": "GoldRush42",
       "host_display_name": "Byron Clarkson",
-      "description": "Midweek grind in Sacramento. Consistent 1/2 game."
+      "description": "Midweek grind in Sacramento. Consistent 1/2 game.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3021,
@@ -11074,7 +11592,8 @@
       "host_user_id": "3f26288c-4923-447a-9f0d-d5d208ab8f8d",
       "host_username": "Stryker",
       "host_display_name": "Imran Siddiqui",
-      "description": "Philly mixed game Thursday. Alternating NLH/PLO rounds."
+      "description": "Philly mixed game Thursday. Alternating NLH/PLO rounds.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3022,
@@ -11099,7 +11618,8 @@
       "host_user_id": "63a2c2a3-308b-49d7-9018-9e2d28e31f5d",
       "host_username": "Mitten",
       "host_display_name": "Denise Willoughby",
-      "description": "Minnesota nice poker. Friendly game every Saturday."
+      "description": "Minnesota nice poker. Friendly game every Saturday.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3023,
@@ -11124,7 +11644,8 @@
       "host_user_id": "92655975-8766-4c4d-b266-a822055dc6e3",
       "host_username": "robert.petersen",
       "host_display_name": "Robert Petersen",
-      "description": "PLO only. Friday night in NoDa. $200 max buy-in."
+      "description": "PLO only. Friday night in NoDa. $200 max buy-in.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3024,
@@ -11149,7 +11670,8 @@
       "host_user_id": "e94d80fb-4973-452e-b745-6c3ca68c9b16",
       "host_username": "Obsidian",
       "host_display_name": "Penelope Oxbridge",
-      "description": "Cambridge deep-stack game. $500 max buy-in. Monthly tournament."
+      "description": "Cambridge deep-stack game. $500 max buy-in. Monthly tournament.",
+      "hours": "Open 24 Hours"
     },
     {
       "id": 3025,
@@ -11175,7 +11697,8 @@
       "host_user_id": "8703e327-5739-475e-b256-8eca013b9b7b",
       "host_username": "Tango",
       "host_display_name": "Nadine Ashworth",
-      "description": "NOLA Friday night game. Jazz and cards. Mixed games once a month."
+      "description": "NOLA Friday night game. Jazz and cards. Mixed games once a month.",
+      "hours": "Open 24 Hours"
     }
   ]
 }

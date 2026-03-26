@@ -10,952 +10,1088 @@
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "venue_id": 1818
+      "venue_id": 1818,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Commerce Casino",
       "state": "CA",
       "city": "Commerce",
       "type": "card_room",
-      "venue_id": 1820
+      "venue_id": 1820,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Hustler Casino",
       "state": "CA",
       "city": "Gardena",
       "type": "card_room",
-      "venue_id": 1822
+      "venue_id": 1822,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Seminole Hard Rock Hollywood",
       "state": "FL",
       "city": "Hollywood",
       "type": "casino",
-      "venue_id": 1825
+      "venue_id": 1825,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Seminole Hard Rock Tampa",
       "state": "FL",
       "city": "Tampa",
       "type": "casino",
-      "venue_id": 1826
+      "venue_id": 1826,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Texas Card House Austin",
       "state": "TX",
       "city": "Austin",
       "type": "poker_club",
-      "venue_id": 1829
+      "venue_id": 1829,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Texas Card House Dallas",
       "state": "TX",
       "city": "Dallas",
       "type": "poker_club",
-      "venue_id": 1830
+      "venue_id": 1830,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Texas Card House Houston",
       "state": "TX",
       "city": "Katy",
       "type": "poker_club",
-      "venue_id": 1831
+      "venue_id": 1831,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Borgata Hotel Casino",
       "state": "NJ",
       "city": "Atlantic City",
       "type": "casino",
-      "venue_id": 1832
+      "venue_id": 1832,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "MGM National Harbor",
       "state": "MD",
       "city": "Oxon Hill",
       "type": "casino",
-      "venue_id": 1836
+      "venue_id": 1836,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Choctaw Casino Resort",
       "state": "OK",
       "city": "Durant",
       "type": "casino",
-      "venue_id": 1840
+      "venue_id": 1840,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Canterbury Park",
       "state": "MN",
       "city": "Shakopee",
       "type": "card_room",
-      "venue_id": 1847
+      "venue_id": 1847,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Talking Stick Resort",
       "state": "AZ",
       "city": "Scottsdale",
       "type": "casino",
-      "venue_id": 1853
+      "venue_id": 1853,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Casino Del Sol",
       "state": "AZ",
       "city": "Tucson",
       "type": "casino",
-      "venue_id": 1854
+      "venue_id": 1854,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Hon-Dah Casino",
       "state": "AZ",
       "city": "Pinetop",
       "type": "casino",
-      "venue_id": 1855
+      "venue_id": 1855,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Saracen Casino Resort",
       "state": "AR",
       "city": "Pine Bluff",
       "type": "casino",
-      "venue_id": 1856
+      "venue_id": 1856,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Jamul Casino",
       "state": "CA",
       "city": "Jamul",
       "type": "casino",
-      "venue_id": 1861
+      "venue_id": 1861,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Chumash Casino Resort",
       "state": "CA",
       "city": "Santa Ynez",
       "type": "casino",
-      "venue_id": 1863
+      "venue_id": 1863,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Gun Lake Casino",
       "state": "MI",
       "city": "Wayland",
       "type": "casino",
-      "venue_id": 1875
+      "venue_id": 1875,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Resorts World Catskills",
       "state": "NY",
       "city": "Monticello",
       "type": "casino",
-      "venue_id": 1876
+      "venue_id": 1876,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Rivers Casino Schenectady",
       "state": "NY",
       "city": "Schenectady",
       "type": "casino",
-      "venue_id": 1877
+      "venue_id": 1877,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Chinook Winds Casino",
       "state": "OR",
       "city": "Lincoln City",
       "type": "casino",
-      "venue_id": 1884
+      "venue_id": 1884,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Seven Feathers Casino Resort",
       "state": "OR",
       "city": "Canyonville",
       "type": "casino",
-      "venue_id": 1885
+      "venue_id": 1885,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Live! Casino Philadelphia",
       "state": "PA",
       "city": "Philadelphia",
       "type": "casino",
-      "venue_id": 1887
+      "venue_id": 1887,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Hollywood Casino Grantville",
       "state": "PA",
       "city": "Grantville",
       "type": "casino",
-      "venue_id": 1891
+      "venue_id": 1891,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "101 Poker Club",
       "state": "TX",
       "city": "Katy",
       "type": "card_room",
-      "venue_id": 1899
+      "venue_id": 1899,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Aggieland Poker Club",
       "state": "TX",
       "city": "College Station",
       "type": "card_room",
-      "venue_id": 1901
+      "venue_id": 1901,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Alamo Card House 2",
       "state": "TX",
       "city": "San Antonio",
       "type": "card_room",
-      "venue_id": 1902
+      "venue_id": 1902,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Bullets Card Club",
       "state": "TX",
       "city": "Austin",
       "type": "card_room",
-      "venue_id": 1903
+      "venue_id": 1903,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Doghouse Poker Club",
       "state": "TX",
       "city": "Cypress",
       "type": "card_room",
-      "venue_id": 1904
+      "venue_id": 1904,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Jokers of Aggieland Poker Club",
       "state": "TX",
       "city": "College Station",
       "type": "card_room",
-      "venue_id": 1908
+      "venue_id": 1908,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "KoJack's Poker Club",
       "state": "TX",
       "city": "Midland",
       "type": "card_room",
-      "venue_id": 1909
+      "venue_id": 1909,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Lone Star Social",
       "state": "TX",
       "city": "Cedar Park",
       "type": "card_room",
-      "venue_id": 1911
+      "venue_id": 1911,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "On The River Social Club",
       "state": "TX",
       "city": "San Marcos",
       "type": "card_room",
-      "venue_id": 1912
+      "venue_id": 1912,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Shuffle 512",
       "state": "TX",
       "city": "Austin",
       "type": "card_room",
-      "venue_id": 1917
+      "venue_id": 1917,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Spades Poker House Baytown",
       "state": "TX",
       "city": "Baytown",
       "type": "card_room",
-      "venue_id": 1919
+      "venue_id": 1919,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "TCH Social Austin",
       "state": "TX",
       "city": "Austin",
       "type": "card_room",
-      "venue_id": 1920
+      "venue_id": 1920,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "TCH Social Las Colinas",
       "state": "TX",
       "city": "Irving",
       "type": "card_room",
-      "venue_id": 1921
+      "venue_id": 1921,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Texas Card House Spring",
       "state": "TX",
       "city": "Spring",
       "type": "card_room",
-      "venue_id": 1923
+      "venue_id": 1923,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "The Big Blind",
       "state": "TX",
       "city": "San Antonio",
       "type": "card_room",
-      "venue_id": 1924
+      "venue_id": 1924,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "The Hangar Poker House",
       "state": "TX",
       "city": "Humble",
       "type": "card_room",
-      "venue_id": 1925
+      "venue_id": 1925,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Bankers Casino",
       "state": "CA",
       "city": "Salinas",
       "type": "card_room",
-      "venue_id": 1926
+      "venue_id": 1926,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Oaks Card Club",
       "state": "CA",
       "city": "Emeryville",
       "type": "card_room",
-      "venue_id": 1927
+      "venue_id": 1927,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Capitol Casino",
       "state": "CA",
       "city": "Sacramento",
       "type": "card_room",
-      "venue_id": 1931
+      "venue_id": 1931,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Garlic City Casino",
       "state": "CA",
       "city": "Gilroy",
       "type": "card_room",
-      "venue_id": 1938
+      "venue_id": 1938,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "California Grand Casino",
       "state": "CA",
       "city": "Pacheco",
       "type": "card_room",
-      "venue_id": 1939
+      "venue_id": 1939,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Livermore Casino",
       "state": "CA",
       "city": "Livermore",
       "type": "card_room",
-      "venue_id": 1940
+      "venue_id": 1940,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Seat Open Poker Room",
       "state": "MT",
       "city": "Bozeman",
       "type": "card_room",
-      "venue_id": 1941
+      "venue_id": 1941,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Derby Lane Poker Room",
       "state": "FL",
       "city": "St. Petersburg",
       "type": "card_room",
-      "venue_id": 1943
+      "venue_id": 1943,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Oxford Downs Poker Room",
       "state": "FL",
       "city": "Summerfield",
       "type": "card_room",
-      "venue_id": 1944
+      "venue_id": 1944,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Orange City Racing & Card Club",
       "state": "FL",
       "city": "Orange City",
       "type": "card_room",
-      "venue_id": 1945
+      "venue_id": 1945,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Daytona Racing & Card Club",
       "state": "FL",
       "city": "Daytona Beach",
       "type": "card_room",
-      "venue_id": 1946
+      "venue_id": 1946,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Ebro Poker Room",
       "state": "FL",
       "city": "Ebro",
       "type": "card_room",
-      "venue_id": 1947
+      "venue_id": 1947,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Silks Poker Tampa Bay Downs",
       "state": "FL",
       "city": "Tampa",
       "type": "card_room",
-      "venue_id": 1948
+      "venue_id": 1948,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "One-Eyed Jacks Poker",
       "state": "FL",
       "city": "Sarasota",
       "type": "card_room",
-      "venue_id": 1950
+      "venue_id": 1950,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "bestbet Orange Park",
       "state": "FL",
       "city": "Orange Park",
       "type": "card_room",
-      "venue_id": 1951
+      "venue_id": 1951,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "bestbet St. Augustine",
       "state": "FL",
       "city": "St. Augustine",
       "type": "card_room",
-      "venue_id": 1952
+      "venue_id": 1952,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Palm Beach Kennel Club",
       "state": "FL",
       "city": "West Palm Beach",
       "type": "card_room",
-      "venue_id": 1953
+      "venue_id": 1953,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Final Table Poker Club",
       "state": "OR",
       "city": "Portland",
       "type": "card_room",
-      "venue_id": 1956
+      "venue_id": 1956,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Oregon Poker Club - Kit Kat Club",
       "state": "OR",
       "city": "Portland",
       "type": "card_room",
-      "venue_id": 1958
+      "venue_id": 1958,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Oregon Poker Club - Rialto Pool Room",
       "state": "OR",
       "city": "Portland",
       "type": "card_room",
-      "venue_id": 1959
+      "venue_id": 1959,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Oregon Poker Club - Stadiums Sports Bar",
       "state": "OR",
       "city": "Portland",
       "type": "card_room",
-      "venue_id": 1960
+      "venue_id": 1960,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "The Game",
       "state": "OR",
       "city": "Portland",
       "type": "card_room",
-      "venue_id": 1961
+      "venue_id": 1961,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "High Mountain Poker",
       "state": "OR",
       "city": "Eugene",
       "type": "card_room",
-      "venue_id": 1962
+      "venue_id": 1962,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Full House Poker",
       "state": "OR",
       "city": "Eugene",
       "type": "card_room",
-      "venue_id": 1963
+      "venue_id": 1963,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "DiCicco's Poker Room",
       "state": "MI",
       "city": "Shelby Township",
       "type": "casino",
-      "venue_id": 1966
+      "venue_id": 1966,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "G's Charity Poker",
       "state": "MI",
       "city": "Shelby Township",
       "type": "casino",
-      "venue_id": 1967
+      "venue_id": 1967,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Kings Poker Room",
       "state": "MI",
       "city": "Grand Rapids",
       "type": "casino",
-      "venue_id": 1968
+      "venue_id": 1968,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Muskegon Poker Room",
       "state": "MI",
       "city": "Muskegon",
       "type": "casino",
-      "venue_id": 1969
+      "venue_id": 1969,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Paradise Poker",
       "state": "MI",
       "city": "Utica",
       "type": "casino",
-      "venue_id": 1971
+      "venue_id": 1971,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "The Saginaw Poker Room",
       "state": "MI",
       "city": "Saginaw",
       "type": "casino",
-      "venue_id": 1975
+      "venue_id": 1975,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Thompson Poker Room",
       "state": "MI",
       "city": "Ypsilanti",
       "type": "casino",
-      "venue_id": 1976
+      "venue_id": 1976,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Waterford Card Room",
       "state": "MI",
       "city": "Waterford",
       "type": "casino",
-      "venue_id": 1977
+      "venue_id": 1977,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Krazy Kopz @ The Ivory Room",
       "state": "MI",
       "city": "Westland",
       "type": "casino",
-      "venue_id": 1979
+      "venue_id": 1979,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Momo's Poker Room",
       "state": "MI",
       "city": "Taylor",
       "type": "casino",
-      "venue_id": 1981
+      "venue_id": 1981,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Ace High Poker Club",
       "state": "MI",
       "city": "Oxford",
       "type": "casino",
-      "venue_id": 1982
+      "venue_id": 1982,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Orleans Casino",
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "venue_id": 1988
+      "venue_id": 1988,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Atlantis Casino Resort",
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "venue_id": 1992
+      "venue_id": 1992,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Johnny\u2019s Game ",
       "state": "IL",
       "city": "Las Vegas",
       "type": "poker_room",
-      "venue_id": 2001
+      "venue_id": 2001,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Portland Meadows",
       "state": "OR",
       "city": "Portland",
       "type": "card_room",
-      "venue_id": 2033
+      "venue_id": 2033,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Daytona Beach Racing and Card Club",
       "state": "FL",
       "city": "Daytona Beach",
       "type": "poker_club",
-      "venue_id": 2037
+      "venue_id": 2037,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Caesars Virginia",
       "state": "VA",
       "city": "Danville",
       "type": "card_room",
-      "venue_id": 2038
+      "venue_id": 2038,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Downstream Casino",
       "state": "OK",
       "city": "Quapaw",
       "type": "casino",
-      "venue_id": 2047
+      "venue_id": 2047,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Aria",
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "venue_id": 2129
+      "venue_id": 2129,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Wynn",
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "venue_id": 2130
+      "venue_id": 2130,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "MGM Grand",
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "venue_id": 2133
+      "venue_id": 2133,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Sahara",
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "venue_id": 2140
+      "venue_id": 2140,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Mandalay Bay",
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "venue_id": 2143
+      "venue_id": 2143,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Binions",
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "venue_id": 2145
+      "venue_id": 2145,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "The D",
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "venue_id": 2148
+      "venue_id": 2148,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "South Point",
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "venue_id": 2151
+      "venue_id": 2151,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Atlantis Casino",
       "state": "NV",
       "city": "Reno",
       "type": "casino",
-      "venue_id": 2169
+      "venue_id": 2169,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Peppermill",
       "state": "NV",
       "city": "Reno",
       "type": "casino",
-      "venue_id": 2170
+      "venue_id": 2170,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Nugget Sparks",
       "state": "NV",
       "city": "Sparks",
       "type": "casino",
-      "venue_id": 2175
+      "venue_id": 2175,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Hollywood Park Casino",
       "state": "CA",
       "city": "Inglewood",
       "type": "card_room",
-      "venue_id": 2185
+      "venue_id": 2185,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Normandie Casino",
       "state": "CA",
       "city": "Gardena",
       "type": "card_room",
-      "venue_id": 2188
+      "venue_id": 2188,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Crystal Park Casino",
       "state": "CA",
       "city": "Compton",
       "type": "card_room",
-      "venue_id": 2189
+      "venue_id": 2189,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "San Manuel",
       "state": "CA",
       "city": "Highland",
       "type": "casino",
-      "venue_id": 2193
+      "venue_id": 2193,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Morongo",
       "state": "CA",
       "city": "Cabazon",
       "type": "casino",
-      "venue_id": 2194
+      "venue_id": 2194,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Fantasy Springs",
       "state": "CA",
       "city": "Indio",
       "type": "casino",
-      "venue_id": 2203
+      "venue_id": 2203,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Soboba Casino",
       "state": "CA",
       "city": "San Jacinto",
       "type": "casino",
-      "venue_id": 2204
+      "venue_id": 2204,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Bay 101",
       "state": "CA",
       "city": "San Jose",
       "type": "card_room",
-      "venue_id": 2206
+      "venue_id": 2206,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Cache Creek",
       "state": "CA",
       "city": "Brooks",
       "type": "casino",
-      "venue_id": 2218
+      "venue_id": 2218,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Rolling Hills Casino",
       "state": "CA",
       "city": "Corning",
       "type": "casino",
-      "venue_id": 2227
+      "venue_id": 2227,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Gulfstream Park",
       "state": "FL",
       "city": "Hallandale Beach",
       "type": "card_room",
-      "venue_id": 2230
+      "venue_id": 2230,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "TGT Poker",
       "state": "FL",
       "city": "Tampa",
       "type": "card_room",
-      "venue_id": 2233
+      "venue_id": 2233,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Orange City Racing",
       "state": "FL",
       "city": "Orange City",
       "type": "card_room",
-      "venue_id": 2237
+      "venue_id": 2237,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Jacksonville Poker Room",
       "state": "FL",
       "city": "Jacksonville",
       "type": "card_room",
-      "venue_id": 2238
+      "venue_id": 2238,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Seminole Coconut Creek",
       "state": "FL",
       "city": "Coconut Creek",
       "type": "casino",
-      "venue_id": 2243
+      "venue_id": 2243,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Ebro Greyhound Park",
       "state": "FL",
       "city": "Ebro",
       "type": "card_room",
-      "venue_id": 2249
+      "venue_id": 2249,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Prime Social",
       "state": "TX",
       "city": "Houston",
       "type": "poker_club",
-      "venue_id": 2262
+      "venue_id": 2262,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "52 Social",
       "state": "TX",
       "city": "Houston",
       "type": "poker_club",
-      "venue_id": 2264
+      "venue_id": 2264,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Resorts Casino",
       "state": "NJ",
       "city": "Atlantic City",
       "type": "casino",
-      "venue_id": 2296
+      "venue_id": 2296,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Sands Bethlehem",
       "state": "PA",
       "city": "Bethlehem",
       "type": "casino",
-      "venue_id": 2301
+      "venue_id": 2301,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "SugarHouse Philadelphia",
       "state": "PA",
       "city": "Philadelphia",
       "type": "casino",
-      "venue_id": 2302
+      "venue_id": 2302,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Mohegan Sun Pocono",
       "state": "PA",
       "city": "Wilkes-Barre",
       "type": "casino",
-      "venue_id": 2305
+      "venue_id": 2305,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Hollywood Penn National",
       "state": "PA",
       "city": "Grantville",
       "type": "casino",
-      "venue_id": 2306
+      "venue_id": 2306,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Meadows Casino",
       "state": "PA",
       "city": "Washington",
       "type": "casino",
-      "venue_id": 2307
+      "venue_id": 2307,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Rivers Chicago",
       "state": "IL",
       "city": "Chicago",
       "type": "casino",
-      "venue_id": 2313
+      "venue_id": 2313,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Soaring Eagle",
       "state": "MI",
       "city": "Mt Pleasant",
       "type": "casino",
-      "venue_id": 2328
+      "venue_id": 2328,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "River Room Social Club",
       "state": "TX",
       "city": "Houston",
       "type": "poker_club",
-      "venue_id": 2419
+      "venue_id": 2419,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Red Star Social",
       "state": "TX",
       "city": "Austin",
       "type": "poker_club",
-      "venue_id": 2430
+      "venue_id": 2430,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Lodge Card Club San Antonio",
       "state": "TX",
       "city": "San Antonio",
       "type": "poker_club",
-      "venue_id": 2433
+      "venue_id": 2433,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Palace Poker Grand Prairie",
       "state": "TX",
       "city": "Grand Prairie",
       "type": "poker_club",
-      "venue_id": 2439
+      "venue_id": 2439,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Oak Cliff Card Club",
       "state": "TX",
       "city": "Dallas",
       "type": "poker_club",
-      "venue_id": 2440
+      "venue_id": 2440,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Beaumont Card Club",
       "state": "TX",
       "city": "Beaumont",
       "type": "poker_club",
-      "venue_id": 2457
+      "venue_id": 2457,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Turning Stone",
       "state": "NY",
       "city": "Verona",
       "type": "casino",
-      "venue_id": 2465
+      "venue_id": 2465,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Sandia Resort Casino",
       "state": "NM",
       "city": "Albuquerque",
       "type": "casino",
-      "venue_id": 2472
+      "venue_id": 2472,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Wheeling Island",
       "state": "WV",
       "city": "Wheeling",
       "type": "casino",
-      "venue_id": 2477
+      "venue_id": 2477,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Mardi Gras Casino",
       "state": "WV",
       "city": "Cross Lanes",
       "type": "casino",
-      "venue_id": 2478
+      "venue_id": 2478,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Deadwood Mountain Grand",
       "state": "SD",
       "city": "Deadwood",
       "type": "casino",
-      "venue_id": 2481
+      "venue_id": 2481,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Ho-Chunk Gaming Wisconsin Dells",
       "state": "WI",
       "city": "Baraboo",
       "type": "casino",
-      "venue_id": 2486
+      "venue_id": 2486,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Spirit Lake Casino",
       "state": "ND",
       "city": "St Michael",
       "type": "casino",
-      "venue_id": 2491
+      "venue_id": 2491,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Dover Downs",
       "state": "DE",
       "city": "Dover",
       "type": "casino",
-      "venue_id": 2497
+      "venue_id": 2497,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "Bellagio Poker Room",
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "venue_id": 2499
+      "venue_id": 2499,
+      "hours": "Open 24 Hours"
     },
     {
       "name": "The Bicycle Casino",
       "state": "CA",
       "city": "Bell Gardens",
       "type": "card_room",
-      "venue_id": 2505
+      "venue_id": 2505,
+      "hours": "Open 24 Hours"
     }
   ]
 }
