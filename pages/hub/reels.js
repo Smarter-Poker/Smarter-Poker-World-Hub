@@ -128,6 +128,14 @@ export default function ReelsPage() {
     const [commentSort, setCommentSort] = useState('newest');
     const [copyToast, setCopyToast] = useState(false);
     const COMMENT_MAX_LENGTH = 280;
+    // Phase 8b — Sidebar auto-hide
+    const [showSidebar, setShowSidebar] = useState(false);
+    const sidebarTimerRef = useRef(null);
+    const revealSidebar = () => {
+        setShowSidebar(true);
+        clearTimeout(sidebarTimerRef.current);
+        sidebarTimerRef.current = setTimeout(() => setShowSidebar(false), 2500);
+    };
     const pullStartY = useRef(null);
 
     // Reels preferences state
@@ -1442,6 +1450,9 @@ export default function ReelsPage() {
                             if (!liked[currentReel?.id]) {
                                 handleLike();
                             }
+                        } else {
+                            // Single tap = reveal sidebar
+                            revealSidebar();
                         }
                         lastTapRef.current = now;
                     }}
@@ -1549,12 +1560,13 @@ export default function ReelsPage() {
                     )}
                 </div>
 
-                {/* Action buttons (right side) */}
+                {/* Action buttons (right side) — auto-hide */}
                 <div style={{
                     position: 'absolute', bottom: 140, right: 16,
                     display: 'flex', flexDirection: 'column', gap: 18, zIndex: 100,
-                    opacity: 1,
-                    pointerEvents: 'auto',
+                    opacity: showSidebar ? 1 : 0,
+                    pointerEvents: showSidebar ? 'auto' : 'none',
+                    transition: 'opacity 0.3s ease',
                 }}>
                     {/* Like */}
                     <button onClick={() => {

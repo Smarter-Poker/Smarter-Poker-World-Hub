@@ -1643,7 +1643,6 @@ function UniversalDynamicTable({
             <div style={styles.topBar}>
                 <div style={styles.topBarLeft}>
                     <div style={styles.gameTitle}>{gameTitle || 'GTO Training'}</div>
-                    <div style={styles.contextString}>{contextString}</div>
                 </div>
                 <div style={styles.topBarRight}>
                     {/* PHASE 5: Adaptive Difficulty Badge */}
@@ -1832,6 +1831,21 @@ function UniversalDynamicTable({
                     )}
                 </AnimatePresence>
 
+                {/* SCENARIO CONTEXT — Above the table */}
+                {contextString && (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '6px 0 4px',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: '#94a3b8',
+                        letterSpacing: 0.5,
+                        flexShrink: 0,
+                    }}>
+                        {contextString}
+                    </div>
+                )}
+
                 {/* PREMIUM RACETRACK TABLE — GoldenTemplateTable design */}
                 <div style={styles.feltOuter}>
                     {/* OUTER GOLD RAIL */}
@@ -1902,16 +1916,15 @@ function UniversalDynamicTable({
                                     top: `${seatY}%`,
                                 }}
                             >
-                                {/* Illustrated Avatar — above the badge */}
+                                {/* Illustrated Avatar — above the badge row */}
                                 <motion.div
                                     initial={{ scale: 0, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     transition={{ duration: 0.3, delay: 0.1 }}
                                     style={{
-                                        width: isHero ? (isMobile ? 56 : 70) : (isMobile ? 48 : 60),
-                                        height: isHero ? (isMobile ? 67 : 84) : (isMobile ? 58 : 72),
-                                        position: 'relative',
-                                        marginBottom: -4,
+                                        width: isHero ? (isMobile ? 48 : 60) : (isMobile ? 40 : 50),
+                                        height: isHero ? (isMobile ? 58 : 72) : (isMobile ? 48 : 60),
+                                        flexShrink: 0,
                                     }}
                                 >
                                     <img
@@ -1927,129 +1940,123 @@ function UniversalDynamicTable({
                                     />
                                 </motion.div>
 
-                                {/* Premium Dealer Button — gold/white chip */}
-                                {isButton && (
-                                    <motion.div
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        transition={{ type: 'spring', delay: 0.3 }}
-                                        style={{
-                                            position: 'absolute',
-                                            bottom: isHero ? 55 : 45,
-                                            left: '50%',
-                                            transform: 'translateX(-50%)',
-                                            width: 26,
-                                            height: 26,
+                                {/* Badge + Cards row (horizontal) */}
+                                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    {/* Dealer Button */}
+                                    {isButton && (
+                                        <div style={{
+                                            width: 22,
+                                            height: 22,
                                             borderRadius: '50%',
                                             background: 'linear-gradient(180deg, #ffffff 0%, #e8e0c8 100%)',
                                             color: '#1a1a1a',
                                             fontWeight: 900,
-                                            fontSize: 12,
+                                            fontSize: 10,
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            boxShadow: '0 3px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4)',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
                                             border: '2px solid #333',
-                                            zIndex: 200,
+                                            flexShrink: 0,
+                                        }}>
+                                            D
+                                        </div>
+                                    )}
+
+                                    {/* Gold Name Badge */}
+                                    <motion.div
+                                        initial={{ y: 10, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        transition={{ duration: 0.3, delay: 0.2 }}
+                                        style={{
+                                            background: isHero
+                                                ? 'linear-gradient(180deg, #f0c040 0%, #c4960a 100%)'
+                                                : 'linear-gradient(180deg, #555 0%, #333 100%)',
+                                            border: isHero ? '2px solid #8b6914' : '2px solid #555',
+                                            borderRadius: 8,
+                                            padding: '4px 12px',
+                                            minWidth: 70,
+                                            textAlign: 'center',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                                            flexShrink: 0,
                                         }}
                                     >
-                                        D
+                                        <div style={{
+                                            fontSize: 12,
+                                            fontWeight: 'bold',
+                                            color: isHero ? '#000' : '#ccc',
+                                            textShadow: isHero ? '0 1px 0 rgba(255,255,255,0.3)' : 'none',
+                                            whiteSpace: 'nowrap',
+                                            letterSpacing: 0.5,
+                                        }}>
+                                            {isHero ? (playerName || 'HERO') : (villainPosition || seat.name || 'Villain')}
+                                        </div>
+                                        <div style={{
+                                            fontSize: 13,
+                                            fontWeight: 'bold',
+                                            color: isHero ? '#1a1a00' : '#22c55e',
+                                        }}>
+                                            {stackSize} bb
+                                        </div>
                                     </motion.div>
-                                )}
 
-                                {/* Gold Name Badge: Position + Stack */}
-                                <motion.div
-                                    initial={{ y: 10, opacity: 0 }}
-                                    animate={{ y: 0, opacity: 1 }}
-                                    transition={{ duration: 0.3, delay: 0.2 }}
-                                    style={{
-                                        background: isHero
-                                            ? 'linear-gradient(180deg, #f0c040 0%, #c4960a 100%)'
-                                            : 'linear-gradient(180deg, #555 0%, #333 100%)',
-                                        border: isHero ? '2px solid #8b6914' : '2px solid #555',
-                                        borderRadius: 8,
-                                        padding: '5px 18px',
-                                        minWidth: 80,
-                                        textAlign: 'center',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                                    }}
-                                >
-                                    <div style={{
-                                        fontSize: 14,
-                                        fontWeight: 'bold',
-                                        color: isHero ? '#000' : '#ccc',
-                                        textShadow: isHero ? '0 1px 0 rgba(255,255,255,0.3)' : 'none',
-                                        whiteSpace: 'nowrap',
-                                        letterSpacing: 0.5,
-                                    }}>
-                                        {isHero ? (playerName || 'HERO') : (villainPosition || seat.name || 'Villain')}
-                                    </div>
-                                    <div style={{
-                                        fontSize: 16,
-                                        fontWeight: 'bold',
-                                        color: isHero ? '#1a1a00' : '#22c55e',
-                                    }}>
-                                        {stackSize} bb
-                                    </div>
-                                </motion.div>
-
-                                {/* Cards — TO THE RIGHT of the seat */}
-                                {/* Hero: face-up cards */}
-                                {isHero && heroCards.length > 0 && (
-                                    <div style={{ display: 'flex', gap: 2, marginLeft: 4, flexShrink: 0 }}>
-                                        {heroCards[0] && (
-                                            <motion.img
-                                                key={`hero-seat-0-${questionNumber}`}
-                                                src={getCardPath(heroCards[0])}
-                                                alt={heroCards[0]}
-                                                initial={{ scale: 0.6, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                transition={{ delay: 0.1, duration: 0.3, type: 'spring' }}
-                                                style={{
-                                                    width: isMobile ? 36 : 44,
-                                                    height: isMobile ? 52 : 62,
-                                                    borderRadius: 4,
-                                                    boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
-                                                    border: '1.5px solid rgba(255,255,255,0.3)',
-                                                }}
-                                            />
-                                        )}
-                                        {heroCards[1] && (
-                                            <motion.img
-                                                key={`hero-seat-1-${questionNumber}`}
-                                                src={getCardPath(heroCards[1])}
-                                                alt={heroCards[1]}
-                                                initial={{ scale: 0.6, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                transition={{ delay: 0.2, duration: 0.3, type: 'spring' }}
-                                                style={{
-                                                    width: isMobile ? 36 : 44,
-                                                    height: isMobile ? 52 : 62,
-                                                    borderRadius: 4,
-                                                    marginLeft: -6,
-                                                    boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
-                                                    border: '1.5px solid rgba(255,255,255,0.3)',
-                                                }}
-                                            />
-                                        )}
-                                    </div>
-                                )}
-                                {/* Villain: face-down cards */}
-                                {!isHero && !villainFolded && (
-                                    <div style={{ display: 'flex', gap: 1, marginLeft: 4, flexShrink: 0 }}>
-                                        <img src="/cards/back.png" alt="" style={{
-                                            width: isMobile ? 18 : 22, height: isMobile ? 26 : 32, borderRadius: 3,
-                                            boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
-                                            opacity: 0.7,
-                                        }} />
-                                        <img src="/cards/back.png" alt="" style={{
-                                            width: isMobile ? 18 : 22, height: isMobile ? 26 : 32, borderRadius: 3,
-                                            marginLeft: -8,
-                                            boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
-                                            opacity: 0.7,
-                                        }} />
-                                    </div>
-                                )}
+                                    {/* Hero: face-up cards TO THE RIGHT */}
+                                    {isHero && heroCards.length > 0 && (
+                                        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                                            {heroCards[0] && (
+                                                <motion.img
+                                                    key={`hero-seat-0-${questionNumber}`}
+                                                    src={getCardPath(heroCards[0])}
+                                                    alt={heroCards[0]}
+                                                    initial={{ scale: 0.6, opacity: 0 }}
+                                                    animate={{ scale: 1, opacity: 1 }}
+                                                    transition={{ delay: 0.1, duration: 0.3, type: 'spring' }}
+                                                    style={{
+                                                        width: isMobile ? 34 : 42,
+                                                        height: isMobile ? 48 : 58,
+                                                        borderRadius: 4,
+                                                        boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
+                                                        border: '1.5px solid rgba(255,255,255,0.3)',
+                                                    }}
+                                                />
+                                            )}
+                                            {heroCards[1] && (
+                                                <motion.img
+                                                    key={`hero-seat-1-${questionNumber}`}
+                                                    src={getCardPath(heroCards[1])}
+                                                    alt={heroCards[1]}
+                                                    initial={{ scale: 0.6, opacity: 0 }}
+                                                    animate={{ scale: 1, opacity: 1 }}
+                                                    transition={{ delay: 0.2, duration: 0.3, type: 'spring' }}
+                                                    style={{
+                                                        width: isMobile ? 34 : 42,
+                                                        height: isMobile ? 48 : 58,
+                                                        borderRadius: 4,
+                                                        marginLeft: -6,
+                                                        boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
+                                                        border: '1.5px solid rgba(255,255,255,0.3)',
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+                                    )}
+                                    {/* Villain: face-down cards TO THE RIGHT */}
+                                    {!isHero && !villainFolded && (
+                                        <div style={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                                            <img src="/cards/back.png" alt="" style={{
+                                                width: isMobile ? 18 : 22, height: isMobile ? 26 : 32, borderRadius: 3,
+                                                boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                                                opacity: 0.7,
+                                            }} />
+                                            <img src="/cards/back.png" alt="" style={{
+                                                width: isMobile ? 18 : 22, height: isMobile ? 26 : 32, borderRadius: 3,
+                                                marginLeft: -8,
+                                                boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                                                opacity: 0.7,
+                                            }} />
+                                        </div>
+                                    )}
+                                </div>
                             </motion.div>
                         );
                     })}
