@@ -1330,65 +1330,188 @@ export default function PokerNearMeLobby() {
       }
 
       case 'nearme': {
-        // State filter for Near Me
-        const nearmeStateFilter = filters.nearmeState || 'all';
-        const nearmeFiltered = nearmeStateFilter !== 'all'
-          ? venues.filter(v => v.state === nearmeStateFilter)
-          : venues;
+        // ─── GOAT SEARCH ENGINE — Pod 1 — Search-first (no auto-display) ───
+        const nmState = filters.nmState || 'all';
+        const nmVenueType = filters.nmVenueType || 'all';
+        const nmGameType = filters.nmGameType || 'all';
+        const nmRadius = filters.nmRadius || '50';
+        const nmMinBuyin = filters.nmMinBuyin || '';
+        const nmMaxBuyin = filters.nmMaxBuyin || '';
+        const nmSort = filters.nmSort || (userLocation ? 'distance' : 'trust');
+        const nmSearched = filters.nmSearched || false;
+
+        // Filter venues
+        let nmResults = venues;
+        if (nmState !== 'all') nmResults = nmResults.filter(v => v.state === nmState);
+        if (nmVenueType !== 'all') nmResults = nmResults.filter(v => v.venue_type === nmVenueType);
+        if (nmGameType !== 'all') {
+          nmResults = nmResults.filter(v => {
+            const g = (v.games_offered || []).join(' ').toLowerCase();
+            if (nmGameType === 'nlh') return g.includes('nlh') || g.includes('hold');
+            if (nmGameType === 'plo') return g.includes('plo') || g.includes('omaha');
+            if (nmGameType === 'mixed') return g.includes('mix') || g.includes('horse');
+            return true;
+          });
+        }
+        // Haversine distance
+        const nmDist = (v) => {
+          if (!userLocation || !v.latitude || !v.longitude) return 99999;
+          const R = 3959;
+          const dLat = (v.latitude - userLocation.lat) * Math.PI / 180;
+          const dLon = (v.longitude - userLocation.lng) * Math.PI / 180;
+          const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(userLocation.lat*Math.PI/180)*Math.cos(v.latitude*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+          return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        };
+        if (userLocation && nmRadius !== 'any') nmResults = nmResults.filter(v => nmDist(v) <= Number(nmRadius));
+        // Sort
+        if (nmSort === 'distance' && userLocation) nmResults = [...nmResults].sort((a, b) => nmDist(a) - nmDist(b));
+        else if (nmSort === 'trust') nmResults = [...nmResults].sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
+        else if (nmSort === 'name') nmResults = [...nmResults].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+        // Tournament count
+        const nmTournaments = dailyTournaments.filter(t => {
+          if (nmMinBuyin && (t.buy_in || 0) < Number(nmMinBuyin)) return false;
+          if (nmMaxBuyin && (t.buy_in || 0) > Number(nmMaxBuyin)) return false;
+          return true;
+        });
+
+        const triggerNmSearch = () => {
+          setFilters(prev => ({ ...prev, nmSearched: true }));
+          fetchVenues(searchQuery, 0, false);
+        };
+
         component = (
           <div>
-            {/* State filter + count */}
-            <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <select
-                value={nearmeStateFilter}
-                onChange={(e) => setFilters(prev => ({ ...prev, nearmeState: e.target.value }))}
-                style={{ background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 100 }}
-              >
-                <option value="all" style={{ background: '#0d1a2a' }}>All States</option>
-                {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                  <option key={st} value={st} style={{ background: '#0d1a2a' }}>{st}</option>
-                ))}
-              </select>
-              <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', marginLeft: 'auto' }}>
-                <span style={{ color: '#d4a853', fontWeight: 700 }}>{nearmeFiltered.length}</span> venue{nearmeFiltered.length !== 1 ? 's' : ''}
-              </span>
-            </div>
+            {/* ═══ SEARCH PARAMETERS PANEL ═══ */}
+            <div style={{ background: 'rgba(212,168,83,0.04)', border: '1px solid rgba(212,168,83,0.15)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+              {/* Row 1: GPS + Distance */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+                <button onClick={handleGpsToggle}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #22c55e' : '1px solid rgba(212,168,83,0.3)', background: userLocation ? 'rgba(34,197,94,0.15)' : 'rgba(212,168,83,0.08)', color: userLocation ? '#22c55e' : '#d4a853', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  {userLocation ? 'GPS Active' : 'Enable GPS'}
+                </button>
+                <select value={nmRadius} onChange={(e) => setFilters(prev => ({ ...prev, nmRadius: e.target.value }))}
+                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.2)', borderRadius: 8, padding: '8px 10px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  <option value="5">5 miles</option><option value="10">10 miles</option><option value="25">25 miles</option>
+                  <option value="50">50 miles</option><option value="100">100 miles</option><option value="250">250 miles</option><option value="any">Any distance</option>
+                </select>
+              </div>
 
-            {/* Venue listings */}
-            {nearmeFiltered.length > 0 && (
-              <>
-                <div style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
-                  {nearmeFiltered.slice(0, 50).map(v => (
-                    <VenueCard
-                      key={v.id}
-                      venue={v}
-                      isFavorited={!!favorites[v.id]}
-                      onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
-                      onNavigate={(url) => {
-                        if (url.includes('action=review')) { setSelectedVenueForReview({ id: v.id, name: v.name }); }
-                        else { router.push(url); }
-                      }}
-                      userLocation={userLocation}
-                      checkinCount={checkinCounts[String(v.id)] || 0}
-                    />
+              {/* Row 2: Venue Type Chips */}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.35)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Venue Type</div>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'card_room',l:'Card Room'},{k:'poker_club',l:'Poker Club'},{k:'home_game',l:'Home Game'},{k:'charity',l:'Charity'}].map(t => (
+                    <button key={t.k} onClick={() => setFilters(prev => ({ ...prev, nmVenueType: t.k }))}
+                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: nmVenueType === t.k ? '1px solid #d4a853' : '1px solid rgba(255,255,255,0.12)', background: nmVenueType === t.k ? 'rgba(212,168,83,0.2)' : 'transparent', color: nmVenueType === t.k ? '#d4a853' : 'rgba(255,255,255,0.5)', transition: 'all 0.15s' }}>{t.l}</button>
                   ))}
                 </div>
-                {nearmeFiltered.length > 50 && (
-                  <button onClick={loadMore} disabled={loading}
-                    style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 12, color: '#6ee7ef', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
-                    {loading ? 'Loading...' : `Load More (${nearmeFiltered.length - 50} remaining)`}
-                  </button>
+              </div>
+
+              {/* Row 3: Game Type Chips */}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.35)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Game Type</div>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {[{k:'all',l:'All Games'},{k:'nlh',l:'NLH'},{k:'plo',l:'PLO'},{k:'mixed',l:'Mixed'}].map(g => (
+                    <button key={g.k} onClick={() => setFilters(prev => ({ ...prev, nmGameType: g.k }))}
+                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: nmGameType === g.k ? '1px solid #6ee7ef' : '1px solid rgba(255,255,255,0.12)', background: nmGameType === g.k ? 'rgba(110,231,239,0.15)' : 'transparent', color: nmGameType === g.k ? '#6ee7ef' : 'rgba(255,255,255,0.5)', transition: 'all 0.15s' }}>{g.l}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Row 4: State + Buy-in + Sort */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+                <select value={nmState} onChange={(e) => setFilters(prev => ({ ...prev, nmState: e.target.value }))}
+                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px', color: '#e0e8f0', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer', minWidth: 85 }}>
+                  <option value="all">All States</option>
+                  {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+                <input type="number" placeholder="Min $" value={nmMinBuyin}
+                  onChange={(e) => setFilters(prev => ({ ...prev, nmMinBuyin: e.target.value }))}
+                  style={{ width: 60, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 11, fontFamily: 'inherit' }} />
+                <input type="number" placeholder="Max $" value={nmMaxBuyin}
+                  onChange={(e) => setFilters(prev => ({ ...prev, nmMaxBuyin: e.target.value }))}
+                  style={{ width: 60, padding: '6px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 11, fontFamily: 'inherit' }} />
+                <select value={nmSort} onChange={(e) => setFilters(prev => ({ ...prev, nmSort: e.target.value }))}
+                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px', color: '#e0e8f0', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  {userLocation && <option value="distance">Nearest First</option>}
+                  <option value="trust">Trust Score</option>
+                  <option value="name">Name A-Z</option>
+                </select>
+              </div>
+
+              {/* SEARCH BUTTON */}
+              <button onClick={triggerNmSearch}
+                style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#000', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.5px', transition: 'transform 0.1s', boxShadow: '0 4px 16px rgba(212,168,83,0.3)' }}>
+                Search Poker Near Me
+              </button>
+            </div>
+
+            {/* ═══ RESULTS — only after Search clicked ═══ */}
+            {nmSearched ? (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(212,168,83,0.06)', borderRadius: 10, border: '1px solid rgba(212,168,83,0.1)' }}>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                    <span style={{ color: '#d4a853', fontWeight: 800 }}>{nmResults.length}</span> venue{nmResults.length !== 1 ? 's' : ''}
+                    {userLocation && nmRadius !== 'any' && <span> within <span style={{ color: '#6ee7ef' }}>{nmRadius} mi</span></span>}
+                    {nmTournaments.length > 0 && <span> · <span style={{ color: '#22c55e', fontWeight: 700 }}>{nmTournaments.length}</span> tournaments</span>}
+                  </span>
+                  <button onClick={() => setFilters(prev => ({ ...prev, nmState: 'all', nmVenueType: 'all', nmGameType: 'all', nmRadius: '50', nmMinBuyin: '', nmMaxBuyin: '', nmSearched: false }))}
+                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
+                </div>
+                {nmResults.length > 0 ? (
+                  <>
+                    <div style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
+                      {nmResults.slice(0, 50).map(v => {
+                        const d = userLocation ? nmDist(v) : null;
+                        return (
+                          <div key={v.id} style={{ position: 'relative' }}>
+                            {d !== null && d < 99999 && (
+                              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', fontSize: 11, fontWeight: 700, color: '#22c55e' }}>
+                                {d < 1 ? `${(d * 5280).toFixed(0)} ft` : `${d.toFixed(1)} mi`}
+                              </div>
+                            )}
+                            <VenueCard venue={v} isFavorited={!!favorites[v.id]}
+                              onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
+                              onNavigate={(url) => { if (url.includes('action=review')) { setSelectedVenueForReview({ id: v.id, name: v.name }); } else { router.push(url); } }}
+                              userLocation={userLocation} checkinCount={checkinCounts[String(v.id)] || 0} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {nmResults.length > 50 && (
+                      <button onClick={loadMore} disabled={loading}
+                        style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 12, color: '#6ee7ef', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                        {loading ? 'Loading...' : `Load More (${nmResults.length - 50} remaining)`}
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.3 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>No Results Found</p>
+                    <p style={{ fontSize: 13 }}>Try expanding distance, changing venue type, or selecting a different state.</p>
+                  </div>
                 )}
-              </>
-            )}
-
-            {/* Activity feed */}
-            <NearMeNowFeed userLocation={userLocation} venues={nearmeFiltered} />
-
-            {!userLocation && nearmeFiltered.length === 0 && (
-              <div style={{ textAlign: 'center', padding: 30, color: 'rgba(200,214,229,0.4)' }}>
-                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Tap the GPS button to find venues near you</p>
-                <p style={{ fontSize: 12 }}>Or search for a city above</p>
+              </div>
+            ) : (
+              /* ═══ LANDING STATE — before search ═══ */
+              <div style={{ textAlign: 'center', padding: '30px 16px' }}>
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.3)" strokeWidth="1" style={{ marginBottom: 16 }}>
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <p style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>Find Poker Anywhere</p>
+                <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)', lineHeight: 1.5, maxWidth: 320, margin: '0 auto' }}>
+                  Enable GPS to find games near you, or set your search parameters above and tap Search. Filter by venue type, game type, distance, and buy-in range.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>501</div><div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>Venues</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#6ee7ef' }}>3,270</div><div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>Tournaments</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#22c55e' }}>41</div><div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>States</div></div>
+                </div>
               </div>
             )}
           </div>
