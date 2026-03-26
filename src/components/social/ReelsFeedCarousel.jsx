@@ -8,7 +8,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useSupabase } from '../../providers/SupabaseProvider';
 import { busEmit, eventBus, EventType } from '../../engine/EventBus';
-import { getAccessToken } from '../../lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import Link from 'next/link';
 import GiphyPicker from '../shared/GiphyPicker';
 
@@ -225,6 +225,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     });
     const [liked, setLiked] = useState({});
     const [disliked, setDisliked] = useState({});
+    const [following, setFollowing] = useState({});
     const [showComments, setShowComments] = useState(false);
     const [reelComments, setReelComments] = useState([]);
     const [commentText, setCommentText] = useState('');
@@ -262,12 +263,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     const currentReel = reels[currentIndex];
 
-    // Pre-fetch existing likes + bookmarks on mount
+    // Pre-fetch existing likes + bookmarks + dislikes + follows on mount
     useEffect(() => {
         if (!authUser?.id) return;
+        // Load likes (filter by reaction_type='like')
         supabase.from('social_likes')
             .select('post_id')
             .eq('user_id', authUser.id)
+            .eq('reaction_type', 'like')
             .then(({ data }) => {
                 if (data) {
                     const likeMap = {};
@@ -275,6 +278,19 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     setLiked(likeMap);
                 }
             });
+        // Load dislikes
+        supabase.from('social_likes')
+            .select('post_id')
+            .eq('user_id', authUser.id)
+            .eq('reaction_type', 'dislike')
+            .then(({ data }) => {
+                if (data) {
+                    const dislikeMap = {};
+                    data.forEach(row => { dislikeMap[row.post_id] = true; });
+                    setDisliked(dislikeMap);
+                }
+            });
+        // Load bookmarks
         supabase.from('social_interactions')
             .select('post_id')
             .eq('user_id', authUser.id)
@@ -284,6 +300,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     const saveMap = {};
                     data.forEach(row => { saveMap[row.post_id] = true; });
                     setSaved(saveMap);
+                }
+            });
+        // Load follows
+        supabase.from('social_follows')
+            .select('following_id')
+            .eq('follower_id', authUser.id)
+            .then(({ data }) => {
+                if (data) {
+                    const followMap = {};
+                    data.forEach(row => { followMap[row.following_id] = true; });
+                    setFollowing(followMap);
                 }
             });
     }, [authUser?.id]);
@@ -556,16 +583,33 @@ function ReelViewer({ reels, startIndex, onClose }) {
 
     const handleReport = async () => {
         if (!currentReel?.id || !reportReason.trim()) return;
-        const authUser = getAuthUser();
-        if (!authUser?.id) return;
+        const authUserLocal = getAuthUser();
+        if (!authUserLocal?.id) return;
         try {
             await supabase.from('social_interactions').insert({
-                user_id: authUser.id, post_id: currentReel.id,
+                user_id: authUserLocal.id, post_id: currentReel.id,
                 interaction_type: 'report', metadata: { reason: reportReason.trim() }
             });
             setReportSubmitted(true);
             setTimeout(() => { setShowReportModal(false); setReportSubmitted(false); setReportReason(''); }, 2000);
         } catch { /* silent */ }
+    };
+
+    const handleFollow = async () => {
+        const authorId = currentReel?.author_id || currentReel?.profiles?.id;
+        if (!authorId || !authUser?.id || authorId === authUser.id) return;
+        const wasFollowing = following[authorId];
+        setFollowing(prev => ({ ...prev, [authorId]: !prev[authorId] }));
+        try {
+            if (wasFollowing) {
+                await supabase.from('social_follows').delete().eq('follower_id', authUser.id).eq('following_id', authorId);
+            } else {
+                await supabase.from('social_follows').insert({ follower_id: authUser.id, following_id: authorId });
+            }
+            busEmit.socialFollowChanged && busEmit.socialFollowChanged(authorId, authUser.id, { added: !wasFollowing });
+        } catch {
+            setFollowing(prev => ({ ...prev, [authorId]: wasFollowing }));
+        }
     };
 
     // Reset on reel change + track view
@@ -820,6 +864,19 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             </div>
                         </div>
                     </Link>
+                    {/* Follow button — only for other users' reels */}
+                    {currentReel.author_id && authUser?.id && currentReel.author_id !== authUser.id && (
+                        <button onClick={(e) => { e.stopPropagation(); handleFollow(); }} style={{
+                            pointerEvents: 'auto', padding: '4px 14px', borderRadius: 6,
+                            fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                            background: following[currentReel.author_id] ? 'transparent' : '#1877F2',
+                            color: 'white',
+                            border: following[currentReel.author_id] ? '1px solid rgba(255,255,255,0.5)' : 'none',
+                            marginBottom: 8,
+                        }}>
+                            {following[currentReel.author_id] ? 'Following' : 'Follow'}
+                        </button>
+                    )}
                     {currentReel.caption && (() => {
                         const MAX_LEN = 100;
                         const isLong = currentReel.caption.length > MAX_LEN;

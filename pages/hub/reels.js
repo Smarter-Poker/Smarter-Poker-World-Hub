@@ -134,15 +134,39 @@ export default function ReelsPage() {
                 const savedIds = new Set(saved.map(item => item.reel_id));
                 setSavedReels(savedIds);
 
-                // Pre-fetch existing likes
+                // Pre-fetch existing likes (filter by reaction_type='like')
                 const { data: likeData } = await supabase
                     .from('social_likes')
                     .select('post_id')
-                    .eq('user_id', authUser.id);
+                    .eq('user_id', authUser.id)
+                    .eq('reaction_type', 'like');
                 if (likeData) {
                     const likeMap = {};
                     likeData.forEach(l => { likeMap[l.post_id] = true; });
                     setLiked(likeMap);
+                }
+
+                // Pre-fetch existing dislikes
+                const { data: dislikeData } = await supabase
+                    .from('social_likes')
+                    .select('post_id')
+                    .eq('user_id', authUser.id)
+                    .eq('reaction_type', 'dislike');
+                if (dislikeData) {
+                    const dislikeMap = {};
+                    dislikeData.forEach(d => { dislikeMap[d.post_id] = true; });
+                    setDisliked(dislikeMap);
+                }
+
+                // Pre-fetch follows
+                const { data: followData } = await supabase
+                    .from('social_follows')
+                    .select('following_id')
+                    .eq('follower_id', authUser.id);
+                if (followData) {
+                    const followMap = {};
+                    followData.forEach(f => { followMap[f.following_id] = true; });
+                    setFollowing(followMap);
                 }
             }
         };

@@ -167,7 +167,7 @@ export default function CheckInModal({ onSelect, onClose, userId }) {
             if (!isMountedRef.current) return;
             const counts = {};
             results.forEach((r, i) => {
-                if (r.success && r.count > 0) counts[venueIds[i]] = r.count;
+                if (r.success && r.count > 0) counts[String(venueIds[i])] = r.count;
             });
             setCheckinCounts(prev => ({ ...prev, ...counts }));
         } catch { /* silent */ }
@@ -304,7 +304,7 @@ export default function CheckInModal({ onSelect, onClose, userId }) {
                                 Recent
                             </div>
                             {recentVenues.map(v => (
-                                <VenueCard key={`recent-${v.id}`} venue={v} onSelect={handleSelect} checkinCount={checkinCounts[v.id]} />
+                                <VenueCard key={`recent-${v.id}`} venue={v} onSelect={handleSelect} checkinCount={checkinCounts[String(v.id)]} />
                             ))}
                             {nearbyVenues.length > 0 && (
                                 <div style={{ height: 1, background: '#e4e6ea', margin: '8px 8px 4px' }} />
@@ -335,7 +335,7 @@ export default function CheckInModal({ onSelect, onClose, userId }) {
                     )}
 
                     {displayVenues.map(v => (
-                        <VenueCard key={v.id} venue={v} onSelect={handleSelect} checkinCount={checkinCounts[v.id]} />
+                        <VenueCard key={v.id} venue={v} onSelect={handleSelect} checkinCount={checkinCounts[String(v.id)]} />
                     ))}
                 </div>
             </div>

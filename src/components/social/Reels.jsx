@@ -46,6 +46,7 @@ export function ReelsViewer({ onClose }) {
     const [paused, setPaused] = useState(false);
     const [liked, setLiked] = useState({});
     const [disliked, setDisliked] = useState({});
+    const [following, setFollowing] = useState({});
     const [currentUserId, setCurrentUserId] = useState(null);
     const [showCommentInput, setShowCommentInput] = useState(false);
     const [commentText, setCommentText] = useState('');
@@ -78,15 +79,18 @@ export function ReelsViewer({ onClose }) {
     const [showReportModal, setShowReportModal] = useState(false);
     const [reportReason, setReportReason] = useState('');
     const [reportSubmitted, setReportSubmitted] = useState(false);
+    const [captionExpanded, setCaptionExpanded] = useState(false);
 
     useEffect(() => {
         loadReels();
         const user = getAuthUser();
         if (user?.id) {
             setCurrentUserId(user.id);
+            // Load likes (filter by reaction_type='like')
             supabase.from('social_likes')
                 .select('post_id')
                 .eq('user_id', user.id)
+                .eq('reaction_type', 'like')
                 .then(({ data }) => {
                     if (data) {
                         const likeMap = {};
@@ -94,6 +98,19 @@ export function ReelsViewer({ onClose }) {
                         setLiked(likeMap);
                     }
                 });
+            // Load dislikes
+            supabase.from('social_likes')
+                .select('post_id')
+                .eq('user_id', user.id)
+                .eq('reaction_type', 'dislike')
+                .then(({ data }) => {
+                    if (data) {
+                        const dislikeMap = {};
+                        data.forEach(row => { dislikeMap[row.post_id] = true; });
+                        setDisliked(dislikeMap);
+                    }
+                });
+            // Load bookmarks
             supabase.from('social_interactions')
                 .select('post_id')
                 .eq('user_id', user.id)
@@ -103,6 +120,17 @@ export function ReelsViewer({ onClose }) {
                         const saveMap = {};
                         data.forEach(row => { saveMap[row.post_id] = true; });
                         setSaved(saveMap);
+                    }
+                });
+            // Load follows
+            supabase.from('social_follows')
+                .select('following_id')
+                .eq('follower_id', user.id)
+                .then(({ data }) => {
+                    if (data) {
+                        const followMap = {};
+                        data.forEach(row => { followMap[row.following_id] = true; });
+                        setFollowing(followMap);
                     }
                 });
         }
@@ -198,6 +226,23 @@ export function ReelsViewer({ onClose }) {
             setReportSubmitted(true);
             setTimeout(() => { setShowReportModal(false); setReportSubmitted(false); setReportReason(''); }, 2000);
         } catch { /* silent */ }
+    };
+
+    const handleFollow = async () => {
+        const authorId = currentReel?.author_id || currentReel?.profiles?.id;
+        if (!authorId || !currentUserId || authorId === currentUserId) return;
+        const wasFollowing = following[authorId];
+        setFollowing(prev => ({ ...prev, [authorId]: !prev[authorId] }));
+        try {
+            if (wasFollowing) {
+                await supabase.from('social_follows').delete().eq('follower_id', currentUserId).eq('following_id', authorId);
+            } else {
+                await supabase.from('social_follows').insert({ follower_id: currentUserId, following_id: authorId });
+            }
+            busEmit.socialFollowChanged && busEmit.socialFollowChanged(authorId, currentUserId, { added: !wasFollowing });
+        } catch {
+            setFollowing(prev => ({ ...prev, [authorId]: wasFollowing }));
+        }
     };
 
     // Auto-hide overlay after 2 seconds
@@ -725,15 +770,38 @@ export function ReelsViewer({ onClose }) {
                             </div>
                         </div>
                     </Link>
-
-                    {currentReel?.caption && (
-                        <p style={{
-                            color: 'white', fontSize: 14, margin: 0,
-                            textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                    {/* Follow button — only for other users' reels */}
+                    {currentReel?.author_id && currentUserId && currentReel.author_id !== currentUserId && (
+                        <button onClick={(e) => { e.stopPropagation(); handleFollow(); }} style={{
+                            pointerEvents: 'auto', padding: '4px 14px', borderRadius: 6,
+                            fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                            background: following[currentReel.author_id] ? 'transparent' : '#1877F2',
+                            color: 'white',
+                            border: following[currentReel.author_id] ? '1px solid rgba(255,255,255,0.5)' : 'none',
+                            marginBottom: 8,
                         }}>
-                            {currentReel.caption}
-                        </p>
+                            {following[currentReel.author_id] ? 'Following' : 'Follow'}
+                        </button>
                     )}
+
+                    {currentReel?.caption && (() => {
+                        const MAX_LEN = 100;
+                        const isLong = currentReel.caption.length > MAX_LEN;
+                        return (
+                            <p style={{
+                                color: 'white', fontSize: 14, margin: 0,
+                                textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                            }}>
+                                {captionExpanded || !isLong ? currentReel.caption : `${currentReel.caption.slice(0, MAX_LEN)}...`}
+                                {isLong && (
+                                    <span
+                                        onClick={(e) => { e.stopPropagation(); setCaptionExpanded(!captionExpanded); }}
+                                        style={{ color: 'rgba(255,255,255,0.6)', cursor: 'pointer', marginLeft: 4, fontSize: 13, pointerEvents: 'auto' }}
+                                    >{captionExpanded ? ' Less' : ' See More'}</span>
+                                )}
+                            </p>
+                        );
+                    })()}
                 </div>
 
                 {/* Bottom Overlay — tap to reveal, auto-hides after 2s */}
