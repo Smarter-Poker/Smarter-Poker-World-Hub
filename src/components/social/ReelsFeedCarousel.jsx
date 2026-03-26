@@ -238,6 +238,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [saved, setSaved] = useState({});
     const [slideDir, setSlideDir] = useState(null);
     const [captionExpanded, setCaptionExpanded] = useState(false);
+    const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
     // #8 Share Options Modal
     const [showShareModal, setShowShareModal] = useState(false);
     // #7 Animated Like Counter
@@ -829,6 +830,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             if (e.key === 'd' || e.key === 'D') { handleDislikeRef.current?.(); haptic(10); }
             if (e.key === 's' || e.key === 'S') handleSaveRef.current?.();
             if (e.key === 'c' || e.key === 'C') handleCommentsRef.current?.();
+            if (e.key === '?') setShowShortcutsOverlay(prev => !prev);
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
@@ -1140,6 +1142,37 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         padding: '8px 20px', borderRadius: 20, fontSize: 14, zIndex: 30,
                         backdropFilter: 'blur(10px)',
                     }}>Link Copied</div>
+                )}
+
+                {/* Keyboard Shortcuts Overlay */}
+                {showShortcutsOverlay && (
+                    <div onClick={() => setShowShortcutsOverlay(false)} style={{
+                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 260,
+                    }}>
+                        <div onClick={e => e.stopPropagation()} style={{
+                            background: '#1a1a2e', borderRadius: 16, padding: '20px 24px',
+                            border: '1px solid rgba(255,255,255,0.15)', maxWidth: 320, width: '90%',
+                        }}>
+                            <div style={{ color: 'white', fontWeight: 700, fontSize: 16, marginBottom: 16, textAlign: 'center' }}>Keyboard Shortcuts</div>
+                            {[
+                                ['↑ / ↓', 'Previous / Next Reel'],
+                                ['← / →', 'Previous / Next Reel'],
+                                ['L', 'Like'],
+                                ['D', 'Dislike'],
+                                ['S', 'Save / Bookmark'],
+                                ['C', 'Comments'],
+                                ['M', 'Mute / Unmute'],
+                                ['Esc', 'Close Viewer'],
+                                ['?', 'Toggle This Menu'],
+                            ].map(([key, desc]) => (
+                                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <span style={{ color: '#00d4ff', fontWeight: 600, fontSize: 13, fontFamily: 'monospace', background: 'rgba(0,212,255,0.1)', padding: '2px 8px', borderRadius: 6 }}>{key}</span>
+                                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{desc}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 )}
 
                 {/* #8 Share Options Modal */}
