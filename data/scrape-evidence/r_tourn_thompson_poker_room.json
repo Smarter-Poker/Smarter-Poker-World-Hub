@@ -1,19 +1,18 @@
 {
-  "venue_id": 1976,
+  "vid": 1976,
   "name": "Thompson Poker Room",
-  "source": "https://www.pokeratlas.com/poker-room/thompson-ypsilanti",
+  "src": "https://www.pokeratlas.com/poker-room/thompson-ypsilanti",
   "http": 200,
-  "hash": "c4591ec93c6f6c186188d2dbd339d3c123ebb82a726f62ca0d01ae97571d0951",
-  "has_tournaments": true,
-  "confidence": "medium",
+  "hash": "348abca8c69a7cd0def6702887c64138bf32e22f69adbea9a93f00a33a40c6d9",
+  "ht": true,
+  "conf": "medium",
   "reason": "tourn_link",
-  "keyword_hits": 1,
-  "day_hits": 7,
-  "buyins": [
+  "kw": 1,
+  "days": 7,
+  "bi": [
     49,
     59
   ],
-  "ts": "2026-03-26T00:49:48.513537+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:08:50.738521+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

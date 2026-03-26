@@ -1,19 +1,18 @@
 {
-  "venue_id": 1875,
+  "vid": 1875,
   "name": "Gun Lake Casino",
-  "source": "https://www.pokeratlas.com/poker-room/gun-lake-wayland",
+  "src": "https://www.pokeratlas.com/poker-room/gun-lake-wayland",
   "http": 200,
-  "hash": "674aa34454b8252b330144f57628ba4dd74b60cf8c6c3b1d77777d5d4b753909",
-  "has_tournaments": true,
-  "confidence": "medium",
+  "hash": "3885d98697bd9cecd8b6db1db9f41112c788e7865a6854d4ea28391e40477c70",
+  "ht": true,
+  "conf": "medium",
   "reason": "tourn_link",
-  "keyword_hits": 1,
-  "day_hits": 7,
-  "buyins": [
+  "kw": 1,
+  "days": 7,
+  "bi": [
     49,
     59
   ],
-  "ts": "2026-03-26T00:49:13.085872+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:06:18.223667+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

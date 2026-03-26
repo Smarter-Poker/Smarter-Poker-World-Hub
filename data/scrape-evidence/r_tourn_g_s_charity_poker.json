@@ -1,19 +1,18 @@
 {
-  "venue_id": 1967,
+  "vid": 1967,
   "name": "G's Charity Poker",
-  "source": "https://www.pokeratlas.com/poker-room/mr-bs-poker-room-utica",
+  "src": "https://www.pokeratlas.com/poker-room/mr-bs-poker-room-utica",
   "http": 200,
-  "hash": "de0023517acb8d1a76981ac8618ea8194526817fb41e133783f6884f7755d917",
-  "has_tournaments": true,
-  "confidence": "medium",
+  "hash": "402618675cdef00649a6b2e7c2a57d8048f1622bd6f3c03ec92f05862607a311",
+  "ht": true,
+  "conf": "medium",
   "reason": "tourn_link",
-  "keyword_hits": 1,
-  "day_hits": 7,
-  "buyins": [
+  "kw": 1,
+  "days": 7,
+  "bi": [
     49,
     59
   ],
-  "ts": "2026-03-26T00:49:04.833248+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:06:09.178270+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

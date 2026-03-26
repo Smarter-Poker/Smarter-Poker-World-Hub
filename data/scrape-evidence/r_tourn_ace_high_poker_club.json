@@ -1,19 +1,18 @@
 {
-  "venue_id": 1982,
+  "vid": 1982,
   "name": "Ace High Poker Club",
-  "source": "https://www.pokeratlas.com/poker-room/ace-high-poker-club-oxford",
+  "src": "https://www.pokeratlas.com/poker-room/ace-high-poker-club-oxford",
   "http": 200,
-  "hash": "3bdddde714a6949c41f6dc00de33ebd01a28dc2df59eac5749dd95b5d3d6332a",
-  "has_tournaments": true,
-  "confidence": "medium",
+  "hash": "f7a806e3569c4159857c05994fcba75f2c67d31bbe70e15ce5b0412f3789456e",
+  "ht": true,
+  "conf": "medium",
   "reason": "tourn_link",
-  "keyword_hits": 1,
-  "day_hits": 7,
-  "buyins": [
+  "kw": 1,
+  "days": 7,
+  "bi": [
     49,
     59
   ],
-  "ts": "2026-03-26T00:48:55.038047+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:05:47.922462+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

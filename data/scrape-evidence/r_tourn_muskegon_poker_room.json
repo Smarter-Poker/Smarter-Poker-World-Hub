@@ -1,19 +1,18 @@
 {
-  "venue_id": 1969,
+  "vid": 1969,
   "name": "Muskegon Poker Room",
-  "source": "https://www.pokeratlas.com/poker-room/muskegon-poker-room",
+  "src": "https://www.pokeratlas.com/poker-room/muskegon-poker-room",
   "http": 200,
-  "hash": "d1ca5369fada324a467bccc147fcb34ec9a0f1f7a743c110ca27e2845779507e",
-  "has_tournaments": true,
-  "confidence": "medium",
+  "hash": "3cde80065ac0a048d94bba58f580abb790aab2d14878733786190bf575f5f24b",
+  "ht": true,
+  "conf": "medium",
   "reason": "tourn_link",
-  "keyword_hits": 1,
-  "day_hits": 7,
-  "buyins": [
+  "kw": 1,
+  "days": 7,
+  "bi": [
     49,
     59
   ],
-  "ts": "2026-03-26T00:49:32.479929+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:07:50.457226+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

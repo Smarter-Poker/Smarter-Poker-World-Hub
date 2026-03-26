@@ -1,22 +1,21 @@
 {
-  "venue_id": 2328,
+  "vid": 2328,
   "name": "Soaring Eagle",
-  "source": "http://www.soaringeaglecasino.com/",
+  "src": "http://www.soaringeaglecasino.com/",
   "http": 200,
-  "hash": "760cbf593a6ffb380b061dd4a9c0e2738efbefa7caefe3e2693df1f17a638da9",
-  "has_tournaments": true,
-  "confidence": "high",
+  "hash": "0597f3b161ac1dd964f2f28455f88656756f3cba1c09ddf97e65c6490e450e62",
+  "ht": true,
+  "conf": "high",
   "reason": "3kw+3d",
-  "keyword_hits": 3,
-  "day_hits": 3,
-  "buyins": [
+  "kw": 3,
+  "days": 3,
+  "bi": [
     300,
     50,
     30,
     184,
     184
   ],
-  "ts": "2026-03-26T00:49:43.652413+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:08:38.522426+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

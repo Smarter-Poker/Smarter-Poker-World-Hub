@@ -1,16 +1,15 @@
 {
-  "venue_id": 1977,
+  "vid": 1977,
   "name": "Waterford Card Room",
-  "source": "http://www.threehundredbowl.com/poker-room.html",
+  "src": "http://www.threehundredbowl.com/poker-room.html",
   "http": 200,
   "hash": "84b6373053361fb4ac766e96753d75f1992fee0fa662cb27bdd309153b82a90d",
-  "has_tournaments": true,
-  "confidence": "medium",
+  "ht": true,
+  "conf": "medium",
   "reason": "tourn_link",
-  "keyword_hits": 1,
-  "day_hits": 4,
-  "buyins": [],
-  "ts": "2026-03-26T00:49:49.228690+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "kw": 1,
+  "days": 4,
+  "bi": [],
+  "ts": "2026-03-26T01:08:52.977596+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

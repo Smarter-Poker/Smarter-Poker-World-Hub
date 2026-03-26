@@ -1,19 +1,18 @@
 {
-  "venue_id": 1966,
+  "vid": 1966,
   "name": "DiCicco's Poker Room",
-  "source": "https://www.pokeratlas.com/poker-room/diciccos-poker-room-shelby-township",
+  "src": "https://www.pokeratlas.com/poker-room/diciccos-poker-room-shelby-township",
   "http": 200,
-  "hash": "3b0a4964283f7cab7b361daa041d54d8275138bc6936ae191e2c6f3e398d6837",
-  "has_tournaments": true,
-  "confidence": "medium",
+  "hash": "ec6038ad392af7150bc667497d6037b6dec6736a87a2287387ef8a8e83e8bbe8",
+  "ht": true,
+  "conf": "medium",
   "reason": "tourn_link",
-  "keyword_hits": 1,
-  "day_hits": 7,
-  "buyins": [
+  "kw": 1,
+  "days": 7,
+  "bi": [
     49,
     59
   ],
-  "ts": "2026-03-26T00:48:59.237921+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:05:56.227975+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

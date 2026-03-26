@@ -934,6 +934,28 @@ function UniversalDynamicTable({
     // Phase 3: Study Mode (show frequencies before answering)
     const [studyMode, setStudyMode] = React.useState(false);
 
+    // ═══ MOBILE RESPONSIVE DETECTION ═══
+    const [isMobile, setIsMobile] = React.useState(false);
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
+    // Mobile-responsive style overrides (applied inline at render time)
+    const m = useMemo(() => ({
+        avatar: isMobile ? { width: 32, height: 32, fontSize: 9, border: '1.5px solid #4a4a55' } : {},
+        badge: isMobile ? { padding: '2px 5px', fontSize: 8 } : {},
+        card: isMobile ? { width: 42, height: 60, borderRadius: 4 } : {},
+        boardCard: isMobile ? { width: 40, height: 57, borderRadius: 4 } : {},
+        pot: isMobile ? { top: '20%', fontSize: 13 } : {},
+        actionButton: isMobile ? { padding: '10px 4px', minHeight: 44, fontSize: 12 } : {},
+        villainCard: isMobile ? { width: 16, height: 22 } : {},
+        boardCards: isMobile ? { gap: 3 } : {},
+        seat: isMobile ? { gap: 2 } : {},
+    }), [isMobile]);
+
     // Phase 3: Floating EV popup
     const [evPopup, setEvPopup] = React.useState(null);
 
@@ -1473,6 +1495,7 @@ function UniversalDynamicTable({
 
         const baseStyle = {
             ...styles.actionButton,
+            ...m.actionButton,
             background: colors.bg,
             borderColor: colors.border,
             color: colors.text,
@@ -1883,6 +1906,7 @@ function UniversalDynamicTable({
                                 transition={{ delay: index * 0.05, duration: 0.3 }}
                                 style={{
                                     ...styles.seat,
+                                    ...m.seat,
                                     left: `${seat.x}%`,
                                     top: `${seat.y}%`,
                                 }}
@@ -1938,6 +1962,7 @@ function UniversalDynamicTable({
                                     transition={isHero ? { repeat: Infinity, duration: 2.5, ease: 'easeInOut' } : {}}
                                     style={{
                                         ...styles.avatar,
+                                        ...m.avatar,
                                         border: isHero ? '3px solid #00d4ff' : '2px solid #4a4a55',
                                         background: isHero ? 'rgba(0,212,255,0.08)' : '#2a2a32',
                                         color: isHero ? '#00d4ff' : '#94a3b8',
@@ -1971,6 +1996,7 @@ function UniversalDynamicTable({
                                 <div style={isHero ? styles.heroRow : undefined}>
                                     <div style={{
                                         ...styles.badge,
+                                        ...m.badge,
                                         background: isHero ? 'rgba(0,212,255,0.06)' : '#2a2a32',
                                         borderColor: isHero ? '#00d4ff' : '#4a4a55',
                                     }}>
@@ -1991,6 +2017,7 @@ function UniversalDynamicTable({
                                                 transition={{ delay: 0.1, duration: 0.4, type: 'spring' }}
                                                 style={{
                                                     ...styles.card,
+                                                    ...m.card,
                                                     transformOrigin: 'bottom center',
                                                 }}
                                             />
@@ -2002,6 +2029,7 @@ function UniversalDynamicTable({
                                                 transition={{ delay: 0.2, duration: 0.4, type: 'spring' }}
                                                 style={{
                                                     ...styles.card,
+                                                    ...m.card,
                                                     marginLeft: -20,
                                                     transformOrigin: 'bottom center',
                                                 }}
@@ -2053,7 +2081,7 @@ function UniversalDynamicTable({
 
                 {/* BOARD CARDS — Sequential dealing with per-card sounds */}
                 {boardCards.length > 0 && (
-                    <div style={styles.boardCards}>
+                    <div style={{...styles.boardCards, ...m.boardCards}}>
                         {boardCards.map((card, i) => (
                             <motion.div
                                 key={`${card}-${i}-${questionNumber}`}
@@ -2076,6 +2104,7 @@ function UniversalDynamicTable({
                                     alt={card}
                                     style={{
                                         ...styles.boardCard,
+                                        ...m.boardCard,
                                         backfaceVisibility: 'hidden',
                                     }}
                                 />
@@ -2140,7 +2169,7 @@ function UniversalDynamicTable({
 
                 {/* PREFLOP: Deck placeholder when no board cards */}
                 {boardCards.length === 0 && (
-                    <div style={styles.boardCards}>
+                    <div style={{...styles.boardCards, ...m.boardCards}}>
                         <motion.div
                             animate={{ opacity: [0.3, 0.5, 0.3] }}
                             transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
@@ -2163,7 +2192,7 @@ function UniversalDynamicTable({
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        style={styles.pot}
+                        style={{...styles.pot, ...m.pot}}
                     >
                         {/* Chip stack icon */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, marginRight: 4 }}>

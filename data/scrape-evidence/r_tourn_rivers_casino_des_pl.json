@@ -1,22 +1,21 @@
 {
-  "venue_id": 1868,
+  "vid": 1868,
   "name": "Rivers Casino Des Plaines",
-  "source": "https://www.riverscasino.com/desplaines/casino/poker-room",
+  "src": "https://www.riverscasino.com/desplaines/casino/poker-room",
   "http": 200,
   "hash": "d2431a5bd7c4221d7750491ac49ae21e2ba86188175d0b2a27d28373f83e17e2",
-  "has_tournaments": true,
-  "confidence": "medium",
+  "ht": true,
+  "conf": "medium",
   "reason": "2kw+7bi",
-  "keyword_hits": 2,
-  "day_hits": 1,
-  "buyins": [
+  "kw": 2,
+  "days": 1,
+  "bi": [
     250,
     200,
     30,
     20,
     20
   ],
-  "ts": "2026-03-26T00:48:13.076822+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:03:47.005208+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

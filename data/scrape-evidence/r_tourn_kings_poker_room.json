@@ -1,19 +1,18 @@
 {
-  "venue_id": 1968,
+  "vid": 1968,
   "name": "Kings Poker Room",
-  "source": "https://www.pokeratlas.com/poker-room/kings-poker-room-grand-rapids",
+  "src": "https://www.pokeratlas.com/poker-room/kings-poker-room-grand-rapids",
   "http": 200,
-  "hash": "6d4745ff0f945db7702058bcea5fa729342d7ad1fc8453bee9dff00bc426a8db",
-  "has_tournaments": true,
-  "confidence": "medium",
+  "hash": "66a89563b41831e9c0ee1ca2a7c45a75af5b50c4eb5747b7490c3f8087c61560",
+  "ht": true,
+  "conf": "medium",
   "reason": "tourn_link",
-  "keyword_hits": 1,
-  "day_hits": 7,
-  "buyins": [
+  "kw": 1,
+  "days": 7,
+  "bi": [
     49,
     59
   ],
-  "ts": "2026-03-26T00:49:16.124781+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:06:25.208764+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

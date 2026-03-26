@@ -1,19 +1,18 @@
 {
-  "venue_id": 1847,
+  "vid": 1847,
   "name": "Canterbury Park",
-  "source": "http://www.canterburypark.com/",
+  "src": "http://www.canterburypark.com/",
   "http": 200,
-  "hash": "1a4a5e94b2247ec6ce4e13eeb9fb7955dd01d89d1232c1fe98309987b3e680c7",
-  "has_tournaments": true,
-  "confidence": "medium",
+  "hash": "8439fa06fe9a7317940ba8725030eaa6e88bd37f7743a94f75ea7faa8610378c",
+  "ht": true,
+  "conf": "medium",
   "reason": "tourn_link",
-  "keyword_hits": 1,
-  "day_hits": 7,
-  "buyins": [
+  "kw": 1,
+  "days": 7,
+  "bi": [
     500,
     500
   ],
-  "ts": "2026-03-26T00:49:50.490306+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:08:59.684975+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

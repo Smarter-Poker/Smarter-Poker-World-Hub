@@ -79,6 +79,11 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
     // #1 Reply threading
     const [replyTo, setReplyTo] = useState(null); // comment id
     const [replyText, setReplyText] = useState('');
+    // P7-3 Expandable text
+    const [expanded, setExpanded] = useState(false);
+    // P7-1 Reactions picker
+    const [showReactions, setShowReactions] = useState(false);
+    const reactionTimer = useRef(null);
 
     // Close menu on outside click
     useEffect(() => {
@@ -137,7 +142,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
     const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page?.slug || page?.id}` : '';
 
     return (
-        <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 12, overflow: 'hidden', position: 'relative' }}>
+        <div style={{ background: C.card, borderRadius: 12, border: post.is_pinned ? '2px solid #F5A623' : `1px solid ${C.border}`, marginBottom: 12, overflow: 'hidden', position: 'relative' }}>
             {/* Pinned badge */}
             {post.is_pinned && (
                 <div style={{ padding: '6px 16px', background: '#E7F3FF', fontSize: 12, fontWeight: 600, color: C.blue, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -153,7 +158,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                     <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
                         {post.author?.full_name || post.author?.username || 'Unknown'}
                     </div>
-                    <div style={{ fontSize: 12, color: C.textSec }}>{timeAgo(post.created_at)}</div>
+                    <div style={{ fontSize: 12, color: C.textSec, cursor: 'default' }} title={post.created_at ? new Date(post.created_at).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}>{timeAgo(post.created_at)}</div>
                 </div>
                 {/* ⋮ Menu */}
                 {canManage && (
@@ -221,7 +226,12 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                 </div>
             ) : post.content ? (
                 <div style={{ padding: '0 16px 12px', fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-                    {post.content}
+                    {post.content.length > 300 && !expanded ? (
+                        <>{post.content.slice(0, 300)}... <button onClick={() => setExpanded(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: C.textSec, padding: 0, fontFamily: 'inherit' }}>See More</button></>
+                    ) : post.content}
+                    {expanded && post.content.length > 300 && (
+                        <button onClick={() => setExpanded(false)} style={{ display: 'block', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: C.textSec, padding: '4px 0 0', fontFamily: 'inherit' }}>See Less</button>
+                    )}
                 </div>
             ) : null}
 
@@ -285,8 +295,45 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                 <span>{post.comment_count || 0} comments</span>
             </div>
 
-            {/* Action Buttons — #13 debounce + #14 animation */}
-            <div style={{ display: 'flex', borderTop: `1px solid ${C.border}`, borderBottom: showComments ? `1px solid ${C.border}` : 'none' }}>
+            {/* Action Buttons — #13 debounce + #14 animation + P7-1 reactions */}
+            <div style={{ display: 'flex', borderTop: `1px solid ${C.border}`, borderBottom: showComments ? `1px solid ${C.border}` : 'none', position: 'relative' }}>
+                {/* P7-1 Reaction picker popup */}
+                {showReactions && (
+                    <div style={{
+                        position: 'absolute', bottom: '100%', left: 4, background: C.card,
+                        borderRadius: 28, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', border: `1px solid ${C.border}`,
+                        padding: '6px 8px', display: 'flex', gap: 4, zIndex: 50,
+                        animation: 'reactPopIn 0.2s ease-out',
+                    }}
+                    onMouseEnter={() => { clearTimeout(reactionTimer.current); setShowReactions(true); }}
+                    onMouseLeave={() => { reactionTimer.current = setTimeout(() => setShowReactions(false), 300); }}
+                    >
+                        {[
+                            { emoji: '\uD83D\uDC4D', label: 'Like' },
+                            { emoji: '\u2764\uFE0F', label: 'Love' },
+                            { emoji: '\uD83D\uDE02', label: 'Haha' },
+                            { emoji: '\uD83D\uDE2E', label: 'Wow' },
+                            { emoji: '\uD83D\uDE22', label: 'Sad' },
+                            { emoji: '\uD83D\uDE21', label: 'Angry' },
+                        ].map(r => (
+                            <button key={r.label} title={r.label} onClick={() => {
+                                if (isLikingRef.current) return;
+                                isLikingRef.current = true;
+                                setLikeAnim(true);
+                                setTimeout(() => setLikeAnim(false), 500);
+                                onLike(post.id);
+                                setTimeout(() => { isLikingRef.current = false; }, 800);
+                                setShowReactions(false);
+                            }} style={{
+                                background: 'none', border: 'none', fontSize: 24, cursor: 'pointer',
+                                padding: '4px 6px', borderRadius: 12, transition: 'transform 0.15s',
+                            }}
+                            onMouseEnter={e => e.target.style.transform = 'scale(1.35)'}
+                            onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                            >{r.emoji}</button>
+                        ))}
+                    </div>
+                )}
                 {[
                     { label: post.user_liked ? 'Liked' : 'Like', action: () => {
                         if (isLikingRef.current) return;
@@ -295,11 +342,19 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                         setTimeout(() => setLikeAnim(false), 500);
                         onLike(post.id);
                         setTimeout(() => { isLikingRef.current = false; }, 800);
-                    }, active: post.user_liked },
+                    }, active: post.user_liked, onMouseEnter: () => {
+                        reactionTimer.current = setTimeout(() => setShowReactions(true), 500);
+                    }, onMouseLeave: () => {
+                        clearTimeout(reactionTimer.current);
+                        reactionTimer.current = setTimeout(() => setShowReactions(false), 300);
+                    } },
                     { label: 'Comment', action: fetchComments },
                     { label: 'Share', action: () => setShowShareModal(true) },
                 ].map((btn, i) => (
-                    <button key={i} onClick={btn.action} style={{
+                    <button key={i} onClick={btn.action}
+                        onMouseEnter={btn.onMouseEnter}
+                        onMouseLeave={btn.onMouseLeave}
+                        style={{
                         flex: 1, padding: '10px 0', border: 'none', background: 'none',
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                         color: btn.active ? C.blue : C.textSec, borderRight: i < 2 ? `1px solid ${C.border}` : 'none',
@@ -655,6 +710,11 @@ export default function SocialPageDetail() {
         fetchPage(controller.signal);
         return () => controller.abort();
     }, [fetchPage]);
+    // P7-8: Increment view counter on page load (fire-and-forget)
+    useEffect(() => {
+        if (!page?.id) return;
+        fetch(`/api/social/pages?id=${page.id}&action=view`, { method: 'POST' }).catch(() => {});
+    }, [page?.id]);
     useEffect(() => {
         if (!page) return;
         const controller = new AbortController();
@@ -1564,6 +1624,39 @@ export default function SocialPageDetail() {
                                                 )}
                                             </div>
                                         )}
+                                        {/* P7-10: Social media links */}
+                                        {page.metadata?.social_links && (
+                                            <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                                                {page.metadata.social_links.instagram && (
+                                                    <a href={`https://instagram.com/${page.metadata.social_links.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{
+                                                        display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 20,
+                                                        background: 'linear-gradient(45deg, #833AB4, #FD1D1D, #F77737)', color: '#fff',
+                                                        fontSize: 12, fontWeight: 600, textDecoration: 'none',
+                                                    }}>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><rect x="2" y="2" width="20" height="20" rx="5" fill="none" stroke="#fff" strokeWidth="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="#fff" strokeWidth="2"/><circle cx="18" cy="6" r="1.5"/></svg>
+                                                        Instagram
+                                                    </a>
+                                                )}
+                                                {page.metadata.social_links.twitter && (
+                                                    <a href={`https://x.com/${page.metadata.social_links.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{
+                                                        display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 20,
+                                                        background: '#000', color: '#fff', fontSize: 12, fontWeight: 600, textDecoration: 'none',
+                                                    }}>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                                                        X / Twitter
+                                                    </a>
+                                                )}
+                                                {page.metadata.social_links.facebook && (
+                                                    <a href={page.metadata.social_links.facebook.startsWith('http') ? page.metadata.social_links.facebook : `https://facebook.com/${page.metadata.social_links.facebook}`} target="_blank" rel="noopener noreferrer" style={{
+                                                        display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 20,
+                                                        background: '#1877F2', color: '#fff', fontSize: 12, fontWeight: 600, textDecoration: 'none',
+                                                    }}>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                                                        Facebook
+                                                    </a>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -1890,6 +1983,20 @@ export default function SocialPageDetail() {
                                         <span style={{ fontSize: 12, color: C.textSec }}>{avgRating} ({reviews.length})</span>
                                     </div>
                                 )}
+                                {/* P7-9: Engagement summary */}
+                                {posts.length > 0 && (
+                                    <div style={{ marginTop: 10, padding: '8px 10px', background: C.bg, borderRadius: 8 }}>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: C.textSec, marginBottom: 4, textTransform: 'uppercase' }}>Engagement</div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text }}>
+                                            <span>Avg Likes/Post</span>
+                                            <span style={{ fontWeight: 700 }}>{(posts.reduce((sum, p) => sum + (p.like_count || 0), 0) / posts.length).toFixed(1)}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text, marginTop: 2 }}>
+                                            <span>Avg Comments/Post</span>
+                                            <span style={{ fontWeight: 700 }}>{(posts.reduce((sum, p) => sum + (p.comment_count || 0), 0) / posts.length).toFixed(1)}</span>
+                                        </div>
+                                    </div>
+                                )}
                                 {/* Actions: Notify + Report */}
                                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                                     {user && isFollowing && (
@@ -2157,9 +2264,20 @@ export default function SocialPageDetail() {
                                   width: 44, height: 44, cursor: 'pointer', color: '#fff', fontSize: 22, zIndex: 2,
                               }}>&rsaquo;</button>
                           )}
-                          {/* Counter */}
-                          <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', color: '#fff', fontSize: 14, fontWeight: 600 }}>
-                              {index + 1} / {list.length}
+                          {/* P7-5 Author overlay + Counter */}
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 24px', background: 'linear-gradient(transparent, rgba(0,0,0,0.7))', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                  {item?.author && (
+                                      <>
+                                          <Avatar src={item.author?.avatar_url} name={item.author?.full_name || item.author?.username} size={32} />
+                                          <div>
+                                              <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{item.author?.full_name || item.author?.username || 'Unknown'}</div>
+                                              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>{item.created_at ? timeAgo(item.created_at) : ''}</div>
+                                          </div>
+                                      </>
+                                  )}
+                              </div>
+                              <div style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>{index + 1} / {list.length}</div>
                           </div>
                       </div>
                   );
@@ -2214,6 +2332,7 @@ export default function SocialPageDetail() {
             </div>
 
             <style jsx global>{`
+                @keyframes reactPopIn { 0% { transform: scale(0.3) translateY(10px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
                 @keyframes likePopAnim { 0% { transform: scale(0); opacity: 1; } 50% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
                 @keyframes spin { to { transform: rotate(360deg); } }
                 @keyframes sp-toast-in { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
