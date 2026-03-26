@@ -1,471 +1,344 @@
-/**
- * LiveGamesFeed - Real-time feed of live games at poker venues
- * Shows games reported by players with ability to confirm/update
- */
+import React, { useState, useEffect, useRef } from 'react';
+import VenueCard from './VenueCard'; // If needed, though we can just render the games list inline
 
-import { useState, useEffect, useCallback } from 'react';
+const LIVE_REFRESH_MS = 2 * 60 * 1000; // 2 minutes auto-refresh
 
-const GAME_TYPE_LABELS = {
-    nlh: 'NLH',
-    plo: 'PLO',
-    plo8: 'PLO8',
-    mixed: 'Mixed',
-    stud: 'Stud',
-    razz: 'Razz',
-    omaha: 'Omaha',
-    other: 'Other'
-};
+// Skeletons for loading state
+const renderSkeletons = (count = 4) => (
+    <div style={{ display: 'grid', gap: '12px', marginTop: '16px' }}>
+        {Array.from({ length: count }).map((_, i) => (
+            <div key={`skel-${i}`} style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.05)',
+                borderRadius: '12px',
+                padding: '16px',
+                display: 'flex', gap: '16px'
+            }}>
+                <div style={{ width: 48, height: 48, borderRadius: 8, background: 'rgba(255,255,255,0.05)', animation: 'pulse 1.5s infinite' }} />
+                <div style={{ flex: 1 }}>
+                    <div style={{ width: '60%', height: 16, background: 'rgba(255,255,255,0.05)', borderRadius: 4, marginBottom: 8, animation: 'pulse 1.5s infinite' }} />
+                    <div style={{ width: '40%', height: 12, background: 'rgba(255,255,255,0.05)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
+                </div>
+            </div>
+        ))}
+        <style>{`
+            @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.5; }
+                100% { opacity: 1; }
+            }
+        `}</style>
+    </div>
+);
 
-const GAME_QUALITY_COLORS = {
-    soft: { bg: 'rgba(34, 197, 94, 0.2)', text: '#22c55e', label: 'Soft' },
-    average: { bg: 'rgba(59, 130, 246, 0.2)', text: '#3b82f6', label: 'Average' },
-    tough: { bg: 'rgba(239, 68, 68, 0.2)', text: '#ef4444', label: 'Tough' }
-};
+export default function LiveGamesFeed({ userLocation }) {
+    const [liveGames, setLiveGames] = useState([]);
+    const [liveLoading, setLiveLoading] = useState(false);
+    
+    // Search & Autocomplete state
+    const [liveSearchQuery, setLiveSearchQuery] = useState('');
+    const [liveVenueList, setLiveVenueList] = useState([]);
+    const [liveVenueSuggestions, setLiveVenueSuggestions] = useState([]);
+    const [selectedLiveVenue, setSelectedLiveVenue] = useState(null);
+    const [showLiveSuggestions, setShowLiveSuggestions] = useState(false);
+    
+    const liveSearchInputRef = useRef(null);
+    const liveRefreshRef = useRef(null);
 
-function formatTimeAgo(dateString) {
-    if (!dateString) return 'Recently';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'Recently';
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-
-    return date.toLocaleDateString();
-}
-
-function LiveGameCard({ game, onConfirm, onReport, user }) {
-    const [confirming, setConfirming] = useState(false);
-
-    const handleConfirm = async () => {
-        if (!user) return;
-        setConfirming(true);
+    // Fetch the full Bravo venue list for search suggestions
+    const fetchLiveVenueList = async () => {
         try {
-            await onConfirm(game.id, 'confirm');
-        } finally {
-            setConfirming(false);
+            const res = await fetch('/api/poker/live-tables?list=true');
+            if (!res.ok) return;
+            const json = await res.json();
+            setLiveVenueList(json.venues || []);
+        } catch (e) {
+            console.error('Fetch venue list error:', e);
         }
     };
 
-    const qualityStyle = game.game_quality ? GAME_QUALITY_COLORS[game.game_quality] : null;
+    // Fetch live games for a specific venue
+    const fetchLiveGames = async (venueSlug) => {
+        if (!venueSlug) return;
+        setLiveLoading(true);
+        try {
+            const res = await fetch('/api/poker/live-tables?venue=' + encodeURIComponent(venueSlug));
+            if (!res.ok) throw new Error(`Request failed (${res.status})`);
+            const json = await res.json();
+            let games = [];
+            if (json.venues && Array.isArray(json.venues)) {
+                json.venues.forEach(v => {
+                    (v.games || []).forEach(g => {
+                        const name = g.game || '';
+                        let gameType = 'NLH';
+                        if (/PLO|omaha/i.test(name)) gameType = /big\s?o/i.test(name) ? 'Big O' : 'PLO';
+                        else if (/limit\s+holdem/i.test(name) && !/no\s+limit/i.test(name)) gameType = 'Limit';
+                        else if (/stud/i.test(name)) gameType = 'Stud';
+                        else if (/mixed|mix/i.test(name)) gameType = 'Mixed';
+                        else if (/dealer/i.test(name)) gameType = 'DC';
+                        else if (/tourney|tournament/i.test(name)) gameType = 'Tournament';
+                        
+                        const stakesMatch = name.match(/(\d+)-(\d+)/);
+                        const stakes = stakesMatch ? `$${stakesMatch[1]}/$${stakesMatch[2]}` : '';
+                        
+                        games.push({
+                            venue_id: v.bravo_slug,
+                            venue_name: v.venue_name,
+                            game_type: gameType,
+                            stakes: stakes,
+                            table_count: g.tables_running || 0,
+                            wait_time: g.players_waiting > 0 ? g.players_waiting : null,
+                            game_name_raw: name,
+                            created_at: v.last_updated,
+                        });
+                    });
+                });
+            }
+            setLiveGames(games);
+        } catch (e) {
+            console.error('Fetch live games error:', e);
+            setLiveGames([]);
+        }
+        setLiveLoading(false);
+    };
+
+    // Pre-fetch venue list on mount, set up auto-refresh
+    useEffect(() => {
+        if (liveVenueList.length === 0) fetchLiveVenueList();
+        
+        if (selectedLiveVenue) {
+            fetchLiveGames(selectedLiveVenue.slug);
+            liveRefreshRef.current = setInterval(() => fetchLiveGames(selectedLiveVenue.slug), LIVE_REFRESH_MS);
+        }
+        return () => { if (liveRefreshRef.current) clearInterval(liveRefreshRef.current); };
+    }, [selectedLiveVenue]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleLiveSearchInput = (value) => {
+        setLiveSearchQuery(value);
+        if (value.trim().length >= 2) {
+            const q = value.trim().toLowerCase();
+            const matches = liveVenueList.filter(v =>
+                v.name && v.name.toLowerCase().includes(q)
+            ).slice(0, 8);
+            setLiveVenueSuggestions(matches);
+            setShowLiveSuggestions(matches.length > 0);
+        } else {
+            setLiveVenueSuggestions([]);
+            setShowLiveSuggestions(false);
+        }
+    };
+
+    const handleSelectLiveVenue = (venue) => {
+        setSelectedLiveVenue(venue);
+        setLiveSearchQuery(venue.name);
+        setShowLiveSuggestions(false);
+        setLiveGames([]);
+    };
+
+    const handleClearLiveVenue = () => {
+        setSelectedLiveVenue(null);
+        setLiveSearchQuery('');
+        setLiveGames([]);
+        setShowLiveSuggestions(false);
+    };
+
+    const totalTables = liveGames.reduce((sum, g) => sum + (g.table_count || 0), 0);
 
     return (
-        <div style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '12px'
-        }}>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                <div>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
-                        {game.venue?.name || game.venue_name || 'Unknown Venue'}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-                        {game.venue?.city || game.venue_city || ''}{(game.venue?.city || game.venue_city) && (game.venue?.state || game.venue_state) ? ', ' : ''}{game.venue?.state || game.venue_state || ''}
-                        {game.distance_miles && (
-                            <span style={{ marginLeft: '8px', color: '#00D4FF' }}>
-                                {game.distance_miles.toFixed(1)} mi
-                            </span>
-                        )}
-                    </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
-                        {formatTimeAgo(game.reported_at)}
-                    </div>
-                    {(game.confirmation_count || 0) > 1 && (
-                        <div style={{
-                            fontSize: '11px',
-                            color: '#22c55e',
-                            marginTop: '2px'
-                        }}>
-                            {game.confirmation_count} confirmation{game.confirmation_count !== 2 ? 's' : ''}
-                        </div>
+        <div style={{ padding: '0 16px 40px' }}>
+            {/* Context Header */}
+            <div style={{ marginBottom: 20 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>Live Games Dashboard</h2>
+                <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.5)', margin: 0 }}>
+                    Powered by Bravo Poker Live. Data refreshes every 15 minutes.
+                </p>
+            </div>
+
+            {/* Search Bar */}
+            <div style={{ position: 'relative', marginBottom: 24, zIndex: 10 }}>
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    background: 'rgba(13,17,23,0.95)', border: '1px solid rgba(48,54,61,0.8)',
+                    borderRadius: 14, padding: '12px 16px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.5)" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input
+                        ref={liveSearchInputRef}
+                        type="text"
+                        value={liveSearchQuery}
+                        onChange={(e) => handleLiveSearchInput(e.target.value)}
+                        onFocus={() => { if (liveVenueSuggestions.length > 0) setShowLiveSuggestions(true); }}
+                        placeholder="Search for a casino..."
+                        style={{
+                            flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                            color: '#e0e8f0', fontSize: 15, fontWeight: 500, fontFamily: 'inherit'
+                        }}
+                    />
+                    {selectedLiveVenue && (
+                        <button onClick={handleClearLiveVenue} style={{
+                            background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: 8,
+                            padding: '6px 10px', color: '#e0e8f0', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                            transition: 'background 0.2s'
+                        }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                           onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}>
+                            Clear
+                        </button>
                     )}
                 </div>
-            </div>
 
-            {/* Game Info */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-                <span style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    background: 'rgba(0, 212, 255, 0.15)',
-                    border: '1px solid rgba(0, 212, 255, 0.3)',
-                    color: '#00D4FF',
-                    fontSize: '13px',
-                    fontWeight: 700
-                }}>
-                    {GAME_TYPE_LABELS[game.game_type] || game.game_type}
-                </span>
-                <span style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    color: '#fff',
-                    fontSize: '13px',
-                    fontWeight: 600
-                }}>
-                    ${game.stakes || 'TBD'}
-                </span>
-                {game.table_count > 1 && (
-                    <span style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        color: 'rgba(255,255,255,0.7)',
-                        fontSize: '12px'
+                {/* Autocomplete Dropdown */}
+                {showLiveSuggestions && liveVenueSuggestions.length > 0 && (
+                    <div style={{
+                        position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0,
+                        background: 'rgba(13,17,23,0.98)', backdropFilter: 'blur(16px)',
+                        border: '1px solid rgba(212,168,83,0.4)', borderRadius: 12,
+                        overflow: 'hidden', maxHeight: 320, overflowY: 'auto',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
                     }}>
-                        {game.table_count} tables
-                    </span>
-                )}
-                {qualityStyle && (
-                    <span style={{
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: qualityStyle.bg,
-                        color: qualityStyle.text,
-                        fontSize: '12px',
-                        fontWeight: 500
-                    }}>
-                        {qualityStyle.label}
-                    </span>
-                )}
-            </div>
-
-            {/* Status */}
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={game.seats_open > 0 ? '#22c55e' : '#ef4444'} strokeWidth="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                    </svg>
-                    <span style={{ fontSize: '13px', color: game.seats_open > 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
-                        {game.seats_open > 0 ? `${game.seats_open} seats open` : 'No seats'}
-                    </span>
-                </div>
-                {game.waitlist_size > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                            <circle cx="9" cy="7" r="4" />
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                        </svg>
-                        <span style={{ fontSize: '13px', color: '#f59e0b' }}>
-                            {game.waitlist_size} on waitlist
-                        </span>
+                        {liveVenueSuggestions.map((v, i) => (
+                            <div key={v.slug || i} onClick={() => handleSelectLiveVenue(v)} style={{
+                                padding: '14px 16px', cursor: 'pointer',
+                                borderBottom: i < liveVenueSuggestions.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                                display: 'flex', alignItems: 'center', gap: 12,
+                                transition: 'background 0.15s',
+                            }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(212,168,83,0.15)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(212,168,83,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2.5">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{v.name}</div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
 
-            {/* Notes */}
-            {game.notes && (
-                <div style={{
-                    fontSize: '13px',
-                    color: 'rgba(255,255,255,0.6)',
-                    fontStyle: 'italic',
-                    marginBottom: '12px',
-                    padding: '8px 12px',
-                    background: 'rgba(255,255,255,0.03)',
-                    borderRadius: '6px'
-                }}>
-                    "{game.notes}"
+            {/* No venue selected — landing state */}
+            {!selectedLiveVenue && !liveLoading && (
+                <div style={{ textAlign: 'center', padding: '40px 20px', background: 'rgba(13,17,23,0.6)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.1)' }}>
+                    <div style={{ width: 64, height: 64, borderRadius: 32, background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
+                            <circle cx="12" cy="12" r="4" fill="rgba(239,68,68,0.3)" />
+                            <circle cx="12" cy="12" r="7" strokeOpacity="0.5" />
+                            <circle cx="12" cy="12" r="10" strokeOpacity="0.2" />
+                        </svg>
+                    </div>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: '#e0e8f0', margin: '0 0 8px' }}>Select a Casino</p>
+                    <p style={{ fontSize: 14, color: 'rgba(200,214,229,0.5)', margin: '0 auto', maxWidth: 300, lineHeight: 1.5 }}>
+                        Search for a casino above to instantly view all live games and waitlists currently running.
+                    </p>
                 </div>
             )}
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                    onClick={handleConfirm}
-                    disabled={!user || confirming}
-                    style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        background: 'rgba(34, 197, 94, 0.15)',
-                        border: '1px solid rgba(34, 197, 94, 0.3)',
-                        color: '#22c55e',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: user ? 'pointer' : 'not-allowed',
-                        opacity: user ? 1 : 0.5
-                    }}
-                >
-                    {confirming ? 'Confirming...' : 'Still Running'}
-                </button>
-                <button
-                    onClick={() => onReport(game, 'update')}
-                    disabled={!user}
-                    style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        background: 'rgba(59, 130, 246, 0.15)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)',
-                        color: '#3b82f6',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: user ? 'pointer' : 'not-allowed',
-                        opacity: user ? 1 : 0.5
-                    }}
-                >
-                    Update Info
-                </button>
-                <button
-                    onClick={() => onReport(game, 'expired')}
-                    disabled={!user}
-                    style={{
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        background: 'rgba(239, 68, 68, 0.15)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        color: '#ef4444',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: user ? 'pointer' : 'not-allowed',
-                        opacity: user ? 1 : 0.5
-                    }}
-                >
-                    Ended
-                </button>
-            </div>
-        </div>
-    );
-}
+            {/* Loading state */}
+            {liveLoading && renderSkeletons(4)}
 
-export default function LiveGamesFeed({
-    userLocation,
-    radiusMiles = 50,
-    gameType,
-    stakes,
-    user,
-    refreshTrigger,
-    onReportGame
-}) {
-    const [games, setGames] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    const fetchGames = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-
-        try {
-            let url = '/api/public/live-games';
-            const params = new URLSearchParams();
-
-            if (userLocation) {
-                params.set('lat', userLocation.lat);
-                params.set('lng', userLocation.lng);
-                params.set('radius', radiusMiles);
-            }
-            if (gameType && gameType !== 'all') params.set('game_type', gameType);
-            if (stakes && stakes !== 'all') params.set('stakes', stakes);
-
-            if (params.toString()) {
-                url += '?' + params.toString();
-            }
-
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to fetch games');
-            }
-
-            setGames(data.games || []);
-        } catch (err) {
-            setError(err.message);
-            setGames([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [userLocation, radiusMiles, gameType, stakes]);
-
-    useEffect(() => {
-        fetchGames();
-
-        // Auto-refresh every 2 minutes
-        const interval = setInterval(fetchGames, 120000);
-        return () => clearInterval(interval);
-    }, [fetchGames, refreshTrigger]);
-
-    const handleConfirm = async (gameId, action) => {
-        if (!user) return;
-
-        try {
-            const response = await fetch(`/api/public/live-games/${gameId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.token || ''}`
-                },
-                body: JSON.stringify({ action })
-            });
-
-            if (response.ok) {
-                // Refresh games
-                fetchGames();
-            }
-        } catch (err) {
-            console.error('Error confirming game:', err);
-        }
-    };
-
-    const handleReport = (game, action) => {
-        if (action === 'update' && onReportGame) {
-            onReportGame(game.venue || { id: game.venue_id, name: game.venue_name });
-        } else if (action === 'expired') {
-            handleConfirm(game.id, 'expired');
-        }
-    };
-
-    if (loading && games.length === 0) {
-        return (
-            <div style={{
-                padding: '40px 20px',
-                textAlign: 'center',
-                color: 'rgba(255,255,255,0.5)'
-            }}>
-                <div style={{
-                    width: 40,
-                    height: 40,
-                    border: '3px solid rgba(255,255,255,0.1)',
-                    borderTopColor: '#00D4FF',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                    margin: '0 auto 16px'
-                }} />
-                Loading live games...
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div style={{
-                padding: '20px',
-                textAlign: 'center',
-                color: '#ef4444',
-                background: 'rgba(239, 68, 68, 0.1)',
-                borderRadius: '12px',
-                border: '1px solid rgba(239, 68, 68, 0.2)'
-            }}>
-                {error}
-                <button
-                    onClick={fetchGames}
-                    style={{
-                        display: 'block',
-                        margin: '12px auto 0',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        background: 'rgba(239, 68, 68, 0.2)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        color: '#ef4444',
-                        cursor: 'pointer'
-                    }}
-                >
-                    Retry
-                </button>
-            </div>
-        );
-    }
-
-    if (games.length === 0) {
-        return (
-            <div style={{
-                padding: '40px 20px',
-                textAlign: 'center'
-            }}>
-                <div style={{
-                    width: 60,
-                    height: 60,
-                    background: 'rgba(255,255,255,0.05)',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 16px'
-                }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <path d="M3 9h18" />
-                        <path d="M9 21V9" />
-                    </svg>
+            {/* Selected venue — Empty state */}
+            {selectedLiveVenue && !liveLoading && liveGames.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '40px 20px', background: 'rgba(13,17,23,0.6)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.1)' }}>
+                    <div style={{ width: 64, height: 64, borderRadius: 32, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+                        </svg>
+                    </div>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: '#e0e8f0', margin: '0 0 8px' }}>No Live Games Found</p>
+                    <p style={{ fontSize: 14, color: 'rgba(200,214,229,0.5)', margin: '0 auto 16px', maxWidth: 300, lineHeight: 1.5 }}>
+                        There are no games currently reported running at {selectedLiveVenue.name}.
+                    </p>
+                    <button onClick={() => fetchLiveGames(selectedLiveVenue.slug)} style={{
+                        padding: '10px 24px', background: 'rgba(212,168,83,0.15)',
+                        border: '1px solid rgba(212,168,83,0.4)', borderRadius: 10,
+                        color: '#d4a853', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                    }}>{liveLoading ? 'Checking...' : 'Check Again'}</button>
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '15px', marginBottom: '8px' }}>
-                    No live games reported
-                </div>
-                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>
-                    Be the first to report a game at a nearby venue!
-                </div>
-            </div>
-        );
-    }
+            )}
 
-    return (
-        <div>
-            {/* Header */}
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '16px'
-            }}>
-                <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>
-                    {games.length} live game{games.length !== 1 ? 's' : ''} reported
-                </div>
-                <button
-                    onClick={fetchGames}
-                    disabled={loading}
-                    style={{
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: 'rgba(255,255,255,0.7)',
-                        fontSize: '12px',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                    }}
-                >
-                    <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}
-                    >
-                        <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        <path d="M9 12l2 2 4-4" />
-                    </svg>
-                    Refresh
-                </button>
-            </div>
+            {/* Selected venue — Results */}
+            {selectedLiveVenue && liveGames.length > 0 && (
+                <div className="live-games-results">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: 4, background: '#ef4444', boxShadow: '0 0 8px #ef4444' }} />
+                            <span style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0' }}>
+                                {totalTables} table{totalTables !== 1 ? 's' : ''} running
+                            </span>
+                        </div>
+                        <button onClick={() => fetchLiveGames(selectedLiveVenue.slug)} disabled={liveLoading} style={{
+                            background: 'transparent', border: 'none', color: '#58a6ff', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                        }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: liveLoading ? 'spin 1s linear infinite' : 'none' }}>
+                                <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path d="M9 12l2 2 4-4" />
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
 
-            {/* Games List */}
-            {games.map(game => (
-                <LiveGameCard
-                    key={game.id}
-                    game={game}
-                    onConfirm={handleConfirm}
-                    onReport={handleReport}
-                    user={user}
-                />
-            ))}
+                    {/* Venue Card header */}
+                    <div style={{
+                        background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95))',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: 16, overflow: 'hidden',
+                        boxShadow: '0 12px 24px rgba(0,0,0,0.4)',
+                    }}>
+                        <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff' }}>{selectedLiveVenue.name}</h3>
+                            <span style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800, letterSpacing: '0.5px' }}>LIVE</span>
+                        </div>
+                        
+                        <div style={{ padding: 12 }}>
+                            {liveGames.map((game, i) => (
+                                <div key={i} style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    padding: '12px 16px', borderRadius: 12,
+                                    background: i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
+                                }}>
+                                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                        <div style={{ background: 'rgba(88,166,255,0.1)', color: '#58a6ff', width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>
+                                            {game.game_type}
+                                        </div>
+                                        <div>
+                                            <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, marginBottom: 2 }}>
+                                                {game.stakes || game.game_name_raw || 'Unknown'}
+                                            </div>
+                                            <div style={{ color: 'rgba(200,214,229,0.5)', fontSize: 12 }}>
+                                                {game.table_count} table{game.table_count !== 1 ? 's' : ''} running
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        {game.wait_time !== null && game.wait_time !== undefined && (
+                                            <div style={{
+                                                color: game.wait_time <= 3 ? '#22c55e' : game.wait_time <= 10 ? '#d4a853' : '#ef4444',
+                                                fontSize: 14, fontWeight: 700, marginBottom: 2
+                                            }}>
+                                                {game.wait_time === 0 ? 'No wait' : `${game.wait_time} waiting`}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <div style={{ padding: '12px 24px', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', fontWeight: 500 }}>
+                                Updated {liveGames[0]?.created_at ? new Date(liveGames[0].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'recently'}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.3)', fontWeight: 600, letterSpacing: '0.5px' }}>
+                                VIA BRAVO POKER LIVE
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
