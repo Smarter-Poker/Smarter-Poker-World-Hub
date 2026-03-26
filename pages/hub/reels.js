@@ -128,13 +128,13 @@ export default function ReelsPage() {
     const [commentSort, setCommentSort] = useState('newest');
     const [copyToast, setCopyToast] = useState(false);
     const COMMENT_MAX_LENGTH = 280;
-    // Phase 8b — Sidebar auto-hide
-    const [showSidebar, setShowSidebar] = useState(false);
-    const sidebarTimerRef = useRef(null);
-    const revealSidebar = () => {
-        setShowSidebar(true);
-        clearTimeout(sidebarTimerRef.current);
-        sidebarTimerRef.current = setTimeout(() => setShowSidebar(false), 2500);
+    // Phase 10 — Universal HUD auto-hide
+    const [showOverlay, setShowOverlay] = useState(false);
+    const hudTimerRef = useRef(null);
+    const revealOverlay = () => {
+        setShowOverlay(true);
+        clearTimeout(hudTimerRef.current);
+        hudTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
     };
     const pullStartY = useRef(null);
     
@@ -1118,8 +1118,17 @@ export default function ReelsPage() {
             try {
                 if (typeof e.data !== 'string') return;
                 const data = JSON.parse(e.data);
-                if (data?.event === 'onStateChange' && data?.info === 0) {
-                    slideToNextRef.current();
+                if (data?.event === 'onStateChange') {
+                    if (data.info === 0) slideToNextRef.current();
+                    if (data.info === 1) { // Playing
+                        setShowOverlay(true);
+                        clearTimeout(hudTimerRef.current);
+                        hudTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                    }
+                    if (data.info === 2) { // Paused
+                        setShowOverlay(true);
+                        if (hudTimerRef.current) clearTimeout(hudTimerRef.current);
+                    }
                 }
                 if (data?.info?.currentTime !== undefined && data?.info?.duration) {
                     const pct = (data.info.currentTime / data.info.duration) * 100;
@@ -1499,8 +1508,8 @@ export default function ReelsPage() {
                                 handleLike();
                             }
                         } else {
-                            // Single tap = reveal sidebar
-                            revealSidebar();
+                            // Single tap = reveal overlay
+                            revealOverlay();
                         }
                         lastTapRef.current = now;
                     }}
@@ -1545,11 +1554,13 @@ export default function ReelsPage() {
                     position: 'absolute', bottom: 0, left: 0, right: 0, height: 300,
                     background: 'linear-gradient(transparent, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.9))',
                     pointerEvents: 'none', zIndex: 90,
+                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
                 }} />
 
                 {/* Author info overlay */}
                 <div style={{
                     position: 'absolute', bottom: 120, left: 16, right: 80, zIndex: 100,
+                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease', pointerEvents: showOverlay ? 'auto' : 'none',
                 }}>
                     <Link href={`/hub/user/${currentReel?.profiles?.username}`} style={{
                         display: 'flex', alignItems: 'center', gap: 12,
@@ -1614,12 +1625,12 @@ export default function ReelsPage() {
                     )}
                 </div>
 
-                {/* Action buttons (right side) — auto-hide */}
+                {/* Right Action Sidebar */}
                 <div style={{
-                    position: 'absolute', bottom: 140, right: 16,
-                    display: 'flex', flexDirection: 'column', gap: 18, zIndex: 100,
-                    opacity: showSidebar ? 1 : 0,
-                    pointerEvents: showSidebar ? 'auto' : 'none',
+                    position: 'absolute', right: 12, bottom: 110, zIndex: 100,
+                    display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center',
+                    opacity: showOverlay ? 1 : 0,
+                    pointerEvents: showOverlay ? 'auto' : 'none',
                     transition: 'opacity 0.3s ease',
                 }}>
                     {/* Like */}

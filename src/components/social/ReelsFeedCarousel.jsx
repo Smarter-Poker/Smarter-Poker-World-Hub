@@ -832,9 +832,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
         const handleYTMessage = (event) => {
             try {
                 const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                if (data?.event === 'onStateChange' && data?.info === 0) {
-                    // Video ended — auto-advance
-                    if (currentIndex < reels.length - 1) goNext();
+                if (data?.event === 'onStateChange') {
+                    if (data.info === 0 && currentIndex < reels.length - 1) goNext(); // Ended
+                    if (data.info === 1) { // Playing
+                        setShowOverlay(true);
+                        clearTimeout(overlayTimerRef.current);
+                        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                    }
+                    if (data.info === 2) { // Paused
+                        setShowOverlay(true);
+                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                    }
                 }
             } catch { /* not a YouTube message */ }
         };
@@ -986,9 +994,27 @@ function ReelViewer({ reels, startIndex, onClose }) {
             if (lastTapRef.current !== now) return; // was overridden by double-tap
             if (!showOverlay) {
                 setShowOverlay(true);
+                if (videoRef.current && !videoRef.current.paused) {
+                    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                    overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                }
             } else {
-                if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+                if (videoRef.current) {
+                    if (videoRef.current.paused) {
+                        videoRef.current.play();
+                        // Playing = Auto hide
+                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                    } else {
+                        videoRef.current.pause();
+                        // Paused = Anchor HUD
+                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                    }
+                } else {
+                     // Non-native (YouTube) -> just extend timer
+                     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                     overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
+                }
             }
         }, DOUBLE_TAP_WINDOW);
     };
@@ -1033,6 +1059,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     background: 'rgba(255,255,255,0.1)',
                     border: 'none', color: 'white', fontSize: 20,
                     cursor: 'pointer', zIndex: 10,
+                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease', pointerEvents: showOverlay ? 'auto' : 'none',
                 }}
             >✕</button>
 
@@ -1041,6 +1068,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 position: 'absolute', top: 24, left: '50%', transform: 'translateX(-50%)',
                 color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 500,
                 zIndex: 10, pointerEvents: 'none',
+                opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
             }}>{currentIndex + 1} / {reels.length}</div>
 
             {/* Reel container - FULLSCREEN TikTok-style */}
@@ -1115,6 +1143,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 <div style={{
                     position: 'absolute', bottom: 80, left: 16, right: 16,
                     pointerEvents: 'none',
+                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
                 }}>
                     <Link href={`/hub/user/${currentReel.profiles?.username}`} style={{
                         display: 'flex', alignItems: 'center', gap: 12,

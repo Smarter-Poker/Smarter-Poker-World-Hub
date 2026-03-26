@@ -900,19 +900,26 @@ export function ReelsViewer({ onClose }) {
             if (lastTapRef.current !== now) return;
             if (!showOverlay) {
                 setShowOverlay(true);
+                if (videoRef.current && !videoRef.current.paused) {
+                    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                    overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                }
             } else {
                 // Tap while overlay visible = toggle play/pause
                 if (videoRef.current) {
                     if (videoRef.current.paused) {
                         videoRef.current.play();
                         setPaused(false);
+                        // Playing = Auto hide
+                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+                        overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
                     } else {
                         videoRef.current.pause();
                         setPaused(true);
+                        // Paused = Anchor HUD
+                        if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
                     }
                 }
-                if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-                overlayTimerRef.current = setTimeout(() => setShowOverlay(false), 2000);
             }
         }, DOUBLE_TAP_WINDOW);
     };
@@ -957,6 +964,7 @@ export function ReelsViewer({ onClose }) {
                     border: 'none', color: 'white', fontSize: 20,
                     cursor: 'pointer', zIndex: 10,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease', pointerEvents: showOverlay ? 'auto' : 'none',
                 }}
             >←</button>
 
