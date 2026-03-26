@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "description": "Tournament venues (Phase 5 final)",
-    "generated": "2026-03-26T13:52:09.802767+00:00",
+    "description": "Tournament venues (Phase 6)",
+    "generated": "2026-03-26T14:25:32.233554+00:00",
     "totalVenues": 136
   },
   "venues": [
@@ -547,14 +547,14 @@
     {
       "name": "Atlantis Casino Resort",
       "state": "NV",
-      "city": "Reno",
+      "city": "Las Vegas",
       "type": "casino",
       "venue_id": 1992
     },
     {
       "name": "Johnny\u2019s Game ",
       "state": "IL",
-      "city": "Burbank ",
+      "city": "Las Vegas",
       "type": "poker_room",
       "venue_id": 2001
     },
