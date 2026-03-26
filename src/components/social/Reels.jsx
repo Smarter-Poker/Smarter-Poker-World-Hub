@@ -494,11 +494,12 @@ export function ReelsViewer({ onClose }) {
         if (currentUserId) busEmit.socialPostShared(currentReel.id, currentUserId);
     };
 
-    // Reset comment drawer on reel change
+    // Reset comment drawer + caption on reel change
     useEffect(() => {
         setShowCommentInput(false);
         setCommentText('');
         setReelComments([]);
+        setCaptionExpanded(false);
     }, [currentIndex]);
 
     // Keep handler refs fresh for keyboard shortcuts

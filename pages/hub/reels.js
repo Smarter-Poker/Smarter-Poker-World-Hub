@@ -303,6 +303,7 @@ export default function ReelsPage() {
                 // Map videos with profile data
                 const mappedReels = allVideos.map(video => ({
                     id: video.id,
+                    author_id: video.author_id,
                     video_url: video.video_url,
                     caption: video.caption,
                     like_count: video.like_count,
@@ -442,7 +443,7 @@ export default function ReelsPage() {
                     const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url, full_name').in('id', authorIds);
                     const pm = {}; (profiles || []).forEach(p => { pm[p.id] = p; });
                     const mapped = uniqueNew.map(v => ({
-                        id: v.id, video_url: v.video_url, caption: v.caption,
+                        id: v.id, author_id: v.author_id, video_url: v.video_url, caption: v.caption,
                         like_count: v.like_count, comment_count: v.comment_count, view_count: v.view_count,
                         created_at: v.created_at, profiles: pm[v.author_id] || { username: 'Anonymous' },
                     }));
@@ -539,20 +540,17 @@ export default function ReelsPage() {
     };
 
     const handleFollow = async () => {
-        if (!currentReel?.profiles?.id || !user?.id) return;
-        const authorId = currentReel.profiles.id;
-        if (authorId === user.id) return; // Can't follow yourself
+        const authorId = currentReel?.author_id || currentReel?.profiles?.id;
+        if (!authorId || !user?.id || authorId === user.id) return;
         const wasFollowing = following[authorId];
         setFollowing(prev => ({ ...prev, [authorId]: !wasFollowing }));
         try {
             if (wasFollowing) {
-                await supabase.from('social_interactions').delete()
-                    .eq('user_id', user.id).eq('target_user_id', authorId).eq('interaction_type', 'follow');
+                await supabase.from('social_follows').delete()
+                    .eq('follower_id', user.id).eq('following_id', authorId);
             } else {
-                await supabase.from('social_interactions').delete()
-                    .eq('user_id', user.id).eq('target_user_id', authorId).eq('interaction_type', 'follow');
-                await supabase.from('social_interactions').insert({
-                    user_id: user.id, target_user_id: authorId, interaction_type: 'follow'
+                await supabase.from('social_follows').insert({
+                    follower_id: user.id, following_id: authorId
                 });
             }
         } catch {
