@@ -261,6 +261,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [editingComment, setEditingComment] = useState(null);
     const [editCommentText, setEditCommentText] = useState('');
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
+    // Phase 8 — Comment sort, char counter, copy link
+    const [commentSort, setCommentSort] = useState('newest');
+    const [copyToast, setCopyToast] = useState(false);
+    const COMMENT_MAX_LENGTH = 280;
     // GIF + Image state for reel comments
     const [showReelGifPicker, setShowReelGifPicker] = useState(false);
     const [reelCommentMediaUrl, setReelCommentMediaUrl] = useState(null);
@@ -524,7 +528,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     .from('social_comments')
                     .select('*, profiles:author_id (username, avatar_url)')
                     .eq('post_id', currentReel.id)
-                    .order('created_at', { ascending: true })
+                    .order('created_at', { ascending: commentSort === 'oldest' })
                     .limit(50);
                 setReelComments(data || []);
                 setHasMoreComments((data || []).length >= 50);
@@ -543,7 +547,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 .from('social_comments')
                 .select('*, profiles:author_id (username, avatar_url)')
                 .eq('post_id', currentReel.id)
-                .order('created_at', { ascending: true })
+                .order('created_at', { ascending: commentSort === 'oldest' })
                 .range(nextPage * 50, (nextPage + 1) * 50 - 1);
             if (data && data.length > 0) {
                 setReelComments(prev => [...prev, ...data]);
@@ -1203,6 +1207,22 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         }}>{playbackSpeed}x</div>
                         <span style={{ fontSize: 9, fontWeight: 500 }}>Speed</span>
                     </button>
+
+                    {/* Phase 8 — Copy Reel Link */}
+                    <button onClick={() => {
+                        const url = `${window.location.origin}/hub/reels?id=${currentReel?.id || ''}`;
+                        navigator.clipboard.writeText(url).then(() => {
+                            setCopyToast(true);
+                            setTimeout(() => setCopyToast(false), 2000);
+                        }).catch(() => {});
+                    }} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                        color: 'rgba(255,255,255,0.6)',
+                    }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>Link</span>
+                    </button>
                 </div>
 
                 {/* Double-tap heart burst */}
@@ -1347,8 +1367,25 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         display: 'flex', flexDirection: 'column',
                         backdropFilter: 'blur(12px)', zIndex: 30,
                     }}>
-                        <div style={{ padding: '12px 16px', fontWeight: 600, color: 'white', fontSize: 14, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                            Comments ({reelComments.length})
+                        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 600, color: 'white', fontSize: 14 }}>Comments ({reelComments.length})</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {/* Phase 8 — Sort toggle */}
+                                <button onClick={() => {
+                                    const next = commentSort === 'newest' ? 'oldest' : 'newest';
+                                    setCommentSort(next);
+                                    setReelComments(prev => [...prev].sort((a, b) =>
+                                        next === 'newest' ? new Date(b.created_at) - new Date(a.created_at) : new Date(a.created_at) - new Date(b.created_at)
+                                    ));
+                                }} style={{
+                                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                                    borderRadius: 12, padding: '3px 10px', fontSize: 10, fontWeight: 600,
+                                    color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
+                                }}>{commentSort === 'newest' ? 'Newest' : 'Oldest'}</button>
+                                <button onClick={() => setShowComments(false)} style={{
+                                    background: 'none', border: 'none', color: 'white', fontSize: 18, cursor: 'pointer'
+                                }}>x</button>
+                            </div>
                         </div>
                         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px' }}>
                             {reelComments.length === 0 && (
@@ -1457,7 +1494,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             <input
                                 ref={commentInputRef}
                                 value={commentText}
-                                onChange={e => setCommentText(e.target.value)}
+                                onChange={e => { if (e.target.value.length <= COMMENT_MAX_LENGTH) setCommentText(e.target.value); }}
                                 onKeyDown={handleSubmitComment}
                                 onPaste={(e) => {
                                     const items = e.clipboardData?.items;
@@ -1477,7 +1514,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                     background: 'rgba(255,255,255,0.1)',
                                     color: 'white', fontSize: 13, outline: 'none',
                                 }}
-                                maxLength={2000}
+                                maxLength={COMMENT_MAX_LENGTH}
                             />
                             <button onClick={() => setShowReelGifPicker(!showReelGifPicker)}
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: showReelGifPicker ? '#1877F2' : 'rgba(255,255,255,0.6)', fontWeight: 700, fontSize: 11 }}
@@ -1491,7 +1528,23 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 >Post</button>
                             )}
                         </div>
+                        {/* Phase 8 — Character counter */}
+                        {commentText.length > 0 && (
+                            <div style={{ textAlign: 'right', fontSize: 10, color: commentText.length >= COMMENT_MAX_LENGTH - 20 ? '#ef4444' : 'rgba(255,255,255,0.3)', paddingRight: 16, paddingBottom: 4 }}>
+                                {commentText.length}/{COMMENT_MAX_LENGTH}
+                            </div>
+                        )}
                     </div>
+                )}
+
+                {/* Phase 8 — Copy Link Toast */}
+                {copyToast && (
+                    <div style={{
+                        position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)',
+                        background: 'rgba(0,212,255,0.15)', border: '1px solid rgba(0,212,255,0.4)',
+                        borderRadius: 12, padding: '8px 20px', color: '#00d4ff',
+                        fontSize: 13, fontWeight: 600, zIndex: 300, backdropFilter: 'blur(10px)',
+                    }}>Link Copied!</div>
                 )}
 
                 {/* Report Modal */}
