@@ -775,7 +775,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                             const tempReply = { id: `temp-${Date.now()}`, content: replyText.trim(), parent_id: c.id, created_at: new Date().toISOString(), author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
                                                             setComments(prev => [...prev, tempReply]);
                                                             const txt = replyText.trim(); setReplyText(''); setReplyTo(null);
-                                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, parent_id: c.id }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempReply.id ? json.data : x)); onComment(post.id); } } else { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } })();
+                                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, parent_id: c.id }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempReply.id ? json.data : x)); onComment(post.id); eventBus.dispatchEvent(new CustomEvent(EventType.SOCIAL_COMMENT_UPDATE, { detail: { postId: post.id, userId: user.id, action: 'add', comment: json.data } })); } } else { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } })();
                                                         }
                                                     }}
                                                     placeholder={`Reply to ${c.author?.full_name || 'comment'}...`}
@@ -839,7 +839,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                             const txt = commentText.trim(); const mUrl = commentMediaUrl; const mType = commentMediaType;
                                                             setCommentText(''); setCommentMediaUrl(null); setCommentMediaType(null); setShowGifPicker(false);
                                                             onComment(post.id);
-                                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, media_url: mUrl, media_type: mType }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
+                                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, media_url: mUrl, media_type: mType }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); eventBus.dispatchEvent(new CustomEvent(EventType.SOCIAL_COMMENT_UPDATE, { detail: { postId: post.id, userId: user.id, action: 'add', comment: json.data } })); } } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
                                                         }
                                                     }}
                                                     placeholder={isOwnerOnOwnPage ? `Comment as ${page?.name}...` : 'Write a comment...'}
@@ -859,7 +859,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                     const txt = commentText.trim(); const mUrl = commentMediaUrl; const mType = commentMediaType;
                                                     setCommentText(''); setCommentMediaUrl(null); setCommentMediaType(null); setShowGifPicker(false);
                                                     onComment(post.id);
-                                                    (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, media_url: mUrl, media_type: mType }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
+                                                    (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, media_url: mUrl, media_type: mType }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); eventBus.dispatchEvent(new CustomEvent(EventType.SOCIAL_COMMENT_UPDATE, { detail: { postId: post.id, userId: user.id, action: 'add', comment: json.data } })); } } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
                                                 }} disabled={!commentText.trim() && !commentMediaUrl} style={{
                                                     padding: '6px 12px', borderRadius: 20, border: 'none',
                                                     background: (commentText.trim() || commentMediaUrl) ? C.blue : '#E4E6EB',
@@ -1479,10 +1479,12 @@ export default function SocialPageDetail() {
             if (!res.ok) throw new Error('Delete failed');
             busEmit.dataMutated('social-pages');
             toast.success('Post deleted');
+            // Phase 4: Broadcast real-time removal
+            eventBus.dispatchEvent(new CustomEvent(EventType.SOCIAL_POST_DELETED, { detail: { id: postId } }));
         } catch (e) {
             console.error(e);
             toast.error('Failed to delete post');
-            setPosts(prevPosts); // Rollback
+            setPosts(prevPosts);
         }
     };
 
@@ -1501,6 +1503,12 @@ export default function SocialPageDetail() {
             // Only decrement after confirmed success
             setPosts(prev => prev.map(p => p.id === postId ? { ...p, comment_count: Math.max(0, (p.comment_count || 0) - 1) } : p));
             busEmit.dataMutated('social-pages');
+            
+            // Phase 4: Broadcast real-time comment removal across tabs
+            eventBus.dispatchEvent(new CustomEvent(EventType.SOCIAL_COMMENT_UPDATE, {
+                detail: { postId, commentId, action: 'remove' }
+            }));
+            
         } catch (e) {
             console.error('Delete comment error:', e);
             toast.error('Failed to delete comment');
