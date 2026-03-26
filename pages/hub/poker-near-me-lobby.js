@@ -1122,57 +1122,77 @@ export default function PokerNearMeLobby() {
         else if (svSort === 'name') svResults = [...svResults].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
         const doVenueSearch = () => {
-          setFilters(prev => ({ ...prev, svHasSearched: true }));
-          fetchVenues(searchQuery, 0, false);
+          setFilters(prev => ({
+            ...prev,
+            svHasSearched: true,
+            selectedState: prev.svState || 'all',
+            venueType: prev.svVenueType === 'all' ? undefined : prev.svVenueType,
+            gameType: prev.svGameType === 'all' ? undefined : prev.svGameType,
+            radius: prev.svRadius === 'any' ? undefined : prev.svRadius,
+          }));
+          const apiState = svState !== 'all' ? `&state=${svState}` : '';
+          const apiVenueType = svVenueType !== 'all' ? `&venue_type=${svVenueType}` : '';
+          const apiRadius = userLocation && svRadius !== 'any' ? `&radius=${svRadius}` : '';
+          const apiLoc = userLocation ? `&lat=${userLocation.lat}&lng=${userLocation.lng}` : '';
+          const apiSort = svSort ? `&sort=${svSort}` : '';
+          const apiUrl = `/api/poker/venues?limit=500&offset=0${apiLoc}${apiRadius}${apiState}${apiVenueType}${apiSort}`;
+          setLoading(true);
+          cachedFetch(apiUrl).then(data => {
+            const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+            setVenues(newVenues);
+            setHasMore(newVenues.length >= PAGE_SIZE);
+            setPage(0);
+          }).catch(err => console.error('Search fetch failed:', err))
+          .finally(() => setLoading(false));
         };
 
         component = (
           <div>
             {/* ─── SEARCH PARAMETERS ─── */}
-            <div style={{ background: 'rgba(212,168,83,0.04)', border: '1px solid rgba(212,168,83,0.15)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+            <div style={{ background: 'rgba(13,17,23,0.95)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
               {/* GPS + Distance */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
                 <button onClick={handleGpsClick}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #22c55e' : '1px solid rgba(212,168,83,0.3)', background: userLocation ? 'rgba(34,197,94,0.15)' : 'rgba(212,168,83,0.08)', color: userLocation ? '#22c55e' : '#d4a853', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : '1px solid rgba(88,166,255,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : 'rgba(88,166,255,0.08)', color: userLocation ? '#3fb950' : '#58a6ff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                   {userLocation ? 'GPS Active' : 'Enable GPS'}
                 </button>
                 <select value={svRadius} onChange={(e) => setFilters(prev => ({ ...prev, svRadius: e.target.value }))}
-                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.2)', borderRadius: 8, padding: '8px 10px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  style={{ background: 'rgba(13,17,23,0.9)', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
                   <option value="10">10 miles</option><option value="25">25 miles</option><option value="50">50 miles</option><option value="100">100 miles</option><option value="250">250 miles</option><option value="any">Any distance</option>
                 </select>
               </div>
               {/* Venue Type */}
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.35)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Venue Type</div>
+                <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Venue Type</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                   {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'card_room',l:'Card Room'},{k:'poker_club',l:'Poker Club'}].map(t => (
                     <button key={t.k} onClick={() => setFilters(prev => ({ ...prev, svVenueType: t.k }))}
-                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: svVenueType === t.k ? '1px solid #d4a853' : '1px solid rgba(255,255,255,0.12)', background: svVenueType === t.k ? 'rgba(212,168,83,0.2)' : 'transparent', color: svVenueType === t.k ? '#d4a853' : 'rgba(255,255,255,0.5)' }}>{t.l}</button>
+                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: svVenueType === t.k ? '1px solid #58a6ff' : '1px solid rgba(48,54,61,0.6)', background: svVenueType === t.k ? 'rgba(88,166,255,0.15)' : 'rgba(22,27,34,0.6)', color: svVenueType === t.k ? '#58a6ff' : '#8b949e' }}>{t.l}</button>
                   ))}
                 </div>
               </div>
               {/* Game Type */}
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.35)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Game Type</div>
+                <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Game Type</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                   {[{k:'all',l:'All Games'},{k:'nlh',l:'NLH'},{k:'plo',l:'PLO'},{k:'mixed',l:'Mixed'}].map(g => (
                     <button key={g.k} onClick={() => setFilters(prev => ({ ...prev, svGameType: g.k }))}
-                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: svGameType === g.k ? '1px solid #6ee7ef' : '1px solid rgba(255,255,255,0.12)', background: svGameType === g.k ? 'rgba(110,231,239,0.15)' : 'transparent', color: svGameType === g.k ? '#6ee7ef' : 'rgba(255,255,255,0.5)' }}>{g.l}</button>
+                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: svGameType === g.k ? '1px solid #3fb950' : '1px solid rgba(48,54,61,0.6)', background: svGameType === g.k ? 'rgba(63,185,80,0.15)' : 'rgba(22,27,34,0.6)', color: svGameType === g.k ? '#3fb950' : '#8b949e' }}>{g.l}</button>
                   ))}
                 </div>
               </div>
               {/* State + Sort */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
                 <select value={svState} onChange={(e) => setFilters(prev => ({ ...prev, svState: e.target.value }))}
-                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px', color: '#e0e8f0', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer', minWidth: 85 }}>
+                  style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '6px 10px', color: '#c9d1d9', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer', minWidth: 85 }}>
                   <option value="all">All States</option>
                   {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
                     <option key={st} value={st}>{st}</option>
                   ))}
                 </select>
                 <select value={svSort} onChange={(e) => setFilters(prev => ({ ...prev, svSort: e.target.value }))}
-                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px', color: '#e0e8f0', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '6px 10px', color: '#c9d1d9', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
                   {userLocation && <option value="distance">Nearest First</option>}
                   <option value="trust">Trust Score</option>
                   <option value="name">Name A-Z</option>
@@ -1180,7 +1200,7 @@ export default function PokerNearMeLobby() {
               </div>
               {/* SEARCH BUTTON */}
               <button onClick={doVenueSearch}
-                style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#000', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.5px', boxShadow: '0 4px 16px rgba(212,168,83,0.3)' }}>
+                style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: '1px solid rgba(63,185,80,0.4)', background: 'linear-gradient(135deg, #238636, #196c2e)', color: '#ffffff', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.5px', boxShadow: '0 4px 16px rgba(35,134,54,0.3)' }}>
                 Search Venues
               </button>
             </div>
@@ -1188,13 +1208,13 @@ export default function PokerNearMeLobby() {
             {/* ─── RESULTS (only after search) ─── */}
             {svHasSearched ? (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(212,168,83,0.06)', borderRadius: 10, border: '1px solid rgba(212,168,83,0.1)' }}>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
-                    <span style={{ color: '#d4a853', fontWeight: 800 }}>{svResults.length}</span> venue{svResults.length !== 1 ? 's' : ''}
-                    {userLocation && svRadius !== 'any' && <span> within <span style={{ color: '#6ee7ef' }}>{svRadius} mi</span></span>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.6)' }}>
+                  <span style={{ fontSize: 13, color: '#c9d1d9' }}>
+                    <span style={{ color: '#58a6ff', fontWeight: 800 }}>{svResults.length}</span> venue{svResults.length !== 1 ? 's' : ''}
+                    {userLocation && svRadius !== 'any' && <span> within <span style={{ color: '#3fb950' }}>{svRadius} mi</span></span>}
                   </span>
                   <button onClick={() => setFilters(prev => ({ ...prev, svState: 'all', svVenueType: 'all', svGameType: 'all', svRadius: '100', svHasSearched: false }))}
-                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
+                    style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
                 </div>
                 {svResults.length > 0 ? (
                   <>
@@ -1204,7 +1224,7 @@ export default function PokerNearMeLobby() {
                         return (
                           <div key={v.id} style={{ position: 'relative' }}>
                             {dist !== null && dist < 99999 && (
-                              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', fontSize: 11, fontWeight: 700, color: '#22c55e' }}>
+                              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(63,185,80,0.15)', border: '1px solid rgba(63,185,80,0.3)', fontSize: 11, fontWeight: 700, color: '#3fb950' }}>
                                 {dist < 1 ? `${(dist * 5280).toFixed(0)} ft` : `${dist.toFixed(1)} mi`}
                               </div>
                             )}
@@ -1218,29 +1238,29 @@ export default function PokerNearMeLobby() {
                     </div>
                     {svResults.length > 50 && (
                       <button onClick={loadMore} disabled={loading}
-                        style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 12, color: '#6ee7ef', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                        style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(88,166,255,0.08)', border: '1px solid rgba(88,166,255,0.2)', borderRadius: 12, color: '#58a6ff', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
                         {loading ? 'Loading...' : `Load More (${svResults.length - 50} remaining)`}
                       </button>
                     )}
                   </>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
+                  <div style={{ textAlign: 'center', padding: 40, color: '#8b949e' }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.3 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>No Results Found</p>
+                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: '#c9d1d9' }}>No Results Found</p>
                     <p style={{ fontSize: 13 }}>Try expanding distance, changing venue type, or selecting a different state.</p>
                   </div>
                 )}
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '30px 16px' }}>
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.3)" strokeWidth="1" style={{ marginBottom: 16 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <p style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>Search All Venues</p>
-                <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)', lineHeight: 1.5, maxWidth: 320, margin: '0 auto' }}>
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(88,166,255,0.25)" strokeWidth="1" style={{ marginBottom: 16 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <p style={{ fontSize: 16, fontWeight: 700, color: '#c9d1d9', marginBottom: 8 }}>Search All Venues</p>
+                <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5, maxWidth: 320, margin: '0 auto' }}>
                   Set your filters above and tap Search. Enable GPS for distance-based results.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20 }}>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>501</div><div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>Venues</div></div>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#22c55e' }}>41</div><div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>States</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#58a6ff' }}>501</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>41</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
                 </div>
               </div>
             )}
