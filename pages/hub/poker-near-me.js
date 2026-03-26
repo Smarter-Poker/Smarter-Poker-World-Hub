@@ -1349,21 +1349,40 @@ export default function PokerNearMePage() {
     const fetchLiveGames = async () => {
         setLiveLoading(true);
         try {
-            const params = new URLSearchParams({ active: 'true' });
-            if (userLocation) {
-                params.set('lat', userLocation.lat.toString());
-                params.set('lng', userLocation.lng.toString());
-            }
-            const res = await fetch('/api/poker/live-games?' + params);
+            const res = await fetch('/api/poker/live-tables');
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
-            // API returns { venues: { venueId: [games] } } for active=true
-            // Flatten grouped object into a flat array
+            // API returns { venues: [{ venue_name, bravo_slug, games: [{game, tables_running, players_waiting}] }] }
             let games = [];
-            if (json.venues && typeof json.venues === 'object' && !Array.isArray(json.venues)) {
-                games = Object.values(json.venues).flat();
-            } else {
-                games = json.games || json.data || [];
+            if (json.venues && Array.isArray(json.venues)) {
+                json.venues.forEach(v => {
+                    (v.games || []).forEach(g => {
+                        // Parse game name for type and stakes (e.g., "1-3 No Limit Holdem 8" → type=NLH, stakes=1/3)
+                        const name = g.game || '';
+                        let gameType = 'NLH';
+                        if (/PLO|omaha/i.test(name)) gameType = /big\s?o/i.test(name) ? 'Big O' : 'PLO';
+                        else if (/limit\s+holdem/i.test(name) && !/no\s+limit/i.test(name)) gameType = 'Limit';
+                        else if (/stud/i.test(name)) gameType = 'Stud';
+                        else if (/mixed|mix/i.test(name)) gameType = 'Mixed';
+                        else if (/dealer/i.test(name)) gameType = 'DC';
+                        else if (/tourney|tournament/i.test(name)) gameType = 'Tournament';
+
+                        // Extract stakes from game name (e.g., "1-3" or "5-10")
+                        const stakesMatch = name.match(/(\d+)-(\d+)/);
+                        const stakes = stakesMatch ? `$${stakesMatch[1]}/$${stakesMatch[2]}` : '';
+
+                        games.push({
+                            venue_id: v.bravo_slug,
+                            venue_name: v.venue_name,
+                            game_type: gameType,
+                            stakes: stakes,
+                            table_count: g.tables_running || 0,
+                            wait_time: g.players_waiting > 0 ? g.players_waiting : null,
+                            game_name_raw: name,
+                            created_at: v.last_updated,
+                        });
+                    });
+                });
             }
             setLiveGames(games);
         } catch (e) {
@@ -2253,7 +2272,7 @@ export default function PokerNearMePage() {
         );
     };
 
-    // --- NEW: Live Games Renderer ---
+    // --- Live Games Renderer (Bravo Poker Live data) ---
     const renderLiveGames = () => {
         if (liveLoading && liveGames.length === 0) {
             return renderSkeletons(6);
@@ -2266,8 +2285,10 @@ export default function PokerNearMePage() {
                         <circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" />
                     </svg>
                     <p>No Live Games Reported Right Now</p>
-                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Be The First To Report A Game At Your Venue!</p>
-                    <p style={{ fontSize: 11, opacity: 0.3, marginTop: 8 }}>Auto-refreshes every {LIVE_REFRESH_MS / 60000} minutes</p>
+                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Live data refreshes every 15 minutes from Bravo Poker Live</p>
+                    <button className="refresh-btn" onClick={fetchLiveGames} disabled={liveLoading} style={{ marginTop: 12, padding: '8px 20px', background: 'rgba(212,168,83,0.2)', border: '1px solid rgba(212,168,83,0.4)', borderRadius: 8, color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                        {liveLoading ? 'Checking...' : 'Check Now'}
+                    </button>
                 </div>
             );
         }
@@ -2276,21 +2297,22 @@ export default function PokerNearMePage() {
         const byVenue = {};
         liveGames.forEach(g => {
             const key = g.venue_id || 'unknown';
-            if (!byVenue[key]) byVenue[key] = { venue_id: g.venue_id, venue_name: g.venue_name || 'Unknown Venue', games: [] };
+            if (!byVenue[key]) byVenue[key] = { venue_id: g.venue_id, venue_name: g.venue_name || 'Unknown Venue', games: [], last_updated: g.created_at };
             byVenue[key].games.push(g);
         });
 
         const venueGroups = Object.values(byVenue);
+        const totalTables = liveGames.reduce((sum, g) => sum + (g.table_count || 0), 0);
 
         return (
             <>
                 <div className="results-bar">
                     <span className="results-count">
-                        {liveGames.length} live game{liveGames.length !== 1 ? 's' : ''} at {venueGroups.length} venue{venueGroups.length !== 1 ? 's' : ''}
+                        {totalTables} table{totalTables !== 1 ? 's' : ''} running at {venueGroups.length} venue{venueGroups.length !== 1 ? 's' : ''}
                     </span>
                     <div className="live-refresh">
                         <span className="live-dot"></span>
-                        <span>Auto-refreshes every {LIVE_REFRESH_MS / 60000} min</span>
+                        <span>Bravo Poker Live</span>
                         <button className="refresh-btn" onClick={fetchLiveGames} disabled={liveLoading}>
                             {liveLoading ? 'Refreshing...' : 'Refresh Now'}
                         </button>
@@ -2299,8 +2321,7 @@ export default function PokerNearMePage() {
                 <div className="card-grid">
                     {venueGroups.slice(0, displayCount.live).map((group, i) => (
                         <div key={group.venue_id || i} className="entity-card live-card"
-                            onClick={() => group.venue_id ? router.push('/hub/venues/' + group.venue_id) : null}
-                            style={{ cursor: group.venue_id ? 'pointer' : 'default' }}>
+                            style={{ cursor: 'default' }}>
                             <div className="card-header">
                                 <h4>{group.venue_name}</h4>
                                 <span className="live-badge">LIVE</span>
@@ -2309,20 +2330,19 @@ export default function PokerNearMePage() {
                                 {group.games.map((game, gi) => (
                                     <div key={gi} className="live-game-row">
                                         <span className="live-game-type">{game.game_type || 'NLH'}</span>
-                                        <span className="live-game-stakes">{game.stakes || '-'}</span>
-                                        <span className="live-game-tables">{game.table_count || 1} table{(game.table_count || 1) !== 1 ? 's' : ''}</span>
+                                        <span className="live-game-stakes">{game.stakes || game.game_name_raw || '-'}</span>
+                                        <span className="live-game-tables">{game.table_count || 0} table{(game.table_count || 0) !== 1 ? 's' : ''}</span>
                                         {game.wait_time !== null && game.wait_time !== undefined && (
-                                            <span className="live-game-wait" style={{ color: game.wait_time <= 10 ? '#22c55e' : game.wait_time <= 30 ? '#d4a853' : '#ef4444' }}>
-                                                {game.wait_time === 0 ? 'No wait' : game.wait_time + ' min wait'}
+                                            <span className="live-game-wait" style={{ color: game.wait_time <= 3 ? '#22c55e' : game.wait_time <= 10 ? '#d4a853' : '#ef4444' }}>
+                                                {game.wait_time === 0 ? 'No wait' : game.wait_time + ' waiting'}
                                             </span>
                                         )}
                                     </div>
                                 ))}
                             </div>
-                            {group.games[0].notes && <p className="card-detail">{group.games[0].notes}</p>}
                             <div className="card-footer">
-                                <span className="live-time">Reported {group.games[0].created_at ? new Date(group.games[0].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'recently'}</span>
-                                {group.venue_id && <span className="action-btn primary">View Venue</span>}
+                                <span className="live-time">Updated {group.last_updated ? new Date(group.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'recently'}</span>
+                                <span style={{ fontSize: 11, opacity: 0.4 }}>via Bravo</span>
                             </div>
                         </div>
                     ))}
