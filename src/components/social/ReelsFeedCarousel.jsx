@@ -654,6 +654,37 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
     };
 
+    // Share to My Feed — creates a social_posts entry linking this reel
+    const [sharingToFeed, setSharingToFeed] = useState(false);
+    const [sharedToFeed, setSharedToFeed] = useState(false);
+    const handleShareToFeed = async () => {
+        if (!currentReel?.id || !authUser?.id || sharingToFeed) return;
+        setSharingToFeed(true);
+        try {
+            const videoUrl = currentReel.video_url;
+            const caption = currentReel.caption || 'Check out this reel!';
+            const reelLink = window.location.origin + '/hub/reels?id=' + currentReel.id;
+            const postContent = caption + '\n\n' + reelLink;
+            const { error } = await supabase.from('social_posts').insert({
+                author_id: authUser.id,
+                content: postContent,
+                content_type: videoUrl ? 'video' : 'text',
+                media_urls: videoUrl ? [videoUrl] : [],
+                visibility: 'public',
+                link_url: reelLink,
+            });
+            if (error) throw error;
+            try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {}
+            busEmit.socialPostShared(currentReel.id, authUser.id);
+            busEmit.dataMutated('social');
+            setSharedToFeed(true);
+            setTimeout(() => { setShowShareModal(false); setSharedToFeed(false); }, 1500);
+        } catch (err) {
+            console.warn('Share to feed failed:', err.message);
+        }
+        setSharingToFeed(false);
+    };
+
     const handleReport = async () => {
         if (!currentReel?.id || !reportReason.trim()) return;
         const authUserLocal = getAuthUser();
@@ -1109,6 +1140,22 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 2, margin: '0 auto 12px' }} />
                                 <div style={{ color: 'white', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>Share This Reel</div>
                             </div>
+                            {/* PRIMARY: Share to My Feed */}
+                            <button onClick={handleShareToFeed} disabled={sharingToFeed || sharedToFeed} style={{
+                                width: '100%', padding: '14px', borderRadius: 12, marginBottom: 14,
+                                background: sharedToFeed ? 'linear-gradient(135deg, #00c853, #69f0ae)' : 'linear-gradient(135deg, #0A84FF, #30D5C8)',
+                                color: 'white', fontWeight: 700, fontSize: 15, border: 'none',
+                                cursor: sharingToFeed ? 'wait' : 'pointer', opacity: sharingToFeed ? 0.7 : 1,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                transition: 'all 0.3s ease',
+                            }}>
+                                {sharedToFeed ? (
+                                    <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg> Shared to My Feed!</>
+                                ) : sharingToFeed ? 'Sharing...' : (
+                                    <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Share to My Feed</>
+                                )}
+                            </button>
+                            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, textAlign: 'center', marginBottom: 10, fontWeight: 500 }}>OR SHARE EXTERNALLY</div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                                 {[{id:'copy',label:'Copy Link',color:'#00d4ff'},{id:'x',label:'X',color:'#fff'},{id:'facebook',label:'Facebook',color:'#1877F2'},{id:'whatsapp',label:'WhatsApp',color:'#25D366'}].map(p => (
                                     <button key={p.id} onClick={() => handleShareAction(p.id)} style={{
