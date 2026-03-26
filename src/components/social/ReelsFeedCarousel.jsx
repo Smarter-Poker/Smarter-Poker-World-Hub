@@ -254,6 +254,9 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [commentPage, setCommentPage] = useState(0);
     const [hasMoreComments, setHasMoreComments] = useState(false);
     const [loadingMoreComments, setLoadingMoreComments] = useState(false);
+    // Phase 6 — Comment engagement
+    const [commentLikes, setCommentLikes] = useState({});
+    const [replyTo, setReplyTo] = useState(null);
     // GIF + Image state for reel comments
     const [showReelGifPicker, setShowReelGifPicker] = useState(false);
     const [reelCommentMediaUrl, setReelCommentMediaUrl] = useState(null);
@@ -557,20 +560,24 @@ function ReelViewer({ reels, startIndex, onClose }) {
         const mediaUrl = reelCommentMediaUrl;
         const mediaType = reelCommentMediaType;
         const tempId = Date.now();
+        const parentId = replyTo?.id || null;
         setCommentText('');
         setReelCommentMediaUrl(null);
         setReelCommentMediaType(null);
         setShowReelGifPicker(false);
+        setReplyTo(null);
         setReelComments(prev => [...prev, {
             id: tempId, content: text,
             profiles: { username: 'You', avatar_url: null },
             created_at: new Date().toISOString(),
             media_url: mediaUrl || null,
             media_type: mediaType || null,
+            parent_id: parentId,
         }]);
         try {
             const payload = { post_id: currentReel.id, author_id: authUser.id, content: text || '' };
             if (mediaUrl) { payload.media_url = mediaUrl; payload.media_type = mediaType; }
+            if (parentId) { payload.parent_id = parentId; }
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, authUser.id);
@@ -579,6 +586,38 @@ function ReelViewer({ reels, startIndex, onClose }) {
         } catch {
             setReelComments(prev => prev.filter(c => c.id !== tempId));
         }
+    };
+
+    // Phase 6 — Comment like toggle
+    const handleCommentLike = async (commentId) => {
+        if (!authUser?.id) return;
+        const wasLiked = commentLikes[commentId];
+        setCommentLikes(prev => ({ ...prev, [commentId]: !wasLiked }));
+        try {
+            if (wasLiked) {
+                await supabase.from('social_interactions')
+                    .delete().match({ user_id: authUser.id, post_id: currentReel.id, interaction_type: 'comment_like', metadata: { comment_id: commentId } });
+            } else {
+                await supabase.from('social_interactions').insert({
+                    user_id: authUser.id, post_id: currentReel.id,
+                    interaction_type: 'comment_like', metadata: { comment_id: commentId }
+                });
+            }
+        } catch { setCommentLikes(prev => ({ ...prev, [commentId]: wasLiked })); }
+    };
+
+    // Phase 6 — Delete own comment
+    const handleDeleteComment = async (commentId) => {
+        if (!authUser?.id || !currentReel?.id) return;
+        const prev = reelComments;
+        setReelComments(c => c.filter(x => x.id !== commentId));
+        try {
+            const { error } = await supabase.from('social_comments').delete()
+                .eq('id', commentId).eq('author_id', authUser.id);
+            if (error) throw error;
+            try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
+            setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
+        } catch { setReelComments(prev); }
     };
 
     // Handle image upload for reel comments
@@ -1260,7 +1299,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center', padding: 20 }}>No comments yet. Be the first!</p>
                             )}
                             {reelComments.map(c => (
-                                <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                                <div key={c.id} style={{ display: 'flex', gap: 8, marginBottom: 12, paddingLeft: c.parent_id ? 24 : 0 }}>
                                     <img src={c.profiles?.avatar_url || '/default-avatar.png'} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
                                     <div style={{ flex: 1 }}>
                                         <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 600 }}>{c.profiles?.username || 'User'}</span>
@@ -1276,6 +1315,24 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                                 )}
                                             </div>
                                         )}
+                                        {/* Phase 6 — Comment engagement row */}
+                                        <div style={{ display: 'flex', gap: 14, marginTop: 4, alignItems: 'center' }}>
+                                            <button onClick={() => handleCommentLike(c.id)} style={{
+                                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                                color: commentLikes[c.id] ? '#FF2D55' : 'rgba(255,255,255,0.4)', fontSize: 12,
+                                                display: 'flex', alignItems: 'center', gap: 3,
+                                            }}>{commentLikes[c.id] ? '❤️' : '🤍'}</button>
+                                            <button onClick={() => { setReplyTo({ id: c.id, username: c.profiles?.username || 'User' }); setCommentText(`@${c.profiles?.username || 'User'} `); }} style={{
+                                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                                color: 'rgba(255,255,255,0.4)', fontSize: 12,
+                                            }}>Reply</button>
+                                            {(c.profiles?.username === 'You' || c.author_id === authUser?.id) && (
+                                                <button onClick={() => handleDeleteComment(c.id)} style={{
+                                                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                                    color: 'rgba(255,255,255,0.3)', fontSize: 12, marginLeft: 'auto',
+                                                }}>Delete</button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -1315,6 +1372,15 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         {/* Hidden file input */}
                         <input type="file" accept="image/*" ref={reelFileInputRef} style={{ display: 'none' }}
                             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleReelImageUpload(f); e.target.value = ''; }} />
+                        {/* Reply-to indicator */}
+                        {replyTo && (
+                            <div style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,212,255,0.06)' }}>
+                                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Replying to <span style={{ color: '#00d4ff', fontWeight: 600 }}>@{replyTo.username}</span></span>
+                                <button onClick={() => { setReplyTo(null); setCommentText(''); }} style={{
+                                    background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 14, cursor: 'pointer', marginLeft: 'auto',
+                                }}>x</button>
+                            </div>
+                        )}
                         <div style={{ padding: '8px 16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: 8, alignItems: 'center' }}>
                             <input
                                 ref={commentInputRef}
