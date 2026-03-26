@@ -912,6 +912,8 @@ function UniversalDynamicTable({
     onExit = null,                  // Called when user clicks Quit
     // Enhancement: Adaptive difficulty
     difficultyLevel = 0,            // 0-10 difficulty level for display
+    // Player identity
+    heroName = null,                 // Player's display name or poker alias
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
     const [streakToast, setStreakToast] = React.useState(null);
@@ -1952,7 +1954,7 @@ function UniversalDynamicTable({
                                         whiteSpace: 'nowrap',
                                         letterSpacing: 0.5,
                                     }}>
-                                        {isHero ? 'HERO' : (villainPosition || seat.name || 'Villain')}
+                                        {isHero ? (heroName || 'HERO') : (villainPosition || seat.name || 'Villain')}
                                     </div>
                                     <div style={{
                                         fontSize: 12,
@@ -2056,60 +2058,7 @@ function UniversalDynamicTable({
                                 />
                             </motion.div>
                         ))}
-                        {/* Board Texture Badge */}
-                        {boardTexture && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: boardCards.length * 0.25 + 0.2 }}
-                                style={{
-                                    position: 'absolute',
-                                    bottom: -18,
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    display: 'flex',
-                                    gap: 4,
-                                    whiteSpace: 'nowrap',
-                                }}
-                            >
-                                <span style={{
-                                    fontSize: 8,
-                                    padding: '1px 5px',
-                                    borderRadius: 4,
-                                    fontWeight: 'bold',
-                                    letterSpacing: 0.5,
-                                    background: boardTexture.connectTexture === 'DYNAMIC'
-                                        ? 'rgba(249, 115, 22, 0.2)' : boardTexture.connectTexture === 'PAIRED'
-                                            ? 'rgba(168, 85, 247, 0.2)' : 'rgba(100, 116, 139, 0.2)',
-                                    color: boardTexture.connectTexture === 'DYNAMIC'
-                                        ? '#fb923c' : boardTexture.connectTexture === 'PAIRED'
-                                            ? '#c084fc' : '#94a3b8',
-                                    border: `1px solid ${boardTexture.connectTexture === 'DYNAMIC'
-                                        ? 'rgba(249,115,22,0.3)' : boardTexture.connectTexture === 'PAIRED'
-                                            ? 'rgba(168,85,247,0.3)' : 'rgba(100,116,139,0.2)'}`,
-                                }}>
-                                    {boardTexture.connectTexture}
-                                </span>
-                                <span style={{
-                                    fontSize: 8,
-                                    padding: '1px 5px',
-                                    borderRadius: 4,
-                                    fontWeight: 'bold',
-                                    letterSpacing: 0.5,
-                                    background: boardTexture.suitTexture === 'MONOTONE'
-                                        ? 'rgba(239, 68, 68, 0.2)' : boardTexture.suitTexture === 'TWO-TONE'
-                                            ? 'rgba(59, 130, 246, 0.2)' : 'rgba(100, 116, 139, 0.15)',
-                                    color: boardTexture.suitTexture === 'MONOTONE'
-                                        ? '#f87171' : boardTexture.suitTexture === 'TWO-TONE'
-                                            ? '#60a5fa' : '#94a3b8',
-                                    border: `1px solid ${boardTexture.suitTexture === 'MONOTONE'
-                                        ? 'rgba(239,68,68,0.3)' : boardTexture.suitTexture === 'TWO-TONE'
-                                            ? 'rgba(59,130,246,0.3)' : 'rgba(100,116,139,0.2)'}`,
-                                }}>
-                                    {boardTexture.suitTexture}
-                                </span>
-                            </motion.div>
-                        )}
+                        {/* Board texture badges removed — internal info, not user-facing */}
                     </div>
                 )}
 
@@ -2159,28 +2108,7 @@ function UniversalDynamicTable({
                     </motion.div>
                 )}
 
-                {/* STREET INDICATOR */}
-                <motion.div
-                    key={boardCards.length}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    style={{
-                        ...styles.streetIndicator,
-                        color: boardCards.length === 0 ? '#94a3b8'
-                            : boardCards.length === 3 ? '#4ade80'
-                                : boardCards.length === 4 ? '#fbbf24'
-                                    : '#f87171',
-                        textShadow: boardCards.length > 0
-                            ? `0 0 8px ${boardCards.length === 3 ? 'rgba(74,222,128,0.3)'
-                                : boardCards.length === 4 ? 'rgba(251,191,36,0.3)'
-                                    : 'rgba(248,113,113,0.3)'}` : 'none',
-                    }}
-                >
-                    {boardCards.length === 0 && '● PREFLOP'}
-                    {boardCards.length === 3 && '● FLOP'}
-                    {boardCards.length === 4 && '● TURN'}
-                    {boardCards.length === 5 && '● RIVER'}
-                </motion.div>
+                {/* Street indicator removed — already shown in header */}
             </div>
 
             {/* Hand Strength indicator (cards now inline in seat) */}
@@ -3698,15 +3626,15 @@ const styles = {
     },
 
     statsHUDLabel: {
-        fontSize: 8,
-        color: '#64748b',
+        fontSize: 11,
+        color: '#94a3b8',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
         fontWeight: '700',
     },
 
     statsHUDValue: {
-        fontSize: 13,
+        fontSize: 16,
         fontWeight: 800,
         fontFamily: "'Inter', sans-serif",
     },
