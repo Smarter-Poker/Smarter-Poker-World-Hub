@@ -900,8 +900,12 @@ export default function PokerNearMeLobby() {
       sortFilterMountRef.current = false;
       return;
     }
+    // Skip re-fetch when GOAT pod filters change — they do their own API calls
+    // This prevents double-fetch race conditions where the stale fetchVenues
+    // overwrites the properly-filtered results from triggerNmSearch/doVenueSearch
+    if (filters.nmSearched || filters.svHasSearched || filters.hgHasSearched) return;
     fetchVenues(searchQuery);
-  }, [sortBy, filters, fetchVenues, searchQuery]);
+  }, [sortBy]); // Only re-fetch on sortBy changes, not on every filter change // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Cross-page favorites sync ───
   useEffect(() => {
@@ -997,7 +1001,7 @@ export default function PokerNearMeLobby() {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, [gpsActive, fetchVenues, userId]);
+  }, [gpsActive, fetchVenues, userId, activePod]);
 
   // ─── Auto-enable GPS if previously enabled ───
   const gpsAutoRef = useRef(false);
@@ -1283,37 +1287,54 @@ export default function PokerNearMeLobby() {
         component = (
           <div>
             {/* Search parameters */}
-            <div style={{ background: 'rgba(212,168,83,0.04)', border: '1px solid rgba(212,168,83,0.15)', borderRadius: 14, padding: 14, marginBottom: 14 }}>
+            <div style={{ background: 'rgba(13,17,23,0.95)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: 14, padding: 14, marginBottom: 14 }}>
               <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 <input type="text" placeholder="Search home games..." value={hgSearch}
                   onChange={(e) => setFilters(prev => ({ ...prev, hgSearch: e.target.value }))}
-                  style={{ flex: 1, minWidth: 120, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
+                  style={{ flex: 1, minWidth: 120, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(48,54,61,0.6)', background: '#161b22', color: '#c9d1d9', fontSize: 13, fontFamily: 'inherit' }} />
                 <select value={hgState}
                   onChange={(e) => setFilters(prev => ({ ...prev, hgState: e.target.value }))}
-                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.2)', borderRadius: 8, padding: '8px 10px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', minWidth: 90 }}>
+                  style={{ background: '#161b22', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', minWidth: 90 }}>
                   <option value="all">All States</option>
                   {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
                     <option key={st} value={st}>{st}</option>
                   ))}
                 </select>
               </div>
-              <button onClick={() => setFilters(prev => ({ ...prev, hgHasSearched: true }))}
-                style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#000', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(212,168,83,0.3)' }}>
+              <button onClick={() => {
+                setFilters(prev => ({ ...prev, hgHasSearched: true }));
+                // Fetch home games from API with venue_type filter
+                const hgApiState = hgState !== 'all' ? `&state=${hgState}` : '';
+                const hgApiSearch = hgSearch ? `&search=${encodeURIComponent(hgSearch)}` : '';
+                const hgApiLoc = userLocation ? `&lat=${userLocation.lat}&lng=${userLocation.lng}` : '';
+                const hgUrl = `/api/poker/venues?limit=500&offset=0&venue_type=home_game${hgApiState}${hgApiSearch}${hgApiLoc}`;
+                setLoading(true);
+                cachedFetch(hgUrl).then(data => {
+                  const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+                  setVenues(prev => {
+                    const homeIds = new Set(newVenues.map(v => v.id));
+                    const nonHome = prev.filter(v => !homeIds.has(v.id) && v.venue_type !== 'home_game');
+                    return [...nonHome, ...newVenues];
+                  });
+                }).catch(err => console.error('Home games fetch failed:', err))
+                .finally(() => setLoading(false));
+              }}
+                style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: '1px solid rgba(63,185,80,0.4)', background: 'linear-gradient(135deg, #238636, #196c2e)', color: '#ffffff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(35,134,54,0.3)' }}>
                 Find Home Games
               </button>
             </div>
 
             {hgHasSearched ? (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, padding: '6px 10px', background: 'rgba(212,168,83,0.06)', borderRadius: 8 }}>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
-                    <span style={{ color: '#d4a853', fontWeight: 800 }}>{homeGames.length}</span> home game{homeGames.length !== 1 ? 's' : ''}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, padding: '6px 10px', background: 'rgba(22,27,34,0.8)', borderRadius: 8, border: '1px solid rgba(48,54,61,0.6)' }}>
+                  <span style={{ fontSize: 12, color: '#c9d1d9' }}>
+                    <span style={{ color: '#58a6ff', fontWeight: 800 }}>{homeGames.length}</span> home game{homeGames.length !== 1 ? 's' : ''}
                   </span>
                   <button onClick={() => setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false }))}
-                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
+                    style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
                 </div>
-                {loading && <div style={{ textAlign: 'center', padding: 20, color: 'rgba(200,214,229,0.5)' }}>
-                  <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#6ee7ef', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+                {loading && <div style={{ textAlign: 'center', padding: 20, color: '#8b949e' }}>
+                  <div style={{ width: 32, height: 32, border: '3px solid rgba(48,54,61,0.6)', borderTopColor: '#58a6ff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
                   Loading home games...
                 </div>}
                 <div style={{ display: 'grid', gap: 12 }}>
@@ -1333,19 +1354,19 @@ export default function PokerNearMeLobby() {
                   ))}
                 </div>
                 {homeGames.length === 0 && !loading && (
-                  <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
-                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>No Home Games Found</p>
+                  <div style={{ textAlign: 'center', padding: 40, color: '#8b949e' }}>
+                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: '#c9d1d9' }}>No Home Games Found</p>
                     <p style={{ fontSize: 13 }}>Try a different search or state filter.</p>
                   </div>
                 )}
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '30px 16px' }}>
-                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.3)" strokeWidth="1" style={{ marginBottom: 14 }}>
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(88,166,255,0.25)" strokeWidth="1" style={{ marginBottom: 14 }}>
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
-                <p style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>Find or List Home Games</p>
-                <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)', lineHeight: 1.5 }}>Search for home games near you or filter by state. Use the search bar above to get started.</p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: '#c9d1d9', marginBottom: 6 }}>Find or List Home Games</p>
+                <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5 }}>Search for home games near you or filter by state. Use the search bar above to get started.</p>
               </div>
             )}
           </div>

@@ -832,6 +832,39 @@ export default function SocialPageDetail() {
     }, [fetchPosts, page]);
     useEffect(() => { if (page && activeTab === 'members') fetchFollowers(); }, [fetchFollowers, page, activeTab]);
 
+    // Fetch Reviews (#1) — MUST be declared before cross-tab sync effect
+    const fetchReviews = useCallback(async () => {
+        if (!page?.id) return;
+        setReviewsLoading(true);
+        try {
+            const res = await fetch(`/api/social/pages/reviews?page_id=${page.id}`);
+            const json = await res.json();
+            if (json.success) {
+                const revs = json.data?.reviews || [];
+                setReviews(revs);
+                if (revs.length > 0) {
+                    const sum = revs.reduce((a, r) => a + (r.overall_rating || 0), 0);
+                    setAvgRating(Math.round((sum / revs.length) * 10) / 10);
+                } else setAvgRating(0);
+            }
+        } catch (e) { console.error('Reviews fetch error:', e); }
+        setReviewsLoading(false);
+    }, [page]);
+    useEffect(() => { if (page && activeTab === 'reviews') fetchReviews(); }, [fetchReviews, page, activeTab]);
+
+    // Fetch Games (#2) — MUST be declared before cross-tab sync effect
+    const fetchGames = useCallback(async () => {
+        if (!page?.id) return;
+        setGamesLoading(true);
+        try {
+            const res = await fetch(`/api/social/pages/games?page_id=${page.id}`);
+            const json = await res.json();
+            if (json.success) setGames(json.data || []);
+        } catch (e) { console.error('Games fetch error:', e); }
+        setGamesLoading(false);
+    }, [page]);
+    useEffect(() => { if (page && activeTab === 'games') fetchGames(); }, [fetchGames, page, activeTab]);
+
     // Cross-tab sync: refresh data when other tabs mutate social-pages
     useEffect(() => {
         const unsub = eventBus.on(EventType.DATA_MUTATED, (event) => {
@@ -852,26 +885,6 @@ export default function SocialPageDetail() {
             setActiveTab(router.query.tab);
         }
     }, [router.query.tab]);
-
-    // Fetch Reviews (#1)
-    const fetchReviews = useCallback(async () => {
-        if (!page?.id) return;
-        setReviewsLoading(true);
-        try {
-            const res = await fetch(`/api/social/pages/reviews?page_id=${page.id}`);
-            const json = await res.json();
-            if (json.success) {
-                const revs = json.data?.reviews || [];
-                setReviews(revs);
-                if (revs.length > 0) {
-                    const sum = revs.reduce((a, r) => a + (r.overall_rating || 0), 0);
-                    setAvgRating(Math.round((sum / revs.length) * 10) / 10);
-                } else setAvgRating(0);
-            }
-        } catch (e) { console.error('Reviews fetch error:', e); }
-        setReviewsLoading(false);
-    }, [page]);
-    useEffect(() => { if (page && activeTab === 'reviews') fetchReviews(); }, [fetchReviews, page, activeTab]);
 
     const submitReview = async () => {
         if (!reviewRating || submittingReview) return;
@@ -900,19 +913,6 @@ export default function SocialPageDetail() {
         }
         setSubmittingReview(false);
     };
-
-    // Fetch Games (#2)
-    const fetchGames = useCallback(async () => {
-        if (!page?.id) return;
-        setGamesLoading(true);
-        try {
-            const res = await fetch(`/api/social/pages/games?page_id=${page.id}`);
-            const json = await res.json();
-            if (json.success) setGames(json.data || []);
-        } catch (e) { console.error('Games fetch error:', e); }
-        setGamesLoading(false);
-    }, [page]);
-    useEffect(() => { if (page && activeTab === 'games') fetchGames(); }, [fetchGames, page, activeTab]);
 
     // Tournament schedule state (#F1 - Commander bridge)
     const [tournaments, setTournaments] = useState([]);

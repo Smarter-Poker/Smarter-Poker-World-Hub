@@ -1872,47 +1872,96 @@ function UniversalDynamicTable({
                                     top: `${seatY}%`,
                                 }}
                             >
-                                {/* Speech bubble removed — info in header */}
+                                {/* Illustrated Avatar — above the badge */}
+                                <motion.div
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    transition={{ duration: 0.3, delay: 0.1 }}
+                                    style={{
+                                        width: isHero ? (isMobile ? 56 : 70) : (isMobile ? 48 : 60),
+                                        height: isHero ? (isMobile ? 67 : 84) : (isMobile ? 58 : 72),
+                                        position: 'relative',
+                                        marginBottom: -4,
+                                    }}
+                                >
+                                    <img
+                                        src={isHero ? '/avatars/table/free_fox.png' : AVATARS[(index % (AVATARS.length - 1)) + 1]}
+                                        alt={isHero ? 'Hero' : 'Villain'}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'contain',
+                                            filter: villainFolded ? 'grayscale(100%) brightness(0.5)' : 'none',
+                                        }}
+                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                    />
+                                </motion.div>
 
-                                {/* Dealer Button — to the LEFT */}
+                                {/* Premium Dealer Button — gold/white chip */}
                                 {isButton && (
                                     <motion.div
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
                                         transition={{ type: 'spring', delay: 0.3 }}
                                         style={{
-                                            width: 20,
-                                            height: 20,
+                                            position: 'absolute',
+                                            bottom: isHero ? 55 : 45,
+                                            left: '50%',
+                                            transform: 'translateX(-50%)',
+                                            width: 26,
+                                            height: 26,
                                             borderRadius: '50%',
-                                            background: 'linear-gradient(180deg, #f5f0e0 0%, #e0d4b8 100%)',
+                                            background: 'linear-gradient(180deg, #ffffff 0%, #e8e0c8 100%)',
                                             color: '#1a1a1a',
                                             fontWeight: 900,
-                                            fontSize: 9,
-                                            letterSpacing: 0.5,
+                                            fontSize: 12,
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            boxShadow: '0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.4)',
-                                            border: '1px solid rgba(251,191,36,0.5)',
-                                            flexShrink: 0,
+                                            boxShadow: '0 3px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4)',
+                                            border: '2px solid #333',
+                                            zIndex: 200,
                                         }}
                                     >
                                         D
                                     </motion.div>
                                 )}
 
-                                {/* Badge: Position + Stack */}
-                                <div style={{
-                                    ...styles.badge,
-                                    ...m.badge,
-                                    background: isHero ? 'rgba(0,212,255,0.06)' : '#2a2a32',
-                                    borderColor: isHero ? '#00d4ff' : '#4a4a55',
-                                }}>
-                                    <div style={{ ...styles.badgeLabel, color: isHero ? '#00d4ff' : '#94a3b8' }}>
-                                        {isHero ? 'HERO' : 'Villain'}
+                                {/* Gold Name Badge: Position + Stack */}
+                                <motion.div
+                                    initial={{ y: 10, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ duration: 0.3, delay: 0.2 }}
+                                    style={{
+                                        background: isHero
+                                            ? 'linear-gradient(180deg, #f0c040 0%, #c4960a 100%)'
+                                            : 'linear-gradient(180deg, #555 0%, #333 100%)',
+                                        border: isHero ? '2px solid #8b6914' : '2px solid #555',
+                                        borderRadius: 6,
+                                        padding: '2px 10px',
+                                        minWidth: 60,
+                                        textAlign: 'center',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                                    }}
+                                >
+                                    <div style={{
+                                        fontSize: 10,
+                                        fontWeight: 'bold',
+                                        color: isHero ? '#000' : '#ccc',
+                                        textShadow: isHero ? '0 1px 0 rgba(255,255,255,0.3)' : 'none',
+                                        whiteSpace: 'nowrap',
+                                        letterSpacing: 0.5,
+                                    }}>
+                                        {isHero ? 'HERO' : (villainPosition || seat.name || 'Villain')}
                                     </div>
-                                    <div style={styles.badgeStack}>{stackSize} bb</div>
-                                </div>
+                                    <div style={{
+                                        fontSize: 12,
+                                        fontWeight: 'bold',
+                                        color: isHero ? '#1a1a00' : '#22c55e',
+                                    }}>
+                                        {stackSize} bb
+                                    </div>
+                                </motion.div>
 
                                 {/* Cards — TO THE RIGHT of the seat */}
                                 {/* Hero: face-up cards */}
@@ -2091,6 +2140,16 @@ function UniversalDynamicTable({
                         animate={{ scale: 1, opacity: 1 }}
                         style={{...styles.pot, ...m.pot}}
                     >
+                        {/* Chip icon */}
+                        <div style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: '50%',
+                            background: 'linear-gradient(180deg, #555 0%, #222 100%)',
+                            border: '2px solid #666',
+                            boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.1)',
+                            flexShrink: 0,
+                        }} />
                         <span style={{ fontSize: isMobile ? 14 : 18, fontWeight: 800, color: '#e2e8f0' }}>Pot: {pot} bb</span>
                         {/* SPR + Pot Odds */}
                         <div style={styles.potOverlayRow}>
@@ -3284,9 +3343,9 @@ const styles = {
         position: 'absolute',
         transform: 'translate(-50%, -50%)',
         display: 'flex',
-        flexDirection: 'row',
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: 4,
+        gap: 0,
         pointerEvents: 'auto',
     },
 
