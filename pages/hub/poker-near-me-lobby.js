@@ -1081,125 +1081,169 @@ export default function PokerNearMeLobby() {
     let component = null;
 
     switch (activePod) {
-      case 'search':
+      case 'search': {
+        // ─── SEARCH VENUES — Search-first (no display-all) ───
+        const svState = filters.svState || 'all';
+        const svVenueType = filters.svVenueType || 'all';
+        const svGameType = filters.svGameType || 'all';
+        const svRadius = filters.svRadius || '100';
+        const svSort = filters.svSort || (userLocation ? 'distance' : 'trust');
+        const svHasSearched = filters.svHasSearched || false;
+
+        // Apply filters
+        let svResults = venues;
+        if (svState !== 'all') svResults = svResults.filter(v => v.state === svState);
+        if (svVenueType !== 'all') svResults = svResults.filter(v => v.venue_type === svVenueType);
+        if (svGameType !== 'all') {
+          svResults = svResults.filter(v => {
+            const games = (v.games_offered || []).join(' ').toLowerCase();
+            if (svGameType === 'nlh') return games.includes('nlh') || games.includes('hold');
+            if (svGameType === 'plo') return games.includes('plo') || games.includes('omaha');
+            if (svGameType === 'mixed') return games.includes('mix') || games.includes('horse');
+            return true;
+          });
+        }
+        // Distance
+        const svCalcDist = (v) => {
+          if (!userLocation || !v.latitude || !v.longitude) return 99999;
+          const R = 3959;
+          const dLat = (v.latitude - userLocation.lat) * Math.PI / 180;
+          const dLon = (v.longitude - userLocation.lng) * Math.PI / 180;
+          const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(userLocation.lat*Math.PI/180)*Math.cos(v.latitude*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+          return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        };
+        if (userLocation && svRadius !== 'any') svResults = svResults.filter(v => svCalcDist(v) <= Number(svRadius));
+        if (svSort === 'distance' && userLocation) svResults = [...svResults].sort((a, b) => svCalcDist(a) - svCalcDist(b));
+        else if (svSort === 'trust') svResults = [...svResults].sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
+        else if (svSort === 'name') svResults = [...svResults].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+        const doVenueSearch = () => {
+          setFilters(prev => ({ ...prev, svHasSearched: true }));
+          fetchVenues(searchQuery, 0, false);
+        };
+
         component = (
           <div>
-            {/* Sort + Filter Bar */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <select
-                value={sortBy}
-                onChange={(e) => handleSortChange(e.target.value)}
-                style={{
-                  background: 'rgba(110, 231, 239, 0.08)', border: '1px solid rgba(110, 231, 239, 0.2)',
-                  borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12,
-                  fontFamily: 'inherit', cursor: 'pointer', outline: 'none',
-                }}
-              >
-                {SORT_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value} style={{ background: '#0d1a2a' }}>{opt.label}</option>
-                ))}
-              </select>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                style={{
-                  background: showFilters ? 'rgba(110, 231, 239, 0.15)' : 'rgba(110, 231, 239, 0.06)',
-                  border: '1px solid rgba(110, 231, 239, 0.2)', borderRadius: 8,
-                  padding: '6px 14px', color: '#6ee7ef', fontSize: 12, cursor: 'pointer',
-                  fontFamily: 'inherit', fontWeight: 600,
-                }}
-              >
-                Filters {Object.keys(filters).length > 0 ? `(${Object.keys(filters).length})` : ''}
+            {/* ─── SEARCH PARAMETERS ─── */}
+            <div style={{ background: 'rgba(212,168,83,0.04)', border: '1px solid rgba(212,168,83,0.15)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+              {/* GPS + Distance */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+                <button onClick={handleGpsToggle}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #22c55e' : '1px solid rgba(212,168,83,0.3)', background: userLocation ? 'rgba(34,197,94,0.15)' : 'rgba(212,168,83,0.08)', color: userLocation ? '#22c55e' : '#d4a853', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  {userLocation ? 'GPS Active' : 'Enable GPS'}
+                </button>
+                <select value={svRadius} onChange={(e) => setFilters(prev => ({ ...prev, svRadius: e.target.value }))}
+                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(212,168,83,0.2)', borderRadius: 8, padding: '8px 10px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  <option value="10">10 miles</option><option value="25">25 miles</option><option value="50">50 miles</option><option value="100">100 miles</option><option value="250">250 miles</option><option value="any">Any distance</option>
+                </select>
+              </div>
+              {/* Venue Type */}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.35)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Venue Type</div>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'card_room',l:'Card Room'},{k:'poker_club',l:'Poker Club'}].map(t => (
+                    <button key={t.k} onClick={() => setFilters(prev => ({ ...prev, svVenueType: t.k }))}
+                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: svVenueType === t.k ? '1px solid #d4a853' : '1px solid rgba(255,255,255,0.12)', background: svVenueType === t.k ? 'rgba(212,168,83,0.2)' : 'transparent', color: svVenueType === t.k ? '#d4a853' : 'rgba(255,255,255,0.5)' }}>{t.l}</button>
+                  ))}
+                </div>
+              </div>
+              {/* Game Type */}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.35)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Game Type</div>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {[{k:'all',l:'All Games'},{k:'nlh',l:'NLH'},{k:'plo',l:'PLO'},{k:'mixed',l:'Mixed'}].map(g => (
+                    <button key={g.k} onClick={() => setFilters(prev => ({ ...prev, svGameType: g.k }))}
+                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: svGameType === g.k ? '1px solid #6ee7ef' : '1px solid rgba(255,255,255,0.12)', background: svGameType === g.k ? 'rgba(110,231,239,0.15)' : 'transparent', color: svGameType === g.k ? '#6ee7ef' : 'rgba(255,255,255,0.5)' }}>{g.l}</button>
+                  ))}
+                </div>
+              </div>
+              {/* State + Sort */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+                <select value={svState} onChange={(e) => setFilters(prev => ({ ...prev, svState: e.target.value }))}
+                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px', color: '#e0e8f0', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer', minWidth: 85 }}>
+                  <option value="all">All States</option>
+                  {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+                <select value={svSort} onChange={(e) => setFilters(prev => ({ ...prev, svSort: e.target.value }))}
+                  style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px', color: '#e0e8f0', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  {userLocation && <option value="distance">Nearest First</option>}
+                  <option value="trust">Trust Score</option>
+                  <option value="name">Name A-Z</option>
+                </select>
+              </div>
+              {/* SEARCH BUTTON */}
+              <button onClick={doVenueSearch}
+                style={{ width: '100%', padding: '12px 0', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#000', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.5px', boxShadow: '0 4px 16px rgba(212,168,83,0.3)' }}>
+                Search Venues
               </button>
-              <span style={{ color: 'rgba(200,214,229,0.4)', fontSize: 12, marginLeft: 'auto' }}>
-                {venues.length} venue{venues.length !== 1 ? 's' : ''}
-              </span>
             </div>
 
-            {/* Inline Filter Panel */}
-            {showFilters && (
-              <div style={{ marginBottom: 16 }}>
-                <FilterPanel
-                  filters={filters}
-                  onFilterChange={handleFilterChange}
-                  userLocation={userLocation}
-                />
+            {/* ─── RESULTS (only after search) ─── */}
+            {svHasSearched ? (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(212,168,83,0.06)', borderRadius: 10, border: '1px solid rgba(212,168,83,0.1)' }}>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                    <span style={{ color: '#d4a853', fontWeight: 800 }}>{svResults.length}</span> venue{svResults.length !== 1 ? 's' : ''}
+                    {userLocation && svRadius !== 'any' && <span> within <span style={{ color: '#6ee7ef' }}>{svRadius} mi</span></span>}
+                  </span>
+                  <button onClick={() => setFilters(prev => ({ ...prev, svState: 'all', svVenueType: 'all', svGameType: 'all', svRadius: '100', svHasSearched: false }))}
+                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
+                </div>
+                {svResults.length > 0 ? (
+                  <>
+                    <div style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
+                      {svResults.slice(0, 50).map(v => {
+                        const dist = userLocation ? svCalcDist(v) : null;
+                        return (
+                          <div key={v.id} style={{ position: 'relative' }}>
+                            {dist !== null && dist < 99999 && (
+                              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', fontSize: 11, fontWeight: 700, color: '#22c55e' }}>
+                                {dist < 1 ? `${(dist * 5280).toFixed(0)} ft` : `${dist.toFixed(1)} mi`}
+                              </div>
+                            )}
+                            <VenueCard venue={v} isFavorited={!!favorites[v.id]}
+                              onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
+                              onNavigate={(url) => { if (url.includes('action=review')) { setSelectedVenueForReview({ id: v.id, name: v.name }); } else { router.push(url); } }}
+                              userLocation={userLocation} checkinCount={checkinCounts[String(v.id)] || 0} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {svResults.length > 50 && (
+                      <button onClick={loadMore} disabled={loading}
+                        style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 12, color: '#6ee7ef', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                        {loading ? 'Loading...' : `Load More (${svResults.length - 50} remaining)`}
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.3 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>No Results Found</p>
+                    <p style={{ fontSize: 13 }}>Try expanding distance, changing venue type, or selecting a different state.</p>
+                  </div>
+                )}
               </div>
-            )}
-
-            {/* State Filter + Stats Row */}
-            <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <select
-                value={filters.selectedState || 'all'}
-                onChange={(e) => handleFilterChange({ ...filters, selectedState: e.target.value })}
-                style={{
-                  background: 'rgba(110, 231, 239, 0.08)', border: '1px solid rgba(110, 231, 239, 0.2)',
-                  borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12,
-                  fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 100,
-                }}
-              >
-                <option value="all" style={{ background: '#0d1a2a' }}>All States</option>
-                {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                  <option key={st} value={st} style={{ background: '#0d1a2a' }}>{st}</option>
-                ))}
-              </select>
-              <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', marginLeft: 'auto' }}>
-                <span style={{ color: '#d4a853', fontWeight: 700 }}>{venues.length}</span> venues found
-              </span>
-            </div>
-            {loading && <div style={{ textAlign: 'center', padding: 20, color: 'rgba(200,214,229,0.5)' }}>
-              <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#6ee7ef', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
-              Loading venues...
-            </div>}
-            {fetchError && !loading && (
-              <div style={{ textAlign: 'center', padding: 20, marginBottom: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, color: '#ef4444' }}>
-                <p style={{ fontSize: 14, marginBottom: 8 }}>{fetchError}</p>
-                <button onClick={() => fetchVenues(searchQuery)} style={{ padding: '6px 16px', borderRadius: 8, background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Retry</button>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '30px 16px' }}>
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.3)" strokeWidth="1" style={{ marginBottom: 16 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <p style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>Search All Venues</p>
+                <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)', lineHeight: 1.5, maxWidth: 320, margin: '0 auto' }}>
+                  Set your filters above and tap Search. Enable GPS for distance-based results.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20 }}>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>501</div><div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>Venues</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#22c55e' }}>41</div><div style={{ fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>States</div></div>
+                </div>
               </div>
-            )}
-            <div style={{ display: 'grid', gap: 12 }}>
-              {venues.map(v => (
-                <VenueCard
-                  key={v.id}
-                  venue={v}
-                  isFavorited={!!favorites[v.id]}
-                  onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
-                  onNavigate={(url) => {
-                    if (url.includes('action=review')) {
-                      setSelectedVenueForReview({ id: v.id, name: v.name });
-                    } else {
-                      router.push(url);
-                    }
-                  }}
-                  userLocation={userLocation}
-                  checkinCount={checkinCounts[String(v.id)] || 0}
-                />
-              ))}
-            </div>
-            {venues.length === 0 && !loading && (
-              <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
-                <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No venues found</p>
-                <p style={{ fontSize: 13 }}>Try searching a city or use GPS to find nearby rooms.</p>
-              </div>
-            )}
-            {/* Load More */}
-            {hasMore && venues.length > 0 && (
-              <button
-                onClick={loadMore}
-                disabled={loading}
-                style={{
-                  display: 'block', width: '100%', marginTop: 16, padding: '12px 24px',
-                  background: 'rgba(110, 231, 239, 0.08)', border: '1px solid rgba(110, 231, 239, 0.2)',
-                  borderRadius: 12, color: '#6ee7ef', fontSize: 14, fontWeight: 600,
-                  cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit',
-                  transition: 'all 0.2s',
-                }}
-              >
-                {loading ? 'Loading...' : 'Load More Venues'}
-              </button>
             )}
           </div>
         );
         break;
+      }
 
       case 'homegames': {
         const hgSearch = filters.hgSearch || '';
