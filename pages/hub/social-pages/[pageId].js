@@ -157,9 +157,16 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page?.slug || page?.id}` : '';
 
     return (
-        <div style={{ background: C.card, borderRadius: 12, border: post.is_pinned ? '2px solid #F5A623' : `1px solid ${C.border}`, marginBottom: 12, overflow: 'hidden', position: 'relative' }}>
+        <div style={{ background: C.card, borderRadius: 12, border: (post.post_type === 'announcement') ? '2px solid #F5A623' : post.is_pinned ? '2px solid #1877F2' : `1px solid ${C.border}`, marginBottom: 12, overflow: 'hidden', position: 'relative' }}>
+            {/* Announcement badge */}
+            {post.post_type === 'announcement' && (
+                <div style={{ padding: '6px 16px', background: 'linear-gradient(135deg, #FFF3E0, #FFE0B2)', fontSize: 12, fontWeight: 700, color: '#E65100', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#E65100"><path d="M18 8a3 3 0 00-3-3H9a3 3 0 00-3 3v6a3 3 0 003 3h1l-1 4h2l1-4h1l3 4h2l-3-4a3 3 0 003-3V8z"/></svg>
+                    ANNOUNCEMENT
+                </div>
+            )}
             {/* Pinned badge */}
-            {post.is_pinned && (
+            {post.is_pinned && !post.post_type?.startsWith('announcement') && (
                 <div style={{ padding: '6px 16px', background: '#E7F3FF', fontSize: 12, fontWeight: 600, color: C.blue, display: 'flex', alignItems: 'center', gap: 4 }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill={C.blue}><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>
                     Pinned Post
@@ -513,8 +520,20 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                     <div style={{ fontSize: 13, color: C.text }}>{c.content}</div>
                                                 </div>
                                             )}
-                                            <div style={{ display: 'flex', gap: 12, padding: '2px 8px', fontSize: 11, color: C.textSec }}>
+                                            <div style={{ display: 'flex', gap: 12, padding: '2px 8px', fontSize: 11, color: C.textSec, alignItems: 'center' }}>
                                                 <span>{timeAgo(c.created_at)}</span>
+                                                {user && <button onClick={() => {
+                                                    const token = getAccessToken();
+                                                    fetch('/api/social/pages/engage', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                                        body: JSON.stringify({ action: 'like_comment', post_id: post.id, comment_id: c.id }),
+                                                    }).then(r => r.json()).then(j => {
+                                                        setComments(prev => prev.map(x => x.id === c.id ? { ...x, user_liked_comment: j.liked, comment_like_count: j.liked ? ((x.comment_like_count || 0) + 1) : Math.max(0, (x.comment_like_count || 1) - 1) } : x));
+                                                    }).catch(() => {});
+                                                }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: c.user_liked_comment ? C.blue : C.textSec, fontSize: 11, padding: 0, fontFamily: 'inherit' }}>
+                                                    {c.user_liked_comment ? 'Liked' : 'Like'}{c.comment_like_count > 0 ? ` (${c.comment_like_count})` : ''}
+                                                </button>}
                                                 {user && <button onClick={() => { setReplyTo(replyTo === c.id ? null : c.id); setReplyText(''); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: C.textSec, fontSize: 11, padding: 0, fontFamily: 'inherit' }}>Reply</button>}
                                                 {/* P8-1: Comment delete */}
                                                 {user && (c.user_id === user.id || isPageOwner) && <button onClick={() => { setComments(prev => prev.filter(x => x.id !== c.id)); if (onDeleteComment) onDeleteComment(post.id, c.id); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: '#FA383E', fontSize: 11, padding: 0, fontFamily: 'inherit' }}>Delete</button>}
@@ -624,6 +643,7 @@ export default function SocialPageDetail() {
     const [memberSearch, setMemberSearch] = useState('');
     // #10 Post visibility
     const [postVisibility, setPostVisibility] = useState('public');
+    const [postType, setPostType] = useState('regular');
     const imageInputRef = useRef(null);
     // #3 Load More pagination
     const [hasMorePosts, setHasMorePosts] = useState(true);
@@ -1066,6 +1086,7 @@ export default function SocialPageDetail() {
                     page_id: page.id, author_id: user.id,
                     content: newPost.trim(), content_type: uploadImages.length > 0 ? 'media' : 'text',
                     visibility: postVisibility,
+                    post_type: postType,
                     ...(uploadImages.length > 0 ? { media_urls: uploadImages } : {}),
                 }),
             });
@@ -1079,6 +1100,7 @@ export default function SocialPageDetail() {
                 setNewPost('');
                 setUploadImages([]);
                 setPostVisibility('public');
+                setPostType('regular');
                 fetchPosts();
             }
         } catch (e) { console.error("[[pageId].js]", e); toast.error('Post failed — try again'); }
@@ -1653,6 +1675,18 @@ export default function SocialPageDetail() {
                                                     }}>
                                                         {postVisibility === 'public' ? 'Public' : 'Members'}
                                                     </button>
+                                                    {/* Announcement toggle — owner only */}
+                                                    {isOwnerOnOwnPage && (
+                                                        <button onClick={() => setPostType(t => t === 'announcement' ? 'regular' : 'announcement')} title={postType === 'announcement' ? 'Posting as announcement' : 'Regular post'} style={{
+                                                            background: postType === 'announcement' ? '#FFF3E0' : 'none',
+                                                            border: `1px solid ${postType === 'announcement' ? '#E65100' : C.border}`,
+                                                            cursor: 'pointer', padding: '3px 8px',
+                                                            borderRadius: 12, fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+                                                            color: postType === 'announcement' ? '#E65100' : C.textSec,
+                                                        }}>
+                                                            {postType === 'announcement' ? 'Announcement' : 'Regular'}
+                                                        </button>
+                                                    )}
                                                 </div>
                                                 <button onClick={handlePost} disabled={(!newPost.trim() && uploadImages.length === 0) || posting} style={{
                                                     padding: '8px 20px', borderRadius: 8, border: 'none',
@@ -2441,6 +2475,45 @@ export default function SocialPageDetail() {
                                 </div>
                             </div>
 
+                            {/* Live Activity Pulse */}
+                            <div style={{
+                                background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16, marginBottom: 12,
+                            }}>
+                                <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{
+                                        display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                                        background: (games.length > 0 || tournaments.some(t => t.status === 'running')) ? '#42B72A' : '#CCC',
+                                        animation: (games.length > 0 || tournaments.some(t => t.status === 'running')) ? 'pulseActivity 1.5s ease-in-out infinite' : 'none',
+                                    }} />
+                                    Activity
+                                </h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: C.text }}>
+                                        <span>Live Games</span>
+                                        <span style={{ fontWeight: 700, color: games.length > 0 ? '#42B72A' : C.textSec }}>{games.length || 0}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: C.text }}>
+                                        <span>Tournaments</span>
+                                        <span style={{
+                                            fontWeight: 700,
+                                            color: tournaments.some(t => t.status === 'running') ? '#E65100' : C.textSec,
+                                        }}>
+                                            {tournaments.filter(t => t.status === 'running').length > 0
+                                                ? `${tournaments.filter(t => t.status === 'running').length} LIVE`
+                                                : tournaments.filter(t => ['scheduled','registration'].includes(t.status)).length > 0
+                                                    ? `${tournaments.filter(t => ['scheduled','registration'].includes(t.status)).length} upcoming`
+                                                    : 'None'}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: C.text }}>
+                                        <span>Last Post</span>
+                                        <span style={{ fontWeight: 600, color: C.textSec, fontSize: 12 }}>
+                                            {posts.length > 0 ? timeAgo(posts[0]?.created_at) : 'No posts'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Share URL Card */}
                             <div style={{
                                 background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16, marginBottom: 12,
@@ -2753,6 +2826,7 @@ export default function SocialPageDetail() {
             <style jsx global>{`
                 @keyframes reactPopIn { 0% { transform: scale(0.3) translateY(10px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
                 @keyframes likePopAnim { 0% { transform: scale(0); opacity: 1; } 50% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+                @keyframes pulseActivity { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
                 @keyframes spin { to { transform: rotate(360deg); } }
                 @keyframes shimmerAnim { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
                 .shimmer { background: linear-gradient(90deg, #E4E6EB 25%, #F0F2F5 50%, #E4E6EB 75%) !important; background-size: 400px 100%; animation: shimmerAnim 1.2s ease-in-out infinite; }
