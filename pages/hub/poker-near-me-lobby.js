@@ -542,6 +542,7 @@ export default function PokerNearMeLobby() {
   const [fetchError, setFetchError] = useState(null);
   const [searchHistory, setSearchHistory] = useState([]);
   const [preferences, setPreferences] = useState({ geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true });
+  const [globalLeaders, setGlobalLeaders] = useState([]);
 
   // ─── Data State ───
   const [venues, setVenues] = useState([]);
@@ -783,6 +784,14 @@ export default function PokerNearMeLobby() {
       .then(j => { if (j.success && j.counts) setCheckinCounts(j.counts); })
       .catch(() => { /* silent */ });
   }, [venues]);
+
+  // ─── Fetch global check-in leaderboard (cross-venue top users) ───
+  useEffect(() => {
+    fetch('/api/poker/checkins/global-leaderboard?period=month')
+      .then(r => r.json())
+      .then(j => { if (j.success && j.leaders) setGlobalLeaders(j.leaders.slice(0, 5)); })
+      .catch(() => {});
+  }, []);
 
   // ─── Live games refresh handled by <LiveGamesFeed> component ───
 
