@@ -1,9 +1,8 @@
 {
   "metadata": {
-    "description": "Venues with confirmed tournaments (Phase 5 enriched)",
-    "generated": "2026-03-26T05:54:48.959353+00:00",
-    "totalVenues": 138,
-    "lastUpdated": "2026-03-26"
+    "description": "Tournament venues (Phase 5 final)",
+    "generated": "2026-03-26T13:52:09.802767+00:00",
+    "totalVenues": 136
   },
   "venues": [
     {
@@ -11,7 +10,6 @@
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/venetian-las-vegas",
       "venue_id": 1818
     },
     {
@@ -19,7 +17,6 @@
       "state": "CA",
       "city": "Commerce",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/commerce-casino-los-angeles",
       "venue_id": 1820
     },
     {
@@ -27,7 +24,6 @@
       "state": "CA",
       "city": "Gardena",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/hustler-casino-gardena",
       "venue_id": 1822
     },
     {
@@ -35,7 +31,6 @@
       "state": "FL",
       "city": "Hollywood",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/hard-rock-hollywood-ft-lauderdale",
       "venue_id": 1825
     },
     {
@@ -43,7 +38,6 @@
       "state": "FL",
       "city": "Tampa",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/hard-rock-tampa",
       "venue_id": 1826
     },
     {
@@ -51,7 +45,6 @@
       "state": "TX",
       "city": "Austin",
       "type": "poker_club",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/texas-card-house-austin",
       "venue_id": 1829
     },
     {
@@ -59,7 +52,6 @@
       "state": "TX",
       "city": "Dallas",
       "type": "poker_club",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/texas-card-house-dallas",
       "venue_id": 1830
     },
     {
@@ -67,7 +59,6 @@
       "state": "TX",
       "city": "Katy",
       "type": "poker_club",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/texas-card-house-houston",
       "venue_id": 1831
     },
     {
@@ -75,7 +66,6 @@
       "state": "NJ",
       "city": "Atlantic City",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/borgata-atlantic-city",
       "venue_id": 1832
     },
     {
@@ -83,7 +73,6 @@
       "state": "MD",
       "city": "Oxon Hill",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/mgm-national-oxon-hill",
       "venue_id": 1836
     },
     {
@@ -91,7 +80,6 @@
       "state": "OK",
       "city": "Durant",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/choctaw-durant",
       "venue_id": 1840
     },
     {
@@ -99,7 +87,6 @@
       "state": "MN",
       "city": "Shakopee",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee",
       "venue_id": 1847
     },
     {
@@ -107,7 +94,6 @@
       "state": "AZ",
       "city": "Scottsdale",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/talking-stick-resort-scottsdale",
       "venue_id": 1853
     },
     {
@@ -115,7 +101,6 @@
       "state": "AZ",
       "city": "Tucson",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/casino-del-sol-tucson",
       "venue_id": 1854
     },
     {
@@ -123,7 +108,6 @@
       "state": "AZ",
       "city": "Pinetop",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/hon-dah-casino-pinetop",
       "venue_id": 1855
     },
     {
@@ -131,7 +115,6 @@
       "state": "AR",
       "city": "Pine Bluff",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/saracen-casino-resort-pine-bluff",
       "venue_id": 1856
     },
     {
@@ -139,7 +122,6 @@
       "state": "CA",
       "city": "Jamul",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/jamul-casino",
       "venue_id": 1861
     },
     {
@@ -147,7 +129,6 @@
       "state": "CA",
       "city": "Santa Ynez",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/chumash-casino-santa-ynez",
       "venue_id": 1863
     },
     {
@@ -155,7 +136,6 @@
       "state": "MI",
       "city": "Wayland",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/gun-lake-wayland",
       "venue_id": 1875
     },
     {
@@ -163,7 +143,6 @@
       "state": "NY",
       "city": "Monticello",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/resorts-world-catski-monticello",
       "venue_id": 1876
     },
     {
@@ -171,7 +150,6 @@
       "state": "NY",
       "city": "Schenectady",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/rivers-schenectady",
       "venue_id": 1877
     },
     {
@@ -179,7 +157,6 @@
       "state": "OR",
       "city": "Lincoln City",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/chinook-winds-lincoln-city",
       "venue_id": 1884
     },
     {
@@ -187,7 +164,6 @@
       "state": "OR",
       "city": "Canyonville",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/seven-feathers-canyonville",
       "venue_id": 1885
     },
     {
@@ -195,7 +171,6 @@
       "state": "PA",
       "city": "Philadelphia",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/live-casino-philadelphia",
       "venue_id": 1887
     },
     {
@@ -203,7 +178,6 @@
       "state": "PA",
       "city": "Grantville",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/hollywood-penn-natl-grantville",
       "venue_id": 1891
     },
     {
@@ -211,7 +185,6 @@
       "state": "TX",
       "city": "Katy",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/101-poker-club-katy",
       "venue_id": 1899
     },
     {
@@ -219,7 +192,6 @@
       "state": "TX",
       "city": "College Station",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/aggieland-poker-club-college-station",
       "venue_id": 1901
     },
     {
@@ -227,7 +199,6 @@
       "state": "TX",
       "city": "San Antonio",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/alamo-card-house-2-san-antonio",
       "venue_id": 1902
     },
     {
@@ -235,7 +206,6 @@
       "state": "TX",
       "city": "Austin",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bullets-card-club-austin",
       "venue_id": 1903
     },
     {
@@ -243,7 +213,6 @@
       "state": "TX",
       "city": "Cypress",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/doghouse-poker-club-cypress",
       "venue_id": 1904
     },
     {
@@ -251,7 +220,6 @@
       "state": "TX",
       "city": "College Station",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/jokers-of-aggieland-poker-club-college-station",
       "venue_id": 1908
     },
     {
@@ -259,7 +227,6 @@
       "state": "TX",
       "city": "Midland",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/kojacks-midland",
       "venue_id": 1909
     },
     {
@@ -267,7 +234,6 @@
       "state": "TX",
       "city": "Cedar Park",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/lone-star-social-cedar-park",
       "venue_id": 1911
     },
     {
@@ -275,7 +241,6 @@
       "state": "TX",
       "city": "San Marcos",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/on-the-river-social-club-san-marcos",
       "venue_id": 1912
     },
     {
@@ -283,7 +248,6 @@
       "state": "TX",
       "city": "Austin",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/shuffle-512-austin",
       "venue_id": 1917
     },
     {
@@ -291,7 +255,6 @@
       "state": "TX",
       "city": "Baytown",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/spades-poker-house-baytown",
       "venue_id": 1919
     },
     {
@@ -299,7 +262,6 @@
       "state": "TX",
       "city": "Austin",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/tch-social-austin",
       "venue_id": 1920
     },
     {
@@ -307,7 +269,6 @@
       "state": "TX",
       "city": "Irving",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/tch-social-las-colinas-irving",
       "venue_id": 1921
     },
     {
@@ -315,7 +276,6 @@
       "state": "TX",
       "city": "Spring",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/texas-card-house-spring",
       "venue_id": 1923
     },
     {
@@ -323,7 +283,6 @@
       "state": "TX",
       "city": "San Antonio",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/the-big-blind-san-antonio",
       "venue_id": 1924
     },
     {
@@ -331,7 +290,6 @@
       "state": "TX",
       "city": "Humble",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/the-hangar-poker-house-humble",
       "venue_id": 1925
     },
     {
@@ -339,7 +297,6 @@
       "state": "CA",
       "city": "Salinas",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bankers-casino-salinas",
       "venue_id": 1926
     },
     {
@@ -347,7 +304,6 @@
       "state": "CA",
       "city": "Emeryville",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/oaks-card-club-emeryville",
       "venue_id": 1927
     },
     {
@@ -355,7 +311,6 @@
       "state": "CA",
       "city": "Sacramento",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/capitol-casino-sacramento",
       "venue_id": 1931
     },
     {
@@ -363,7 +318,6 @@
       "state": "CA",
       "city": "Gilroy",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/garlic-city-casino-gilroy",
       "venue_id": 1938
     },
     {
@@ -371,7 +325,6 @@
       "state": "CA",
       "city": "Pacheco",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/california-grand-pacheco",
       "venue_id": 1939
     },
     {
@@ -379,7 +332,6 @@
       "state": "CA",
       "city": "Livermore",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/livermore-casino",
       "venue_id": 1940
     },
     {
@@ -387,7 +339,6 @@
       "state": "MT",
       "city": "Bozeman",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/seat-open-bozeman",
       "venue_id": 1941
     },
     {
@@ -395,7 +346,6 @@
       "state": "FL",
       "city": "St. Petersburg",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/derby-lane-st-petersburg",
       "venue_id": 1943
     },
     {
@@ -403,7 +353,6 @@
       "state": "FL",
       "city": "Summerfield",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/oxford-downs-summerfield",
       "venue_id": 1944
     },
     {
@@ -411,7 +360,6 @@
       "state": "FL",
       "city": "Orange City",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/orange-city",
       "venue_id": 1945
     },
     {
@@ -419,7 +367,6 @@
       "state": "FL",
       "city": "Daytona Beach",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/daytona-beach",
       "venue_id": 1946
     },
     {
@@ -427,7 +374,6 @@
       "state": "FL",
       "city": "Ebro",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/ebro-poker-room",
       "venue_id": 1947
     },
     {
@@ -435,7 +381,6 @@
       "state": "FL",
       "city": "Tampa",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/westgate-las-vegas",
       "venue_id": 1948
     },
     {
@@ -443,7 +388,6 @@
       "state": "FL",
       "city": "Sarasota",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/one-eyed-jacks-sarasota",
       "venue_id": 1950
     },
     {
@@ -451,7 +395,6 @@
       "state": "FL",
       "city": "Orange Park",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bestbet-orange-park",
       "venue_id": 1951
     },
     {
@@ -459,7 +402,6 @@
       "state": "FL",
       "city": "St. Augustine",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bestbet-st-augustine",
       "venue_id": 1952
     },
     {
@@ -467,7 +409,6 @@
       "state": "FL",
       "city": "West Palm Beach",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/palm-beach-kc-west-palm-beach",
       "venue_id": 1953
     },
     {
@@ -475,7 +416,6 @@
       "state": "OR",
       "city": "Portland",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/final-table-portland",
       "venue_id": 1956
     },
     {
@@ -483,7 +423,6 @@
       "state": "OR",
       "city": "Portland",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/oregon-poker-club-kit-kat-club-portland",
       "venue_id": 1958
     },
     {
@@ -491,7 +430,6 @@
       "state": "OR",
       "city": "Portland",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/oregon-poker-club-rialto-pool-room-portland",
       "venue_id": 1959
     },
     {
@@ -499,7 +437,6 @@
       "state": "OR",
       "city": "Portland",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/oregon-poker-club-stadiums-sports-bar-portland",
       "venue_id": 1960
     },
     {
@@ -507,7 +444,6 @@
       "state": "OR",
       "city": "Portland",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/the-game-portland",
       "venue_id": 1961
     },
     {
@@ -515,7 +451,6 @@
       "state": "OR",
       "city": "Eugene",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/10803",
       "venue_id": 1962
     },
     {
@@ -523,7 +458,6 @@
       "state": "OR",
       "city": "Eugene",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/full-house-poker-eugene",
       "venue_id": 1963
     },
     {
@@ -531,7 +465,6 @@
       "state": "MI",
       "city": "Shelby Township",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/diciccos-poker-room-shelby-township",
       "venue_id": 1966
     },
     {
@@ -539,7 +472,6 @@
       "state": "MI",
       "city": "Shelby Township",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/gs-charity-poker-shelby-township",
       "venue_id": 1967
     },
     {
@@ -547,7 +479,6 @@
       "state": "MI",
       "city": "Grand Rapids",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/kings-poker-room-grand-rapids",
       "venue_id": 1968
     },
     {
@@ -555,7 +486,6 @@
       "state": "MI",
       "city": "Muskegon",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/muskegon-poker-room",
       "venue_id": 1969
     },
     {
@@ -563,7 +493,6 @@
       "state": "MI",
       "city": "Utica",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/paradise-poker-utica",
       "venue_id": 1971
     },
     {
@@ -571,7 +500,6 @@
       "state": "MI",
       "city": "Saginaw",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/the-saginaw-poker-room",
       "venue_id": 1975
     },
     {
@@ -579,7 +507,6 @@
       "state": "MI",
       "city": "Ypsilanti",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/thompson-ypsilanti",
       "venue_id": 1976
     },
     {
@@ -587,7 +514,6 @@
       "state": "MI",
       "city": "Waterford",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/waterford-card-room",
       "venue_id": 1977
     },
     {
@@ -595,7 +521,6 @@
       "state": "MI",
       "city": "Westland",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/krazy-kopz-the-ivory-room-westland",
       "venue_id": 1979
     },
     {
@@ -603,7 +528,6 @@
       "state": "MI",
       "city": "Taylor",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/momos-taylor",
       "venue_id": 1981
     },
     {
@@ -611,7 +535,6 @@
       "state": "MI",
       "city": "Oxford",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/ace-high-poker-club-oxford",
       "venue_id": 1982
     },
     {
@@ -619,7 +542,6 @@
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/the-orleans-las-vegas",
       "venue_id": 1988
     },
     {
@@ -627,7 +549,6 @@
       "state": "NV",
       "city": "Reno",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/10803",
       "venue_id": 1992
     },
     {
@@ -635,23 +556,13 @@
       "state": "IL",
       "city": "Burbank ",
       "type": "poker_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/cash-games",
       "venue_id": 2001
-    },
-    {
-      "name": "Venetian Las Vegas",
-      "state": "NV",
-      "city": "Las Vegas",
-      "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/venetian-las-vegas",
-      "venue_id": 2007
     },
     {
       "name": "Portland Meadows",
       "state": "OR",
       "city": "Portland",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/portland-meadows",
       "venue_id": 2033
     },
     {
@@ -659,7 +570,6 @@
       "state": "FL",
       "city": "Daytona Beach",
       "type": "poker_club",
-      "pokerAtlasUrl": null,
       "venue_id": 2037
     },
     {
@@ -667,7 +577,6 @@
       "state": "VA",
       "city": "Danville",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/caesars-virginia-danville",
       "venue_id": 2038
     },
     {
@@ -675,7 +584,6 @@
       "state": "OK",
       "city": "Quapaw",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/downstream-casino-quapaw",
       "venue_id": 2047
     },
     {
@@ -683,7 +591,6 @@
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/aria-las-vegas",
       "venue_id": 2129
     },
     {
@@ -691,23 +598,13 @@
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/wynn-las-vegas",
       "venue_id": 2130
-    },
-    {
-      "name": "Venetian",
-      "state": "NV",
-      "city": "Las Vegas",
-      "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/venetian-las-vegas",
-      "venue_id": 2131
     },
     {
       "name": "MGM Grand",
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/mgm-grand-las-vegas",
       "venue_id": 2133
     },
     {
@@ -715,7 +612,6 @@
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/sahara-las-vegas",
       "venue_id": 2140
     },
     {
@@ -723,7 +619,6 @@
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas",
       "venue_id": 2143
     },
     {
@@ -731,7 +626,6 @@
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/binions-las-vegas",
       "venue_id": 2145
     },
     {
@@ -739,7 +633,6 @@
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/the-d-las-vegas",
       "venue_id": 2148
     },
     {
@@ -747,7 +640,6 @@
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/south-point-las-vegas",
       "venue_id": 2151
     },
     {
@@ -755,7 +647,6 @@
       "state": "NV",
       "city": "Reno",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/atlantis-casino-reno",
       "venue_id": 2169
     },
     {
@@ -763,7 +654,6 @@
       "state": "NV",
       "city": "Reno",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/peppermill-reno",
       "venue_id": 2170
     },
     {
@@ -771,7 +661,6 @@
       "state": "NV",
       "city": "Sparks",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/venetian-las-vegas",
       "venue_id": 2175
     },
     {
@@ -779,7 +668,6 @@
       "state": "CA",
       "city": "Inglewood",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/hollywood-park-inglewood",
       "venue_id": 2185
     },
     {
@@ -787,7 +675,6 @@
       "state": "CA",
       "city": "Gardena",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena",
       "venue_id": 2188
     },
     {
@@ -795,7 +682,6 @@
       "state": "CA",
       "city": "Compton",
       "type": "card_room",
-      "pokerAtlasUrl": null,
       "venue_id": 2189
     },
     {
@@ -803,7 +689,6 @@
       "state": "CA",
       "city": "Highland",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/san-manuel-casino-highland",
       "venue_id": 2193
     },
     {
@@ -811,7 +696,6 @@
       "state": "CA",
       "city": "Cabazon",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/morongo-cabazon",
       "venue_id": 2194
     },
     {
@@ -819,7 +703,6 @@
       "state": "CA",
       "city": "Indio",
       "type": "casino",
-      "pokerAtlasUrl": null,
       "venue_id": 2203
     },
     {
@@ -827,7 +710,6 @@
       "state": "CA",
       "city": "San Jacinto",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/soboba-casino-san-jacinto",
       "venue_id": 2204
     },
     {
@@ -835,7 +717,6 @@
       "state": "CA",
       "city": "San Jose",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bay-101-san-jose",
       "venue_id": 2206
     },
     {
@@ -843,7 +724,6 @@
       "state": "CA",
       "city": "Brooks",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/cache-creek-brooks",
       "venue_id": 2218
     },
     {
@@ -851,7 +731,6 @@
       "state": "CA",
       "city": "Corning",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/9608",
       "venue_id": 2227
     },
     {
@@ -859,7 +738,6 @@
       "state": "FL",
       "city": "Hallandale Beach",
       "type": "card_room",
-      "pokerAtlasUrl": null,
       "venue_id": 2230
     },
     {
@@ -867,7 +745,6 @@
       "state": "FL",
       "city": "Tampa",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/tgt-poker-tampa",
       "venue_id": 2233
     },
     {
@@ -875,7 +752,6 @@
       "state": "FL",
       "city": "Orange City",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/9608",
       "venue_id": 2237
     },
     {
@@ -883,7 +759,6 @@
       "state": "FL",
       "city": "Jacksonville",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bestbet-jacksonville",
       "venue_id": 2238
     },
     {
@@ -891,7 +766,6 @@
       "state": "FL",
       "city": "Coconut Creek",
       "type": "casino",
-      "pokerAtlasUrl": null,
       "venue_id": 2243
     },
     {
@@ -899,7 +773,6 @@
       "state": "FL",
       "city": "Ebro",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/venetian-las-vegas/cash-games",
       "venue_id": 2249
     },
     {
@@ -907,7 +780,6 @@
       "state": "TX",
       "city": "Houston",
       "type": "poker_club",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/prime-social-houston",
       "venue_id": 2262
     },
     {
@@ -915,7 +787,6 @@
       "state": "TX",
       "city": "Houston",
       "type": "poker_club",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/52-social-houston",
       "venue_id": 2264
     },
     {
@@ -923,7 +794,6 @@
       "state": "NJ",
       "city": "Atlantic City",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/resorts-atlantic-city",
       "venue_id": 2296
     },
     {
@@ -931,7 +801,6 @@
       "state": "PA",
       "city": "Bethlehem",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/wind-creek-bethlehem",
       "venue_id": 2301
     },
     {
@@ -939,7 +808,6 @@
       "state": "PA",
       "city": "Philadelphia",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/sugarhouse-casino-philadelphia",
       "venue_id": 2302
     },
     {
@@ -947,7 +815,6 @@
       "state": "PA",
       "city": "Wilkes-Barre",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/mohegan-sun-pocono-wilkes-barre",
       "venue_id": 2305
     },
     {
@@ -955,7 +822,6 @@
       "state": "PA",
       "city": "Grantville",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/cash-games",
       "venue_id": 2306
     },
     {
@@ -963,7 +829,6 @@
       "state": "PA",
       "city": "Washington",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/tournaments",
       "venue_id": 2307
     },
     {
@@ -971,7 +836,6 @@
       "state": "IL",
       "city": "Chicago",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/rivers-casino-des-plaines",
       "venue_id": 2313
     },
     {
@@ -979,7 +843,6 @@
       "state": "MI",
       "city": "Mt Pleasant",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/soaring-eagle-mt-pleasant",
       "venue_id": 2328
     },
     {
@@ -987,7 +850,6 @@
       "state": "TX",
       "city": "Houston",
       "type": "poker_club",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/river-room-social-club-houston",
       "venue_id": 2419
     },
     {
@@ -995,7 +857,6 @@
       "state": "TX",
       "city": "Austin",
       "type": "poker_club",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/red-star-social-austin",
       "venue_id": 2430
     },
     {
@@ -1003,7 +864,6 @@
       "state": "TX",
       "city": "San Antonio",
       "type": "poker_club",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/lodge-card-club-san-antonio",
       "venue_id": 2433
     },
     {
@@ -1011,7 +871,6 @@
       "state": "TX",
       "city": "Grand Prairie",
       "type": "poker_club",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/palace-poker-grand-prairie",
       "venue_id": 2439
     },
     {
@@ -1019,7 +878,6 @@
       "state": "TX",
       "city": "Dallas",
       "type": "poker_club",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/oak-cliff-card-club-dallas",
       "venue_id": 2440
     },
     {
@@ -1027,7 +885,6 @@
       "state": "TX",
       "city": "Beaumont",
       "type": "poker_club",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/celebrity-card-club-odessa/cash-games",
       "venue_id": 2457
     },
     {
@@ -1035,7 +892,6 @@
       "state": "NY",
       "city": "Verona",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/turning-stone-verona",
       "venue_id": 2465
     },
     {
@@ -1043,7 +899,6 @@
       "state": "NM",
       "city": "Albuquerque",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/10803",
       "venue_id": 2472
     },
     {
@@ -1051,7 +906,6 @@
       "state": "WV",
       "city": "Wheeling",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/wheeling-island",
       "venue_id": 2477
     },
     {
@@ -1059,7 +913,6 @@
       "state": "WV",
       "city": "Cross Lanes",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "venue_id": 2478
     },
     {
@@ -1067,7 +920,6 @@
       "state": "SD",
       "city": "Deadwood",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "venue_id": 2481
     },
     {
@@ -1075,7 +927,6 @@
       "state": "WI",
       "city": "Baraboo",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/oneida-casino-green-bay/cash-games",
       "venue_id": 2486
     },
     {
@@ -1083,7 +934,6 @@
       "state": "ND",
       "city": "St Michael",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/spirit-lake-casino-st-michael",
       "venue_id": 2491
     },
     {
@@ -1091,7 +941,6 @@
       "state": "DE",
       "city": "Dover",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/dover-downs",
       "venue_id": 2497
     },
     {
@@ -1099,7 +948,6 @@
       "state": "NV",
       "city": "Las Vegas",
       "type": "casino",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas",
       "venue_id": 2499
     },
     {
@@ -1107,7 +955,6 @@
       "state": "CA",
       "city": "Bell Gardens",
       "type": "card_room",
-      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bicycle-casino-bell-gardens",
       "venue_id": 2505
     }
   ]
