@@ -426,6 +426,7 @@ export default function MyClubsPage() {
 
     // Auth
     const [user, setUser] = useState(null);
+    const [userId, setUserId] = useState(null);
     const [loading, setLoading] = useState(true);
 
     // Followed clubs data
@@ -477,19 +478,20 @@ export default function MyClubsPage() {
             const authUser = getAuthUser();
             if (authUser) setUser(authUser);
 
-            const userId = authUser?.id || (() => {
+            const resolvedUserId = authUser?.id || (() => {
                 try {
                     return localStorage.getItem('sp-anon-uid') || '';
                 } catch { return ''; }
             setLoading(false);
             })();
+            setUserId(resolvedUserId);
 
             // Get all follows from API
             let venueIds = [];
             const allPageKeys = new Set();
-            if (userId) {
+            if (resolvedUserId) {
                 try {
-                    const res = await fetch(`/api/poker/follow?user_id=${userId}`, signal ? { signal } : {});
+                    const res = await fetch(`/api/poker/follow?user_id=${resolvedUserId}`, signal ? { signal } : {});
                     if (!res.ok) throw new Error(`Request failed (${res.status})`);
                     const json = await res.json();
                     if (json.success && json.data) {
