@@ -47,7 +47,8 @@ export default async function handler(req, res) {
             .from('venue_checkins')
             .select('venue_id')
             .in('venue_id', stringIds)
-            .gte('created_at', twentyFourHoursAgo);
+            .gte('created_at', twentyFourHoursAgo)
+            .limit(1000);
 
         if (error) {
             console.error('Batch counts error:', error);

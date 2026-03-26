@@ -514,6 +514,11 @@ export default function PokerNearMeLobby() {
       delete newState[venueId];
       return newState;
     }),
+    'venue:checkin': (data) => {
+      if (data && data.venueId) {
+        setCheckinCounts(prev => ({ ...prev, [String(data.venueId)]: (prev[String(data.venueId)] || 0) + 1 }));
+      }
+    },
   });
 
   // ─── Core State ───

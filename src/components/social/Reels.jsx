@@ -163,14 +163,34 @@ export function ReelsViewer({ onClose }) {
                 }));
             }
         };
+        const handleFollowBus = (event) => {
+            const d = event?.payload;
+            if (d?.followedId && d?.followerId !== currentUserId) {
+                setFollowing(prev => ({ ...prev, [d.followedId]: d.added }));
+            }
+        };
         eventBus.on(EventType.SOCIAL_POST_LIKED, handleLikeBus);
         eventBus.on(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
         eventBus.on(EventType.SOCIAL_COMMENT_ADDED, handleCommentBus);
+        eventBus.on(EventType.SOCIAL_FOLLOW_CHANGED, handleFollowBus);
         return () => {
             eventBus.off(EventType.SOCIAL_POST_LIKED, handleLikeBus);
             eventBus.off(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
             eventBus.off(EventType.SOCIAL_COMMENT_ADDED, handleCommentBus);
+            eventBus.off(EventType.SOCIAL_FOLLOW_CHANGED, handleFollowBus);
         };
+    }, [currentUserId]);
+
+    // Realtime subscription — live updates when new reels are posted
+    useEffect(() => {
+        if (!currentUserId) return;
+        const _ch = supabase
+            .channel(`reels-viewer:${currentUserId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
+                loadReels();
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
     }, [currentUserId]);
 
     // Reset paused state when changing reels + track view

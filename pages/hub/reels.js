@@ -954,13 +954,21 @@ export default function ReelsPage() {
                 }));
             }
         };
+        const handleFollowBus = (event) => {
+            const d = event?.payload;
+            if (d?.followedId && d?.followerId !== user?.id) {
+                setFollowing(prev => ({ ...prev, [d.followedId]: d.added }));
+            }
+        };
         eventBus.on(EventType.SOCIAL_POST_LIKED, handleLikeBus);
         eventBus.on(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
         eventBus.on(EventType.SOCIAL_COMMENT_ADDED, handleCommentBus);
+        eventBus.on(EventType.SOCIAL_FOLLOW_CHANGED, handleFollowBus);
         return () => {
             eventBus.off(EventType.SOCIAL_POST_LIKED, handleLikeBus);
             eventBus.off(EventType.SOCIAL_POST_BOOKMARKED, handleBookmarkBus);
             eventBus.off(EventType.SOCIAL_COMMENT_ADDED, handleCommentBus);
+            eventBus.off(EventType.SOCIAL_FOLLOW_CHANGED, handleFollowBus);
             clearTimeout(overlayTimerRef.current);
         };
     }, [user?.id]);

@@ -652,6 +652,12 @@ export default function SocialPageDetail() {
     const [venueCheckins, setVenueCheckins] = useState([]);
     const [resolvedVenueId, setResolvedVenueId] = useState(null);
     const [checkinCount, setCheckinCount] = useState(0);
+    // P9: Follow loading, cover/avatar upload
+    const [followLoading, setFollowLoading] = useState(false);
+    const [uploadingCover, setUploadingCover] = useState(false);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const coverInputRef = useRef(null);
+    const avatarInputRef = useRef(null);
 
     // Toast notification system
     const [toastMsg, setToastMsg] = useState(null);
@@ -994,6 +1000,7 @@ export default function SocialPageDetail() {
 
     const handleFollow = async () => {
         if (!user) { router.push('/auth/login'); return; }
+        setFollowLoading(true);
         const newState = !isFollowing;
         const prevCount = page?.follower_count || 0;
         setIsFollowing(newState);
@@ -1024,6 +1031,7 @@ export default function SocialPageDetail() {
             setIsFollowing(!newState);
             setPage(prev => prev ? { ...prev, follower_count: prevCount } : prev);
         }
+        setFollowLoading(false);
     };
 
     const handlePost = async () => {
@@ -1273,18 +1281,49 @@ export default function SocialPageDetail() {
                         ? `url(${page.cover_url}) center/cover` : `linear-gradient(135deg, ${pageColor}, #8b5cf6)`,
                     paddingTop: 56, position: 'relative',
                 }}>
+                    {/* P9-1: Cover photo upload */}
                     {isPageOwner && (
-                        <button onClick={() => router.push(`/hub/social-pages/${pageId}/manage`)} style={{
-                            position: 'absolute', bottom: 12, right: 12, padding: '6px 14px', borderRadius: 8,
-                            background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', fontSize: 12,
-                            fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', backdropFilter: 'blur(4px)',
-                            display: 'flex', alignItems: 'center', gap: 4,
-                        }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
-                            </svg>
-                            Edit Cover
-                        </button>
+                        <>
+                            <input type="file" ref={coverInputRef} accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setUploadingCover(true);
+                                try {
+                                    const ext = file.name.split('.').pop();
+                                    const path = `social-pages/${page.id}/cover_${Date.now()}.${ext}`;
+                                    const { error: upErr } = await supabase.storage.from('uploads').upload(path, file, { upsert: true });
+                                    if (upErr) throw upErr;
+                                    const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path);
+                                    const token = getAccessToken();
+                                    await fetch('/api/social/pages', {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                        body: JSON.stringify({ id: page.id, cover_url: publicUrl }),
+                                    });
+                                    setPage(prev => ({ ...prev, cover_url: publicUrl }));
+                                    toast.success('Cover photo updated!');
+                                    busEmit.dataMutated('social-pages');
+                                } catch (err) { console.error(err); toast.error('Cover upload failed'); }
+                                setUploadingCover(false);
+                                e.target.value = '';
+                            }} />
+                            <button onClick={() => coverInputRef.current?.click()} disabled={uploadingCover} style={{
+                                position: 'absolute', bottom: 12, right: 12, padding: '6px 14px', borderRadius: 8,
+                                background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', fontSize: 12,
+                                fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', backdropFilter: 'blur(4px)',
+                                display: 'flex', alignItems: 'center', gap: 4,
+                                opacity: uploadingCover ? 0.6 : 1,
+                            }}>
+                                {uploadingCover ? (
+                                    <div style={{ width: 14, height: 14, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                ) : (
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
+                                    </svg>
+                                )}
+                                {uploadingCover ? 'Uploading...' : 'Edit Cover'}
+                            </button>
+                        </>
                     )}
                 </div>
 
