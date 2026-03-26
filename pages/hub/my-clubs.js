@@ -607,6 +607,35 @@ export default function MyClubsPage() {
         return () => controller.abort();
     }, []);
 
+    // EventBus listener — refresh when follows change from other pages
+    useEffect(() => {
+        let debounceTimer = null;
+        const handler = (payload) => {
+            if (payload?.topic === 'social-pages' || payload?.topic === 'friends') {
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    // Reload followed venues
+                    const authUser = getAuthUser();
+                    const uid = authUser?.id;
+                    if (uid) {
+                        fetch(`/api/poker/follow?user_id=${uid}`).then(r => r.json()).then(json => {
+                            if (json.success && json.data) {
+                                const vIds = json.data.filter(f => f.page_type === 'venue').map(f => f.page_id);
+                                if (vIds.length > 0) {
+                                    fetch(`/api/poker/venues?ids=${vIds.join(',')}`).then(r2 => r2.json()).then(vjson => {
+                                        if (vjson.success) setFollowedVenues(vjson.data || []);
+                                    }).catch(() => {});
+                                }
+                            }
+                        }).catch(() => {});
+                    }
+                }, 2000);
+            }
+        };
+        eventBus.on(EventType.DATA_MUTATED, handler);
+        return () => { eventBus.off(EventType.DATA_MUTATED, handler); if (debounceTimer) clearTimeout(debounceTimer); };
+    }, []);
+
     // ═══════════════════════════════════════════════════════════════════════
     // SEARCH — Debounced venue search
     // ═══════════════════════════════════════════════════════════════════════
