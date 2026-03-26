@@ -925,6 +925,20 @@ function UniversalDynamicTable({
     const prevStreakRef = useRef(streak);
     const swipeTouchRef = useRef(null);
 
+    // Auto-read player's poker alias from Supabase session
+    const playerName = React.useMemo(() => {
+        if (heroName) return heroName;
+        try {
+            if (typeof window === 'undefined') return null;
+            const keys = Object.keys(localStorage);
+            const sbKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+            if (!sbKey) return null;
+            const session = JSON.parse(localStorage.getItem(sbKey));
+            const meta = session?.user?.user_metadata;
+            return meta?.poker_alias || meta?.full_name || meta?.name || null;
+        } catch { return null; }
+    }, [heroName]);
+
     // Phase 3: RNG Mode state
     const [rngMode, setRngMode] = React.useState(false);
     const [rngRoll, setRngRoll] = React.useState(null);
@@ -1939,25 +1953,25 @@ function UniversalDynamicTable({
                                             ? 'linear-gradient(180deg, #f0c040 0%, #c4960a 100%)'
                                             : 'linear-gradient(180deg, #555 0%, #333 100%)',
                                         border: isHero ? '2px solid #8b6914' : '2px solid #555',
-                                        borderRadius: 6,
-                                        padding: '2px 10px',
-                                        minWidth: 60,
+                                        borderRadius: 8,
+                                        padding: '5px 18px',
+                                        minWidth: 80,
                                         textAlign: 'center',
                                         boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
                                     }}
                                 >
                                     <div style={{
-                                        fontSize: 10,
+                                        fontSize: 14,
                                         fontWeight: 'bold',
                                         color: isHero ? '#000' : '#ccc',
                                         textShadow: isHero ? '0 1px 0 rgba(255,255,255,0.3)' : 'none',
                                         whiteSpace: 'nowrap',
                                         letterSpacing: 0.5,
                                     }}>
-                                        {isHero ? (heroName || 'HERO') : (villainPosition || seat.name || 'Villain')}
+                                        {isHero ? (playerName || 'HERO') : (villainPosition || seat.name || 'Villain')}
                                     </div>
                                     <div style={{
-                                        fontSize: 12,
+                                        fontSize: 16,
                                         fontWeight: 'bold',
                                         color: isHero ? '#1a1a00' : '#22c55e',
                                     }}>

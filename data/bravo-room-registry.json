@@ -1,0 +1,636 @@
+{
+  "metadata": {
+    "description": "Bravo Poker Live venue slugs for live data scraping",
+    "generated": "2026-03-26T15:26:06.557136+00:00",
+    "total_venues": 156,
+    "scrape_interval": "15 minutes",
+    "source": "bravopokerlive.com",
+    "auth_method": "StealthySession(solve_cloudflare=True) + context.new_page() + login form"
+  },
+  "venues": [
+    {
+      "slug": "agua-caliente-casino",
+      "url": "https://www.bravopokerlive.com/venues/agua-caliente-casino/"
+    },
+    {
+      "slug": "alea-glasgow",
+      "url": "https://www.bravopokerlive.com/venues/alea-glasgow/"
+    },
+    {
+      "slug": "alea-nottingham",
+      "url": "https://www.bravopokerlive.com/venues/alea-nottingham/"
+    },
+    {
+      "slug": "american-place-casino",
+      "url": "https://www.bravopokerlive.com/venues/american-place-casino/"
+    },
+    {
+      "slug": "ameristar-black-hawk",
+      "url": "https://www.bravopokerlive.com/venues/ameristar-black-hawk/"
+    },
+    {
+      "slug": "ameristar-east-chicago",
+      "url": "https://www.bravopokerlive.com/venues/ameristar-east-chicago/"
+    },
+    {
+      "slug": "ameristar-st-charles",
+      "url": "https://www.bravopokerlive.com/venues/ameristar-st-charles/"
+    },
+    {
+      "slug": "ameristar-vicksburg",
+      "url": "https://www.bravopokerlive.com/venues/ameristar-vicksburg/"
+    },
+    {
+      "slug": "aria-resort-casino",
+      "url": "https://www.bravopokerlive.com/venues/aria-resort-casino/"
+    },
+    {
+      "slug": "atlantis-casino",
+      "url": "https://www.bravopokerlive.com/venues/atlantis-casino/"
+    },
+    {
+      "slug": "ballys-black-hawk",
+      "url": "https://www.bravopokerlive.com/venues/ballys-black-hawk/"
+    },
+    {
+      "slug": "ballys-evansville-casino-hotel",
+      "url": "https://www.bravopokerlive.com/venues/ballys-evansville-casino-hotel/"
+    },
+    {
+      "slug": "ballys-shreveport",
+      "url": "https://www.bravopokerlive.com/venues/ballys-shreveport/"
+    },
+    {
+      "slug": "ballys-twin-river",
+      "url": "https://www.bravopokerlive.com/venues/ballys-twin-river/"
+    },
+    {
+      "slug": "beau-rivage",
+      "url": "https://www.bravopokerlive.com/venues/beau-rivage/"
+    },
+    {
+      "slug": "bellagio",
+      "url": "https://www.bravopokerlive.com/venues/bellagio/"
+    },
+    {
+      "slug": "boomtown-casino-biloxi",
+      "url": "https://www.bravopokerlive.com/venues/boomtown-casino-biloxi/"
+    },
+    {
+      "slug": "boomtown-casino-new-orleans",
+      "url": "https://www.bravopokerlive.com/venues/boomtown-casino-new-orleans/"
+    },
+    {
+      "slug": "borgata-hotel-casino-spa",
+      "url": "https://www.bravopokerlive.com/venues/borgata-hotel-casino-spa/"
+    },
+    {
+      "slug": "boulder-station",
+      "url": "https://www.bravopokerlive.com/venues/boulder-station/"
+    },
+    {
+      "slug": "caesars-new-orleans",
+      "url": "https://www.bravopokerlive.com/venues/caesars-new-orleans/"
+    },
+    {
+      "slug": "caesars-palace",
+      "url": "https://www.bravopokerlive.com/venues/caesars-palace/"
+    },
+    {
+      "slug": "caesars-republic-lake-tahoe",
+      "url": "https://www.bravopokerlive.com/venues/caesars-republic-lake-tahoe/"
+    },
+    {
+      "slug": "caesars-southern-indiana",
+      "url": "https://www.bravopokerlive.com/venues/caesars-southern-indiana/"
+    },
+    {
+      "slug": "caesars-virginia",
+      "url": "https://www.bravopokerlive.com/venues/caesars-virginia/"
+    },
+    {
+      "slug": "caesars-windsor",
+      "url": "https://www.bravopokerlive.com/venues/caesars-windsor/"
+    },
+    {
+      "slug": "calder-casino",
+      "url": "https://www.bravopokerlive.com/venues/calder-casino/"
+    },
+    {
+      "slug": "canterbury-park-card-casino",
+      "url": "https://www.bravopokerlive.com/venues/canterbury-park-card-casino/"
+    },
+    {
+      "slug": "casino-del-sol-resort",
+      "url": "https://www.bravopokerlive.com/venues/casino-del-sol-resort/"
+    },
+    {
+      "slug": "casino-miami",
+      "url": "https://www.bravopokerlive.com/venues/casino-miami/"
+    },
+    {
+      "slug": "casino-niagara",
+      "url": "https://www.bravopokerlive.com/venues/casino-niagara/"
+    },
+    {
+      "slug": "century-casino-cape-girardeau",
+      "url": "https://www.bravopokerlive.com/venues/century-casino-cape-girardeau/"
+    },
+    {
+      "slug": "cherokee-casino-west-siloam",
+      "url": "https://www.bravopokerlive.com/venues/cherokee-casino-west-siloam/"
+    },
+    {
+      "slug": "choctaw-casino-durant",
+      "url": "https://www.bravopokerlive.com/venues/choctaw-casino-durant/"
+    },
+    {
+      "slug": "choctaw-pocola",
+      "url": "https://www.bravopokerlive.com/venues/choctaw-pocola/"
+    },
+    {
+      "slug": "chumash-casino-resort",
+      "url": "https://www.bravopokerlive.com/venues/chumash-casino-resort/"
+    },
+    {
+      "slug": "commerce-casino",
+      "url": "https://www.bravopokerlive.com/venues/commerce-casino/"
+    },
+    {
+      "slug": "coushatta-casino",
+      "url": "https://www.bravopokerlive.com/venues/coushatta-casino/"
+    },
+    {
+      "slug": "daytona-beach-poker-room",
+      "url": "https://www.bravopokerlive.com/venues/daytona-beach-poker-room/"
+    },
+    {
+      "slug": "del-lago-resort-casino",
+      "url": "https://www.bravopokerlive.com/venues/del-lago-resort-casino/"
+    },
+    {
+      "slug": "delaware-park-casino",
+      "url": "https://www.bravopokerlive.com/venues/delaware-park-casino/"
+    },
+    {
+      "slug": "desert-diamond-casino-tucson",
+      "url": "https://www.bravopokerlive.com/venues/desert-diamond-casino-tucson/"
+    },
+    {
+      "slug": "desert-diamond-casino-west-valley",
+      "url": "https://www.bravopokerlive.com/venues/desert-diamond-casino-west-valley/"
+    },
+    {
+      "slug": "desert-diamond-white-tanks",
+      "url": "https://www.bravopokerlive.com/venues/desert-diamond-white-tanks/"
+    },
+    {
+      "slug": "elements-casino-brantford",
+      "url": "https://www.bravopokerlive.com/venues/elements-casino-brantford/"
+    },
+    {
+      "slug": "elk-valley-casino",
+      "url": "https://www.bravopokerlive.com/venues/elk-valley-casino/"
+    },
+    {
+      "slug": "empire-casino",
+      "url": "https://www.bravopokerlive.com/venues/empire-casino/"
+    },
+    {
+      "slug": "fallsview-casino-resort",
+      "url": "https://www.bravopokerlive.com/venues/fallsview-casino-resort/"
+    },
+    {
+      "slug": "firekeepers-casino-hotel",
+      "url": "https://www.bravopokerlive.com/venues/firekeepers-casino-hotel/"
+    },
+    {
+      "slug": "four-winds-south-bend",
+      "url": "https://www.bravopokerlive.com/venues/four-winds-south-bend/"
+    },
+    {
+      "slug": "foxwoods-resort-casino",
+      "url": "https://www.bravopokerlive.com/venues/foxwoods-resort-casino/"
+    },
+    {
+      "slug": "golden-nugget-lake-charles",
+      "url": "https://www.bravopokerlive.com/venues/golden-nugget-lake-charles/"
+    },
+    {
+      "slug": "golden-nugget-las-vegas",
+      "url": "https://www.bravopokerlive.com/venues/golden-nugget-las-vegas/"
+    },
+    {
+      "slug": "grand-sierra-resort",
+      "url": "https://www.bravopokerlive.com/venues/grand-sierra-resort/"
+    },
+    {
+      "slug": "grand-victoria-casino-elgin",
+      "url": "https://www.bravopokerlive.com/venues/grand-victoria-casino-elgin/"
+    },
+    {
+      "slug": "graton-resort-casino",
+      "url": "https://www.bravopokerlive.com/venues/graton-resort-casino/"
+    },
+    {
+      "slug": "green-valley-ranch",
+      "url": "https://www.bravopokerlive.com/venues/green-valley-ranch/"
+    },
+    {
+      "slug": "gun-lake-casino",
+      "url": "https://www.bravopokerlive.com/venues/gun-lake-casino/"
+    },
+    {
+      "slug": "hard-rock-casino-cincinnati",
+      "url": "https://www.bravopokerlive.com/venues/hard-rock-casino-cincinnati/"
+    },
+    {
+      "slug": "hard-rock-casino-rockford",
+      "url": "https://www.bravopokerlive.com/venues/hard-rock-casino-rockford/"
+    },
+    {
+      "slug": "hard-rock-hotel-casino-bristol",
+      "url": "https://www.bravopokerlive.com/venues/hard-rock-hotel-casino-bristol/"
+    },
+    {
+      "slug": "hard-rock-tulsa",
+      "url": "https://www.bravopokerlive.com/venues/hard-rock-tulsa/"
+    },
+    {
+      "slug": "harrah-s-cherokee-valley-river",
+      "url": "https://www.bravopokerlive.com/venues/harrah-s-cherokee-valley-river/"
+    },
+    {
+      "slug": "harrahs-atlantic-city",
+      "url": "https://www.bravopokerlive.com/venues/harrahs-atlantic-city/"
+    },
+    {
+      "slug": "harrahs-cherokee",
+      "url": "https://www.bravopokerlive.com/venues/harrahs-cherokee/"
+    },
+    {
+      "slug": "harrahs-kansas-city",
+      "url": "https://www.bravopokerlive.com/venues/harrahs-kansas-city/"
+    },
+    {
+      "slug": "harrahs-laughlin",
+      "url": "https://www.bravopokerlive.com/venues/harrahs-laughlin/"
+    },
+    {
+      "slug": "harrahs-pompano-beach",
+      "url": "https://www.bravopokerlive.com/venues/harrahs-pompano-beach/"
+    },
+    {
+      "slug": "hialeah-park-casino",
+      "url": "https://www.bravopokerlive.com/venues/hialeah-park-casino/"
+    },
+    {
+      "slug": "hollywood-casino-at-penn-national",
+      "url": "https://www.bravopokerlive.com/venues/hollywood-casino-at-penn-national/"
+    },
+    {
+      "slug": "hollywood-casino-at-the-meadows-poker-room",
+      "url": "https://www.bravopokerlive.com/venues/hollywood-casino-at-the-meadows-poker-room/"
+    },
+    {
+      "slug": "hollywood-casino-aurora",
+      "url": "https://www.bravopokerlive.com/venues/hollywood-casino-aurora/"
+    },
+    {
+      "slug": "hollywood-casino-columbus",
+      "url": "https://www.bravopokerlive.com/venues/hollywood-casino-columbus/"
+    },
+    {
+      "slug": "hollywood-casino-gulf-coast",
+      "url": "https://www.bravopokerlive.com/venues/hollywood-casino-gulf-coast/"
+    },
+    {
+      "slug": "hollywood-casino-hotel-bangor",
+      "url": "https://www.bravopokerlive.com/venues/hollywood-casino-hotel-bangor/"
+    },
+    {
+      "slug": "hollywood-casino-morgantown",
+      "url": "https://www.bravopokerlive.com/venues/hollywood-casino-morgantown/"
+    },
+    {
+      "slug": "hollywood-casino-toledo",
+      "url": "https://www.bravopokerlive.com/venues/hollywood-casino-toledo/"
+    },
+    {
+      "slug": "hollywood-charles-town",
+      "url": "https://www.bravopokerlive.com/venues/hollywood-charles-town/"
+    },
+    {
+      "slug": "hollywood-kansas-speedway",
+      "url": "https://www.bravopokerlive.com/venues/hollywood-kansas-speedway/"
+    },
+    {
+      "slug": "hollywood-perryville",
+      "url": "https://www.bravopokerlive.com/venues/hollywood-perryville/"
+    },
+    {
+      "slug": "hollywood-stl-poker-stlouispokerhc",
+      "url": "https://www.bravopokerlive.com/venues/hollywood-stl-poker-stlouispokerhc/"
+    },
+    {
+      "slug": "horseshoe-baltimore",
+      "url": "https://www.bravopokerlive.com/venues/horseshoe-baltimore/"
+    },
+    {
+      "slug": "horseshoe-black-hawk",
+      "url": "https://www.bravopokerlive.com/venues/horseshoe-black-hawk/"
+    },
+    {
+      "slug": "horseshoe-bossier-city",
+      "url": "https://www.bravopokerlive.com/venues/horseshoe-bossier-city/"
+    },
+    {
+      "slug": "horseshoe-council-bluffs",
+      "url": "https://www.bravopokerlive.com/venues/horseshoe-council-bluffs/"
+    },
+    {
+      "slug": "horseshoe-hammond",
+      "url": "https://www.bravopokerlive.com/venues/horseshoe-hammond/"
+    },
+    {
+      "slug": "horseshoe-indianapolis",
+      "url": "https://www.bravopokerlive.com/venues/horseshoe-indianapolis/"
+    },
+    {
+      "slug": "horseshoe-las-vegas",
+      "url": "https://www.bravopokerlive.com/venues/horseshoe-las-vegas/"
+    },
+    {
+      "slug": "horseshoe-st-louis",
+      "url": "https://www.bravopokerlive.com/venues/horseshoe-st-louis/"
+    },
+    {
+      "slug": "horseshoe-tunica",
+      "url": "https://www.bravopokerlive.com/venues/horseshoe-tunica/"
+    },
+    {
+      "slug": "inn-of-the-mountain-gods",
+      "url": "https://www.bravopokerlive.com/venues/inn-of-the-mountain-gods/"
+    },
+    {
+      "slug": "ip-casino-resort-spa",
+      "url": "https://www.bravopokerlive.com/venues/ip-casino-resort-spa/"
+    },
+    {
+      "slug": "jack-casino-cleveland",
+      "url": "https://www.bravopokerlive.com/venues/jack-casino-cleveland/"
+    },
+    {
+      "slug": "jamul-casino",
+      "url": "https://www.bravopokerlive.com/venues/jamul-casino/"
+    },
+    {
+      "slug": "lake-elsinore-casino",
+      "url": "https://www.bravopokerlive.com/venues/lake-elsinore-casino/"
+    },
+    {
+      "slug": "lauberge-baton-rouge",
+      "url": "https://www.bravopokerlive.com/venues/lauberge-baton-rouge/"
+    },
+    {
+      "slug": "live-casino-hotel-philadelphia",
+      "url": "https://www.bravopokerlive.com/venues/live-casino-hotel-philadelphia/"
+    },
+    {
+      "slug": "live-casino-pittsburgh",
+      "url": "https://www.bravopokerlive.com/venues/live-casino-pittsburgh/"
+    },
+    {
+      "slug": "lone-butte",
+      "url": "https://www.bravopokerlive.com/venues/lone-butte/"
+    },
+    {
+      "slug": "manchester235",
+      "url": "https://www.bravopokerlive.com/venues/manchester235/"
+    },
+    {
+      "slug": "mandalay-bay",
+      "url": "https://www.bravopokerlive.com/venues/mandalay-bay/"
+    },
+    {
+      "slug": "mardi-gras-west-virginia",
+      "url": "https://www.bravopokerlive.com/venues/mardi-gras-west-virginia/"
+    },
+    {
+      "slug": "maryland-live",
+      "url": "https://www.bravopokerlive.com/venues/maryland-live/"
+    },
+    {
+      "slug": "mgm-grand-detroit",
+      "url": "https://www.bravopokerlive.com/venues/mgm-grand-detroit/"
+    },
+    {
+      "slug": "mgm-grand",
+      "url": "https://www.bravopokerlive.com/venues/mgm-grand/"
+    },
+    {
+      "slug": "mgm-national-harbor-casino-resort",
+      "url": "https://www.bravopokerlive.com/venues/mgm-national-harbor-casino-resort/"
+    },
+    {
+      "slug": "mgm-springfield",
+      "url": "https://www.bravopokerlive.com/venues/mgm-springfield/"
+    },
+    {
+      "slug": "miccosukee-casino-resort",
+      "url": "https://www.bravopokerlive.com/venues/miccosukee-casino-resort/"
+    },
+    {
+      "slug": "mohegan-pennsylvania",
+      "url": "https://www.bravopokerlive.com/venues/mohegan-pennsylvania/"
+    },
+    {
+      "slug": "mohegan-sun",
+      "url": "https://www.bravopokerlive.com/venues/mohegan-sun/"
+    },
+    {
+      "slug": "monarch-black-hawk",
+      "url": "https://www.bravopokerlive.com/venues/monarch-black-hawk/"
+    },
+    {
+      "slug": "morongo-casino-resort-spa",
+      "url": "https://www.bravopokerlive.com/venues/morongo-casino-resort-spa/"
+    },
+    {
+      "slug": "mount-airy-casino",
+      "url": "https://www.bravopokerlive.com/venues/mount-airy-casino/"
+    },
+    {
+      "slug": "norwegian-cruise-lines-poker-challenge",
+      "url": "https://www.bravopokerlive.com/venues/norwegian-cruise-lines-poker-challenge/"
+    },
+    {
+      "slug": "oneida-casino",
+      "url": "https://www.bravopokerlive.com/venues/oneida-casino/"
+    },
+    {
+      "slug": "orange-city-poker",
+      "url": "https://www.bravopokerlive.com/venues/orange-city-poker/"
+    },
+    {
+      "slug": "oxford-downs-poker-room",
+      "url": "https://www.bravopokerlive.com/venues/oxford-downs-poker-room/"
+    },
+    {
+      "slug": "parkwest-bicycle-club",
+      "url": "https://www.bravopokerlive.com/venues/parkwest-bicycle-club/"
+    },
+    {
+      "slug": "parx-casino",
+      "url": "https://www.bravopokerlive.com/venues/parx-casino/"
+    },
+    {
+      "slug": "pearl-river-resort",
+      "url": "https://www.bravopokerlive.com/venues/pearl-river-resort/"
+    },
+    {
+      "slug": "peppermill-casino-wendover",
+      "url": "https://www.bravopokerlive.com/venues/peppermill-casino-wendover/"
+    },
+    {
+      "slug": "peppermill-casino",
+      "url": "https://www.bravopokerlive.com/venues/peppermill-casino/"
+    },
+    {
+      "slug": "potawatomi-casino-resort",
+      "url": "https://www.bravopokerlive.com/venues/potawatomi-casino-resort/"
+    },
+    {
+      "slug": "quechan-casino",
+      "url": "https://www.bravopokerlive.com/venues/quechan-casino/"
+    },
+    {
+      "slug": "red-rock-casino",
+      "url": "https://www.bravopokerlive.com/venues/red-rock-casino/"
+    },
+    {
+      "slug": "rendezvous-brighton",
+      "url": "https://www.bravopokerlive.com/venues/rendezvous-brighton/"
+    },
+    {
+      "slug": "resorts-world-catskills",
+      "url": "https://www.bravopokerlive.com/venues/resorts-world-catskills/"
+    },
+    {
+      "slug": "river-spirit-casino",
+      "url": "https://www.bravopokerlive.com/venues/river-spirit-casino/"
+    },
+    {
+      "slug": "rivers-casino-des-plaines",
+      "url": "https://www.bravopokerlive.com/venues/rivers-casino-des-plaines/"
+    },
+    {
+      "slug": "rivers-casino-new-york",
+      "url": "https://www.bravopokerlive.com/venues/rivers-casino-new-york/"
+    },
+    {
+      "slug": "rivers-casino-philadelphia",
+      "url": "https://www.bravopokerlive.com/venues/rivers-casino-philadelphia/"
+    },
+    {
+      "slug": "rivers-casino-portsmouth",
+      "url": "https://www.bravopokerlive.com/venues/rivers-casino-portsmouth/"
+    },
+    {
+      "slug": "rivers-casino",
+      "url": "https://www.bravopokerlive.com/venues/rivers-casino/"
+    },
+    {
+      "slug": "running-aces",
+      "url": "https://www.bravopokerlive.com/venues/running-aces/"
+    },
+    {
+      "slug": "sandia-casino",
+      "url": "https://www.bravopokerlive.com/venues/sandia-casino/"
+    },
+    {
+      "slug": "santa-fe-station",
+      "url": "https://www.bravopokerlive.com/venues/santa-fe-station/"
+    },
+    {
+      "slug": "saracen-casino-resort",
+      "url": "https://www.bravopokerlive.com/venues/saracen-casino-resort/"
+    },
+    {
+      "slug": "seminole-coconut-creek",
+      "url": "https://www.bravopokerlive.com/venues/seminole-coconut-creek/"
+    },
+    {
+      "slug": "seminole-hard-rock-hollywood",
+      "url": "https://www.bravopokerlive.com/venues/seminole-hard-rock-hollywood/"
+    },
+    {
+      "slug": "seminole-hard-rock-tampa",
+      "url": "https://www.bravopokerlive.com/venues/seminole-hard-rock-tampa/"
+    },
+    {
+      "slug": "silver-legacy-resort-casino",
+      "url": "https://www.bravopokerlive.com/venues/silver-legacy-resort-casino/"
+    },
+    {
+      "slug": "soaring-eagle",
+      "url": "https://www.bravopokerlive.com/venues/soaring-eagle/"
+    },
+    {
+      "slug": "south-point",
+      "url": "https://www.bravopokerlive.com/venues/south-point/"
+    },
+    {
+      "slug": "sycuan-casino-resort",
+      "url": "https://www.bravopokerlive.com/venues/sycuan-casino-resort/"
+    },
+    {
+      "slug": "talking-stick-resort",
+      "url": "https://www.bravopokerlive.com/venues/talking-stick-resort/"
+    },
+    {
+      "slug": "terre-haute-casino-resort",
+      "url": "https://www.bravopokerlive.com/venues/terre-haute-casino-resort/"
+    },
+    {
+      "slug": "the-big-easy-poker-room",
+      "url": "https://www.bravopokerlive.com/venues/the-big-easy-poker-room/"
+    },
+    {
+      "slug": "the-casino-at-dania-beach",
+      "url": "https://www.bravopokerlive.com/venues/the-casino-at-dania-beach/"
+    },
+    {
+      "slug": "the-orleans",
+      "url": "https://www.bravopokerlive.com/venues/the-orleans/"
+    },
+    {
+      "slug": "tioga-downs",
+      "url": "https://www.bravopokerlive.com/venues/tioga-downs/"
+    },
+    {
+      "slug": "tropicana-ac",
+      "url": "https://www.bravopokerlive.com/venues/tropicana-ac/"
+    },
+    {
+      "slug": "turning-stone-resort-casino",
+      "url": "https://www.bravopokerlive.com/venues/turning-stone-resort-casino/"
+    },
+    {
+      "slug": "wendover-nugget",
+      "url": "https://www.bravopokerlive.com/venues/wendover-nugget/"
+    },
+    {
+      "slug": "wheeling-island-hotel-casino-racetrack",
+      "url": "https://www.bravopokerlive.com/venues/wheeling-island-hotel-casino-racetrack/"
+    },
+    {
+      "slug": "win-river",
+      "url": "https://www.bravopokerlive.com/venues/win-river/"
+    },
+    {
+      "slug": "wind-creek-chicago-southland",
+      "url": "https://www.bravopokerlive.com/venues/wind-creek-chicago-southland/"
+    }
+  ]
+}
