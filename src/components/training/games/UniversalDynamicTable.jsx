@@ -1938,84 +1938,103 @@ function UniversalDynamicTable({
                                     </motion.div>
                                 )}
 
-                                {/* Position Circle with abbreviation */}
-                                <motion.div
-                                    animate={isHero ? {
-                                        boxShadow: [
-                                            '0 0 8px rgba(0,212,255,0.3)',
-                                            '0 0 18px rgba(0,212,255,0.5)',
-                                            '0 0 8px rgba(0,212,255,0.3)',
-                                        ]
-                                    } : {}}
-                                    transition={isHero ? { repeat: Infinity, duration: 2.5, ease: 'easeInOut' } : {}}
-                                    style={{
-                                        ...styles.avatar,
-                                        ...m.avatar,
-                                        border: isHero ? '3px solid #00d4ff' : '2px solid #4a4a55',
-                                        background: isHero ? 'rgba(0,212,255,0.08)' : '#2a2a32',
-                                        color: isHero ? '#00d4ff' : '#94a3b8',
-                                    }}
-                                >
-                                    {seat.name}
-                                </motion.div>
-
-                                {/* Dealer Button — Premium styled */}
+                                {/* Dealer Button — to the LEFT */}
                                 {isButton && (
                                     <motion.div
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
                                         transition={{ type: 'spring', delay: 0.3 }}
                                         style={{
-                                            ...styles.dealerButton,
+                                            width: 20,
+                                            height: 20,
+                                            borderRadius: '50%',
                                             background: 'linear-gradient(180deg, #f5f0e0 0%, #e0d4b8 100%)',
                                             color: '#1a1a1a',
                                             fontWeight: 900,
-                                            fontSize: 8,
+                                            fontSize: 9,
                                             letterSpacing: 0.5,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
                                             boxShadow: '0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.4)',
                                             border: '1px solid rgba(251,191,36,0.5)',
+                                            flexShrink: 0,
                                         }}
                                     >
                                         D
                                     </motion.div>
                                 )}
 
-                                {/* Badge + Cards */}
-                                <div style={isHero ? styles.heroRow : undefined}>
-                                    <div style={{
-                                        ...styles.badge,
-                                        ...m.badge,
-                                        background: isHero ? 'rgba(0,212,255,0.06)' : '#2a2a32',
-                                        borderColor: isHero ? '#00d4ff' : '#4a4a55',
-                                    }}>
-                                        <div style={{ ...styles.badgeLabel, color: isHero ? '#00d4ff' : '#94a3b8' }}>
-                                            {isHero ? 'HERO' : 'Villain'}
-                                        </div>
-                                        <div style={styles.badgeStack}>{stackSize} bb</div>
+                                {/* Badge: Position + Stack */}
+                                <div style={{
+                                    ...styles.badge,
+                                    ...m.badge,
+                                    background: isHero ? 'rgba(0,212,255,0.06)' : '#2a2a32',
+                                    borderColor: isHero ? '#00d4ff' : '#4a4a55',
+                                }}>
+                                    <div style={{ ...styles.badgeLabel, color: isHero ? '#00d4ff' : '#94a3b8' }}>
+                                        {isHero ? 'HERO' : 'Villain'}
                                     </div>
-
-                                    {/* Hero Cards — moved to dedicated large display below table (GAP 3) */}
-                                    {/* Face-down villain cards for active players */}
-                                    {!isHero && !villainFolded && (
-                                        <div style={{ display: 'flex', gap: 1, marginTop: 2 }}>
-                                            <img src="/cards/back.png" alt="" style={{
-                                                width: 22, height: 32, borderRadius: 3,
-                                                transform: 'rotate(-5deg)',
-                                                boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
-                                                opacity: 0.7,
-                                            }} />
-                                            <img src="/cards/back.png" alt="" style={{
-                                                width: 22, height: 32, borderRadius: 3,
-                                                transform: 'rotate(5deg)',
-                                                marginLeft: -10,
-                                                boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
-                                                opacity: 0.7,
-                                            }} />
-                                        </div>
-                                    )}
-
-                                    {/* Hand strength moved to GAP 3 hero card display below table */}
+                                    <div style={styles.badgeStack}>{stackSize} bb</div>
                                 </div>
+
+                                {/* Cards — TO THE RIGHT of the seat */}
+                                {/* Hero: face-up cards */}
+                                {isHero && heroCards.length > 0 && (
+                                    <div style={{ display: 'flex', gap: 2, marginLeft: 4, flexShrink: 0 }}>
+                                        {heroCards[0] && (
+                                            <motion.img
+                                                key={`hero-seat-0-${questionNumber}`}
+                                                src={getCardPath(heroCards[0])}
+                                                alt={heroCards[0]}
+                                                initial={{ scale: 0.6, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                transition={{ delay: 0.1, duration: 0.3, type: 'spring' }}
+                                                style={{
+                                                    width: isMobile ? 32 : 38,
+                                                    height: isMobile ? 46 : 54,
+                                                    borderRadius: 4,
+                                                    boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
+                                                    border: '1.5px solid rgba(255,255,255,0.3)',
+                                                }}
+                                            />
+                                        )}
+                                        {heroCards[1] && (
+                                            <motion.img
+                                                key={`hero-seat-1-${questionNumber}`}
+                                                src={getCardPath(heroCards[1])}
+                                                alt={heroCards[1]}
+                                                initial={{ scale: 0.6, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                transition={{ delay: 0.2, duration: 0.3, type: 'spring' }}
+                                                style={{
+                                                    width: isMobile ? 32 : 38,
+                                                    height: isMobile ? 46 : 54,
+                                                    borderRadius: 4,
+                                                    marginLeft: -6,
+                                                    boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
+                                                    border: '1.5px solid rgba(255,255,255,0.3)',
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                )}
+                                {/* Villain: face-down cards */}
+                                {!isHero && !villainFolded && (
+                                    <div style={{ display: 'flex', gap: 1, marginLeft: 4, flexShrink: 0 }}>
+                                        <img src="/cards/back.png" alt="" style={{
+                                            width: isMobile ? 18 : 22, height: isMobile ? 26 : 32, borderRadius: 3,
+                                            boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                                            opacity: 0.7,
+                                        }} />
+                                        <img src="/cards/back.png" alt="" style={{
+                                            width: isMobile ? 18 : 22, height: isMobile ? 26 : 32, borderRadius: 3,
+                                            marginLeft: -8,
+                                            boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                                            opacity: 0.7,
+                                        }} />
+                                    </div>
+                                )}
                             </motion.div>
                         );
                     })}
@@ -2169,58 +2188,13 @@ function UniversalDynamicTable({
                 </motion.div>
             </div>
 
-            {/* GAP 3: HERO CARDS — GTO Wizard-style large display below table */}
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                padding: isMobile ? '6px 0 4px' : '10px 0 6px',
-                flexShrink: 0,
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6 }}>
-                    {heroCards[0] && (
-                        <motion.img
-                            key={`hero-0-${questionNumber}`}
-                            src={getCardPath(heroCards[0])}
-                            alt={heroCards[0]}
-                            initial={{ y: 30, opacity: 0, rotateZ: -15 }}
-                            animate={{ y: 0, opacity: 1, rotateZ: -6 }}
-                            transition={{ delay: 0.1, duration: 0.4, type: 'spring' }}
-                            style={{
-                                width: isMobile ? 48 : 56,
-                                height: isMobile ? 68 : 80,
-                                borderRadius: 8,
-                                boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
-                                border: '2px solid rgba(255,255,255,0.3)',
-                            }}
-                        />
-                    )}
-                    {heroCards[1] && (
-                        <motion.img
-                            key={`hero-1-${questionNumber}`}
-                            src={getCardPath(heroCards[1])}
-                            alt={heroCards[1]}
-                            initial={{ y: 30, opacity: 0, rotateZ: 15 }}
-                            animate={{ y: 0, opacity: 1, rotateZ: 6 }}
-                            transition={{ delay: 0.2, duration: 0.4, type: 'spring' }}
-                            style={{
-                                width: isMobile ? 48 : 56,
-                                height: isMobile ? 68 : 80,
-                                borderRadius: 8,
-                                marginLeft: isMobile ? -12 : -16,
-                                boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
-                                border: '2px solid rgba(255,255,255,0.3)',
-                            }}
-                        />
-                    )}
-                </div>
-                {/* Hand Strength Label */}
-                {handStrength && !showFeedback && (
+            {/* Hand Strength indicator (cards now inline in seat) */}
+            {handStrength && !showFeedback && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0', flexShrink: 0 }}>
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         style={{
-                            marginTop: 4,
                             fontSize: 10, fontWeight: 'bold',
                             color: handStrength.color,
                             background: `${handStrength.color}15`,
@@ -2231,8 +2205,8 @@ function UniversalDynamicTable({
                     >
                         {handStrength.label}
                     </motion.div>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* SESSION STATS HUD — Score, EV Loss, Mistakes + Difficulty Bar */}
             <div style={styles.statsHUD}>
@@ -3293,8 +3267,8 @@ const styles = {
     feltOuter: {
         position: 'relative',
         width: '100%',
-        maxWidth: 600,
-        aspectRatio: '2 / 1.4',
+        maxWidth: 400,
+        aspectRatio: '1 / 1.6',
         borderRadius: '50%',
         background: 'transparent',
         margin: '0 auto',
@@ -3332,9 +3306,10 @@ const styles = {
         position: 'absolute',
         transform: 'translate(-50%, -50%)',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
+        pointerEvents: 'auto',
     },
 
     // GTO Wizard-style position circle indicator (no avatar images)
