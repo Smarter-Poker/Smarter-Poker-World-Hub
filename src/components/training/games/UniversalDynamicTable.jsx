@@ -948,8 +948,8 @@ function UniversalDynamicTable({
     const m = useMemo(() => ({
         avatar: isMobile ? { width: 32, height: 32, fontSize: 9, border: '1.5px solid #4a4a55' } : {},
         badge: isMobile ? { padding: '2px 5px', fontSize: 8 } : {},
-        card: isMobile ? { width: 42, height: 60, borderRadius: 4 } : {},
-        boardCard: isMobile ? { width: 40, height: 57, borderRadius: 4 } : {},
+        card: isMobile ? { width: 36, height: 52, borderRadius: 3 } : {},
+        boardCard: isMobile ? { width: 34, height: 48, borderRadius: 3 } : {},
         pot: isMobile ? { top: '20%', fontSize: 13 } : {},
         actionButton: isMobile ? { padding: '10px 4px', minHeight: 50, fontSize: 12 } : {},
         villainCard: isMobile ? { width: 16, height: 22 } : {},
@@ -1883,7 +1883,7 @@ function UniversalDynamicTable({
                         if (activeCount <= 2) {
                             // Force GTO Wizard positions: Hero = bottom-center rail edge, Villain = top-center rail edge
                             seatX = 50;
-                            seatY = isHero ? 85 : 6;
+                            seatY = isHero ? 88 : 2;
                         }
 
                         return (
@@ -3285,8 +3285,8 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 0,
-        padding: '20px 20px 10px 20px',
+        minHeight: 280,
+        padding: '12px 16px 8px 16px',
     },
 
     // ── CSS TABLE — GTO Wizard-style minimalist dark oval outline
@@ -3448,16 +3448,16 @@ const styles = {
     },
 
     card: {
-        width: 56,
-        height: 80,
-        borderRadius: 6,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+        width: 48,
+        height: 68,
+        borderRadius: 5,
+        boxShadow: '0 3px 12px rgba(0,0,0,0.5)',
         border: '2px solid rgba(255,255,255,0.3)',
     },
 
     boardCards: {
         position: 'absolute',
-        top: '38%',
+        top: '43%',
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
@@ -3475,7 +3475,7 @@ const styles = {
 
     pot: {
         position: 'absolute',
-        top: '24%',
+        top: '28%',
         left: '50%',
         transform: 'translateX(-50%)',
         color: '#e2e8f0',
