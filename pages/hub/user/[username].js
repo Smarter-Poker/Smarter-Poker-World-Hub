@@ -2440,7 +2440,7 @@ export default function UserProfilePage() {
                                     </div>
                                     {checkinHeatmap.peakDay && (
                                         <div style={{ fontSize: 11, color: C.textSec, marginTop: 8, textAlign: 'center' }}>
-                                            Most active: <b style={{ color: C.text }}>{checkinHeatmap.peakDay}</b> at <b style={{ color: C.text }}>{checkinHeatmap.peakHour > 12 ? (checkinHeatmap.peakHour - 12) + 'p' : (checkinHeatmap.peakHour || 12) + 'a'}</b>
+                                            Most active: <b style={{ color: C.text }}>{checkinHeatmap.peakDay}</b> at <b style={{ color: C.text }}>{checkinHeatmap.peakHour === 0 ? '12a' : checkinHeatmap.peakHour < 12 ? checkinHeatmap.peakHour + 'a' : checkinHeatmap.peakHour === 12 ? '12p' : (checkinHeatmap.peakHour - 12) + 'p'}</b>
                                         </div>
                                     )}
                                 </div>

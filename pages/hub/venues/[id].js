@@ -631,7 +631,7 @@ export default function VenueDetailPage() {
             .catch(function() { });
           fetch('/api/poker/checkins/popular-hours?venue_id=' + id)
             .then(function(r) { return r.json(); })
-            .then(function(j) { if (j.success) setPopularHours({ hours: j.hours || [], busiestHour: j.busiestHour }); })
+            .then(function(j) { if (j.success) setPopularHours({ hours: j.hours || [], maxCount: j.maxCount || 1, peakHour: j.peakHour || '' }); })
             .catch(function() { });
         }, 500);
       })
@@ -777,7 +777,7 @@ export default function VenueDetailPage() {
             .catch(function() { });
           fetch('/api/poker/checkins/popular-hours?venue_id=' + id)
             .then(function(r) { return r.json(); })
-            .then(function(j) { if (j.success) setPopularHours({ hours: j.hours || [], busiestHour: j.busiestHour }); })
+            .then(function(j) { if (j.success) setPopularHours({ hours: j.hours || [], maxCount: j.maxCount || 1, peakHour: j.peakHour || '' }); })
             .catch(function() { });
         }, 500);
         setTimeout(function () { setCheckinConfirm(false); }, 3000);
