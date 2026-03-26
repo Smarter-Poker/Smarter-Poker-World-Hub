@@ -148,12 +148,12 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
             }
         };
 
-        eventBus.addEventListener(EventType.SOCIAL_REACTION_UPDATE, handleReaction);
-        eventBus.addEventListener(EventType.SOCIAL_COMMENT_UPDATE, handleComment);
+        eventBus.on(EventType.SOCIAL_REACTION_UPDATE, handleReaction);
+        eventBus.on(EventType.SOCIAL_COMMENT_UPDATE, handleComment);
 
         return () => {
-            eventBus.removeEventListener(EventType.SOCIAL_REACTION_UPDATE, handleReaction);
-            eventBus.removeEventListener(EventType.SOCIAL_COMMENT_UPDATE, handleComment);
+            eventBus.off(EventType.SOCIAL_REACTION_UPDATE, handleReaction);
+            eventBus.off(EventType.SOCIAL_COMMENT_UPDATE, handleComment);
         };
     }, [post, user, showComments]);
 

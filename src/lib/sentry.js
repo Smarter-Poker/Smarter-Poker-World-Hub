@@ -114,7 +114,7 @@ export async function setUser(user) {
  */
 export async function addBreadcrumb(breadcrumb) {
     const sentry = await getSentry();
-    if (!sentry) return;
+    if (!sentry || typeof sentry.addBreadcrumb !== 'function') return;
     sentry.addBreadcrumb({
         category: breadcrumb.category || 'app',
         message: breadcrumb.message,

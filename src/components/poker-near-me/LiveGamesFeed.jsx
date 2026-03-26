@@ -33,7 +33,6 @@ const renderSkeletons = (count = 4) => (
 
 export default function LiveGamesFeed({ 
     userLocation, 
-    allVenues = [], 
     favorites = {}, 
     checkinCounts = {}, 
     onToggleFavorite, 
@@ -41,6 +40,7 @@ export default function LiveGamesFeed({
     renderMap
 }) {
     const [liveData, setLiveData] = useState([]);
+    const [fullVenuesCache, setFullVenuesCache] = useState([]);
     const [liveLoading, setLiveLoading] = useState(true);
     const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
     
@@ -50,13 +50,17 @@ export default function LiveGamesFeed({
 
     const liveRefreshRef = useRef(null);
 
-    // Fetch live games for ALL venues
+    // Fetch live games for ALL venues along with the master venue list
     const fetchAllLiveGames = async () => {
         setLiveLoading(true);
         try {
-            const res = await fetch('/api/poker/live-tables');
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const json = await res.json();
+            const [liveRes, venuesRes] = await Promise.all([
+                fetch('/api/poker/live-tables'),
+                fetch('/api/poker/venues?limit=500')
+            ]);
+            
+            if (!liveRes.ok) throw new Error(`Live API failed (${liveRes.status})`);
+            const json = await liveRes.json();
             
             let aggregatedVenues = [];
             if (json.venues && Array.isArray(json.venues)) {
@@ -73,6 +77,13 @@ export default function LiveGamesFeed({
                 });
             }
             setLiveData(aggregatedVenues);
+
+            if (venuesRes.ok) {
+                const vJson = await venuesRes.json();
+                if (vJson.data && Array.isArray(vJson.data)) {
+                    setFullVenuesCache(vJson.data);
+                }
+            }
         } catch (e) {
             console.error('Fetch all live games error:', e);
             setLiveData([]);
@@ -86,15 +97,15 @@ export default function LiveGamesFeed({
         return () => { if (liveRefreshRef.current) clearInterval(liveRefreshRef.current); };
     }, []);
 
-    // Intersect live data with the full venues array
+    // Intersect live data with the full venues memory cache
     const liveVenues = useMemo(() => {
-        if (!liveData.length || !allVenues.length) return [];
+        if (!liveData.length || !fullVenuesCache.length) return [];
         
         const liveMap = new Map();
         liveData.forEach(ld => liveMap.set(ld.bravo_slug, ld));
 
         const matched = [];
-        for (const v of allVenues) {
+        for (const v of fullVenuesCache) {
             if (v.bravo_slug && liveMap.has(v.bravo_slug)) {
                 const ld = liveMap.get(v.bravo_slug);
                 if (ld.tables_running > 0) {
@@ -106,7 +117,7 @@ export default function LiveGamesFeed({
             }
         }
         return matched;
-    }, [allVenues, liveData]);
+    }, [fullVenuesCache, liveData]);
 
     // Apply filters and sort
     const filteredVenues = useMemo(() => {
