@@ -3448,16 +3448,16 @@ const styles = {
     },
 
     card: {
-        width: 48,
-        height: 68,
+        width: 44,
+        height: 62,
         borderRadius: 5,
-        boxShadow: '0 3px 12px rgba(0,0,0,0.5)',
-        border: '2px solid rgba(255,255,255,0.3)',
+        boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
+        border: '1.5px solid rgba(255,255,255,0.3)',
     },
 
     boardCards: {
         position: 'absolute',
-        top: '50%',
+        top: '55%',
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
@@ -3475,7 +3475,7 @@ const styles = {
 
     pot: {
         position: 'absolute',
-        top: '35%',
+        top: '42%',
         left: '50%',
         transform: 'translateX(-50%)',
         color: '#e2e8f0',
