@@ -1193,7 +1193,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                 }}>{loadingMoreComments ? 'Loading...' : 'Load More Comments'}</button>
                             )}
                         </div>
-                        {/* GIF Picker for reel comments */}}
+                        {/* GIF Picker for reel comments */}
                         {showReelGifPicker && (
                             <div style={{ padding: '0 8px 4px' }}>
                                 <GiphyPicker

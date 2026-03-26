@@ -77,6 +77,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     // P9-4: Double-tap like
     const [doubleTapHeart, setDoubleTapHeart] = useState(false);
     const doubleTapTimer = useRef(null);
+    const [lightboxUrl, setLightboxUrl] = useState(null);
     // #13 Debounce guard
     const isLikingRef = useRef(false);
     // #1 Reply threading
@@ -184,7 +185,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                             <span style={{ display: 'inline-block', padding: '1px 6px', borderRadius: 4, background: '#E7F3FF', color: C.blue, fontSize: 10, fontWeight: 700, letterSpacing: 0.3 }}>ADMIN</span>
                         )}
                     </div>
-                    <div style={{ fontSize: 12, color: C.textSec, cursor: 'default' }} title={post.created_at ? new Date(post.created_at).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}>{timeAgo(post.created_at)}</div>
+                    <div style={{ fontSize: 12, color: C.textSec, cursor: 'default', display: 'flex', alignItems: 'center', gap: 4 }} title={post.created_at ? new Date(post.created_at).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}>
+                        {timeAgo(post.created_at)}
+                        {post._edited && <span style={{ fontSize: 11, color: C.textSec, fontStyle: 'italic' }}>(edited)</span>}
+                    </div>
                 </div>
                 {/* ⋮ Menu */}
                 {canManage && (
@@ -285,7 +289,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                         if (doubleTapTimer.current) clearTimeout(doubleTapTimer.current);
                         doubleTapTimer.current = setTimeout(() => setDoubleTapHeart(false), 800);
                     }}>
-                    <img src={post.media_urls[carouselIdx]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} />
+                    <img src={post.media_urls[carouselIdx]} alt="" onClick={() => setLightboxUrl(post.media_urls[carouselIdx])} style={{ maxWidth: '100%', display: 'block', margin: '0 auto', cursor: 'pointer' }} />
                     {/* P10-1: Image heart animation overlay */}
                     {doubleTapHeart && (
                         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', animation: 'likePopAnim 0.8s ease-out forwards', zIndex: 10 }}>
@@ -321,6 +325,21 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                             </div>
                         </>
                     )}
+                </div>
+            )}
+
+            {/* P12-3: Image Lightbox */}
+            {lightboxUrl && (
+                <div onClick={() => setLightboxUrl(null)} style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 99999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out',
+                }}>
+                    <button onClick={() => setLightboxUrl(null)} style={{
+                        position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', cursor: 'pointer',
+                        fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
+                    }}>&times;</button>
+                    <img src={lightboxUrl} alt="" style={{ maxWidth: '95vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 4 }} />
                 </div>
             )}
 
@@ -444,6 +463,9 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                             body: JSON.stringify({ content: `Shared from ${page?.name}: ${post.content?.slice(0, 200) || ''}\n\n${shareUrl}`, content_type: 'text' }),
                                         });
                                         setShowShareModal(false);
+                                        toast.success('Shared to your feed!');
+                                        busEmit.dataMutated('social');
+                                        busEmit.socialPostCreated('shared', user?.id);
                                     } catch (e) { console.error(e); }
                                 }} style={{
                                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
@@ -557,7 +579,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                                         body: JSON.stringify({ action: 'like_comment', post_id: post.id, comment_id: c.id }),
                                                     }).then(r => r.json()).then(j => {
-                                                        if (j.success) setComments(prev => prev.map(x => x.id === c.id ? { ...x, user_liked_comment: j.liked, comment_like_count: j.liked ? ((x.comment_like_count || 0) + 1) : Math.max(0, (x.comment_like_count || 1) - 1) } : x));
+                                                        if (j.success) {
+                                                            setComments(prev => prev.map(x => x.id === c.id ? { ...x, user_liked_comment: j.liked, comment_like_count: j.liked ? ((x.comment_like_count || 0) + 1) : Math.max(0, (x.comment_like_count || 1) - 1) } : x));
+                                                            busEmit.dataMutated('social-pages');
+                                                        }
                                                     }).catch(() => {});
                                                 }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: c.user_liked_comment ? C.blue : C.textSec, fontSize: 11, padding: 0, fontFamily: 'inherit' }}>
                                                     {c.user_liked_comment ? 'Liked' : 'Like'}{c.comment_like_count > 0 ? ` (${c.comment_like_count})` : ''}
@@ -1253,7 +1278,7 @@ export default function SocialPageDetail() {
 
     const handleEditPost = (postId, newContent) => {
         setPosts(prev => prev.map(p =>
-            p.id === postId ? { ...p, content: newContent } : p
+            p.id === postId ? { ...p, content: newContent, _edited: true } : p
         ));
         busEmit.dataMutated('social-pages');
     };
