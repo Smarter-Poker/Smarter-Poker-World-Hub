@@ -1234,60 +1234,63 @@ export default function PokerNearMeLobby() {
         break;
       }
 
-      case 'nearme':
+      case 'nearme': {
+        // State filter for Near Me
+        const nearmeStateFilter = filters.nearmeState || 'all';
+        const nearmeFiltered = nearmeStateFilter !== 'all'
+          ? venues.filter(v => v.state === nearmeStateFilter)
+          : venues;
         component = (
           <div>
-            {/* Venue listings — show nearby venues sorted by distance */}
-            {venues.length > 0 && (
+            {/* State filter + count */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <select
+                value={nearmeStateFilter}
+                onChange={(e) => setFilters(prev => ({ ...prev, nearmeState: e.target.value }))}
+                style={{ background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 100 }}
+              >
+                <option value="all" style={{ background: '#0d1a2a' }}>All States</option>
+                {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                  <option key={st} value={st} style={{ background: '#0d1a2a' }}>{st}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', marginLeft: 'auto' }}>
+                <span style={{ color: '#d4a853', fontWeight: 700 }}>{nearmeFiltered.length}</span> venue{nearmeFiltered.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {/* Venue listings */}
+            {nearmeFiltered.length > 0 && (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
-                    {userLocation ? 'Nearby Venues' : 'All Venues'}
-                  </span>
-                  <span style={{ color: 'rgba(200,214,229,0.4)', fontSize: 12 }}>
-                    {venues.length} venue{venues.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
                 <div style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
-                  {venues.slice(0, 20).map(v => (
+                  {nearmeFiltered.slice(0, 50).map(v => (
                     <VenueCard
                       key={v.id}
                       venue={v}
                       isFavorited={!!favorites[v.id]}
                       onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
                       onNavigate={(url) => {
-                        if (url.includes('action=review')) {
-                          setSelectedVenueForReview({ id: v.id, name: v.name });
-                        } else {
-                          router.push(url);
-                        }
+                        if (url.includes('action=review')) { setSelectedVenueForReview({ id: v.id, name: v.name }); }
+                        else { router.push(url); }
                       }}
                       userLocation={userLocation}
                       checkinCount={checkinCounts[String(v.id)] || 0}
                     />
                   ))}
                 </div>
-                {hasMore && venues.length > 20 && (
-                  <button
-                    onClick={loadMore}
-                    disabled={loading}
-                    style={{
-                      display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px',
-                      background: 'rgba(110, 231, 239, 0.08)', border: '1px solid rgba(110, 231, 239, 0.2)',
-                      borderRadius: 12, color: '#6ee7ef', fontSize: 14, fontWeight: 600,
-                      cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit',
-                    }}
-                  >
-                    {loading ? 'Loading...' : 'Load More Venues'}
+                {nearmeFiltered.length > 50 && (
+                  <button onClick={loadMore} disabled={loading}
+                    style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 12, color: '#6ee7ef', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                    {loading ? 'Loading...' : `Load More (${nearmeFiltered.length - 50} remaining)`}
                   </button>
                 )}
               </>
             )}
 
-            {/* Activity feed below venue listings */}
-            <NearMeNowFeed userLocation={userLocation} venues={venues} />
+            {/* Activity feed */}
+            <NearMeNowFeed userLocation={userLocation} venues={nearmeFiltered} />
 
-            {!userLocation && venues.length === 0 && (
+            {!userLocation && nearmeFiltered.length === 0 && (
               <div style={{ textAlign: 'center', padding: 30, color: 'rgba(200,214,229,0.4)' }}>
                 <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Tap the GPS button to find venues near you</p>
                 <p style={{ fontSize: 12 }}>Or search for a city above</p>
@@ -1296,56 +1299,136 @@ export default function PokerNearMeLobby() {
           </div>
         );
         break;
+      }
 
       case 'livegames':
         component = <LiveGamesFeed userLocation={userLocation} />;
         break;
 
-      case 'mapview':
-        component = <VenueMapPanel venues={venues} userLocation={userLocation} onVenueSelect={(v) => { setSelectedVenueForReview(null); router.push(`/hub/venues/${v.id}`); }} />;
-        break;
-
-      case 'tours':
+      case 'mapview': {
+        const mapStateFilter = filters.mapState || 'all';
+        const mapVenues = mapStateFilter !== 'all'
+          ? venues.filter(v => v.state === mapStateFilter)
+          : venues;
         component = (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {tours.map((t, i) => <TourCard key={t.tour_code || t.id || `tour-${i}`} tour={t} />)}
+          <div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <select
+                value={mapStateFilter}
+                onChange={(e) => setFilters(prev => ({ ...prev, mapState: e.target.value }))}
+                style={{ background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 100 }}>
+                <option value="all" style={{ background: '#0d1a2a' }}>All States</option>
+                {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                  <option key={st} value={st} style={{ background: '#0d1a2a' }}>{st}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', marginLeft: 'auto' }}>
+                <span style={{ color: '#d4a853', fontWeight: 700 }}>{mapVenues.filter(v => v.latitude && v.longitude).length}</span> venues on map
+              </span>
+            </div>
+            <VenueMapPanel venues={mapVenues} userLocation={userLocation} onVenueSelect={(v) => { setSelectedVenueForReview(null); router.push(`/hub/venues/${v.id}`); }} />
+          </div>
+        );
+        break;
+      }
+
+      case 'tours': {
+        const tourSearch = filters.tourSearch || '';
+        const tourState = filters.tourState || 'all';
+        let filteredTours = tours;
+        if (tourSearch) {
+          const lower = tourSearch.toLowerCase();
+          filteredTours = filteredTours.filter(t => (t.name || '').toLowerCase().includes(lower) || (t.city || '').toLowerCase().includes(lower) || (t.state || '').toLowerCase().includes(lower));
+        }
+        if (tourState !== 'all') {
+          filteredTours = filteredTours.filter(t => t.state === tourState);
+        }
+        component = (
+          <div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input type="text" placeholder="Search tours..." value={tourSearch}
+                onChange={(e) => setFilters(prev => ({ ...prev, tourSearch: e.target.value }))}
+                style={{ flex: 1, minWidth: 120, padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(110,231,239,0.2)', background: 'rgba(0,0,0,0.25)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+              <select value={tourState}
+                onChange={(e) => setFilters(prev => ({ ...prev, tourState: e.target.value }))}
+                style={{ background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 90 }}>
+                <option value="all" style={{ background: '#0d1a2a' }}>All States</option>
+                {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                  <option key={st} value={st} style={{ background: '#0d1a2a' }}>{st}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
+                <span style={{ color: '#d4a853', fontWeight: 700 }}>{filteredTours.length}</span> tour{filteredTours.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {filteredTours.map((t, i) => <TourCard key={t.tour_code || t.id || `tour-${i}`} tour={t} />)}
+            </div>
             {!toursLoaded && tours.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
                 <div style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#00D4FF', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
                 Loading tours...
               </div>
             )}
-            {toursLoaded && tours.length === 0 && (
+            {toursLoaded && filteredTours.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.5)' }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>🏆</div>
-                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Upcoming Tours</div>
-                <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)' }}>Check back soon for poker tour schedules and events in your area.</div>
+                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Matching Tours</div>
+                <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)' }}>{tourSearch || tourState !== 'all' ? 'Try adjusting your filters.' : 'Check back soon for poker tour schedules.'}</div>
               </div>
             )}
           </div>
         );
         break;
+      }
 
-      case 'series':
+      case 'series': {
+        const seriesSearch = filters.seriesSearch || '';
+        const seriesState = filters.seriesState || 'all';
+        let filteredSeries = series;
+        if (seriesSearch) {
+          const lower = seriesSearch.toLowerCase();
+          filteredSeries = filteredSeries.filter(s => (s.name || '').toLowerCase().includes(lower) || (s.city || '').toLowerCase().includes(lower) || (s.state || '').toLowerCase().includes(lower));
+        }
+        if (seriesState !== 'all') {
+          filteredSeries = filteredSeries.filter(s => s.state === seriesState);
+        }
         component = (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {series.map((s, i) => <SeriesCard key={s.series_code || s.id || `series-${i}`} series={s} />)}
+          <div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input type="text" placeholder="Search series..." value={seriesSearch}
+                onChange={(e) => setFilters(prev => ({ ...prev, seriesSearch: e.target.value }))}
+                style={{ flex: 1, minWidth: 120, padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(110,231,239,0.2)', background: 'rgba(0,0,0,0.25)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+              <select value={seriesState}
+                onChange={(e) => setFilters(prev => ({ ...prev, seriesState: e.target.value }))}
+                style={{ background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 90 }}>
+                <option value="all" style={{ background: '#0d1a2a' }}>All States</option>
+                {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                  <option key={st} value={st} style={{ background: '#0d1a2a' }}>{st}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
+                <span style={{ color: '#d4a853', fontWeight: 700 }}>{filteredSeries.length}</span> series
+              </span>
+            </div>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {filteredSeries.map((s, i) => <SeriesCard key={s.series_code || s.id || `series-${i}`} series={s} />)}
+            </div>
             {!seriesLoaded && series.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
                 <div style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#00D4FF', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
                 Loading series...
               </div>
             )}
-            {seriesLoaded && series.length === 0 && (
+            {seriesLoaded && filteredSeries.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.5)' }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>🃏</div>
-                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Upcoming Series</div>
-                <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)' }}>Check back soon for poker series schedules and events in your area.</div>
+                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Matching Series</div>
+                <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.4)' }}>{seriesSearch || seriesState !== 'all' ? 'Try adjusting your filters.' : 'Check back soon for poker series schedules.'}</div>
               </div>
             )}
           </div>
         );
         break;
+      }
 
       case 'daily':
         component = <DailyTournamentsPanel tournaments={dailyTournaments} onDayChange={fetchDaily} />;

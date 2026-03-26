@@ -15,6 +15,7 @@ import { claimReward } from '../../../src/lib/claimReward';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { supabase } from '../../../src/lib/supabase';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const VENUE_TYPE_LABELS = {
@@ -583,6 +584,14 @@ export default function VenueDetailPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tables', filter: `venue_id=eq.${id}` }, () => {
         console.warn('[VenueDetail] Received real-time update for tables');
       })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'venue_checkins', filter: `venue_id=eq.${id}` }, () => {
+        // Refresh check-in list and Who's Here when someone new checks in
+        fetchCheckins();
+        fetch('/api/poker/checkins/whos-here?venue_id=' + id)
+          .then(function(r) { return r.json(); })
+          .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
+          .catch(function() { });
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [id]);
@@ -696,7 +705,7 @@ export default function VenueDetailPage() {
           .then(function(r) { return r.json(); })
           .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
           .catch(function() { });
-        try { bus?.emit?.('venue:checkin', { venueId: id, userName: displayName }); } catch { }
+        try { busEmit.venueCheckinCreated(id, venue?.name || '', userId); } catch (_e) { }
         setTimeout(function () { setCheckinConfirm(false); }, 3000);
       }
     } catch (err) { /* silent */ }
