@@ -228,6 +228,7 @@ export default async function handler(req, res) {
               state,
               city,
               type,
+              venue_type,
               tournaments,
               search,
               lat,
@@ -242,6 +243,8 @@ export default async function handler(req, res) {
 
           const maxResults = Math.min(parseInt(limit, 10) || 500, 500);
           const offset = parseInt(req.query.offset, 10) || 0;
+          // Merge 'type' and 'venue_type' so both ?type=casino and ?venue_type=casino work
+          const effectiveType = type || venue_type || null;
           let venues = [];
 
           if (id) {
@@ -279,7 +282,7 @@ export default async function handler(req, res) {
 
                   if (state) q = q.ilike('state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
                   if (city) q = q.ilike('city', `%${city}%`);
-                  if (type) q = q.eq('venue_type', type);
+                  if (effectiveType) q = q.eq('venue_type', effectiveType);
                   if (tournaments === 'true') q = q.eq('has_tournaments', true);
                   if (featured === 'true') q = q.eq('is_featured', true);
                   if (search) {
@@ -312,7 +315,7 @@ export default async function handler(req, res) {
 
               // JSON fallback if Supabase returned nothing
               if (!usedSupabase) {
-                  venues = applyFilters(getJsonVenues(), { state, city, type, tournaments, search, featured });
+                  venues = applyFilters(getJsonVenues(), { state, city, type: effectiveType, tournaments, search, featured });
               }
               venues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
 
@@ -331,14 +334,14 @@ export default async function handler(req, res) {
                       .limit(100);
                   if (city) spQuery = spQuery.ilike('location_city', `%${city}%`)
                       .limit(100);
-                  if (type && ['club', 'charity', 'home_game'].includes(type)) {
-                      spQuery = spQuery.eq('page_type', type)
+                  if (effectiveType && ['club', 'charity', 'home_game'].includes(effectiveType)) {
+                      spQuery = spQuery.eq('page_type', effectiveType)
                           .limit(100);
-                  } else if (type && ['poker_club'].includes(type)) {
+                  } else if (effectiveType && ['poker_club'].includes(effectiveType)) {
                       // poker_club maps to club page_type
                       spQuery = spQuery.eq('page_type', 'club')
                           .limit(100);
-                  } else if (type && !['club', 'charity', 'home_game', 'poker_club'].includes(type)) {
+                  } else if (effectiveType && !['club', 'charity', 'home_game', 'poker_club'].includes(effectiveType)) {
                       // Type filter is for a poker_venues-only type (e.g. 'casino'), skip social pages
                       spQuery = null;
                   }

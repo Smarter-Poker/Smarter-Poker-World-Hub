@@ -2857,7 +2857,7 @@
     },
     {
       "id": 2001,
-      "name": "Johnny\u2019s Game ",
+      "name": "Johnny’s Game ",
       "state": "IL",
       "city": "Las Vegas",
       "venue_type": "poker_room",
@@ -10539,6 +10539,643 @@
       "stakes_cash": null,
       "poker_tables": null,
       "hours_weekday": null
+    },
+    {
+      "id": 3001,
+      "name": "Ace's Kitchen Table",
+      "state": "TX",
+      "city": "Austin",
+      "venue_type": "home_game",
+      "address": "Near Downtown Austin",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 30.267,
+      "longitude": -97.743,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Friday 7pm-2am",
+      "host_user_id": "5ee0f97f-537b-41b2-a6e3-c7dc3b01938e",
+      "host_username": "zoey.kaufman.8059",
+      "host_display_name": "Zoey Kaufman",
+      "description": "Friendly weekly NLH game. $100 max buy-in. Food and drinks provided."
+    },
+    {
+      "id": 3002,
+      "name": "Strip City Showdown",
+      "state": "NV",
+      "city": "Las Vegas",
+      "venue_type": "home_game",
+      "address": "Near Summerlin Area",
+      "phone": null,
+      "website": null,
+      "has_tournaments": true,
+      "latitude": 36.148,
+      "longitude": -115.33,
+      "games_offered": [
+        "NLH",
+        "PLO"
+      ],
+      "stakes_cash": [
+        "1/2",
+        "2/5"
+      ],
+      "poker_tables": 2,
+      "hours_weekday": "Wed & Sat 6pm-1am",
+      "host_user_id": "c0553605-4f71-47e0-a127-c37150408196",
+      "host_username": "SaltCity",
+      "host_display_name": "Donald Takemura",
+      "description": "Serious mixed game. Weekly tournament $50 buy-in. 2 tables available."
+    },
+    {
+      "id": 3003,
+      "name": "Gizmo's Garage Game",
+      "state": "CA",
+      "city": "Los Angeles",
+      "venue_type": "home_game",
+      "address": "Near Silver Lake",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 34.084,
+      "longitude": -118.259,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/3"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Saturday 8pm-3am",
+      "host_user_id": "592d5976-51c1-4091-afd2-904aeb3d3676",
+      "host_username": "Gizmo",
+      "host_display_name": "Terrence Fairfield",
+      "description": "Chill Saturday night session. Good action, cold beer."
+    },
+    {
+      "id": 3004,
+      "name": "Sentinel's Strategy Room",
+      "state": "NY",
+      "city": "New York",
+      "venue_type": "home_game",
+      "address": "Near Midtown Manhattan",
+      "phone": null,
+      "website": null,
+      "has_tournaments": true,
+      "latitude": 40.755,
+      "longitude": -73.985,
+      "games_offered": [
+        "NLH",
+        "PLO"
+      ],
+      "stakes_cash": [
+        "2/5"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Thursday 7pm-12am",
+      "host_user_id": "9089aa52-d4dc-4588-88d1-11132a674419",
+      "host_username": "Sentinel",
+      "host_display_name": "Seraphina Quincey",
+      "description": "High-level strategy game. $200 max buy-in. Serious players only."
+    },
+    {
+      "id": 3005,
+      "name": "Nick's Neighborhood NLH",
+      "state": "FL",
+      "city": "Miami",
+      "venue_type": "home_game",
+      "address": "Near Brickell",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 25.762,
+      "longitude": -80.196,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Friday & Saturday 8pm-2am",
+      "host_user_id": "aba9beb0-16b9-420a-8247-f5ceabe76b47",
+      "host_username": "nicholas.fontana",
+      "host_display_name": "Nicholas Fontana",
+      "description": "Weekend game in Brickell area. $100 buy-in, friendly crowd."
+    },
+    {
+      "id": 3006,
+      "name": "Texas T's Hold'em House",
+      "state": "TX",
+      "city": "Houston",
+      "venue_type": "home_game",
+      "address": "Near Heights Area",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 29.79,
+      "longitude": -95.397,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2",
+        "2/5"
+      ],
+      "poker_tables": 2,
+      "hours_weekday": "Wed 7pm-12am",
+      "host_user_id": "fb7c947d-79ce-4706-8c33-bb4f39359c59",
+      "host_username": "TexasT",
+      "host_display_name": "Bernardo Montemayor",
+      "description": "Multi-table Wednesday game. Both 1/2 and 2/5 running. BBQ included."
+    },
+    {
+      "id": 3007,
+      "name": "Silk Road Social Club",
+      "state": "CA",
+      "city": "San Francisco",
+      "venue_type": "home_game",
+      "address": "Near SOMA District",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 37.783,
+      "longitude": -122.399,
+      "games_offered": [
+        "PLO"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Saturday 6pm-12am",
+      "host_user_id": "6443a6ce-03b6-4baa-99ce-381352d2f277",
+      "host_username": "SilkRoad",
+      "host_display_name": "Esmeralda Villasenor",
+      "description": "PLO-only session. $200 max buy-in. Tech crowd welcome."
+    },
+    {
+      "id": 3008,
+      "name": "Peachtree Poker Night",
+      "state": "GA",
+      "city": "Atlanta",
+      "venue_type": "home_game",
+      "address": "Near Buckhead",
+      "phone": null,
+      "website": null,
+      "has_tournaments": true,
+      "latitude": 33.84,
+      "longitude": -84.38,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Friday 7pm-1am",
+      "host_user_id": "22af2652-f8ae-4b84-8f3d-d2894f435d79",
+      "host_username": "Peachtree",
+      "host_display_name": "Alondra Beaumont",
+      "description": "Atlanta home game with monthly $30 freezeout tournament."
+    },
+    {
+      "id": 3009,
+      "name": "Pulsar's Poker Palace",
+      "state": "WA",
+      "city": "Seattle",
+      "venue_type": "home_game",
+      "address": "Near Capitol Hill",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 47.616,
+      "longitude": -122.321,
+      "games_offered": [
+        "NLH",
+        "Mixed"
+      ],
+      "stakes_cash": [
+        "1/3"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Saturday 7pm-2am",
+      "host_user_id": "ef25984c-d13a-4e4d-916a-f3537a40ea71",
+      "host_username": "Pulsar",
+      "host_display_name": "Percival Langston",
+      "description": "Rotating mixed games every 3rd Saturday. NLH weekly. $150 max."
+    },
+    {
+      "id": 3010,
+      "name": "Depot's Den",
+      "state": "IL",
+      "city": "Chicago",
+      "venue_type": "home_game",
+      "address": "Near Wicker Park",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 41.909,
+      "longitude": -87.678,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Friday 8pm-2am",
+      "host_user_id": "767508e4-917a-496a-8412-c5ea94c80a1e",
+      "host_username": "Depot",
+      "host_display_name": "Takeshi Mizoguchi",
+      "description": "Chill Chicago Friday night game. Great deep stacks, good players."
+    },
+    {
+      "id": 3011,
+      "name": "Freeway's Fast Fold",
+      "state": "CA",
+      "city": "San Diego",
+      "venue_type": "home_game",
+      "address": "Near Pacific Beach",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 32.795,
+      "longitude": -117.251,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Sunday 3pm-10pm",
+      "host_user_id": "25e20c49-15d7-410f-bb88-7161d758c9d5",
+      "host_username": "Freeway",
+      "host_display_name": "Tatiana Sergeyev",
+      "description": "Sunday afternoon sessions in PB. $100 buy-in, turbo structure."
+    },
+    {
+      "id": 3012,
+      "name": "Jax's Jackpot Room",
+      "state": "FL",
+      "city": "Jacksonville",
+      "venue_type": "home_game",
+      "address": "Near Riverside",
+      "phone": null,
+      "website": null,
+      "has_tournaments": true,
+      "latitude": 30.315,
+      "longitude": -81.667,
+      "games_offered": [
+        "NLH",
+        "PLO"
+      ],
+      "stakes_cash": [
+        "1/2",
+        "1/2 PLO"
+      ],
+      "poker_tables": 2,
+      "hours_weekday": "Sat 5pm-1am",
+      "host_user_id": "7d7a80a2-092c-4338-878a-0416611b249c",
+      "host_username": "Jax54",
+      "host_display_name": "Celina Marchetti",
+      "description": "Two-table Saturday game. NLH and PLO running simultaneously."
+    },
+    {
+      "id": 3013,
+      "name": "Winston's Whiskey & Poker",
+      "state": "TN",
+      "city": "Nashville",
+      "venue_type": "home_game",
+      "address": "Near East Nashville",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 36.177,
+      "longitude": -86.765,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Thursday 7pm-12am",
+      "host_user_id": "8e5a0e02-7832-416d-970f-f6f74e181dcb",
+      "host_username": "winston.abernathy.86eb",
+      "host_display_name": "Winston Abernathy",
+      "description": "Bourbon + poker. Casual Thursday game in East Nashville."
+    },
+    {
+      "id": 3014,
+      "name": "Laguna Card Club",
+      "state": "CA",
+      "city": "Laguna Beach",
+      "venue_type": "home_game",
+      "address": "Near South Laguna",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 33.527,
+      "longitude": -117.775,
+      "games_offered": [
+        "NLH",
+        "PLO"
+      ],
+      "stakes_cash": [
+        "2/5"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Saturday 7pm-2am",
+      "host_user_id": "fca1720a-eb02-4284-831f-2bd4ba21f04b",
+      "host_username": "Laguna",
+      "host_display_name": "Milagros Villanueva",
+      "description": "Higher stakes beachside game. $500 max buy-in. Apply to join."
+    },
+    {
+      "id": 3015,
+      "name": "Warpath's War Room",
+      "state": "AZ",
+      "city": "Phoenix",
+      "venue_type": "home_game",
+      "address": "Near Scottsdale",
+      "phone": null,
+      "website": null,
+      "has_tournaments": true,
+      "latitude": 33.474,
+      "longitude": -111.957,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Wednesday 7pm-11pm",
+      "host_user_id": "8f4acae4-1768-426a-bf4b-17d8cad7c02f",
+      "host_username": "Warpath",
+      "host_display_name": "Sidney Beaufort",
+      "description": "Weekly war room. Monthly bounty tournament included."
+    },
+    {
+      "id": 3016,
+      "name": "Low Country Holdem",
+      "state": "SC",
+      "city": "Charleston",
+      "venue_type": "home_game",
+      "address": "Near Mount Pleasant",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 32.842,
+      "longitude": -79.853,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Friday 7pm-1am",
+      "host_user_id": "3ebc3050-24ab-4eea-a3f1-74fac5f0b7a7",
+      "host_username": "LowCountry",
+      "host_display_name": "Dorothy Ashbridge",
+      "description": "Southern hospitality + cards. Shrimp & grits on the house."
+    },
+    {
+      "id": 3017,
+      "name": "Zephyr's Wind Farm",
+      "state": "CO",
+      "city": "Denver",
+      "venue_type": "home_game",
+      "address": "Near LoDo",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 39.745,
+      "longitude": -105.002,
+      "games_offered": [
+        "NLH",
+        "PLO"
+      ],
+      "stakes_cash": [
+        "1/3"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Saturday 6pm-1am",
+      "host_user_id": "484d22c4-ff3c-4430-8058-b6f0d8c2387a",
+      "host_username": "Zephyr",
+      "host_display_name": "Hayat Barghouti",
+      "description": "Altitude poker. Good mixed action every Saturday."
+    },
+    {
+      "id": 3018,
+      "name": "Eleanor's Evening Game",
+      "state": "OR",
+      "city": "Portland",
+      "venue_type": "home_game",
+      "address": "Near Alberta Arts District",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 45.559,
+      "longitude": -122.648,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Friday 7pm-12am",
+      "host_user_id": "00000000-0000-0000-0000-000000000087",
+      "host_username": "eleanor.schmidt",
+      "host_display_name": "Eleanor Schmidt",
+      "description": "Cozy Portland game. Craft beer on tap. $100 max."
+    },
+    {
+      "id": 3019,
+      "name": "Diesel's High Octane",
+      "state": "MI",
+      "city": "Detroit",
+      "venue_type": "home_game",
+      "address": "Near Corktown",
+      "phone": null,
+      "website": null,
+      "has_tournaments": true,
+      "latitude": 42.335,
+      "longitude": -83.055,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2",
+        "2/5"
+      ],
+      "poker_tables": 2,
+      "hours_weekday": "Sat 6pm-3am",
+      "host_user_id": "7f348e8f-a98d-4bf8-8f59-e34a78d1f87b",
+      "host_username": "Diesel",
+      "host_display_name": "Graciela Valenzuela",
+      "description": "Motor City action. Big Saturday game with 2 tables running."
+    },
+    {
+      "id": 3020,
+      "name": "GoldRush Poker",
+      "state": "CA",
+      "city": "Sacramento",
+      "venue_type": "home_game",
+      "address": "Near Midtown Sacramento",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 38.577,
+      "longitude": -121.488,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Wednesday 7pm-11pm",
+      "host_user_id": "ef58b642-df26-41b5-8547-bb279151e844",
+      "host_username": "GoldRush42",
+      "host_display_name": "Byron Clarkson",
+      "description": "Midweek grind in Sacramento. Consistent 1/2 game."
+    },
+    {
+      "id": 3021,
+      "name": "Stryker's Strike Zone",
+      "state": "PA",
+      "city": "Philadelphia",
+      "venue_type": "home_game",
+      "address": "Near Fishtown",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 39.974,
+      "longitude": -75.136,
+      "games_offered": [
+        "NLH",
+        "PLO"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Thursday 7pm-1am",
+      "host_user_id": "3f26288c-4923-447a-9f0d-d5d208ab8f8d",
+      "host_username": "Stryker",
+      "host_display_name": "Imran Siddiqui",
+      "description": "Philly mixed game Thursday. Alternating NLH/PLO rounds."
+    },
+    {
+      "id": 3022,
+      "name": "Mitten's Card Room",
+      "state": "MN",
+      "city": "Minneapolis",
+      "venue_type": "home_game",
+      "address": "Near Uptown",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 44.962,
+      "longitude": -93.295,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Saturday 7pm-1am",
+      "host_user_id": "63a2c2a3-308b-49d7-9018-9e2d28e31f5d",
+      "host_username": "Mitten",
+      "host_display_name": "Denise Willoughby",
+      "description": "Minnesota nice poker. Friendly game every Saturday."
+    },
+    {
+      "id": 3023,
+      "name": "Petersen's PLO Party",
+      "state": "NC",
+      "city": "Charlotte",
+      "venue_type": "home_game",
+      "address": "Near NoDa",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 35.235,
+      "longitude": -80.826,
+      "games_offered": [
+        "PLO"
+      ],
+      "stakes_cash": [
+        "1/2 PLO"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Friday 8pm-2am",
+      "host_user_id": "92655975-8766-4c4d-b266-a822055dc6e3",
+      "host_username": "robert.petersen",
+      "host_display_name": "Robert Petersen",
+      "description": "PLO only. Friday night in NoDa. $200 max buy-in."
+    },
+    {
+      "id": 3024,
+      "name": "Obsidian's Underground",
+      "state": "MA",
+      "city": "Boston",
+      "venue_type": "home_game",
+      "address": "Near Cambridge",
+      "phone": null,
+      "website": null,
+      "has_tournaments": true,
+      "latitude": 42.368,
+      "longitude": -71.099,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": [
+        "2/5"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Saturday 7pm-2am",
+      "host_user_id": "e94d80fb-4973-452e-b745-6c3ca68c9b16",
+      "host_username": "Obsidian",
+      "host_display_name": "Penelope Oxbridge",
+      "description": "Cambridge deep-stack game. $500 max buy-in. Monthly tournament."
+    },
+    {
+      "id": 3025,
+      "name": "Tango's Table",
+      "state": "LA",
+      "city": "New Orleans",
+      "venue_type": "home_game",
+      "address": "Near French Quarter",
+      "phone": null,
+      "website": null,
+      "has_tournaments": false,
+      "latitude": 29.954,
+      "longitude": -90.071,
+      "games_offered": [
+        "NLH",
+        "Mixed"
+      ],
+      "stakes_cash": [
+        "1/2"
+      ],
+      "poker_tables": 1,
+      "hours_weekday": "Friday 8pm-3am",
+      "host_user_id": "8703e327-5739-475e-b256-8eca013b9b7b",
+      "host_username": "Tango",
+      "host_display_name": "Nadine Ashworth",
+      "description": "NOLA Friday night game. Jazz and cards. Mixed games once a month."
     }
   ]
 }
