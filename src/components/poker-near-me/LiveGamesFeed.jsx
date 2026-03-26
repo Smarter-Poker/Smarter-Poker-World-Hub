@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import VenueCard from './VenueCard';
 
-const LIVE_REFRESH_MS = 2 * 60 * 1000; // 2 minutes auto-refresh
+// Dynamically import map to avoid SSR issues
+const VenueMapPanel = dynamic(() => import('./VenueMapPanel'), { ssr: false });
 
-// Skeletons for loading state
+const LIVE_REFRESH_MS = 2 * 60 * 1000; // 2 minutes
+
 const renderSkeletons = (count = 4) => (
     <div style={{ display: 'grid', gap: '12px', marginTop: '16px' }}>
         {Array.from({ length: count }).map((_, i) => (
             <div key={`skel-${i}`} style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                borderRadius: '12px',
-                padding: '16px',
-                display: 'flex', gap: '16px'
+                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+                borderRadius: '12px', padding: '16px', display: 'flex', gap: '16px'
             }}>
                 <div style={{ width: 48, height: 48, borderRadius: 8, background: 'rgba(255,255,255,0.05)', animation: 'pulse 1.5s infinite' }} />
                 <div style={{ flex: 1 }}>
@@ -32,241 +32,371 @@ const renderSkeletons = (count = 4) => (
 );
 
 export default function LiveGamesFeed({ 
+    venues = [], 
     userLocation, 
     favorites = {}, 
+    handleToggleFavorite, 
     checkinCounts = {}, 
-    onToggleFavorite, 
-    onNavigate,
-    renderMap
+    router, 
+    setSelectedVenueForReview 
 }) {
-    const [liveData, setLiveData] = useState([]);
-    const [fullVenuesCache, setFullVenuesCache] = useState([]);
+    // ─── STATE ───
+    const [liveData, setLiveData] = useState({}); // Mapping: bravo_slug -> live data
     const [liveLoading, setLiveLoading] = useState(true);
-    const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
     
     // Filters
+    const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
+    const [filterState, setFilterState] = useState('all');
+    const [filterRadius, setFilterRadius] = useState('50');
+    const [filterSort, setFilterSort] = useState('tables'); // 'tables', 'distance', 'trust'
+    
+    // Single Venue drill-down (from autocomplete or clicking a card)
     const [searchQuery, setSearchQuery] = useState('');
-    const [stateFilter, setStateFilter] = useState('all');
+    const [searchSuggestions, setSearchSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [selectedVenue, setSelectedVenue] = useState(null);
+    
+    const refreshRef = useRef(null);
 
-    const liveRefreshRef = useRef(null);
-
-    // Fetch live games for ALL venues along with the master venue list
-    const fetchAllLiveGames = async () => {
+    // ─── FETCH LIVE DATA ───
+    const fetchGlobalLiveData = async () => {
         setLiveLoading(true);
         try {
-            const [liveRes, venuesRes] = await Promise.all([
-                fetch('/api/poker/live-tables'),
-                fetch('/api/poker/venues?limit=500')
-            ]);
-            
-            if (!liveRes.ok) throw new Error(`Live API failed (${liveRes.status})`);
-            const json = await liveRes.json();
-            
-            let aggregatedVenues = [];
-            if (json.venues && Array.isArray(json.venues)) {
-                aggregatedVenues = json.venues.map(v => {
-                    const totalTables = v.games.reduce((sum, g) => sum + (g.tables_running || 0), 0);
-                    const totalWaiting = v.games.reduce((sum, g) => sum + (g.players_waiting || 0), 0);
-                    return {
-                        bravo_slug: v.bravo_slug,
-                        last_updated: v.last_updated,
-                        tables_running: totalTables,
-                        players_waiting: totalWaiting,
-                        games: v.games
+            // Fetch without venue parameter to get all live venues
+            const res = await fetch('/api/poker/live-tables?list=false');
+            if (res.ok) {
+                const json = await res.json();
+                const mapping = {};
+                (json.venues || []).forEach(v => {
+                    const totalTables = v.games.reduce((acc, g) => acc + (g.tables_running || 0), 0);
+                    const totalWait = v.games.reduce((acc, g) => acc + (g.players_waiting || 0), 0);
+                    mapping[v.bravo_slug] = {
+                        ...v,
+                        totalTables,
+                        totalWait
                     };
                 });
-            }
-            setLiveData(aggregatedVenues);
-
-            if (venuesRes.ok) {
-                const vJson = await venuesRes.json();
-                if (vJson.data && Array.isArray(vJson.data)) {
-                    setFullVenuesCache(vJson.data);
-                }
+                setLiveData(mapping);
             }
         } catch (e) {
-            console.error('Fetch all live games error:', e);
-            setLiveData([]);
+            console.error('Fetch global live data error:', e);
         }
         setLiveLoading(false);
     };
 
     useEffect(() => {
-        fetchAllLiveGames();
-        liveRefreshRef.current = setInterval(fetchAllLiveGames, LIVE_REFRESH_MS);
-        return () => { if (liveRefreshRef.current) clearInterval(liveRefreshRef.current); };
+        fetchGlobalLiveData();
+        refreshRef.current = setInterval(fetchGlobalLiveData, LIVE_REFRESH_MS);
+        return () => { if (refreshRef.current) clearInterval(refreshRef.current); };
     }, []);
 
-    // Intersect live data with the full venues memory cache
-    const liveVenues = useMemo(() => {
-        if (!liveData.length || !fullVenuesCache.length) return [];
-        
-        const liveMap = new Map();
-        liveData.forEach(ld => liveMap.set(ld.bravo_slug, ld));
+    // ─── FILTER & MERGE ───
+    
+    // Calculate distance
+    const calcDist = (v) => {
+        if (!userLocation || !v.latitude || !v.longitude) return 99999;
+        const R = 3959;
+        const dLat = (v.latitude - userLocation.lat) * Math.PI / 180;
+        const dLon = (v.longitude - userLocation.lng) * Math.PI / 180;
+        const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(userLocation.lat*Math.PI/180)*Math.cos(v.latitude*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    };
 
-        const matched = [];
-        for (const v of fullVenuesCache) {
-            if (v.bravo_slug && liveMap.has(v.bravo_slug)) {
-                const ld = liveMap.get(v.bravo_slug);
-                if (ld.tables_running > 0) {
-                    matched.push({
-                        ...v,
-                        live_data: ld
-                    });
-                }
+    const mergedVenues = useMemo(() => {
+        // Base is venues that actually possess live data right now
+        let list = venues.filter(v => v.bravo_slug && liveData[v.bravo_slug]);
+        
+        // Single venue override
+        if (selectedVenue) {
+            return list.filter(v => v.id === selectedVenue.id);
+        }
+        
+        // 1. Filter by State
+        if (filterState !== 'all') {
+            list = list.filter(v => v.state === filterState);
+        }
+        
+        // 2. Filter by Distance
+        if (userLocation && filterRadius !== 'any') {
+            list = list.filter(v => calcDist(v) <= Number(filterRadius));
+        }
+        
+        // 3. Sort
+        list.sort((a, b) => {
+            if (filterSort === 'tables') {
+                const tablesA = liveData[a.bravo_slug]?.totalTables || 0;
+                const tablesB = liveData[b.bravo_slug]?.totalTables || 0;
+                if (tablesB !== tablesA) return tablesB - tablesA; // primary descending
+                // Tie breaker: waitlist descending
+                const waitA = liveData[a.bravo_slug]?.totalWait || 0;
+                const waitB = liveData[b.bravo_slug]?.totalWait || 0;
+                return waitB - waitA;
             }
-        }
-        return matched;
-    }, [fullVenuesCache, liveData]);
-
-    // Apply filters and sort
-    const filteredVenues = useMemo(() => {
-        let results = liveVenues;
+            if (filterSort === 'distance') {
+                return calcDist(a) - calcDist(b);
+            }
+            if (filterSort === 'trust') {
+                return (b.trust_score || 0) - (a.trust_score || 0);
+            }
+            return 0;
+        });
         
-        if (stateFilter !== 'all') {
-            results = results.filter(v => v.state === stateFilter);
-        }
-        
-        if (searchQuery) {
-            const lower = searchQuery.toLowerCase();
-            results = results.filter(v => 
-                (v.name && v.name.toLowerCase().includes(lower)) ||
-                (v.city && v.city.toLowerCase().includes(lower))
-            );
-        }
+        return list;
+    }, [venues, liveData, filterState, filterRadius, filterSort, userLocation, selectedVenue]);
 
-        // Default sort: distance if Location available, else tables running
-        if (userLocation) {
-            const dist = (v) => {
-                if (!v.latitude || !v.longitude) return 99999;
-                const R = 3959;
-                const dLat = (v.latitude - userLocation.lat) * Math.PI / 180;
-                const dLon = (v.longitude - userLocation.lng) * Math.PI / 180;
-                const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(userLocation.lat*Math.PI/180)*Math.cos(v.latitude*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            };
-            results = [...results].sort((a, b) => dist(a) - dist(b));
+    // ─── SEARCH LOGIC ───
+    const handleSearchInput = (value) => {
+        setSearchQuery(value);
+        if (value.trim().length >= 2) {
+            const q = value.trim().toLowerCase();
+            const matches = venues
+                .filter(v => v.bravo_slug && liveData[v.bravo_slug])
+                .filter(v => (v.name || '').toLowerCase().includes(q))
+                .slice(0, 8);
+            setSearchSuggestions(matches);
+            setShowSuggestions(matches.length > 0);
         } else {
-            results = [...results].sort((a, b) => (b.live_data?.tables_running || 0) - (a.live_data?.tables_running || 0));
+            setSearchSuggestions([]);
+            setShowSuggestions(false);
         }
+    };
 
-        return results;
-    }, [liveVenues, stateFilter, searchQuery, userLocation]);
+    const handleSelectSuggestion = (v) => {
+        setSelectedVenue(v);
+        setSearchQuery(v.name);
+        setShowSuggestions(false);
+        setViewMode('list'); // Force list to see drilldown
+    };
 
-    const totalActiveTables = filteredVenues.reduce((sum, v) => sum + (v.live_data?.tables_running || 0), 0);
+    const handleClearSearch = () => {
+        setSelectedVenue(null);
+        setSearchQuery('');
+        setShowSuggestions(false);
+    };
+
+    // ─── RENDER HELPERS ───
+    const renderTableBreakdown = (venueSlug) => {
+        const data = liveData[venueSlug];
+        if (!data || !data.games || data.games.length === 0) return null;
+        
+        return (
+            <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#e0e8f0' }}>Live Tables Breakdown</span>
+                    <span style={{ fontSize: 11, color: 'rgba(239,68,68,0.9)', background: 'rgba(239,68,68,0.15)', padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>BRAVO</span>
+                </div>
+                {data.games.map((g, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, fontSize: 12 }}>
+                        <span style={{ color: '#8b949e', fontWeight: 600 }}>{g.game}</span>
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                            {g.players_waiting > 0 && <span style={{ color: '#d4a853' }}>{g.players_waiting} waiting</span>}
+                            <span style={{ color: '#3fb950', fontWeight: 700, minWidth: 60, textAlign: 'right' }}>{g.tables_running} tab{g.tables_running !== 1 ? 's' : ''}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
 
     return (
         <div style={{ padding: '0 16px 40px' }}>
-            {/* Header and View Toggle */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <div>
-                    <h2 style={{ fontSize: 20, fontWeight: 800, color: '#e0e8f0', margin: '0 0 4px', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        Live Cash Games
-                        <span style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 800, letterSpacing: '0.5px' }}>LIVE</span>
-                    </h2>
+                    <h2 style={{ fontSize: 20, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>Live Games</h2>
                     <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.5)', margin: 0 }}>
-                        <span style={{ color: '#d4a853', fontWeight: 700 }}>{totalActiveTables}</span> tables running across <span style={{ color: '#fff', fontWeight: 700 }}>{filteredVenues.length}</span> venues.
+                        Powered by Bravo Poker Live. Find active games instantly.
                     </p>
                 </div>
-
-                {/* View Toggle */}
-                <div style={{ display: 'flex', background: 'rgba(22,27,34,0.6)', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, overflow: 'hidden' }}>
-                    <button 
-                        onClick={() => setViewMode('list')}
-                        style={{ padding: '6px 12px', background: viewMode === 'list' ? 'rgba(88,166,255,0.15)' : 'transparent', border: 'none', color: viewMode === 'list' ? '#58a6ff' : '#8b949e', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                        List
-                    </button>
-                    <button 
-                        onClick={() => setViewMode('map')}
-                        style={{ padding: '6px 12px', background: viewMode === 'map' ? 'rgba(88,166,255,0.15)' : 'transparent', border: 'none', color: viewMode === 'map' ? '#58a6ff' : '#8b949e', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
-                        Map
-                    </button>
-                </div>
-            </div>
-
-            {/* Filters Row */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }}>
-                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                    <input 
-                        type="text" 
-                        placeholder="Search venues or cities..." 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: 8, border: '1px solid rgba(48,54,61,0.6)', background: 'rgba(13,17,23,0.8)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} 
-                    />
-                </div>
-                <select 
-                    value={stateFilter}
-                    onChange={(e) => setStateFilter(e.target.value)}
-                    style={{ background: 'rgba(13,17,23,0.8)', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px 12px', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 100 }}
+                <button 
+                    onClick={() => {
+                        setFilterRadius('50');
+                        setFilterState('all');
+                        setSearchQuery('');
+                        setSelectedVenue(null);
+                    }}
+                    style={{ 
+                        background: 'linear-gradient(180deg, #3fb950 0%, #2ea043 100%)', 
+                        color: '#fff', border: '1px solid rgba(255,255,255,0.1)', 
+                        borderRadius: 10, padding: '8px 14px', fontSize: 13, 
+                        fontWeight: 700, cursor: 'pointer', display: 'flex', 
+                        alignItems: 'center', gap: 6, boxShadow: '0 4px 12px rgba(46,160,67,0.4)',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                    }}
                 >
-                    <option value="all">All States</option>
-                    {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                        <option key={st} value={st}>{st}</option>
-                    ))}
-                </select>
-                <button onClick={fetchAllLiveGames} disabled={liveLoading} style={{ background: 'transparent', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px', color: '#8b949e', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Refresh Live Data">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: liveLoading ? 'spin 1s linear infinite' : 'none' }}>
-                        <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M9 12l2 2 4-4"/>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
                     </svg>
+                    NEAR ME
                 </button>
             </div>
 
-            {/* Content Area */}
-            {liveLoading && liveVenues.length === 0 ? (
-                renderSkeletons(5)
-            ) : filteredVenues.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px', background: 'rgba(13,17,23,0.6)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.1)', marginTop: 24 }}>
-                    <div style={{ width: 64, height: 64, borderRadius: 32, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+            {/* ─── CONTROLS PANEL ─── */}
+            <div style={{ background: 'rgba(13,17,23,0.95)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: 14, padding: 16, marginBottom: 16, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
+                
+                {/* Search Bar */}
+                <div style={{ position: 'relative', marginBottom: 16, zIndex: 10 }}>
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)',
+                        borderRadius: 12, padding: '10px 14px'
+                    }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.5)" strokeWidth="2">
+                            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => handleSearchInput(e.target.value)}
+                            onFocus={() => { if (searchSuggestions.length > 0) setShowSuggestions(true); }}
+                            placeholder="Find a specific casino..."
+                            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#e0e8f0', fontSize: 14, fontFamily: 'inherit' }}
+                        />
+                        {selectedVenue && (
+                            <button onClick={handleClearSearch} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: 6, padding: '4px 8px', color: '#e0e8f0', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>
+                                Clear
+                            </button>
+                        )}
                     </div>
-                    <p style={{ fontSize: 18, fontWeight: 700, color: '#e0e8f0', margin: '0 0 8px' }}>No Live Games Found</p>
-                    <p style={{ fontSize: 14, color: 'rgba(200,214,229,0.5)', margin: '0 auto 16px', maxWidth: 300, lineHeight: 1.5 }}>
-                        {searchQuery || stateFilter !== 'all' 
-                            ? 'No venues match your current filters.' 
-                            : 'There are no live games reported via Bravo Poker at this time.'}
-                    </p>
-                </div>
-            ) : viewMode === 'list' ? (
-                <div style={{ display: 'grid', gap: 12 }}>
-                    {filteredVenues.map(v => (
-                        <div key={v.id} style={{ position: 'relative' }}>
-                            <VenueCard
-                                venue={v}
-                                isFavorited={!!favorites[v.id]}
-                                onFavorite={(e) => { e?.stopPropagation(); onToggleFavorite && onToggleFavorite(v.id, v); }}
-                                onNavigate={(url) => onNavigate && onNavigate(url, v)}
-                                userLocation={userLocation}
-                                checkinCount={checkinCounts[String(v.id)] || 0}
-                            />
-                            {/* In-Card Games Table Summary (Hover/Click expansion not full UI, just summary) */}
-                            <div style={{ background: 'rgba(0,0,0,0.3)', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '8px 16px', display: 'flex', gap: 16, overflowX: 'auto', borderRadius: '0 0 12px 12px', marginTop: -10, position: 'relative', zIndex: 1 }}>
-                                {v.live_data.games.slice(0, 3).map((g, i) => (
-                                    <div key={i} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <div style={{ width: 6, height: 6, borderRadius: 3, background: '#ef4444' }} />
-                                        <span style={{ color: '#c9d1d9', fontSize: 11, fontWeight: 600 }}>{g.tables_running}x {g.game}</span>
-                                    </div>
-                                ))}
-                                {v.live_data.games.length > 3 && (
-                                    <div style={{ color: '#8b949e', fontSize: 11, fontWeight: 500, display: 'flex', alignItems: 'center' }}>
-                                        +{v.live_data.games.length - 3} more
-                                    </div>
-                                )}
-                            </div>
+                    {/* Autocomplete */}
+                    {showSuggestions && searchSuggestions.length > 0 && (
+                        <div style={{
+                            position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+                            background: 'rgba(22,27,34,0.95)', border: '1px solid rgba(212,168,83,0.4)', borderRadius: 12,
+                            overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)'
+                        }}>
+                            {searchSuggestions.map((v, i) => (
+                                <div key={v.id} onClick={() => handleSelectSuggestion(v)} style={{
+                                    padding: '12px 14px', borderBottom: i < searchSuggestions.length - 1 ? '1px solid rgba(48,54,61,0.5)' : 'none',
+                                    cursor: 'pointer', color: '#fff', fontSize: 14, fontWeight: 600, display: 'flex', justifyContent: 'space-between'
+                                }}>
+                                    <span>{v.name}</span>
+                                    <span style={{ fontSize: 12, color: '#d4a853' }}>{liveData[v.bravo_slug]?.totalTables || 0} tables</span>
+                                </div>
+                            ))}
                         </div>
-                    ))}
+                    )}
                 </div>
+
+                {/* Filters (only show if no specific venue is selected to avoid confusion) */}
+                {!selectedVenue && (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {/* Map/List Toggle */}
+                        <div style={{ display: 'flex', background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, overflow: 'hidden' }}>
+                            <button onClick={() => setViewMode('list')} style={{
+                                padding: '6px 12px', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+                                background: viewMode === 'list' ? 'rgba(88,166,255,0.15)' : 'transparent', color: viewMode === 'list' ? '#58a6ff' : '#8b949e'
+                            }}>List</button>
+                            <button onClick={() => setViewMode('map')} style={{
+                                padding: '6px 12px', border: 'none', borderLeft: '1px solid rgba(48,54,61,0.6)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+                                background: viewMode === 'map' ? 'rgba(88,166,255,0.15)' : 'transparent', color: viewMode === 'map' ? '#58a6ff' : '#8b949e'
+                            }}>Map</button>
+                        </div>
+
+                        {/* State */}
+                        <select value={filterState} onChange={(e) => setFilterState(e.target.value)} style={{
+                            background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '6px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer'
+                        }}>
+                            <option value="all">All States</option>
+                            {['AL','AK','AZ','CA','CO','CT','FL','IL','IN','IA','LA','MD','MA','MI','MS','MO','NV','NH','NJ','NM','NY','NC','OH','OK','OR','PA','RD','SD','TX','WA','WV'].map(st => (
+                                <option key={st} value={st}>{st}</option>
+                            ))}
+                        </select>
+
+                        {/* Distance */}
+                        <select value={filterRadius} onChange={(e) => setFilterRadius(e.target.value)} style={{
+                            background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '6px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer'
+                        }}>
+                            <option value="any">Any Dist</option>
+                            <option value="10">10 mi</option><option value="50">50 mi</option><option value="100">100 mi</option><option value="250">250 mi</option>
+                        </select>
+
+                        {/* Sort */}
+                        {viewMode === 'list' && (
+                            <select value={filterSort} onChange={(e) => setFilterSort(e.target.value)} style={{
+                                background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '6px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', marginLeft: 'auto'
+                            }}>
+                                <option value="tables">Most Active Games</option>
+                                {userLocation && <option value="distance">Nearest</option>}
+                                <option value="trust">Trust Score</option>
+                            </select>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* ─── CONTENT AREA ─── */}
+            {liveLoading && Object.keys(liveData).length === 0 ? (
+                renderSkeletons(4)
             ) : (
-                renderMap ? renderMap(filteredVenues) : null
+                <>
+                    {/* Header stat */}
+                    {!selectedVenue && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.6)' }}>
+                            <span style={{ fontSize: 13, color: '#e0e8f0', fontWeight: 600 }}>
+                                <span style={{ color: '#ef4444' }}>{mergedVenues.length}</span> live venues matching filters
+                            </span>
+                            <button onClick={fetchGlobalLiveData} style={{ background: 'none', border: 'none', color: '#58a6ff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Refresh</button>
+                        </div>
+                    )}
+
+                    {mergedVenues.length === 0 ? (
+                         <div style={{ textAlign: 'center', padding: 40, background: 'rgba(13,17,23,0.6)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.1)' }}>
+                            <div style={{ width: 48, height: 48, borderRadius: 24, background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            </div>
+                            <p style={{ fontSize: 16, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>No Active Games Found</p>
+                            <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.5)' }}>Try expanding your distance or state filters.</p>
+                         </div>
+                    ) : (
+                        viewMode === 'map' && !selectedVenue ? (
+                            <VenueMapPanel 
+                                venues={mergedVenues} 
+                                userLocation={userLocation} 
+                                onVenueSelect={(v) => { if(setSelectedVenueForReview) setSelectedVenueForReview(null); router.push(`/hub/venues/${v.id}`); }} 
+                            />
+                        ) : (
+                            <div style={{ display: 'grid', gap: 16, paddingBottom: 24 }}>
+                                {mergedVenues.slice(0, 50).map(v => {
+                                    const dist = calcDist(v);
+                                    const tables = liveData[v.bravo_slug]?.totalTables || 0;
+                                    const wait = liveData[v.bravo_slug]?.totalWait || 0;
+
+                                    return (
+                                        <div key={v.id} style={{ position: 'relative' }}>
+                                            {/* Distance Badge */}
+                                            {userLocation && dist < 99999 && (
+                                                <div style={{ position: 'absolute', top: -8, left: 16, zIndex: 10, padding: '2px 8px', borderRadius: 8, background: '#1f2937', border: '1px solid #3fb950', fontSize: 10, fontWeight: 800, color: '#3fb950', boxShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                                                    {dist < 1 ? `${(dist * 5280).toFixed(0)} ft` : `${dist.toFixed(1)} mi`} away
+                                                </div>
+                                            )}
+                                            
+                                            {/* Live Games Summary Badge */}
+                                            <div style={{ position: 'absolute', top: -8, right: 16, zIndex: 10, padding: '2px 8px', borderRadius: 8, background: '#1f2937', border: '1px solid #ef4444', fontSize: 10, fontWeight: 800, color: '#ef4444', boxShadow: '0 2px 4px rgba(0,0,0,0.5)', display: 'flex', gap: 6 }}>
+                                                <span>{tables} RUNNING</span>
+                                                {wait > 0 && <span style={{ color: '#d4a853' }}>| {wait} WAIT</span>}
+                                            </div>
+
+                                            <div style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 16, overflow: 'hidden', padding: 2 }}>
+                                                <VenueCard 
+                                                    venue={v} 
+                                                    isFavorited={!!favorites[v.id]}
+                                                    onFavorite={(e) => { e?.stopPropagation(); if(handleToggleFavorite) handleToggleFavorite(v.id, v); }}
+                                                    onNavigate={(url) => { if (url.includes('action=review')) { if(setSelectedVenueForReview) setSelectedVenueForReview({ id: v.id, name: v.name }); } else { if(router) router.push(url); } }}
+                                                    userLocation={userLocation} 
+                                                    checkinCount={checkinCounts[String(v.id)] || 0} 
+                                                />
+                                                {/* Injected Live Games Breakdown inside VenueCard parent wrapper */}
+                                                <div style={{ padding: '0 12px 12px' }}>
+                                                    {renderTableBreakdown(v.bravo_slug)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )
+                    )}
+                </>
             )}
         </div>
     );
