@@ -2,7 +2,8 @@
  * TrendingVenues.jsx — Widget showing venues with the most check-ins today.
  * Rendered in the social media feed to encourage check-in engagement.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { eventBus, EventType } from '../../engine/EventBus';
 
 const C = {
     card: '#FFFFFF', bg: '#F0F2F5', text: '#050505', textSec: '#65676B',
@@ -19,19 +20,35 @@ export default function TrendingVenues({ onCheckIn }) {
         return () => { isMountedRef.current = false; };
     }, []);
 
+    // Fetch trending venues data
+    const fetchTrending = useCallback(async () => {
+        try {
+            const res = await fetch('/api/poker/checkins/trending?limit=5');
+            const data = await res.json();
+            if (!data.success) return;
+            if (isMountedRef.current) setVenues(data.venues || []);
+        } catch { /* silent */ }
+        if (isMountedRef.current) setLoading(false);
+    }, []);
+
+    // Fetch on mount
     useEffect(() => {
         let cancelled = false;
         (async () => {
-            try {
-                const res = await fetch('/api/poker/checkins/trending?limit=5');
-                const data = await res.json();
-                if (cancelled || !data.success) return;
-                if (isMountedRef.current) setVenues(data.venues || []);
-            } catch { /* silent */ }
-            if (isMountedRef.current) setLoading(false);
+            await fetchTrending();
+            if (cancelled) return;
         })();
         return () => { cancelled = true; };
-    }, []);
+    }, [fetchTrending]);
+
+    // Auto-refresh when a check-in is created
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.VENUE_CHECKIN_CREATED, () => {
+            // Delay slightly to let the DB write settle
+            setTimeout(() => fetchTrending(), 1000);
+        });
+        return unsub;
+    }, [fetchTrending]);
 
     if (loading || venues.length === 0) return null;
 
