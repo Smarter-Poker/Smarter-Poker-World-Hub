@@ -2187,8 +2187,8 @@ function UniversalDynamicTable({
                             animate={{ y: 0, opacity: 1, rotateZ: -6 }}
                             transition={{ delay: 0.1, duration: 0.4, type: 'spring' }}
                             style={{
-                                width: isMobile ? 60 : 72,
-                                height: isMobile ? 86 : 104,
+                                width: isMobile ? 48 : 56,
+                                height: isMobile ? 68 : 80,
                                 borderRadius: 8,
                                 boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
                                 border: '2px solid rgba(255,255,255,0.3)',
@@ -2204,8 +2204,8 @@ function UniversalDynamicTable({
                             animate={{ y: 0, opacity: 1, rotateZ: 6 }}
                             transition={{ delay: 0.2, duration: 0.4, type: 'spring' }}
                             style={{
-                                width: isMobile ? 60 : 72,
-                                height: isMobile ? 86 : 104,
+                                width: isMobile ? 48 : 56,
+                                height: isMobile ? 68 : 80,
                                 borderRadius: 8,
                                 marginLeft: isMobile ? -12 : -16,
                                 boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
