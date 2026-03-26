@@ -933,6 +933,7 @@ function UniversalDynamicTable({
 
     // Phase 3: Study Mode (show frequencies before answering)
     const [studyMode, setStudyMode] = React.useState(false);
+    const [feedbackCollapsed, setFeedbackCollapsed] = React.useState(false);
 
     // ═══ MOBILE RESPONSIVE DETECTION ═══
     const [isMobile, setIsMobile] = React.useState(false);
@@ -2661,10 +2662,11 @@ function UniversalDynamicTable({
                             textTransform: 'uppercase',
                         }}
                     >
-                        {feedbackCollapsed ? '▼ Show Details' : '▲ Hide Details'}
+                        {feedbackCollapsed ? '\u25bc Show Details' : '\u25b2 Hide Details'}
                     </button>
 
-                    {/* F5: FULL STRATEGY OVERLAY — Shows all action frequencies as bars during feedback */}
+                    {/* Collapsible feedback body - uses display:none for clean collapse */}
+                    <div style={{ display: feedbackCollapsed ? 'none' : 'contents' }}>
                     <div style={{ width: '100%', marginBottom: 6 }}>
                         <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>
                             GTO Action Frequencies
@@ -3002,6 +3004,8 @@ function UniversalDynamicTable({
                             })()}
                         </div>
                     )}
+
+                    </div>{/* end collapsible feedback body */}
 
                     {/* Next Hand / Continue Hand buttons */}
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>

@@ -74,6 +74,9 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     const [carouselIdx, setCarouselIdx] = useState(0);
     // #14 Like animation
     const [likeAnim, setLikeAnim] = useState(false);
+    // P9-4: Double-tap like
+    const [doubleTapHeart, setDoubleTapHeart] = useState(false);
+    const doubleTapTimer = useRef(null);
     // #13 Debounce guard
     const isLikingRef = useRef(false);
     // #1 Reply threading
@@ -237,12 +240,26 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                     </div>
                 </div>
             ) : post.content ? (
-                <div style={{ padding: '0 16px 12px', fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                <div onDoubleClick={() => {
+                    if (!user) return;
+                    if (!post.user_liked) { onLike(post.id); }
+                    setDoubleTapHeart(true);
+                    if (doubleTapTimer.current) clearTimeout(doubleTapTimer.current);
+                    doubleTapTimer.current = setTimeout(() => setDoubleTapHeart(false), 800);
+                }} style={{ padding: '0 16px 12px', fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap', position: 'relative', cursor: 'default' }}>
                     {post.content.length > 300 && !expanded ? (
                         <>{post.content.slice(0, 300)}... <button onClick={() => setExpanded(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: C.textSec, padding: 0, fontFamily: 'inherit' }}>See More</button></>
                     ) : post.content}
                     {expanded && post.content.length > 300 && (
                         <button onClick={() => setExpanded(false)} style={{ display: 'block', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: C.textSec, padding: '4px 0 0', fontFamily: 'inherit' }}>See Less</button>
+                    )}
+                    {/* P9-4: Double-tap heart animation */}
+                    {doubleTapHeart && (
+                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', animation: 'likePopAnim 0.8s ease-out forwards' }}>
+                            <svg width="60" height="60" viewBox="0 0 24 24" fill="#F02849" stroke="#F02849" strokeWidth="1">
+                                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                            </svg>
+                        </div>
                     )}
                 </div>
             ) : null}
@@ -1332,13 +1349,59 @@ export default function SocialPageDetail() {
                     <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 16px' }}>
                         {/* Avatar and name */}
                         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginTop: -40 }}>
-                            <div style={{
-                                width: 80, height: 80, borderRadius: 16, border: `4px solid ${C.card}`,
-                                background: page.avatar_url ? `url(${page.avatar_url}) center/cover` : pageColor,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: '#fff', fontWeight: 800, fontSize: 28, flexShrink: 0,
-                            }}>
+                            {/* P9-2: Avatar upload for owners */}
+                            <div style={{ position: 'relative', cursor: isPageOwner ? 'pointer' : 'default' }}
+                                onClick={() => isPageOwner && avatarInputRef.current?.click()}>
+                                {isPageOwner && (
+                                    <input type="file" ref={avatarInputRef} accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setUploadingAvatar(true);
+                                        try {
+                                            const ext = file.name.split('.').pop();
+                                            const path = `social-pages/${page.id}/avatar_${Date.now()}.${ext}`;
+                                            const { error: upErr } = await supabase.storage.from('uploads').upload(path, file, { upsert: true });
+                                            if (upErr) throw upErr;
+                                            const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(path);
+                                            const token = getAccessToken();
+                                            await fetch('/api/social/pages', {
+                                                method: 'PUT',
+                                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                                body: JSON.stringify({ id: page.id, avatar_url: publicUrl }),
+                                            });
+                                            setPage(prev => ({ ...prev, avatar_url: publicUrl }));
+                                            toast.success('Avatar updated!');
+                                            busEmit.dataMutated('social-pages');
+                                        } catch (err) { console.error(err); toast.error('Avatar upload failed'); }
+                                        setUploadingAvatar(false);
+                                        e.target.value = '';
+                                    }} />
+                                )}
+                                <div style={{
+                                    width: 80, height: 80, borderRadius: 16, border: `4px solid ${C.card}`,
+                                    background: page.avatar_url ? `url(${page.avatar_url}) center/cover` : pageColor,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: '#fff', fontWeight: 800, fontSize: 28, flexShrink: 0,
+                                    position: 'relative', overflow: 'hidden',
+                                }}>
                                 {!page.avatar_url && page.name[0].toUpperCase()}
+                                {/* P9-2: Camera overlay for owners */}
+                                {isPageOwner && (
+                                    <div style={{
+                                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                                        background: 'rgba(0,0,0,0.5)', padding: '3px 0',
+                                        display: 'flex', justifyContent: 'center',
+                                    }}>
+                                        {uploadingAvatar ? (
+                                            <div style={{ width: 12, height: 12, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                        ) : (
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                                                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                             </div>
                             <div style={{ paddingBottom: 8, flex: 1 }}>
                                 <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1361,6 +1424,19 @@ export default function SocialPageDetail() {
                                             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                                         </svg>
                                         smarter.poker/.../{ page.slug }
+                                        {/* P9-10: Copy page URL button */}
+                                        <button onClick={(e) => {
+                                            e.stopPropagation();
+                                            const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
+                                            navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'));
+                                        }} title="Copy page URL" style={{
+                                            border: 'none', background: 'none', cursor: 'pointer', padding: '2px 4px',
+                                            display: 'inline-flex', alignItems: 'center', borderRadius: 4,
+                                        }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2">
+                                                <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                                            </svg>
+                                        </button>
                                     </p>
                                 )}
                             </div>
@@ -1381,7 +1457,14 @@ export default function SocialPageDetail() {
                                 background: isFollowing ? '#E4E6EB' : C.blue,
                                 color: isFollowing ? C.text : '#fff',
                             }}>
-                                {isFollowing ? 'Following' : 'Follow'}
+                                {followLoading ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <div style={{ width: 14, height: 14, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                        {isFollowing ? 'Following' : 'Follow'}
+                                    </div>
+                                ) : (
+                                    isFollowing ? 'Following' : 'Follow'
+                                )}
                             </button>
                             {/* #8 Notification bell */}
                             {isFollowing && (
@@ -1462,18 +1545,27 @@ export default function SocialPageDetail() {
                                 </button>
                             )}
                         </div>
-                        <div style={{ display: 'flex', gap: 0, borderTop: `1px solid ${C.border}` }}>
-                            {['posts', 'about', 'members', 'reviews', 'games', 'schedule', 'media'].map(t => (
-                                <button key={t} onClick={() => setActiveTab(t)} style={{
-                                    padding: '12px 16px', border: 'none', background: 'none',
-                                    fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                    color: activeTab === t ? C.blue : C.textSec,
-                                    borderBottom: `3px solid ${activeTab === t ? C.blue : 'transparent'}`,
-                                    textTransform: 'capitalize',
-                                }}>
-                                    {t}
-                                </button>
-                            ))}
+                        {/* P9-3: Sticky tab bar */}
+                        <div style={{ display: 'flex', gap: 0, borderTop: `1px solid ${C.border}`, position: 'sticky', top: 56, zIndex: 20, background: C.card, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                            {['posts', 'about', 'members', 'reviews', 'games', 'schedule', 'media'].map(t => {
+                                // P9-8: Tab count badges
+                                const allMedia = posts.flatMap(p => (p.media_urls || []));
+                                const badge = t === 'members' ? (page?.follower_count || 0)
+                                    : t === 'reviews' ? reviews.length
+                                    : t === 'media' ? allMedia.length
+                                    : null;
+                                return (
+                                    <button key={t} onClick={() => setActiveTab(t)} style={{
+                                        padding: '12px 16px', border: 'none', background: 'none',
+                                        fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                        color: activeTab === t ? C.blue : C.textSec,
+                                        borderBottom: `3px solid ${activeTab === t ? C.blue : 'transparent'}`,
+                                        textTransform: 'capitalize', whiteSpace: 'nowrap', flexShrink: 0,
+                                    }}>
+                                        {t}{badge > 0 ? ` (${badge})` : ''}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -1773,7 +1865,7 @@ export default function SocialPageDetail() {
                                         {page.metadata?.social_links && (
                                             <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
                                                 {page.metadata.social_links.instagram && (
-                                                    <a href={`https://instagram.com/${page.metadata.social_links.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{
+                                                    <a href={page.metadata.social_links.instagram.startsWith('http') ? page.metadata.social_links.instagram : `https://instagram.com/${page.metadata.social_links.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{
                                                         display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 20,
                                                         background: 'linear-gradient(45deg, #833AB4, #FD1D1D, #F77737)', color: '#fff',
                                                         fontSize: 12, fontWeight: 600, textDecoration: 'none',
@@ -1783,7 +1875,7 @@ export default function SocialPageDetail() {
                                                     </a>
                                                 )}
                                                 {page.metadata.social_links.twitter && (
-                                                    <a href={`https://x.com/${page.metadata.social_links.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{
+                                                    <a href={page.metadata.social_links.twitter.startsWith('http') ? page.metadata.social_links.twitter : `https://x.com/${page.metadata.social_links.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{
                                                         display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 20,
                                                         background: '#000', color: '#fff', fontSize: 12, fontWeight: 600, textDecoration: 'none',
                                                     }}>
@@ -1966,7 +2058,11 @@ export default function SocialPageDetail() {
                                         </div>
                                     ) : reviews.length === 0 ? (
                                         <div style={{ textAlign: 'center', padding: 30 }}>
-                                            <p style={{ fontSize: 14, color: C.textSec }}>No reviews yet. Be the first to review!</p>
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#DADDE1" strokeWidth="1.5" style={{ marginBottom: 12 }}>
+                                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" />
+                                            </svg>
+                                            <p style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No Reviews Yet</p>
+                                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Be the first to share your experience!</p>
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -2014,7 +2110,11 @@ export default function SocialPageDetail() {
                                         </div>
                                     ) : games.length === 0 ? (
                                         <div style={{ textAlign: 'center', padding: 30 }}>
-                                            <p style={{ fontSize: 14, color: C.textSec }}>No live games right now. Check back later!</p>
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#DADDE1" strokeWidth="1.5" style={{ marginBottom: 12 }}>
+                                                <rect x="2" y="6" width="20" height="12" rx="2" /><line x1="6" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="18" y2="12" /><circle cx="12" cy="12" r="2" />
+                                            </svg>
+                                            <p style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No Live Games Right Now</p>
+                                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Check back later for active tables!</p>
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -2091,7 +2191,8 @@ export default function SocialPageDetail() {
                                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CCD0D5" strokeWidth="1.5">
                                                     <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
                                                 </svg>
-                                                <p style={{ fontSize: 14, color: C.textSec, marginTop: 12 }}>No media shared yet.</p>
+                                                <p style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: '12px 0 4px' }}>No Media Shared Yet</p>
+                                                <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Photos from posts will appear here!</p>
                                             </div>
                                         ) : (
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, borderRadius: 8, overflow: 'hidden' }}>
