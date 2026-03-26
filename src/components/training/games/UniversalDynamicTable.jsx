@@ -1835,12 +1835,14 @@ function UniversalDynamicTable({
                 {contextString && (
                     <div style={{
                         textAlign: 'center',
-                        padding: '6px 0 4px',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: '#94a3b8',
-                        letterSpacing: 0.5,
+                        padding: '0 10px 16px 10px',
+                        fontSize: 15,
+                        fontWeight: 900,
+                        color: '#ffffff',
+                        textTransform: 'uppercase',
+                        letterSpacing: 1,
                         flexShrink: 0,
+                        textShadow: '0 2px 4px rgba(0,0,0,0.8)',
                     }}>
                         {contextString}
                     </div>
@@ -1880,9 +1882,9 @@ function UniversalDynamicTable({
                         let seatX = seat.x;
                         let seatY = seat.y;
                         if (activeCount <= 2) {
-                            // Strict Absolute positions: Villain exactly at top border, Hero exactly at bottom border
+                            // Strict Absolute positions: completely outside the table
                             seatX = 50;
-                            seatY = isHero ? 100 : 0;
+                            seatY = isHero ? 116 : -16;
                         }
 
                         return (
@@ -3229,11 +3231,11 @@ const styles = {
     basicTable: {
         position: 'relative',
         width: '100%',
-        maxWidth: 320,
-        aspectRatio: '1 / 1.6',
-        borderRadius: '50% / 30%', 
-        backgroundColor: '#12301c', // deep green felt
-        border: '14px solid #1a1a1a', // solid dark rail
+        maxWidth: 240,
+        aspectRatio: '1 / 1.8',
+        borderRadius: '50% / 25%', 
+        backgroundColor: '#1E3B22', // deep green felt
+        border: '10px solid #1a1a1a', // solid dark rail
         boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
         margin: '0 auto',
         flexShrink: 0,
