@@ -188,6 +188,18 @@ export function ReelsViewer({ onClose }) {
         }
     };
 
+    const handleReport = async () => {
+        if (!currentReel?.id || !currentUserId || !reportReason.trim()) return;
+        try {
+            await supabase.from('social_interactions').insert({
+                user_id: currentUserId, post_id: currentReel.id,
+                interaction_type: 'report', metadata: { reason: reportReason.trim() }
+            });
+            setReportSubmitted(true);
+            setTimeout(() => { setShowReportModal(false); setReportSubmitted(false); setReportReason(''); }, 2000);
+        } catch { /* silent */ }
+    };
+
     // Auto-hide overlay after 2 seconds
     useEffect(() => {
         if (showOverlay) {
@@ -970,6 +982,52 @@ export function ReelsViewer({ onClose }) {
                 }}>
                     👁 {currentReel?.view_count || 0} views
                 </div>
+                {/* Report Modal */}
+                {showReportModal && (
+                    <div onClick={() => { setShowReportModal(false); setReportReason(''); setReportSubmitted(false); }} style={{
+                        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10002,
+                    }}>
+                        <div onClick={(e) => e.stopPropagation()} style={{
+                            background: '#1a1a2e', borderRadius: 16, padding: 24, width: '85%', maxWidth: 360,
+                            border: '1px solid rgba(255,255,255,0.1)',
+                        }}>
+                            {reportSubmitted ? (
+                                <div style={{ textAlign: 'center', color: 'white' }}>
+                                    <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
+                                    <div style={{ fontSize: 16, fontWeight: 600 }}>Report Submitted</div>
+                                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 8 }}>Thank you. We will review this content.</div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div style={{ color: 'white', fontWeight: 700, fontSize: 18, marginBottom: 16 }}>Report This Reel</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 12 }}>Why are you reporting this content?</div>
+                                    {['Inappropriate Content', 'Spam Or Scam', 'Harassment', 'Misinformation', 'Other'].map(reason => (
+                                        <button key={reason} onClick={() => setReportReason(reason)} style={{
+                                            display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px',
+                                            marginBottom: 6, borderRadius: 10, fontSize: 14, cursor: 'pointer',
+                                            background: reportReason === reason ? 'rgba(24,119,242,0.2)' : 'rgba(255,255,255,0.06)',
+                                            border: reportReason === reason ? '1px solid #1877F2' : '1px solid rgba(255,255,255,0.1)',
+                                            color: reportReason === reason ? '#1877F2' : 'white',
+                                        }}>{reason}</button>
+                                    ))}
+                                    <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                                        <button onClick={() => { setShowReportModal(false); setReportReason(''); }} style={{
+                                            flex: 1, padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 600,
+                                            background: 'rgba(255,255,255,0.08)', color: 'white', border: 'none', cursor: 'pointer',
+                                        }}>Cancel</button>
+                                        <button onClick={handleReport} disabled={!reportReason} style={{
+                                            flex: 1, padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 600,
+                                            background: reportReason ? '#ef4444' : 'rgba(255,255,255,0.08)',
+                                            color: 'white', border: 'none', cursor: reportReason ? 'pointer' : 'not-allowed',
+                                            opacity: reportReason ? 1 : 0.5,
+                                        }}>Submit Report</button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
