@@ -1,0 +1,22 @@
+{
+  "venue_id": 1854,
+  "name": "Casino Del Sol",
+  "source": "http://www.casinodelsol.com/tucson-casino/poker",
+  "http": 200,
+  "hash": "59e2d2df755514e8f9c74bd8a3a5f9aadafdaed66dd1c21d0236b94f17bbf8d0",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "10 keywords + 11 buyins",
+  "keyword_hits": 10,
+  "day_hits": 7,
+  "buyins": [
+    100,
+    100,
+    120,
+    50,
+    60
+  ],
+  "ts": "2026-03-26T00:30:28.726074+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}

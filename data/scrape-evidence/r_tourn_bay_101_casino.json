@@ -1,0 +1,22 @@
+{
+  "venue_id": 1852,
+  "name": "Bay 101 Casino",
+  "source": "https://bay101.com/",
+  "http": 200,
+  "hash": "453f356f44d367646de79167b3fa93b3449f93bfe442e649e131776c622ed283",
+  "has_tournaments": true,
+  "confidence": "high",
+  "reason": "6 keywords + 38 buyins",
+  "keyword_hits": 6,
+  "day_hits": 7,
+  "buyins": [
+    200,
+    160,
+    25,
+    200,
+    160
+  ],
+  "ts": "2026-03-26T00:32:03.712665+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}

@@ -996,6 +996,33 @@ function UniversalDynamicTable({
         return [];
     }, [board]);
 
+    // ═══ ALL QUESTION DATA EXTRACTION (must be before any hooks that reference these) ═══
+    const questionText = question?.question || question?.text || 'Loading question...';
+    const correctAnswer = question?.correctAnswer || question?.correct || 'a';
+
+    // BUG-A FIX: Fisher-Yates shuffle options per question to eliminate position bias
+    const options = useMemo(() => {
+        const rawOpts = question?.options || [];
+        const opts = [...rawOpts];
+        if (opts.length <= 1) return opts;
+        let seed = ((questionNumber || 1) * 2654435761) >>> 0;
+        const rng = () => { seed = ((seed * 1103515245) + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+        for (let i = opts.length - 1; i > 0; i--) {
+            const j = Math.floor(rng() * (i + 1));
+            [opts[i], opts[j]] = [opts[j], opts[i]];
+        }
+        return opts;
+    }, [question?.options, questionNumber]);
+
+    // Dynamic table state from question scenario
+    const heroPosition = scenario.heroPosition || scenario.position || 'BTN';
+    const heroStack = scenario.heroStack || scenario.stackDepth || 100;
+    const villainStack = scenario.villainStack || 100;
+    const pot = scenario.pot || 0;
+    const villainPosition = scenario.villainPosition || 'BB';
+    const villainAction = scenario.action || scenario.villainAction || '';
+    const street = scenario.street || '';
+
     // PHASE 5: Hand Strength evaluation
     const handStrength = useMemo(() => {
         if (showFeedback) return null;
@@ -1269,42 +1296,8 @@ function UniversalDynamicTable({
     }, [showFeedback, selectedAnswer, onNextHand, onAnswer, question, handleAnswer]);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // DYNAMIC DATA EXTRACTION FROM QUESTION
+    // (ALL DYNAMIC DATA EXTRACTION moved above — before hooks that use them)
     // ═══════════════════════════════════════════════════════════════════════
-
-    // scenario already defined above (before handStrength useMemo)
-
-    // Core question data
-    const questionText = question?.question || question?.text || 'Loading question...';
-    const correctAnswer = question?.correctAnswer || question?.correct || 'a';
-
-    // BUG-A FIX: Fisher-Yates shuffle options per question to eliminate position bias
-    // Uses seeded RNG so same question always shows same order (stable across re-renders)
-    const options = useMemo(() => {
-        const rawOpts = question?.options || [];
-        const opts = [...rawOpts];
-        if (opts.length <= 1) return opts;
-        // Seeded LCG RNG using questionNumber for deterministic per-question shuffle
-        let seed = ((questionNumber || 1) * 2654435761) >>> 0;
-        const rng = () => { seed = ((seed * 1103515245) + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
-        for (let i = opts.length - 1; i > 0; i--) {
-            const j = Math.floor(rng() * (i + 1));
-            [opts[i], opts[j]] = [opts[j], opts[i]];
-        }
-        return opts;
-    }, [question?.options, questionNumber]);
-
-    // Dynamic table state from question scenario
-    const heroPosition = scenario.heroPosition || scenario.position || 'BTN';
-    const heroStack = scenario.heroStack || scenario.stackDepth || 100;
-    const villainStack = scenario.villainStack || 100;
-    const pot = scenario.pot || 0;
-    // board already defined above (before handStrength useMemo)
-    const villainPosition = scenario.villainPosition || 'BB';
-    const villainAction = scenario.action || scenario.villainAction || '';
-    const street = scenario.street || '';
-
-    // heroCards and boardCards already defined above (before handStrength useMemo)
 
     // Play card deal sound when board cards appear (new question)
     const prevQuestionNum = useRef(questionNumber);

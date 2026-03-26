@@ -1,0 +1,22 @@
+{
+  "venue_id": 1867,
+  "name": "Barona Resort & Casino",
+  "source": "http://www.barona.com/",
+  "http": 200,
+  "hash": "137e9307e79d54635289f2ae92f3e3b3b2d31bbc957e62482fb6d1a7d3ca445c",
+  "has_tournaments": false,
+  "confidence": "medium",
+  "reason": "too few signals (0 kw, 54 bi)",
+  "keyword_hits": 0,
+  "day_hits": 7,
+  "buyins": [
+    750,
+    750,
+    50,
+    750,
+    750
+  ],
+  "ts": "2026-03-26T00:31:46.605662+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}

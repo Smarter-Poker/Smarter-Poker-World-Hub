@@ -1,0 +1,16 @@
+{
+  "venue_id": 1855,
+  "name": "Hon-Dah Casino",
+  "source": "https://www.hon-dah.com/service-b",
+  "http": 200,
+  "hash": "a7f47c0b3f299dfff16169dcbc7f59a38ec69dbc7cbaf22fd7789fe413948f4f",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tournament_link_found",
+  "keyword_hits": 2,
+  "day_hits": 2,
+  "buyins": [],
+  "ts": "2026-03-26T00:30:38.634595+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}

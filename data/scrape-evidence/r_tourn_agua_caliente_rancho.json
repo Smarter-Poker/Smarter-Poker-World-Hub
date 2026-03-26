@@ -1,0 +1,16 @@
+{
+  "venue_id": 2201,
+  "name": "Agua Caliente Rancho Mirage",
+  "source": "http://www.hotwatercasino.com",
+  "http": 200,
+  "hash": "4ed943de79badcb2c399423baab4beb308aec13acb2262d970dc5150cf9b7e9f",
+  "has_tournaments": false,
+  "confidence": "medium",
+  "reason": "too few signals (1 kw, 0 bi)",
+  "keyword_hits": 1,
+  "day_hits": 2,
+  "buyins": [],
+  "ts": "2026-03-26T00:30:56.805231+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}

@@ -1,0 +1,18 @@
+{
+  "venue_id": 2222,
+  "name": "Black Oak Casino",
+  "source": "http://www.blackoakcasino.com/",
+  "http": 200,
+  "hash": "3f60dc40509d6d23f3059c976921d3963652076b497a18e9da827cec2c2ac242",
+  "has_tournaments": false,
+  "confidence": "medium",
+  "reason": "too few signals (1 kw, 1 bi)",
+  "keyword_hits": 1,
+  "day_hits": 0,
+  "buyins": [
+    25
+  ],
+  "ts": "2026-03-26T00:32:14.204086+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}

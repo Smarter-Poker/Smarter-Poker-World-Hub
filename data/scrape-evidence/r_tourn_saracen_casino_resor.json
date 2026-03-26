@@ -1,0 +1,22 @@
+{
+  "venue_id": 1856,
+  "name": "Saracen Casino Resort",
+  "source": "https://saracenresort.com/",
+  "http": 200,
+  "hash": "6fb4c0a19d6b3f783e4f0ad28e6c9d766bc250ff272d2fdcad23a37c0606809d",
+  "has_tournaments": true,
+  "confidence": "medium",
+  "reason": "tournament_link_found",
+  "keyword_hits": 1,
+  "day_hits": 4,
+  "buyins": [
+    25,
+    25,
+    35,
+    35,
+    50
+  ],
+  "ts": "2026-03-26T00:30:15.607668+00:00",
+  "batch": "2bc86257-5b1e-4d5b-a51e-e0e57ed33fbd",
+  "method": "Scrapling_Fetcher_venue_website"
+}
