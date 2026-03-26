@@ -1995,60 +1995,98 @@ export default function PokerNearMePage() {
     };
 
     const renderTours = () => {
-        if (tours.length === 0) {
-            return (
-                <div className="empty-state">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>
-                    <p>No Tours Found</p>
-                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Try Clearing Filters Or Searching For A Specific Tour</p>
-                    <button onClick={clearFilters}>Clear Filters</button>
-                </div>
-            );
+        const tourSearchVal = filters.hubTourSearch || '';
+        const tourStateVal = filters.hubTourState || 'all';
+        let filteredTours = tours;
+        if (tourSearchVal) {
+            const lower = tourSearchVal.toLowerCase();
+            filteredTours = filteredTours.filter(t => (t.name || '').toLowerCase().includes(lower) || (t.city || '').toLowerCase().includes(lower) || (t.state || '').toLowerCase().includes(lower) || (t.tour_code || '').toLowerCase().includes(lower));
+        }
+        if (tourStateVal !== 'all') {
+            filteredTours = filteredTours.filter(t => t.state === tourStateVal);
         }
 
         return (
             <>
+                {/* Search + State Filter */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input type="text" placeholder="Search tours..." value={tourSearchVal}
+                        onChange={(e) => setFilters(f => ({ ...f, hubTourSearch: e.target.value }))}
+                        style={{ flex: 1, minWidth: 140, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
+                    <select value={tourStateVal}
+                        onChange={(e) => setFilters(f => ({ ...f, hubTourState: e.target.value }))}
+                        className="sort-select" style={{ minWidth: 100 }}>
+                        <option value="all">All States</option>
+                        {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                            <option key={st} value={st}>{st}</option>
+                        ))}
+                    </select>
+                </div>
                 <div className="results-bar">
-                    <span className="results-count">Showing {Math.min(displayCount.tours, tours.length)} of {tours.length} tours</span>
+                    <span className="results-count"><span style={{ color: '#d4a853', fontWeight: 800 }}>{filteredTours.length}</span> tour{filteredTours.length !== 1 ? 's' : ''}</span>
                 </div>
-                <div className="card-grid tours-grid">
-                    {tours.slice(0, displayCount.tours).map((tour, i) => (
-                        <TourCard
-                            key={tour.tour_code || i}
-                            tour={tour}
-                            isFavorited={isFavorited('tour', tour.tour_code)}
-                            onFavorite={(e) => toggleFavorite('tour', tour.tour_code, e)}
-                            onNavigate={(path) => router.push(path)}
-                        />
-                    ))}
-                </div>
-                {displayCount.tours < tours.length && (
-                    <div className="load-more">
-                        <button className="load-more-btn" onClick={() => loadMore('tours')}>
-                            Load More ({tours.length - displayCount.tours} remaining)
-                        </button>
+                {filteredTours.length === 0 ? (
+                    <div className="empty-state">
+                        <p>No Matching Tours</p>
+                        <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>{tourSearchVal || tourStateVal !== 'all' ? 'Try adjusting your search or filters.' : 'Check back soon for poker tour schedules.'}</p>
+                        <button onClick={() => setFilters(f => ({ ...f, hubTourSearch: '', hubTourState: 'all' }))}>Clear Tour Filters</button>
                     </div>
+                ) : (
+                    <>
+                        <div className="card-grid tours-grid">
+                            {filteredTours.slice(0, displayCount.tours).map((tour, i) => (
+                                <TourCard
+                                    key={tour.tour_code || i}
+                                    tour={tour}
+                                    isFavorited={isFavorited('tour', tour.tour_code)}
+                                    onFavorite={(e) => toggleFavorite('tour', tour.tour_code, e)}
+                                    onNavigate={(path) => router.push(path)}
+                                />
+                            ))}
+                        </div>
+                        {displayCount.tours < filteredTours.length && (
+                            <div className="load-more">
+                                <button className="load-more-btn" onClick={() => loadMore('tours')}>
+                                    Load More ({filteredTours.length - displayCount.tours} remaining)
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
             </>
         );
     };
 
     const renderSeries = () => {
-        if (series.length === 0) {
-            return (
-                <div className="empty-state">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                    <p>No Tournament Series Found</p>
-                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Try Expanding The Timeframe Or Clearing Filters</p>
-                    <button onClick={clearFilters}>Clear Filters</button>
-                </div>
-            );
+        const seriesSearchVal = filters.hubSeriesSearch || '';
+        const seriesStateVal = filters.hubSeriesState || 'all';
+        let filteredSeries = series;
+        if (seriesSearchVal) {
+            const lower = seriesSearchVal.toLowerCase();
+            filteredSeries = filteredSeries.filter(s => (s.name || '').toLowerCase().includes(lower) || (s.city || '').toLowerCase().includes(lower) || (s.state || '').toLowerCase().includes(lower) || (s.series_code || '').toLowerCase().includes(lower));
+        }
+        if (seriesStateVal !== 'all') {
+            filteredSeries = filteredSeries.filter(s => s.state === seriesStateVal);
         }
 
         return (
             <>
+                {/* Search + State Filter */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input type="text" placeholder="Search series..." value={seriesSearchVal}
+                        onChange={(e) => setFilters(f => ({ ...f, hubSeriesSearch: e.target.value }))}
+                        style={{ flex: 1, minWidth: 140, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
+                    <select value={seriesStateVal}
+                        onChange={(e) => setFilters(f => ({ ...f, hubSeriesState: e.target.value }))}
+                        className="sort-select" style={{ minWidth: 100 }}>
+                        <option value="all">All States</option>
+                        {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                            <option key={st} value={st}>{st}</option>
+                        ))}
+                    </select>
+                </div>
                 <div className="results-bar">
-                    <span className="results-count">Showing {Math.min(displayCount.series, series.length)} of {series.length} series</span>
+                    <span className="results-count"><span style={{ color: '#d4a853', fontWeight: 800 }}>{filteredSeries.length}</span> series</span>
                     <div className="view-toggle">
                         <button className={'view-btn' + (seriesViewMode === 'grid' ? ' active' : '')} onClick={() => setSeriesViewMode('grid')}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
@@ -2061,10 +2099,16 @@ export default function PokerNearMePage() {
                     </div>
                 </div>
 
-                {seriesViewMode === 'calendar' ? renderSeriesCalendar() : (
+                {filteredSeries.length === 0 ? (
+                    <div className="empty-state">
+                        <p>No Matching Series</p>
+                        <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>{seriesSearchVal || seriesStateVal !== 'all' ? 'Try adjusting your search or filters.' : 'Check back soon for poker series.'}</p>
+                        <button onClick={() => setFilters(f => ({ ...f, hubSeriesSearch: '', hubSeriesState: 'all' }))}>Clear Series Filters</button>
+                    </div>
+                ) : seriesViewMode === 'calendar' ? renderSeriesCalendar() : (
                     <>
                         <div className="card-grid">
-                            {series.slice(0, displayCount.series).map((s, i) => (
+                            {filteredSeries.slice(0, displayCount.series).map((s, i) => (
                                 <SeriesCard
                                     key={s.id || i}
                                     series={s}
@@ -2075,10 +2119,10 @@ export default function PokerNearMePage() {
                                 />
                             ))}
                         </div>
-                        {displayCount.series < series.length && (
+                        {displayCount.series < filteredSeries.length && (
                             <div className="load-more">
                                 <button className="load-more-btn" onClick={() => loadMore('series')}>
-                                    Load More ({series.length - displayCount.series} remaining)
+                                    Load More ({filteredSeries.length - displayCount.series} remaining)
                                 </button>
                             </div>
                         )}
@@ -2089,17 +2133,36 @@ export default function PokerNearMePage() {
     };
 
     const renderDailyTournaments = () => {
-        if (dailyTournaments.length === 0) {
-            return (
-                <div className="empty-state">
-                    <p>No daily tournaments found for {filters.selectedDay}</p>
-                    <button onClick={clearFilters}>Clear Filters</button>
-                </div>
-            );
+        // Local filter state for daily tournaments on hub page
+        const dtGameType = filters.hubDailyGameType || 'all';
+        const dtMinBuyin = filters.hubDailyMinBuyin || '';
+        const dtMaxBuyin = filters.hubDailyMaxBuyin || '';
+        const dtMinGtd = filters.hubDailyMinGtd || '';
+        const dtSort = filters.hubDailySort || 'time';
+
+        // Apply client-side filters
+        let filtered = dailyTournaments;
+        if (dtGameType !== 'all') {
+            filtered = filtered.filter(t => {
+                const gt = (t.game_type || '').toLowerCase();
+                if (dtGameType === 'nlh') return gt.includes('nlh') || gt.includes('hold') || gt.includes('holdem') || gt === 'no limit holdem';
+                if (dtGameType === 'plo') return gt.includes('plo') || gt.includes('omaha hi-lo') || gt.includes('pot limit omaha');
+                if (dtGameType === 'mixed') return gt.includes('mix') || gt.includes('horse') || gt.includes('dealer');
+                if (dtGameType === 'omaha') return gt.includes('omaha') && !gt.includes('hi-lo');
+                return true;
+            });
         }
+        if (dtMinBuyin) filtered = filtered.filter(t => (t.buy_in || 0) >= Number(dtMinBuyin));
+        if (dtMaxBuyin) filtered = filtered.filter(t => (t.buy_in || 0) <= Number(dtMaxBuyin));
+        if (dtMinGtd) filtered = filtered.filter(t => (t.guaranteed || 0) >= Number(dtMinGtd));
+
+        // Sort
+        if (dtSort === 'buyin') filtered = [...filtered].sort((a, b) => (a.buy_in || 0) - (b.buy_in || 0));
+        else if (dtSort === 'guaranteed') filtered = [...filtered].sort((a, b) => (b.guaranteed || 0) - (a.guaranteed || 0));
 
         return (
             <>
+                {/* Day selector */}
                 <div className="day-selector">
                     {DAYS_OF_WEEK.map(day => (
                         <button
@@ -2114,34 +2177,78 @@ export default function PokerNearMePage() {
                         </button>
                     ))}
                 </div>
-                <div className="card-grid daily-grid">
-                    {dailyTournaments.slice(0, 50).map((t, i) => (
-                        <div key={t.id || i} className="entity-card daily-card">
-                            <div className="card-header">
-                                <span className="time-badge">{t.start_time}</span>
-                                <span className="badge game-type">{t.game_type || 'NLH'}</span>
-                            </div>
-                            <h4>{t.venue_name}</h4>
-                            <p className="card-location">{t.city}, {t.state}</p>
-                            <div className="card-tags">
-                                <span className="tag buyin">${t.buy_in}</span>
-                                {t.guaranteed && <span className="tag gtd">{formatMoney(t.guaranteed)} GTD</span>}
-                                {t.format && <span className="tag format">{t.format}</span>}
-                            </div>
-                            {t.tournament_name && (
-                                <p className="card-detail">{t.tournament_name}</p>
-                            )}
-                            <div className="card-footer">
-                                <span className="venue-type">{t.venueType}</span>
-                                {t.pokerAtlasUrl && (
-                                    <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="action-btn primary">
-                                        Info
-                                    </a>
-                                )}
-                            </div>
-                        </div>
+
+                {/* Game type chips */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                    {[{ key: 'all', label: 'All Games' }, { key: 'nlh', label: 'NLH' }, { key: 'plo', label: 'PLO' }, { key: 'mixed', label: 'Mixed' }, { key: 'omaha', label: 'Omaha' }].map(g => (
+                        <button key={g.key}
+                            onClick={() => setFilters(f => ({ ...f, hubDailyGameType: g.key }))}
+                            style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: dtGameType === g.key ? '1px solid #d4a853' : '1px solid rgba(255,255,255,0.15)', background: dtGameType === g.key ? 'rgba(212,168,83,0.2)' : 'rgba(255,255,255,0.05)', color: dtGameType === g.key ? '#d4a853' : 'rgba(255,255,255,0.6)' }}
+                        >{g.label}</button>
                     ))}
                 </div>
+
+                {/* Buy-in range + GTD + Sort */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+                    <input type="number" placeholder="Min $" value={dtMinBuyin}
+                        onChange={(e) => setFilters(f => ({ ...f, hubDailyMinBuyin: e.target.value }))}
+                        style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+                    <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>to</span>
+                    <input type="number" placeholder="Max $" value={dtMaxBuyin}
+                        onChange={(e) => setFilters(f => ({ ...f, hubDailyMaxBuyin: e.target.value }))}
+                        style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+                    <input type="number" placeholder="Min GTD" value={dtMinGtd}
+                        onChange={(e) => setFilters(f => ({ ...f, hubDailyMinGtd: e.target.value }))}
+                        style={{ width: 80, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+                    <select value={dtSort}
+                        onChange={(e) => setFilters(f => ({ ...f, hubDailySort: e.target.value }))}
+                        className="sort-select" style={{ fontSize: 12 }}>
+                        <option value="time">Start Time</option>
+                        <option value="buyin">Buy-In</option>
+                        <option value="guaranteed">Guaranteed</option>
+                    </select>
+                </div>
+
+                {/* Result count */}
+                <div className="results-bar" style={{ marginBottom: 8 }}>
+                    <span className="results-count"><span style={{ color: '#d4a853', fontWeight: 800 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}</span>
+                </div>
+
+                {filtered.length === 0 ? (
+                    <div className="empty-state">
+                        <p>No daily tournaments match your filters for {filters.selectedDay}</p>
+                        <button onClick={() => setFilters(f => ({ ...f, hubDailyGameType: 'all', hubDailyMinBuyin: '', hubDailyMaxBuyin: '', hubDailyMinGtd: '' }))}>Clear Daily Filters</button>
+                    </div>
+                ) : (
+                    <div className="card-grid daily-grid">
+                        {filtered.slice(0, 50).map((t, i) => (
+                            <div key={t.id || i} className="entity-card daily-card">
+                                <div className="card-header">
+                                    <span className="time-badge">{t.start_time}</span>
+                                    <span className="badge game-type">{t.game_type || 'NLH'}</span>
+                                </div>
+                                <h4>{t.venue_name}</h4>
+                                <p className="card-location">{t.city}, {t.state}</p>
+                                <div className="card-tags">
+                                    <span className="tag buyin">${t.buy_in}</span>
+                                    {t.guaranteed && <span className="tag gtd">{formatMoney(t.guaranteed)} GTD</span>}
+                                    {t.format && <span className="tag format">{t.format}</span>}
+                                </div>
+                                {t.tournament_name && (
+                                    <p className="card-detail">{t.tournament_name}</p>
+                                )}
+                                <div className="card-footer">
+                                    <span className="venue-type">{t.venueType}</span>
+                                    {t.pokerAtlasUrl && (
+                                        <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="action-btn primary">
+                                            Info
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </>
         );
     };

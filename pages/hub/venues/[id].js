@@ -363,10 +363,12 @@ export default function VenueDetailPage() {
         data = Array.isArray(data) ? data : [];
         setCheckins(data);
         setCheckinCount(json.count || data.length);
-        var uid = getAnonymousUserId();
+        var authUserForCheck = getAuthUser();
+        var authUid = (authUserForCheck && authUserForCheck.id) ? authUserForCheck.id : null;
+        var anonUid = getAnonymousUserId();
         var fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
         var recent = data.find(function (c) {
-          return c.user_id === uid && new Date(c.created_at) > fourHoursAgo;
+          return (c.user_id === authUid || c.user_id === anonUid) && new Date(c.created_at) > fourHoursAgo;
         });
         if (recent) setHasCheckedIn(true);
       }

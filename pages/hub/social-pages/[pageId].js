@@ -1858,7 +1858,7 @@ export default function SocialPageDetail() {
                                             <button onClick={async () => {
                                                 setLoadingMore(true);
                                                 try {
-                                                    const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&offset=${posts.length}&limit=10`);
+                                                    const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&offset=${posts.length}&limit=10${user?.id ? `&user_id=${user.id}` : ''}`);
                                                     const json = await res.json();
                                                     if (json.success && json.data?.length > 0) {
                                                         setPosts(prev => [...prev, ...json.data]);

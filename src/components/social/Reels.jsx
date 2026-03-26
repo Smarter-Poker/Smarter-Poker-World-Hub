@@ -1015,6 +1015,15 @@ export function ReelsViewer({ onClose }) {
                                     </div>
                                 </div>
                             ))}
+                            {/* #6 Comment Pagination — Load More */}
+                            {hasMoreComments && (
+                                <button onClick={loadMoreComments} disabled={loadingMoreComments} style={{
+                                    width: '100%', padding: '10px', background: 'rgba(255,255,255,0.08)',
+                                    border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10,
+                                    color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 500,
+                                    cursor: loadingMoreComments ? 'wait' : 'pointer', marginTop: 4,
+                                }}>{loadingMoreComments ? 'Loading...' : 'Load More Comments'}</button>
+                            )}
                         </div>
                         {/* GIF Picker for reel comments */}
                         {showReelGifPicker && (
@@ -1159,6 +1168,10 @@ export function ReelsViewer({ onClose }) {
                         0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
                         50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
                         100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+                    }
+                    @keyframes soundWave {
+                        0% { height: 2px; }
+                        100% { height: var(--max-h, 10px); }
                     }
                 `}</style>
 

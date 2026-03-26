@@ -242,6 +242,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [showShareModal, setShowShareModal] = useState(false);
     // #7 Animated Like Counter
     const [likeBounceId, setLikeBounceId] = useState(null);
+    // #4 Not Interested — persist disliked reel IDs in localStorage
+    const [notInterestedIds, setNotInterestedIds] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try { return new Set(JSON.parse(localStorage.getItem('reels-not-interested') || '[]')); } catch { return new Set(); }
+        }
+        return new Set();
+    });
+    // #6 Comment Pagination
+    const [commentPage, setCommentPage] = useState(0);
+    const [hasMoreComments, setHasMoreComments] = useState(false);
+    const [loadingMoreComments, setLoadingMoreComments] = useState(false);
     // GIF + Image state for reel comments
     const [showReelGifPicker, setShowReelGifPicker] = useState(false);
     const [reelCommentMediaUrl, setReelCommentMediaUrl] = useState(null);
@@ -481,8 +492,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
         try {
             if (wasDisliked) {
                 await supabase.from('social_likes').delete().eq('post_id', currentId).eq('user_id', userId).eq('reaction_type', 'dislike');
+                // #4 Not Interested — remove from filter
+                setNotInterestedIds(prev => { const n = new Set(prev); n.delete(currentId); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             } else {
                 await supabase.from('social_likes').insert({ post_id: currentId, user_id: userId, reaction_type: 'dislike' });
+                // #4 Not Interested — add to filter
+                setNotInterestedIds(prev => { const n = new Set(prev); n.add(currentId); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             }
         } catch {
             setDisliked(prev => ({ ...prev, [currentId]: wasDisliked }));
@@ -495,17 +510,42 @@ function ReelViewer({ reels, startIndex, onClose }) {
         setShowComments(opening);
         // Always fetch fresh comments when opening
         if (opening && currentReel?.id) {
+            setCommentPage(0);
             try {
                 const { data } = await supabase
                     .from('social_comments')
                     .select('*, profiles:author_id (username, avatar_url)')
                     .eq('post_id', currentReel.id)
                     .order('created_at', { ascending: true })
-                    .limit(20);
+                    .limit(50);
                 setReelComments(data || []);
+                setHasMoreComments((data || []).length >= 50);
             } catch { setReelComments([]); }
             setTimeout(() => commentInputRef.current?.focus(), 100);
         }
+    };
+
+    // #6 Comment Pagination — Load More
+    const loadMoreComments = async () => {
+        if (!currentReel?.id || loadingMoreComments || !hasMoreComments) return;
+        setLoadingMoreComments(true);
+        const nextPage = commentPage + 1;
+        try {
+            const { data } = await supabase
+                .from('social_comments')
+                .select('*, profiles:author_id (username, avatar_url)')
+                .eq('post_id', currentReel.id)
+                .order('created_at', { ascending: true })
+                .range(nextPage * 50, (nextPage + 1) * 50 - 1);
+            if (data && data.length > 0) {
+                setReelComments(prev => [...prev, ...data]);
+                setCommentPage(nextPage);
+                setHasMoreComments(data.length >= 50);
+            } else {
+                setHasMoreComments(false);
+            }
+        } catch { setHasMoreComments(false); }
+        setLoadingMoreComments(false);
     };
 
     // Submit comment (supports text + GIF/image media)
@@ -997,8 +1037,20 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
-                        <span style={{ fontSize: 24 }}>{muted ? '🔇' : '🔊'}</span>
-                        <span style={{ fontSize: 10, fontWeight: 500 }}>{muted ? 'Unmute' : 'Mute'}</span>
+                        <span style={{ fontSize: 24 }}>{muted ? '\uD83D\uDD07' : '\uD83D\uDD0A'}</span>
+                        {/* #10 Sound Waveform Indicator */}
+                        {!muted && (
+                            <div style={{ display: 'flex', gap: 1.5, alignItems: 'flex-end', height: 10, marginBottom: -2 }}>
+                                {[3, 5, 8, 5, 3].map((h, i) => (
+                                    <div key={i} style={{
+                                        width: 2.5, background: '#00d4ff', borderRadius: 1,
+                                        animation: `soundWave 0.6s ${i * 0.1}s ease-in-out infinite alternate`,
+                                        height: h,
+                                    }} />
+                                ))}
+                            </div>
+                        )}
+                        {muted && <span style={{ fontSize: 10, fontWeight: 500 }}>Unmute</span>}
                     </button>
                     <button onClick={() => setShowReportModal(true)} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
@@ -1081,6 +1133,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
                         100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
                     }
+                    @keyframes soundWave {
+                        0% { height: 2px; }
+                        100% { height: var(--max-h, 10px); }
+                    }
                 `}</style>
 
                 {/* Counter */}
@@ -1127,8 +1183,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                     </div>
                                 </div>
                             ))}
+                            {/* #6 Comment Pagination — Load More */}
+                            {hasMoreComments && (
+                                <button onClick={loadMoreComments} disabled={loadingMoreComments} style={{
+                                    width: '100%', padding: '10px', background: 'rgba(255,255,255,0.08)',
+                                    border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10,
+                                    color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 500,
+                                    cursor: loadingMoreComments ? 'wait' : 'pointer', marginTop: 4,
+                                }}>{loadingMoreComments ? 'Loading...' : 'Load More Comments'}</button>
+                            )}
                         </div>
-                        {/* GIF Picker for reel comments */}
+                        {/* GIF Picker for reel comments */}}
                         {showReelGifPicker && (
                             <div style={{ padding: '0 8px 4px' }}>
                                 <GiphyPicker
