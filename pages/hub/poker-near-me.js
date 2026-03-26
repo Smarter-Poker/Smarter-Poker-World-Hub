@@ -754,10 +754,16 @@ export default function PokerNearMePage() {
         return () => window.removeEventListener('poker-near-me-filters-sync', handleSync);
     }, [filters]);
 
-    // --- NEW: Live games, favorites, sorting, pagination, search history ---
+    // --- Live games search-first (Bravo Poker Live) ---
     const [liveGames, setLiveGames] = useState([]);
     const [liveLoading, setLiveLoading] = useState(false);
     const liveRefreshRef = useRef(null);
+    const [liveSearchQuery, setLiveSearchQuery] = useState('');
+    const [liveVenueList, setLiveVenueList] = useState([]);
+    const [liveVenueSuggestions, setLiveVenueSuggestions] = useState([]);
+    const [selectedLiveVenue, setSelectedLiveVenue] = useState(null);
+    const [showLiveSuggestions, setShowLiveSuggestions] = useState(false);
+    const liveSearchInputRef = useRef(null);
     const [favorites, setFavorites] = useState(() => {
         if (typeof window !== 'undefined') {
             try { return JSON.parse(localStorage.getItem('sp-favorites') || '{}'); } catch { return {}; }
@@ -1029,14 +1035,19 @@ export default function PokerNearMePage() {
             .catch(() => { });
     }, []);
 
-    // --- NEW: Auto-refresh live games when on live tab ---
+    // --- Auto-refresh live games when venue is selected ---
     useEffect(() => {
         if (activeTab === 'live') {
-            fetchLiveGames();
-            liveRefreshRef.current = setInterval(fetchLiveGames, LIVE_REFRESH_MS);
+            // Pre-fetch venue list for search autocomplete
+            if (liveVenueList.length === 0) fetchLiveVenueList();
+            // Only auto-refresh if a venue is selected
+            if (selectedLiveVenue) {
+                fetchLiveGames(selectedLiveVenue.slug);
+                liveRefreshRef.current = setInterval(() => fetchLiveGames(selectedLiveVenue.slug), LIVE_REFRESH_MS);
+            }
         }
         return () => { if (liveRefreshRef.current) clearInterval(liveRefreshRef.current); };
-    }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [activeTab, selectedLiveVenue]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // --- NEW: Helper functions ---
     const toggleFavorite = useCallback(async (type, id, e, itemData = {}) => {
@@ -1137,7 +1148,6 @@ export default function PokerNearMePage() {
                 setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
                 setTimeout(() => {
                     fetchAllData({ includeVenues: true });
-                    fetchLiveGames();
                 }, 0);
                 setGpsLoading(false);
             },
@@ -1346,18 +1356,30 @@ export default function PokerNearMePage() {
         }
     };
 
-    const fetchLiveGames = async () => {
+    // Fetch the full Bravo venue list for search suggestions
+    const fetchLiveVenueList = async () => {
+        try {
+            const res = await fetch('/api/poker/live-tables?list=true');
+            if (!res.ok) return;
+            const json = await res.json();
+            setLiveVenueList(json.venues || []);
+        } catch (e) {
+            console.error('Fetch venue list error:', e);
+        }
+    };
+
+    // Fetch live games for a specific venue
+    const fetchLiveGames = async (venueSlug) => {
+        if (!venueSlug) return;
         setLiveLoading(true);
         try {
-            const res = await fetch('/api/poker/live-tables');
+            const res = await fetch('/api/poker/live-tables?venue=' + encodeURIComponent(venueSlug));
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const json = await res.json();
-            // API returns { venues: [{ venue_name, bravo_slug, games: [{game, tables_running, players_waiting}] }] }
             let games = [];
             if (json.venues && Array.isArray(json.venues)) {
                 json.venues.forEach(v => {
                     (v.games || []).forEach(g => {
-                        // Parse game name for type and stakes (e.g., "1-3 No Limit Holdem 8" → type=NLH, stakes=1/3)
                         const name = g.game || '';
                         let gameType = 'NLH';
                         if (/PLO|omaha/i.test(name)) gameType = /big\s?o/i.test(name) ? 'Big O' : 'PLO';
@@ -1366,11 +1388,8 @@ export default function PokerNearMePage() {
                         else if (/mixed|mix/i.test(name)) gameType = 'Mixed';
                         else if (/dealer/i.test(name)) gameType = 'DC';
                         else if (/tourney|tournament/i.test(name)) gameType = 'Tournament';
-
-                        // Extract stakes from game name (e.g., "1-3" or "5-10")
                         const stakesMatch = name.match(/(\d+)-(\d+)/);
                         const stakes = stakesMatch ? `$${stakesMatch[1]}/$${stakesMatch[2]}` : '';
-
                         games.push({
                             venue_id: v.bravo_slug,
                             venue_name: v.venue_name,
@@ -1390,6 +1409,39 @@ export default function PokerNearMePage() {
             setLiveGames([]);
         }
         setLiveLoading(false);
+    };
+
+    // Handle live venue search input
+    const handleLiveSearchInput = (value) => {
+        setLiveSearchQuery(value);
+        if (value.trim().length >= 2) {
+            const q = value.trim().toLowerCase();
+            const matches = liveVenueList.filter(v =>
+                v.name && v.name.toLowerCase().includes(q)
+            ).slice(0, 8);
+            setLiveVenueSuggestions(matches);
+            setShowLiveSuggestions(matches.length > 0);
+        } else {
+            setLiveVenueSuggestions([]);
+            setShowLiveSuggestions(false);
+        }
+    };
+
+    // Handle venue selection from suggestions
+    const handleSelectLiveVenue = (venue) => {
+        setSelectedLiveVenue(venue);
+        setLiveSearchQuery(venue.name);
+        setShowLiveSuggestions(false);
+        setLiveGames([]);
+        fetchLiveGames(venue.slug);
+    };
+
+    // Clear live venue selection
+    const handleClearLiveVenue = () => {
+        setSelectedLiveVenue(null);
+        setLiveSearchQuery('');
+        setLiveGames([]);
+        setShowLiveSuggestions(false);
     };
 
     const handleSearch = (e) => {
@@ -2272,87 +2324,146 @@ export default function PokerNearMePage() {
         );
     };
 
-    // --- Live Games Renderer (Bravo Poker Live data) ---
+    // --- Live Games Renderer (Search-First: Bravo Poker Live) ---
     const renderLiveGames = () => {
-        if (liveLoading && liveGames.length === 0) {
-            return renderSkeletons(6);
-        }
-
-        if (liveGames.length === 0) {
-            return (
-                <div className="empty-state">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
-                        <circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" />
-                    </svg>
-                    <p>No Live Games Reported Right Now</p>
-                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Live data refreshes every 15 minutes from Bravo Poker Live</p>
-                    <button className="refresh-btn" onClick={fetchLiveGames} disabled={liveLoading} style={{ marginTop: 12, padding: '8px 20px', background: 'rgba(212,168,83,0.2)', border: '1px solid rgba(212,168,83,0.4)', borderRadius: 8, color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                        {liveLoading ? 'Checking...' : 'Check Now'}
-                    </button>
-                </div>
-            );
-        }
-
-        // Group by venue
-        const byVenue = {};
-        liveGames.forEach(g => {
-            const key = g.venue_id || 'unknown';
-            if (!byVenue[key]) byVenue[key] = { venue_id: g.venue_id, venue_name: g.venue_name || 'Unknown Venue', games: [], last_updated: g.created_at };
-            byVenue[key].games.push(g);
-        });
-
-        const venueGroups = Object.values(byVenue);
         const totalTables = liveGames.reduce((sum, g) => sum + (g.table_count || 0), 0);
 
         return (
             <>
-                <div className="results-bar">
-                    <span className="results-count">
-                        {totalTables} table{totalTables !== 1 ? 's' : ''} running at {venueGroups.length} venue{venueGroups.length !== 1 ? 's' : ''}
-                    </span>
-                    <div className="live-refresh">
-                        <span className="live-dot"></span>
-                        <span>Bravo Poker Live</span>
-                        <button className="refresh-btn" onClick={fetchLiveGames} disabled={liveLoading}>
-                            {liveLoading ? 'Refreshing...' : 'Refresh Now'}
-                        </button>
+                {/* Search Bar */}
+                <div style={{ position: 'relative', marginBottom: 20 }}>
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: 12, padding: '10px 16px',
+                    }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2">
+                            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input
+                            ref={liveSearchInputRef}
+                            type="text"
+                            value={liveSearchQuery}
+                            onChange={(e) => handleLiveSearchInput(e.target.value)}
+                            onFocus={() => { if (liveVenueList.length === 0) fetchLiveVenueList(); if (liveVenueSuggestions.length > 0) setShowLiveSuggestions(true); }}
+                            placeholder="Search for a casino or poker room..."
+                            style={{
+                                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                                color: '#fff', fontSize: 15, fontWeight: 500,
+                            }}
+                        />
+                        {selectedLiveVenue && (
+                            <button onClick={handleClearLiveVenue} style={{
+                                background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 6,
+                                padding: '4px 8px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 12,
+                            }}>Clear</button>
+                        )}
                     </div>
+
+                    {/* Autocomplete Dropdown */}
+                    {showLiveSuggestions && liveVenueSuggestions.length > 0 && (
+                        <div style={{
+                            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                            background: 'rgba(15, 23, 42, 0.98)', backdropFilter: 'blur(16px)',
+                            border: '1px solid rgba(212,168,83,0.3)', borderRadius: 10,
+                            marginTop: 4, overflow: 'hidden', maxHeight: 320, overflowY: 'auto',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                        }}>
+                            {liveVenueSuggestions.map((v, i) => (
+                                <div key={v.slug || i} onClick={() => handleSelectLiveVenue(v)} style={{
+                                    padding: '12px 16px', cursor: 'pointer',
+                                    borderBottom: i < liveVenueSuggestions.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                    transition: 'background 0.15s',
+                                }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(212,168,83,0.1)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                                    </svg>
+                                    <span style={{ color: '#fff', fontSize: 14, fontWeight: 500 }}>{v.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
-                <div className="card-grid">
-                    {venueGroups.slice(0, displayCount.live).map((group, i) => (
-                        <div key={group.venue_id || i} className="entity-card live-card"
-                            style={{ cursor: 'default' }}>
-                            <div className="card-header">
-                                <h4>{group.venue_name}</h4>
-                                <span className="live-badge">LIVE</span>
-                            </div>
-                            <div className="live-games-list">
-                                {group.games.map((game, gi) => (
-                                    <div key={gi} className="live-game-row">
-                                        <span className="live-game-type">{game.game_type || 'NLH'}</span>
-                                        <span className="live-game-stakes">{game.stakes || game.game_name_raw || '-'}</span>
-                                        <span className="live-game-tables">{game.table_count || 0} table{(game.table_count || 0) !== 1 ? 's' : ''}</span>
-                                        {game.wait_time !== null && game.wait_time !== undefined && (
-                                            <span className="live-game-wait" style={{ color: game.wait_time <= 3 ? '#22c55e' : game.wait_time <= 10 ? '#d4a853' : '#ef4444' }}>
-                                                {game.wait_time === 0 ? 'No wait' : game.wait_time + ' waiting'}
-                                            </span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="card-footer">
-                                <span className="live-time">Updated {group.last_updated ? new Date(group.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'recently'}</span>
-                                <span style={{ fontSize: 11, opacity: 0.4 }}>via Bravo</span>
+
+                {/* No venue selected — prompt */}
+                {!selectedLiveVenue && !liveLoading && (
+                    <div className="empty-state">
+                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.3)" strokeWidth="1.5">
+                            <circle cx="12" cy="12" r="4" fill="rgba(239,68,68,0.3)" />
+                            <circle cx="12" cy="12" r="7" stroke="rgba(239,68,68,0.2)" strokeWidth="1.5" />
+                            <circle cx="12" cy="12" r="10" stroke="rgba(239,68,68,0.1)" strokeWidth="1" />
+                        </svg>
+                        <p style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginTop: 12 }}>Search For A Casino</p>
+                        <p style={{ fontSize: 13, opacity: 0.4, marginTop: 6, maxWidth: 320, textAlign: 'center' }}>
+                            Type a casino or poker room name above to see what games are running right now. Data updates every 15 minutes via Bravo Poker Live.
+                        </p>
+                    </div>
+                )}
+
+                {/* Loading state */}
+                {liveLoading && renderSkeletons(4)}
+
+                {/* Selected venue — show results */}
+                {selectedLiveVenue && !liveLoading && liveGames.length === 0 && (
+                    <div className="empty-state">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
+                            <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+                        </svg>
+                        <p style={{ fontWeight: 600 }}>No Live Games At {selectedLiveVenue.name} Right Now</p>
+                        <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Check back later—data refreshes every 15 minutes</p>
+                        <button onClick={() => fetchLiveGames(selectedLiveVenue.slug)} style={{
+                            marginTop: 12, padding: '8px 20px', background: 'rgba(212,168,83,0.2)',
+                            border: '1px solid rgba(212,168,83,0.4)', borderRadius: 8,
+                            color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        }}>{liveLoading ? 'Checking...' : 'Check Again'}</button>
+                    </div>
+                )}
+
+                {selectedLiveVenue && liveGames.length > 0 && (
+                    <>
+                        <div className="results-bar">
+                            <span className="results-count">
+                                {totalTables} table{totalTables !== 1 ? 's' : ''} running
+                            </span>
+                            <div className="live-refresh">
+                                <span className="live-dot"></span>
+                                <span>Bravo Poker Live</span>
+                                <button className="refresh-btn" onClick={() => fetchLiveGames(selectedLiveVenue.slug)} disabled={liveLoading}>
+                                    {liveLoading ? 'Refreshing...' : 'Refresh'}
+                                </button>
                             </div>
                         </div>
-                    ))}
-                </div>
-                {displayCount.live < venueGroups.length && (
-                    <div className="load-more">
-                        <button className="load-more-btn" onClick={() => loadMore('live')}>
-                            Load More ({venueGroups.length - displayCount.live} remaining)
-                        </button>
-                    </div>
+                        <div className="card-grid">
+                            <div className="entity-card live-card" style={{ cursor: 'default' }}>
+                                <div className="card-header">
+                                    <h4>{selectedLiveVenue.name}</h4>
+                                    <span className="live-badge">LIVE</span>
+                                </div>
+                                <div className="live-games-list">
+                                    {liveGames.map((game, gi) => (
+                                        <div key={gi} className="live-game-row">
+                                            <span className="live-game-type">{game.game_type || 'NLH'}</span>
+                                            <span className="live-game-stakes">{game.stakes || game.game_name_raw || '-'}</span>
+                                            <span className="live-game-tables">{game.table_count || 0} table{(game.table_count || 0) !== 1 ? 's' : ''}</span>
+                                            {game.wait_time !== null && game.wait_time !== undefined && (
+                                                <span className="live-game-wait" style={{ color: game.wait_time <= 3 ? '#22c55e' : game.wait_time <= 10 ? '#d4a853' : '#ef4444' }}>
+                                                    {game.wait_time + ' waiting'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="card-footer">
+                                    <span className="live-time">Updated {liveGames[0]?.created_at ? new Date(liveGames[0].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'recently'}</span>
+                                    <span style={{ fontSize: 11, opacity: 0.4 }}>via Bravo</span>
+                                </div>
+                            </div>
+                        </div>
+                    </>
                 )}
             </>
         );
