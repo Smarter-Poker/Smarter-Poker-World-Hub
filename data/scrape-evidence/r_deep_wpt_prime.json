@@ -1,0 +1,11 @@
+{
+  "name": "WPT Prime",
+  "type": "tour",
+  "source": "https://www.wpt.com",
+  "http": 200,
+  "hash": "b5b34c8aeded9cdb759299c525d64fa70f6277bb9fa72916e70502a9a4f4770d",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:49:54.107201+00:00",
+  "batch": "95e1f929-fbd7-4edb-a7ca-7ed1b18147e9"
+}

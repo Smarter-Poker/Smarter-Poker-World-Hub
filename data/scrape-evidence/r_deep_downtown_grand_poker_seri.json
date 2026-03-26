@@ -1,0 +1,11 @@
+{
+  "name": "Downtown Grand Poker Series",
+  "type": "series",
+  "source": "https://www.downtowngrand.com",
+  "http": 200,
+  "hash": "c650844257e40c2ccc2e0c1691882e9206e2178ccfb6ad1766ec481c66aa14fd",
+  "address": "206 N. 3rd St. ",
+  "phone": "(855) 384-7263",
+  "ts": "2026-03-25T23:53:43.715679+00:00",
+  "batch": "95e1f929-fbd7-4edb-a7ca-7ed1b18147e9"
+}

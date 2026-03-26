@@ -1,0 +1,11 @@
+{
+  "name": "Oxford Downs Poker Series",
+  "type": "series",
+  "source": "https://www.oxforddowns.com",
+  "http": 200,
+  "hash": "00343b420fec92a01dda1f9da828e06c313b0e2234d301a22d6aed9611c35b89",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:53:21.736849+00:00",
+  "batch": "95e1f929-fbd7-4edb-a7ca-7ed1b18147e9"
+}

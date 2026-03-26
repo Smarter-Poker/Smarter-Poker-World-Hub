@@ -1,0 +1,11 @@
+{
+  "name": "Snoqualmie Casino Poker Series",
+  "type": "series",
+  "source": "https://www.snocasino.com",
+  "http": 200,
+  "hash": "634346cb7d7c20aa4083969cc83404a2eb7d5d1ce662f505be86cebb02381fe3",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:40:44.489094+00:00",
+  "batch": "7c5bde4d-2c64-491a-a6ff-0d19bc681b62"
+}

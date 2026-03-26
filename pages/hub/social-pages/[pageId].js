@@ -315,6 +315,26 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                         onClick={e => e.stopPropagation()}>
                         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Share Post</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {/* #5 Share to personal feed */}
+                            {user && (
+                                <button onClick={async () => {
+                                    try {
+                                        const token = getAccessToken();
+                                        await fetch('/api/social/posts', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                            body: JSON.stringify({ content: `Shared from ${page?.name}: ${post.content?.slice(0, 200) || ''}\n\n${shareUrl}`, content_type: 'text' }),
+                                        });
+                                        setShowShareModal(false);
+                                    } catch (e) { console.error(e); }
+                                }} style={{
+                                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
+                                    border: `1px solid ${C.border}`, background: '#E7F3FF', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: C.blue, fontFamily: 'inherit', width: '100%', textAlign: 'left',
+                                }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                                    Share to My Feed
+                                </button>
+                            )}
                             <button onClick={() => { navigator.clipboard.writeText(shareUrl); setShowShareModal(false); }} style={{
                                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, fontFamily: 'inherit', width: '100%', textAlign: 'left',
@@ -493,7 +513,12 @@ export default function SocialPageDetail() {
     const [posting, setPosting] = useState(false);
     const [uploadImages, setUploadImages] = useState([]);
     const [memberSearch, setMemberSearch] = useState('');
+    // #10 Post visibility
+    const [postVisibility, setPostVisibility] = useState('public');
     const imageInputRef = useRef(null);
+    // #3 Load More pagination
+    const [hasMorePosts, setHasMorePosts] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     // Invite friends
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [inviteFriends, setInviteFriends] = useState([]);
@@ -1155,6 +1180,30 @@ export default function SocialPageDetail() {
                             }}>
                                 {isFollowing ? 'Following' : 'Follow'}
                             </button>
+                            {/* #8 Notification bell */}
+                            {isFollowing && (
+                                <button onClick={async () => {
+                                    setTogglingNotify(true);
+                                    try {
+                                        const token = getAccessToken();
+                                        const res = await fetch('/api/social/pages/follow', {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                            body: JSON.stringify({ page_id: page.id, notifications_enabled: !notifyEnabled }),
+                                        });
+                                        if (res.ok) { setNotifyEnabled(!notifyEnabled); toast.success(notifyEnabled ? 'Notifications off' : 'Notifications on'); }
+                                    } catch (e) { console.error(e); }
+                                    setTogglingNotify(false);
+                                }} disabled={togglingNotify} title={notifyEnabled ? 'Notifications on' : 'Notifications off'} style={{
+                                    padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`,
+                                    background: notifyEnabled ? '#E7F3FF' : '#E4E6EB',
+                                    cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center',
+                                }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill={notifyEnabled ? C.blue : 'none'} stroke={notifyEnabled ? C.blue : C.textSec} strokeWidth="2">
+                                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                    </svg>
+                                </button>
+                            )}
                             {userRole === 'owner' && (
                                 <button onClick={() => router.push(`/hub/social-pages/${pageId}/manage`)} style={{
                                     padding: '8px 20px', borderRadius: 8, border: 'none',
@@ -1282,8 +1331,14 @@ export default function SocialPageDetail() {
                                                     ))}
                                                 </div>
                                             )}
+                                            {/* #15 Character counter */}
+                                            {newPost.length > 0 && (
+                                                <div style={{ textAlign: 'right', fontSize: 11, marginTop: 4, color: newPost.length > 1950 ? C.red : newPost.length > 1800 ? '#E65100' : C.textSec }}>
+                                                    {newPost.length}/2000
+                                                </div>
+                                            )}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                                                <div style={{ display: 'flex', gap: 8 }}>
+                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                                     <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleImageUpload} />
                                                     <button onClick={() => imageInputRef.current?.click()} title="Add Photo" style={{
                                                         background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px',
@@ -1294,6 +1349,14 @@ export default function SocialPageDetail() {
                                                             <circle cx="8.5" cy="8.5" r="1.5" />
                                                             <path d="M21 15l-5-5L5 21" />
                                                         </svg>
+                                                    </button>
+                                                    {/* #10 Visibility toggle */}
+                                                    <button onClick={() => setPostVisibility(v => v === 'public' ? 'members' : 'public')} title={postVisibility === 'public' ? 'Visible to everyone' : 'Members only'} style={{
+                                                        background: 'none', border: `1px solid ${C.border}`, cursor: 'pointer', padding: '3px 8px',
+                                                        borderRadius: 12, fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+                                                        color: postVisibility === 'members' ? C.blue : C.textSec,
+                                                    }}>
+                                                        {postVisibility === 'public' ? 'Public' : 'Members'}
                                                     </button>
                                                 </div>
                                                 <button onClick={handlePost} disabled={(!newPost.trim() && uploadImages.length === 0) || posting} style={{
@@ -1380,6 +1443,31 @@ export default function SocialPageDetail() {
                                                 isOwnerOnOwnPage={isOwnerOnOwnPage}
                                             />
                                         ))
+                                    )}
+                                    {/* #3 Load More */}
+                                    {hasMorePosts && posts.length >= 10 && (
+                                        <div style={{ textAlign: 'center', padding: 16 }}>
+                                            <button onClick={async () => {
+                                                setLoadingMore(true);
+                                                try {
+                                                    const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&offset=${posts.length}&limit=10`);
+                                                    const json = await res.json();
+                                                    if (json.success && json.data?.length > 0) {
+                                                        setPosts(prev => [...prev, ...json.data]);
+                                                        if (json.data.length < 10) setHasMorePosts(false);
+                                                    } else {
+                                                        setHasMorePosts(false);
+                                                    }
+                                                } catch (e) { console.error(e); }
+                                                setLoadingMore(false);
+                                            }} disabled={loadingMore} style={{
+                                                padding: '10px 28px', borderRadius: 8, border: `1px solid ${C.border}`,
+                                                background: C.card, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                                fontFamily: 'inherit', color: C.blue,
+                                            }}>
+                                                {loadingMore ? 'Loading...' : 'Load More Posts'}
+                                            </button>
+                                        </div>
                                     )}
                                 </>
                             )}
@@ -1500,12 +1588,22 @@ export default function SocialPageDetail() {
                                                 >
                                                     <Avatar src={f.profile?.avatar_url} name={f.profile?.full_name || f.profile?.username} size={44} />
                                                     <div style={{ flex: 1 }}>
-                                                        <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
+                                                        <div style={{ fontSize: 14, fontWeight: 600, color: C.text, display: 'flex', alignItems: 'center', gap: 6 }}>
                                                             {f.profile?.full_name || f.profile?.username || 'Unknown'}
+                                                            {/* #9 Role badges */}
+                                                            {f.role && f.role !== 'member' && (
+                                                                <span style={{
+                                                                    fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 8,
+                                                                    background: f.role === 'owner' ? '#E7F3FF' : f.role === 'admin' ? '#FFF3E0' : '#E8F5E9',
+                                                                    color: f.role === 'owner' ? C.blue : f.role === 'admin' ? '#E65100' : '#2E7D32',
+                                                                    textTransform: 'capitalize',
+                                                                }}>{f.role}</span>
+                                                            )}
                                                         </div>
+                                                        {/* #16 Join date formatting */}
                                                         <div style={{ fontSize: 12, color: C.textSec }}>
                                                             {f.profile?.username && <span>@{f.profile.username} · </span>}
-                                                            Joined {timeAgo(f.created_at)}
+                                                            Member since {new Date(f.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                                                         </div>
                                                     </div>
                                                     {user && f.user_id !== user.id && (
@@ -2095,6 +2193,7 @@ export default function SocialPageDetail() {
             </div>
 
             <style jsx global>{`
+                @keyframes likePopAnim { 0% { transform: scale(0); opacity: 1; } 50% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
                 @keyframes spin { to { transform: rotate(360deg); } }
                 @keyframes sp-toast-in { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
                 @media (max-width: 768px) {

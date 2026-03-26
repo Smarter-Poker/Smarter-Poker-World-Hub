@@ -1,0 +1,10 @@
+{
+  "source": "https://www.pokernews.com/tours/",
+  "http": 200,
+  "hash": "645b3e0b9c98fe3aca781133bc8c2a7d1c08fdd19dd28d0c97c63f562d0a967c",
+  "bytes": 258207,
+  "tours_found": [],
+  "ts": "2026-03-26T00:20:09.322239+00:00",
+  "batch": "d7fbd427-0ffe-49d0-81dc-69ec6ec4c68e",
+  "method": "StealthyFetcher_OpenClaw"
+}

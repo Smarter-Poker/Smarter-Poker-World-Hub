@@ -1,0 +1,11 @@
+{
+  "name": "Foxwoods World Poker Finals",
+  "type": "series",
+  "source": "https://www.foxwoods.com",
+  "http": 200,
+  "hash": "a0262c4e72fe2301e68b1526d1d072bcd98b785bad2755102fe29908a1604f10",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:51:30.829381+00:00",
+  "batch": "95e1f929-fbd7-4edb-a7ca-7ed1b18147e9"
+}

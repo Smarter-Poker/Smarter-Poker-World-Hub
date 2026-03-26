@@ -1,0 +1,11 @@
+{
+  "name": "Grande Series",
+  "type": "series",
+  "source": "https://www.acepokerclub.com",
+  "http": 200,
+  "hash": "0113f6c2ca18fee231c791fa4cdb6d078a22b8a6d707c7cfb123ad327c7b11f4",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:48:39.440676+00:00",
+  "batch": "95e1f929-fbd7-4edb-a7ca-7ed1b18147e9"
+}

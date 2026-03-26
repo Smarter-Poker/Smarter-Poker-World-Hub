@@ -1,0 +1,11 @@
+{
+  "name": "Colorado Poker Championship",
+  "type": "series",
+  "source": "https://www.monarchblackhawk.com",
+  "http": 200,
+  "hash": "1064a5f98045ef89816933a9a77cb73e19578d6c98bfbe30cf6a9c37cf75eb60",
+  "address": "488 Main Street",
+  "phone": "1-303-582-1000",
+  "ts": "2026-03-25T23:55:20.999543+00:00",
+  "batch": "95e1f929-fbd7-4edb-a7ca-7ed1b18147e9"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "Kings Poker Room Series",
+  "type": "series",
+  "source": "https://www.kingspokerroom.com",
+  "http": 200,
+  "hash": "a28e2c6ae7c29b0bbf084046d895184ae77b2224cafbb2fe92219f843e3cc3e2",
+  "address": "",
+  "phone": "",
+  "ts": "2026-03-25T23:52:43.799585+00:00",
+  "batch": "95e1f929-fbd7-4edb-a7ca-7ed1b18147e9"
+}

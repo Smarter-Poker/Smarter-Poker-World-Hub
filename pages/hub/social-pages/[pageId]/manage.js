@@ -113,7 +113,11 @@ export default function ManageSocialPage() {
         fetchPage();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${resolvedId}` }, () => {
-        if (tabRef.current === 'posts') fetchPosts();
+        if (tabRef.current === 'posts' || tabRef.current === 'analytics') fetchPosts();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_followers', filter: `page_id=eq.${resolvedId}` }, () => {
+        if (tabRef.current === 'members') fetchMembers();
+        fetchPage(); // refresh follower count
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
