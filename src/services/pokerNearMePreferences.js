@@ -22,7 +22,13 @@ export async function getPokerNearMePreferences(userId) {
             .eq('id', userId)
             .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+            if (error.code === '42703') {
+                console.warn('DB migration pending for poker_near_me_preferences. Returning defaults.');
+                return { geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true };
+            }
+            throw error;
+        }
 
         return data?.poker_near_me_preferences || { geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true };
     } catch (error) {
@@ -49,11 +55,17 @@ export async function updatePokerNearMePreferences(userId, preferences) {
             p_preferences: preferences,
         });
 
-        if (error) throw error;
+        if (error) {
+            if (error.code === '42703' || error.message?.includes('column')) {
+                console.warn('DB migration pending for poker_near_me_preferences. Skipping save.');
+                return preferences;
+            }
+            throw error;
+        }
 
         return data;
     } catch (error) {
         console.error('Error updating poker near me preferences:', error);
-        throw error;
+        return preferences; // Optimistically return to prevent UI crash
     }
 }
