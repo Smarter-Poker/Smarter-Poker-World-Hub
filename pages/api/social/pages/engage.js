@@ -63,11 +63,13 @@ export default async function handler(req, res) {
                       if (delErr) return res.status(500).json({ success: false, error: delErr.message });
                       return res.status(200).json({ success: true, liked: false });
                   } else {
-                      await getSupabase().from('social_page_post_likes').update({ reaction_type }).eq('id', existing.id);
+                      const { error: updErr } = await getSupabase().from('social_page_post_likes').update({ reaction_type }).eq('id', existing.id);
+                      if (updErr) return res.status(500).json({ success: false, error: updErr.message });
                       return res.status(200).json({ success: true, liked: true, reaction_type });
                   }
               } else {
-                  await getSupabase().from('social_page_post_likes').insert({ post_id, user_id, reaction_type });
+                  const { error: insErr } = await getSupabase().from('social_page_post_likes').insert({ post_id, user_id, reaction_type });
+                  if (insErr) return res.status(500).json({ success: false, error: insErr.message });
 
                   // Like notification — notify post author
                   try {
@@ -111,10 +113,12 @@ export default async function handler(req, res) {
                   .maybeSingle();
 
               if (existing) {
-                  await getSupabase().from('social_page_comment_likes').delete().eq('id', existing.id);
+                  const { error: delErr } = await getSupabase().from('social_page_comment_likes').delete().eq('id', existing.id);
+                  if (delErr) return res.status(500).json({ success: false, error: delErr.message });
                   return res.status(200).json({ success: true, liked: false });
               } else {
-                  await getSupabase().from('social_page_comment_likes').insert({ comment_id, user_id });
+                  const { error: insErr } = await getSupabase().from('social_page_comment_likes').insert({ comment_id, user_id });
+                  if (insErr) return res.status(500).json({ success: false, error: insErr.message });
                   return res.status(201).json({ success: true, liked: true });
               }
           }
@@ -197,9 +201,36 @@ export default async function handler(req, res) {
               (profileData || []).forEach(p => { profiles[p.id] = p; });
           }
 
+          // Enrich with comment like counts + user's like state
+          const commentIds = (data || []).map(c => c.id);
+          let commentLikeCounts = {};
+          let userCommentLikes = new Set();
+          if (commentIds.length > 0) {
+              // Get like counts per comment
+              const { data: allCLikes } = await getSupabase()
+                  .from('social_page_comment_likes')
+                  .select('comment_id')
+                  .in('comment_id', commentIds);
+              (allCLikes || []).forEach(l => {
+                  commentLikeCounts[l.comment_id] = (commentLikeCounts[l.comment_id] || 0) + 1;
+              });
+              // Check if requesting user liked each comment
+              const reqUserId = req.query.user_id;
+              if (reqUserId) {
+                  const { data: userCLikes } = await getSupabase()
+                      .from('social_page_comment_likes')
+                      .select('comment_id')
+                      .eq('user_id', reqUserId)
+                      .in('comment_id', commentIds);
+                  (userCLikes || []).forEach(l => userCommentLikes.add(l.comment_id));
+              }
+          }
+
           const enriched = (data || []).map(c => ({
               ...c,
-              author: profiles[c.user_id] || null
+              author: profiles[c.user_id] || null,
+              comment_like_count: commentLikeCounts[c.id] || 0,
+              user_liked_comment: userCommentLikes.has(c.id),
           }));
 
           return res.status(200).json({ success: true, data: enriched });
@@ -217,11 +248,31 @@ export default async function handler(req, res) {
           }
 
           if (type === 'comment') {
+              // Check if user is comment author OR page owner
+              const { data: commentData } = await getSupabase()
+                  .from('social_page_post_comments')
+                  .select('id, user_id, post_id')
+                  .eq('id', id)
+                  .maybeSingle();
+              if (!commentData) return res.status(404).json({ success: false, error: 'Comment not found' });
+              const isCommentAuthor = commentData.user_id === user_id;
+              let isOwner = false;
+              if (!isCommentAuthor) {
+                  const { data: postData } = await getSupabase()
+                      .from('social_page_posts').select('page_id').eq('id', commentData.post_id).maybeSingle();
+                  if (postData) {
+                      const { data: pageData } = await getSupabase()
+                          .from('social_pages').select('owner_id').eq('id', postData.page_id).maybeSingle();
+                      isOwner = pageData?.owner_id === user_id;
+                  }
+              }
+              if (!isCommentAuthor && !isOwner) {
+                  return res.status(403).json({ success: false, error: 'Not authorized to delete this comment' });
+              }
               const { error } = await getSupabase()
                   .from('social_page_post_comments')
                   .delete()
-                  .eq('id', id)
-                  .eq('user_id', user_id);
+                  .eq('id', id);
               if (error) return res.status(500).json({ success: false, error: error.message });
           } else {
               const { error } = await getSupabase()

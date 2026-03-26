@@ -98,6 +98,21 @@ export default function ReelsPage() {
     const overlayTimerRef = useRef(null);
     const viewedReelsRef = useRef(new Set());
     const [refreshing, setRefreshing] = useState(false);
+    // #4 Not Interested — persist disliked reel IDs in localStorage
+    const [notInterestedIds, setNotInterestedIds] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try { return new Set(JSON.parse(localStorage.getItem('reels-not-interested') || '[]')); } catch { return new Set(); }
+        }
+        return new Set();
+    });
+    // #8 Share Options Modal
+    const [showShareModal, setShowShareModal] = useState(false);
+    // #7 Animated Like Counter
+    const [likeBounceId, setLikeBounceId] = useState(null);
+    // #6 Comment Pagination
+    const [commentPage, setCommentPage] = useState(0);
+    const [hasMoreComments, setHasMoreComments] = useState(false);
+    const [loadingMoreComments, setLoadingMoreComments] = useState(false);
     const pullStartY = useRef(null);
 
     // Reels preferences state
@@ -486,6 +501,9 @@ export default function ReelsPage() {
         const wasLiked = liked[postId];
         setLiked(prev => ({ ...prev, [postId]: !wasLiked }));
         setLikeCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || currentReel.like_count || 0) + (wasLiked ? -1 : 1)) }));
+        // #7 Animated Like Counter — trigger bounce
+        setLikeBounceId(postId);
+        setTimeout(() => setLikeBounceId(null), 400);
         haptic(wasLiked ? 5 : 15);
         // Mutual exclusion: remove dislike when liking
         if (!wasLiked && disliked[postId]) {
@@ -531,8 +549,12 @@ export default function ReelsPage() {
         try {
             if (wasDisliked) {
                 await supabase.from('social_likes').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'dislike');
+                // #4 Not Interested — remove from filter
+                setNotInterestedIds(prev => { const n = new Set(prev); n.delete(postId); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             } else {
                 await supabase.from('social_likes').insert({ post_id: postId, user_id: user.id, reaction_type: 'dislike' });
+                // #4 Not Interested — add to filter
+                setNotInterestedIds(prev => { const n = new Set(prev); n.add(postId); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             }
         } catch {
             setDisliked(prev => ({ ...prev, [postId]: wasDisliked }));
@@ -617,6 +639,7 @@ export default function ReelsPage() {
         setShowCommentPanel(prev => !prev);
         // Always fetch fresh comments when opening (not closing)
         if (!wasOpen) {
+            setCommentPage(0);
             try {
                 const { data } = await supabase
                     .from('social_comments')
@@ -625,9 +648,33 @@ export default function ReelsPage() {
                     .order('created_at', { ascending: true })
                     .limit(50);
                 setComments(data || []);
+                setHasMoreComments((data || []).length >= 50);
                 setCommentCounts(prev => ({ ...prev, [currentReel.id]: (data || []).length }));
             } catch (e) { console.error('Load comments:', e); }
         }
+    };
+
+    // #6 Comment Pagination — Load More
+    const loadMoreComments = async () => {
+        if (!currentReel?.id || loadingMoreComments || !hasMoreComments) return;
+        setLoadingMoreComments(true);
+        const nextPage = commentPage + 1;
+        try {
+            const { data } = await supabase
+                .from('social_comments')
+                .select('id, content, created_at, media_url, media_type, profiles:author_id(username, avatar_url)')
+                .eq('post_id', currentReel.id)
+                .order('created_at', { ascending: true })
+                .range(nextPage * 50, (nextPage + 1) * 50 - 1);
+            if (data && data.length > 0) {
+                setComments(prev => [...prev, ...data]);
+                setCommentPage(nextPage);
+                setHasMoreComments(data.length >= 50);
+            } else {
+                setHasMoreComments(false);
+            }
+        } catch { setHasMoreComments(false); }
+        setLoadingMoreComments(false);
     };
 
     const submitComment = async () => {
@@ -663,18 +710,33 @@ export default function ReelsPage() {
         setSubmittingComment(false);
     };
 
-    const handleShare = async () => {
+    // #8 Share Options Modal — open modal instead of direct share
+    const handleShare = () => {
         if (!currentReel?.id) return;
         haptic(10);
-        const url = window.location.origin + '/hub/reels?id=' + currentReel.id;
+        setShowShareModal(true);
+    };
+
+    const shareUrl = currentReel ? (window.location.origin + '/hub/reels?id=' + currentReel.id) : '';
+
+    const handleShareAction = async (platform) => {
+        setShowShareModal(false);
+        const url = shareUrl;
+        const title = `Check out this poker reel on Smarter.Poker`;
         try {
-            if (navigator.share) {
-                await navigator.share({ title: 'Poker Reel', url });
-            } else {
+            if (platform === 'copy') {
                 await navigator.clipboard.writeText(url);
+                setShareToast(true);
+                setTimeout(() => setShareToast(false), 2000);
+            } else if (platform === 'native' && navigator.share) {
+                await navigator.share({ title, url });
+            } else if (platform === 'x') {
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`, '_blank');
+            } else if (platform === 'facebook') {
+                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+            } else if (platform === 'whatsapp') {
+                window.open(`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`, '_blank');
             }
-            setShareToast(true);
-            setTimeout(() => setShareToast(false), 2000);
             try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'share_count' }); } catch {}
             if (user?.id) busEmit.socialPostShared(currentReel.id, user.id);
         } catch {
@@ -1382,8 +1444,13 @@ export default function ReelsPage() {
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill={liked[currentReel?.id] ? '#ef4444' : 'none'} stroke={liked[currentReel?.id] ? '#ef4444' : 'white'} strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                        <span style={{ color: 'white', fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill={liked[currentReel?.id] ? '#ef4444' : 'none'} stroke={liked[currentReel?.id] ? '#ef4444' : 'white'} strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))', transition: 'transform 0.15s ease' }}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                        <span style={{
+                            color: 'white', fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                            transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                            transform: likeBounceId === currentReel?.id ? 'scale(1.4)' : 'scale(1)',
+                            display: 'inline-block',
+                        }}>
                             {likeCounts[currentReel?.id] ?? (currentReel?.like_count || 0)}
                         </span>
                     </button>
@@ -1440,7 +1507,19 @@ export default function ReelsPage() {
                         {muted ? (
                             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
                         ) : (
+                            <>
                             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
+                            {/* #10 Sound Waveform Indicator */}
+                            <div style={{ display: 'flex', gap: 1.5, alignItems: 'flex-end', height: 10, marginTop: 2 }}>
+                                {[3, 6, 10, 6, 3].map((h, i) => (
+                                    <div key={i} style={{
+                                        width: 2, background: '#00d4ff', borderRadius: 1,
+                                        animation: `soundWave 0.6s ${i * 0.1}s ease-in-out infinite alternate`,
+                                        height: h,
+                                    }} />
+                                ))}
+                            </div>
+                            </>
                         )}
                     </button>
 
@@ -1489,6 +1568,61 @@ export default function ReelsPage() {
                     }}>Link Copied</div>
                 )}
 
+                {/* #8 Share Options Modal */}
+                {showShareModal && (
+                    <div onClick={() => setShowShareModal(false)} style={{
+                        position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)',
+                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 250,
+                    }}>
+                        <div onClick={e => e.stopPropagation()} style={{
+                            background: '#1a1a2e', borderRadius: '16px 16px 0 0', padding: '16px 20px 24px',
+                            width: '100%', maxWidth: 400, border: '1px solid rgba(255,255,255,0.1)',
+                        }}>
+                            <div style={{ textAlign: 'center', marginBottom: 4 }}>
+                                <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 2, margin: '0 auto 12px' }} />
+                                <div style={{ color: 'white', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>Share This Reel</div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                                <button onClick={() => handleShareAction('copy')} style={{
+                                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: 12, padding: '14px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                                }}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                                    <span style={{ color: 'white', fontSize: 10, fontWeight: 500 }}>Copy Link</span>
+                                </button>
+                                <button onClick={() => handleShareAction('x')} style={{
+                                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: 12, padding: '14px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                                }}>
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                                    <span style={{ color: 'white', fontSize: 10, fontWeight: 500 }}>X</span>
+                                </button>
+                                <button onClick={() => handleShareAction('facebook')} style={{
+                                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: 12, padding: '14px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                                }}>
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                                    <span style={{ color: 'white', fontSize: 10, fontWeight: 500 }}>Facebook</span>
+                                </button>
+                                <button onClick={() => handleShareAction('whatsapp')} style={{
+                                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: 12, padding: '14px 4px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                                }}>
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                    <span style={{ color: 'white', fontSize: 10, fontWeight: 500 }}>WhatsApp</span>
+                                </button>
+                            </div>
+                            {typeof navigator !== 'undefined' && navigator.share && (
+                                <button onClick={() => handleShareAction('native')} style={{
+                                    width: '100%', marginTop: 12, padding: '12px', borderRadius: 12,
+                                    background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)',
+                                    color: 'white', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer',
+                                }}>More Sharing Options</button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
 
 
                 {/* Heart burst + slide animation CSS */}
@@ -1507,6 +1641,10 @@ export default function ReelsPage() {
                     @keyframes heartParticle4 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% - 50px), calc(-50% - 20px)) scale(0.3) rotate(10deg); } }
                     @keyframes heartParticle5 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% - 15px), calc(-50% - 50px)) scale(0.3) rotate(-30deg); } }
                     @keyframes shimmer { to { background-position-x: -200%; } }
+                    @keyframes soundWave {
+                        0% { height: 2px; }
+                        100% { height: var(--max-h, 10px); }
+                    }
                 `}</style>
 
                 {/* Comment Panel */}
@@ -1550,6 +1688,15 @@ export default function ReelsPage() {
                                     </div>
                                 </div>
                             ))}
+                            {/* #6 Comment Pagination — Load More */}
+                            {hasMoreComments && (
+                                <button onClick={loadMoreComments} disabled={loadingMoreComments} style={{
+                                    width: '100%', padding: '10px', background: 'rgba(255,255,255,0.08)',
+                                    border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10,
+                                    color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 500,
+                                    cursor: loadingMoreComments ? 'wait' : 'pointer', marginTop: 4,
+                                }}>{loadingMoreComments ? 'Loading...' : 'Load More Comments'}</button>
+                            )}
                         </div>
 
                         {/* Media preview strip */}
