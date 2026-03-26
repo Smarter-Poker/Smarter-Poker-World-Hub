@@ -58,9 +58,7 @@ export async function addSearchHistory(userId, searchQuery, searchData = {}) {
         .from('poker_near_me_search_history')
         .insert({
             user_id: userId,
-            search_query: searchQuery,
-            location: searchData.location || null,
-            filters: searchData.filters || null
+            search_query: searchQuery
         })
         .select()
         .maybeSingle();

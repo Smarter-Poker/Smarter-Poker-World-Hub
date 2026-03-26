@@ -32,10 +32,7 @@ export async function addVenueFavorite(userId, venueId, venueData = {}) {
         .insert({
             user_id: userId,
             venue_id: venueId,
-            venue_name: venueData.name || null,
-            venue_address: venueData.address || null,
-            venue_city: venueData.city || null,
-            venue_state: venueData.state || null
+            venue_name: venueData.name || null
         })
         .select()
         .maybeSingle();
