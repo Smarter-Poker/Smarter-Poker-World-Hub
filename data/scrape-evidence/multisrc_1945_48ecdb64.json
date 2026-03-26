@@ -1,0 +1,16 @@
+{
+  "venue_id": 1945,
+  "venue_name": "Orange City Racing & Card Club",
+  "sources": [
+    "PA:200",
+    "Bravo"
+  ],
+  "batch_id": "48ecdb64-2ab2-4350-b82b-b45df71bc5e0",
+  "timestamp": "2026-03-26T14:09:17.957366+00:00",
+  "extracted": {
+    "games_offered": [
+      "PLO"
+    ],
+    "data_quality": "scraped_verified"
+  }
+}

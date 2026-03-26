@@ -1,7 +1,6 @@
 /**
  * Social Page Detail View - Full page with feed, followers, about, and content management
  * Supports venue, group, community, and brand pages
- * Build: 2026-03-26T14:04 — hydration-safe
  */
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -354,7 +353,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                         <img src={post.link_preview.image} alt="" style={{ width: '100%', height: 160, objectFit: 'cover' }} />
                     )}
                     <div style={{ padding: '10px 12px', background: C.bg }}>
-                        <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase' }}>{(() => { try { return new URL(post.link_preview.url).hostname; } catch(e) { return post.link_preview.url?.replace(/^https?:\/\//, '').split('/')[0] || 'link'; } })()}</div>
+                        <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase' }}>{new URL(post.link_preview.url).hostname}</div>
                         {post.link_preview.title && <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginTop: 2 }}>{post.link_preview.title}</div>}
                         {post.link_preview.description && <div style={{ fontSize: 13, color: C.textSec, marginTop: 2 }}>{post.link_preview.description.slice(0, 120)}</div>}
                     </div>
@@ -458,15 +457,16 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 <button onClick={async () => {
                                     try {
                                         const token = getAccessToken();
-                                        const shareRes = await fetch('/api/social/posts', {
+                                        await fetch('/api/social/posts', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                             body: JSON.stringify({ content: `Shared from ${page?.name}: ${post.content?.slice(0, 200) || ''}\n\n${shareUrl}`, content_type: 'text' }),
                                         });
-                                        if (!shareRes.ok) throw new Error('Share failed');
                                         setShowShareModal(false);
+                                        toast.success('Shared to your feed!');
                                         busEmit.dataMutated('social');
-                                    } catch (e) { console.error('Share to feed error:', e); setShowShareModal(false); }
+                                        busEmit.socialPostCreated('shared', user?.id);
+                                    } catch (e) { console.error(e); }
                                 }} style={{
                                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
                                     border: `1px solid ${C.border}`, background: '#E7F3FF', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: C.blue, fontFamily: 'inherit', width: '100%', textAlign: 'left',
@@ -475,7 +475,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                     Share to My Feed
                                 </button>
                             )}
-                            <button onClick={() => { navigator.clipboard.writeText(shareUrl).catch(() => {}); setShowShareModal(false); }} style={{
+                            <button onClick={() => { navigator.clipboard.writeText(shareUrl); setShowShareModal(false); }} style={{
                                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, fontFamily: 'inherit', width: '100%', textAlign: 'left',
                             }}>
@@ -560,7 +560,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                             {editingComment === c.id ? (
                                                 <div style={{ display: 'flex', gap: 4 }}>
                                                     <input type="text" value={editCommentText} onChange={e => setEditCommentText(e.target.value)}
-                                                        onKeyDown={e => { if (e.key === 'Enter' && editCommentText.trim()) { const newContent = editCommentText.trim(); const oldContent = c.content; setComments(prev => prev.map(x => x.id === c.id ? { ...x, content: newContent } : x)); setEditingComment(null); (async () => { try { const token = getAccessToken(); const r = await fetch('/api/social/pages/engage', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id: c.id, content: newContent }) }); if (!r.ok) throw new Error('Edit failed'); } catch(err) { setComments(prev => prev.map(x => x.id === c.id ? { ...x, content: oldContent } : x)); } })(); } if (e.key === 'Escape') setEditingComment(null); }}
+                                                        onKeyDown={e => { if (e.key === 'Enter' && editCommentText.trim()) { const newContent = editCommentText.trim(); const oldContent = c.content; setComments(prev => prev.map(x => x.id === c.id ? { ...x, content: newContent } : x)); setEditingComment(null); (async () => { try { const token = getAccessToken(); const r = await fetch('/api/social/pages/engage', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id: c.id, content: newContent }) }); if (!r.ok) throw new Error('Edit failed'); } catch { setComments(prev => prev.map(x => x.id === c.id ? { ...x, content: oldContent } : x)); } })(); } if (e.key === 'Escape') setEditingComment(null); }}
                                                         autoFocus style={{ flex: 1, padding: '6px 10px', borderRadius: 12, border: `1px solid ${C.blue}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.bg }} />
                                                     <button onClick={() => setEditingComment(null)} style={{ background: 'none', border: 'none', fontSize: 11, color: C.textSec, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                                                 </div>
@@ -622,7 +622,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                             const tempReply = { id: `temp-${Date.now()}`, content: replyText.trim(), parent_id: c.id, created_at: new Date().toISOString(), author: { full_name: isOwnerOnOwnPage ? page?.name : user.user_metadata?.full_name, avatar_url: isOwnerOnOwnPage ? page?.avatar_url : user.user_metadata?.avatar_url } };
                                                             setComments(prev => [...prev, tempReply]);
                                                             const txt = replyText.trim(); setReplyText(''); setReplyTo(null);
-                                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, parent_id: c.id }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempReply.id ? json.data : x)); onComment(post.id); } } else { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } } catch(err) { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } })();
+                                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, parent_id: c.id }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempReply.id ? json.data : x)); onComment(post.id); } } else { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } } catch { setComments(prev => prev.filter(x => x.id !== tempReply.id)); } })();
                                                         }
                                                     }}
                                                     placeholder={`Reply to ${c.author?.full_name || 'comment'}...`}
@@ -648,7 +648,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                     setComments(prev => [...prev, tempComment]);
                                                     const txt = commentText.trim(); setCommentText('');
                                                     onComment(post.id);
-                                                    (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(err) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
+                                                    (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
                                                 }
                                             }}
                                             placeholder={isOwnerOnOwnPage ? `Comment as ${page?.name}...` : 'Write A Comment...'}
@@ -659,7 +659,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                             setComments(prev => [...prev, tempComment]);
                                             const txt = commentText.trim(); setCommentText('');
                                             onComment(post.id);
-                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(err) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
+                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt }) }); if (res.ok) { const json = await res.json(); if (json.success) setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
                                         }} disabled={!commentText.trim()} style={{
                                             padding: '6px 12px', borderRadius: 20, border: 'none',
                                             background: commentText.trim() ? C.blue : '#E4E6EB',
@@ -677,7 +677,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     );
 }
 
-export default function SocialPageDetail() {
+function SocialPageDetail() {
     const router = useRouter();
     const { pageId } = router.query;
     const { user } = useAuthUser();
@@ -1517,8 +1517,8 @@ export default function SocialPageDetail() {
                                 </h1>
                                 <p style={{ fontSize: 15, color: C.textSec, margin: '4px 0 0' }}>
                                     {(page.page_type || 'page').charAt(0).toUpperCase() + (page.page_type || 'page').slice(1)}
-                                    {page.category && page.category !== 'general' && ` · ${page.category}`}
-                                    {' '} · {page.follower_count || 0} Followers
+                                    {page.category && page.category !== 'general' && ` - ${page.category}`}
+                                    {' '} - {page.follower_count || 0} Followers
                                 </p>
                                 {page.slug && (
                                     <p style={{ fontSize: 13, color: C.blue, margin: '4px 0 0', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1552,14 +1552,14 @@ export default function SocialPageDetail() {
                             </p>
                         )}
 
-                        {/* Action Buttons — Primary Row */}
-                        <div style={{ display: 'flex', gap: 8, margin: '16px 0 8px', flexWrap: 'wrap' }}>
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', gap: 8, margin: '16px 0', flexWrap: 'wrap' }}>
                             <button onClick={handleFollow} style={{
                                 padding: '10px 24px', borderRadius: 10, border: 'none', fontSize: 15,
                                 fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                                 background: isFollowing ? '#E4E6EB' : C.blue,
                                 color: isFollowing ? C.text : '#fff',
-                                display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s',
+                                display: 'flex', alignItems: 'center', gap: 6,
                             }}>
                                 {followLoading ? (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1567,15 +1567,10 @@ export default function SocialPageDetail() {
                                         {isFollowing ? 'Following' : 'Follow'}
                                     </div>
                                 ) : (
-                                    <>{isFollowing ? (
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-                                    ) : (
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-                                    )}
-                                    {isFollowing ? 'Following' : 'Follow'}</>
+                                    isFollowing ? 'Following' : 'Follow'
                                 )}
                             </button>
-                            {/* #8 Notification bell */}
+                            {/* Notification bell */}
                             {isFollowing && (
                                 <button onClick={async () => {
                                     setTogglingNotify(true);
@@ -1604,11 +1599,9 @@ export default function SocialPageDetail() {
                                 padding: '10px 18px', borderRadius: 10, border: `1px solid ${C.border}`,
                                 background: '#E4E6EB', color: C.text, fontSize: 14,
                                 fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s',
+                                display: 'flex', alignItems: 'center', gap: 6,
                             }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                                </svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                                 Message
                             </button>
                             {userRole === 'owner' && (
@@ -1616,11 +1609,8 @@ export default function SocialPageDetail() {
                                     padding: '10px 20px', borderRadius: 10, border: 'none',
                                     background: '#E4E6EB', color: C.text, fontSize: 14,
                                     fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                    display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s',
+                                    display: 'flex', alignItems: 'center', gap: 6,
                                 }}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-                                    </svg>
                                     Manage Page
                                 </button>
                             )}
@@ -1628,99 +1618,48 @@ export default function SocialPageDetail() {
 
                         {/* Social Actions — Secondary Row */}
                         <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-                            {/* Go Live */}
                             {isPageOwner && (
                                 <button onClick={() => toast.success('Live streaming coming soon!')} style={{
                                     padding: '8px 16px', borderRadius: 20, border: 'none',
                                     background: 'linear-gradient(135deg, #FF4444, #FF0080)',
                                     color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
                                     fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
-                                    boxShadow: '0 2px 8px rgba(255,0,128,0.3)', transition: 'all 0.2s',
+                                    boxShadow: '0 2px 8px rgba(255,0,128,0.3)',
                                 }}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/><path d="M16.24 7.76a6 6 0 010 8.49m-8.48-.01a6 6 0 010-8.49m11.31-2.82a10 10 0 010 14.14m-14.14 0a10 10 0 010-14.14" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M16.24 7.76a6 6 0 010 8.49m-8.48-.01a6 6 0 010-8.49m11.31-2.82a10 10 0 010 14.14m-14.14 0a10 10 0 010-14.14"/></svg>
                                     Go Live
                                 </button>
                             )}
-                            {/* Video Call */}
                             <button onClick={() => toast.success('Video calling coming soon!')} style={{
-                                padding: '8px 16px', borderRadius: 20,
-                                border: `1px solid ${C.border}`, background: C.bg,
-                                color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
-                                transition: 'all 0.2s',
+                                padding: '8px 16px', borderRadius: 20, border: `1px solid ${C.border}`,
+                                background: C.bg, color: C.text, fontSize: 13, fontWeight: 600,
+                                cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
                             }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2">
-                                    <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
-                                </svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
                                 Video
                             </button>
-                            {/* Voice Call */}
                             <button onClick={() => toast.success('Voice calling coming soon!')} style={{
-                                padding: '8px 16px', borderRadius: 20,
-                                border: `1px solid ${C.border}`, background: C.bg,
-                                color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
-                                transition: 'all 0.2s',
+                                padding: '8px 16px', borderRadius: 20, border: `1px solid ${C.border}`,
+                                background: C.bg, color: C.text, fontSize: 13, fontWeight: 600,
+                                cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
                             }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2">
-                                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
-                                </svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.12.56.26 1.1.44 1.63a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.53.18 1.07.32 1.63.44A2 2 0 0122 16.92z"/></svg>
                                 Call
                             </button>
-                            {/* Photo/Video Upload */}
                             <button onClick={() => { if (!user) { router.push('/auth/login'); return; } imageInputRef.current?.click(); }} style={{
-                                padding: '8px 16px', borderRadius: 20,
-                                border: `1px solid ${C.border}`, background: C.bg,
-                                color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
-                                transition: 'all 0.2s',
+                                padding: '8px 16px', borderRadius: 20, border: `1px solid ${C.border}`,
+                                background: C.bg, color: C.text, fontSize: 13, fontWeight: 600,
+                                cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
                             }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
-                                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
-                                </svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
                                 Photo/Video
                             </button>
-                            {/* Invite */}
-                            {user && (
-                                <button onClick={async () => {
-                                    setShowInviteModal(true);
-                                    if (inviteFriends.length === 0) {
-                                        setInviteLoading(true);
-                                        try {
-                                            const token = getAccessToken();
-                                            const res = await fetch(`/api/friends?action=list`, { headers: { 'Authorization': `Bearer ${token}` } });
-                                            const json = await res.json();
-                                            if (json.success && json.data?.friends) {
-                                                const followerIds = new Set(followers.map(f => f.user_id || f.profile?.id));
-                                                setInviteFriends(json.data.friends.filter(f => !followerIds.has(f.id)));
-                                            }
-                                        } catch (e) { console.error(e); }
-                                        setInviteLoading(false);
-                                    }
-                                }} style={{
-                                    padding: '8px 16px', borderRadius: 20,
-                                    border: `1px solid ${C.border}`, background: C.bg,
-                                    color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                    fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
-                                    transition: 'all 0.2s',
-                                }}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2">
-                                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
-                                    </svg>
-                                    Invite
-                                </button>
-                            )}
-                            {/* Report */}
                             <button onClick={() => setShowReportModal(true)} style={{
-                                padding: '8px 16px', borderRadius: 20,
-                                border: `1px solid ${C.border}`, background: C.bg,
-                                color: C.textSec, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
-                                transition: 'all 0.2s',
+                                padding: '8px 16px', borderRadius: 20, border: `1px solid ${C.border}`,
+                                background: C.bg, color: C.textSec, fontSize: 13, fontWeight: 600,
+                                cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
                             }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
-                                </svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
                                 Report
                             </button>
                         </div>
@@ -3116,3 +3055,5 @@ export default function SocialPageDetail() {
         </>
     );
 }
+
+export default SocialPageDetail;

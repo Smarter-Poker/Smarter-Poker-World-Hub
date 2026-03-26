@@ -1,0 +1,18 @@
+{
+  "venue_id": 1899,
+  "venue_name": "101 Poker Club",
+  "sources": [
+    "PA:200"
+  ],
+  "batch_id": "48ecdb64-2ab2-4350-b82b-b45df71bc5e0",
+  "timestamp": "2026-03-26T14:05:57.613902+00:00",
+  "extracted": {
+    "games_offered": [
+      "NLH",
+      "PLO"
+    ],
+    "poker_tables": 11,
+    "hours_weekday": "1:00pm - 10:30pm",
+    "data_quality": "scraped_verified"
+  }
+}

@@ -933,7 +933,7 @@ function UniversalDynamicTable({
 
     // Phase 3: Study Mode (show frequencies before answering)
     const [studyMode, setStudyMode] = React.useState(false);
-    const [feedbackCollapsed, setFeedbackCollapsed] = React.useState(false);
+    const [feedbackCollapsed, setFeedbackCollapsed] = React.useState(true);
 
     // ═══ MOBILE RESPONSIVE DETECTION ═══
     const [isMobile, setIsMobile] = React.useState(false);
@@ -1455,7 +1455,7 @@ function UniversalDynamicTable({
     // Reset selectedAnswer + feedbackCollapsed on new question (BUG-1 fix)
     React.useEffect(() => {
         setSelectedAnswer(null);
-        setFeedbackCollapsed(false);
+        setFeedbackCollapsed(true);
         try { busEmit('ARENA_HAND_LOADED', { questionNumber, gameId: question?.gameId || null }); } catch { }
     }, [questionNumber]);
 
@@ -1771,49 +1771,7 @@ function UniversalDynamicTable({
                 </div>
             </div>
 
-            {/* GAP-4: Scenario context bar (replaces verbose question text) */}
-            <div style={styles.questionBar}>
-                <div style={styles.scenarioInfo}>
-                    {/* GAP-1: Action history strip */}
-                    {actionHistory.length > 0 ? (
-                        <div style={styles.actionHistoryStrip}>
-                            {actionHistory.map((a, i) => (
-                                <span key={i} style={styles.actionHistoryItem}>
-                                    <span style={styles.actionHistoryPos}>{a.position || ''}</span>
-                                    <span style={styles.actionHistoryAction}>{a.action || ''}</span>
-                                    {i < actionHistory.length - 1 && <span style={styles.actionHistorySep}>→</span>}
-                                </span>
-                            ))}
-                        </div>
-                    ) : villainAction ? (
-                        <div style={styles.actionHistoryStrip}>
-                            <span style={styles.actionHistoryItem}>
-                                <span style={styles.actionHistoryPos}>{villainPosition}</span>
-                                <span style={styles.actionHistoryAction}>{villainAction}</span>
-                            </span>
-                        </div>
-                    ) : (
-                        <div style={styles.scenarioLabel}>
-                            {streetLabel} — Your action
-                        </div>
-                    )}
-                    {/* GAP-6: Effective stack badge */}
-                    <div style={styles.effStackBadge}>
-                        Eff: {effectiveStack} BB
-                    </div>
-                </div>
-                {/* Streak Badge */}
-                {streak >= 2 && (
-                    <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        style={styles.streakBadge}
-                    >
-                        <span style={{ fontSize: 14 }}></span>
-                        <span style={styles.streakText}>{streak}</span>
-                    </motion.div>
-                )}
-            </div>
+
 
             {/* TABLE AREA - Center */}
             <div style={styles.tableArea}>
@@ -1883,7 +1841,7 @@ function UniversalDynamicTable({
                         if (activeCount <= 2) {
                             // Force GTO Wizard positions: Villain inside top quarter, Hero inside bottom quarter
                             seatX = 50;
-                            seatY = isHero ? 82 : 8;
+                            seatY = isHero ? 108 : -8;
                         }
 
                         return (
@@ -1899,44 +1857,7 @@ function UniversalDynamicTable({
                                     top: `${seatY}%`,
                                 }}
                             >
-                                {/* Villain Speech Bubble — shows their action */}
-                                {villainSeatAction && !villainFolded && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.7, y: 5 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.2 }}
-                                        style={{
-                                            position: 'absolute',
-                                            top: -28,
-                                            left: '50%',
-                                            transform: 'translateX(-50%)',
-                                            padding: '3px 9px',
-                                            borderRadius: 8,
-                                            fontSize: 9,
-                                            fontWeight: 700,
-                                            whiteSpace: 'nowrap',
-                                            zIndex: 10,
-                                            background: /raise|bet|3.?bet|4.?bet|all.?in|shove/i.test(villainSeatAction.action)
-                                                ? 'rgba(234, 88, 12, 0.2)'
-                                                : /call/i.test(villainSeatAction.action)
-                                                    ? 'rgba(59, 130, 246, 0.2)'
-                                                    : 'rgba(255,255,255,0.08)',
-                                            color: /raise|bet|3.?bet|4.?bet|all.?in|shove/i.test(villainSeatAction.action)
-                                                ? '#fb923c'
-                                                : /call/i.test(villainSeatAction.action)
-                                                    ? '#60a5fa'
-                                                    : '#94a3b8',
-                                            border: `1px solid ${/raise|bet|3.?bet|4.?bet|all.?in|shove/i.test(villainSeatAction.action)
-                                                ? 'rgba(234, 88, 12, 0.35)'
-                                                : /call/i.test(villainSeatAction.action)
-                                                    ? 'rgba(59, 130, 246, 0.35)'
-                                                    : 'rgba(255,255,255,0.12)'}`,
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                                        }}
-                                    >
-                                        {villainSeatAction.action}
-                                    </motion.div>
-                                )}
+                                {/* Speech bubble removed — info in header */}
 
                                 {/* Dealer Button — to the LEFT */}
                                 {isButton && (
@@ -1991,8 +1912,8 @@ function UniversalDynamicTable({
                                                 animate={{ scale: 1, opacity: 1 }}
                                                 transition={{ delay: 0.1, duration: 0.3, type: 'spring' }}
                                                 style={{
-                                                    width: isMobile ? 32 : 38,
-                                                    height: isMobile ? 46 : 54,
+                                                    width: isMobile ? 36 : 44,
+                                                    height: isMobile ? 52 : 62,
                                                     borderRadius: 4,
                                                     boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
                                                     border: '1.5px solid rgba(255,255,255,0.3)',
@@ -2008,8 +1929,8 @@ function UniversalDynamicTable({
                                                 animate={{ scale: 1, opacity: 1 }}
                                                 transition={{ delay: 0.2, duration: 0.3, type: 'spring' }}
                                                 style={{
-                                                    width: isMobile ? 32 : 38,
-                                                    height: isMobile ? 46 : 54,
+                                                    width: isMobile ? 36 : 44,
+                                                    height: isMobile ? 52 : 62,
                                                     borderRadius: 4,
                                                     marginLeft: -6,
                                                     boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
@@ -3268,7 +3189,7 @@ const styles = {
         position: 'relative',
         width: '100%',
         maxWidth: 400,
-        aspectRatio: '1 / 1.6',
+        aspectRatio: '1 / 1.2',
         borderRadius: '50%',
         background: 'transparent',
         margin: '0 auto',
@@ -3728,16 +3649,21 @@ const styles = {
 
     // ── INLINE FEEDBACK (replaces old full-screen overlay)
     feedbackInline: {
-        padding: '12px 16px',
-        background: 'linear-gradient(180deg, rgba(15,26,46,0.98) 0%, rgba(10,18,32,0.98) 100%)',
-        borderTop: '2px solid rgba(0, 212, 255, 0.3)',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+        background: 'rgba(5,10,20,0.95)',
+        backdropFilter: 'blur(8px)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: 8,
-        flexShrink: 0,
-        maxHeight: '45vh',
+        padding: '16px 20px',
         overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
     },
 
     feedbackTopRow: {
