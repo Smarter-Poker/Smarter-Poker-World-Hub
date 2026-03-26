@@ -1,22 +1,21 @@
 {
-  "venue_id": 1988,
+  "vid": 1988,
   "name": "Orleans Casino",
-  "source": "https://orleans.boydgaming.com/play/poker-room",
+  "src": "https://orleans.boydgaming.com/play/poker-room",
   "http": 200,
-  "hash": "7c984044849f84f47d2d99b72492ce8db9a03b41164b4145a387dfe4149c47d5",
-  "has_tournaments": true,
-  "confidence": "high",
+  "hash": "2df9306e6794441e8ff934f78cf0f5769fc425fc14e074bfc013eaec3290fea1",
+  "ht": true,
+  "conf": "high",
   "reason": "3kw+0d",
-  "keyword_hits": 3,
-  "day_hits": 0,
-  "buyins": [
+  "kw": 3,
+  "days": 0,
+  "bi": [
     30,
     100,
     300,
     300,
     200
   ],
-  "ts": "2026-03-26T00:52:35.274483+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:17:28.812543+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

@@ -1,0 +1,19 @@
+{
+  "vid": 1956,
+  "name": "Final Table Poker Club",
+  "src": "http://www.pokerportland.com/",
+  "http": 200,
+  "hash": "caafa2051cc9d8966818d8c58c24fa326258fbfaf82e8ca2c5de5ec0e5c80ffe",
+  "ht": true,
+  "conf": "medium",
+  "reason": "2kw+3bi",
+  "kw": 2,
+  "days": 2,
+  "bi": [
+    20,
+    40,
+    500
+  ],
+  "ts": "2026-03-26T01:19:10.938707+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

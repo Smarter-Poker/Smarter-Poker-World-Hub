@@ -1,0 +1,21 @@
+{
+  "vid": 1917,
+  "name": "Shuffle 512",
+  "src": "https://shuffle512.com/",
+  "http": 200,
+  "hash": "8da9f6dfa8dac890f5851abf7fdaee1942f60b4fe4877fb78d047a5f48d8c363",
+  "ht": true,
+  "conf": "high",
+  "reason": "4kw+7d",
+  "kw": 4,
+  "days": 7,
+  "bi": [
+    30,
+    200,
+    100,
+    500,
+    200
+  ],
+  "ts": "2026-03-26T01:22:04.518335+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

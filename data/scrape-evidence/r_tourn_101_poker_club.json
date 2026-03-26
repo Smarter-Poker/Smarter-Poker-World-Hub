@@ -1,0 +1,21 @@
+{
+  "vid": 1899,
+  "name": "101 Poker Club",
+  "src": "https://www.pokeratlas.com/poker-room/101-poker-club-katy",
+  "http": 200,
+  "hash": "99c67074df18435474dcc71dde1fd05aa9c367069ea6cce5d08c2aec5377c92a",
+  "ht": true,
+  "conf": "high",
+  "reason": "3kw+7d",
+  "kw": 3,
+  "days": 7,
+  "bi": [
+    20,
+    180,
+    20,
+    500,
+    200
+  ],
+  "ts": "2026-03-26T01:20:43.914374+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

@@ -1,0 +1,15 @@
+{
+  "vid": 2033,
+  "name": "Portland Meadows",
+  "src": "https://portlandmeadows.com/",
+  "http": 200,
+  "hash": "82bdfbf81948ed4f19018c1c3ffca40260f4ea2cd670f633f9089e12bfe64fb3",
+  "ht": true,
+  "conf": "medium",
+  "reason": "tourn_link",
+  "kw": 0,
+  "days": 7,
+  "bi": [],
+  "ts": "2026-03-26T01:19:30.170473+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

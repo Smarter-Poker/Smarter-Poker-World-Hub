@@ -1,0 +1,21 @@
+{
+  "vid": 2433,
+  "name": "Lodge Card Club San Antonio",
+  "src": "https://thelodgepokerclub.com/san-antonio/",
+  "http": 200,
+  "hash": "b2ae44c9cdf919f7371a574ea45448869103da560a0271d56a5f19db84669d20",
+  "ht": true,
+  "conf": "high",
+  "reason": "8kw+37bi",
+  "kw": 8,
+  "days": 7,
+  "bi": [
+    100,
+    120,
+    100,
+    30,
+    20
+  ],
+  "ts": "2026-03-26T01:21:27.557291+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

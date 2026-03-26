@@ -1,0 +1,21 @@
+{
+  "vid": 2457,
+  "name": "Beaumont Card Club",
+  "src": "https://www.facebook.com/OdessaCCC/",
+  "http": 200,
+  "hash": "8ed9b8f513e982756c771f4c3da5d08be9e2396780ad8dd7b5a729b37dd8a363",
+  "ht": true,
+  "conf": "high",
+  "reason": "6kw+10bi",
+  "kw": 6,
+  "days": 1,
+  "bi": [
+    820,
+    620,
+    540,
+    480,
+    400
+  ],
+  "ts": "2026-03-26T01:20:57.910689+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

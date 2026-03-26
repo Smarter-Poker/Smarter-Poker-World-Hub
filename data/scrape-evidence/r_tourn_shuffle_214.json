@@ -1,0 +1,21 @@
+{
+  "vid": 1916,
+  "name": "Shuffle 214",
+  "src": "https://www.shuffle214.com/",
+  "http": 200,
+  "hash": "8afdfa7f62749df6f2089f69b2c6cdb6b87e4cd26c582604e60cb363f3f91475",
+  "ht": true,
+  "conf": "high",
+  "reason": "3kw+4d",
+  "kw": 3,
+  "days": 4,
+  "bi": [
+    55,
+    200,
+    100,
+    100,
+    200
+  ],
+  "ts": "2026-03-26T01:22:01.561047+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

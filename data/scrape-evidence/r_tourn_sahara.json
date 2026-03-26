@@ -1,22 +1,21 @@
 {
-  "venue_id": 2140,
+  "vid": 2140,
   "name": "Sahara",
-  "source": "https://sahara.lv/pokerroom",
+  "src": "https://sahara.lv/pokerroom",
   "http": 200,
-  "hash": "de234fa1eb3bafc06505680b0ee0c064d6742017a141232ffdc5f295efc88807",
-  "has_tournaments": true,
-  "confidence": "high",
+  "hash": "e34331062a30b8aeee758643e6483651134ad6165430ee524153f4d9547ebd3f",
+  "ht": true,
+  "conf": "high",
   "reason": "8kw+1270bi",
-  "keyword_hits": 8,
-  "day_hits": 7,
-  "buyins": [
+  "kw": 8,
+  "days": 7,
+  "bi": [
     25,
     55,
     95,
     54,
     150
   ],
-  "ts": "2026-03-26T00:52:58.619528+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:17:52.708002+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

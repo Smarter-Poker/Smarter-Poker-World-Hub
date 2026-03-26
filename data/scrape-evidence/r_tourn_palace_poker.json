@@ -1,0 +1,21 @@
+{
+  "vid": 1913,
+  "name": "Palace Poker",
+  "src": "https://www.palacepoker.com/",
+  "http": 200,
+  "hash": "c5cf3d62b65bfd85101f4d27f3176869be04a9e20c55cdbb652da204f0ad891f",
+  "ht": true,
+  "conf": "high",
+  "reason": "10kw+365bi",
+  "kw": 10,
+  "days": 6,
+  "bi": [
+    100,
+    170,
+    777,
+    32,
+    100
+  ],
+  "ts": "2026-03-26T01:21:41.447868+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

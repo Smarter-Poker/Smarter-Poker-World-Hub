@@ -1,0 +1,21 @@
+{
+  "vid": 2264,
+  "name": "52 Social",
+  "src": "https://www.facebook.com/Johnny-Chans-88-Social-102732678001836/",
+  "http": 200,
+  "hash": "dfccef9797047ccad24e39ebfac7bc33021606e37a569fca3163f239b36929ec",
+  "ht": true,
+  "conf": "medium",
+  "reason": "3kw+6bi",
+  "kw": 3,
+  "days": 0,
+  "bi": [
+    25,
+    100,
+    25,
+    100,
+    25
+  ],
+  "ts": "2026-03-26T01:20:49.857714+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

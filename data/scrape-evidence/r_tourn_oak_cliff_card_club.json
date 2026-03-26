@@ -1,0 +1,21 @@
+{
+  "vid": 2440,
+  "name": "Oak Cliff Card Club",
+  "src": "https://www.oakcliffcardclub.com/",
+  "http": 200,
+  "hash": "04c66dc00ca46a37a565ba73415c7c3768a3c0a6722f1f82e24a8604e37193cf",
+  "ht": true,
+  "conf": "high",
+  "reason": "4kw+7d",
+  "kw": 4,
+  "days": 7,
+  "bi": [
+    30,
+    30,
+    30,
+    25,
+    99
+  ],
+  "ts": "2026-03-26T01:21:33.470378+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

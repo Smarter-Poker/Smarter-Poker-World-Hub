@@ -1,0 +1,21 @@
+{
+  "vid": 1905,
+  "name": "Elite Poker Lounge",
+  "src": "https://elitepokerlounge.com/",
+  "http": 200,
+  "hash": "25196bceb661678e29158620052b218e51a726e7860456ab43a73d54576511f0",
+  "ht": true,
+  "conf": "high",
+  "reason": "6kw+24bi",
+  "kw": 6,
+  "days": 3,
+  "bi": [
+    100,
+    20,
+    20,
+    20,
+    50
+  ],
+  "ts": "2026-03-26T01:21:02.360093+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

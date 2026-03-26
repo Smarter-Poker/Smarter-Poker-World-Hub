@@ -1,0 +1,17 @@
+{
+  "vid": 1908,
+  "name": "Jokers of Aggieland Poker Club",
+  "src": "https://jokersofaggieland.com",
+  "http": 200,
+  "hash": "8c28b7ea25c374204203b6c83786c32d872e7616a73045c1e59160d0b67b7c33",
+  "ht": true,
+  "conf": "medium",
+  "reason": "2kw+1bi",
+  "kw": 2,
+  "days": 2,
+  "bi": [
+    50
+  ],
+  "ts": "2026-03-26T01:21:17.173501+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

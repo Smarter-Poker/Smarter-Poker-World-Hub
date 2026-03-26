@@ -1,0 +1,21 @@
+{
+  "vid": 1911,
+  "name": "Lone Star Social",
+  "src": "https://www.pokeratlas.com/poker-room/lone-star-social-cedar-park",
+  "http": 200,
+  "hash": "dc44368d5a3617b5cbc1829139affac2bb7aa1962a0dd99d5af3343a2cbc4117",
+  "ht": true,
+  "conf": "medium",
+  "reason": "2kw+5bi",
+  "kw": 2,
+  "days": 7,
+  "bi": [
+    50,
+    20,
+    100,
+    49,
+    59
+  ],
+  "ts": "2026-03-26T01:21:28.630303+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

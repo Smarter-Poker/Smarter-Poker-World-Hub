@@ -1,0 +1,21 @@
+{
+  "vid": 1839,
+  "name": "Turning Stone Resort",
+  "src": "http://turningstone.com/",
+  "http": 200,
+  "hash": "eddc0aa9aa49b1bfc8e4b6bd45e36ef44e4a423a433b131240fafae2cc7269e5",
+  "ht": true,
+  "conf": "high",
+  "reason": "6kw+11bi",
+  "kw": 6,
+  "days": 7,
+  "bi": [
+    70,
+    400,
+    25,
+    130,
+    180
+  ],
+  "ts": "2026-03-26T01:18:45.956841+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

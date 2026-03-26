@@ -1,22 +1,21 @@
 {
-  "venue_id": 2133,
+  "vid": 2133,
   "name": "MGM Grand",
-  "source": "https://mgmgrand.mgmresorts.com/en/casino/poker-tables.html",
+  "src": "https://mgmgrand.mgmresorts.com/en/casino/poker-tables.html",
   "http": 200,
-  "hash": "c5a256fd67ae23a6d5f10b3a60f34532b5ec41d4b0dbd8570361ec34aa398988",
-  "has_tournaments": true,
-  "confidence": "high",
+  "hash": "edb1fadef4657acac0bc41c0180c777073f8836bf04b08a3b2ebb4b5519e7e33",
+  "ht": true,
+  "conf": "high",
   "reason": "5kw+26bi",
-  "keyword_hits": 5,
-  "day_hits": 0,
-  "buyins": [
+  "kw": 5,
+  "days": 0,
+  "bi": [
     100,
     300,
     300,
     25,
     100
   ],
-  "ts": "2026-03-26T00:52:22.693209+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:17:16.177797+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

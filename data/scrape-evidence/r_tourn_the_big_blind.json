@@ -1,0 +1,18 @@
+{
+  "vid": 1924,
+  "name": "The Big Blind",
+  "src": "https://thebigblindsa.com/",
+  "http": 200,
+  "hash": "ef2100c857ff994d59b374193cf975655c57d09649a7ff54dba784f2dc310863",
+  "ht": true,
+  "conf": "medium",
+  "reason": "tourn_link",
+  "kw": 1,
+  "days": 3,
+  "bi": [
+    50,
+    500
+  ],
+  "ts": "2026-03-26T01:22:37.227834+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

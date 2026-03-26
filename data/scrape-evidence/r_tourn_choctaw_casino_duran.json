@@ -1,0 +1,19 @@
+{
+  "vid": 1881,
+  "name": "Choctaw Casino Durant",
+  "src": "https://www.choctawcasinos.com/durant/",
+  "http": 200,
+  "hash": "406fd46a2406b82957b4578cc6bacd52a0685f28fd408b8d0d73893ad5c5d20a",
+  "ht": true,
+  "conf": "medium",
+  "reason": "tourn_link",
+  "kw": 1,
+  "days": 6,
+  "bi": [
+    210,
+    20,
+    175
+  ],
+  "ts": "2026-03-26T01:19:02.382592+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

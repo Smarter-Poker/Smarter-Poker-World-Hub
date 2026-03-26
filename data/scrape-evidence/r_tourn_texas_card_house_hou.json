@@ -1,0 +1,21 @@
+{
+  "vid": 2533,
+  "name": "Texas Card House Houston",
+  "src": "https://texascardhouse.com/Houston/",
+  "http": 200,
+  "hash": "80e4032d97b46b889fe44d2c6a6250c5dc4c4df9076781c38991bb6a84e0f93d",
+  "ht": true,
+  "conf": "high",
+  "reason": "6kw+73bi",
+  "kw": 6,
+  "days": 4,
+  "bi": [
+    100,
+    175,
+    25,
+    20,
+    300
+  ],
+  "ts": "2026-03-26T01:22:31.343952+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

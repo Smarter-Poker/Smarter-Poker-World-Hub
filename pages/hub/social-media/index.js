@@ -1247,9 +1247,11 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                             }),
                         });
                         if (checkinRes.ok) {
+                            // Capture venue name before clearing state
+                            const venueName = checkInVenue.name;
                             setCheckInVenue(null);
                             // Success toast with venue name
-                            toast.success(`Checked in at ${checkInVenue.name}`);
+                            toast.success(`Checked in at ${venueName}`);
                         } else if (checkinRes.status === 429) {
                             // Already checked in at this venue within 4 hours — still clear UI
                             setCheckInVenue(null);
@@ -1668,6 +1670,15 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                     onClose={() => setShowCheckInModal(false)}
                 />
             )}
+            {/* 📍 Trending Venues Widget */}
+            <TrendingVenues
+                onCheckIn={(venue) => {
+                    setCheckInVenue(venue);
+                    if (!content.trim()) {
+                        setContent(`Checked in at ${venue.name}${venue.city ? ` — ${venue.city}` : ''}${venue.state ? `, ${venue.state}` : ''}`);
+                    }
+                }}
+            />
         </div>
     );
 }
@@ -7693,17 +7704,6 @@ function SocialMediaPage() {
                                     </div>
                                 )}
 
-                                {/* Trending Venues Widget */}
-                                {user && (
-                                    <TrendingVenues
-                                        onCheckIn={(venue) => {
-                                            setCheckInVenue(venue);
-                                            if (!content.trim()) {
-                                                setContent(`Checked in at ${venue.name}${venue.city ? ` — ${venue.city}` : ''}${venue.state ? `, ${venue.state}` : ''}`);
-                                            }
-                                        }}
-                                    />
-                                )}
 
                                 {/* LIVE STREAMS SECTION */}
                                 {liveStreams.length > 0 && (

@@ -1,0 +1,21 @@
+{
+  "vid": 1919,
+  "name": "Spades Poker House Baytown",
+  "src": "https://www.pokeratlas.com/poker-room/spades-poker-house-baytown",
+  "http": 200,
+  "hash": "ae0d5d7ffdd0be4f3b35506d40090ed6c2fe64dbdd99fd104029dd8600fcb576",
+  "ht": true,
+  "conf": "high",
+  "reason": "6kw+24bi",
+  "kw": 6,
+  "days": 7,
+  "bi": [
+    150,
+    300,
+    3000,
+    20,
+    40
+  ],
+  "ts": "2026-03-26T01:22:08.742417+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

@@ -1,0 +1,21 @@
+{
+  "vid": 2465,
+  "name": "Turning Stone",
+  "src": "http://turningstone.com/",
+  "http": 200,
+  "hash": "37e301fddb90f0db71313dfa6228130a5398272f7a7bd56bbd69a9729e3d5d14",
+  "ht": true,
+  "conf": "high",
+  "reason": "6kw+11bi",
+  "kw": 6,
+  "days": 7,
+  "bi": [
+    70,
+    400,
+    25,
+    130,
+    180
+  ],
+  "ts": "2026-03-26T01:18:41.231755+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

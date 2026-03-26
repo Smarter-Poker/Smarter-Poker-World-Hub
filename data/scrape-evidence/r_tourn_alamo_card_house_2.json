@@ -1,0 +1,21 @@
+{
+  "vid": 1902,
+  "name": "Alamo Card House 2",
+  "src": "https://AlamoCardHouse.net",
+  "http": 200,
+  "hash": "8972f26b8ffe7947f954e3f579fc955d1ab0398b2f17d37607957ddb3bbeb433",
+  "ht": true,
+  "conf": "medium",
+  "reason": "2kw+6bi",
+  "kw": 2,
+  "days": 0,
+  "bi": [
+    21,
+    88,
+    37,
+    46,
+    27
+  ],
+  "ts": "2026-03-26T01:20:54.604773+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

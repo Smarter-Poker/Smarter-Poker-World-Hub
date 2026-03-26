@@ -1,22 +1,21 @@
 {
-  "venue_id": 1815,
+  "vid": 1815,
   "name": "Bellagio",
-  "source": "https://www.bellagio.com/en/casino/poker.html",
+  "src": "https://www.bellagio.com/en/casino/poker.html",
   "http": 200,
   "hash": "f0cdad510918cf89e37439793e09e9c70d00e277072afa2c25cc8e1614b102f1",
-  "has_tournaments": true,
-  "confidence": "high",
+  "ht": true,
+  "conf": "high",
   "reason": "4kw+1d",
-  "keyword_hits": 4,
-  "day_hits": 1,
-  "buyins": [
+  "kw": 4,
+  "days": 1,
+  "bi": [
     20,
     300,
     150,
     600,
     150
   ],
-  "ts": "2026-03-26T00:51:17.873020+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:13:24.308458+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

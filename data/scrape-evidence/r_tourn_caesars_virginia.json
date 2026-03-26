@@ -1,0 +1,18 @@
+{
+  "vid": 2038,
+  "name": "Caesars Virginia",
+  "src": "https://www.pokeratlas.com/poker-room/caesars-virginia-danville",
+  "http": 200,
+  "hash": "c441834319e83cb00af9c001f5a60d68cc1cf8e96cada636dc5d753d2f42d459",
+  "ht": true,
+  "conf": "medium",
+  "reason": "tourn_link",
+  "kw": 1,
+  "days": 7,
+  "bi": [
+    49,
+    59
+  ],
+  "ts": "2026-03-26T01:22:42.701294+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

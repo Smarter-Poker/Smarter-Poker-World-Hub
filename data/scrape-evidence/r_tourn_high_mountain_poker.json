@@ -1,0 +1,21 @@
+{
+  "vid": 1962,
+  "name": "High Mountain Poker",
+  "src": "https://highmountainpoker.com",
+  "http": 200,
+  "hash": "c47b51f8ef1ad814ea0827bf1c0d380d555e107ce4fdc266ea8781d311baecef",
+  "ht": true,
+  "conf": "high",
+  "reason": "7kw+36bi",
+  "kw": 7,
+  "days": 7,
+  "bi": [
+    30,
+    80,
+    125,
+    650,
+    650
+  ],
+  "ts": "2026-03-26T01:19:18.635585+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

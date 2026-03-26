@@ -1,0 +1,21 @@
+{
+  "vid": 1922,
+  "name": "Texas Card House Rio Grande Valley",
+  "src": "https://texascardhouse.com/rio-grande-valley/",
+  "http": 200,
+  "hash": "2680cc276fd3058a3d7dedd4d13224774caa7ebe2faf00449592547d37675d84",
+  "ht": true,
+  "conf": "high",
+  "reason": "5kw+11bi",
+  "kw": 5,
+  "days": 4,
+  "bi": [
+    50,
+    200,
+    79,
+    65,
+    79
+  ],
+  "ts": "2026-03-26T01:22:33.469643+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

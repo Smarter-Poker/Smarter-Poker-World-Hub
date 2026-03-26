@@ -1,22 +1,21 @@
 {
-  "venue_id": 2175,
+  "vid": 2175,
   "name": "Nugget Sparks",
-  "source": "https://www.nuggetcasinoresort.com",
+  "src": "https://www.nuggetcasinoresort.com",
   "http": 200,
-  "hash": "f48af22dca739ebfa30d88fc4a61b8b4098582216c32da6e452568507daf0494",
-  "has_tournaments": true,
-  "confidence": "medium",
+  "hash": "fbdb2bb9924f3de466d776014881cf5fdfed18c87ba527102e802e1c4343dc1f",
+  "ht": true,
+  "conf": "medium",
   "reason": "tourn_link",
-  "keyword_hits": 1,
-  "day_hits": 6,
-  "buyins": [
+  "kw": 1,
+  "days": 6,
+  "bi": [
     100,
     100,
     100,
     75,
     75
   ],
-  "ts": "2026-03-26T00:52:31.466772+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:17:26.320052+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

@@ -1,0 +1,17 @@
+{
+  "vid": 1963,
+  "name": "Full House Poker",
+  "src": "http://www.fullhousepoker.org/",
+  "http": 200,
+  "hash": "07187e5a449e4b9957ced65d11a50abbbc647dad4dce3b7dba2017ae0f06b122",
+  "ht": true,
+  "conf": "medium",
+  "reason": "2kw+1bi",
+  "kw": 2,
+  "days": 7,
+  "bi": [
+    100
+  ],
+  "ts": "2026-03-26T01:19:12.717974+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}

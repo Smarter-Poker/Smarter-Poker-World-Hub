@@ -1,0 +1,20 @@
+{
+  "vid": 1909,
+  "name": "KoJack's Poker Club",
+  "src": "https://www.kojackspokerclub.com/",
+  "http": 200,
+  "hash": "04dc1c5da932fed2ddfb9ec1b6d0d1c2eb5de4d7cba146a33bc038a696b8a586",
+  "ht": true,
+  "conf": "high",
+  "reason": "3kw+0d",
+  "kw": 3,
+  "days": 0,
+  "bi": [
+    60,
+    200,
+    500,
+    1500
+  ],
+  "ts": "2026-03-26T01:21:21.916579+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
+}
