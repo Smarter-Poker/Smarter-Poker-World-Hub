@@ -123,14 +123,24 @@ export default function TrendingVenues({ onCheckIn }) {
                             </div>
                         </div>
 
-                        {/* Count Badge */}
-                        <div style={{
-                            padding: '3px 8px', borderRadius: 12,
-                            background: '#FFF3E0', color: '#E65100',
-                            fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
-                            flexShrink: 0,
-                        }}>
-                            {v.count} {v.count === 1 ? 'check-in' : 'check-ins'}
+                        {/* Count Badge + Trend */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                            {v.trend === 'rising' && (
+                                <span style={{ fontSize: 11, color: '#22c55e', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="3"><path d="M7 17l5-5 5 5"/><path d="M7 12l5-5 5 5"/></svg>
+                                </span>
+                            )}
+                            {v.trend === 'hot' && (
+                                <span style={{ fontSize: 12 }} title="Hot venue">🔥</span>
+                            )}
+                            <div style={{
+                                padding: '3px 8px', borderRadius: 12,
+                                background: v.trend === 'rising' ? '#ECFDF5' : '#FFF3E0',
+                                color: v.trend === 'rising' ? '#059669' : '#E65100',
+                                fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                            }}>
+                                {v.count} {v.count === 1 ? 'check-in' : 'check-ins'}
+                            </div>
                         </div>
                     </button>
                 ))}

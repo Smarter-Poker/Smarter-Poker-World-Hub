@@ -49,7 +49,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 {isNewcomer && <span className="mini-badge newcomer-badge">Newcomer Friendly</span>}
                 {hasPromo && <span className="mini-badge promo-badge">Active Promo</span>}
                 {venue.has_tournaments && <span className="mini-badge tourney-badge">Tournaments</span>}
-                {checkinCount > 0 && <span className="mini-badge" style={{ background: 'rgba(230,81,0,0.15)', color: '#E65100', border: '1px solid rgba(230,81,0,0.3)' }}>{checkinCount} here today</span>}
+                {checkinCount > 0 && <span className="mini-badge" style={{ background: 'rgba(230,81,0,0.15)', color: '#E65100', border: '1px solid rgba(230,81,0,0.3)', cursor: 'pointer' }} onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '#checkins'); }}>{checkinCount} here today</span>}
             </div>
             {venue.hours && (
                 <p className="card-hours">{venue.hours === '24/7' ? 'Open 24/7' : venue.hours}</p>

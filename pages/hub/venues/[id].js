@@ -613,12 +613,23 @@ export default function VenueDetailPage() {
         console.warn('[VenueDetail] Received real-time update for tables');
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'venue_checkins', filter: `venue_id=eq.${id}` }, () => {
-        // Refresh check-in list and Who's Here when someone new checks in
+        // Refresh check-in list, Who's Here, and enhancement data when someone new checks in
         fetchCheckins();
         fetch('/api/poker/checkins/whos-here?venue_id=' + id)
           .then(function(r) { return r.json(); })
           .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
           .catch(function() { });
+        // Delayed refresh — let DB write settle
+        setTimeout(function () {
+          fetch('/api/poker/checkins/leaderboard?venue_id=' + id + '&period=month')
+            .then(function(r) { return r.json(); })
+            .then(function(j) { if (j.success && j.leaders) setVenueLeaderboard(j.leaders); })
+            .catch(function() { });
+          fetch('/api/poker/checkins/activity?venue_id=' + id)
+            .then(function(r) { return r.json(); })
+            .then(function(j) { if (j.success) setVenueActivity({ days: j.days || [], maxCount: j.maxCount || 1 }); })
+            .catch(function() { });
+        }, 500);
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
@@ -750,6 +761,17 @@ export default function VenueDetailPage() {
           .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
           .catch(function() { });
         try { busEmit.venueCheckinCreated(id, venue?.name || '', userId); } catch (_e) { }
+        // Refresh enhancement data (leaderboard, activity) after check-in
+        setTimeout(function () {
+          fetch('/api/poker/checkins/leaderboard?venue_id=' + id + '&period=month')
+            .then(function(r) { return r.json(); })
+            .then(function(j) { if (j.success && j.leaders) setVenueLeaderboard(j.leaders); })
+            .catch(function() { });
+          fetch('/api/poker/checkins/activity?venue_id=' + id)
+            .then(function(r) { return r.json(); })
+            .then(function(j) { if (j.success) setVenueActivity({ days: j.days || [], maxCount: j.maxCount || 1 }); })
+            .catch(function() { });
+        }, 500);
         setTimeout(function () { setCheckinConfirm(false); }, 3000);
       } else {
         throw new Error(json.error || 'Check-in failed');
@@ -1633,11 +1655,23 @@ export default function VenueDetailPage() {
 
               {/* Check-in Confirmation */}
               {checkinConfirm && (
-                <div className="checkin-confirm-banner">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  Checked in! Others can see you&apos;re here.
+                <div className="checkin-confirm-banner" style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Checked in! Others can see you&apos;re here.
+                  </div>
+                  <button
+                    onClick={function() { router.push('/hub/social-media?checkin_venue=' + encodeURIComponent(venue?.name || '') + '&checkin_id=' + id); }}
+                    style={{
+                      background: 'rgba(0,212,255,0.15)', border: '1px solid rgba(0,212,255,0.3)',
+                      borderRadius: 6, padding: '4px 10px', color: '#00D4FF',
+                      fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Share to Feed
+                  </button>
                 </div>
               )}
 

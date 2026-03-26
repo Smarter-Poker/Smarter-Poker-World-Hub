@@ -1701,6 +1701,11 @@ export default function UserProfilePage() {
                                         }}>
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="none"><path d="M12 23c-3.5-2.4-6-5.3-7.5-8.5C3 11 3.5 7.5 5.5 5.5S10 2 12 2s4.5 1.5 6.5 3.5S21 11 19.5 14.5C18 17.7 15.5 20.6 12 23z"/></svg>
                                             {checkinStreak.currentStreak}-Day Streak
+                                            {checkinStreak.longestStreak > checkinStreak.currentStreak && (
+                                                <span style={{ fontSize: 10, color: 'rgba(245,158,11,0.6)', fontWeight: 500, marginLeft: 4 }}>
+                                                    (Best: {checkinStreak.longestStreak})
+                                                </span>
+                                            )}
                                         </span>
                                     </>
                                 )}
@@ -2379,9 +2384,26 @@ export default function UserProfilePage() {
 
                             {/* Recent Check-ins */}
                             <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                                <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>Recent Check-Ins</h3>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Recent Check-Ins</h3>
+                                    {pokerCheckins.length > 10 && (
+                                        <button
+                                            onClick={function() {
+                                                var el = document.getElementById('checkins-list');
+                                                if (el) el.dataset.expanded = el.dataset.expanded === 'true' ? 'false' : 'true';
+                                                // Force re-render
+                                                var btn = document.getElementById('checkins-toggle');
+                                                if (btn) btn.textContent = (el && el.dataset.expanded === 'true') ? 'Show Less' : 'View All (' + pokerCheckins.length + ')';
+                                            }}
+                                            id="checkins-toggle"
+                                            style={{ background: 'none', border: 'none', color: C.blue, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                                        >
+                                            View All ({pokerCheckins.length})
+                                        </button>
+                                    )}
+                                </div>
                                 {pokerCheckins.length > 0 ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    <div id="checkins-list" data-expanded="false" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                         {pokerCheckins.slice(0, 10).map((c, i) => {
                                             var venueUrl = `/hub/venues/${c.venue_id}`;
                                             return (

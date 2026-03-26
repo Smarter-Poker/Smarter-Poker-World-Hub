@@ -3294,7 +3294,7 @@ const styles = {
         position: 'relative',
         width: '100%',
         maxWidth: 600,
-        aspectRatio: '2 / 1.1',
+        aspectRatio: '2 / 1.4',
         borderRadius: '50%',
         background: 'transparent',
         margin: '0 auto',
@@ -3457,7 +3457,7 @@ const styles = {
 
     boardCards: {
         position: 'absolute',
-        top: '55%',
+        top: '45%',
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
@@ -3475,7 +3475,7 @@ const styles = {
 
     pot: {
         position: 'absolute',
-        top: '42%',
+        top: '30%',
         left: '50%',
         transform: 'translateX(-50%)',
         color: '#e2e8f0',
