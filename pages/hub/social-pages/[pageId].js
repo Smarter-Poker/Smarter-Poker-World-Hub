@@ -99,7 +99,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     }, [showMenu]);
     // P7-1: Cleanup reaction timer on unmount to prevent zombie setState
     useEffect(() => {
-        return () => { if (reactionTimer.current) clearTimeout(reactionTimer.current); };
+        return () => {
+            if (reactionTimer.current) clearTimeout(reactionTimer.current);
+            if (longPressTimer.current) clearTimeout(longPressTimer.current);
+        };
     }, []);
 
     const canManage = isPageOwner || (user && post.author_id === user.id);
@@ -629,6 +632,8 @@ export default function SocialPageDetail() {
     const [games, setGames] = useState([]);
     const [gamesLoading, setGamesLoading] = useState(false);
     const [seatAction, setSeatAction] = useState(null); // { gameId, type }
+    // P8-5: Post sorting
+    const [postSort, setPostSort] = useState('recent'); // 'recent' | 'top'
 
     // Report (#6)
     const [showReportModal, setShowReportModal] = useState(false);
@@ -1082,9 +1087,34 @@ export default function SocialPageDetail() {
         }
     };
 
+    // P8-1: Delete comment handler (calls engage.js DELETE)
+    const handleDeleteComment = async (postId, commentId) => {
+        try {
+            const token = getAccessToken();
+            await fetch(`/api/social/pages/engage?id=${commentId}&type=comment`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            // Decrement comment count optimistically
+            setPosts(prev => prev.map(p => p.id === postId ? { ...p, comment_count: Math.max(0, (p.comment_count || 0) - 1) } : p));
+            busEmit.dataMutated('social-pages');
+        } catch (e) {
+            console.error('Delete comment error:', e);
+        }
+    };
+
+    // P8-15: Allow up to 3 pinned posts (not just 1)
     const handlePinPost = async (postId, pinned) => {
         const prevPosts = posts;
-        setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_pinned: pinned } : { ...p, is_pinned: false }));
+        if (pinned) {
+            // Pinning — check if already at limit of 3
+            const pinnedCount = posts.filter(p => p.is_pinned).length;
+            if (pinnedCount >= 3) {
+                toast.error('Maximum 3 pinned posts allowed');
+                return;
+            }
+        }
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_pinned: pinned } : p));
         try {
             const token = getAccessToken();
             const res = await fetch('/api/social/pages/posts', {
@@ -1531,6 +1561,20 @@ export default function SocialPageDetail() {
                                         </div>
                                     )}
 
+                                    {/* P8-5: Post sort toggle */}
+                                    {posts.length > 1 && (
+                                        <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+                                            {[{ key: 'recent', label: 'Most Recent' }, { key: 'top', label: 'Top Posts' }].map(s => (
+                                                <button key={s.key} onClick={() => setPostSort(s.key)} style={{
+                                                    padding: '6px 14px', borderRadius: 20, border: `1px solid ${postSort === s.key ? C.blue : C.border}`,
+                                                    background: postSort === s.key ? '#E7F3FF' : C.card,
+                                                    color: postSort === s.key ? C.blue : C.textSec,
+                                                    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                                }}>{s.label}</button>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {/* Posts Feed */}
                                     {posts.length === 0 ? (
                                         <div style={{
@@ -1541,7 +1585,15 @@ export default function SocialPageDetail() {
                                             <p style={{ fontSize: 13, color: C.textSec }}>Be The First To Share Something!</p>
                                         </div>
                                     ) : (
-                                        posts.map(post => (
+                                        [...posts]
+                                            .sort((a, b) => {
+                                                // Pinned posts always first
+                                                if (a.is_pinned && !b.is_pinned) return -1;
+                                                if (!a.is_pinned && b.is_pinned) return 1;
+                                                if (postSort === 'top') return ((b.like_count || 0) + (b.comment_count || 0)) - ((a.like_count || 0) + (a.comment_count || 0));
+                                                return new Date(b.created_at) - new Date(a.created_at);
+                                            })
+                                            .map(post => (
                                             <PostCard
                                                 key={post.id}
                                                 post={post}
@@ -1551,6 +1603,7 @@ export default function SocialPageDetail() {
                                                 onDelete={handleDeletePost}
                                                 onPin={handlePinPost}
                                                 onEdit={handleEditPost}
+                                                onDeleteComment={handleDeleteComment}
                                                 isPageOwner={isPageOwner}
                                                 page={page}
                                                 isOwnerOnOwnPage={isOwnerOnOwnPage}
@@ -1836,9 +1889,20 @@ export default function SocialPageDetail() {
 
                                     {/* Review List */}
                                     {reviewsLoading ? (
-                                        <div style={{ textAlign: 'center', padding: 30 }}>
-                                            <div style={{ width: 28, height: 28, border: '3px solid #E4E6EB', borderTopColor: C.blue, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
-                                            <p style={{ color: C.textSec, fontSize: 13, marginTop: 10 }}>Loading reviews...</p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                            {[1,2,3].map(i => (
+                                                <div key={i} style={{ padding: 14, background: C.bg, borderRadius: 10 }}>
+                                                    <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+                                                        <div className="shimmer" style={{ width: 36, height: 36, borderRadius: '50%', background: '#E4E6EB' }} />
+                                                        <div style={{ flex: 1 }}>
+                                                            <div className="shimmer" style={{ width: '40%', height: 12, borderRadius: 6, background: '#E4E6EB', marginBottom: 6 }} />
+                                                            <div className="shimmer" style={{ width: '25%', height: 10, borderRadius: 6, background: '#E4E6EB' }} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="shimmer" style={{ width: '100%', height: 14, borderRadius: 6, background: '#E4E6EB', marginBottom: 4 }} />
+                                                    <div className="shimmer" style={{ width: '80%', height: 14, borderRadius: 6, background: '#E4E6EB' }} />
+                                                </div>
+                                            ))}
                                         </div>
                                     ) : reviews.length === 0 ? (
                                         <div style={{ textAlign: 'center', padding: 30 }}>
@@ -1879,9 +1943,14 @@ export default function SocialPageDetail() {
                                     </h2>
 
                                     {gamesLoading ? (
-                                        <div style={{ textAlign: 'center', padding: 30 }}>
-                                            <div style={{ width: 28, height: 28, border: '3px solid #E4E6EB', borderTopColor: C.blue, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
-                                            <p style={{ color: C.textSec, fontSize: 13, marginTop: 10 }}>Loading games...</p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                            {[1,2].map(i => (
+                                                <div key={i} style={{ padding: 16, background: C.bg, borderRadius: 12, border: `1px solid ${C.border}` }}>
+                                                    <div className="shimmer" style={{ width: '60%', height: 16, borderRadius: 6, background: '#E4E6EB', marginBottom: 10 }} />
+                                                    <div className="shimmer" style={{ width: '40%', height: 12, borderRadius: 6, background: '#E4E6EB', marginBottom: 8 }} />
+                                                    <div className="shimmer" style={{ width: '30%', height: 28, borderRadius: 6, background: '#E4E6EB' }} />
+                                                </div>
+                                            ))}
                                         </div>
                                     ) : games.length === 0 ? (
                                         <div style={{ textAlign: 'center', padding: 30 }}>
@@ -2367,6 +2436,8 @@ export default function SocialPageDetail() {
                 @keyframes reactPopIn { 0% { transform: scale(0.3) translateY(10px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
                 @keyframes likePopAnim { 0% { transform: scale(0); opacity: 1; } 50% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
                 @keyframes spin { to { transform: rotate(360deg); } }
+                @keyframes shimmerAnim { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+                .shimmer { background: linear-gradient(90deg, #E4E6EB 25%, #F0F2F5 50%, #E4E6EB 75%) !important; background-size: 400px 100%; animation: shimmerAnim 1.2s ease-in-out infinite; }
                 @keyframes sp-toast-in { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
                 @media (max-width: 768px) {
                     div[style*="grid-template-columns: 1fr 320px"] {

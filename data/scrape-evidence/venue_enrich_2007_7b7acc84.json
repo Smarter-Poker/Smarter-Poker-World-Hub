@@ -1,0 +1,23 @@
+{
+  "venue_id": 2007,
+  "venue_name": "Venetian Las Vegas",
+  "url": "https://www.pokeratlas.com/poker-room/venetian-las-vegas",
+  "http_status": 200,
+  "scrape_html_hash": "ae79f8ba25c7d44ddde1ed52f141881f6965de1890105118c8fc69e61d8f1158",
+  "byte_count": 64787,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:53:05.500209+00:00",
+  "extracted_data": {
+    "games_offered": [
+      "Mixed",
+      "PLO",
+      "Limit HE",
+      "NLH"
+    ],
+    "stakes_cash": [
+      "$4/$8"
+    ],
+    "poker_tables": 50,
+    "hours_weekday": "24/7"
+  }
+}

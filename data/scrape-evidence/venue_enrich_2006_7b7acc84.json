@@ -1,0 +1,19 @@
+{
+  "venue_id": 2006,
+  "venue_name": "E2E Test Poker Room",
+  "url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/cash-games",
+  "http_status": 200,
+  "scrape_html_hash": "40a9c6b519c31134ba8f0ded9986887b1c5a29d5333155a9ab2addd0a6e38685",
+  "byte_count": 77283,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:53:03.242436+00:00",
+  "extracted_data": {
+    "games_offered": [
+      "Mixed",
+      "PLO",
+      "Limit HE",
+      "NLH"
+    ],
+    "poker_tables": 29
+  }
+}

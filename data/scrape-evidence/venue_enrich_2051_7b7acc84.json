@@ -1,0 +1,13 @@
+{
+  "venue_id": 2051,
+  "venue_name": "Grand Falls Casino Resort",
+  "url": "https://www.pokeratlas.com/poker-room/grand-falls-larchwood",
+  "http_status": 200,
+  "scrape_html_hash": "d9b40bb46af96d1eb194f20019e72c95d8918012e814df7def8dcf0cbd983f7a",
+  "byte_count": 59058,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:53:54.609745+00:00",
+  "extracted_data": {
+    "poker_tables": 8
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "venue_id": 2057,
+  "venue_name": "Caesars Republic Lake Tahoe",
+  "url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
+  "http_status": 200,
+  "scrape_html_hash": "a8254af6359f5b3d9c1f37b2e7527331223740c660b3941734887bb931b43bb1",
+  "byte_count": 60618,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:53:59.662714+00:00",
+  "extracted_data": {
+    "poker_tables": 29
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "venue_id": 2033,
+  "venue_name": "Portland Meadows",
+  "url": "https://www.pokeratlas.com/poker-room/portland-meadows",
+  "http_status": 200,
+  "scrape_html_hash": "924b3584a9493dcc163452768789f317e667a189d025835350e4be1580f859d8",
+  "byte_count": 60269,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:53:27.480004+00:00",
+  "extracted_data": {
+    "poker_tables": 25,
+    "hours_weekday": "11:00am - 1:00am"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "venue_id": 2020,
+  "venue_name": "Bally's Black Hawk Casino",
+  "url": "https://www.pokeratlas.com/poker-room/ameristar-black-hawk",
+  "http_status": 200,
+  "scrape_html_hash": "10ca1d52bba66254e736e4c78ddc4644681b73d530d16b36e560ca9ba5a4fe53",
+  "byte_count": 59319,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:53:25.115748+00:00",
+  "extracted_data": {
+    "poker_tables": 11
+  }
+}

@@ -37,6 +37,8 @@ export default function ManageSocialPage() {
         contact_email: '', phone: '', location_city: '', location_state: '',
         is_public: true, allow_member_posts: true, require_post_approval: false,
         slug: '',
+        // P8-7: Social links
+        social_instagram: '', social_twitter: '', social_facebook: '',
     });
 
     // Custom URL slug checking
@@ -78,6 +80,10 @@ export default function ManageSocialPage() {
                     allow_member_posts: json.data.allow_member_posts !== false,
                     require_post_approval: json.data.require_post_approval || false,
                     slug: json.data.slug || '',
+                    // P8-7: Hydrate social links from metadata
+                    social_instagram: json.data.metadata?.social_links?.instagram || '',
+                    social_twitter: json.data.metadata?.social_links?.twitter || '',
+                    social_facebook: json.data.metadata?.social_links?.facebook || '',
                 });
             }
         } catch (e) {
@@ -153,7 +159,19 @@ export default function ManageSocialPage() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ id: page.id, ...form }),
+                body: JSON.stringify({
+                    id: page.id,
+                    ...form,
+                    // P8-7: Nest social links into metadata.social_links
+                    metadata: {
+                        ...page.metadata,
+                        social_links: {
+                            instagram: form.social_instagram || '',
+                            twitter: form.social_twitter || '',
+                            facebook: form.social_facebook || '',
+                        },
+                    },
+                }),
             });
             const json = await res.json();
             if (json.success) {
@@ -370,6 +388,39 @@ export default function ManageSocialPage() {
                                             </button>
                                         </div>
                                     ))}
+
+                                    {/* Custom URL Section */}
+                                    {/* P8-7: Social Links Editor */}
+                                    <div style={{
+                                        borderTop: `1px solid ${C.border}`, paddingTop: 16, marginTop: 8,
+                                    }}>
+                                        <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 8, display: 'block' }}>
+                                            Social Media Links
+                                        </label>
+                                        <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 12px' }}>
+                                            Add your social media profiles to display on your About tab
+                                        </p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            {[
+                                                { key: 'social_instagram', label: 'Instagram', placeholder: 'https://instagram.com/yourpage', icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E4405F" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="#E4405F" stroke="none" /></svg>) },
+                                                { key: 'social_twitter', label: 'Twitter / X', placeholder: 'https://x.com/yourpage', icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2"><path d="M4 4l6.5 8L4 20h2l5.5-6.8L16 20h4l-7-8.5L20 4h-2l-5 6.2L9 4H4z" /></svg>) },
+                                                { key: 'social_facebook', label: 'Facebook', placeholder: 'https://facebook.com/yourpage', icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1877F2" strokeWidth="2"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" /></svg>) },
+                                            ].map(s => (
+                                                <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <div style={{ flexShrink: 0, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F0F2F5', borderRadius: 8 }}>
+                                                        {s.icon}
+                                                    </div>
+                                                    <input
+                                                        type="url"
+                                                        value={form[s.key]}
+                                                        onChange={e => setForm(f => ({ ...f, [s.key]: e.target.value }))}
+                                                        placeholder={s.placeholder}
+                                                        style={inputStyle}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
 
                                     {/* Custom URL Section */}
                                     <div style={{
