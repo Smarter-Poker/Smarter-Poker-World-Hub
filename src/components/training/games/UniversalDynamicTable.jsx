@@ -2576,11 +2576,11 @@ function UniversalDynamicTable({
                             textTransform: 'uppercase',
                         }}
                     >
-                        {feedbackCollapsed ? '\u25bc Show Details' : '\u25b2 Hide Details'}
+                        {feedbackCollapsed ? '▼ SHOW GTO DETAILS' : '✕ CLOSE'}
                     </button>
 
                     {/* Collapsible feedback body - uses display:none for clean collapse */}
-                    <div style={{ display: feedbackCollapsed ? 'none' : 'contents' }}>
+                    <div style={{ display: feedbackCollapsed ? 'none' : 'contents', width: '100%', maxWidth: 600 }}>
                     <div style={{ width: '100%', marginBottom: 6 }}>
                         <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>
                             GTO Action Frequencies
@@ -3193,8 +3193,8 @@ const styles = {
         borderRadius: '50%',
         background: 'transparent',
         margin: '0 auto',
-        zIndex: 1,
         overflow: 'visible',
+        zIndex: 1,
     },
     feltRail: {
         position: 'absolute',
