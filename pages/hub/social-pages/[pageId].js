@@ -345,9 +345,9 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', fontSize: 13, color: C.textSec }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     {likeAnim && <span style={{ display: 'inline-block', animation: 'likePopAnim 0.4s ease-out', color: '#E74C3C', fontSize: 16 }}>{'\u2764'}</span>}
-                    {post.like_count || 0} likes
+                    {post.like_count || 0} {(post.like_count || 0) === 1 ? 'like' : 'likes'}
                 </span>
-                <span>{post.comment_count || 0} comments</span>
+                <span>{post.comment_count || 0} {(post.comment_count || 0) === 1 ? 'comment' : 'comments'}</span>
             </div>
 
             {/* Action Buttons — #13 debounce + #14 animation + P7-1 reactions */}
@@ -1975,6 +1975,26 @@ export default function SocialPageDetail() {
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* P11-1 + P11-6: Page Stats */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
+                                        {page.page_type && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2">
+                                                    <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" />
+                                                </svg>
+                                                <span style={{ fontSize: 14, color: C.text, textTransform: 'capitalize' }}>{page.page_type.replace('_', ' ')} Page</span>
+                                            </div>
+                                        )}
+                                        {page.created_at && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2">
+                                                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                                                </svg>
+                                                <span style={{ fontSize: 14, color: C.text }}>Page Created {new Date(page.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -2000,9 +2020,13 @@ export default function SocialPageDetail() {
                                     />
 
                                     {followers.length === 0 ? (
-                                        <div style={{ textAlign: 'center', padding: 20 }}>
-                                            <div style={{ fontSize: 36, marginBottom: 8 }}>👥</div>
-                                            <p style={{ fontSize: 14, color: C.textSec }}>No members yet. Be the first to join!</p>
+                                        <div style={{ textAlign: 'center', padding: 30 }}>
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#DADDE1" strokeWidth="1.5" style={{ marginBottom: 12 }}>
+                                                <circle cx="9" cy="7" r="4" /><path d="M2 21v-2a7 7 0 0114 0v2" />
+                                                <line x1="19" y1="8" x2="19" y2="14" /><line x1="16" y1="11" x2="22" y2="11" />
+                                            </svg>
+                                            <p style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: '0 0 4px' }}>No Members Yet</p>
+                                            <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>Be the first to join this page!</p>
                                         </div>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -2163,7 +2187,24 @@ export default function SocialPageDetail() {
                                                         </div>
                                                     </div>
                                                     {r.title && <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 }}>{r.title}</div>}
-                                                    {r.content && <p style={{ fontSize: 13, color: C.text, lineHeight: 1.5, margin: 0 }}>{r.content}</p>}
+                                                    {r.content && <p style={{ fontSize: 13, color: C.text, lineHeight: 1.5, margin: '0 0 8px' }}>{r.content}</p>}
+                                                    {/* P11-4: Helpful vote */}
+                                                    <button onClick={(e) => {
+                                                        e.preventDefault();
+                                                        const el = e.currentTarget;
+                                                        const countEl = el.querySelector('.helpful-count');
+                                                        const current = parseInt(countEl?.textContent || '0');
+                                                        countEl.textContent = current + 1;
+                                                        el.style.color = C.blue;
+                                                        el.disabled = true;
+                                                    }} style={{
+                                                        background: 'none', border: 'none', cursor: 'pointer', fontSize: 12,
+                                                        color: C.textSec, padding: 0, fontFamily: 'inherit', display: 'flex',
+                                                        alignItems: 'center', gap: 4,
+                                                    }}>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" /></svg>
+                                                        Helpful <span className="helpful-count" style={{ fontWeight: 600 }}>0</span>
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
@@ -2655,7 +2696,13 @@ export default function SocialPageDetail() {
                                 <div style={{
                                     background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16,
                                 }}>
-                                    <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 12px' }}>Recent Members</h3>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 12px' }}>
+                                        <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Recent Members ({followers.length})</h3>
+                                        <button onClick={() => setActiveTab('members')} style={{
+                                            background: 'none', border: 'none', cursor: 'pointer', fontSize: 12,
+                                            color: C.blue, fontWeight: 600, fontFamily: 'inherit', padding: 0,
+                                        }}>View All</button>
+                                    </div>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                                         {followers.slice(0, 10).map(f => (
                                             <Avatar key={f.id} src={f.profile?.avatar_url} name={f.profile?.full_name} size={36} />

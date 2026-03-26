@@ -2314,7 +2314,7 @@ export default function UserProfilePage() {
                                 {pokerCheckins.length > 0 ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                         {pokerCheckins.slice(0, 10).map((c, i) => {
-                                            var venueUrl = `/hub/venues/${c.page_id}`;
+                                            var venueUrl = `/hub/venues/${c.venue_id}`;
                                             return (
                                                 <Link key={c.id || i} href={venueUrl} style={{ textDecoration: 'none' }}>
                                                     <div style={{
@@ -2332,7 +2332,7 @@ export default function UserProfilePage() {
                                                         </div>
                                                         <div style={{ flex: 1, minWidth: 0 }}>
                                                             <div style={{ fontWeight: 600, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                {c.venue_name || c.page_id}
+                                                                {c.venue_name || ('Venue #' + c.venue_id)}
                                                             </div>
                                                             <div style={{ fontSize: 12, color: C.textSec }}>
                                                                 {c.venue_city && c.venue_state ? `${c.venue_city}, ${c.venue_state} · ` : ''}{c.created_at ? timeAgo(c.created_at) : ''}
