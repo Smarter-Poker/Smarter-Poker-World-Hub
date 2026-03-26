@@ -92,6 +92,8 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     // P8-11: Comment editing
     const [editingComment, setEditingComment] = useState(null); // comment id
     const [editCommentText, setEditCommentText] = useState('');
+    // P12-3: Image lightbox
+    const [lightboxUrl, setLightboxUrl] = useState(null);
 
     // Close menu on outside click
     useEffect(() => {
@@ -324,6 +326,21 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                 </div>
             )}
 
+            {/* P12-3: Image Lightbox */}
+            {lightboxUrl && (
+                <div onClick={() => setLightboxUrl(null)} style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 99999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out',
+                }}>
+                    <button onClick={() => setLightboxUrl(null)} style={{
+                        position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', cursor: 'pointer',
+                        fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
+                    }}>&times;</button>
+                    <img src={lightboxUrl} alt="" style={{ maxWidth: '95vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 4 }} />
+                </div>
+            )}
+
             {/* #6 Link Preview */}
             {post.link_preview && post.link_preview.url && (
                 <a href={post.link_preview.url} target="_blank" rel="noopener noreferrer" style={{
@@ -334,7 +351,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                         <img src={post.link_preview.image} alt="" style={{ width: '100%', height: 160, objectFit: 'cover' }} />
                     )}
                     <div style={{ padding: '10px 12px', background: C.bg }}>
-                        <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase' }}>{new URL(post.link_preview.url).hostname}</div>
+                        <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase' }}>{(() => { try { return new URL(post.link_preview.url).hostname; } catch(e) { return post.link_preview.url?.replace(/^https?:\/\//, '').split('/')[0] || 'link'; } })()}</div>
                         {post.link_preview.title && <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginTop: 2 }}>{post.link_preview.title}</div>}
                         {post.link_preview.description && <div style={{ fontSize: 13, color: C.textSec, marginTop: 2 }}>{post.link_preview.description.slice(0, 120)}</div>}
                     </div>
@@ -438,13 +455,15 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 <button onClick={async () => {
                                     try {
                                         const token = getAccessToken();
-                                        await fetch('/api/social/posts', {
+                                        const shareRes = await fetch('/api/social/posts', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                             body: JSON.stringify({ content: `Shared from ${page?.name}: ${post.content?.slice(0, 200) || ''}\n\n${shareUrl}`, content_type: 'text' }),
                                         });
+                                        if (!shareRes.ok) throw new Error('Share failed');
                                         setShowShareModal(false);
-                                    } catch (e) { console.error(e); }
+                                        busEmit.dataMutated('social');
+                                    } catch (e) { console.error('Share to feed error:', e); setShowShareModal(false); }
                                 }} style={{
                                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
                                     border: `1px solid ${C.border}`, background: '#E7F3FF', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: C.blue, fontFamily: 'inherit', width: '100%', textAlign: 'left',
@@ -453,7 +472,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                     Share to My Feed
                                 </button>
                             )}
-                            <button onClick={() => { navigator.clipboard.writeText(shareUrl); setShowShareModal(false); }} style={{
+                            <button onClick={() => { navigator.clipboard.writeText(shareUrl).catch(() => {}); setShowShareModal(false); }} style={{
                                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, fontFamily: 'inherit', width: '100%', textAlign: 'left',
                             }}>
@@ -538,7 +557,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                             {editingComment === c.id ? (
                                                 <div style={{ display: 'flex', gap: 4 }}>
                                                     <input type="text" value={editCommentText} onChange={e => setEditCommentText(e.target.value)}
-                                                        onKeyDown={e => { if (e.key === 'Enter' && editCommentText.trim()) { setComments(prev => prev.map(x => x.id === c.id ? { ...x, content: editCommentText.trim() } : x)); setEditingComment(null); } if (e.key === 'Escape') setEditingComment(null); }}
+                                                        onKeyDown={e => { if (e.key === 'Enter' && editCommentText.trim()) { const newContent = editCommentText.trim(); const oldContent = c.content; setComments(prev => prev.map(x => x.id === c.id ? { ...x, content: newContent } : x)); setEditingComment(null); (async () => { try { const token = getAccessToken(); const r = await fetch('/api/social/pages/engage', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ id: c.id, content: newContent }) }); if (!r.ok) throw new Error('Edit failed'); } catch(e) { setComments(prev => prev.map(x => x.id === c.id ? { ...x, content: oldContent } : x)); } })(); } if (e.key === 'Escape') setEditingComment(null); }}
                                                         autoFocus style={{ flex: 1, padding: '6px 10px', borderRadius: 12, border: `1px solid ${C.blue}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.bg }} />
                                                     <button onClick={() => setEditingComment(null)} style={{ background: 'none', border: 'none', fontSize: 11, color: C.textSec, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                                                 </div>
@@ -557,7 +576,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                                         body: JSON.stringify({ action: 'like_comment', post_id: post.id, comment_id: c.id }),
                                                     }).then(r => r.json()).then(j => {
-                                                        if (j.success) setComments(prev => prev.map(x => x.id === c.id ? { ...x, user_liked_comment: j.liked, comment_like_count: j.liked ? ((x.comment_like_count || 0) + 1) : Math.max(0, (x.comment_like_count || 1) - 1) } : x));
+                                                        if (j.success) {
+                                                            setComments(prev => prev.map(x => x.id === c.id ? { ...x, user_liked_comment: j.liked, comment_like_count: j.liked ? ((x.comment_like_count || 0) + 1) : Math.max(0, (x.comment_like_count || 1) - 1) } : x));
+                                                            busEmit.dataMutated('social-pages');
+                                                        }
                                                     }).catch(() => {});
                                                 }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: c.user_liked_comment ? C.blue : C.textSec, fontSize: 11, padding: 0, fontFamily: 'inherit' }}>
                                                     {c.user_liked_comment ? 'Liked' : 'Like'}{c.comment_like_count > 0 ? ` (${c.comment_like_count})` : ''}
@@ -1212,15 +1234,20 @@ export default function SocialPageDetail() {
     const handleDeleteComment = async (postId, commentId) => {
         try {
             const token = getAccessToken();
-            await fetch(`/api/social/pages/engage?id=${commentId}&type=comment`, {
+            const res = await fetch(`/api/social/pages/engage?id=${commentId}&type=comment`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` },
             });
-            // Decrement comment count optimistically
+            if (!res.ok) {
+                const errJson = await res.json().catch(() => ({}));
+                throw new Error(errJson.error || `HTTP ${res.status}`);
+            }
+            // Only decrement after confirmed success
             setPosts(prev => prev.map(p => p.id === postId ? { ...p, comment_count: Math.max(0, (p.comment_count || 0) - 1) } : p));
             busEmit.dataMutated('social-pages');
         } catch (e) {
             console.error('Delete comment error:', e);
+            toast.error('Failed to delete comment');
         }
     };
 
@@ -1255,7 +1282,7 @@ export default function SocialPageDetail() {
 
     const handleEditPost = (postId, newContent) => {
         setPosts(prev => prev.map(p =>
-            p.id === postId ? { ...p, content: newContent } : p
+            p.id === postId ? { ...p, content: newContent, _edited: true } : p
         ));
         busEmit.dataMutated('social-pages');
     };
