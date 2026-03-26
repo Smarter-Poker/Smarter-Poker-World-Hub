@@ -1263,8 +1263,8 @@ export default function PokerNearMeLobby() {
                   Set your filters above and tap Search. Enable GPS for distance-based results.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20 }}>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#58a6ff' }}>501</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>41</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#58a6ff' }}>{venues.length || '500+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{new Set(venues.map(v => v.state).filter(Boolean)).size || '41'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
                 </div>
               </div>
             )}
@@ -1575,9 +1575,9 @@ export default function PokerNearMeLobby() {
                   Enable GPS to find games near you, or set your search parameters above and tap Search. Filter by venue type, game type, distance, and buy-in range.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#58a6ff' }}>501</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d2a8ff' }}>3,270</div><div style={{ fontSize: 11, color: '#8b949e' }}>Tournaments</div></div>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>41</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#58a6ff' }}>{venues.length || '500+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d2a8ff' }}>{dailyTournaments.length > 0 ? dailyTournaments.length.toLocaleString() : '3,270'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Tournaments</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{new Set(venues.map(v => v.state).filter(Boolean)).size || '41'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
                 </div>
               </div>
             )}
@@ -1730,9 +1730,9 @@ export default function PokerNearMeLobby() {
       case 'favorites': {
         // Merge: show full venue data if in current search, fallback to favorites data
         const favVenues = Object.keys(favorites).filter(k => favorites[k]).map(venueId => {
-          const fromSearch = venues.find(v => v.id === venueId);
+          const fromSearch = venues.find(v => String(v.id) === String(venueId));
           if (fromSearch) return fromSearch;
-          return favoritedVenues.find(f => f.id === venueId);
+          return favoritedVenues.find(f => String(f.id) === String(venueId));
         }).filter(Boolean);
 
         component = (
