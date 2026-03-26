@@ -1,0 +1,16 @@
+{
+  "venue_id": 1985,
+  "venue_name": "WSOP Room at Paris",
+  "url": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas",
+  "http_status": 200,
+  "scrape_html_hash": "a2a641c14605fcee81be44686131d0d917de2454dadd2bf281b0232c08198295",
+  "byte_count": 59607,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:52:21.849503+00:00",
+  "extracted_data": {
+    "games_offered": [
+      "Mixed"
+    ],
+    "poker_tables": 18
+  }
+}

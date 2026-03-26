@@ -1,0 +1,14 @@
+{
+  "venue_id": 1944,
+  "venue_name": "Oxford Downs Poker Room",
+  "url": "https://www.pokeratlas.com/poker-room/oxford-downs-summerfield",
+  "http_status": 200,
+  "scrape_html_hash": "39ff3f61bfdd138c75df17bc89c0e4eb611c53b0ff24151bf9e00a8fa7ff43a0",
+  "byte_count": 60381,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:46:32.007510+00:00",
+  "extracted_data": {
+    "poker_tables": 30,
+    "hours_weekday": "10 AM - 10 PM"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "venue_id": 1939,
+  "venue_name": "California Grand Casino",
+  "url": "https://www.pokeratlas.com/poker-room/california-grand-pacheco",
+  "http_status": 200,
+  "scrape_html_hash": "652170fe233557d3e7ffd90c080125778f074c0f5e5b7a874a3861b8d139362f",
+  "byte_count": 59683,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:46:05.025015+00:00",
+  "extracted_data": {
+    "poker_tables": 13,
+    "hours_weekday": "24/7"
+  }
+}

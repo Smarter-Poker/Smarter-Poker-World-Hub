@@ -1,0 +1,13 @@
+{
+  "venue_id": 1992,
+  "venue_name": "Atlantis Casino Resort",
+  "url": "https://www.pokeratlas.com/poker-room/10803",
+  "http_status": 200,
+  "scrape_html_hash": "7f3e110838184b2809a04780ddea164dd23c4accc0377c0cdca44a8f70223246",
+  "byte_count": 59991,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:52:44.731789+00:00",
+  "extracted_data": {
+    "poker_tables": 29
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "venue_id": 1960,
+  "venue_name": "Oregon Poker Club - Stadiums Sports Bar",
+  "url": "https://www.pokeratlas.com/poker-room/oregon-poker-club-stadiums-sports-bar-portland",
+  "http_status": 200,
+  "scrape_html_hash": "295c76ced1c755595e9581f3e5246a9752e80bc5cde7d63619f4cfc9ad4af474",
+  "byte_count": 59735,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:48:25.581038+00:00",
+  "extracted_data": {
+    "poker_tables": 6
+  }
+}

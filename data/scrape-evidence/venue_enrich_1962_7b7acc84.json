@@ -1,0 +1,13 @@
+{
+  "venue_id": 1962,
+  "venue_name": "High Mountain Poker",
+  "url": "https://www.pokeratlas.com/poker-room/10803",
+  "http_status": 200,
+  "scrape_html_hash": "8e194c23ba0d24e0faadc4d4d0f450f455065234448977c2ec33970d6d5d4d16",
+  "byte_count": 59991,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:48:37.996944+00:00",
+  "extracted_data": {
+    "poker_tables": 29
+  }
+}

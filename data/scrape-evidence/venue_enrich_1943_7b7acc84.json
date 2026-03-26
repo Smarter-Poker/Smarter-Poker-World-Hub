@@ -1,0 +1,20 @@
+{
+  "venue_id": 1943,
+  "venue_name": "Derby Lane Poker Room",
+  "url": "https://www.pokeratlas.com/poker-room/derby-lane-st-petersburg",
+  "http_status": 200,
+  "scrape_html_hash": "545450012002b5b91167171629fd3cea009ccfefa082e5721887b2b5a59615f4",
+  "byte_count": 60775,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:46:23.983966+00:00",
+  "extracted_data": {
+    "games_offered": [
+      "NLH"
+    ],
+    "stakes_cash": [
+      "$500/$200"
+    ],
+    "poker_tables": 51,
+    "hours_weekday": "10:00am - 4:00am"
+  }
+}

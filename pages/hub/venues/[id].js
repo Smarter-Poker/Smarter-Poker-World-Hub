@@ -207,6 +207,9 @@ export default function VenueDetailPage() {
   const [checkinSubmitting, setCheckinSubmitting] = useState(false);
   const [checkinConfirm, setCheckinConfirm] = useState(false);
 
+  // Who's Here state
+  const [whosHere, setWhosHere] = useState({ total: 0, people: [], friends: [] });
+
   // Reviews state
   const [reviews, setReviews] = useState([]);
   const [avgRating, setAvgRating] = useState(0);
@@ -372,6 +375,23 @@ export default function VenueDetailPage() {
   useEffect(function () {
     if (!id) return;
     fetchCheckins();
+    // Fetch who's here
+    var whUrl = '/api/poker/checkins/whos-here?venue_id=' + id;
+    var authUser = getAuthUser();
+    var headers = {};
+    if (authUser) {
+      try {
+        var sbKeys = Object.keys(localStorage).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
+        if (sbKeys.length > 0) {
+          var tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+          if (tokenData.access_token) headers['Authorization'] = 'Bearer ' + tokenData.access_token;
+        }
+      } catch (_e) { /* ignore */ }
+    }
+    fetch(whUrl, { headers: headers })
+      .then(function(r) { return r.json(); })
+      .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
+      .catch(function() { /* silent */ });
   }, [id]);
 
   // Fetch reviews
@@ -1495,6 +1515,50 @@ export default function VenueDetailPage() {
                   </span>
                 )}
               </div>
+
+              {/* Who's Here Indicator */}
+              {whosHere.total > 0 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                  background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)',
+                  borderRadius: 10, marginBottom: 12
+                }}>
+                  <div style={{ display: 'flex' }}>
+                    {whosHere.people.slice(0, 4).map(function(p, i) {
+                      return (
+                        <div key={p.user_id || i} style={{
+                          width: 30, height: 30, borderRadius: '50%',
+                          background: p.avatar_url ? 'transparent' : 'rgba(0,212,255,0.2)',
+                          border: whosHere.friends.some(function(f) { return f.user_id === p.user_id; }) ? '2px solid #22c55e' : '2px solid rgba(255,255,255,0.2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          marginLeft: i > 0 ? -8 : 0, overflow: 'hidden', fontSize: 12, fontWeight: 700,
+                          color: '#00D4FF', zIndex: 4 - i, position: 'relative'
+                        }}>
+                          {p.avatar_url
+                            ? <img src={p.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : (p.full_name || p.user_name || 'A').charAt(0).toUpperCase()
+                          }
+                        </div>
+                      );
+                    })}
+                    {whosHere.total > 4 && (
+                      <div style={{
+                        width: 30, height: 30, borderRadius: '50%', background: 'rgba(0,212,255,0.15)',
+                        border: '2px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', marginLeft: -8, fontSize: 10, fontWeight: 700, color: '#00D4FF'
+                      }}>+{whosHere.total - 4}</div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, fontSize: 13, color: '#c8d6e5' }}>
+                    <strong style={{ color: '#00D4FF' }}>{whosHere.total}</strong> {whosHere.total === 1 ? 'person' : 'people'} here now
+                    {whosHere.friends.length > 0 && (
+                      <span style={{ color: '#22c55e', fontWeight: 600 }}>
+                        {' '}· {whosHere.friends.length} {whosHere.friends.length === 1 ? 'friend' : 'friends'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Check-in Confirmation */}
               {checkinConfirm && (

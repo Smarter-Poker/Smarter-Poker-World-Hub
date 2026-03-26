@@ -1,0 +1,14 @@
+{
+  "venue_id": 1940,
+  "venue_name": "Livermore Casino",
+  "url": "https://www.pokeratlas.com/poker-room/livermore-casino",
+  "http_status": 200,
+  "scrape_html_hash": "6bcd9b299212ba66f9760200d104cccf79bad24cf6476ef6b5928bd9b8c703ea",
+  "byte_count": 59397,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:46:07.547645+00:00",
+  "extracted_data": {
+    "poker_tables": 5,
+    "hours_weekday": "24/7"
+  }
+}

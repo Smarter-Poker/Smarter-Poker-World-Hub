@@ -59,7 +59,7 @@ function Avatar({ src, name, size = 40 }) {
     );
 }
 
-function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPageOwner, page, isOwnerOnOwnPage }) {
+function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDeleteComment, isPageOwner, page, isOwnerOnOwnPage }) {
     const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
     const [comments, setComments] = useState([]);
@@ -84,6 +84,11 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
     // P7-1 Reactions picker
     const [showReactions, setShowReactions] = useState(false);
     const reactionTimer = useRef(null);
+    // P8-8: Mobile long-press for reaction picker
+    const longPressTimer = useRef(null);
+    // P8-11: Comment editing
+    const [editingComment, setEditingComment] = useState(null); // comment id
+    const [editCommentText, setEditCommentText] = useState('');
 
     // Close menu on outside click
     useEffect(() => {
@@ -351,13 +356,21 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                     }, onMouseLeave: () => {
                         clearTimeout(reactionTimer.current);
                         reactionTimer.current = setTimeout(() => setShowReactions(false), 300);
-                    } },
-                    { label: 'Comment', action: fetchComments, onMouseEnter: undefined, onMouseLeave: undefined },
-                    { label: 'Share', action: () => setShowShareModal(true), onMouseEnter: undefined, onMouseLeave: undefined },
+                    },
+                    // P8-8: Mobile long-press opens reaction picker
+                    onTouchStart: () => {
+                        longPressTimer.current = setTimeout(() => setShowReactions(true), 500);
+                    },
+                    onTouchEnd: () => { if (longPressTimer.current) clearTimeout(longPressTimer.current); },
+                    },
+                    { label: 'Comment', action: fetchComments, onMouseEnter: undefined, onMouseLeave: undefined, onTouchStart: undefined, onTouchEnd: undefined },
+                    { label: 'Share', action: () => setShowShareModal(true), onMouseEnter: undefined, onMouseLeave: undefined, onTouchStart: undefined, onTouchEnd: undefined },
                 ].map((btn, i) => (
                     <button key={i} onClick={btn.action}
                         onMouseEnter={btn.onMouseEnter}
                         onMouseLeave={btn.onMouseLeave}
+                        onTouchStart={btn.onTouchStart}
+                        onTouchEnd={btn.onTouchEnd}
                         style={{
                         flex: 1, padding: '10px 0', border: 'none', background: 'none',
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
@@ -466,13 +479,27 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                                     <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
                                         <Avatar src={c.author?.avatar_url} name={c.author?.full_name} size={28} />
                                         <div style={{ flex: 1 }}>
-                                            <div style={{ background: C.bg, borderRadius: 12, padding: '8px 12px' }}>
-                                                <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{c.author?.full_name || c.author?.username || 'Unknown'}</div>
-                                                <div style={{ fontSize: 13, color: C.text }}>{c.content}</div>
-                                            </div>
+                                            {/* P8-11: Inline comment edit */}
+                                            {editingComment === c.id ? (
+                                                <div style={{ display: 'flex', gap: 4 }}>
+                                                    <input type="text" value={editCommentText} onChange={e => setEditCommentText(e.target.value)}
+                                                        onKeyDown={e => { if (e.key === 'Enter' && editCommentText.trim()) { setComments(prev => prev.map(x => x.id === c.id ? { ...x, content: editCommentText.trim() } : x)); setEditingComment(null); } if (e.key === 'Escape') setEditingComment(null); }}
+                                                        autoFocus style={{ flex: 1, padding: '6px 10px', borderRadius: 12, border: `1px solid ${C.blue}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: C.bg }} />
+                                                    <button onClick={() => setEditingComment(null)} style={{ background: 'none', border: 'none', fontSize: 11, color: C.textSec, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                                                </div>
+                                            ) : (
+                                                <div style={{ background: C.bg, borderRadius: 12, padding: '8px 12px' }}>
+                                                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{c.author?.full_name || c.author?.username || 'Unknown'}</div>
+                                                    <div style={{ fontSize: 13, color: C.text }}>{c.content}</div>
+                                                </div>
+                                            )}
                                             <div style={{ display: 'flex', gap: 12, padding: '2px 8px', fontSize: 11, color: C.textSec }}>
                                                 <span>{timeAgo(c.created_at)}</span>
                                                 {user && <button onClick={() => { setReplyTo(replyTo === c.id ? null : c.id); setReplyText(''); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: C.textSec, fontSize: 11, padding: 0, fontFamily: 'inherit' }}>Reply</button>}
+                                                {/* P8-1: Comment delete */}
+                                                {user && (c.user_id === user.id || isPageOwner) && <button onClick={() => { setComments(prev => prev.filter(x => x.id !== c.id)); if (onDeleteComment) onDeleteComment(post.id, c.id); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: '#FA383E', fontSize: 11, padding: 0, fontFamily: 'inherit' }}>Delete</button>}
+                                                {/* P8-11: Comment edit */}
+                                                {user && c.user_id === user.id && <button onClick={() => { setEditingComment(c.id); setEditCommentText(c.content || ''); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: C.textSec, fontSize: 11, padding: 0, fontFamily: 'inherit' }}>Edit</button>}
                                             </div>
                                         </div>
                                     </div>
@@ -485,7 +512,10 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, isPa
                                                     <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{r.author?.full_name || r.author?.username || 'Unknown'}</div>
                                                     <div style={{ fontSize: 12, color: C.text }}>{r.content}</div>
                                                 </div>
-                                                <div style={{ fontSize: 10, color: C.textSec, padding: '2px 8px' }}>{timeAgo(r.created_at)}</div>
+                                                <div style={{ display: 'flex', gap: 10, fontSize: 10, color: C.textSec, padding: '2px 8px' }}>
+                                                    <span>{timeAgo(r.created_at)}</span>
+                                                    {user && (r.user_id === user.id || isPageOwner) && <button onClick={() => { setComments(prev => prev.filter(x => x.id !== r.id)); if (onDeleteComment) onDeleteComment(post.id, r.id); }} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, color: '#FA383E', fontSize: 10, padding: 0, fontFamily: 'inherit' }}>Delete</button>}
+                                                </div>
                                             </div>
                                         </div>
                                     ))}

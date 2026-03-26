@@ -1,0 +1,14 @@
+{
+  "venue_id": 1956,
+  "venue_name": "Final Table Poker Club",
+  "url": "https://www.pokeratlas.com/poker-room/final-table-portland",
+  "http_status": 200,
+  "scrape_html_hash": "5883de27a90d781e35e0598d769d61cf6bd35fc1f66aaa2d945c8c5cf2fd8794",
+  "byte_count": 59777,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:48:01.081012+00:00",
+  "extracted_data": {
+    "poker_tables": 22,
+    "hours_weekday": "10:30am - 1:00am"
+  }
+}

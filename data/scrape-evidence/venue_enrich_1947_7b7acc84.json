@@ -1,0 +1,14 @@
+{
+  "venue_id": 1947,
+  "venue_name": "Ebro Poker Room",
+  "url": "https://www.pokeratlas.com/poker-room/ebro-poker-room",
+  "http_status": 200,
+  "scrape_html_hash": "c83eb044ed6da1f29d3c8b70fe003a1dc7638cd45bc89e79feeb4bf2ca7e09ce",
+  "byte_count": 59243,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:46:56.260978+00:00",
+  "extracted_data": {
+    "poker_tables": 25,
+    "hours_weekday": "10:00am - 4:00am"
+  }
+}

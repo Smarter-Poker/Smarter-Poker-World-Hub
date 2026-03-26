@@ -465,6 +465,7 @@ export default function PokerNearMeLobby() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
+  const [checkinCounts, setCheckinCounts] = useState({});
 
   // ─── Location State ───
   const [userLocation, setUserLocation] = useState(null);
@@ -679,6 +680,17 @@ export default function PokerNearMeLobby() {
     fetchSearchHistory();
     fetchPreferences();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Batch fetch check-in counts when venues change ───
+  useEffect(() => {
+    if (venues.length === 0) return;
+    const ids = venues.map(v => v.id).filter(Boolean).slice(0, 50).join(',');
+    if (!ids) return;
+    fetch('/api/poker/checkins/batch-counts?venue_ids=' + ids)
+      .then(r => r.json())
+      .then(j => { if (j.success && j.counts) setCheckinCounts(j.counts); })
+      .catch(() => { /* silent */ });
+  }, [venues]);
 
   // ─── Live games refresh handled by <LiveGamesFeed> component ───
 
@@ -1031,6 +1043,7 @@ export default function PokerNearMeLobby() {
                     }
                   }}
                   userLocation={userLocation}
+                  checkinCount={checkinCounts[String(v.id)] || 0}
                 />
               ))}
             </div>
@@ -1089,6 +1102,7 @@ export default function PokerNearMeLobby() {
                     }
                   }}
                   userLocation={userLocation}
+                  checkinCount={checkinCounts[String(v.id)] || 0}
                 />
               ))}
             </div>
@@ -1136,6 +1150,7 @@ export default function PokerNearMeLobby() {
                         }
                       }}
                       userLocation={userLocation}
+                      checkinCount={checkinCounts[String(v.id)] || 0}
                     />
                   ))}
                 </div>
@@ -1255,6 +1270,7 @@ export default function PokerNearMeLobby() {
                   }
                 }}
                 userLocation={userLocation}
+                checkinCount={checkinCounts[String(v.id)] || 0}
               />
             ))}
             {favVenues.length === 0 && (

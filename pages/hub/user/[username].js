@@ -761,6 +761,7 @@ export default function UserProfilePage() {
     // Poker Activity state
     const [pokerCheckins, setPokerCheckins] = useState([]);
     const [pokerFollowing, setPokerFollowing] = useState([]);
+    const [checkinStreak, setCheckinStreak] = useState({ currentStreak: 0, longestStreak: 0, totalCheckins: 0 });
 
     // Refs
     const profileMenuRef = useRef(null);
@@ -1169,6 +1170,11 @@ export default function UserProfilePage() {
                     fetch('/api/poker/follow?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setPokerFollowing(j.data || []); })
+                        .catch(function () { });
+                    // Fetch check-in streak data
+                    fetch('/api/poker/checkins/streak?user_id=' + encodeURIComponent(pokerUid), { headers })
+                        .then(function (r) { return r.json(); })
+                        .then(function (j) { if (j.success) setCheckinStreak({ currentStreak: j.currentStreak || 0, longestStreak: j.longestStreak || 0, totalCheckins: j.totalCheckins || 0 }); })
                         .catch(function () { });
                 }
 
@@ -1664,13 +1670,28 @@ export default function UserProfilePage() {
                                 </div>
                             )}
 
-                            <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 4, flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
                                 {[{ val: animatedStats.friends, label: 'Friends' }, { val: animatedStats.followers, label: 'Followers' }, { val: animatedStats.following, label: 'Following' }, { val: animatedStats.posts, label: 'Posts' }].map((s, i) => (
                                     <React.Fragment key={s.label}>
                                         {i > 0 && <span>·</span>}
                                         <span><strong style={{ display: 'inline-block', minWidth: 12, textAlign: 'center', transition: 'transform 0.3s ease, opacity 0.3s ease' }}>{s.val}</strong> {s.label}</span>
                                     </React.Fragment>
                                 ))}
+                                {checkinStreak.currentStreak >= 2 && (
+                                    <>
+                                        <span>·</span>
+                                        <span style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 3,
+                                            background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.15))',
+                                            border: '1px solid rgba(245,158,11,0.3)',
+                                            borderRadius: 12, padding: '2px 8px', fontSize: 12, fontWeight: 700,
+                                            color: '#f59e0b'
+                                        }}>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="none"><path d="M12 23c-3.5-2.4-6-5.3-7.5-8.5C3 11 3.5 7.5 5.5 5.5S10 2 12 2s4.5 1.5 6.5 3.5S21 11 19.5 14.5C18 17.7 15.5 20.6 12 23z"/></svg>
+                                            {checkinStreak.currentStreak}-Day Streak
+                                        </span>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -2313,7 +2334,9 @@ export default function UserProfilePage() {
                                                             <div style={{ fontWeight: 600, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                                 {c.venue_name || c.page_id}
                                                             </div>
-                                                            <div style={{ fontSize: 12, color: C.textSec }}>{c.created_at ? timeAgo(c.created_at) : ''}</div>
+                                                            <div style={{ fontSize: 12, color: C.textSec }}>
+                                                                {c.venue_city && c.venue_state ? `${c.venue_city}, ${c.venue_state} · ` : ''}{c.created_at ? timeAgo(c.created_at) : ''}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </Link>

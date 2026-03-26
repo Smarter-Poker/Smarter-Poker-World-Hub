@@ -1,0 +1,17 @@
+{
+  "venue_id": 1955,
+  "venue_name": "Pensacola Greyhound",
+  "url": "https://www.pokeratlas.com/poker-room/pensacola-greyhound",
+  "http_status": 200,
+  "scrape_html_hash": "c21e1f98b745d994b0c793305bf812ab10d67b4fc3776464bfbe369d504c4484",
+  "byte_count": 58938,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:47:58.874157+00:00",
+  "extracted_data": {
+    "games_offered": [
+      "Mixed"
+    ],
+    "poker_tables": 25,
+    "hours_weekday": "9:00am - 3:00am"
+  }
+}

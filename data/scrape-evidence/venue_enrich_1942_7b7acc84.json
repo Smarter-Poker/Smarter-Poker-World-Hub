@@ -1,0 +1,18 @@
+{
+  "venue_id": 1942,
+  "venue_name": "Shooters Poker Room",
+  "url": "https://www.pokeratlas.com/poker-room/93-casino-liquor-eureka/cash-games",
+  "http_status": 200,
+  "scrape_html_hash": "90173fc5fcf3429282dce77a2dee505cb131a1c6b9eb6a70fb0ed6fc2a96074e",
+  "byte_count": 53893,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:46:21.752217+00:00",
+  "extracted_data": {
+    "games_offered": [
+      "Limit HE",
+      "NLH"
+    ],
+    "poker_tables": 1,
+    "hours_weekday": "4:00pm - 2:00am"
+  }
+}

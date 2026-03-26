@@ -1,0 +1,14 @@
+{
+  "venue_id": 1982,
+  "venue_name": "Ace High Poker Club",
+  "url": "https://www.pokeratlas.com/poker-room/ace-high-poker-club-oxford",
+  "http_status": 200,
+  "scrape_html_hash": "c41b8b16169be990dd2c850444240a580e666f6cf75336e931aea3094706394c",
+  "byte_count": 58595,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:52:05.692049+00:00",
+  "extracted_data": {
+    "poker_tables": 5,
+    "hours_weekday": "6:00pm - 3:00am"
+  }
+}

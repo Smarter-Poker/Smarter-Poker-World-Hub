@@ -1,0 +1,14 @@
+{
+  "venue_id": 1958,
+  "venue_name": "Oregon Poker Club - Kit Kat Club",
+  "url": "https://www.pokeratlas.com/poker-room/oregon-poker-club-kit-kat-club-portland",
+  "http_status": 200,
+  "scrape_html_hash": "1d962f1b2cd4c1cf27857c02019270f15499267dfa58dbbed8260f6083248906",
+  "byte_count": 57837,
+  "batch_id": "7b7acc84-6e3f-4de2-a963-c024f5bc18a0",
+  "timestamp": "2026-03-26T05:48:15.579016+00:00",
+  "extracted_data": {
+    "poker_tables": 1,
+    "hours_weekday": "8:00pm - 2:30am"
+  }
+}
