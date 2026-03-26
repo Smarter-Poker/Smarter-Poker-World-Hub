@@ -112,6 +112,51 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
         });
     };
 
+    // Phase 4: EventBus Synchronization for real-time cross-tab updates
+    useEffect(() => {
+        const handleReaction = (evt) => {
+            if (evt.detail?.postId === post.id) {
+                const isLikeToggle = evt.detail.reactionType !== 'bookmark' && evt.detail.reactionType !== 'comment';
+                if (isLikeToggle) {
+                    if (evt.detail.action === 'add') {
+                        post.like_count = (post.like_count || 0) + 1;
+                        if (evt.detail.userId === user?.id) post.user_liked = true;
+                    } else if (evt.detail.action === 'remove') {
+                        post.like_count = Math.max(0, (post.like_count || 0) - 1);
+                        if (evt.detail.userId === user?.id) post.user_liked = false;
+                    }
+                } else if (evt.detail.reactionType === 'bookmark' && evt.detail.userId === user?.id) {
+                    setBookmarked(evt.detail.action === 'add');
+                }
+            }
+        };
+
+        const handleComment = (evt) => {
+            if (evt.detail?.postId === post.id) {
+                if (evt.detail.action === 'add') {
+                    post.comment_count = (post.comment_count || 0) + 1;
+                    if (showComments && user?.id !== evt.detail.userId) {
+                        setComments(prev => {
+                            if (prev.some(c => c.id === evt.detail.comment.id)) return prev;
+                            return [...prev, evt.detail.comment];
+                        });
+                    }
+                } else if (evt.detail.action === 'remove') {
+                    post.comment_count = Math.max(0, (post.comment_count || 0) - 1);
+                    if (showComments) setComments(prev => prev.filter(c => c.id !== evt.detail.commentId));
+                }
+            }
+        };
+
+        eventBus.addEventListener(EventType.SOCIAL_REACTION_UPDATE, handleReaction);
+        eventBus.addEventListener(EventType.SOCIAL_COMMENT_UPDATE, handleComment);
+
+        return () => {
+            eventBus.removeEventListener(EventType.SOCIAL_REACTION_UPDATE, handleReaction);
+            eventBus.removeEventListener(EventType.SOCIAL_COMMENT_UPDATE, handleComment);
+        };
+    }, [post, user, showComments]);
+
     // Close menu on outside click
     useEffect(() => {
         if (!showMenu) return;
@@ -1411,6 +1456,10 @@ export default function SocialPageDetail() {
             if (!res.ok) throw new Error('Like failed');
             busEmit.dataMutated('social-pages');
             busEmit.socialPostLiked(postId, user.id, { added: !wasLiked });
+            // Phase 4: Broadcast real-time reaction update to other tabs
+            eventBus.dispatchEvent(new CustomEvent(EventType.SOCIAL_REACTION_UPDATE, {
+                detail: { postId, userId: user.id, action: wasLiked ? 'remove' : 'add', reactionType: reactionType || 'like' }
+            }));
         } catch (e) {
             console.error("[[pageId].js]", e);
             // Rollback optimistic update

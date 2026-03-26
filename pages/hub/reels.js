@@ -159,18 +159,7 @@ export default function ReelsPage() {
             }
         }
     }, []);
-    useEffect(() => {
-        if (!currentReel?.id) return;
-        const watchTimer = setTimeout(() => {
-            setWatchedReelIds(prev => {
-                if (prev.includes(currentReel.id)) return prev;
-                const next = [...prev, currentReel.id].slice(-500); // Keep last 500
-                localStorage.setItem('smarter-reels-watched', JSON.stringify(next));
-                return next;
-            });
-        }, 3000); // 3 seconds = watched
-        return () => clearTimeout(watchTimer);
-    }, [currentReel?.id]);
+
 
     // Reels preferences state
     const [preferences, setPreferences] = useState({
@@ -426,6 +415,20 @@ export default function ReelsPage() {
 
 
     const currentReel = reels[currentIndex];
+
+    // Phase 9: Watched Indicator Timer
+    useEffect(() => {
+        if (!currentReel?.id) return;
+        const watchTimer = setTimeout(() => {
+            setWatchedReelIds(prev => {
+                if (prev.includes(currentReel.id)) return prev;
+                const next = [...prev, currentReel.id].slice(-500); // Keep last 500
+                localStorage.setItem('smarter-reels-watched', JSON.stringify(next));
+                return next;
+            });
+        }, 3000); // 3 seconds = watched
+        return () => clearTimeout(watchTimer);
+    }, [currentReel?.id]);
 
     const goNext = () => {
         if (slideDebounceRef.current) return;

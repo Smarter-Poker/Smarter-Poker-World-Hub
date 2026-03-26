@@ -263,18 +263,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             }
         }
     }, []);
-    useEffect(() => {
-        if (!currentReel?.id) return;
-        const watchTimer = setTimeout(() => {
-            setWatchedReelIds(prev => {
-                if (prev.includes(currentReel.id)) return prev;
-                const next = [...prev, currentReel.id].slice(-500);
-                localStorage.setItem('smarter-reels-watched', JSON.stringify(next));
-                return next;
-            });
-        }, 3000); // 3 seconds = watched
-        return () => clearTimeout(watchTimer);
-    }, [currentReel?.id]);
+
 
     // #8 Share Options Modal
     const [showShareModal, setShowShareModal] = useState(false);
@@ -326,6 +315,20 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const handleCommentsRef = useRef(null);
 
     const currentReel = reels[currentIndex];
+
+    // Phase 9: Watched Indicator Timer
+    useEffect(() => {
+        if (!currentReel?.id) return;
+        const watchTimer = setTimeout(() => {
+            setWatchedReelIds(prev => {
+                if (prev.includes(currentReel.id)) return prev;
+                const next = [...prev, currentReel.id].slice(-500);
+                localStorage.setItem('smarter-reels-watched', JSON.stringify(next));
+                return next;
+            });
+        }, 3000); // 3 seconds = watched
+        return () => clearTimeout(watchTimer);
+    }, [currentReel?.id]);
 
     // Pre-fetch existing likes + bookmarks + dislikes + follows on mount
     useEffect(() => {

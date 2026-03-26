@@ -82,18 +82,7 @@ export function ReelsViewer({ onClose }) {
             }
         }
     }, []);
-    useEffect(() => {
-        if (!currentReel?.id) return;
-        const watchTimer = setTimeout(() => {
-            setWatchedReelIds(prev => {
-                if (prev.includes(currentReel.id)) return prev;
-                const next = [...prev, currentReel.id].slice(-500); // limited to 500
-                localStorage.setItem('smarter-reels-watched', JSON.stringify(next));
-                return next;
-            });
-        }, 3000); // Flag watched after 3s
-        return () => clearTimeout(watchTimer);
-    }, [currentReel?.id]);
+
     const videoRef = useRef(null);
     const containerRef = useRef(null);
     const commentInputRef = useRef(null);
@@ -397,6 +386,20 @@ export function ReelsViewer({ onClose }) {
     };
 
     const currentReel = reels[currentIndex];
+
+    // Phase 9: Watched Indicator Timer
+    useEffect(() => {
+        if (!currentReel?.id) return;
+        const watchTimer = setTimeout(() => {
+            setWatchedReelIds(prev => {
+                if (prev.includes(currentReel.id)) return prev;
+                const next = [...prev, currentReel.id].slice(-500); // limited to 500
+                localStorage.setItem('smarter-reels-watched', JSON.stringify(next));
+                return next;
+            });
+        }, 3000); // Flag watched after 3s
+        return () => clearTimeout(watchTimer);
+    }, [currentReel?.id]);
 
     const goNext = () => {
         if (currentIndex < reels.length - 1) {

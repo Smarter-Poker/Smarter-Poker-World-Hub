@@ -3235,6 +3235,7 @@ const styles = {
         flex: 1,
         position: 'relative',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: 280,
