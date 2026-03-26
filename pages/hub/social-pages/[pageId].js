@@ -353,7 +353,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                         <img src={post.link_preview.image} alt="" style={{ width: '100%', height: 160, objectFit: 'cover' }} />
                     )}
                     <div style={{ padding: '10px 12px', background: C.bg }}>
-                        <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase' }}>{new URL(post.link_preview.url).hostname}</div>
+                        <div style={{ fontSize: 11, color: C.textSec, textTransform: 'uppercase' }}>{(() => { try { return new URL(post.link_preview.url).hostname; } catch { return post.link_preview.url?.replace(/^https?:\/\//, '').split('/')[0] || 'link'; } })()}</div>
                         {post.link_preview.title && <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginTop: 2 }}>{post.link_preview.title}</div>}
                         {post.link_preview.description && <div style={{ fontSize: 13, color: C.textSec, marginTop: 2 }}>{post.link_preview.description.slice(0, 120)}</div>}
                     </div>
@@ -457,16 +457,16 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                 <button onClick={async () => {
                                     try {
                                         const token = getAccessToken();
-                                        await fetch('/api/social/posts', {
+                                        const shareRes = await fetch('/api/social/posts', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                             body: JSON.stringify({ content: `Shared from ${page?.name}: ${post.content?.slice(0, 200) || ''}\n\n${shareUrl}`, content_type: 'text' }),
                                         });
+                                        if (!shareRes.ok) throw new Error('Share failed');
                                         setShowShareModal(false);
                                         toast.success('Shared to your feed!');
                                         busEmit.dataMutated('social');
-                                        busEmit.socialPostCreated('shared', user?.id);
-                                    } catch (e) { console.error(e); }
+                                    } catch (e) { console.error(e); toast.error('Failed to share. Please try again.'); }
                                 }} style={{
                                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
                                     border: `1px solid ${C.border}`, background: '#E7F3FF', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: C.blue, fontFamily: 'inherit', width: '100%', textAlign: 'left',
@@ -475,7 +475,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                     Share to My Feed
                                 </button>
                             )}
-                            <button onClick={() => { navigator.clipboard.writeText(shareUrl); setShowShareModal(false); }} style={{
+                            <button onClick={() => { navigator.clipboard.writeText(shareUrl).then(() => toast.success('Link copied!')).catch(() => {}); setShowShareModal(false); }} style={{
                                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 8,
                                 border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', fontSize: 14, fontWeight: 500, color: C.text, fontFamily: 'inherit', width: '100%', textAlign: 'left',
                             }}>
