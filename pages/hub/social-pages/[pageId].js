@@ -836,11 +836,13 @@ export default function SocialPageDetail() {
             const entity = event?.payload?.entity;
             if (entity === 'social-pages' || entity === 'social') {
                 fetchPosts();
-                if (activeTab === 'members') fetchFollowers();
+                fetchFollowers();
+                if (activeTab === 'reviews') fetchReviews();
+                if (activeTab === 'games') fetchGames();
             }
         });
         return unsub;
-    }, [fetchPosts, fetchFollowers, activeTab]);
+    }, [fetchPosts, fetchFollowers, fetchReviews, fetchGames, activeTab]);
 
     // Tab from URL query (#deep linking)
     useEffect(() => {
@@ -886,6 +888,7 @@ export default function SocialPageDetail() {
                 setShowReviewForm(false);
                 setReviewRating(0); setReviewTitle(''); setReviewContent('');
                 fetchReviews();
+                busEmit.dataMutated('social-pages');
             } else {
                 throw new Error(json.error || 'Review submission failed');
             }
@@ -1047,18 +1050,20 @@ export default function SocialPageDetail() {
     const resolvedId = page.id;
     const _ch = supabase
       .channel(`social-page:${resolvedId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${resolvedId}` }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${resolvedId}` }, () => {
         fetchPosts();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_post_likes' }, () => {
         fetchPosts();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_comment_likes' }, () => {
-        // Refresh posts to pick up comment like count changes
         fetchPosts();
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_page_post_comments' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_post_comments' }, () => {
         fetchPosts();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_reviews', filter: `page_id=eq.${resolvedId}` }, () => {
+        fetchReviews();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_followers', filter: `page_id=eq.${resolvedId}` }, () => {
         fetchFollowers();
@@ -1067,7 +1072,7 @@ export default function SocialPageDetail() {
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [pageId, page, fetchPosts, fetchFollowers, fetchPage]);
+  }, [pageId, page, fetchPosts, fetchFollowers, fetchPage, fetchReviews]);
 
     // P10-7: Scroll listener for scroll-to-top button
     useEffect(() => {
@@ -1103,6 +1108,7 @@ export default function SocialPageDetail() {
             if (!res.ok) throw new Error('Follow failed');
             toast.success(newState ? 'Following!' : 'Unfollowed');
             busEmit.dataMutated('social-pages');
+            fetchFollowers();
         } catch (e) {
             console.error("[[pageId].js]", e);
             // Rollback optimistic update

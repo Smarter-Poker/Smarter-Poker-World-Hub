@@ -84,6 +84,17 @@ export function ReelsViewer({ onClose }) {
     const [showShareModal, setShowShareModal] = useState(false);
     // #7 Animated Like Counter
     const [likeBounceId, setLikeBounceId] = useState(null);
+    // #4 Not Interested — persist disliked reel IDs in localStorage
+    const [notInterestedIds, setNotInterestedIds] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try { return new Set(JSON.parse(localStorage.getItem('reels-not-interested') || '[]')); } catch { return new Set(); }
+        }
+        return new Set();
+    });
+    // #6 Comment Pagination
+    const [commentPage, setCommentPage] = useState(0);
+    const [hasMoreComments, setHasMoreComments] = useState(false);
+    const [loadingMoreComments, setLoadingMoreComments] = useState(false);
 
     useEffect(() => {
         loadReels();
@@ -407,8 +418,12 @@ export function ReelsViewer({ onClose }) {
         try {
             if (wasDisliked) {
                 await supabase.from('social_likes').delete().eq('post_id', currentReel.id).eq('user_id', currentUserId).eq('reaction_type', 'dislike');
+                // #4 Not Interested — remove from filter
+                setNotInterestedIds(prev => { const n = new Set(prev); n.delete(currentReel.id); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             } else {
                 await supabase.from('social_likes').insert({ post_id: currentReel.id, user_id: currentUserId, reaction_type: 'dislike' });
+                // #4 Not Interested — add to filter
+                setNotInterestedIds(prev => { const n = new Set(prev); n.add(currentReel.id); if (typeof window !== 'undefined') localStorage.setItem('reels-not-interested', JSON.stringify([...n])); return n; });
             }
         } catch {
             setDisliked(prev => ({ ...prev, [currentReel.id]: wasDisliked }));
@@ -916,8 +931,20 @@ export function ReelsViewer({ onClose }) {
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
-                        <span style={{ fontSize: 22 }}>{muted ? '🔇' : '🔊'}</span>
-                        <span style={{ fontSize: 9, fontWeight: 500 }}>{muted ? 'Unmute' : 'Mute'}</span>
+                        <span style={{ fontSize: 22 }}>{muted ? '\uD83D\uDD07' : '\uD83D\uDD0A'}</span>
+                        {/* #10 Sound Waveform Indicator */}
+                        {!muted && (
+                            <div style={{ display: 'flex', gap: 1.5, alignItems: 'flex-end', height: 8, marginBottom: -2 }}>
+                                {[2, 4, 7, 4, 2].map((h, i) => (
+                                    <div key={i} style={{
+                                        width: 2, background: '#00d4ff', borderRadius: 1,
+                                        animation: `soundWave 0.6s ${i * 0.1}s ease-in-out infinite alternate`,
+                                        height: h,
+                                    }} />
+                                ))}
+                            </div>
+                        )}
+                        {muted && <span style={{ fontSize: 9, fontWeight: 500 }}>Unmute</span>}
                     </button>
                     <button onClick={() => setShowReportModal(true)} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
