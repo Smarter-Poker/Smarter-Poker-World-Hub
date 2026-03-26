@@ -118,7 +118,7 @@ const VenueReviews = dynamic(() => import('../../src/components/poker-near-me/Ve
 const SEARCH_DEBOUNCE_MS = 400;
 const API_CACHE_TTL = 60000;
 const LIVE_REFRESH_MS = 120000;
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 50;
 
 // Popular cities for autocomplete
 const POPULAR_CITIES = [
@@ -201,39 +201,93 @@ const POD_FEATURES = {
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TODAY_INDEX = new Date().getDay();
 
-function DailyTournamentsPanel({ tournaments = [], onDayChange }) {
+function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange }) {
   const [selectedDay, setSelectedDay] = useState(DAYS[TODAY_INDEX]);
+  const [gameType, setGameType] = useState('all');
+  const [sortBy, setSortBy] = useState('time');
+  const [minBuyin, setMinBuyin] = useState('');
+  const [maxBuyin, setMaxBuyin] = useState('');
+  const [minGuaranteed, setMinGuaranteed] = useState('');
+  const [groupByState, setGroupByState] = useState(false);
 
   const handleDayChange = (day) => {
     setSelectedDay(day);
     onDayChange?.(day);
   };
 
-  // Filter tournaments by selected day (client-side fallback)
-  const filtered = tournaments.filter(t => {
-    if (!t.day_of_week) return false; // exclude tournaments with no day assigned
-    return t.day_of_week.toLowerCase() === selectedDay.toLowerCase();
+  // Client-side filters
+  let filtered = tournaments.filter(t => {
+    if (!t.day_of_week) return false;
+    if (t.day_of_week.toLowerCase() !== selectedDay.toLowerCase() && t.day_of_week !== 'Daily') return false;
+    if (gameType !== 'all' && t.game_type && !t.game_type.toLowerCase().includes(gameType.toLowerCase())) return false;
+    if (minBuyin && t.buy_in < parseInt(minBuyin, 10)) return false;
+    if (maxBuyin && t.buy_in > parseInt(maxBuyin, 10)) return false;
+    if (minGuaranteed && (t.guaranteed || 0) < parseInt(minGuaranteed, 10)) return false;
+    return true;
   });
+
+  // Sort
+  if (sortBy === 'buyin') filtered.sort((a, b) => (a.buy_in || 0) - (b.buy_in || 0));
+  else if (sortBy === 'guaranteed') filtered.sort((a, b) => (b.guaranteed || 0) - (a.guaranteed || 0));
+  else {
+    // Sort by time (parse HH:MM am/pm)
+    const parseT = (s) => { if (!s) return 9999; const m = s.match(/(\d+):(\d+)\s*(am|pm)/i); if (!m) return 9999; let h = parseInt(m[1]); if (m[3].toLowerCase() === 'pm' && h !== 12) h += 12; if (m[3].toLowerCase() === 'am' && h === 12) h = 0; return h * 60 + parseInt(m[2]); };
+    filtered.sort((a, b) => parseT(a.start_time) - parseT(b.start_time));
+  }
+
+  // State grouping
+  const groupedByState = groupByState ? filtered.reduce((acc, t) => {
+    const st = t.venue_state || t.state || 'Unknown';
+    if (!acc[st]) acc[st] = [];
+    acc[st].push(t);
+    return acc;
+  }, {}) : null;
+
+  const GAME_TYPES = ['all', 'NLH', 'PLO', 'Mixed', 'Omaha'];
+  const SORT_OPTS = [{ v: 'time', l: 'Start Time' }, { v: 'buyin', l: 'Buy-In' }, { v: 'guaranteed', l: 'Guaranteed' }];
+
+  const renderTournamentCard = (t, i) => (
+    <div key={t.id || i} style={{
+      background: 'rgba(110,231,239,0.04)', border: '1px solid rgba(110,231,239,0.1)',
+      borderRadius: 12, padding: '12px 16px', transition: 'border-color 0.2s',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', marginBottom: 2 }}>
+            {t.tournament_name || t.name || `${t.game_type || 'NLH'} Tournament`}
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.55)' }}>
+            {t.venue_name || 'Unknown Venue'}{t.venue_state ? `, ${t.venue_state}` : ''}
+          </div>
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e', background: 'rgba(34,197,94,0.1)', padding: '3px 10px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+          {t.buy_in ? `$${t.buy_in}` : 'TBD'}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11, color: 'rgba(200,214,229,0.45)' }}>
+        {t.start_time && <span>{t.start_time}</span>}
+        {t.game_type && <span style={{ color: '#6ee7ef' }}>{t.game_type}</span>}
+        {t.guaranteed && <span style={{ color: '#f59e0b' }}>GTD: ${typeof t.guaranteed === 'number' ? t.guaranteed.toLocaleString() : t.guaranteed}</span>}
+        {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString?.() || t.starting_stack}</span>}
+        {t.blind_levels && <span>Blinds: {t.blind_levels}</span>}
+        {t.rebuy_addon && <span>{t.rebuy_addon}</span>}
+      </div>
+    </div>
+  );
 
   return (
     <div>
       {/* Day-of-week tabs */}
-      <div style={{
-        display: 'flex', gap: 4, marginBottom: 16, overflowX: 'auto',
-        paddingBottom: 4, scrollbarWidth: 'none', msOverflowStyle: 'none',
-      }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
         {DAYS.map((day) => (
-          <button
-            key={day}
-            onClick={() => handleDayChange(day)}
+          <button key={day} onClick={() => handleDayChange(day)}
             style={{
               flexShrink: 0, padding: '6px 12px', borderRadius: 8,
               border: selectedDay === day ? '1px solid rgba(34,197,94,0.6)' : '1px solid rgba(110,231,239,0.15)',
               background: selectedDay === day ? 'rgba(34,197,94,0.15)' : 'rgba(110,231,239,0.04)',
               color: selectedDay === day ? '#22c55e' : 'rgba(200,214,229,0.6)',
-              fontSize: 11, fontWeight: 600, cursor: 'pointer',
-              fontFamily: 'inherit', textTransform: 'uppercase', letterSpacing: '0.05em',
-              transition: 'all 0.2s',
+              fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s',
             }}
           >
             {day === DAYS[TODAY_INDEX] ? 'Today' : day.slice(0, 3)}
@@ -241,47 +295,73 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange }) {
         ))}
       </div>
 
-      {/* Tournament cards */}
-      <div style={{ display: 'grid', gap: 10 }}>
-        {filtered.map((t, i) => (
-          <div key={t.id || i} style={{
-            background: 'rgba(110,231,239,0.04)', border: '1px solid rgba(110,231,239,0.1)',
-            borderRadius: 12, padding: '12px 16px',
-            transition: 'border-color 0.2s',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', marginBottom: 2 }}>
-                  {t.tournament_name || t.name || `${t.game_type || 'NLH'} Tournament`}
-                </div>
-                <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.55)' }}>
-                  {t.venue_name || 'Unknown Venue'}
-                </div>
-              </div>
-              <div style={{
-                fontSize: 13, fontWeight: 700, color: '#22c55e',
-                background: 'rgba(34,197,94,0.1)', padding: '3px 10px', borderRadius: 6,
-                whiteSpace: 'nowrap',
-              }}>
-                {t.buy_in ? `$${t.buy_in}` : 'TBD'}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11, color: 'rgba(200,214,229,0.45)' }}>
-              {t.start_time && <span>{t.start_time}</span>}
-              {t.game_type && <span style={{ color: '#6ee7ef' }}>{t.game_type}</span>}
-              {t.guaranteed && <span style={{ color: '#f59e0b' }}>GTD: ${typeof t.guaranteed === 'number' ? t.guaranteed.toLocaleString() : t.guaranteed}</span>}
-              {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString?.() || t.starting_stack}</span>}
-              {t.blind_levels && <span>Blinds: {t.blind_levels}</span>}
-              {t.rebuy_addon && <span>{t.rebuy_addon}</span>}
-            </div>
-          </div>
+      {/* Filter Row: Game Type + Sort + Buy-In + Guaranteed */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Game Type chips */}
+        {GAME_TYPES.map(gt => (
+          <button key={gt} onClick={() => setGameType(gt)}
+            style={{
+              padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              border: gameType === gt ? '1px solid rgba(110,231,239,0.5)' : '1px solid rgba(110,231,239,0.12)',
+              background: gameType === gt ? 'rgba(110,231,239,0.12)' : 'transparent',
+              color: gameType === gt ? '#6ee7ef' : 'rgba(200,214,229,0.5)', fontFamily: 'inherit',
+              transition: 'all 0.2s',
+            }}
+          >{gt === 'all' ? 'All Games' : gt}</button>
         ))}
       </div>
+
+      {/* Advanced Filters Row */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input type="number" placeholder="Min $" value={minBuyin} onChange={e => setMinBuyin(e.target.value)}
+          style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(110,231,239,0.15)', background: 'rgba(0,0,0,0.25)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+        <span style={{ color: 'rgba(200,214,229,0.3)', fontSize: 11 }}>to</span>
+        <input type="number" placeholder="Max $" value={maxBuyin} onChange={e => setMaxBuyin(e.target.value)}
+          style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(110,231,239,0.15)', background: 'rgba(0,0,0,0.25)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+        <input type="number" placeholder="Min GTD" value={minGuaranteed} onChange={e => setMinGuaranteed(e.target.value)}
+          style={{ width: 85, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(110,231,239,0.15)', background: 'rgba(0,0,0,0.25)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+          style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(110,231,239,0.15)', background: 'rgba(0,0,0,0.25)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
+          {SORT_OPTS.map(o => <option key={o.v} value={o.v} style={{ background: '#0d1a2a' }}>{o.l}</option>)}
+        </select>
+        <button onClick={() => setGroupByState(!groupByState)}
+          style={{
+            padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            border: groupByState ? '1px solid rgba(212,168,83,0.5)' : '1px solid rgba(110,231,239,0.12)',
+            background: groupByState ? 'rgba(212,168,83,0.12)' : 'transparent',
+            color: groupByState ? '#d4a853' : 'rgba(200,214,229,0.5)', fontFamily: 'inherit',
+          }}
+        >By State</button>
+      </div>
+
+      {/* Results count */}
+      <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', marginBottom: 10 }}>
+        <span style={{ color: '#d4a853', fontWeight: 700 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}
+        {gameType !== 'all' && <span> ({gameType})</span>}
+      </div>
+
+      {/* Tournament cards — grouped or flat */}
+      {groupByState && groupedByState ? (
+        Object.keys(groupedByState).sort().map(st => (
+          <div key={st} style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#d4a853', marginBottom: 8, borderBottom: '1px solid rgba(212,168,83,0.15)', paddingBottom: 4 }}>
+              {st} ({groupedByState[st].length})
+            </div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {groupedByState[st].map((t, i) => renderTournamentCard(t, `${st}-${i}`))}
+            </div>
+          </div>
+        ))
+      ) : (
+        <div style={{ display: 'grid', gap: 10 }}>
+          {filtered.map((t, i) => renderTournamentCard(t, i))}
+        </div>
+      )}
 
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
           <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No tournaments found for {selectedDay}</p>
-          <p style={{ fontSize: 13 }}>Try another day or enable GPS to see tournaments near you.</p>
+          <p style={{ fontSize: 13 }}>Try another day, adjust filters, or enable GPS to see tournaments near you.</p>
         </div>
       )}
     </div>
@@ -548,6 +628,7 @@ export default function PokerNearMeLobby() {
       if (filters.stakes) url += `&stakes=${filters.stakes}`;
       if (filters.radius) url += `&radius=${filters.radius}`;
       if (filters.venueType) url += `&venue_type=${filters.venueType}`;
+      if (filters.selectedState && filters.selectedState !== 'all') url += `&state=${filters.selectedState}`;
 
       const data = await cachedFetch(url);
       const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
@@ -628,7 +709,7 @@ export default function PokerNearMeLobby() {
   // ─── Fetch daily tournaments ───
   const fetchDaily = useCallback(async (dayFilter = '') => {
     try {
-      let url = '/api/poker/daily-tournaments?limit=200';
+      let url = '/api/poker/daily-tournaments?limit=999';
       if (dayFilter) url += `&day=${encodeURIComponent(dayFilter)}`;
       if (userLocation) url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`;
       const data = await cachedFetch(url);
@@ -705,11 +786,19 @@ export default function PokerNearMeLobby() {
   const handleSearchChange = useCallback((value) => {
     setSearchQuery(value);
 
-    // City autocomplete
+    // Dynamic autocomplete — search venues data + popular cities
     if (value.length >= 2) {
       const lower = value.toLowerCase();
-      const matches = POPULAR_CITIES.filter(c => c.toLowerCase().includes(lower)).slice(0, 5);
-      setCitySuggestions(matches);
+      // Search venue names and cities from loaded venues data
+      const venueMatches = venues
+        .filter(v => (v.name && v.name.toLowerCase().includes(lower)) || (v.city && v.city.toLowerCase().includes(lower)))
+        .slice(0, 3)
+        .map(v => v.city && v.state ? `${v.city}, ${v.state}` : v.name);
+      // Also include popular cities that match
+      const cityMatches = POPULAR_CITIES.filter(c => c.toLowerCase().includes(lower)).slice(0, 3);
+      // Deduplicate and limit to 6
+      const allMatches = [...new Set([...venueMatches, ...cityMatches])].slice(0, 6);
+      setCitySuggestions(allMatches);
     } else {
       setCitySuggestions([]);
     }
@@ -720,7 +809,6 @@ export default function PokerNearMeLobby() {
         fetchVenues(value);
         if (userId) {
           addSearchHistoryToDb(userId, value).catch(() => { });
-          // Optimistically update local search history
           setSearchHistory(prev => {
             const filtered = prev.filter(h => h.search_query !== value);
             return [{ id: `local-${Date.now()}`, search_query: value, searched_at: new Date().toISOString() }, ...filtered].slice(0, 10);
@@ -728,7 +816,7 @@ export default function PokerNearMeLobby() {
         }
       }
     }, SEARCH_DEBOUNCE_MS);
-  }, [fetchVenues, userId]);
+  }, [fetchVenues, userId, venues]);
 
   const handleSearch = useCallback((query) => {
     setCitySuggestions([]);
@@ -1018,6 +1106,26 @@ export default function PokerNearMeLobby() {
               </div>
             )}
 
+            {/* State Filter + Stats Row */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <select
+                value={filters.selectedState || 'all'}
+                onChange={(e) => handleFilterChange({ ...filters, selectedState: e.target.value })}
+                style={{
+                  background: 'rgba(110, 231, 239, 0.08)', border: '1px solid rgba(110, 231, 239, 0.2)',
+                  borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12,
+                  fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 100,
+                }}
+              >
+                <option value="all" style={{ background: '#0d1a2a' }}>All States</option>
+                {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                  <option key={st} value={st} style={{ background: '#0d1a2a' }}>{st}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', marginLeft: 'auto' }}>
+                <span style={{ color: '#d4a853', fontWeight: 700 }}>{venues.length}</span> venues found
+              </span>
+            </div>
             {loading && <div style={{ textAlign: 'center', padding: 20, color: 'rgba(200,214,229,0.5)' }}>
               <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#6ee7ef', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
               Loading venues...

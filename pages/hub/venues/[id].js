@@ -667,17 +667,22 @@ export default function VenueDetailPage() {
     e.preventDefault();
     setCheckinSubmitting(true);
     try {
+      // Prefer authenticated user ID for streak/profile/friend matching
+      var authUser = getAuthUser();
+      var userId = (authUser && authUser.id) ? authUser.id : getAnonymousUserId();
+      var displayName = checkinName.trim() || (authUser && (authUser.user_metadata?.full_name || authUser.user_metadata?.name)) || 'Anonymous';
+
       var res = await fetch('/api/poker/checkins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           venue_id: id,
-          user_id: getAnonymousUserId(),
-          user_name: checkinName.trim() || 'Anonymous',
+          user_id: userId,
+          user_name: displayName,
           message: checkinMessage.trim() || null,
         }),
       });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      if (!res.ok) throw new Error('Request failed (' + res.status + ')');
       var json = await res.json();
       if (json.success) {
         setHasCheckedIn(true);
@@ -686,7 +691,12 @@ export default function VenueDetailPage() {
         setCheckinMessage('');
         setCheckinName('');
         await fetchCheckins();
-        try { bus?.emit?.('venue:checkin', { venueId: id, userName: checkinName.trim() || 'Anonymous' }); } catch { }
+        // Refresh Who's Here indicator
+        fetch('/api/poker/checkins/whos-here?venue_id=' + id)
+          .then(function(r) { return r.json(); })
+          .then(function(j) { if (j.success) setWhosHere({ total: j.total || 0, people: j.people || [], friends: j.friends || [] }); })
+          .catch(function() { });
+        try { bus?.emit?.('venue:checkin', { venueId: id, userName: displayName }); } catch { }
         setTimeout(function () { setCheckinConfirm(false); }, 3000);
       }
     } catch (err) { /* silent */ }

@@ -84,6 +84,7 @@ export const EventType = {
     SOCIAL_COMMENT_ADDED: 'SOCIAL_COMMENT_ADDED',
     SOCIAL_POST_BOOKMARKED: 'SOCIAL_POST_BOOKMARKED',
     SOCIAL_POST_SHARED: 'SOCIAL_POST_SHARED',
+    SOCIAL_FOLLOW_CHANGED: 'SOCIAL_FOLLOW_CHANGED',
     SOCIAL_FEED_REFRESHED: 'SOCIAL_FEED_REFRESHED',
     VENUE_CHECKIN_CREATED: 'VENUE_CHECKIN_CREATED',
 
@@ -369,6 +370,9 @@ const _busEmitMethods = {
 
     socialPostShared: (postId, userId) =>
         eventBus.emit(EventType.SOCIAL_POST_SHARED, { postId, userId }, 'SocialFeed'),
+
+    socialFollowChanged: (followedId, followerId, meta = {}) =>
+        eventBus.emit(EventType.SOCIAL_FOLLOW_CHANGED, { followedId, followerId, added: meta.added }, 'SocialFeed'),
 
     socialFeedRefreshed: () =>
         eventBus.emit(EventType.SOCIAL_FEED_REFRESHED, {}, 'SocialFeed'),
