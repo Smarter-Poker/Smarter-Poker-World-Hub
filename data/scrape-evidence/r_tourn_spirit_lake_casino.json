@@ -1,16 +1,15 @@
 {
-  "venue_id": 2491,
+  "vid": 2491,
   "name": "Spirit Lake Casino",
-  "source": "http://www.spiritlakecasino.com/",
+  "src": "http://www.spiritlakecasino.com/",
   "http": 200,
-  "hash": "4e2908f5c58c71a4f11a7ddbb4c89048e3288abdcd666e62879dc5a859a0bd35",
-  "has_tournaments": true,
-  "confidence": "medium",
+  "hash": "5fbdac32d526b652c40741159b85119dfe97c7e11f80dfabf83a4a537cdca0ac",
+  "ht": true,
+  "conf": "medium",
   "reason": "tourn_link",
-  "keyword_hits": 1,
-  "day_hits": 2,
-  "buyins": [],
-  "ts": "2026-03-26T00:50:30.069854+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "kw": 1,
+  "days": 2,
+  "bi": [],
+  "ts": "2026-03-26T01:10:04.593161+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

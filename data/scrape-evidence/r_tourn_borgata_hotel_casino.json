@@ -1,22 +1,21 @@
 {
-  "venue_id": 1832,
+  "vid": 1832,
   "name": "Borgata Hotel Casino",
-  "source": "https://borgata.mgmresorts.com/en/casino/poker.html",
+  "src": "https://borgata.mgmresorts.com/en/casino/poker.html",
   "http": 200,
   "hash": "204cae26cc623d0581e7c83fcb29d21ec1c4d4b51c45cb5855e87502380fe63d",
-  "has_tournaments": true,
-  "confidence": "high",
+  "ht": true,
+  "conf": "high",
   "reason": "8kw+40bi",
-  "keyword_hits": 8,
-  "day_hits": 7,
-  "buyins": [
+  "kw": 8,
+  "days": 7,
+  "bi": [
     500,
     500,
     300,
     300,
     200
   ],
-  "ts": "2026-03-26T00:50:34.032382+00:00",
-  "batch": "663ba51e-8a11-42a2-bf7d-2cde93adcbd1",
-  "method": "Scrapling_Fetcher_venue_website"
+  "ts": "2026-03-26T01:10:14.926897+00:00",
+  "batch": "1fb23d23-fa17-477a-9ebe-a12b979b21d6"
 }

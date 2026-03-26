@@ -36,6 +36,7 @@ export function ReelsViewer({ onClose }) {
     const [reels, setReels] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [muted, setMuted] = useState(() => {
         if (typeof window !== 'undefined') {
             return localStorage.getItem('reel-muted') !== 'false';
@@ -73,6 +74,10 @@ export function ReelsViewer({ onClose }) {
     const [reelCommentMediaType, setReelCommentMediaType] = useState(null);
     const [uploadingReelImage, setUploadingReelImage] = useState(false);
     const reelFileInputRef = useRef(null);
+    // Report state
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportReason, setReportReason] = useState('');
+    const [reportSubmitted, setReportSubmitted] = useState(false);
 
     useEffect(() => {
         loadReels();
@@ -194,30 +199,58 @@ export function ReelsViewer({ onClose }) {
 
     const loadReels = async () => {
         setLoading(true);
+        setLoadError(false);
         try {
-            const { data } = await supabase
-                .from('social_reels')
-                .select(`
-                    id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public,
-                    profiles:author_id (id, username, avatar_url, full_name)
-                `)
-                .eq('is_public', true)
-                .order('created_at', { ascending: false })
-                .limit(50);
+            // Dual-source: social_reels + social_posts with YouTube links
+            const [reelsResult, postsResult] = await Promise.all([
+                supabase
+                    .from('social_reels')
+                    .select(`
+                        id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public,
+                        profiles:author_id (id, username, avatar_url, full_name)
+                    `)
+                    .eq('is_public', true)
+                    .order('created_at', { ascending: false })
+                    .limit(50),
+                supabase
+                    .from('social_posts')
+                    .select(`
+                        id, author_id, content, media_url, media_type, like_count, comment_count, view_count, created_at,
+                        profiles:author_id (id, username, avatar_url, full_name)
+                    `)
+                    .or('media_type.eq.youtube,media_type.eq.video')
+                    .order('created_at', { ascending: false })
+                    .limit(20)
+            ]);
 
-            if (data) {
-                setReels(data);
-                // Initialize counts from reel data
-                const lc = {}, cc = {};
-                data.forEach(r => {
-                    lc[r.id] = r.like_count || 0;
-                    cc[r.id] = r.comment_count || 0;
-                });
-                setLikeCounts(lc);
-                setCommentCounts(cc);
-            }
+            const reelsData = reelsResult.data || [];
+            // Map social_posts to reel-compatible shape
+            const postsAsReels = (postsResult.data || []).map(p => ({
+                ...p,
+                video_url: p.media_url,
+                caption: p.content,
+                is_public: true,
+            }));
+
+            // Merge, deduplicate by id, sort by date
+            const idSet = new Set();
+            const merged = [...reelsData, ...postsAsReels].filter(r => {
+                if (idSet.has(r.id)) return false;
+                idSet.add(r.id);
+                return true;
+            }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            setReels(merged);
+            const lc = {}, cc = {};
+            merged.forEach(r => {
+                lc[r.id] = r.like_count || 0;
+                cc[r.id] = r.comment_count || 0;
+            });
+            setLikeCounts(lc);
+            setCommentCounts(cc);
         } catch (e) {
             console.error('Load reels error:', e);
+            setLoadError(true);
         }
         setLoading(false);
     };
@@ -504,6 +537,29 @@ export function ReelsViewer({ onClose }) {
         );
     }
 
+    if (loadError) {
+        return (
+            <div style={{
+                position: 'fixed', inset: 0, background: C.bg, zIndex: 10000,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+                <div style={{ color: C.text, fontSize: 18, marginBottom: 8 }}>Failed To Load Reels</div>
+                <div style={{ color: C.textSec, fontSize: 14, marginBottom: 20 }}>Please check your connection and try again.</div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                    <button onClick={() => loadReels()} style={{
+                        padding: '12px 24px', background: C.blue,
+                        color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600,
+                    }}>Retry</button>
+                    <button onClick={onClose} style={{
+                        padding: '12px 24px', background: 'rgba(255,255,255,0.1)',
+                        color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, cursor: 'pointer',
+                    }}>Go Back</button>
+                </div>
+            </div>
+        );
+    }
+
     if (!reels.length) {
         return (
             <div style={{
@@ -722,6 +778,13 @@ export function ReelsViewer({ onClose }) {
                     }}>
                         <span style={{ fontSize: 22 }}>{muted ? '🔇' : '🔊'}</span>
                         <span style={{ fontSize: 9, fontWeight: 500 }}>{muted ? 'Unmute' : 'Mute'}</span>
+                    </button>
+                    <button onClick={() => setShowReportModal(true)} style={{
+                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'rgba(255,255,255,0.6)',
+                    }}>
+                        <span style={{ fontSize: 18 }}>🚩</span>
+                        <span style={{ fontSize: 9, fontWeight: 500 }}>Report</span>
                     </button>
                 </div>
 
