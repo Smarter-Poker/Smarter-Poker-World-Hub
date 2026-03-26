@@ -1662,7 +1662,10 @@ export default function UserProfilePage() {
                             border: '1px solid rgba(255,255,255,0.2)',
                             cursor: 'pointer', transition: 'all 0.2s'
                         }}>
-                            📷 Edit Cover Photo
+                            <svg viewBox="0 0 24 24" width={18} height={18} fill="currentColor">
+                                <path d="M4 6h4l1.5-2h5L16 6h4c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2zm8 11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0-8c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3z"/>
+                            </svg>
+                            Edit Cover Photo
                         </Link>
                     )}
                 </div>
@@ -1674,7 +1677,32 @@ export default function UserProfilePage() {
                         <div style={{ position: 'relative', display: 'inline-block' }}>
                             <Avatar src={profile.avatar_url} name={displayName} size={120} />
                             {horseProfileIds.has(profile.id) && isHorseOnlineNow(profile.id) && (
-                                <span style={{ position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, background: '#31a24c', border: '3px solid white', borderRadius: '50%', zIndex: 5 }} />
+                                <span style={{ position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, background: '#31a24c', border: `3px solid ${C.bg}`, borderRadius: '50%', zIndex: 5 }} />
+                            )}
+                            {isOwnProfile && (
+                                <Link href="/hub/profile-edit" style={{
+                                    position: 'absolute',
+                                    bottom: -2,
+                                    right: 4,
+                                    width: 34,
+                                    height: 34,
+                                    background: '#E4E6EB',
+                                    border: `2px solid ${C.bg}`,
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#050505',
+                                    zIndex: 10,
+                                    transition: 'background 0.2s',
+                                    textDecoration: 'none'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#D8DADF'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#E4E6EB'}>
+                                    <svg viewBox="0 0 24 24" width={18} height={18} fill="currentColor">
+                                        <path d="M4 6h4l1.5-2h5L16 6h4c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2zm8 11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0-8c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3z"/>
+                                    </svg>
+                                </Link>
                             )}
                         </div>
 
