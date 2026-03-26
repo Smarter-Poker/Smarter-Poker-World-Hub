@@ -771,7 +771,7 @@ export default function SocialPageDetail() {
 
     // Tab from URL query (#deep linking)
     useEffect(() => {
-        if (router.query.tab && ['posts','about','members','reviews','games','media'].includes(router.query.tab)) {
+        if (router.query.tab && ['posts','about','members','reviews','games','media','schedule'].includes(router.query.tab)) {
             setActiveTab(router.query.tab);
         }
     }, [router.query.tab]);
@@ -835,6 +835,27 @@ export default function SocialPageDetail() {
         setGamesLoading(false);
     }, [page]);
     useEffect(() => { if (page && activeTab === 'games') fetchGames(); }, [fetchGames, page, activeTab]);
+
+    // Tournament schedule state (#F1 - Commander bridge)
+    const [tournaments, setTournaments] = useState([]);
+    const [tournamentsLoading, setTournamentsLoading] = useState(false);
+    const [recentTournaments, setRecentTournaments] = useState([]);
+    const fetchTournaments = useCallback(async () => {
+        if (!page?.id) return;
+        setTournamentsLoading(true);
+        try {
+            const res = await fetch(`/api/social/pages/schedule?page_id=${page.id}`);
+            if (res.ok) {
+                const json = await res.json();
+                if (json.success) {
+                    setTournaments(json.data || []);
+                    setRecentTournaments(json.recent || []);
+                }
+            }
+        } catch (e) { console.error('Fetch tournaments error:', e); }
+        setTournamentsLoading(false);
+    }, [page?.id]);
+    useEffect(() => { if (page && activeTab === 'schedule') fetchTournaments(); }, [fetchTournaments, page, activeTab]);
 
     // Fetch venue check-ins (resolves integer venue_id from page data)
     const fetchVenueCheckins = useCallback(async () => {
@@ -1403,7 +1424,7 @@ export default function SocialPageDetail() {
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: 0, borderTop: `1px solid ${C.border}` }}>
-                            {['posts', 'about', 'members', 'reviews', 'games', 'media'].map(t => (
+                            {['posts', 'about', 'members', 'reviews', 'games', 'schedule', 'media'].map(t => (
                                 <button key={t} onClick={() => setActiveTab(t)} style={{
                                     padding: '12px 16px', border: 'none', background: 'none',
                                     fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
@@ -2050,6 +2071,163 @@ export default function SocialPageDetail() {
                                     </div>
                                 );
                             })()}
+
+                            {/* Tournament Schedule Tab (#F1 Commander Bridge) */}
+                            {activeTab === 'schedule' && (
+                                <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 20 }}>
+                                    <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 16px' }}>
+                                        Tournament Schedule {tournaments.length > 0 && `(${tournaments.length})`}
+                                    </h2>
+
+                                    {tournamentsLoading ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                            {[1,2,3].map(i => (
+                                                <div key={i} style={{ padding: 16, background: C.bg, borderRadius: 12, border: `1px solid ${C.border}` }}>
+                                                    <div className="shimmer" style={{ width: '60%', height: 16, borderRadius: 6, background: '#E4E6EB', marginBottom: 10 }} />
+                                                    <div className="shimmer" style={{ width: '40%', height: 12, borderRadius: 6, background: '#E4E6EB' }} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : tournaments.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: 30 }}>
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CCD0D5" strokeWidth="1.5">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                            </svg>
+                                            <p style={{ fontSize: 14, color: C.textSec, marginTop: 12 }}>No upcoming tournaments scheduled.</p>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                            {tournaments.map(t => {
+                                                const startDate = t.scheduled_start ? new Date(t.scheduled_start) : null;
+                                                const isToday = startDate && new Date().toDateString() === startDate.toDateString();
+                                                const isPast = startDate && startDate < new Date();
+                                                const statusColors = {
+                                                    scheduled: { bg: 'rgba(35,116,225,0.12)', text: '#2374e1' },
+                                                    registration: { bg: 'rgba(49,162,76,0.12)', text: '#31a24c' },
+                                                    running: { bg: 'rgba(240,40,73,0.12)', text: '#f02849' },
+                                                    paused: { bg: 'rgba(255,165,0,0.12)', text: '#FFA500' },
+                                                    final_table: { bg: 'rgba(139,92,246,0.12)', text: '#8b5cf6' },
+                                                };
+                                                const sc = statusColors[t.status] || statusColors.scheduled;
+                                                const typeLabels = {
+                                                    freezeout: 'Freezeout', rebuy: 'Rebuy', bounty: 'Bounty',
+                                                    satellite: 'Satellite', shootout: 'Shootout', turbo: 'Turbo', hyper: 'Hyper-Turbo',
+                                                };
+                                                return (
+                                                    <div key={t.id} style={{
+                                                        padding: 16, background: C.bg, borderRadius: 12,
+                                                        border: `1px solid ${isToday ? '#2374e1' : C.border}`,
+                                                        position: 'relative', overflow: 'hidden',
+                                                    }}>
+                                                        {/* Status ribbon */}
+                                                        {(t.status === 'running' || t.status === 'registration') && (
+                                                            <div style={{
+                                                                position: 'absolute', top: 0, right: 0, padding: '3px 12px',
+                                                                background: sc.text, color: '#fff', fontSize: 10, fontWeight: 700,
+                                                                textTransform: 'uppercase', letterSpacing: 0.5,
+                                                                borderBottomLeftRadius: 8,
+                                                            }}>{t.status === 'running' ? 'LIVE' : 'REG OPEN'}</div>
+                                                        )}
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
+                                                            <div style={{ flex: 1 }}>
+                                                                <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 4 }}>{t.name}</div>
+                                                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                                    <span style={{
+                                                                        display: 'inline-block', padding: '2px 8px', borderRadius: 10,
+                                                                        fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                                                                        background: sc.bg, color: sc.text,
+                                                                    }}>{typeLabels[t.type] || t.type}</span>
+                                                                    {t.bounty > 0 && (
+                                                                        <span style={{
+                                                                            display: 'inline-block', padding: '2px 8px', borderRadius: 10,
+                                                                            fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                                                                            background: 'rgba(240,40,73,0.12)', color: '#f02849',
+                                                                        }}>Bounty ${t.bounty}</span>
+                                                                    )}
+                                                                    {t.rebuys && (
+                                                                        <span style={{
+                                                                            display: 'inline-block', padding: '2px 8px', borderRadius: 10,
+                                                                            fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                                                                            background: 'rgba(255,165,0,0.12)', color: '#FFA500',
+                                                                        }}>Rebuys</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                                <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>${t.buyin}</div>
+                                                                <div style={{ fontSize: 10, color: C.textSec }}>
+                                                                    ${t.buyin_amount} + ${t.buyin_fee} fee
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                                                            <div style={{ display: 'flex', gap: 16 }}>
+                                                                <div>
+                                                                    <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600 }}>
+                                                                        {isToday ? 'Today' : startDate ? startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'TBD'}
+                                                                    </div>
+                                                                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                                                                        {startDate ? startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}
+                                                                    </div>
+                                                                </div>
+                                                                {t.entries > 0 && (
+                                                                    <div>
+                                                                        <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600 }}>Entries</div>
+                                                                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                                                                            {t.entries}{t.max_entries ? `/${t.max_entries}` : ''}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                {t.remaining > 0 && t.status === 'running' && (
+                                                                    <div>
+                                                                        <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600 }}>Remaining</div>
+                                                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#31a24c' }}>{t.remaining}</div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {t.guaranteed > 0 && (
+                                                                <div style={{
+                                                                    padding: '4px 10px', borderRadius: 8,
+                                                                    background: 'rgba(49,162,76,0.1)', border: '1px solid rgba(49,162,76,0.2)',
+                                                                }}>
+                                                                    <div style={{ fontSize: 10, color: '#31a24c', fontWeight: 600 }}>GTD</div>
+                                                                    <div style={{ fontSize: 14, fontWeight: 800, color: '#31a24c' }}>${t.guaranteed.toLocaleString()}</div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {t.description && (
+                                                            <p style={{ fontSize: 12, color: C.textSec, marginTop: 8, marginBottom: 0, lineHeight: 1.4 }}>{t.description}</p>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {/* Recently Completed */}
+                                    {recentTournaments.length > 0 && (
+                                        <div style={{ marginTop: 24 }}>
+                                            <h3 style={{ fontSize: 15, fontWeight: 700, color: C.textSec, margin: '0 0 12px' }}>Recently Completed</h3>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                                {recentTournaments.map(t => (
+                                                    <div key={t.id} style={{
+                                                        padding: 12, background: C.bg, borderRadius: 10, opacity: 0.7,
+                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                    }}>
+                                                        <div>
+                                                            <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{t.name}</div>
+                                                            <div style={{ fontSize: 11, color: C.textSec }}>
+                                                                {t.entries} entries · {t.scheduled_start ? new Date(t.scheduled_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>${t.buyin}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Sidebar */}

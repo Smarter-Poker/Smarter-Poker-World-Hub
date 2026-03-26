@@ -24,6 +24,48 @@ function getSupabase() {
     return _supabase;
 }
 
+/**
+ * Reverse bridge: sync social page follow/unfollow to venue page_followers.
+ * Best-effort (silent failure) — same pattern as forward bridge in /api/poker/follow.js.
+ */
+async function syncToVenueFollowers(userId, pageId, action) {
+    try {
+        const { data: pageData } = await getSupabase()
+            .from('social_pages')
+            .select('linked_venue_id')
+            .eq('id', pageId)
+            .maybeSingle();
+
+        const venueId = pageData?.linked_venue_id;
+        if (!venueId) return;
+
+        if (action === 'follow') {
+            // Upsert into page_followers (venue follow system)
+            const { data: existing } = await getSupabase()
+                .from('page_followers')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('page_type', 'venue')
+                .eq('page_id', String(venueId))
+                .maybeSingle();
+            if (!existing) {
+                await getSupabase()
+                    .from('page_followers')
+                    .insert({ user_id: userId, page_type: 'venue', page_id: String(venueId) });
+            }
+        } else {
+            await getSupabase()
+                .from('page_followers')
+                .delete()
+                .eq('user_id', userId)
+                .eq('page_type', 'venue')
+                .eq('page_id', String(venueId));
+        }
+    } catch (e) {
+        console.warn('[Social Follow] Venue cross-sync error:', e.message);
+    }
+}
+
 export default async function handler(req, res) {
   try {
     if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -84,6 +126,8 @@ export default async function handler(req, res) {
                   .eq('user_id', user_id);
 
               if (error) return res.status(500).json({ success: false, error: error.message });
+              // Reverse bridge: sync unfollow to venue system
+              syncToVenueFollowers(user_id, page_id, 'unfollow');
               return res.status(200).json({ success: true, following: false });
           }
 
@@ -136,6 +180,9 @@ export default async function handler(req, res) {
                   });
               }
           } catch (notifErr) { console.error('Follow notification error:', notifErr); }
+
+          // Reverse bridge: sync follow to venue system
+          syncToVenueFollowers(user_id, page_id, 'follow');
 
           return res.status(201).json({ success: true, following: true, status: followStatus, pending: requiresApproval, data });
 

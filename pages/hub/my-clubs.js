@@ -438,6 +438,9 @@ export default function MyClubsPage() {
     const [liveGamesMap, setLiveGamesMap] = useState({});
     const [waitlistMap, setWaitlistMap] = useState({});
 
+    // Social page slug map: venueId → socialPageSlug (for redirect)
+    const [socialPageSlugMap, setSocialPageSlugMap] = useState({});
+
     // Search
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
@@ -554,6 +557,20 @@ export default function MyClubsPage() {
                 }));
                 setLiveGamesMap(gameMap);
                 setWaitlistMap(wlMap);
+
+                // Batch-fetch social page slugs for followed venues
+                const slugMap = {};
+                await Promise.allSettled(venueIds.slice(0, 30).map(async (vid) => {
+                    try {
+                        const sRes = await fetch(`/api/social/pages?linked_venue_id=${vid}&limit=1`, signal ? { signal } : {});
+                        if (!sRes.ok) return;
+                        const sJson = await sRes.json();
+                        if (sJson.success && sJson.data && sJson.data.length > 0) {
+                            slugMap[String(vid)] = sJson.data[0].slug || sJson.data[0].id;
+                        }
+                    } catch (e) { /* silent */ }
+                }));
+                setSocialPageSlugMap(slugMap);
             }
 
 
@@ -671,9 +688,14 @@ export default function MyClubsPage() {
 
 
 
-    // Navigate to venue detail
+    // Navigate to venue — prefer social page if linked
     const handleNavigate = (venueId) => {
-        router.push(`/hub/venues/${venueId}`);
+        const slug = socialPageSlugMap[String(venueId)];
+        if (slug) {
+            router.push(`/hub/social-pages/${slug}`);
+        } else {
+            router.push(`/hub/venues/${venueId}`);
+        }
     };
 
     // Focus search input
