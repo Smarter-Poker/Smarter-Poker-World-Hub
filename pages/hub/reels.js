@@ -115,6 +115,9 @@ export default function ReelsPage() {
     const [commentPage, setCommentPage] = useState(0);
     const [hasMoreComments, setHasMoreComments] = useState(false);
     const [loadingMoreComments, setLoadingMoreComments] = useState(false);
+    // Phase 6 — Comment engagement
+    const [commentLikes, setCommentLikes] = useState({});
+    const [replyTo, setReplyTo] = useState(null);
     const pullStartY = useRef(null);
 
     // Reels preferences state
@@ -688,11 +691,13 @@ export default function ReelsPage() {
         const mediaUrl = commentMediaUrl;
         const mediaType = commentMediaType;
         const tempId = Date.now();
+        const parentId = replyTo?.id || null;
         setSubmittingComment(true);
         setCommentText('');
         setCommentMediaUrl(null);
         setCommentMediaType(null);
         setShowGifPicker(false);
+        setReplyTo(null);
         // Optimistic comment
         setComments(prev => [...prev, {
             id: tempId, content: text,
@@ -700,10 +705,12 @@ export default function ReelsPage() {
             created_at: new Date().toISOString(),
             media_url: mediaUrl || null,
             media_type: mediaType || null,
+            parent_id: parentId,
         }]);
         try {
             const payload = { post_id: currentReel.id, author_id: user.id, content: text || '' };
             if (mediaUrl) { payload.media_url = mediaUrl; payload.media_type = mediaType; }
+            if (parentId) { payload.parent_id = parentId; }
             const { error } = await supabase.from('social_comments').insert(payload);
             if (error) throw error;
             busEmit.socialCommentAdded(currentReel.id, user.id);
@@ -713,6 +720,39 @@ export default function ReelsPage() {
             setComments(prev => prev.filter(c => c.id !== tempId));
         }
         setSubmittingComment(false);
+    };
+
+    // Phase 6 — Comment like toggle
+    const handleCommentLike = async (commentId) => {
+        if (!user?.id) return;
+        const wasLiked = commentLikes[commentId];
+        setCommentLikes(prev => ({ ...prev, [commentId]: !wasLiked }));
+        try {
+            if (wasLiked) {
+                await supabase.from('social_interactions')
+                    .delete().match({ user_id: user.id, post_id: currentReel.id, interaction_type: 'comment_like', metadata: { comment_id: commentId } });
+            } else {
+                await supabase.from('social_interactions').insert({
+                    user_id: user.id, post_id: currentReel.id,
+                    interaction_type: 'comment_like', metadata: { comment_id: commentId }
+                });
+            }
+        } catch { setCommentLikes(prev => ({ ...prev, [commentId]: wasLiked })); }
+    };
+
+    // Phase 6 — Delete own comment
+    const handleDeleteComment = async (commentId) => {
+        if (!user?.id || !currentReel?.id) return;
+        const prev = comments;
+        setComments(c => c.filter(x => x.id !== commentId));
+        try {
+            const { error } = await supabase.from('social_comments').delete()
+                .eq('id', commentId).eq('author_id', user.id);
+            if (error) throw error;
+            try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
+            setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
+            busEmit.socialCommentDeleted && busEmit.socialCommentDeleted(currentReel.id, user.id);
+        } catch { setComments(prev); }
     };
 
     // #8 Share Options Modal — open modal instead of direct share
@@ -1755,7 +1795,7 @@ export default function ReelsPage() {
                                 </div>
                             )}
                             {comments.map((c, i) => (
-                                <div key={c.id || i} style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                                <div key={c.id || i} style={{ display: 'flex', gap: 10, marginBottom: 12, paddingLeft: c.parent_id ? 24 : 0 }}>
                                     <div style={{
                                         width: 32, height: 32, borderRadius: '50%', background: '#333',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1771,6 +1811,24 @@ export default function ReelsPage() {
                                                 objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)',
                                             }} loading="lazy" />
                                         )}
+                                        {/* Phase 6 — Comment engagement row */}
+                                        <div style={{ display: 'flex', gap: 14, marginTop: 4, alignItems: 'center' }}>
+                                            <button onClick={() => handleCommentLike(c.id)} style={{
+                                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                                color: commentLikes[c.id] ? '#FF2D55' : 'rgba(255,255,255,0.4)', fontSize: 12,
+                                                display: 'flex', alignItems: 'center', gap: 3,
+                                            }}>{commentLikes[c.id] ? '❤️' : '🤍'}</button>
+                                            <button onClick={() => { setReplyTo({ id: c.id, username: c.profiles?.username || c.author?.username || 'User' }); setCommentText(`@${c.profiles?.username || c.author?.username || 'User'} `); }} style={{
+                                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                                color: 'rgba(255,255,255,0.4)', fontSize: 12,
+                                            }}>Reply</button>
+                                            {(c.profiles?.username === 'You' || c.author_id === user?.id) && (
+                                                <button onClick={() => handleDeleteComment(c.id)} style={{
+                                                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                                    color: 'rgba(255,255,255,0.3)', fontSize: 12, marginLeft: 'auto',
+                                                }}>Delete</button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -1804,6 +1862,16 @@ export default function ReelsPage() {
                                     setCommentMediaType('gif');
                                     setShowGifPicker(false);
                                 }} />
+                            </div>
+                        )}
+
+                        {/* Reply-to indicator */}
+                        {replyTo && (
+                            <div style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,212,255,0.06)' }}>
+                                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Replying to <span style={{ color: '#00d4ff', fontWeight: 600 }}>@{replyTo.username}</span></span>
+                                <button onClick={() => { setReplyTo(null); setCommentText(''); }} style={{
+                                    background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 14, cursor: 'pointer', marginLeft: 'auto',
+                                }}>x</button>
                             </div>
                         )}
 

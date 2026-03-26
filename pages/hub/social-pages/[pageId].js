@@ -1,6 +1,7 @@
 /**
  * Social Page Detail View - Full page with feed, followers, about, and content management
  * Supports venue, group, community, and brand pages
+ * Build: 2026-03-26T14:04 — hydration-safe
  */
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback, useRef } from 'react';

@@ -1,0 +1,17 @@
+{
+  "venue_id": 1883,
+  "venue_name": "Spirit Mountain Casino",
+  "sources": [
+    "PA:200",
+    "Google",
+    "Bravo"
+  ],
+  "batch_id": "48ecdb64-2ab2-4350-b82b-b45df71bc5e0",
+  "timestamp": "2026-03-26T14:04:17.846370+00:00",
+  "extracted": {
+    "games_offered": [
+      "PLO"
+    ],
+    "data_quality": "scraped_verified"
+  }
+}

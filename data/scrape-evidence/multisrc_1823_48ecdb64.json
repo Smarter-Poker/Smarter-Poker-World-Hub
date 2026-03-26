@@ -1,0 +1,14 @@
+{
+  "venue_id": 1823,
+  "venue_name": "Graton Resort & Casino",
+  "sources": [
+    "PA:200",
+    "Google"
+  ],
+  "batch_id": "48ecdb64-2ab2-4350-b82b-b45df71bc5e0",
+  "timestamp": "2026-03-26T14:01:17.248521+00:00",
+  "extracted": {
+    "address": "3355 Las Vegas Blvd. South",
+    "data_quality": "scraped_verified"
+  }
+}
