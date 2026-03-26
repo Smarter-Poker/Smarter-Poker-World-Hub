@@ -47,20 +47,27 @@ export default async function handler(req, res) {
           }
 
           if (action === 'like') {
+              const reaction_type = req.body.reaction_type || 'like';
               // Toggle like
               const { data: existing } = await getSupabase()
                   .from('social_page_post_likes')
-                  .select('id')
+                  .select('id, reaction_type')
                   .eq('post_id', post_id)
                   .eq('user_id', user_id)
                   .maybeSingle();
 
               if (existing) {
-                  const { error: delErr } = await getSupabase().from('social_page_post_likes').delete().eq('id', existing.id);
-                  if (delErr) return res.status(500).json({ success: false, error: delErr.message });
-                  return res.status(200).json({ success: true, liked: false });
+                  // If same reaction, unlike. If different reaction, update.
+                  if (existing.reaction_type === reaction_type) {
+                      const { error: delErr } = await getSupabase().from('social_page_post_likes').delete().eq('id', existing.id);
+                      if (delErr) return res.status(500).json({ success: false, error: delErr.message });
+                      return res.status(200).json({ success: true, liked: false });
+                  } else {
+                      await getSupabase().from('social_page_post_likes').update({ reaction_type }).eq('id', existing.id);
+                      return res.status(200).json({ success: true, liked: true, reaction_type });
+                  }
               } else {
-                  await getSupabase().from('social_page_post_likes').insert({ post_id, user_id });
+                  await getSupabase().from('social_page_post_likes').insert({ post_id, user_id, reaction_type });
 
                   // Like notification — notify post author
                   try {
@@ -87,6 +94,27 @@ export default async function handler(req, res) {
                       }
                   } catch (ne) { console.error('Like notification error:', ne); }
 
+                  return res.status(201).json({ success: true, liked: true, reaction_type });
+              }
+          }
+
+          // Comment like toggle
+          if (action === 'like_comment') {
+              const { comment_id } = req.body;
+              if (!comment_id) return res.status(400).json({ success: false, error: 'comment_id required' });
+
+              const { data: existing } = await getSupabase()
+                  .from('social_page_comment_likes')
+                  .select('id')
+                  .eq('comment_id', comment_id)
+                  .eq('user_id', user_id)
+                  .maybeSingle();
+
+              if (existing) {
+                  await getSupabase().from('social_page_comment_likes').delete().eq('id', existing.id);
+                  return res.status(200).json({ success: true, liked: false });
+              } else {
+                  await getSupabase().from('social_page_comment_likes').insert({ comment_id, user_id });
                   return res.status(201).json({ success: true, liked: true });
               }
           }
@@ -140,7 +168,7 @@ export default async function handler(req, res) {
               });
           }
 
-          return res.status(400).json({ success: false, error: 'Invalid action. Use "like" or "comment"' });
+          return res.status(400).json({ success: false, error: 'Invalid action. Use "like", "comment", or "like_comment"' });
 
       } else if (req.method === 'GET') {
           const { post_id, limit = '50' } = req.query;

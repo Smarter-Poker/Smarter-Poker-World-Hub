@@ -101,7 +101,7 @@ export default async function handler(req, res) {
           if (!authUser) return;
 
           const { page_id, content, content_type, media_urls,
-              link_preview, visibility, is_pinned, metadata } = req.body;
+              link_preview, visibility, is_pinned, post_type, metadata } = req.body;
           const author_id = authUser.id;
 
           if (!page_id) {
@@ -149,6 +149,7 @@ export default async function handler(req, res) {
                   link_preview,
                   visibility: visibility || 'public',
                   is_pinned: isOwner ? (is_pinned || false) : false,
+                  post_type: isOwner ? (post_type || 'regular') : 'regular',
                   is_approved: isOwner || !page.require_post_approval,
                   metadata: metadata || {}
               })
