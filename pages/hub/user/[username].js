@@ -1181,7 +1181,7 @@ export default function UserProfilePage() {
                     // Fetch check-in badges
                     fetch('/api/poker/checkins/badges?user_id=' + encodeURIComponent(pokerUid), { headers })
                         .then(function (r) { return r.json(); })
-                        .then(function (j) { if (j.success && j.badges) setCheckinBadges(j.badges); })
+                        .then(function (j) { if (j.success && j.badges) { var b = j.badges; b._nextBadge = j.nextBadge || null; setCheckinBadges(b); } })
                         .catch(function () { });
                     // Fetch check-in aggregate stats
                     fetch('/api/poker/checkins/stats?user_id=' + encodeURIComponent(pokerUid), { headers })
@@ -2345,6 +2345,18 @@ export default function UserProfilePage() {
                                             );
                                         })}
                                     </div>
+                                    {/* Next Badge Progress */}
+                                    {checkinBadges._nextBadge && (
+                                        <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.12)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                                <span style={{ fontSize: 12, color: C.textSec }}>Next: <b style={{ color: C.text }}>{checkinBadges._nextBadge.name}</b></span>
+                                                <span style={{ fontSize: 11, color: '#3b82f6', fontWeight: 700 }}>{checkinBadges._nextBadge.current}/{checkinBadges._nextBadge.threshold}</span>
+                                            </div>
+                                            <div style={{ height: 6, borderRadius: 3, background: 'rgba(59,130,246,0.1)', overflow: 'hidden' }}>
+                                                <div style={{ height: '100%', borderRadius: 3, background: 'linear-gradient(90deg, #3b82f6, #60a5fa)', width: Math.round(checkinBadges._nextBadge.progress * 100) + '%', transition: 'width 0.6s ease' }} />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -2379,6 +2391,26 @@ export default function UserProfilePage() {
                                             <span style={{ color: C.textSec }}> ({checkinStats.favoriteVenue.count} visits)</span>
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Check-In Map Mini */}
+                            {pokerCheckins.length > 0 && (
+                                <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                    <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: C.text }}>Check-In Map</h3>
+                                    <div style={{
+                                        height: 160, borderRadius: 8, overflow: 'hidden',
+                                        background: 'rgba(59,130,246,0.05)', border: '1px solid ' + C.border,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        position: 'relative'
+                                    }}>
+                                        <div style={{ textAlign: 'center', color: C.textSec, fontSize: 13 }}>
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" style={{ display: 'block', margin: '0 auto 6px' }}>
+                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                                            </svg>
+                                            {pokerCheckins.length} check-in{pokerCheckins.length !== 1 ? 's' : ''} across {checkinStats?.uniqueVenues || '—'} venues
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
@@ -2423,7 +2455,7 @@ export default function UserProfilePage() {
                                                         </div>
                                                         <div style={{ flex: 1, minWidth: 0 }}>
                                                             <div style={{ fontWeight: 600, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                {c.venue_name || ('Venue #' + c.venue_id)}
+                                                                {c.venue_name || 'Unknown Venue'}
                                                             </div>
                                                             <div style={{ fontSize: 12, color: C.textSec }}>
                                                                 {c.venue_city && c.venue_state ? `${c.venue_city}, ${c.venue_state} · ` : ''}{c.created_at ? timeAgo(c.created_at) : ''}

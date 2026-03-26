@@ -100,6 +100,19 @@ export default async function handler(req, res) {
         if (longestStreak >= 7) badges.push({ id: 'streak_master', name: 'Streak Master', icon: '🔥', desc: '7-day check-in streak', tier: 'silver' });
         if (longestStreak >= 30) badges.push({ id: 'iron_will', name: 'Iron Will', icon: '⚡', desc: '30-day check-in streak', tier: 'gold' });
 
+        // Compute next badge progress
+        const thresholds = [
+            { id: 'regular', name: 'Regular', threshold: 10, metric: 'total', current: total },
+            { id: 'veteran', name: 'Veteran', threshold: 50, metric: 'total', current: total },
+            { id: 'legend', name: 'Legend', threshold: 100, metric: 'total', current: total },
+            { id: 'explorer', name: 'Explorer', threshold: 5, metric: 'venues', current: uniqueVenues },
+            { id: 'globetrotter', name: 'Globetrotter', threshold: 20, metric: 'venues', current: uniqueVenues },
+            { id: 'road_warrior', name: 'Road Warrior', threshold: 3, metric: 'states', current: uniqueStates },
+            { id: 'streak_master', name: 'Streak Master', threshold: 7, metric: 'streak', current: longestStreak },
+        ];
+        const earnedIds = new Set(badges.map(b => b.id));
+        const nextBadge = thresholds.find(t => !earnedIds.has(t.id));
+
         return res.status(200).json({
             success: true,
             badges,
@@ -108,6 +121,14 @@ export default async function handler(req, res) {
             uniqueStates,
             longestStreak,
             maxAtOneVenue,
+            nextBadge: nextBadge ? {
+                id: nextBadge.id,
+                name: nextBadge.name,
+                threshold: nextBadge.threshold,
+                current: nextBadge.current,
+                metric: nextBadge.metric,
+                progress: Math.min(1, nextBadge.current / nextBadge.threshold),
+            } : null,
         });
 
     } catch (err) {

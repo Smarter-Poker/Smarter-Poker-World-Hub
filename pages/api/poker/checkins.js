@@ -92,6 +92,37 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: error.message });
         }
 
+        // Auto-create social post for check-in
+        try {
+          // Look up venue name
+          let venueName = 'a poker venue';
+          const venueIdInt = parseInt(venue_id, 10);
+          if (!isNaN(venueIdInt) && venueIdInt > 0) {
+            const { data: venueRow } = await getSupabase()
+              .from('poker_venues')
+              .select('name, city, state')
+              .eq('id', venueIdInt)
+              .maybeSingle();
+            if (venueRow && venueRow.name) {
+              venueName = venueRow.name;
+              if (venueRow.city) venueName += ' in ' + venueRow.city;
+            }
+          }
+          const postContent = 'Just checked in at ' + venueName + '! #PokerLife';
+          await getSupabase()
+            .from('user_posts')
+            .insert({
+              user_id: authUser.id,
+              content: postContent,
+              type: 'checkin',
+              venue_id: String(venueIdNum),
+              created_at: new Date().toISOString(),
+            });
+        } catch (postErr) {
+          // Non-blocking — don't fail the check-in if post creation fails
+          console.warn('[Checkin] Auto-post failed:', postErr.message);
+        }
+
         return res.status(201).json({ success: true, checkin: data });
       }
 
