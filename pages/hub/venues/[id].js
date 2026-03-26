@@ -681,9 +681,19 @@ export default function VenueDetailPage() {
       var userId = (authUser && authUser.id) ? authUser.id : getAnonymousUserId();
       var displayName = checkinName.trim() || (authUser && (authUser.user_metadata?.full_name || authUser.user_metadata?.name)) || 'Anonymous';
 
+      // Build headers with JWT auth
+      var fetchHeaders = { 'Content-Type': 'application/json' };
+      try {
+        var sbKeys = Object.keys(localStorage).filter(function(k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); });
+        if (sbKeys.length > 0) {
+          var tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+          if (tokenData.access_token) fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token;
+        }
+      } catch (_e) { /* ignore */ }
+
       var res = await fetch('/api/poker/checkins', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: fetchHeaders,
         body: JSON.stringify({
           venue_id: id,
           user_id: userId,

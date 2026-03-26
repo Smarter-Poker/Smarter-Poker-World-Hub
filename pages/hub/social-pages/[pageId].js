@@ -1153,13 +1153,17 @@ export default function SocialPageDetail() {
         const prevPosts = posts;
         const targetPost = posts.find(p => p.id === postId);
         const wasLiked = targetPost?.user_liked;
-        setPosts(prev => prev.map(p =>
-            p.id === postId ? {
-                ...p,
-                user_liked: !p.user_liked,
-                like_count: p.user_liked ? Math.max(0, (p.like_count || 1) - 1) : (p.like_count || 0) + 1
-            } : p
-        ));
+        // If changing reaction type on already-liked post, don't toggle — API updates type
+        const isReactionChange = wasLiked && reactionType && reactionType !== 'like';
+        if (!isReactionChange) {
+            setPosts(prev => prev.map(p =>
+                p.id === postId ? {
+                    ...p,
+                    user_liked: !p.user_liked,
+                    like_count: p.user_liked ? Math.max(0, (p.like_count || 1) - 1) : (p.like_count || 0) + 1
+                } : p
+            ));
+        }
         try {
             const token = getAccessToken();
             const res = await fetch('/api/social/pages/engage', {

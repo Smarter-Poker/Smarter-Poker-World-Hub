@@ -1871,6 +1871,21 @@ function UniversalDynamicTable({
                             || actionHistory.some(a => a.position?.toUpperCase() === seat.name?.toUpperCase());
                         if (!isHero && !isActiveVillain) return null;
 
+                        // Phase 9: GTO Wizard 2-seat override — force Hero bottom-center, Villain top-center
+                        // This prevents overlap regardless of original 6-max/9-max coordinates
+                        const activeCount = seats.filter((s, i) => {
+                            if (i === heroSeatIndex) return true;
+                            return villainPosition?.toUpperCase() === s.name?.toUpperCase()
+                                || actionHistory.some(a => a.position?.toUpperCase() === s.name?.toUpperCase());
+                        }).length;
+                        let seatX = seat.x;
+                        let seatY = seat.y;
+                        if (activeCount <= 2) {
+                            // Force GTO Wizard positions: Hero = bottom-center, Villain = top-center
+                            seatX = 50;
+                            seatY = isHero ? 80 : 18;
+                        }
+
                         return (
                             <motion.div
                                 key={seat.id}
@@ -1880,8 +1895,8 @@ function UniversalDynamicTable({
                                 style={{
                                     ...styles.seat,
                                     ...m.seat,
-                                    left: `${seat.x}%`,
-                                    top: `${seat.y}%`,
+                                    left: `${seatX}%`,
+                                    top: `${seatY}%`,
                                 }}
                             >
                                 {/* Villain Speech Bubble — shows their action */}
