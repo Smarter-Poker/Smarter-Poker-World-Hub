@@ -1839,50 +1839,13 @@ function UniversalDynamicTable({
                     )}
                 </AnimatePresence>
 
-                {/* PHASE 5: Position Awareness HUD (HARDENED) */}
-                <div style={{
-                    position: 'absolute', top: 8, left: 8, zIndex: 20,
-                    display: 'flex', flexDirection: 'column', gap: 3,
-                    padding: '4px 8px', borderRadius: 8,
-                    background: 'rgba(0,0,0,0.5)',
-                    border: '1px solid rgba(0,212,255,0.2)',
-                    backdropFilter: 'blur(4px)',
-                }}>
-                    <div style={{ fontSize: 9, fontWeight: 800, color: '#00d4ff', letterSpacing: 1 }}>
-                        {heroPosition || 'BTN'}
-                    </div>
-                    <div style={{
-                        fontSize: 7, fontWeight: 600, letterSpacing: 0.5,
-                        color: (() => {
-                            const pos = (heroPosition || '').toUpperCase();
-                            const vPos = (villainPosition || '').toUpperCase();
-                            // HARDENED: Handle same-position edge case
-                            if (pos === vPos) return '#fbbf24';
-                            const ORDER = ['SB', 'BB', 'UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN'];
-                            const heroIdx = ORDER.indexOf(pos);
-                            const villainIdx = ORDER.indexOf(vPos);
-                            if (heroIdx < 0 || villainIdx < 0) return '#64748b';
-                            return heroIdx > villainIdx ? '#22c55e' : '#ef4444';
-                        })(),
-                    }}>
-                        {(() => {
-                            const pos = (heroPosition || '').toUpperCase();
-                            const vPos = (villainPosition || '').toUpperCase();
-                            // HARDENED: Handle same-position edge case
-                            if (pos === vPos) return 'HEADS UP';
-                            const ORDER = ['SB', 'BB', 'UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN'];
-                            return ORDER.indexOf(pos) > ORDER.indexOf(vPos) ? 'IN POSITION' : 'OUT OF POSITION';
-                        })()}
-                    </div>
-                </div>
-
-                {/* CSS Poker Felt Table */}
+                {/* CSS Poker Felt Table — GTO Wizard style with felt gradient */}
                 <div style={styles.feltOuter}>
                     <div style={styles.feltRail} />
                     <div style={styles.feltSurface} />
                 </div>
 
-                {/* DYNAMIC PLAYER SEATS */}
+                {/* DYNAMIC PLAYER SEATS — GTO Wizard style: only Hero + active Villain(s) */}
                 <div style={styles.seatsContainer}>
                     {seats.map((seat, index) => {
                         const isHero = index === heroSeatIndex;
@@ -1897,6 +1860,11 @@ function UniversalDynamicTable({
                             actionHistory.find(a => a.position?.toUpperCase() === seat.name?.toUpperCase())
                             || (villainPosition?.toUpperCase() === seat.name?.toUpperCase() && villainAction ? { action: villainAction } : null)
                         ) : null;
+
+                        // GAP 1 FIX: Only show Hero + villain(s) who acted or are the named villain
+                        const isActiveVillain = villainPosition?.toUpperCase() === seat.name?.toUpperCase()
+                            || actionHistory.some(a => a.position?.toUpperCase() === seat.name?.toUpperCase());
+                        if (!isHero && !isActiveVillain) return null;
 
                         return (
                             <motion.div
@@ -2006,36 +1974,7 @@ function UniversalDynamicTable({
                                         <div style={styles.badgeStack}>{stackSize} bb</div>
                                     </div>
 
-                                    {/* Hero Cards */}
-                                    {isHero && (
-                                        <div style={styles.heroCardsInline}>
-                                            <motion.img
-                                                src={getCardPath(heroCards[0])}
-                                                alt={heroCards[0]}
-                                                initial={{ y: 50, opacity: 0, rotateZ: -30 }}
-                                                animate={{ y: 0, opacity: 1, rotateZ: -12 }}
-                                                transition={{ delay: 0.1, duration: 0.4, type: 'spring' }}
-                                                style={{
-                                                    ...styles.card,
-                                                    ...m.card,
-                                                    transformOrigin: 'bottom center',
-                                                }}
-                                            />
-                                            <motion.img
-                                                src={getCardPath(heroCards[1])}
-                                                alt={heroCards[1]}
-                                                initial={{ y: 50, opacity: 0, rotateZ: 30 }}
-                                                animate={{ y: 0, opacity: 1, rotateZ: 8 }}
-                                                transition={{ delay: 0.2, duration: 0.4, type: 'spring' }}
-                                                style={{
-                                                    ...styles.card,
-                                                    ...m.card,
-                                                    marginLeft: -20,
-                                                    transformOrigin: 'bottom center',
-                                                }}
-                                            />
-                                        </div>
-                                    )}
+                                    {/* Hero Cards — moved to dedicated large display below table (GAP 3) */}
                                     {/* Face-down villain cards for active players */}
                                     {!isHero && !villainFolded && (
                                         <div style={{ display: 'flex', gap: 1, marginTop: 2 }}>
@@ -2187,31 +2126,14 @@ function UniversalDynamicTable({
                     </div>
                 )}
 
-                {/* POT DISPLAY with chip visualization */}
+                {/* POT DISPLAY — Clean centered display (GAP 5) */}
                 {pot > 0 && (
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         style={{...styles.pot, ...m.pot}}
                     >
-                        {/* Chip stack icon */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, marginRight: 4 }}>
-                            {[0, 1, 2].map(i => (
-                                <div key={i} style={{
-                                    width: 14, height: 4, borderRadius: 2,
-                                    background: i === 0 ? '#fbbf24' : i === 1 ? '#f97316' : '#ef4444',
-                                    marginTop: i > 0 ? -1 : 0,
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
-                                    border: '0.5px solid rgba(255,255,255,0.15)',
-                                }} />
-                            ))}
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.5 }}>
-                                {contextString}
-                            </span>
-                            <span style={{ fontSize: 18, fontWeight: 800 }}>{pot} bb</span>
-                        </div>
+                        <span style={{ fontSize: isMobile ? 14 : 18, fontWeight: 800, color: '#e2e8f0' }}>Pot: {pot} bb</span>
                         {/* SPR + Pot Odds */}
                         <div style={styles.potOverlayRow}>
                             {spr && <span style={styles.potOverlayBadge}>SPR: {spr}</span>}
@@ -2220,7 +2142,7 @@ function UniversalDynamicTable({
                     </motion.div>
                 )}
 
-                {/* STREET INDICATOR with glow on current street */}
+                {/* STREET INDICATOR */}
                 <motion.div
                     key={boardCards.length}
                     initial={{ opacity: 0, y: 10 }}
@@ -2242,6 +2164,71 @@ function UniversalDynamicTable({
                     {boardCards.length === 4 && '● TURN'}
                     {boardCards.length === 5 && '● RIVER'}
                 </motion.div>
+            </div>
+
+            {/* GAP 3: HERO CARDS — GTO Wizard-style large display below table */}
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: isMobile ? '6px 0 4px' : '10px 0 6px',
+                flexShrink: 0,
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6 }}>
+                    {heroCards[0] && (
+                        <motion.img
+                            key={`hero-0-${questionNumber}`}
+                            src={getCardPath(heroCards[0])}
+                            alt={heroCards[0]}
+                            initial={{ y: 30, opacity: 0, rotateZ: -15 }}
+                            animate={{ y: 0, opacity: 1, rotateZ: -6 }}
+                            transition={{ delay: 0.1, duration: 0.4, type: 'spring' }}
+                            style={{
+                                width: isMobile ? 60 : 72,
+                                height: isMobile ? 86 : 104,
+                                borderRadius: 8,
+                                boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
+                                border: '2px solid rgba(255,255,255,0.3)',
+                            }}
+                        />
+                    )}
+                    {heroCards[1] && (
+                        <motion.img
+                            key={`hero-1-${questionNumber}`}
+                            src={getCardPath(heroCards[1])}
+                            alt={heroCards[1]}
+                            initial={{ y: 30, opacity: 0, rotateZ: 15 }}
+                            animate={{ y: 0, opacity: 1, rotateZ: 6 }}
+                            transition={{ delay: 0.2, duration: 0.4, type: 'spring' }}
+                            style={{
+                                width: isMobile ? 60 : 72,
+                                height: isMobile ? 86 : 104,
+                                borderRadius: 8,
+                                marginLeft: isMobile ? -12 : -16,
+                                boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
+                                border: '2px solid rgba(255,255,255,0.3)',
+                            }}
+                        />
+                    )}
+                </div>
+                {/* Hand Strength Label */}
+                {handStrength && !showFeedback && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        style={{
+                            marginTop: 4,
+                            fontSize: 10, fontWeight: 'bold',
+                            color: handStrength.color,
+                            background: `${handStrength.color}15`,
+                            border: `1px solid ${handStrength.color}33`,
+                            padding: '2px 10px', borderRadius: 6,
+                            letterSpacing: 0.5,
+                        }}
+                    >
+                        {handStrength.label}
+                    </motion.div>
+                )}
             </div>
 
             {/* SESSION STATS HUD — Score, EV Loss, Mistakes + Difficulty Bar */}
@@ -3294,15 +3281,16 @@ const styles = {
         position: 'absolute',
         inset: 0,
         borderRadius: '50%',
-        border: '2px solid rgba(255, 255, 255, 0.12)',
+        border: '3px solid rgba(255, 255, 255, 0.15)',
         pointerEvents: 'none',
         zIndex: 1,
+        boxShadow: 'inset 0 0 30px rgba(0,0,0,0.3), 0 0 15px rgba(0,0,0,0.2)',
     },
     feltSurface: {
         position: 'absolute',
         inset: 0,
         borderRadius: '50%',
-        background: 'rgba(255, 255, 255, 0.02)',
+        background: 'radial-gradient(ellipse at center, rgba(26,62,46,0.6) 0%, rgba(18,42,32,0.4) 60%, rgba(12,28,22,0.3) 100%)',
     },
 
     seatsContainer: {
