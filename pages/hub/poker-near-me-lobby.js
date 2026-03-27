@@ -1689,7 +1689,7 @@ export default function PokerNearMeLobby() {
     }
 
     return { title: feature.title, component };
-  }, [activePod, venues, tours, series, dailyTournaments, liveGames, favorites, loading, userLocation, userId, router, handleToggleFavorite, sortBy, showFilters, filters, hasMore, page, fetchDaily, loadMore, handleSortChange, handleFilterChange, favoritedVenues, fetchError, fetchVenues, searchQuery, toursLoaded, seriesLoaded, checkinCounts]);
+  }, [activePod, venues, tours, series, dailyTournaments, favorites, loading, userLocation, userId, router, handleToggleFavorite, sortBy, showFilters, filters, hasMore, page, fetchDaily, loadMore, handleSortChange, handleFilterChange, favoritedVenues, fetchError, fetchVenues, searchQuery, toursLoaded, seriesLoaded, checkinCounts]);
 
   // ─── Live data for the 3D scene (drives visual behavior) ───
   const liveData = useMemo(() => ({
