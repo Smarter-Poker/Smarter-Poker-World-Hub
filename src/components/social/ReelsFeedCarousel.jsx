@@ -291,6 +291,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
     const [commentSort, setCommentSort] = useState('newest');
     const [copyToast, setCopyToast] = useState(false);
     const COMMENT_MAX_LENGTH = 280;
+    // #10 Error Toast
+    const [errorToast, setErrorToast] = useState(null);
+    const showErrorToast = (msg) => { setErrorToast(msg); setTimeout(() => setErrorToast(null), 3000); };
+    // #6 Comment Like Counts
+    const [commentLikeCounts, setCommentLikeCounts] = useState({});
     // GIF + Image state for reel comments
     const [showReelGifPicker, setShowReelGifPicker] = useState(false);
     const [reelCommentMediaUrl, setReelCommentMediaUrl] = useState(null);
@@ -572,6 +577,14 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     .limit(50);
                 setReelComments(data || []);
                 setHasMoreComments((data || []).length >= 50);
+                // #6 Load comment like counts
+                try {
+                    const { data: clData } = await supabase.from('social_interactions')
+                        .select('metadata').eq('post_id', currentReel.id).eq('interaction_type', 'comment_like');
+                    const clCounts = {};
+                    (clData || []).forEach(row => { const cid = row.metadata?.comment_id; if (cid) clCounts[cid] = (clCounts[cid] || 0) + 1; });
+                    setCommentLikeCounts(clCounts);
+                } catch {}
             } catch { setReelComments([]); }
             setTimeout(() => commentInputRef.current?.focus(), 100);
         }
@@ -792,6 +805,15 @@ function ReelViewer({ reels, startIndex, onClose }) {
             const videoUrl = currentReel.video_url;
             const caption = currentReel.caption || 'Check out this reel!';
             const reelLink = window.location.origin + '/hub/reels?id=' + currentReel.id;
+            // #5 Duplicate guard
+            const { data: existing } = await supabase.from('social_posts')
+                .select('id').eq('author_id', authUser.id).eq('link_url', reelLink).limit(1);
+            if (existing && existing.length > 0) {
+                setSharedToFeed(true);
+                setSharingToFeed(false);
+                setTimeout(() => setSharedToFeed(false), 3000);
+                return;
+            }
             const postContent = caption + '\n\n' + reelLink;
             const { error } = await supabase.from('social_posts').insert({
                 author_id: authUser.id,
@@ -806,10 +828,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
             busEmit.socialPostShared(currentReel.id, authUser.id);
             busEmit.dataMutated('social');
             setSharedToFeed(true);
-            // Phase 9: Keep modal open so users can share to outside places
             setTimeout(() => { setSharedToFeed(false); }, 3000);
         } catch (err) {
             console.warn('Share to feed failed:', err.message);
+            showErrorToast('Share failed \u2014 try again');
         }
         setSharingToFeed(false);
     };
@@ -920,6 +942,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             busEmit.socialPostBookmarked(currentReel.id, authUser.id, { added: !wasSaved });
         } catch {
             setSaved(prev => ({ ...prev, [currentReel.id]: wasSaved }));
+            showErrorToast('Save failed \u2014 try again');
         }
     };
 
@@ -1213,7 +1236,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         zIndex: 20,
                     }}
                 >
-                    <button onClick={() => { handleLike(); haptic(15); }} style={{
+                    <button onClick={() => { handleLike(); haptic(15); }} aria-label={liked[currentReel.id] ? 'Unlike' : 'Like'} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
@@ -1225,35 +1248,35 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             display: 'inline-block',
                         }}>{likeCounts[currentReel.id] || 0}</span>
                     </button>
-                    <button onClick={() => { handleDislike(); haptic(10); }} style={{
+                    <button onClick={() => { handleDislike(); haptic(10); }} aria-label={disliked[currentReel.id] ? 'Remove dislike' : 'Dislike'} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: disliked[currentReel.id] ? '#ef4444' : 'white',
                     }}>
                         <span style={{ fontSize: 24 }}>{disliked[currentReel.id] ? '👎🏻' : '👎'}</span>
                         <span style={{ fontSize: 10, fontWeight: 500 }}>{disliked[currentReel.id] ? 'Disliked' : 'Dislike'}</span>
                     </button>
-                    <button onClick={handleToggleComments} style={{
+                    <button onClick={handleToggleComments} aria-label="Comments" style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
                         <span style={{ fontSize: 24 }}>💬</span>
                         <span style={{ fontSize: 10, fontWeight: 500 }}>{commentCounts[currentReel.id] || 0}</span>
                     </button>
-                    <button onClick={handleSave} style={{
+                    <button onClick={handleSave} aria-label={saved[currentReel.id] ? 'Unsave' : 'Save'} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
                         <span style={{ fontSize: 24 }}>{saved[currentReel.id] ? '💾' : '🔖'}</span>
                         <span style={{ fontSize: 10, fontWeight: 500 }}>{saved[currentReel.id] ? 'Saved' : 'Save'}</span>
                     </button>
-                    <button onClick={() => { handleShare(); haptic(10); }} style={{
+                    <button onClick={() => { handleShare(); haptic(10); }} aria-label="Share" style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
                         <span style={{ fontSize: 24 }}>📤</span>
                         <span style={{ fontSize: 10, fontWeight: 500 }}>Share</span>
                     </button>
-                    <button onClick={() => setMuted(prev => !prev)} style={{
+                    <button onClick={() => setMuted(prev => !prev)} aria-label={muted ? 'Unmute' : 'Mute'} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
@@ -1345,6 +1368,17 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         padding: '8px 20px', borderRadius: 20, fontSize: 14, zIndex: 30,
                         backdropFilter: 'blur(10px)',
                     }}>Link Copied</div>
+                )}
+
+                {/* #10 Error Toast */}
+                {errorToast && (
+                    <div style={{
+                        position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)',
+                        background: 'rgba(255,69,58,0.15)', border: '1px solid rgba(255,69,58,0.4)',
+                        borderRadius: 12, padding: '8px 20px', color: '#FF453A',
+                        fontSize: 13, fontWeight: 600, zIndex: 30, backdropFilter: 'blur(10px)',
+                        whiteSpace: 'nowrap',
+                    }}>{errorToast}</div>
                 )}
 
                 {/* Keyboard Shortcuts Overlay */}
@@ -1552,7 +1586,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                                                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                                                 color: commentLikes[c.id] ? '#FF2D55' : 'rgba(255,255,255,0.4)', fontSize: 12,
                                                 display: 'flex', alignItems: 'center', gap: 3,
-                                            }}>{commentLikes[c.id] ? '❤️' : '🤍'}</button>
+                                            }}>{commentLikes[c.id] ? '❤️' : '🤍'}{commentLikeCounts[c.id] > 0 && <span style={{ fontSize: 10, opacity: 0.6 }}>{commentLikeCounts[c.id]}</span>}</button>
                                             <button onClick={() => { setReplyTo({ id: c.id, username: c.profiles?.username || 'User' }); setCommentText(`@${c.profiles?.username || 'User'} `); }} style={{
                                                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                                                 color: 'rgba(255,255,255,0.4)', fontSize: 12,

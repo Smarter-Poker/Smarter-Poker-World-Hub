@@ -128,6 +128,11 @@ export default function ReelsPage() {
     const [commentSort, setCommentSort] = useState('newest');
     const [copyToast, setCopyToast] = useState(false);
     const COMMENT_MAX_LENGTH = 280;
+    // #10 Error Toast for failed operations
+    const [errorToast, setErrorToast] = useState(null);
+    const showErrorToast = (msg) => { setErrorToast(msg); setTimeout(() => setErrorToast(null), 3000); };
+    // #6 Comment Like Counts (per-comment)
+    const [commentLikeCounts, setCommentLikeCounts] = useState({});
     // Phase 10 — Universal HUD auto-hide
     const [showOverlay, setShowOverlay] = useState(false);
     const hudTimerRef = useRef(null);
@@ -712,7 +717,18 @@ export default function ReelsPage() {
                     .limit(50);
                 setComments(data || []);
                 setHasMoreComments((data || []).length >= 50);
-                setCommentCounts(prev => ({ ...prev, [currentReel.id]: (data || []).length }));
+                // #3 Don't overwrite server count when at page limit (could be 100+ comments)
+                if ((data || []).length < 50) {
+                    setCommentCounts(prev => ({ ...prev, [currentReel.id]: (data || []).length }));
+                }
+                // #6 Load comment like counts
+                try {
+                    const { data: clData } = await supabase.from('social_interactions')
+                        .select('metadata').eq('post_id', currentReel.id).eq('interaction_type', 'comment_like');
+                    const clCounts = {};
+                    (clData || []).forEach(row => { const cid = row.metadata?.comment_id; if (cid) clCounts[cid] = (clCounts[cid] || 0) + 1; });
+                    setCommentLikeCounts(clCounts);
+                } catch {}
             } catch (e) { console.error('Load comments:', e); }
         }
     };
@@ -893,6 +909,15 @@ export default function ReelsPage() {
             const videoUrl = currentReel.video_url;
             const caption = currentReel.caption || 'Check out this reel!';
             const reelLink = window.location.origin + '/hub/reels?id=' + currentReel.id;
+            // #5 Duplicate guard — check if already shared
+            const { data: existing } = await supabase.from('social_posts')
+                .select('id').eq('author_id', user.id).eq('link_url', reelLink).limit(1);
+            if (existing && existing.length > 0) {
+                setSharedToFeed(true);
+                setSharingToFeed(false);
+                setTimeout(() => setSharedToFeed(false), 3000);
+                return;
+            }
             const postContent = caption + '\n\n' + reelLink;
             const { error } = await supabase.from('social_posts').insert({
                 author_id: user.id,
@@ -907,10 +932,10 @@ export default function ReelsPage() {
             busEmit.socialPostShared(currentReel.id, user.id);
             busEmit.dataMutated('social');
             setSharedToFeed(true);
-            // Phase 9: Keep modal open so users can share to outside places
             setTimeout(() => { setSharedToFeed(false); }, 3000);
         } catch (err) {
             console.warn('Share to feed failed:', err.message);
+            showErrorToast('Share failed — try again');
         }
         setSharingToFeed(false);
     };
@@ -932,23 +957,28 @@ export default function ReelsPage() {
 
     const handleSave = async () => {
         if (!currentReel || !user) return;
-
         const isSaved = savedReels.has(currentReel.id);
-
+        // #1 Optimistic update — instant UI response
+        if (isSaved) {
+            setSavedReels(prev => { const s = new Set(prev); s.delete(currentReel.id); return s; });
+        } else {
+            setSavedReels(prev => new Set([...prev, currentReel.id]));
+        }
         try {
             if (isSaved) {
                 await savedReelsService.unsaveReel(user.id, currentReel.id);
-                setSavedReels(prev => {
-                    const newSet = new Set(prev);
-                    newSet.delete(currentReel.id);
-                    return newSet;
-                });
             } else {
                 await savedReelsService.saveReel(user.id, currentReel.id);
-                setSavedReels(prev => new Set([...prev, currentReel.id]));
             }
             busEmit.socialPostBookmarked(currentReel.id, user.id, { added: !isSaved });
         } catch (err) {
+            // Rollback on failure
+            if (isSaved) {
+                setSavedReels(prev => new Set([...prev, currentReel.id]));
+            } else {
+                setSavedReels(prev => { const s = new Set(prev); s.delete(currentReel.id); return s; });
+            }
+            showErrorToast('Save failed — try again');
             console.warn('Save reel failed:', err);
         }
     };
@@ -1642,7 +1672,7 @@ export default function ReelsPage() {
                             setShowHeart(true);
                             setTimeout(() => setShowHeart(false), 800);
                         }
-                    }} style={{
+                    }} aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
@@ -1658,7 +1688,7 @@ export default function ReelsPage() {
                     </button>
 
                     {/* Dislike */}
-                    <button onClick={handleDislike} style={{
+                    <button onClick={handleDislike} aria-label={disliked[currentReel?.id] ? 'Remove dislike' : 'Dislike'} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
@@ -1669,7 +1699,7 @@ export default function ReelsPage() {
                     </button>
 
                     {/* Comment */}
-                    <button onClick={handleComment} style={{
+                    <button onClick={handleComment} aria-label="Comments" style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
@@ -1682,7 +1712,7 @@ export default function ReelsPage() {
                     </button>
 
                     {/* Share */}
-                    <button onClick={handleShare} style={{
+                    <button onClick={handleShare} aria-label="Share" style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
@@ -1691,7 +1721,7 @@ export default function ReelsPage() {
                     </button>
 
                     {/* Save */}
-                    <button onClick={handleSave} style={{
+                    <button onClick={handleSave} aria-label={savedReels.has(currentReel?.id) ? 'Unsave' : 'Save'} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
@@ -1702,7 +1732,7 @@ export default function ReelsPage() {
                     </button>
 
                     {/* Sound */}
-                    <button onClick={muted ? handleUnmute : handleMute} style={{
+                    <button onClick={muted ? handleUnmute : handleMute} aria-label={muted ? 'Unmute' : 'Mute'} style={{
                         background: 'none', border: 'none', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                     }}>
@@ -2037,7 +2067,7 @@ export default function ReelsPage() {
                                                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                                                 color: commentLikes[c.id] ? '#FF2D55' : 'rgba(255,255,255,0.4)', fontSize: 12,
                                                 display: 'flex', alignItems: 'center', gap: 3,
-                                            }}>{commentLikes[c.id] ? '❤️' : '🤍'}</button>
+                                            }}>{commentLikes[c.id] ? '❤️' : '🤍'}{commentLikeCounts[c.id] > 0 && <span style={{ fontSize: 10, opacity: 0.6 }}>{commentLikeCounts[c.id]}</span>}</button>
                                             <button onClick={() => { setReplyTo({ id: c.id, username: c.profiles?.username || c.author?.username || 'User' }); setCommentText(`@${c.profiles?.username || c.author?.username || 'User'} `); }} style={{
                                                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                                                 color: 'rgba(255,255,255,0.4)', fontSize: 12,
@@ -2163,6 +2193,17 @@ export default function ReelsPage() {
                         fontSize: 13, fontWeight: 600, zIndex: 300, backdropFilter: 'blur(10px)',
                         animation: 'fadeIn 0.2s ease-out',
                     }}>Link Copied!</div>
+                )}
+
+                {/* #10 Error Toast */}
+                {errorToast && (
+                    <div style={{
+                        position: 'absolute', top: 80, left: '50%', transform: 'translateX(-50%)',
+                        background: 'rgba(255,69,58,0.15)', border: '1px solid rgba(255,69,58,0.4)',
+                        borderRadius: 12, padding: '10px 22px', color: '#FF453A',
+                        fontSize: 13, fontWeight: 600, zIndex: 300, backdropFilter: 'blur(10px)',
+                        animation: 'fadeIn 0.2s ease-out', whiteSpace: 'nowrap',
+                    }}>{errorToast}</div>
                 )}
 
                 {/* Report Modal */}
