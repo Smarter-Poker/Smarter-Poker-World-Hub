@@ -1902,7 +1902,7 @@ function UniversalDynamicTable({
                         if (activeCount <= 2) {
                             // Strict Absolute positions: completely outside the table
                             seatX = 50;
-                            seatY = isHero ? 88 : -14;
+                            seatY = isHero ? 78 : 8;
                         }
 
                         return (
@@ -3226,7 +3226,7 @@ const styles = {
         padding: 0,
     },
 
-    // ── RACETRACK TABLE — Phase 17e: Tall oval matching reference image
+    // ── RACETRACK TABLE — Phase 18: Tall oval, NO overflow hidden so seats stay visible
     basicTable: {
         position: 'relative',
         width: '95%',
@@ -3238,7 +3238,6 @@ const styles = {
         boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
         margin: '0 auto',
         flexShrink: 0,
-        overflow: 'hidden',
     },
 
     seatsContainer: {
