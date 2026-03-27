@@ -647,11 +647,13 @@ export default async function handler(req, res) {
                   };
               });
 
-              // Filter by radius (exclude venues with no coordinates)
-              venues = venues.filter(v => v.distance_km != null && v.distance_km <= maxRadius);
+              // Filter venues WITH coordinates by radius; KEEP venues without coordinates (sorted to end)
+              const withinRadius = venues.filter(v => v.distance_km != null && v.distance_km <= maxRadius);
+              const noCoords = venues.filter(v => v.distance_km == null);
 
-              // Sort by distance when GPS is provided
-              venues.sort((a, b) => a.distance_km - b.distance_km);
+              // Sort: distance-first for GPS venues, then no-coord venues (charity, clubs, home games) at end
+              withinRadius.sort((a, b) => a.distance_km - b.distance_km);
+              venues = [...withinRadius, ...noCoords];
           }
 
           // --- Single venue by ID: attach daily tournament schedules + venue news ---

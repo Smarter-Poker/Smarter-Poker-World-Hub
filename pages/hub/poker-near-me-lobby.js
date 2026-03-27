@@ -914,15 +914,8 @@ export default function PokerNearMeLobby() {
       setHasMore(newVenues.length >= PAGE_SIZE);
       setPage(0);
     }).catch(err => console.error('GPS venue fetch failed:', err));
-    // Stay in current pod — auto-trigger search with distance sort
-    if (!options.silent) {
-      if (!activePod || activePod === 'search') {
-        setActivePod('nearme');
-      }
-      setShowPanel(true);
-      setFilters(prev => ({ ...prev, nmSearched: true, nmSort: 'distance', svHasSearched: true, svSort: 'distance' }));
-    }
-  }, [reverseGeocode, showLocationSuccessToast, userId, activePod]);
+    // GPS updates location + venues silently — user must click search to see results
+  }, [reverseGeocode, showLocationSuccessToast, userId]);
 
   // ─── GPS Click handler ───
   const gpsErrorTimeoutRef = useRef(null);
@@ -1038,7 +1031,7 @@ export default function PokerNearMeLobby() {
           { enableHighAccuracy: true, timeout: 8000 }
         );
       };
-      setFilters(prev => ({ ...prev, nmSearched: true, nmSort: 'distance', svHasSearched: true, svSort: 'distance' }));
+      // GPS restore — user must click search to see results
       return;
     }
 
@@ -1092,7 +1085,7 @@ export default function PokerNearMeLobby() {
           setHasMore(newVenues.length >= PAGE_SIZE);
           setPage(0);
         }).catch(err => console.error('Manual location venue fetch failed:', err));
-        setFilters(prev => ({ ...prev, nmSearched: true, nmSort: 'distance', svHasSearched: true, svSort: 'distance' }));
+        // Manual location set — user must click search to see results
       } else {
         setGpsError('Could not find that location — try a different city');
         if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
