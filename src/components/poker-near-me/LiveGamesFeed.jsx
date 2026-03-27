@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { getSupabase } from '../../utils/supabaseClient';
 import VenueCard from './VenueCard';
 
 // Dynamically import map to avoid SSR issues
@@ -86,8 +87,23 @@ export default function LiveGamesFeed({
 
     useEffect(() => {
         fetchGlobalLiveData();
+        
+        // Subscribe to real-time WebSockets from Supabase
+        const supabase = getSupabase();
+        const liveChannel = supabase.channel('public:venue_live_tables')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_live_tables' }, () => {
+                console.log('Live Games WebSocket: Change detected. Re-hydrating live data from daemon...');
+                fetchGlobalLiveData();
+            })
+            .subscribe();
+
+        // Fallback polling mechanic
         refreshRef.current = setInterval(fetchGlobalLiveData, LIVE_REFRESH_MS);
-        return () => { if (refreshRef.current) clearInterval(refreshRef.current); };
+        
+        return () => { 
+            if (refreshRef.current) clearInterval(refreshRef.current); 
+            if (liveChannel) supabase.removeChannel(liveChannel);
+        };
     }, []);
 
     // ─── FILTER & MERGE ───
