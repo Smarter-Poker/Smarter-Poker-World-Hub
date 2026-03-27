@@ -532,6 +532,7 @@ def run_scrape_cycle(mgr):
                 'scrape_html_hash': data['scrape_html_hash'],
                 'scrape_batch_id': batch_id,
                 'data_quality': 'scraped_verified',
+                'source': 'bravo',
             }
             for w in data['waitlist']:
                 if w['game'].lower() == game['game'].lower():
@@ -560,7 +561,7 @@ def run_scrape_cycle(mgr):
         if sb_upsert('venue_live_tables', payload):
             saved = len(payload)
             # Safe delete of stale batches using neq (not equal to current batch) to prevent UI empty flash
-            sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}')
+            sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.bravo')
 
     # Save evidence
     evidence = {

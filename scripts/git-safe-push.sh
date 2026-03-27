@@ -4,15 +4,16 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 # USAGE:
-#   bash scripts/git-safe-push.sh                       # defaults: "Daily update", main, origin
+#   bash scripts/git-safe-push.sh                       # builds + pushes (default)
 #   bash scripts/git-safe-push.sh "feat: new feature"   # custom message
 #   bash scripts/git-safe-push.sh "fix: bug" develop    # custom branch
 #   bash scripts/git-safe-push.sh --dry-run "msg"       # show what would happen
-#   bash scripts/git-safe-push.sh --build-check "msg"   # build check before push
+#   bash scripts/git-safe-push.sh --skip-build "msg"    # skip build check (hotfixes ONLY)
 #
 # FLAGS:
 #   --dry-run              Show what would happen without committing/pushing
-#   --build-check          Run `next build` before pushing (aborts on failure)
+#   --build-check          Run `next build` before pushing (DEFAULT — always on)
+#   --skip-build           Skip the build check (for emergency hotfixes only)
 #   --force-destructive    Bypass @media removal and large deletion safeguards
 #
 # This script is designed to NEVER require human intervention.
@@ -35,12 +36,13 @@ set -u  # Only catch unset variables
 
 # ── Parse flags ──
 DRY_RUN=false
-BUILD_CHECK=false
+BUILD_CHECK=true  # DEFAULT ON — prevents broken imports from blocking CI for days
 POSITIONAL=()
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=true ;;
-        --build-check) BUILD_CHECK=true ;;
+        --build-check) BUILD_CHECK=true ;;  # Explicit (already default)
+        --skip-build|--no-build) BUILD_CHECK=false ;;  # Opt-out for hotfixes
         --force-destructive) ;; # Handled later in Phase 0.5
         *) POSITIONAL+=("$arg") ;;
     esac

@@ -12,10 +12,11 @@ description: how to commit and push code changes safely (MANDATORY for all agent
 
 1. Run the autonomous push script:
 ```bash
-bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "Your commit message here"
+bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh --build-check "Your commit message here"
 ```
 
 That's it. **Do NOT run individual git commands.** The script handles everything autonomously:
+- **Runs `next build` before pushing** (catches broken imports, bad exports, SSG crashes)
 - Removes stale lock files
 - Aborts leftover rebases/merges
 - Stages ALL files (`git add -A`)
@@ -29,19 +30,24 @@ That's it. **Do NOT run individual git commands.** The script handles everything
 
 1. **NEVER** run `git add .` or `git commit` or `git push` or `git pull` individually
 2. **NEVER** run `gitpush` shell function — use the script instead
-3. **ALWAYS** use a descriptive commit message as the first argument
-4. **NEVER** ask the user to resolve git issues — the script handles everything
-5. If the script exits with code 2 (failed after 5 retries), wait 30 seconds and run it again
+3. **ALWAYS** use `--build-check` flag — this catches compilation errors BEFORE pushing
+4. **ALWAYS** use a descriptive commit message as the first argument
+5. **NEVER** ask the user to resolve git issues — the script handles everything
+6. If the script exits with code 2 (failed after 5 retries), wait 30 seconds and run it again
+7. If `--build-check` fails, **FIX THE BUILD ERROR BEFORE RETRYING** — do NOT remove the flag
+
+> [!CAUTION]
+> **On 3/25/2026, a broken import (`C` instead of `SOCIAL_COLORS as C`) blocked ALL deployments for 2 days because no agent ran `next build` locally before pushing.** The `--build-check` flag prevents this. NEVER skip it.
 
 ## Examples
 
 ```bash
-# Standard deploy
-bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "feat: add tournament leaderboards"
+# Standard deploy (with build check — ALWAYS include --build-check)
+bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh --build-check "feat: add tournament leaderboards"
 
 # Bug fix
-bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "fix: resolve login redirect loop"
+bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh --build-check "fix: resolve login redirect loop"
 
 # Multi-file update
-bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "chore: Phase 3 audit — comps, high-hands, promotions"
+bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh --build-check "chore: Phase 3 audit — comps, high-hands, promotions"
 ```
