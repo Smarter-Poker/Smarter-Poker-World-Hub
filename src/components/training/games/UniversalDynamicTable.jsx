@@ -1625,7 +1625,7 @@ function UniversalDynamicTable({
                 @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
                 @media (min-width: 900px) {
                     .gto-trainer-container {
-                        max-width: 600px !important;
+                        max-width: 900px !important;
                         margin: 0 auto !important;
                         border-left: 1px solid rgba(255,255,255,0.06) !important;
                         border-right: 1px solid rgba(255,255,255,0.06) !important;
@@ -1634,7 +1634,7 @@ function UniversalDynamicTable({
                 }
                 @media (min-width: 1200px) {
                     .gto-trainer-container {
-                        max-width: 520px !important;
+                        max-width: 800px !important;
                     }
                 }
             `}</style>
@@ -2325,11 +2325,12 @@ function UniversalDynamicTable({
                         YOUR ACTION
                     </motion.div>
                 )}
-                {/* Countdown Timer — 60 seconds, auto-submits worst action on expiry */}
+                {/* Countdown Timer — DISABLED during layout hardening */}
                 <CountdownTimer
                     seconds={60}
                     questionNumber={questionNumber}
                     showFeedback={showFeedback}
+                    active={false}
                     onTimeExpired={() => {
                         // BUG-04 FIX: Auto-submit worst option when timer expires
                         if (!showFeedback && !selectedAnswer && onAnswer) {
@@ -3213,7 +3214,7 @@ const styles = {
         color: '#fbbf24',
     },
 
-    // ── TABLE AREA — Phase 17: Standard flow layout, overflow hidden, no scale tricks
+    // ── TABLE AREA — Phase 17d: Fill available space, overflow hidden
     tableArea: {
         flex: 1,
         position: 'relative',
@@ -3222,15 +3223,15 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        padding: '28px 16px 8px 16px',
+        padding: '4px 0',
     },
 
     // ── NEW CUSTOM STANDALONE RACETRACK TABLE — fixed design size, scaled by Phase 16 container
     basicTable: {
         position: 'relative',
-        width: '80%',
-        maxWidth: 320,
-        aspectRatio: '1 / 1.5',
+        width: '90%',
+        maxWidth: 400,
+        aspectRatio: '1 / 1.4',
         borderRadius: '50% / 25%', 
         backgroundColor: '#1E3B22', // deep green felt
         border: '10px solid #1a1a1a', // solid dark rail
