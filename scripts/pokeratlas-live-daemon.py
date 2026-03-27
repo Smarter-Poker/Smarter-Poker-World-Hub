@@ -480,13 +480,39 @@ def run_scrape_cycle(mgr):
     # Build Supabase payload
     log.info(f'💾 Saving {len(all_venues)} venue records to Supabase...')
 
+    # DEDUPLICATION: Fetch Bravo venue names to skip duplicates
+    bravo_names = set()
+    bravo_names_normalized = set()
+    try:
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/venue_live_tables?source=eq.bravo&select=venue_name',
+            headers=SB_HEADERS,
+        )
+        resp = urllib.request.urlopen(req, timeout=15)
+        bravo_data = json.loads(resp.read())
+        for r in bravo_data:
+            name = r.get('venue_name', '')
+            bravo_names.add(name)
+            bravo_names_normalized.add(re.sub(r'[^a-z0-9]', '', name.lower()))
+        log.info(f'  Dedup: {len(bravo_names)} Bravo venues loaded for exclusion')
+    except Exception as e:
+        log.warning(f'  Dedup: Could not load Bravo venues: {e}')
+
     payload = []
+    skipped_dupes = 0
     for venue_data in all_venues:
+        venue_name = venue_data['venue_name']
+        # Skip if venue exists in Bravo (exact or normalized match)
+        normalized = re.sub(r'[^a-z0-9]', '', venue_name.lower())
+        if venue_name in bravo_names or normalized in bravo_names_normalized:
+            skipped_dupes += 1
+            continue
+
         # Generate unique slug per venue (not per region!)
-        venue_slug = re.sub(r'[^a-z0-9]+', '-', venue_data['venue_name'].lower()).strip('-')
+        venue_slug = re.sub(r'[^a-z0-9]+', '-', venue_name.lower()).strip('-')
         for game in venue_data['games']:
             record = {
-                'venue_name': venue_data['venue_name'],
+                'venue_name': venue_name,
                 'game_name': game['game'],
                 'tables_running': game['tables_estimate'],
                 'players_waiting': 0,
@@ -498,6 +524,9 @@ def run_scrape_cycle(mgr):
                 'bravo_slug': f'pa-{venue_slug}',
             }
             payload.append(record)
+
+    if skipped_dupes:
+        log.info(f'  Dedup: Skipped {skipped_dupes} venues (already in Bravo)')
 
     saved = 0
     if payload:
