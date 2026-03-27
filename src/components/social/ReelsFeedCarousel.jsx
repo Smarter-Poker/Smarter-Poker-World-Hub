@@ -523,6 +523,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             console.warn('Reel like persistence failed:', err.message);
             setLiked(prev => ({ ...prev, [currentId]: wasLiked }));
             setLikeCounts(prev => ({ ...prev, [currentId]: Math.max(0, (prev[currentId] || 0) + (wasLiked ? 1 : -1)) }));
+            showErrorToast('Like failed \u2014 try again');
         }
     };
 
@@ -654,6 +655,8 @@ function ReelViewer({ reels, startIndex, onClose }) {
         if (!authUser?.id) return;
         const wasLiked = commentLikes[commentId];
         setCommentLikes(prev => ({ ...prev, [commentId]: !wasLiked }));
+        // #4 Optimistic comment like count sync
+        setCommentLikeCounts(prev => ({ ...prev, [commentId]: Math.max(0, (prev[commentId] || 0) + (wasLiked ? -1 : 1)) }));
         try {
             if (wasLiked) {
                 await supabase.from('social_interactions')
@@ -664,7 +667,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
                     interaction_type: 'comment_like', metadata: { comment_id: commentId }
                 });
             }
-        } catch { setCommentLikes(prev => ({ ...prev, [commentId]: wasLiked })); }
+        } catch {
+            setCommentLikes(prev => ({ ...prev, [commentId]: wasLiked }));
+            setCommentLikeCounts(prev => ({ ...prev, [commentId]: Math.max(0, (prev[commentId] || 0) + (wasLiked ? 1 : -1)) }));
+        }
     };
 
     // Phase 6 — Delete own comment
@@ -888,6 +894,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
             busEmit.socialFollowChanged && busEmit.socialFollowChanged(authorId, authUser.id, { added: !wasFollowing });
         } catch {
             setFollowing(prev => ({ ...prev, [authorId]: wasFollowing }));
+            showErrorToast('Follow failed \u2014 try again');
         }
     };
 

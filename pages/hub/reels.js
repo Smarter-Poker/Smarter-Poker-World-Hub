@@ -592,6 +592,7 @@ export default function ReelsPage() {
         } catch (err) {
             setLiked(prev => ({ ...prev, [postId]: wasLiked }));
             setLikeCounts(prev => ({ ...prev, [postId]: Math.max(0, (prev[postId] || 0) + (wasLiked ? 1 : -1)) }));
+            showErrorToast('Like failed \u2014 try again');
         }
     };
 
@@ -647,6 +648,7 @@ export default function ReelsPage() {
             busEmit.socialFollowChanged && busEmit.socialFollowChanged(authorId, user.id, { added: !wasFollowing });
         } catch {
             setFollowing(prev => ({ ...prev, [authorId]: wasFollowing }));
+            showErrorToast('Follow failed \u2014 try again');
         }
     };
 
@@ -798,6 +800,8 @@ export default function ReelsPage() {
         if (!user?.id) return;
         const wasLiked = commentLikes[commentId];
         setCommentLikes(prev => ({ ...prev, [commentId]: !wasLiked }));
+        // #4 Optimistic comment like count sync
+        setCommentLikeCounts(prev => ({ ...prev, [commentId]: Math.max(0, (prev[commentId] || 0) + (wasLiked ? -1 : 1)) }));
         try {
             if (wasLiked) {
                 await supabase.from('social_interactions')
@@ -808,7 +812,10 @@ export default function ReelsPage() {
                     interaction_type: 'comment_like', metadata: { comment_id: commentId }
                 });
             }
-        } catch { setCommentLikes(prev => ({ ...prev, [commentId]: wasLiked })); }
+        } catch {
+            setCommentLikes(prev => ({ ...prev, [commentId]: wasLiked }));
+            setCommentLikeCounts(prev => ({ ...prev, [commentId]: Math.max(0, (prev[commentId] || 0) + (wasLiked ? 1 : -1)) }));
+        }
     };
 
     // Phase 6 — Delete own comment
@@ -1243,6 +1250,7 @@ export default function ReelsPage() {
             eventBus.off(EventType.SOCIAL_COMMENT_ADDED, handleCommentBus);
             eventBus.off(EventType.SOCIAL_FOLLOW_CHANGED, handleFollowBus);
             clearTimeout(overlayTimerRef.current);
+            clearTimeout(hudTimerRef.current);
         };
     }, [user?.id]);
 
@@ -1346,8 +1354,15 @@ export default function ReelsPage() {
     return (
         <>
             <Head>
-                <title>Reels | Smarter Poker</title>
+                <title>{currentReel?.caption ? `${currentReel.caption.slice(0, 60)} | Reels` : 'Reels | Smarter Poker'}</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+                {/* Dynamic OpenGraph for shared reel links */}
+                <meta property="og:title" content={currentReel?.caption ? currentReel.caption.slice(0, 70) : 'Poker Reel on Smarter.Poker'} />
+                <meta property="og:description" content={`${currentReel?.profiles?.username ? `by ${currentReel.profiles.username} — ` : ''}Watch poker reels on Smarter.Poker`} />
+                {videoId && <meta property="og:image" content={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`} />}
+                <meta property="og:type" content="video.other" />
+                <meta property="og:url" content={`https://smarter.poker/hub/reels${currentReel?.id ? `?id=${currentReel.id}` : ''}`} />
+                <meta name="twitter:card" content="summary_large_image" />
             </Head>
 
             {/* Universal Header */}
