@@ -947,20 +947,69 @@ export default function PokerNearMeLobby() {
     );
   }, [gpsActive, userId, onGpsSuccess]);
 
-  // ─── Auto-prompt GPS on first visit ───
+  // ─── Auto-prompt GPS on first visit / silently re-enable if previously accepted ───
   const gpsAutoRef = useRef(false);
   useEffect(() => {
     if (gpsAutoRef.current || gpsActive) return;
     gpsAutoRef.current = true;
-    // Prompt for GPS on first visit (both new + returning users)
+
+    // Check persisted preferences from Supabase
+    const locationPref = preferences?.locationEnabled;
+    const savedLoc = preferences?.lastLocation;
+
+    // CASE 1: User PREVIOUSLY DECLINED → do NOT auto-prompt (respect their choice)
+    if (locationPref === false) return;
+
+    // CASE 2: User PREVIOUSLY ACCEPTED → silently re-enable GPS
+    // If we have saved coordinates, use them immediately (instant, no permission prompt)
+    // Then silently try to refresh GPS in background for accuracy
+    if (locationPref === true && savedLoc?.lat && savedLoc?.lng) {
+      setUserLocation(savedLoc);
+      setGpsActive(true);
+      showLocationSuccessToast({
+        city: preferences?.lastLocationCity || '',
+        state: preferences?.lastLocationState || '',
+      });
+      // Silently refresh GPS in background for accuracy (no error if it fails)
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setUserLocation(loc);
+            // Quietly fetch fresh venues with updated coordinates
+            const gpsUrl = `/api/poker/venues?limit=500&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+            cachedFetch(gpsUrl).then(data => {
+              const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+              setVenues(newVenues);
+              setHasMore(newVenues.length >= PAGE_SIZE);
+              setPage(0);
+            }).catch(() => {});
+          },
+          () => { /* silent — saved location is still good */ },
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      }
+      // Fetch venues with saved location immediately (don't wait for GPS refresh)
+      const gpsUrl = `/api/poker/venues?limit=500&offset=0&lat=${savedLoc.lat}&lng=${savedLoc.lng}&radius=250&sort=distance`;
+      cachedFetch(gpsUrl).then(data => {
+        const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+        setVenues(newVenues);
+        setHasMore(newVenues.length >= PAGE_SIZE);
+        setPage(0);
+      }).catch(() => {});
+      setFilters(prev => ({ ...prev, nmSearched: true, nmSort: 'distance', svHasSearched: true, svSort: 'distance' }));
+      return;
+    }
+
+    // CASE 3: FIRST VISIT (no saved preference) → prompt for GPS permission
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => onGpsSuccess(pos, { silent: true }),
+        (pos) => onGpsSuccess(pos, { silent: false }),
         () => { /* silent — don't show error for auto-prompt */ },
         { enableHighAccuracy: true, timeout: 8000 }
       );
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [preferences?.locationEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Manual Location Set ───
   const handleManualLocationSet = useCallback(async () => {
