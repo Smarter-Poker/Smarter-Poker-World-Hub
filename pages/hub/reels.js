@@ -133,13 +133,19 @@ export default function ReelsPage() {
     const showErrorToast = (msg) => { setErrorToast(msg); setTimeout(() => setErrorToast(null), 3000); };
     // #6 Comment Like Counts (per-comment)
     const [commentLikeCounts, setCommentLikeCounts] = useState({});
+    // UX Overhaul — More menu + Reaction picker
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const [showReactionPicker, setShowReactionPicker] = useState(false);
+    const reactionTimerRef = useRef(null);
     // Phase 10 — Universal HUD auto-hide
     const [showOverlay, setShowOverlay] = useState(false);
     const hudTimerRef = useRef(null);
     const revealOverlay = () => {
         setShowOverlay(true);
+        setShowReactionPicker(false);
+        setShowMoreMenu(false);
         clearTimeout(hudTimerRef.current);
-        hudTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+        hudTimerRef.current = setTimeout(() => { setShowOverlay(false); setShowReactionPicker(false); setShowMoreMenu(false); }, 2500);
     };
     const pullStartY = useRef(null);
     
@@ -254,17 +260,15 @@ export default function ReelsPage() {
     // Then auto-unmute since user explicitly came here to watch videos with sound
     useEffect(() => {
         if (!loading && reels.length > 0) {
-            // Wait for iframe to load, then force play + unmute
-            const timer = setTimeout(() => {
-                // FORCE PLAY via YouTube API
+            // Retry loop: unmute at 500ms, 1200ms, 2500ms to ensure YouTube API is ready
+            const delays = [500, 1200, 2500];
+            const timers = delays.map(delay => setTimeout(() => {
                 sendYouTubeCommand('playVideo');
-
-                // AUTO-UNMUTE: User came here to watch videos, they want sound!
                 sendYouTubeCommand('unMute');
                 sendYouTubeCommand('setVolume', [100]);
                 setMuted(false);
-            }, 500); // Give iframe time to initialize YouTube API
-            return () => clearTimeout(timer);
+            }, delay));
+            return () => timers.forEach(t => clearTimeout(t));
         }
     }, [currentIndex, loading, reels.length]);
 
@@ -554,7 +558,10 @@ export default function ReelsPage() {
             // Deduplicated view count — only fire once per reel per session (auth only)
             if (user?.id && !viewedReelsRef.current.has(currentReel.id)) {
                 viewedReelsRef.current.add(currentReel.id);
-                (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: currentReel.id, p_field: 'view_count' }); } catch {} })();
+                // Increment in DB AND update local state so UI reflects the view
+                const reelId = currentReel.id;
+                setViewCounts(prev => ({ ...prev, [reelId]: (prev[reelId] || currentReel.view_count || 0) + 1 }));
+                (async () => { try { await supabase.rpc('increment_post_count', { p_post_id: reelId, p_field: 'view_count' }); } catch {} })();
             }
         }
     }, [currentReel?.id]);
@@ -1634,8 +1641,6 @@ export default function ReelsPage() {
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                     {viewCounts[currentReel?.id] || currentReel?.view_count || 0}
                                 </span>
-                                <span style={{ opacity: 0.6 }}>·</span>
-                                <span style={{ fontSize: 11, opacity: 0.7 }}>{currentIndex + 1}/{reels.length}</span>
                             </div>
                         </div>
                     </Link>
@@ -1672,7 +1677,7 @@ export default function ReelsPage() {
                     )}
                 </div>
 
-                {/* Right Action Sidebar */}
+                {/* Right Action Sidebar — Consolidated */}
                 <div style={{
                     position: 'absolute', right: 12, bottom: 110, zIndex: 100,
                     display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center',
@@ -1680,38 +1685,77 @@ export default function ReelsPage() {
                     pointerEvents: showOverlay ? 'auto' : 'none',
                     transition: 'opacity 0.3s ease',
                 }}>
-                    {/* Like */}
-                    <button onClick={() => {
-                        handleLike();
-                        if (!liked[currentReel?.id]) {
-                            setShowHeart(true);
-                            setTimeout(() => setShowHeart(false), 800);
-                        }
-                    }} aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    }}>
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill={liked[currentReel?.id] ? '#ef4444' : 'none'} stroke={liked[currentReel?.id] ? '#ef4444' : 'white'} strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))', transition: 'transform 0.15s ease' }}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                        <span style={{
-                            color: 'white', fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                            transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                            transform: likeBounceId === currentReel?.id ? 'scale(1.4)' : 'scale(1)',
-                            display: 'inline-block',
-                        }}>
-                            {likeCounts[currentReel?.id] ?? (currentReel?.like_count || 0)}
-                        </span>
-                    </button>
-
-                    {/* Dislike */}
-                    <button onClick={handleDislike} aria-label={disliked[currentReel?.id] ? 'Remove dislike' : 'Dislike'} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill={disliked[currentReel?.id] ? '#ef4444' : 'none'} stroke={disliked[currentReel?.id] ? '#ef4444' : 'white'} strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))', transform: 'rotate(180deg)' }}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14zM4 22H2V11h2" /></svg>
-                        <span style={{ color: disliked[currentReel?.id] ? '#ef4444' : 'white', fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                            {disliked[currentReel?.id] ? 'Disliked' : 'Dislike'}
-                        </span>
-                    </button>
+                    {/* Heart — tap to like, long-press for reactions */}
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => {
+                                handleLike();
+                                if (!liked[currentReel?.id]) {
+                                    setShowHeart(true);
+                                    setTimeout(() => setShowHeart(false), 800);
+                                }
+                            }}
+                            onPointerDown={() => {
+                                reactionTimerRef.current = setTimeout(() => {
+                                    haptic(20);
+                                    setShowReactionPicker(true);
+                                }, 500);
+                            }}
+                            onPointerUp={() => clearTimeout(reactionTimerRef.current)}
+                            onPointerLeave={() => clearTimeout(reactionTimerRef.current)}
+                            aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'}
+                            style={{
+                                background: 'none', border: 'none', cursor: 'pointer',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                            }}
+                        >
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill={liked[currentReel?.id] ? '#ef4444' : 'none'} stroke={liked[currentReel?.id] ? '#ef4444' : 'white'} strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))', transition: 'transform 0.15s ease' }}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                            <span style={{
+                                color: 'white', fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                transform: likeBounceId === currentReel?.id ? 'scale(1.4)' : 'scale(1)',
+                                display: 'inline-block',
+                            }}>
+                                {likeCounts[currentReel?.id] ?? (currentReel?.like_count || 0)}
+                            </span>
+                        </button>
+                        {/* Reaction Picker — appears on long-press */}
+                        {showReactionPicker && (
+                            <div style={{
+                                position: 'absolute', right: 48, top: '50%', transform: 'translateY(-50%)',
+                                display: 'flex', gap: 4, padding: '8px 12px', borderRadius: 24,
+                                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+                                WebkitBackdropFilter: 'blur(12px)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                                animation: 'fadeInScale 0.2s ease',
+                            }}>
+                                {[
+                                    { emoji: '\u2764\uFE0F', label: 'Love', type: 'like' },
+                                    { emoji: '\uD83D\uDC4D', label: 'Thumbs Up', type: 'thumbsup' },
+                                    { emoji: '\uD83D\uDC4E', label: 'Thumbs Down', type: 'dislike' },
+                                    { emoji: '\uD83D\uDE02', label: 'Laughing', type: 'laughing' },
+                                    { emoji: '\uD83D\uDE22', label: 'Crying', type: 'crying' },
+                                    { emoji: '\uD83D\uDE21', label: 'Angry', type: 'angry' },
+                                ].map(r => (
+                                    <button key={r.type} onClick={() => {
+                                        if (r.type === 'like') { handleLike(); if (!liked[currentReel?.id]) { setShowHeart(true); setTimeout(() => setShowHeart(false), 800); } }
+                                        else if (r.type === 'dislike') handleDislike();
+                                        else { handleLike(); if (!liked[currentReel?.id]) { setShowHeart(true); setTimeout(() => setShowHeart(false), 800); } }
+                                        setShowReactionPicker(false);
+                                        haptic(10);
+                                    }} aria-label={r.label} style={{
+                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        fontSize: 28, padding: '4px',
+                                        transition: 'transform 0.15s ease',
+                                    }}
+                                    onMouseEnter={e => e.target.style.transform = 'scale(1.3)'}
+                                    onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                                    >{r.emoji}</button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Comment */}
                     <button onClick={handleComment} aria-label="Comments" style={{
@@ -1746,69 +1790,78 @@ export default function ReelsPage() {
                         </span>
                     </button>
 
-                    {/* Sound */}
-                    <button onClick={muted ? handleUnmute : handleMute} aria-label={muted ? 'Unmute' : 'Mute'} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    }}>
-                        {muted ? (
-                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
-                        ) : (
-                            <>
-                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
-                            {/* #10 Sound Waveform Indicator */}
-                            <div style={{ display: 'flex', gap: 1.5, alignItems: 'flex-end', height: 10, marginTop: 2 }}>
-                                {[3, 6, 10, 6, 3].map((h, i) => (
-                                    <div key={i} style={{
-                                        width: 2, background: '#00d4ff', borderRadius: 1,
-                                        animation: `soundWave 0.6s ${i * 0.1}s ease-in-out infinite alternate`,
-                                        height: h,
-                                    }} />
-                                ))}
+                    {/* More (···) — opens panel with Sound, Report, Speed, Link */}
+                    <div style={{ position: 'relative' }}>
+                        <button onClick={() => setShowMoreMenu(prev => !prev)} aria-label="More options" style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center',
+                        }}>
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="white" stroke="none" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
+                                <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
+                            </svg>
+                            <span style={{ color: 'white', fontSize: 10, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>More</span>
+                        </button>
+                        {/* More Menu Panel */}
+                        {showMoreMenu && (
+                            <div style={{
+                                position: 'absolute', right: 48, bottom: 0,
+                                minWidth: 180, padding: '8px 0', borderRadius: 12,
+                                background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(16px)',
+                                WebkitBackdropFilter: 'blur(16px)',
+                                border: '1px solid rgba(255,255,255,0.12)',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                                animation: 'fadeInScale 0.2s ease',
+                            }}>
+                                {/* Sound */}
+                                <button onClick={() => { muted ? handleUnmute() : handleMute(); setShowMoreMenu(false); }} style={{
+                                    display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px',
+                                    background: 'none', border: 'none', color: 'white', fontSize: 14, cursor: 'pointer',
+                                    textAlign: 'left',
+                                }}>
+                                    {muted ? (
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
+                                    ) : (
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
+                                    )}
+                                    {muted ? 'Unmute' : 'Mute'}
+                                </button>
+                                {/* Speed */}
+                                <button onClick={() => { handleSpeedToggle(); setShowMoreMenu(false); }} style={{
+                                    display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px',
+                                    background: 'none', border: 'none', color: playbackSpeed !== 1 ? '#00d4ff' : 'white', fontSize: 14, cursor: 'pointer',
+                                    textAlign: 'left',
+                                }}>
+                                    <div style={{ width: 20, height: 20, borderRadius: '50%', border: '1.5px solid currentColor', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>{playbackSpeed}x</div>
+                                    Speed ({playbackSpeed}x)
+                                </button>
+                                {/* Copy Link */}
+                                <button onClick={() => {
+                                    const url = `${window.location.origin}/hub/reels?id=${currentReel?.id || ''}`;
+                                    navigator.clipboard.writeText(url).then(() => {
+                                        setCopyToast(true);
+                                        setTimeout(() => setCopyToast(false), 2000);
+                                    }).catch(() => {});
+                                    setShowMoreMenu(false);
+                                }} style={{
+                                    display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px',
+                                    background: 'none', border: 'none', color: 'white', fontSize: 14, cursor: 'pointer',
+                                    textAlign: 'left',
+                                }}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                    Copy Link
+                                </button>
+                                {/* Report */}
+                                <button onClick={() => { setShowReportModal(true); setShowMoreMenu(false); }} style={{
+                                    display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px',
+                                    background: 'none', border: 'none', color: '#ef4444', fontSize: 14, cursor: 'pointer',
+                                    textAlign: 'left', borderTop: '1px solid rgba(255,255,255,0.08)',
+                                }}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>
+                                    Report
+                                </button>
                             </div>
-                            </>
                         )}
-                    </button>
-
-                    {/* Report */}
-                    <button onClick={() => setShowReportModal(true)} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></svg>
-                        <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Report</span>
-                    </button>
-
-                    {/* Phase 7 — Speed Control */}
-                    <button onClick={handleSpeedToggle} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    }}>
-                        <div style={{
-                            width: 28, height: 28, borderRadius: '50%',
-                            background: playbackSpeed !== 1 ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.1)',
-                            border: playbackSpeed !== 1 ? '1px solid rgba(0,212,255,0.4)' : '1px solid rgba(255,255,255,0.2)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: playbackSpeed !== 1 ? '#00d4ff' : 'rgba(255,255,255,0.6)',
-                            fontSize: 10, fontWeight: 700,
-                        }}>{playbackSpeed}x</div>
-                        <span style={{ color: playbackSpeed !== 1 ? '#00d4ff' : 'rgba(255,255,255,0.6)', fontSize: 10, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Speed</span>
-                    </button>
-
-                    {/* Phase 8 — Copy Reel Link */}
-                    <button onClick={() => {
-                        const url = `${window.location.origin}/hub/reels?id=${currentReel?.id || ''}`;
-                        navigator.clipboard.writeText(url).then(() => {
-                            setCopyToast(true);
-                            setTimeout(() => setCopyToast(false), 2000);
-                        }).catch(() => {});
-                    }} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    }}>
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                        <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Link</span>
-                    </button>
+                    </div>
                 </div>
 
                 {/* Instagram-style heart burst with particles */}
@@ -2008,6 +2061,10 @@ export default function ReelsPage() {
                     @keyframes soundWave {
                         0% { height: 2px; }
                         100% { height: var(--max-h, 10px); }
+                    }
+                    @keyframes fadeInScale {
+                        from { opacity: 0; transform: scale(0.85); }
+                        to { opacity: 1; transform: scale(1); }
                     }
                 `}</style>
 
@@ -2303,36 +2360,18 @@ export default function ReelsPage() {
                     </div>
                 )}
 
-                {/* Swipe instruction + position */}
-                {!showCommentPanel && (
+                {/* Loading indicator at bottom */}
+                {!showCommentPanel && loadingMore && (
                     <div style={{
                         position: 'absolute', bottom: 60, left: '50%', transform: 'translateX(-50%)',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100,
                         pointerEvents: 'none',
                     }}>
-                        {loadingMore ? (
-                            <div style={{
-                                width: 24, height: 24, border: '2px solid rgba(255,255,255,0.3)',
-                                borderTopColor: 'white', borderRadius: '50%',
-                                animation: 'spin 0.8s linear infinite',
-                            }} />
-                        ) : currentIndex < reels.length - 1 ? (
-                            <>
-                                <div style={{
-                                    position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none',
-                                    animation: 'pulse 2s infinite', zIndex: 90,
-                                    opacity: showOverlay ? 1 : 0, transition: 'opacity 0.3s ease',
-                                }}>
-                                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Swipe Up For Next</span>
-                                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16 }}>↑</span>
-                                </div>
-                            </>
-                        ) : (
-                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                                {hasMore ? 'Loading more...' : 'You\'ve seen all reels'}
-                            </span>
-                        )}
+                        <div style={{
+                            width: 24, height: 24, border: '2px solid rgba(255,255,255,0.3)',
+                            borderTopColor: 'white', borderRadius: '50%',
+                            animation: 'spin 0.8s linear infinite',
+                        }} />
                     </div>
                 )}
 
