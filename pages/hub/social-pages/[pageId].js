@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import { SharedPostCreator } from '../../../src/components/social/SharedPostCreator';
 import { useAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
@@ -941,14 +942,8 @@ export default function SocialPageDetail() {
     const [activeTab, setActiveTab] = useState('posts');
     const [isFollowing, setIsFollowing] = useState(false);
     const [userRole, setUserRole] = useState(null);
-    const [newPost, setNewPost] = useState('');
-    const [posting, setPosting] = useState(false);
-    const [uploadImages, setUploadImages] = useState([]);
     const [memberSearch, setMemberSearch] = useState('');
     // #10 Post visibility
-    const [postVisibility, setPostVisibility] = useState('public');
-    const [postType, setPostType] = useState('regular');
-    const imageInputRef = useRef(null);
     // #3 Load More pagination
     const [hasMorePosts, setHasMorePosts] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -1394,8 +1389,8 @@ export default function SocialPageDetail() {
         setFollowLoading(false);
     };
 
-    const handlePost = async () => {
-        if ((!newPost.trim() && uploadImages.length === 0) || !user || !page) return;
+    const handlePostSubmit = async (postContent, urls, type, mentions, linkPreview, visibility) => {
+        if ((!postContent.trim() && urls.length === 0) || !user || !page) return false;
         setPosting(true);
         try {
             const token = getAccessToken();
@@ -1406,11 +1401,14 @@ export default function SocialPageDetail() {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    page_id: page.id, author_id: user.id,
-                    content: newPost.trim(), content_type: uploadImages.length > 0 ? 'media' : 'text',
-                    visibility: postVisibility,
-                    post_type: postType,
-                    ...(uploadImages.length > 0 ? { media_urls: uploadImages } : {}),
+                    page_id: page.id, 
+                    author_id: user.id,
+                    content: postContent.trim(), 
+                    content_type: urls.length > 0 ? 'media' : 'text',
+                    visibility: visibility,
+                    post_type: 'regular',
+                    ...(urls.length > 0 ? { media_urls: urls } : {}),
+                    ...(mentions && mentions.length > 0 ? { mentions } : {}) // Pass mentions if needed by API
                 }),
             });
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -1420,14 +1418,16 @@ export default function SocialPageDetail() {
                 busEmit.dataMutated('social-pages');
                 busEmit.dataMutated('social');
                 busEmit.socialPostCreated(json.data?.id || 'unknown', user.id);
-                setNewPost('');
-                setUploadImages([]);
-                setPostVisibility('public');
-                setPostType('regular');
                 fetchPosts();
+                setPosting(false);
+                return true;
             }
-        } catch (e) { console.error("[[pageId].js]", e); toast.error('Post failed — try again'); }
+        } catch (e) {
+            console.error("[[pageId].js]", e);
+            toast.error('Post failed — try again');
+        }
         setPosting(false);
+        return false;
     };
 
     const handleLike = async (postId, reactionType) => {
@@ -1573,21 +1573,6 @@ export default function SocialPageDetail() {
             });
             busEmit.dataMutated('friends');
         } catch (e) { console.error('Follow user error:', e); }
-    };
-
-    const handleImageUpload = async (e) => {
-        const files = Array.from(e.target.files || []);
-        if (!files.length) return;
-        for (const file of files.slice(0, 4)) {
-            const ext = file.name.split('.').pop();
-            const path = `social-pages/${page.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-            const { data, error } = await supabase.storage.from('social-media-uploads').upload(path, file);
-            if (!error && data) {
-                const { data: urlData } = supabase.storage.from('social-media-uploads').getPublicUrl(data.path);
-                setUploadImages(prev => [...prev, urlData.publicUrl]);
-            }
-        }
-        if (imageInputRef.current) imageInputRef.current.value = '';
     };
 
     const handleCommentAdded = (postId) => {
@@ -2005,102 +1990,19 @@ export default function SocialPageDetail() {
                                 <>
                                     {/* Create Post */}
                                     {user && (isFollowing || userRole === 'owner') && (
-                                        <div style={{
-                                            background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
-                                            padding: 16, marginBottom: 16,
-                                        }}>
-                                            {isOwnerOnOwnPage && (
-                                                <div style={{
-                                                    fontSize: 12, color: '#1877F2', fontWeight: 600,
-                                                    marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6,
-                                                    padding: '6px 10px', background: '#E7F3FF', borderRadius: 8,
-                                                }}>
-                                                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#1877F2', display: 'inline-block' }} />
-                                                    Posting as {page.name}
-                                                </div>
-                                            )}
-                                            <div style={{ display: 'flex', gap: 10 }}>
-                                                <Avatar
-                                                    src={isOwnerOnOwnPage ? page.avatar_url : user.user_metadata?.avatar_url}
-                                                    name={isOwnerOnOwnPage ? page.name : (user.user_metadata?.full_name || user.email)}
-                                                    size={40}
-                                                />
-                                                <textarea
-                                                    value={newPost}
-                                                    onChange={e => setNewPost(e.target.value)}
-                                                    placeholder={isOwnerOnOwnPage ? `Post as ${page.name}...` : `Write something to ${page.name}...`}
-                                                    style={{
-                                                        flex: 1, padding: '10px 12px', borderRadius: 12,
-                                                        border: `1px solid ${C.border}`, fontSize: 14,
-                                                        fontFamily: 'inherit', outline: 'none', resize: 'none',
-                                                        minHeight: 60, background: C.bg,
-                                                    }}
-                                                />
-                                            </div>
-                                            {/* Image Upload Preview */}
-                                            {uploadImages.length > 0 && (
-                                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-                                                    {uploadImages.map((url, i) => (
-                                                        <div key={i} style={{ position: 'relative', width: 80, height: 80, borderRadius: 8, overflow: 'hidden' }}>
-                                                            <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                            <button onClick={() => setUploadImages(prev => prev.filter((_, j) => j !== i))} style={{
-                                                                position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%',
-                                                                background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer',
-                                                                fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            }}>×</button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                            {/* #15 Character counter */}
-                                            {newPost.length > 0 && (
-                                                <div style={{ textAlign: 'right', fontSize: 11, marginTop: 4, color: newPost.length > 1950 ? C.red : newPost.length > 1800 ? '#E65100' : C.textSec }}>
-                                                    {newPost.length}/2000
-                                                </div>
-                                            )}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                                    <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleImageUpload} />
-                                                    <button onClick={() => imageInputRef.current?.click()} title="Add Photo" style={{
-                                                        background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px',
-                                                        borderRadius: 6, color: '#42B72A', fontSize: 14,
-                                                    }}>
-                                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <rect x="3" y="3" width="18" height="18" rx="2" />
-                                                            <circle cx="8.5" cy="8.5" r="1.5" />
-                                                            <path d="M21 15l-5-5L5 21" />
-                                                        </svg>
-                                                    </button>
-                                                    {/* #10 Visibility toggle */}
-                                                    <button onClick={() => setPostVisibility(v => v === 'public' ? 'members' : 'public')} title={postVisibility === 'public' ? 'Visible to everyone' : 'Members only'} style={{
-                                                        background: 'none', border: `1px solid ${C.border}`, cursor: 'pointer', padding: '3px 8px',
-                                                        borderRadius: 12, fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
-                                                        color: postVisibility === 'members' ? C.blue : C.textSec,
-                                                    }}>
-                                                        {postVisibility === 'public' ? 'Public' : 'Members'}
-                                                    </button>
-                                                    {/* Announcement toggle — owner only */}
-                                                    {isOwnerOnOwnPage && (
-                                                        <button onClick={() => setPostType(t => t === 'announcement' ? 'regular' : 'announcement')} title={postType === 'announcement' ? 'Posting as announcement' : 'Regular post'} style={{
-                                                            background: postType === 'announcement' ? '#FFF3E0' : 'none',
-                                                            border: `1px solid ${postType === 'announcement' ? '#E65100' : C.border}`,
-                                                            cursor: 'pointer', padding: '3px 8px',
-                                                            borderRadius: 12, fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
-                                                            color: postType === 'announcement' ? '#E65100' : C.textSec,
-                                                        }}>
-                                                            {postType === 'announcement' ? 'Announcement' : 'Regular'}
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <button onClick={handlePost} disabled={(!newPost.trim() && uploadImages.length === 0) || posting} style={{
-                                                    padding: '8px 20px', borderRadius: 8, border: 'none',
-                                                    background: (newPost.trim() || uploadImages.length > 0) && !posting ? C.blue : '#E4E6EB',
-                                                    color: (newPost.trim() || uploadImages.length > 0) && !posting ? '#fff' : C.textSec,
-                                                    fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                                }}>
-                                                    {posting ? 'Posting...' : 'Post'}
-                                                </button>
-                                            </div>
+                                        <div style={{ paddingBottom: 16 }}>
+                                            <SharedPostCreator 
+                                                user={user}
+                                                authorOverride={isOwnerOnOwnPage ? {
+                                                    id: page.id,
+                                                    name: page.name,
+                                                    avatar_url: page.avatar_url,
+                                                    type: 'page'
+                                                } : null}
+                                                onPost={handlePostSubmit}
+                                                isPosting={posting}
+                                                context="social-pages"
+                                            />
                                         </div>
                                     )}
 
