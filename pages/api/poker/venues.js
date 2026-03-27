@@ -1,5 +1,5 @@
 /**
- * Poker Venues API - Serves all 483 verified poker venues
+ * Poker Venues API - Serves ALL verified poker venues (uncapped)
  * Supports filtering, GPS-based search, and daily tournament schedule lookups
  *
  * Query params:
@@ -10,7 +10,7 @@
  *   tournaments - if 'true', only venues with has_tournaments=true
  *   search     - search by name, city, address, or state (case-insensitive)
  *   lat + lng + radius (default 100km) - GPS-based search with Haversine distance
- *   limit      - max results (default 50, max 200)
+ *   limit      - max results (default: all, no cap)
  *   featured   - if 'true', only featured venues
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -234,14 +234,14 @@ export default async function handler(req, res) {
               lat,
               lng,
               radius = 100,
-              limit = 500,
+              limit = 10000,
               featured,
               hasNLH,
               hasPLO,
               hasMixed,
           } = req.query;
 
-          const maxResults = Math.min(parseInt(limit, 10) || 500, 500);
+          const maxResults = parseInt(limit, 10) || 10000;
           const offset = parseInt(req.query.offset, 10) || 0;
           // Merge 'type' and 'venue_type' so both ?type=casino and ?venue_type=casino work
           const effectiveType = type || venue_type || null;
@@ -302,10 +302,8 @@ export default async function handler(req, res) {
                       }
                   }
 
-                  // Internal fetch limit higher than user-facing limit to capture all venue types
-                  // (home_games, poker_clubs have null trust_score and sort last)
-                  const internalLimit = Math.max(maxResults, 1000);
-                  q = q.order('trust_score', { ascending: false, nullsFirst: false }).range(offset, offset + internalLimit - 1);
+                  // No artificial cap — return ALL venues
+                  q = q.order('trust_score', { ascending: false, nullsFirst: false }).range(offset, offset + maxResults - 1);
                   const { data: dbVenues, error: dbErr, count: dbCount } = await q;
 
                   if (!dbErr && dbVenues && dbVenues.length > 0) {
@@ -747,9 +745,8 @@ export default async function handler(req, res) {
 
           // --- Apply limit and return ---
           const total = venues.length;
-          // When GPS is active, radius already filters — return all venue types
-          // Without GPS, apply user-facing limit to prevent unbounded responses
-          const limited = hasGps ? venues : venues.slice(0, maxResults);
+          // No cap — return all venues (dataset is manageable size)
+          const limited = venues;
 
           return res.status(200).json({
               success: true,
@@ -769,7 +766,7 @@ export default async function handler(req, res) {
           const fallbackVenues = getJsonVenues();
           return res.status(200).json({
               success: true,
-              data: fallbackVenues.slice(0, 500),
+              data: fallbackVenues,
               total: fallbackVenues.length,
               hasGpsData: false,
           });

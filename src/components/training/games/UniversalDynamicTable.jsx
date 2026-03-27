@@ -914,6 +914,9 @@ function UniversalDynamicTable({
     difficultyLevel = 0,            // 0-10 difficulty level for display
     // Player identity
     heroName = null,                 // Player's display name or poker alias
+    // Settings config — gear button relocated to scenario area
+    onConfigClick = null,
+    trainerConfig = null,
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
     const [streakToast, setStreakToast] = React.useState(null);
@@ -1844,26 +1847,81 @@ function UniversalDynamicTable({
                     )}
                 </AnimatePresence>
 
-                {/* SCENARIO CONTEXT — Fixed at the top of the table area, 3px below timer */}
-                {contextString && (
-                    <div style={{
-                        position: 'absolute',
-                        top: 3,
-                        left: 0,
-                        right: 0,
-                        textAlign: 'center',
-                        fontSize: 15,
-                        fontWeight: 900,
-                        color: '#ffffff',
-                        textTransform: 'uppercase',
-                        letterSpacing: 1,
-                        textShadow: '0 2px 4px rgba(0,0,0,0.8)',
-                        zIndex: 5,
-                        pointerEvents: 'none',
-                    }}>
-                        {contextString}
-                    </div>
-                )}
+                {/* SCENARIO CONTEXT — Fixed at the top of the table area, with settings gear */}
+                <div style={{
+                    position: 'absolute',
+                    top: 3,
+                    left: 0,
+                    right: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 5,
+                    pointerEvents: 'none',
+                }}>
+                    {contextString && (
+                        <div style={{
+                            fontSize: 15,
+                            fontWeight: 900,
+                            color: '#ffffff',
+                            textTransform: 'uppercase',
+                            letterSpacing: 1,
+                            textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+                        }}>
+                            {contextString}
+                        </div>
+                    )}
+                    {/* Settings Gear — upper right of scenario area */}
+                    {onConfigClick && (
+                        <button
+                            onClick={onConfigClick}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                right: 8,
+                                width: 32,
+                                height: 32,
+                                borderRadius: '50%',
+                                border: trainerConfig ? '1.5px solid rgba(0,212,255,0.4)' : '1px solid rgba(255,255,255,0.15)',
+                                background: trainerConfig ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.06)',
+                                color: trainerConfig ? '#00d4ff' : '#94a3b8',
+                                fontSize: 16,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                pointerEvents: 'auto',
+                                transition: 'all 0.15s ease',
+                                boxShadow: trainerConfig ? '0 0 8px rgba(0,212,255,0.15)' : 'none',
+                            }}
+                            title={trainerConfig ? `Custom: ${trainerConfig.label}` : 'Configure Trainer'}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="3" />
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                            </svg>
+                        </button>
+                    )}
+                    {/* Active config label */}
+                    {trainerConfig && (
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            right: 46,
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                            background: 'rgba(0,212,255,0.08)',
+                            border: '1px solid rgba(0,212,255,0.2)',
+                            color: '#00d4ff',
+                            fontSize: 9,
+                            fontWeight: 700,
+                            letterSpacing: 0.5,
+                            pointerEvents: 'none',
+                        }}>
+                            {trainerConfig.label}
+                        </div>
+                    )}
+                </div>
 
                 {/* PREMIUM RACETRACK TABLE — GoldenTemplateTable design */}
                 {/* NEW CUSTOM STANDALONE RACETRACK TABLE */}
@@ -1982,15 +2040,13 @@ function UniversalDynamicTable({
 
                                     {/* Dealer Button — REMOVED for centering (position shown in scenario text) */}
 
-                                    {/* Hero: face-up cards — RIGHT of badge (same layout as villain) */}
+                                    {/* Hero: face-up cards — CENTERED below badge */}
                                     {isHero && heroCards.length > 0 && (
                                         <div style={{
-                                            position: 'absolute',
-                                            right: -8,
-                                            top: '50%',
-                                            transform: 'translate(100%, -50%)',
                                             display: 'flex',
-                                            gap: 2,
+                                            justifyContent: 'center',
+                                            gap: 3,
+                                            marginTop: 4,
                                             zIndex: 5,
                                         }}>
                                             {heroCards[0] && (
@@ -2022,7 +2078,6 @@ function UniversalDynamicTable({
                                                         width: 44,
                                                         height: 62,
                                                         borderRadius: 4,
-                                                        marginLeft: -6,
                                                         boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
                                                         border: '2px solid rgba(255,255,255,0.4)',
                                                     }}
@@ -2031,15 +2086,13 @@ function UniversalDynamicTable({
                                         </div>
                                     )}
 
-                                    {/* Villain: face-down cards — CSS-styled card backs */}
+                                    {/* Villain: face-down cards — CENTERED below badge */}
                                     {!isHero && !villainFolded && (
                                         <div style={{
-                                            position: 'absolute',
-                                            right: -8,
-                                            top: '50%',
-                                            transform: 'translate(100%, -50%)',
                                             display: 'flex',
-                                            gap: 1,
+                                            justifyContent: 'center',
+                                            gap: 2,
+                                            marginTop: 4,
                                             zIndex: 1,
                                         }}>
                                             <div style={{
@@ -2057,7 +2110,6 @@ function UniversalDynamicTable({
                                             </div>
                                             <div style={{
                                                 width: 28, height: 40, borderRadius: 4,
-                                                marginLeft: -10,
                                                 background: 'linear-gradient(135deg, #8B0000 0%, #B22222 50%, #8B0000 100%)',
                                                 border: '2px solid #FFD700',
                                                 boxShadow: '0 2px 6px rgba(0,0,0,0.5)',

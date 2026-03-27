@@ -1499,6 +1499,9 @@ function MessengerPage() {
         activeStatus: true,
         messageSounds: true
     });
+    // Ref mirror of preferences to avoid stale closures in long-lived WebSocket callbacks
+    const preferencesRef = useRef(preferences);
+    useEffect(() => { preferencesRef.current = preferences; }, [preferences]);
 
     // OneSignal Push Notifications
     const { isInitialized: pushReady, isSubscribed: pushSubscribed, subscribe: subscribePush, setExternalUserId } = useOneSignal();
@@ -1776,8 +1779,8 @@ function MessengerPage() {
 
                 // If it's NOT the active conversation, we need to manually update the conversation sidebar
                 if (!currentActive || currentActive.id !== newMsg.conversation_id) {
-                    // Only play sound if user has message sounds enabled
-                    if (preferences.messageSounds !== false) playMessageSound();
+                    // Only play sound if user has message sounds enabled (read from ref to avoid stale closure)
+                    if (preferencesRef.current.messageSounds !== false) playMessageSound();
                     
                     setConversations(prev => {
                         const exists = prev.find(c => c.id === newMsg.conversation_id);
@@ -1822,8 +1825,8 @@ function MessengerPage() {
                 // Skip if this is our own message (already added via optimistic update)
                 if (newMsg.sender_id === user.id) return;
 
-                // Play sound for incoming message (respect preferences)
-                if (preferences.messageSounds !== false) playMessageSound();
+                // Play sound for incoming message (respect preferences — read from ref to avoid stale closure)
+                if (preferencesRef.current.messageSounds !== false) playMessageSound();
 
                 // Fetch sender profile (cached to avoid N queries for same sender)
                 let profile = profileCacheRef.current.get(newMsg.sender_id);
@@ -2300,6 +2303,7 @@ function MessengerPage() {
             }
 
             // Broadcast read receipt so the sender sees ✓✓
+            // Re-uses the already-subscribed typing channel (Supabase JS shares instances by topic name)
             try {
                 const typingCh = supabase.channel(`typing:${conversationId}`);
                 typingCh.send({
@@ -2845,32 +2849,38 @@ function MessengerPage() {
                 .getPublicUrl(fileName);
 
 
-            // Send message with media URL
+            // Send message with media URL — route through API for XSS sanitization + rate limiting
             const content = isImage
                 ? `[Image](${urlData.publicUrl})`
                 : `[Video](${urlData.publicUrl})`;
 
-            const { data, error } = await supabase.rpc('fn_send_message', {
-                p_conversation_id: activeConversation.id,
-                p_sender_id: user.id,
-                p_content: content,
+            const mediaToken = getAccessToken();
+            const mediaResp = await fetch('/api/messenger/send-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(mediaToken ? { Authorization: `Bearer ${mediaToken}` } : {}),
+                },
+                body: JSON.stringify({
+                    conversationId: activeConversation.id,
+                    content: content,
+                }),
             });
-
-            if (error) {
-                console.error('Send message error:', error);
-                throw error;
-            }
-
+            const mediaResult = await mediaResp.json();
+            if (!mediaResp.ok || !mediaResult.success) throw new Error(mediaResult.error || 'Send failed');
 
             // Update message with real data
             setMessages(prev => prev.map(m =>
                 m.id === tempId
-                    ? { ...m, id: data, content, media_url: urlData.publicUrl, status: 'sent' }
+                    ? { ...m, id: mediaResult.msgId, content, media_url: urlData.publicUrl, status: 'sent' }
                     : m
             ));
 
             // Revoke blob URL to prevent memory leak
             URL.revokeObjectURL(mediaPreview);
+
+            // Notify header to refresh unread badges
+            busEmit.dataMutated('messenger');
 
             setToast({ type: 'success', message: `${isImage ? 'Photo' : 'Video'} sent!` });
         } catch (e) {

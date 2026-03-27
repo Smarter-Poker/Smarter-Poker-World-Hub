@@ -95,6 +95,9 @@ export default function GameUIRouter({
     onExit = null,
     // Phase 2: Adaptive difficulty
     difficultyLevel = 0,
+    // Settings config
+    onConfigClick = null,
+    trainerConfig = null,
 }) {
     // Determine which UI to use based on game type
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
@@ -147,6 +150,9 @@ export default function GameUIRouter({
             onExit={onExit}
             // Phase 2: Adaptive difficulty
             difficultyLevel={difficultyLevel}
+            // Settings config — render gear in scenario area
+            onConfigClick={onConfigClick}
+            trainerConfig={trainerConfig}
         />
     );
 }

@@ -1676,57 +1676,6 @@ function GodModeArenaInner({
                             transition={{ duration: 0.3 }}
                             style={{ width: '100%', height: '100%', position: 'relative' }}
                         >
-                            {/* Config gear button */}
-                            <motion.button
-                                whileHover={{ scale: 1.1, rotate: 90 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => setShowConfigModal(true)}
-                                style={{
-                                    position: 'absolute',
-                                    top: 12,
-                                    right: 12,
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: '50%',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    background: trainerConfig
-                                        ? 'rgba(0, 212, 255, 0.15)'
-                                        : 'rgba(255,255,255,0.05)',
-                                    color: trainerConfig ? '#00d4ff' : '#94a3b8',
-                                    fontSize: 18,
-                                    cursor: 'pointer',
-                                    zIndex: 100,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                }}
-                                title={trainerConfig ? `Custom: ${trainerConfig.label}` : 'Configure Trainer'}
-                            >
-                                ⚙
-                            </motion.button>
-                            {/* Active config badge */}
-                            {trainerConfig && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    style={{
-                                        position: 'absolute',
-                                        top: 14,
-                                        right: 56,
-                                        padding: '4px 10px',
-                                        borderRadius: 8,
-                                        background: 'rgba(0, 212, 255, 0.1)',
-                                        border: '1px solid rgba(0, 212, 255, 0.2)',
-                                        color: '#00d4ff',
-                                        fontSize: 10,
-                                        fontWeight: 600,
-                                        letterSpacing: 0.3,
-                                        zIndex: 100,
-                                    }}
-                                >
-                                    {trainerConfig.label}
-                                </motion.div>
-                            )}
                             {error ? (
                                 <div style={styles.errorState}>
                                     <p style={{ color: '#ef4444', fontSize: 18 }}>⚠️ {error}</p>
@@ -1759,6 +1708,9 @@ function GodModeArenaInner({
                                     currentStreet={currentStreet}
                                     onExit={onExit}
                                     difficultyLevel={computedDifficultyLevel}
+                                    // Settings gear — relocated to scenario description area
+                                    onConfigClick={() => setShowConfigModal(true)}
+                                    trainerConfig={trainerConfig}
                                 />
                             ) : null}
                         </motion.div>

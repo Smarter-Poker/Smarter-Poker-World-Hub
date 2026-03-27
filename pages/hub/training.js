@@ -1510,10 +1510,10 @@ export default function TrainingPage() {
                             <span>85% To Master</span>
                         </div>
                     </div>
+                    <BottomNavBar />
                 </>
             )
             }
-              <BottomNavBar />
     </PageTransition >
     );
 }

@@ -907,7 +907,7 @@ export default function PokerNearMeLobby() {
       }).catch(() => {});
     }
     // Fetch ALL venues with GPS coordinates for distance sorting
-    const gpsUrl = `/api/poker/venues?limit=500&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+    const gpsUrl = `/api/poker/venues?limit=10000&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
     cachedFetch(gpsUrl).then(data => {
       const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
       setVenues(newVenues);
@@ -987,7 +987,7 @@ export default function PokerNearMeLobby() {
         state: preferences?.lastLocationState || '',
       });
       // Fetch venues with saved location immediately
-      const gpsUrl = `/api/poker/venues?limit=500&offset=0&lat=${savedLoc.lat}&lng=${savedLoc.lng}&radius=250&sort=distance`;
+      const gpsUrl = `/api/poker/venues?limit=10000&offset=0&lat=${savedLoc.lat}&lng=${savedLoc.lng}&radius=250&sort=distance`;
       cachedFetch(gpsUrl).then(data => {
         const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
         setVenues(newVenues);
@@ -1004,7 +1004,7 @@ export default function PokerNearMeLobby() {
             // Only re-fetch if we got a significantly different position (>0.01 deg ≈ 1km)
             const movedSignificantly = Math.abs(loc.lat - savedLoc.lat) > 0.01 || Math.abs(loc.lng - savedLoc.lng) > 0.01;
             if (movedSignificantly) {
-              const freshUrl = `/api/poker/venues?limit=500&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+              const freshUrl = `/api/poker/venues?limit=10000&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
               cachedFetch(freshUrl).then(data => {
                 const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
                 setVenues(newVenues);
@@ -1078,7 +1078,7 @@ export default function PokerNearMeLobby() {
           }).catch(() => {});
         }
         // Fetch venues near this location
-        const gpsUrl = `/api/poker/venues?limit=500&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+        const gpsUrl = `/api/poker/venues?limit=10000&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
         cachedFetch(gpsUrl).then(result => {
           const newVenues = result?.data || result?.venues || (Array.isArray(result) ? result : []);
           setVenues(newVenues);
@@ -1216,7 +1216,7 @@ export default function PokerNearMeLobby() {
           const apiRadius = userLocation && svRadius !== 'any' ? `&radius=${svRadius}` : '';
           const apiLoc = userLocation ? `&lat=${userLocation.lat}&lng=${userLocation.lng}` : '';
           const apiSort = svSort ? `&sort=${svSort}` : '';
-          const apiUrl = `/api/poker/venues?limit=500&offset=0${apiLoc}${apiRadius}${apiState}${apiVenueType}${apiSort}`;
+          const apiUrl = `/api/poker/venues?limit=10000&offset=0${apiLoc}${apiRadius}${apiState}${apiVenueType}${apiSort}`;
           setLoading(true);
           cachedFetch(apiUrl).then(data => {
             const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
@@ -1247,7 +1247,7 @@ export default function PokerNearMeLobby() {
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Venue Type</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'card_room',l:'Card Room'},{k:'poker_club',l:'Poker Club'}].map(t => (
+                  {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'card_room',l:'Card Room'},{k:'poker_club',l:'Poker Club'},{k:'home_game',l:'Home Game'},{k:'charity',l:'Charity'},{k:'series',l:'Series'},{k:'tour',l:'Tour'}].map(t => (
                     <button key={t.k} onClick={() => setFilters(prev => ({ ...prev, svVenueType: t.k }))}
                       style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: svVenueType === t.k ? '1px solid #58a6ff' : '1px solid rgba(48,54,61,0.6)', background: svVenueType === t.k ? 'rgba(88,166,255,0.15)' : 'rgba(22,27,34,0.6)', color: svVenueType === t.k ? '#58a6ff' : '#8b949e' }}>{t.l}</button>
                   ))}
@@ -1384,7 +1384,7 @@ export default function PokerNearMeLobby() {
                 const hgApiState = hgState !== 'all' ? `&state=${hgState}` : '';
                 const hgApiSearch = hgSearch ? `&search=${encodeURIComponent(hgSearch)}` : '';
                 const hgApiLoc = userLocation ? `&lat=${userLocation.lat}&lng=${userLocation.lng}` : '';
-                const hgUrl = `/api/poker/venues?limit=500&offset=0&venue_type=home_game${hgApiState}${hgApiSearch}${hgApiLoc}`;
+                const hgUrl = `/api/poker/venues?limit=10000&offset=0&venue_type=home_game${hgApiState}${hgApiSearch}${hgApiLoc}`;
                 setLoading(true);
                 cachedFetch(hgUrl).then(data => {
                   const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
@@ -1513,7 +1513,7 @@ export default function PokerNearMeLobby() {
           const apiRadius = userLocation && nmRadius !== 'any' ? `&radius=${nmRadius}` : '';
           const apiLoc = userLocation ? `&lat=${userLocation.lat}&lng=${userLocation.lng}` : '';
           const apiSort = nmSort ? `&sort=${nmSort}` : '';
-          const apiUrl = `/api/poker/venues?limit=500&offset=0${apiLoc}${apiRadius}${apiState}${apiVenueType}${apiSort}`;
+          const apiUrl = `/api/poker/venues?limit=10000&offset=0${apiLoc}${apiRadius}${apiState}${apiVenueType}${apiSort}`;
           setLoading(true);
           cachedFetch(apiUrl).then(data => {
             const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
@@ -1546,7 +1546,7 @@ export default function PokerNearMeLobby() {
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Venue Type</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'card_room',l:'Card Room'},{k:'poker_club',l:'Poker Club'},{k:'home_game',l:'Home Game'},{k:'charity',l:'Charity'}].map(t => (
+                  {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'card_room',l:'Card Room'},{k:'poker_club',l:'Poker Club'},{k:'home_game',l:'Home Game'},{k:'charity',l:'Charity'},{k:'series',l:'Series'},{k:'tour',l:'Tour'}].map(t => (
                     <button key={t.k} onClick={() => setFilters(prev => ({ ...prev, nmVenueType: t.k }))}
                       style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: nmVenueType === t.k ? '1px solid #58a6ff' : '1px solid rgba(48,54,61,0.6)', background: nmVenueType === t.k ? 'rgba(88,166,255,0.15)' : 'rgba(22,27,34,0.6)', color: nmVenueType === t.k ? '#58a6ff' : '#8b949e', transition: 'all 0.15s' }}>{t.l}</button>
                   ))}

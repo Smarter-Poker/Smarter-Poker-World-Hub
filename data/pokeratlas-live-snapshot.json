@@ -1,14 +1,14 @@
 {
   "metadata": {
-    "batch_id": "4085001f-e3ad-4b3b-b576-734a2e4592a9",
-    "scrape_timestamp": "2026-03-27T22:02:31.765257+00:00",
+    "batch_id": "e5e98fb4-98f3-4063-9c6f-c719fc696752",
+    "scrape_timestamp": "2026-03-27T23:27:13.558072+00:00",
     "source": "pokeratlas",
     "regions_scraped": 61,
     "venues_with_data": 124,
     "regions_skipped": 0,
-    "total_records_saved": 535,
+    "total_records_saved": 539,
     "errors": 52,
-    "duration_seconds": 317.833611
+    "duration_seconds": 345.904771
   },
   "venues": [
     {
