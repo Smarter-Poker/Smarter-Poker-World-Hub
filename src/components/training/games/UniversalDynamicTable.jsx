@@ -2011,8 +2011,8 @@ function UniversalDynamicTable({
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     transition={{ delay: 0.1, duration: 0.3, type: 'spring' }}
                                                     style={{
-                                                        width: isMobile ? 64 : 76,
-                                                        height: isMobile ? 90 : 108,
+                                                        width: isMobile ? 50 : 64,
+                                                        height: isMobile ? 70 : 90,
                                                         borderRadius: 6,
                                                         boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
                                                         border: '2px solid rgba(255,255,255,0.4)',
@@ -2028,8 +2028,8 @@ function UniversalDynamicTable({
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     transition={{ delay: 0.2, duration: 0.3, type: 'spring' }}
                                                     style={{
-                                                        width: isMobile ? 64 : 76,
-                                                        height: isMobile ? 90 : 108,
+                                                        width: isMobile ? 50 : 64,
+                                                        height: isMobile ? 70 : 90,
                                                         borderRadius: 6,
                                                         marginLeft: -10,
                                                         boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
@@ -3383,7 +3383,7 @@ const styles = {
 
     pot: {
         position: 'absolute',
-        top: '28%',
+        top: '20%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
         color: '#e2e8f0',
