@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { getSupabase } from '../../utils/supabaseClient';
+import { supabase } from '../../lib/supabase';
 import VenueCard from './VenueCard';
 
 // Dynamically import map to avoid SSR issues
@@ -89,7 +89,6 @@ export default function LiveGamesFeed({
         fetchGlobalLiveData();
         
         // Subscribe to real-time WebSockets from Supabase
-        const supabase = getSupabase();
         const liveChannel = supabase.channel('public:venue_live_tables')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_live_tables' }, () => {
                 console.log('Live Games WebSocket: Change detected. Re-hydrating live data from daemon...');
