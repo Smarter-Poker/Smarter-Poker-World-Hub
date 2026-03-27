@@ -20,6 +20,16 @@ import { SharedAvatar } from '../../../src/components/social/SharedAvatar';
 import { SharedLinkPreviewCard } from '../../../src/components/social/SharedLinkPreviewCard';
 import { VideoThumbnail, VideoPostWrapper, FullScreenVideoViewer } from '../../../src/components/social/SharedVideoComponents';
 import toast from '../../../src/stores/toastStore';
+// Phase 9: Shared components for full feature parity with social-media
+import { GoLiveModal } from '../../../src/components/social/GoLiveModal';
+import { LiveStreamCard } from '../../../src/components/social/LiveStreamCard';
+import { LiveStreamViewer } from '../../../src/components/social/LiveStreamViewer';
+import LiveStreamService from '../../../src/services/LiveStreamService';
+import ArticleCard from '../../../src/components/social/ArticleCard';
+import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
+import CheckInModal from '../../../src/components/social/CheckInModal';
+import GiphyPicker from '../../../src/components/shared/GiphyPicker';
+import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../../src/lib/broadcastSync';
 
 // Lightweight QR Code component — uses goqr.me API (zero dependencies, no Google Charts)
 function QRCanvas({ value, size = 140 }) {
@@ -964,6 +974,13 @@ export default function SocialPageDetail() {
     const [reviewContent, setReviewContent] = useState('');
     const [submittingReview, setSubmittingReview] = useState(false);
 
+    // Phase 9: GoLive / LiveStream / CheckIn / ArticleReader state
+    const [showGoLiveModal, setShowGoLiveModal] = useState(false);
+    const [liveStreams, setLiveStreams] = useState([]);
+    const [watchingStream, setWatchingStream] = useState(null);
+    const [showCheckInModal, setShowCheckInModal] = useState(false);
+    const [articleReader, setArticleReader] = useState({ open: false, url: null, title: null });
+
     // Live Games (#2)
     const [games, setGames] = useState([]);
     const [gamesLoading, setGamesLoading] = useState(false);
@@ -1344,6 +1361,25 @@ export default function SocialPageDetail() {
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [pageId, page, fetchPosts, fetchFollowers, fetchPage, fetchReviews]);
+
+    // Phase 9: Fetch live streams for this page
+    useEffect(() => {
+        if (!page) return;
+        LiveStreamService.getLiveStreams().then(streams => {
+            // Filter to streams relevant to this page (if applicable)
+            setLiveStreams(streams || []);
+        }).catch(() => {});
+    }, [page]);
+
+    // Phase 9: Cross-tab broadcastSync listener
+    useEffect(() => {
+        const cleanup = listenBroadcast('smarter_poker_social_sync', (payload) => {
+            if (payload?.action === 'refresh_feed' && payload?.tabId !== BROADCAST_TAB_ID) {
+                fetchPosts();
+            }
+        });
+        return cleanup;
+    }, [fetchPosts]);
 
     // P10-7: Scroll listener for scroll-to-top button
     useEffect(() => {
@@ -1866,7 +1902,7 @@ export default function SocialPageDetail() {
                         {/* Social Actions — Secondary Row */}
                         <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
                             {isPageOwner && (
-                                <button onClick={() => toast.success('Live streaming coming soon!')} style={{
+                                <button onClick={() => setShowGoLiveModal(true)} style={{
                                     padding: '8px 16px', borderRadius: 20, border: 'none',
                                     background: 'linear-gradient(135deg, #FF4444, #FF0080)',
                                     color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
@@ -3198,6 +3234,52 @@ export default function SocialPageDetail() {
                   </div>
               )}
             </div>
+
+            {/* Phase 9: GoLive Modal */}
+            <GoLiveModal
+                isOpen={showGoLiveModal}
+                onClose={() => {
+                    setShowGoLiveModal(false);
+                    LiveStreamService.getLiveStreams().then(setLiveStreams).catch(() => {});
+                }}
+                user={user}
+            />
+
+            {/* Phase 9: Live Stream Viewer */}
+            {watchingStream && (
+                <LiveStreamViewer
+                    stream={watchingStream}
+                    userId={user?.id}
+                    onClose={() => {
+                        setWatchingStream(null);
+                        LiveStreamService.getLiveStreams().then(setLiveStreams).catch(() => {});
+                    }}
+                />
+            )}
+
+            {/* Phase 9: In-App Article Reader */}
+            {articleReader.open && (
+                <ArticleReaderModal
+                    url={articleReader.url}
+                    title={articleReader.title}
+                    onClose={() => setArticleReader({ open: false, url: null, title: null })}
+                />
+            )}
+
+            {/* Phase 9: Check-In Modal */}
+            {showCheckInModal && (
+                <CheckInModal
+                    isOpen={showCheckInModal}
+                    onClose={() => setShowCheckInModal(false)}
+                    user={user}
+                    defaultVenue={page?.name}
+                    onCheckIn={() => {
+                        busEmit.dataMutated('social-pages');
+                        toast.success('Checked in successfully!');
+                        setShowCheckInModal(false);
+                    }}
+                />
+            )}
 
             <style jsx global>{`
                 @keyframes reactPopIn { 0% { transform: scale(0.3) translateY(10px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }

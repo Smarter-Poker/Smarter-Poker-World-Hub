@@ -380,21 +380,37 @@ export default function PokerNearMeLobby() {
   const bus = useTrainingBus('poker-near-me-lobby');
 
   // ─── Global EventBus for cross-component communication ───
-  // Maps 'venue:favorite' and 'venue:unfavorite' events to local 'favorites' state
-  useTrainingBus(null, {
-    'venue:favorite': (venueId) => setFavorites(prev => ({ ...prev, [venueId]: true })),
-    'venue:unfavorite': (venueId) => setFavorites(prev => {
-      const newState = { ...prev };
-      delete newState[venueId];
-      return newState;
-    }),
-  });
+  // Listen for venue:favorite / venue:unfavorite events on the GLOBAL eventBus
+  // NOTE: useTrainingBus returns emit-only helpers — it does NOT support .on() subscriptions.
+  //       All listeners MUST use eventBus.on() directly.
+  useEffect(() => {
+    const unsubFav = eventBus.on('venue:favorite', (event) => {
+      const venueId = event?.payload?.venueId || event?.venueId;
+      if (venueId) setFavorites(prev => ({ ...prev, [venueId]: true }));
+    });
+    const unsubUnfav = eventBus.on('venue:unfavorite', (event) => {
+      const venueId = event?.payload?.venueId || event?.venueId;
+      if (venueId) {
+        setFavorites(prev => {
+          const newState = { ...prev };
+          delete newState[venueId];
+          return newState;
+        });
+      }
+    });
+    return () => {
+      if (typeof unsubFav === 'function') unsubFav();
+      if (typeof unsubUnfav === 'function') unsubUnfav();
+    };
+  }, []);
 
   // ─── Listen for VENUE_CHECKIN_CREATED events to update badge counts in real-time ───
   useEffect(() => {
-    const unsub = eventBus.on(EventType.VENUE_CHECKIN_CREATED, (payload) => {
-      if (payload && payload.venueId) {
-        setCheckinCounts(prev => ({ ...prev, [String(payload.venueId)]: (prev[String(payload.venueId)] || 0) + 1 }));
+    const unsub = eventBus.on(EventType.VENUE_CHECKIN_CREATED, (event) => {
+      // EventBus wraps data in { type, payload, timestamp, source }
+      const venueId = event?.payload?.venueId || event?.venueId;
+      if (venueId) {
+        setCheckinCounts(prev => ({ ...prev, [String(venueId)]: (prev[String(venueId)] || 0) + 1 }));
       }
     });
     return () => { if (typeof unsub === 'function') unsub(); };
@@ -424,7 +440,7 @@ export default function PokerNearMeLobby() {
   const [series, setSeries] = useState([]);
   const [seriesLoaded, setSeriesLoaded] = useState(false);
   const [dailyTournaments, setDailyTournaments] = useState([]);
-  const [liveGames, setLiveGames] = useState([]);
+  // liveGames state removed — LiveGamesFeed manages its own live data via WebSocket
   const [favorites, setFavorites] = useState({});
   const [favoritedVenues, setFavoritedVenues] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -814,29 +830,14 @@ export default function PokerNearMeLobby() {
     };
     window.addEventListener('pnm:favorites-changed', handleFavoritesChanged);
 
-    // Global EventBus sync
-    const handleBusFavSync = (data) => {
-      if (data && data.venueId) {
-        setFavorites(prev => ({ ...prev, [data.venueId]: true }));
-      }
-    };
-    const handleBusUnfavSync = (data) => {
-      if (data && data.venueId) {
-        setFavorites(prev => ({ ...prev, [data.venueId]: false }));
-      }
-    };
-    let unsubFav, unsubUnfav;
-    if (bus && bus.on) {
-      unsubFav = bus.on('venue:favorite', handleBusFavSync);
-      unsubUnfav = bus.on('venue:unfavorite', handleBusUnfavSync);
-    }
+    // NOTE: Global EventBus sync for venue:favorite/unfavorite is handled by the
+    // dedicated useEffect at the top of the component (lines ~382-401).
+    // Do NOT duplicate listeners here — it causes double state updates.
 
     return () => {
       window.removeEventListener('pnm:favorites-changed', handleFavoritesChanged);
-      if (unsubFav) unsubFav();
-      if (unsubUnfav) unsubUnfav();
     };
-  }, [bus]);
+  }, []);
 
   // ─── GPS (persists to Supabase) ───
   const gpsErrorTimeoutRef = useRef(null);
@@ -956,10 +957,10 @@ export default function PokerNearMeLobby() {
     try {
       if (wasFavorited) {
         await removeVenueFavorite(userId, venueId);
-        try { bus?.emit?.('venue:unfavorite', { venueId }); } catch { }
+        try { eventBus.emit('venue:unfavorite', { venueId }, 'PokerNearMe'); } catch { }
       } else {
         await addVenueFavorite(userId, venueId, venueData);
-        try { bus?.emit?.('venue:favorite', { venueId, name: venueData?.name }); } catch { }
+        try { eventBus.emit('venue:favorite', { venueId, name: venueData?.name }, 'PokerNearMe'); } catch { }
       }
       // Emit event for cross-page sync after successful DB write
       if (typeof window !== 'undefined') {
@@ -1693,14 +1694,14 @@ export default function PokerNearMeLobby() {
   // ─── Live data for the 3D scene (drives visual behavior) ───
   const liveData = useMemo(() => ({
     venueCount: venues.length,
-    liveGameCount: liveGames.length,
+    liveGameCount: 0, // Live game count managed by LiveGamesFeed component internally
     tourCount: tours.length,
     seriesCount: series.length,
     dailyCount: dailyTournaments.length,
     alertCount: dailyTournaments.length + tours.length,
     savedCount: Object.keys(favorites).filter(k => favorites[k]).length,
     friendsNearby: 0,
-  }), [venues.length, liveGames.length, tours.length, series.length, dailyTournaments.length, favorites]);
+  }), [venues.length, tours.length, series.length, dailyTournaments.length, favorites]);
 
   return (
     <>
