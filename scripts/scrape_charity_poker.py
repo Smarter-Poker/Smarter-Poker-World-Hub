@@ -21,6 +21,8 @@ import re
 import sys
 import uuid
 import traceback
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -680,12 +682,14 @@ def build_venue_records(results):
                     continue
                 seen.add(key)
                 
+                venue_name = addr.get('name') or org
+                slug = re.sub(r'[^a-z0-9]+', '-', venue_name.lower()).strip('-')
                 venues.append({
-                    'name': addr.get('name') or org,
+                    'name': venue_name,
                     'address': addr['address'],
                     'city': addr.get('city', ''),
                     'state': addr.get('state', vdata.get('state', '')),
-                    'zip_code': addr.get('zip', ''),
+                    'country': 'US',
                     'phone': addr.get('phone', ''),
                     'website': addr.get('website', r.get('url', '')),
                     'latitude': addr.get('latitude'),
@@ -696,6 +700,13 @@ def build_venue_records(results):
                     'scrape_timestamp': prov.get('scrape_timestamp', ''),
                     'scrape_batch_id': BATCH_ID,
                     'scrape_confidence': 'high',
+                    'scrape_url': r.get('url', ''),
+                    'scrape_source': 'scrapling_charity',
+                    'scrape_status': 'verified',
+                    'source': 'charity_scraper',
+                    'slug': slug,
+                    'is_active': True,
+                    'trust_score': 3,
                     'pokeratlas_url': r.get('url', '') if 'pokeratlas' in r.get('url', '') else None,
                 })
             
@@ -706,18 +717,27 @@ def build_venue_records(results):
                     continue
                 seen.add(key)
                 
+                sub_name = f"{org} — {sv.get('city', 'Venue')}"
+                sub_slug = re.sub(r'[^a-z0-9]+', '-', sub_name.lower()).strip('-')
                 venues.append({
-                    'name': f"{org} — {sv.get('city', 'Venue')}",
+                    'name': sub_name,
                     'address': sv['address'],
                     'city': sv.get('city', ''),
                     'state': sv.get('state', ''),
-                    'zip_code': sv.get('zip', ''),
+                    'country': 'US',
                     'venue_type': 'charity',
                     'data_quality': 'scraped_verified',
                     'scrape_html_hash': prov.get('scrape_html_hash', ''),
                     'scrape_timestamp': prov.get('scrape_timestamp', ''),
                     'scrape_batch_id': BATCH_ID,
                     'scrape_confidence': 'medium',
+                    'scrape_url': r.get('url', ''),
+                    'scrape_source': 'scrapling_charity',
+                    'scrape_status': 'verified',
+                    'source': 'charity_scraper',
+                    'slug': sub_slug,
+                    'is_active': True,
+                    'trust_score': 3,
                     'website': r.get('url', ''),
                 })
         
@@ -732,12 +752,13 @@ def build_venue_records(results):
                 continue
             seen.add(key)
             
+            pa_slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
             venues.append({
                 'name': name,
                 'address': addr['address'],
                 'city': addr.get('city', ''),
                 'state': addr.get('state', r.get('state', '')),
-                'zip_code': addr.get('zip', ''),
+                'country': 'US',
                 'phone': addr.get('phone', ''),
                 'website': addr.get('website', ''),
                 'latitude': addr.get('latitude'),
@@ -748,6 +769,13 @@ def build_venue_records(results):
                 'scrape_timestamp': prov.get('scrape_timestamp', ''),
                 'scrape_batch_id': BATCH_ID,
                 'scrape_confidence': 'high',
+                'scrape_url': r.get('url', ''),
+                'scrape_source': 'scrapling_charity',
+                'scrape_status': 'verified',
+                'source': 'charity_scraper',
+                'slug': pa_slug,
+                'is_active': True,
+                'trust_score': 3,
                 'pokeratlas_url': r.get('url', ''),
             })
     
@@ -756,7 +784,6 @@ def build_venue_records(results):
 
 def seed_to_supabase(venues):
     """Seed venue records to Supabase via REST API (triggers fire)."""
-    import urllib.request
     
     if not SERVICE_KEY:
         print('\n  ⚠️  No SERVICE_KEY — cannot seed to Supabase')
@@ -766,14 +793,20 @@ def seed_to_supabase(venues):
         'apikey': SERVICE_KEY,
         'Authorization': f'Bearer {SERVICE_KEY}',
         'Content-Type': 'application/json',
-        'Prefer': 'return=representation,resolution=merge-duplicates',
+        'Prefer': 'return=representation',
     }
     
     inserted = 0
+    skipped = 0
     for venue in venues:
         try:
-            # Clean nulls
+            # Clean nulls and empty strings
             clean = {k: v for k, v in venue.items() if v is not None and v != ''}
+            
+            # Ensure boolean fields are proper
+            if 'is_active' in clean:
+                clean['is_active'] = True
+            
             body = json.dumps(clean).encode()
             
             req = urllib.request.Request(
@@ -781,24 +814,29 @@ def seed_to_supabase(venues):
                 data=body, method='POST', headers=headers
             )
             resp = urllib.request.urlopen(req)
+            resp_data = resp.read().decode()
             inserted += 1
             print(f'  ✅ Inserted: {venue["name"]} ({venue.get("city", "")}, {venue.get("state", "")})')
+        except urllib.error.HTTPError as e:
+            err_body = ''
+            try:
+                err_body = e.read().decode()
+            except:
+                pass
+            if '23505' in err_body or 'duplicate' in err_body.lower():
+                skipped += 1
+                print(f'  ⏭️  Already exists: {venue["name"]}')
+            else:
+                print(f'  ❌ Failed ({e.code}): {venue["name"]} — {err_body[:300]}')
         except Exception as e:
-            err_msg = str(e)
-            if hasattr(e, 'read'):
-                try:
-                    err_msg = e.read().decode()
-                except:
-                    pass
-            print(f'  ❌ Failed: {venue["name"]} — {err_msg[:200]}')
+            print(f'  ❌ Error: {venue["name"]} — {str(e)[:200]}')
     
+    print(f'\n  📊 Seed results: {inserted} inserted, {skipped} duplicates skipped')
     return inserted
 
 
 def log_audit(inserted_count, total_scraped):
     """Log to data_audit_log (Layer 6)."""
-    import urllib.request
-    
     if not SERVICE_KEY:
         return
     

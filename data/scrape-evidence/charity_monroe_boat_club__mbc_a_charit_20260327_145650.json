@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://monroeboatclub.org",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T19:56:49.996470+00:00",
+  "scrape_html_hash": "47cd829c913e6ba2f9683e7bc5683250914e98a98e28a4d02ed27c62be150c01",
+  "scrape_byte_count": 74719,
+  "scrape_batch_id": "ac6df9b8-56df-4329-8600-05beb5a2bbd8",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "Monroe Boat Club (MBC-A Charity Poker)",
+  "extracted_data": {
+    "org_name": "Monroe Boat Club (MBC-A Charity Poker)",
+    "page_title": "Monroe Boat Club - Home",
+    "state": "MI",
+    "region": "Westland / Monroe",
+    "org_type": "operator",
+    "json_ld": {},
+    "venues_discovered": [],
+    "schedules": [],
+    "ld_raw_count": 0
+  },
+  "venues_found": 0,
+  "body_preview": "<!DOCTYPE html><html lang=\"en\" class=\"no-js wf-ubuntu-n4-inactive wf-ubuntucondensed-n4-inactive wf-inactive\"><head id=\"Head1\"><meta http-equiv=\"origin-trial\" content=\"A7vZI3v+Gz7JfuRolKNM4Aff6zaGuT7X0mf3wtoZTnKv6497cVMnhy03KDqX7kBz/q/iidW7srW31oQbBt4VhgoAAACUeyJvcmlnaW4iOiJodHRwczovL3d3dy5nb29nbGUuY29tOjQ0MyIsImZlYXR1cmUiOiJEaXNhYmxlVGhpcmRQYXJ0eVN0b3JhZ2VQYXJ0aXRpb25pbmczIiwiZXhwaXJ5IjoxNzU3OTgwODAwLCJpc1N1YmRvbWFpbiI6dHJ1ZSwiaXNUaGlyZFBhcnR5Ijp0cnVlfQ==\"><meta http-equiv=\"origin-trial\" conten"
+}

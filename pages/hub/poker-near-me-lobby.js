@@ -2178,7 +2178,7 @@ export default function PokerNearMeLobby() {
           </div>
         )}
 
-      {/* Global keyframes for inline spinners used in panel loading states */}
+      {/* Global keyframes + VenueCard CSS (required for VenueCard component styling) */}
       <style jsx global>{`
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes lobby-panelSlideUp {
@@ -2188,6 +2188,313 @@ export default function PokerNearMeLobby() {
       @keyframes lobby-toastSlideIn {
         from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
         to { transform: translateX(-50%) translateY(0); opacity: 1; }
+      }
+
+      /* ═══ ENTITY CARD BASE ═══ */
+      .entity-card {
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.7), rgba(10, 18, 32, 0.85));
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        padding: 18px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+        position: relative;
+      }
+      .entity-card:hover {
+        border-color: rgba(212,168,83,0.25);
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.85), rgba(10, 18, 32, 0.95));
+        box-shadow: 0 4px 24px rgba(212,168,83,0.08), 0 2px 12px rgba(0,0,0,0.3);
+        transform: translateY(-1px);
+      }
+      .entity-card h4 {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0 0 4px;
+        color: #fff;
+      }
+
+      /* ═══ PREMIUM VENUE CARD ═══ */
+      .venue-card {
+        position: relative;
+        overflow: hidden;
+      }
+      .venue-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #d4a853, rgba(212,168,83,0.3), transparent);
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .venue-card:hover::before {
+        opacity: 1;
+      }
+
+      /* Distance Pill */
+      .venue-distance-pill {
+        position: absolute;
+        top: 14px; right: 50px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        background: rgba(34,197,94,0.12);
+        border: 1px solid rgba(34,197,94,0.25);
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #4ade80;
+        z-index: 1;
+      }
+
+      /* Favorite Button */
+      .fav-btn {
+        position: absolute;
+        top: 10px; right: 10px;
+        background: rgba(0,0,0,0.4);
+        border: none;
+        border-radius: 50%;
+        width: 32px; height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 2;
+        transition: all 0.2s;
+      }
+      .fav-btn:hover {
+        background: rgba(239,68,68,0.3);
+        transform: scale(1.1);
+      }
+      .fav-btn.active {
+        background: rgba(239,68,68,0.2);
+      }
+
+      /* Venue Type Badge */
+      .venue-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        margin-bottom: 8px;
+      }
+
+      /* Venue Name */
+      .venue-name {
+        font-size: 17px !important;
+        font-weight: 700 !important;
+        margin: 0 0 6px !important;
+        color: #fff;
+        padding-right: 80px;
+        line-height: 1.3;
+      }
+
+      /* Venue Address */
+      .venue-address {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12.5px;
+        color: rgba(255,255,255,0.45);
+        margin: 0 0 10px;
+        line-height: 1.4;
+      }
+
+      /* Venue Host Row */
+      .venue-host-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 4px;
+        margin-bottom: 4px;
+      }
+
+      /* Venue Stakes */
+      .venue-stakes {
+        font-size: 12.5px;
+        color: rgba(212,168,83,0.85);
+        margin: 0 0 10px;
+        font-weight: 500;
+      }
+
+      /* Trust Score Row */
+      .trust-score-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 0;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        margin-top: 6px;
+      }
+      .trust-score-label {
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .trust-score-bar {
+        flex: 1;
+        height: 4px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .trust-score-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.5s ease;
+      }
+      .trust-score-val {
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      /* Action Buttons Row (Web/Call/Map) */
+      .venue-action-row {
+        display: flex;
+        gap: 8px;
+        padding-top: 10px;
+        margin-top: 2px;
+      }
+      .venue-action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: rgba(255,255,255,0.7);
+        text-decoration: none;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
+        background: rgba(255,255,255,0.04);
+        transition: all 0.2s;
+        cursor: pointer;
+      }
+      .venue-action-btn:hover {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.2);
+        color: #fff;
+      }
+      .venue-action-btn span {
+        font-size: 12px;
+      }
+
+      /* Quick Actions (Check In/Review/Details) */
+      .venue-quick-actions {
+        display: flex;
+        gap: 8px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        margin-top: 10px;
+      }
+      .venue-quick-btn {
+        flex: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 8px 8px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        font-family: inherit;
+        white-space: nowrap;
+      }
+      .venue-quick-btn.checkin {
+        background: rgba(34,197,94,0.12);
+        color: #4ade80;
+        border-color: rgba(34,197,94,0.25);
+      }
+      .venue-quick-btn.checkin:hover { background: rgba(34,197,94,0.22); }
+      .venue-quick-btn.review {
+        background: rgba(59,130,246,0.12);
+        color: #60a5fa;
+        border-color: rgba(59,130,246,0.25);
+      }
+      .venue-quick-btn.review:hover { background: rgba(59,130,246,0.22); }
+      .venue-quick-btn.details {
+        background: rgba(212,168,83,0.12);
+        color: #d4a853;
+        border-color: rgba(212,168,83,0.25);
+      }
+      .venue-quick-btn.details:hover { background: rgba(212,168,83,0.22); }
+
+      /* Badge Row */
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .mini-badge {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      .featured-badge {
+        background: rgba(212,168,83,0.2);
+        color: #d4a853;
+        border: 1px solid rgba(212,168,83,0.3);
+      }
+      .newcomer-badge {
+        background: rgba(34,197,94,0.15);
+        color: #4ade80;
+        border: 1px solid rgba(34,197,94,0.25);
+      }
+      .promo-badge {
+        background: rgba(139,92,246,0.15);
+        color: #a78bfa;
+        border: 1px solid rgba(139,92,246,0.25);
+      }
+      .tourney-badge {
+        background: rgba(239,68,68,0.12);
+        color: #f87171;
+        border: 1px solid rgba(239,68,68,0.2);
+      }
+      .live-badge {
+        background: rgba(239,68,68,0.15);
+        color: #ef4444;
+        border: 1px solid rgba(239,68,68,0.3);
+      }
+
+      /* Card Tags */
+      .card-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .tag {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        background: rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.7);
+      }
+      .tag.game { background: rgba(255,255,255,0.08); }
+      .tag.distance { background: rgba(34,197,94,0.15); color: #4ade80; }
+
+      /* Card Hours */
+      .card-hours {
+        font-size: 12px;
+        color: rgba(255,255,255,0.5);
+        margin: 0 0 8px;
+        font-style: italic;
       }
     `}</style>
     </>

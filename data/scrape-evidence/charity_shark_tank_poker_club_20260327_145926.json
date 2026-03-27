@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://sharktankpokerclub.com",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T19:59:26.151935+00:00",
+  "scrape_html_hash": "85d01c3b43fe7589fbc19f0d625116d239718fefbb5cab5e1bbef49e69a56792",
+  "scrape_byte_count": 78628,
+  "scrape_batch_id": "ac6df9b8-56df-4329-8600-05beb5a2bbd8",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "Shark Tank Poker Club",
+  "extracted_data": {
+    "org_name": "Shark Tank Poker Club",
+    "page_title": "Shark Tank Poker Club",
+    "state": "OH",
+    "region": "Columbus",
+    "org_type": "operator",
+    "json_ld": {},
+    "venues_discovered": [],
+    "schedules": [],
+    "ld_raw_count": 0
+  },
+  "venues_found": 0,
+  "body_preview": "<!DOCTYPE html><html lang=\"en-US\"><head>\n\t\n\t<meta charset=\"UTF-8\">\n\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover\">\n\t<link rel=\"profile\" href=\"https://gmpg.org/xfn/11\">\n\n\t<title>Shark Tank Poker Club</title>\n<meta name=\"robots\" content=\"max-image-preview:large\">\n<link rel=\"dns-prefetch\" href=\"//use.typekit.net\">\n<link rel=\"dns-prefetch\" href=\"//fonts.googleapis.com\">\n<link rel=\"dns-prefetch\" href=\"//www.googletagmanager.com\">\n<link rel=\"a"
+}

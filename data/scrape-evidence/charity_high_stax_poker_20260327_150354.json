@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://highstaxpoker.net",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T20:03:54.194221+00:00",
+  "scrape_html_hash": "19b87eaaa667e654ba25b73d5b11f0abe419cb0f822d83e9a2d6916c4aeed34b",
+  "scrape_byte_count": 34504,
+  "scrape_batch_id": "ac6df9b8-56df-4329-8600-05beb5a2bbd8",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "High Stax Poker",
+  "extracted_data": {
+    "org_name": "High Stax Poker",
+    "page_title": "High Stax Poker",
+    "state": "NC",
+    "region": "Jacksonville / New Bern",
+    "org_type": "operator",
+    "json_ld": {},
+    "venues_discovered": [],
+    "schedules": [],
+    "ld_raw_count": 1
+  },
+  "venues_found": 0,
+  "body_preview": "<!DOCTYPE html><html lang=\"en-US\" class=\"dark-mode\"><head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  \n  <title>High Stax Poker</title>\n  <meta name=\"apple-mobile-web-app-title\" content=\"High Stax\">\n\n  <!-- SEO meta tags -->\n  <meta name=\"description\" content=\"High Stax Poker is a premier bar poker league hosting nightly poker tournaments across venues in Florida, Texas, and North Carolina. Join us for exciting poker games and make friends"
+}

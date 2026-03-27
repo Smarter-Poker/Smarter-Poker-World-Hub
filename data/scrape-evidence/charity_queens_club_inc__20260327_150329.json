@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://queensclubinc.org",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T20:03:29.004720+00:00",
+  "scrape_html_hash": "338f8b99f28324bb5f00c83f9846c28c4fb4079a6fe6590938c56157d3121ea0",
+  "scrape_byte_count": 272238,
+  "scrape_batch_id": "ac6df9b8-56df-4329-8600-05beb5a2bbd8",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "Queens Club Inc.",
+  "extracted_data": {
+    "org_name": "Queens Club Inc.",
+    "page_title": "Home | Queens Club",
+    "state": "NC",
+    "region": "Charlotte / Raleigh / Lake Norman",
+    "org_type": "operator",
+    "json_ld": {},
+    "venues_discovered": [],
+    "schedules": [],
+    "ld_raw_count": 0
+  },
+  "venues_found": 0,
+  "body_preview": "<!DOCTYPE html><html lang=\"en\" class=\"no-scrollbar scroll-smooth\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\"><link rel=\"preload\" as=\"image\" imagesrcset=\"/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2Fu7o87hod%2Fproduction%2F788d5a91307b68015c5cc4e3368a898d5171a4e4-790x408.png&amp;w=640&amp;q=75 640w, /_next/image?url=https%3A%2F%"
+}

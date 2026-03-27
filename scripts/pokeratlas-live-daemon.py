@@ -152,12 +152,12 @@ PA_REGION_SLUGS = [
 ]
 
 def load_pa_regions():
-    """Load region slugs from registry file, or use hardcoded defaults."""
-    registry_path = BASE_DIR / 'data' / 'pokeratlas-room-registry.json'
-    if registry_path.exists():
-        with open(registry_path) as f:
-            data = json.load(f)
-            return [r['slug'] for r in data.get('regions', [])]
+    """Always use hardcoded master list as the floor.
+    
+    Registry file is no longer used for region loading — the hardcoded
+    PA_REGION_SLUGS list covers all 61 US regions + Canada and must
+    never be overridden by a restrictive auto-discovered subset.
+    """
     return PA_REGION_SLUGS
 
 # ============================================================
@@ -431,25 +431,25 @@ class PokerAtlasSessionManager:
 # REGION SLUG AUTO-DISCOVERY
 # ============================================================
 def discover_regions(mgr):
-    """Discover all region slugs from PokerAtlas poker-rooms page."""
-    log.info('📡 Discovering PokerAtlas regions...')
+    """Discover new region slugs from PokerAtlas and MERGE with hardcoded list.
+    
+    IMPORTANT: The hardcoded PA_REGION_SLUGS is the FLOOR — discovery can only
+    ADD new regions, never shrink the list. This prevents PokerAtlas's index page
+    (which only shows ~11 links) from overriding our comprehensive 61-region coverage.
+    """
+    log.info('📡 Discovering PokerAtlas regions (additive only)...')
     html = mgr.fetch_page('https://www.pokeratlas.com/poker-rooms')
     if not html:
         return PA_REGION_SLUGS
 
-    slugs = sorted(set(re.findall(r'/poker-cash-games/([a-z0-9-]+)', html)))
-    if slugs:
-        log.info(f'  Discovered {len(slugs)} region slugs')
-        reg = {
-            'metadata': {'generated': datetime.now(timezone.utc).isoformat(), 'total_regions': len(slugs)},
-            'regions': [{'slug': s, 'url': f'https://www.pokeratlas.com/poker-cash-games/{s}'} for s in slugs]
-        }
-        (BASE_DIR / 'data').mkdir(exist_ok=True)
-        with open(BASE_DIR / 'data' / 'pokeratlas-room-registry.json', 'w') as f:
-            json.dump(reg, f, indent=2)
-        return slugs
-
-    return PA_REGION_SLUGS
+    discovered = set(re.findall(r'/poker-cash-games/([a-z0-9-]+)', html))
+    hardcoded = set(PA_REGION_SLUGS)
+    merged = sorted(hardcoded | discovered)
+    new_slugs = discovered - hardcoded
+    if new_slugs:
+        log.info(f'  Discovered {len(new_slugs)} NEW regions: {new_slugs}')
+    log.info(f'  Total regions: {len(merged)} (hardcoded: {len(hardcoded)}, discovered: {len(discovered)})')
+    return merged
 
 
 # ============================================================

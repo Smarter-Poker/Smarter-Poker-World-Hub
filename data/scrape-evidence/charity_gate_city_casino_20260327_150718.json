@@ -1,0 +1,32 @@
+{
+  "scrape_url": "https://thegatecitycasino.com",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T20:07:18.438103+00:00",
+  "scrape_html_hash": "5c5b2aaed11f01aed77abe6826c5565c4def7de866c24ceb1da523a231d2f7ca",
+  "scrape_byte_count": 114206,
+  "scrape_batch_id": "ac6df9b8-56df-4329-8600-05beb5a2bbd8",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "Gate City Casino",
+  "extracted_data": {
+    "org_name": "Gate City Casino",
+    "page_title": "Gate City Casino - Nashua, NH",
+    "state": "NH",
+    "region": "Nashua",
+    "org_type": "venue",
+    "json_ld": {},
+    "venues_discovered": [
+      {
+        "address": "55 Northeastern Boulevard",
+        "city": "Nashua",
+        "state": "NH",
+        "zip": "03062",
+        "org": "Gate City Casino",
+        "source_url": "https://thegatecitycasino.com"
+      }
+    ],
+    "schedules": [],
+    "ld_raw_count": 1
+  },
+  "venues_found": 1,
+  "body_preview": "<!DOCTYPE html><html lang=\"en-US\" prefix=\"og: https://ogp.me/ns#\"><head><style><!----> <!--?lit$045807658$-->.osano-cm-window{font-family:Helvetica,Arial,Hiragino Sans GB,STXihei,Microsoft YaHei,WenQuanYi Micro Hei,Hind,MS Gothic,Apple SD Gothic Neo,NanumBarunGothic,sans-serif;font-size:16px;font-smooth:always;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothingz:auto;display:block;left:0;line-height:1;position:absolute;top:0;width:100%;z-index:2147483638;--fade-transition-time:700ms;--sli"
+}

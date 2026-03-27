@@ -1,0 +1,32 @@
+{
+  "scrape_url": "https://chicagopokerclub.net",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T19:52:46.221412+00:00",
+  "scrape_html_hash": "5aea347a122b82401e4dfe603fd6e3312b041a19bfa44769706535a1249dd7b1",
+  "scrape_byte_count": 82793,
+  "scrape_batch_id": "ac6df9b8-56df-4329-8600-05beb5a2bbd8",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "Chicagoland Poker",
+  "extracted_data": {
+    "org_name": "Chicagoland Poker",
+    "page_title": "Chicago Poker Club",
+    "state": "IL",
+    "region": "NW Suburbs",
+    "org_type": "operator",
+    "json_ld": {},
+    "venues_discovered": [
+      {
+        "address": "670 returns as emcee and will truly make the evening memorable. Come play your best",
+        "city": "hand and enjoy poker",
+        "state": "FO",
+        "zip": "",
+        "org": "Chicagoland Poker",
+        "source_url": "https://chicagopokerclub.net"
+      }
+    ],
+    "schedules": [],
+    "ld_raw_count": 0
+  },
+  "venues_found": 1,
+  "body_preview": "<!DOCTYPE html><html lang=\"en-gb\" dir=\"ltr\"><head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n<link rel=\"canonical\" href=\"https://chicagopokerclub.net/\">\n<base href=\"https://chicagopokerclub.net/\">\n<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">\n<meta name=\"keywords\" content=\"Chicago Poker Club, Poker in Chicago, Poker Forums, Online Poker Community, Poker Strategy\">\n<meta name=\"description\" content=\"Chicago P"
+}

@@ -1,0 +1,120 @@
+{
+  "scrape_url": "https://windycity.poker",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T19:50:31.293547+00:00",
+  "scrape_html_hash": "9bb997a5b90d3c504d744b8f67a9cf908340c0c2e26e0741a06ccda0c136761a",
+  "scrape_byte_count": 186414,
+  "scrape_batch_id": "ac6df9b8-56df-4329-8600-05beb5a2bbd8",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "Windy City Poker Championship",
+  "extracted_data": {
+    "org_name": "Windy City Poker Championship",
+    "page_title": "Windy City Poker Championship ~ Your destination for charity poker events in Illinois - Windy City Poker Championship",
+    "state": "IL",
+    "region": "Chicagoland",
+    "org_type": "operator",
+    "json_ld": {},
+    "venues_discovered": [
+      {
+        "address": "18436 Governors Highway",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Hwy",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "60430",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Highway",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Hwy",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "60430",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Highway",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Hwy",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "60430",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Highway",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Hwy",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "60430",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Highway",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Hwy",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "60430",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Highway",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Hwy",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "60430",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      }
+    ],
+    "schedules": [],
+    "ld_raw_count": 0
+  },
+  "venues_found": 12,
+  "body_preview": "<!DOCTYPE html><html lang=\"en-gb\" dir=\"ltr\" class=\"n2webp pull__refresh\"><head><meta http-equiv=\"origin-trial\" content=\"A7vZI3v+Gz7JfuRolKNM4Aff6zaGuT7X0mf3wtoZTnKv6497cVMnhy03KDqX7kBz/q/iidW7srW31oQbBt4VhgoAAACUeyJvcmlnaW4iOiJodHRwczovL3d3dy5nb29nbGUuY29tOjQ0MyIsImZlYXR1cmUiOiJEaXNhYmxlVGhpcmRQYXJ0eVN0b3JhZ2VQYXJ0aXRpb25pbmczIiwiZXhwaXJ5IjoxNzU3OTgwODAwLCJpc1N1YmRvbWFpbiI6dHJ1ZSwiaXNUaGlyZFBhcnR5Ijp0cnVlfQ==\">\n<script type=\"text/javascript\" async=\"\" src=\"https://www.googletagmanager.com/gtag/js"
+}

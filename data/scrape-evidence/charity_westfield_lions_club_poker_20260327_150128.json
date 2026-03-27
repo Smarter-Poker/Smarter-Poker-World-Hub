@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://lionspoker.org",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T20:01:28.417726+00:00",
+  "scrape_html_hash": "6bfdc46b69b803e77b7f40a7535a30e6988634336c06110fc47d9d6db8a41335",
+  "scrape_byte_count": 102514,
+  "scrape_batch_id": "ac6df9b8-56df-4329-8600-05beb5a2bbd8",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "Westfield Lions Club Poker",
+  "extracted_data": {
+    "org_name": "Westfield Lions Club Poker",
+    "page_title": "Lions Poker \u2013 Lions Poker for Sight",
+    "state": "IN",
+    "region": "Westfield / Indianapolis",
+    "org_type": "operator",
+    "json_ld": {},
+    "venues_discovered": [],
+    "schedules": [],
+    "ld_raw_count": 0
+  },
+  "venues_found": 0,
+  "body_preview": "<!DOCTYPE html><html lang=\"en-US\" class=\"js\"><head>\n\t<meta charset=\"UTF-8\">\n\t<link rel=\"profile\" href=\"http://gmpg.org/xfn/11\">\n\t<link rel=\"pingback\" href=\"https://lionspoker.org/xmlrpc.php\">\n\n\t<script>(function(html){html.className = html.className.replace(/\\bno-js\\b/,'js')})(document.documentElement);</script>\n<title>Lions Poker \u2013 Lions Poker for Sight</title>\n<meta name=\"robots\" content=\"max-image-preview:large\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><link rel=\"p"
+}

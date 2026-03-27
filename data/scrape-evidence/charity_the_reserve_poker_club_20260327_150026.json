@@ -1,0 +1,32 @@
+{
+  "scrape_url": "https://thereservepoker.com",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T20:00:26.351882+00:00",
+  "scrape_html_hash": "5b8e28156ff3bd402b5887c85bbdc250b8473dbedc7457c454175818bfa7c014",
+  "scrape_byte_count": 128162,
+  "scrape_batch_id": "ac6df9b8-56df-4329-8600-05beb5a2bbd8",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "The Reserve Poker Club",
+  "extracted_data": {
+    "org_name": "The Reserve Poker Club",
+    "page_title": "RESERVE POKER CLUB\n \u2013 Reserve Poker Club",
+    "state": "OH",
+    "region": "Toledo",
+    "org_type": "operator",
+    "json_ld": {},
+    "venues_discovered": [
+      {
+        "address": "15 minutes here looking for a place to play live poker. They have certainly earned the high reviews. Great st",
+        "city": "aff",
+        "state": "GR",
+        "zip": "",
+        "org": "The Reserve Poker Club",
+        "source_url": "https://thereservepoker.com"
+      }
+    ],
+    "schedules": [],
+    "ld_raw_count": 2
+  },
+  "venues_found": 1,
+  "body_preview": "<!DOCTYPE html><html class=\"js\" lang=\"en\"><head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n    <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n    <meta name=\"theme-color\" content=\"\">\n    <link rel=\"canonical\" href=\"https://thereservepoker.com/\">\n    <link rel=\"preconnect\" href=\"https://cdn.shopify.com\" crossorigin=\"\"><link rel=\"preconnect\" href=\"https://fonts.shopifycdn.com\" crossorigin=\"\"><title>\n      RESERVE POKER CLUB\n \u2013 Reserve"
+}
