@@ -30,6 +30,12 @@ export default function ManageSocialPage() {
     const [message, setMessage] = useState('');
     const [members, setMembers] = useState([]);
     const [posts, setPosts] = useState([]);
+    const [memberSearch, setMemberSearch] = useState('');
+    const [deleteConfirm, setDeleteConfirm] = useState('');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [removingMember, setRemovingMember] = useState(new Set());
+    const [initialForm, setInitialForm] = useState(null); // #12 Unsaved changes guard
 
     // Editable fields
     const [form, setForm] = useState({
@@ -85,6 +91,24 @@ export default function ManageSocialPage() {
                     social_twitter: json.data.metadata?.social_links?.twitter || '',
                     social_facebook: json.data.metadata?.social_links?.facebook || '',
                 });
+                // #12: Store initial form state for dirty detection
+                setInitialForm({
+                    name: json.data.name || '',
+                    description: json.data.description || '',
+                    category: json.data.category || 'general',
+                    website: json.data.website || '',
+                    contact_email: json.data.contact_email || '',
+                    phone: json.data.phone || '',
+                    location_city: json.data.location_city || '',
+                    location_state: json.data.location_state || '',
+                    is_public: json.data.is_public !== false,
+                    allow_member_posts: json.data.allow_member_posts !== false,
+                    require_post_approval: json.data.require_post_approval || false,
+                    slug: json.data.slug || '',
+                    social_instagram: json.data.metadata?.social_links?.instagram || '',
+                    social_twitter: json.data.metadata?.social_links?.twitter || '',
+                    social_facebook: json.data.metadata?.social_links?.facebook || '',
+                });
             }
         } catch (e) {
             console.error('Failed to fetch page:', e);
@@ -98,6 +122,16 @@ export default function ManageSocialPage() {
     useEffect(() => {
         return () => { if (slugTimerRef.current) clearTimeout(slugTimerRef.current); };
     }, []);
+
+    // #12: Unsaved changes guard — beforeunload
+    const isFormDirty = initialForm && JSON.stringify(form) !== JSON.stringify(initialForm);
+    useEffect(() => {
+        const handler = (e) => {
+            if (isFormDirty) { e.preventDefault(); e.returnValue = ''; }
+        };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
+    }, [isFormDirty]);
 
     useEffect(() => {
         if (!page) return;
@@ -221,6 +255,50 @@ export default function ManageSocialPage() {
             busEmit.dataMutated('social-pages');
             setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_pinned: !pinned } : p));
         } catch (e) { console.error("[manage.js]", e); }
+    };
+
+    // #9: Delete Page handler
+    const handleDeletePage = async () => {
+        setDeleting(true);
+        try {
+            const token = getAccessToken();
+            const res = await fetch(`/api/social/pages?id=${page.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (res.ok) {
+                busEmit.dataMutated('social-pages');
+                router.push('/hub/social-pages');
+            } else {
+                setMessage('Error: Failed to delete page');
+            }
+        } catch {
+            setMessage('Error: Network error during deletion');
+        }
+        setDeleting(false);
+        setShowDeleteModal(false);
+    };
+
+    // #10: Remove member handler
+    const handleRemoveMember = async (followerId) => {
+        setRemovingMember(prev => { const next = new Set(prev); next.add(followerId); return next; });
+        try {
+            const token = getAccessToken();
+            const res = await fetch(`/api/social/pages/follow?page_id=${page.id}&follower_id=${followerId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (res.ok) {
+                setMembers(prev => prev.filter(m => m.user_id !== followerId));
+                setMessage('Member removed');
+                busEmit.dataMutated('social-pages');
+            } else {
+                setMessage('Error: Failed to remove member');
+            }
+        } catch {
+            setMessage('Error: Network error');
+        }
+        setRemovingMember(prev => { const next = new Set(prev); next.delete(followerId); return next; });
     };
 
     const inputStyle = {
@@ -566,16 +644,65 @@ export default function ManageSocialPage() {
                                     }}>
                                         {saving ? 'Saving...' : 'Save Settings'}
                                     </button>
+
+                                    {/* #12: Unsaved changes warning */}
+                                    {isFormDirty && (
+                                        <div style={{
+                                            marginTop: 12, padding: '10px 14px', borderRadius: 8,
+                                            background: '#FEF3C7', border: '1px solid #F59E0B',
+                                            fontSize: 13, fontWeight: 500, color: '#92400E',
+                                            display: 'flex', alignItems: 'center', gap: 8,
+                                        }}>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2">
+                                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                                <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                                            </svg>
+                                            You have unsaved changes
+                                        </div>
+                                    )}
+
+                                    {/* #9: Danger Zone — Delete Page */}
+                                    <div style={{
+                                        borderTop: `1px solid ${C.border}`, paddingTop: 24, marginTop: 24,
+                                    }}>
+                                        <h3 style={{ fontSize: 15, fontWeight: 700, color: C.red, margin: '0 0 8px' }}>Danger Zone</h3>
+                                        <p style={{ fontSize: 13, color: C.textSec, margin: '0 0 12px' }}>
+                                            Permanently delete this page and all its content. This cannot be undone.
+                                        </p>
+                                        <button onClick={() => setShowDeleteModal(true)} style={{
+                                            padding: '10px 24px', borderRadius: 8, border: `1px solid ${C.red}`,
+                                            background: 'transparent', color: C.red, fontSize: 14, fontWeight: 600,
+                                            cursor: 'pointer', fontFamily: 'inherit',
+                                        }}>
+                                            Delete Page
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
                             {/* Members Tab */}
                             {tab === 'members' && (
                                 <div>
-                                    <p style={{ fontSize: 13, color: C.textSec, marginBottom: 16 }}>
-                                        {members.length} member{members.length !== 1 ? 's' : ''}
-                                    </p>
-                                    {members.map(m => (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                                        <p style={{ fontSize: 13, color: C.textSec, margin: 0 }}>
+                                            {members.length} member{members.length !== 1 ? 's' : ''}
+                                        </p>
+                                        {members.length > 3 && (
+                                            <input
+                                                type="text" placeholder="Search members..."
+                                                value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
+                                                aria-label="Search members"
+                                                style={{
+                                                    padding: '6px 12px', borderRadius: 20, border: `1px solid ${C.border}`,
+                                                    fontSize: 13, fontFamily: 'inherit', background: C.bg, color: C.text,
+                                                    outline: 'none', width: 180,
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                    {members
+                                        .filter(m => !memberSearch || (m.profile?.full_name || m.profile?.username || '').toLowerCase().includes(memberSearch.toLowerCase()))
+                                        .map(m => (
                                         <div key={m.id} style={{
                                             display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0',
                                             borderBottom: `1px solid ${C.bg}`,
@@ -626,6 +753,21 @@ export default function ManageSocialPage() {
                                                     </select>
                                                 )}
                                             </div>
+                                            {/* #10: Remove button for non-owner members */}
+                                            {m.role !== 'owner' && (
+                                                <button
+                                                    onClick={() => handleRemoveMember(m.user_id)}
+                                                    disabled={removingMember.has(m.user_id)}
+                                                    aria-label={`Remove ${m.profile?.full_name || 'member'}`}
+                                                    style={{
+                                                        padding: '4px 10px', borderRadius: 6, border: `1px solid ${C.border}`,
+                                                        background: C.bg, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+                                                        color: C.red, opacity: removingMember.has(m.user_id) ? 0.5 : 1,
+                                                    }}
+                                                >
+                                                    {removingMember.has(m.user_id) ? 'Removing...' : 'Remove'}
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -679,15 +821,44 @@ export default function ManageSocialPage() {
                             {/* Analytics Tab */}
                             {tab === 'analytics' && (
                                 <div>
+                                    {/* #11: 7-day Post Frequency Sparkline */}
+                                    {posts.length > 0 && (() => {
+                                        const now = new Date();
+                                        const days = Array.from({ length: 7 }, (_, i) => {
+                                            const d = new Date(now);
+                                            d.setDate(d.getDate() - (6 - i));
+                                            return d.toISOString().slice(0, 10);
+                                        });
+                                        const counts = days.map(day => posts.filter(p => (p.created_at || '').slice(0, 10) === day).length);
+                                        const max = Math.max(...counts, 1);
+                                        const w = 300, h = 60, pad = 4;
+                                        const points = counts.map((c, i) => `${pad + i * ((w - 2 * pad) / 6)},${h - pad - (c / max) * (h - 2 * pad)}`).join(' ');
+                                        const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                                        return (
+                                            <div style={{ background: C.bg, borderRadius: 12, padding: 16, marginBottom: 16, border: `1px solid ${C.border}` }}>
+                                                <h4 style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: C.text }}>Posts (Last 7 Days)</h4>
+                                                <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 80 }}>
+                                                    <polyline points={points} fill="none" stroke={C.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    {counts.map((c, i) => (
+                                                        <circle key={i} cx={pad + i * ((w - 2 * pad) / 6)} cy={h - pad - (c / max) * (h - 2 * pad)} r="3" fill={C.blue} />
+                                                    ))}
+                                                </svg>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.textSec, marginTop: 4 }}>
+                                                    {days.map((d, i) => <span key={d}>{dayLabels[new Date(d).getDay()] || d.slice(5)}</span>)}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
                                     {/* Overview Stats Grid */}
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
                                         {[
-                                            { label: 'Page Views', value: page.view_count || 0, color: '#0EA5E9', icon: '👁' },
-                                            { label: 'Followers', value: page.follower_count || 0, color: C.blue, icon: '👥' },
-                                            { label: 'Total Posts', value: posts.length, color: C.green, icon: '📝' },
-                                            { label: 'Total Likes', value: posts.reduce((sum, p) => sum + (p.like_count || 0), 0), color: C.orange, icon: '👍' },
-                                            { label: 'Total Comments', value: posts.reduce((sum, p) => sum + (p.comment_count || 0), 0), color: '#9333EA', icon: '💬' },
-                                            { label: 'Avg Rating', value: page.avg_rating ? page.avg_rating.toFixed(1) : '—', color: '#F59E0B', icon: '⭐' },
+                                            { label: 'Page Views', value: page.view_count || 0, color: '#0EA5E9', icon: '\uD83D\uDC41' },
+                                            { label: 'Followers', value: page.follower_count || 0, color: C.blue, icon: '\uD83D\uDC65' },
+                                            { label: 'Total Posts', value: posts.length, color: C.green, icon: '\uD83D\uDCDD' },
+                                            { label: 'Total Likes', value: posts.reduce((sum, p) => sum + (p.like_count || 0), 0), color: C.orange, icon: '\uD83D\uDC4D' },
+                                            { label: 'Total Comments', value: posts.reduce((sum, p) => sum + (p.comment_count || 0), 0), color: '#9333EA', icon: '\uD83D\uDCAC' },
+                                            { label: 'Avg Rating', value: page.avg_rating ? page.avg_rating.toFixed(1) : '\u2014', color: '#F59E0B', icon: '\u2B50' },
                                         ].map(s => (
                                             <div key={s.label} style={{
                                                 background: C.bg, borderRadius: 12, padding: 16, textAlign: 'center',
@@ -816,6 +987,59 @@ export default function ManageSocialPage() {
                 </div>
               <BottomNavBar />
             </div>
+
+            {/* #9: Delete Confirmation Modal */}
+            {showDeleteModal && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+                }} onClick={() => setShowDeleteModal(false)}>
+                    <div onClick={e => e.stopPropagation()} style={{
+                        background: C.card, borderRadius: 12, padding: 24, maxWidth: 420, width: '100%',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                    }}>
+                        <h3 style={{ fontSize: 18, fontWeight: 700, color: C.red, margin: '0 0 8px' }}>Delete Page</h3>
+                        <p style={{ fontSize: 14, color: C.text, margin: '0 0 16px', lineHeight: 1.5 }}>
+                            This will permanently delete <strong>{page.name}</strong> and all its posts, comments, and followers. This action cannot be undone.
+                        </p>
+                        <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: 'block', marginBottom: 6 }}>
+                            Type <strong>{page.name}</strong> to confirm:
+                        </label>
+                        <input
+                            type="text" value={deleteConfirm}
+                            onChange={e => setDeleteConfirm(e.target.value)}
+                            placeholder={page.name}
+                            style={{
+                                width: '100%', padding: '10px 12px', borderRadius: 8,
+                                border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit',
+                                color: C.text, outline: 'none', boxSizing: 'border-box', background: C.bg,
+                                marginBottom: 16,
+                            }}
+                        />
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={() => { setShowDeleteModal(false); setDeleteConfirm(''); }} style={{
+                                flex: 1, padding: '10px 0', borderRadius: 8, border: `1px solid ${C.border}`,
+                                background: C.card, color: C.text, fontSize: 14, fontWeight: 600,
+                                cursor: 'pointer', fontFamily: 'inherit',
+                            }}>Cancel</button>
+                            <button
+                                onClick={handleDeletePage}
+                                disabled={deleteConfirm !== page.name || deleting}
+                                style={{
+                                    flex: 1, padding: '10px 0', borderRadius: 8, border: 'none',
+                                    background: deleteConfirm === page.name ? C.red : '#CCD0D5',
+                                    color: '#fff', fontSize: 14, fontWeight: 600,
+                                    cursor: deleteConfirm === page.name ? 'pointer' : 'default',
+                                    fontFamily: 'inherit', opacity: deleting ? 0.7 : 1,
+                                }}
+                            >
+                                {deleting ? 'Deleting...' : 'Delete Forever'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <style jsx global>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>

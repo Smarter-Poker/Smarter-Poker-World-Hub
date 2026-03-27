@@ -197,9 +197,14 @@ export default function CreateSocialPage() {
                         <h1 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: '0 0 4px' }}>
                             Create a Page
                         </h1>
-                        <p style={{ fontSize: 14, color: C.textSec, margin: '0 0 20px' }}>
-                            Step {step} of 2 - {step === 1 ? 'Choose type' : 'Page details'}
+                        <p style={{ fontSize: 14, color: C.textSec, margin: '0 0 8px' }}>
+                            Step {step} of 2 — {step === 1 ? 'Choose type' : 'Page details'}
                         </p>
+                        {/* Visual Progress Bar */}
+                        <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+                            <div style={{ flex: 1, height: 4, borderRadius: 2, background: C.blue, transition: 'background 0.3s' }} />
+                            <div style={{ flex: 1, height: 4, borderRadius: 2, background: step >= 2 ? C.blue : '#E4E6EB', transition: 'background 0.3s' }} />
+                        </div>
 
                         {error && (
                             <div style={{
@@ -274,7 +279,11 @@ export default function CreateSocialPage() {
                                             }
                                         }
                                     }}
-                                        placeholder="Enter Page Name" style={inputStyle} maxLength={100} />
+                                        placeholder="Enter Page Name" style={{ ...inputStyle, borderColor: error && !form.name.trim() ? C.red : undefined }} maxLength={100}
+                                        aria-label="Page name" />
+                                    {error && !form.name.trim() && (
+                                        <p style={{ fontSize: 11, color: C.red, margin: '4px 0 0', fontWeight: 500 }}>Page name is required</p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -318,12 +327,16 @@ export default function CreateSocialPage() {
                                     <div>
                                         <label style={labelStyle}>Contact Email</label>
                                         <input type="email" value={form.contact_email} onChange={e => update('contact_email', e.target.value)}
-                                            placeholder="contact@example.com" style={inputStyle} />
+                                            placeholder="contact@example.com" aria-label="Contact email"
+                                            style={{ ...inputStyle, borderColor: form.contact_email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.contact_email) ? C.red : undefined }} />
+                                        {form.contact_email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.contact_email) && (
+                                            <p style={{ fontSize: 11, color: C.red, margin: '4px 0 0', fontWeight: 500 }}>Invalid email format</p>
+                                        )}
                                     </div>
                                     <div>
                                         <label style={labelStyle}>Phone</label>
                                         <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)}
-                                            placeholder="(555) 123-4567" style={inputStyle} />
+                                            placeholder="(555) 123-4567" aria-label="Phone number" style={inputStyle} />
                                     </div>
                                 </div>
 

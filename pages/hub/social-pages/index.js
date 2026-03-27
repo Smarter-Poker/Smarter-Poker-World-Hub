@@ -4,7 +4,7 @@
  */
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
@@ -287,6 +287,7 @@ export default function SocialPagesHub() {
                             {user && (
                                 <button
                                     onClick={() => router.push('/hub/social-pages/create')}
+                                    aria-label="Create a new social page"
                                     style={{
                                         padding: '8px 16px', borderRadius: 8, border: 'none',
                                         background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600,
@@ -306,19 +307,23 @@ export default function SocialPagesHub() {
                             </svg>
                             <input
                                 type="text" placeholder="Search Pages..."
+                                aria-label="Search social pages"
                                 value={searchInput} onChange={e => setSearchInput(e.target.value)}
                                 style={{
-                                    width: '100%', padding: '10px 12px 10px 40px', borderRadius: 20,
+                                    width: '100%', padding: '10px 42px 10px 40px', borderRadius: 20,
                                     border: `1px solid ${C.border}`, fontSize: 15, fontFamily: 'inherit',
                                     background: C.bg, color: C.text, outline: 'none', boxSizing: 'border-box',
                                 }}
                             />
+                            {loading && searchInput && (
+                                <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, borderRadius: '50%', border: `2px solid #E4E6EB`, borderTopColor: C.blue, animation: 'spin 0.6s linear infinite' }} />
+                            )}
                         </div>
 
                         {/* Tabs */}
                         <div style={{ display: 'flex', gap: 0 }}>
                             {TABS.map(t => (
-                                <button key={t.key} onClick={() => setTab(t.key)} style={{
+                                <button key={t.key} onClick={() => setTab(t.key)} aria-label={`Show ${t.label}`} style={{
                                     padding: '12px 16px', border: 'none', background: 'none',
                                     fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                                     color: tab === t.key ? C.blue : C.textSec,
@@ -341,7 +346,7 @@ export default function SocialPagesHub() {
                         display: 'flex', gap: 8, overflowX: 'auto',
                     }}>
                         {TYPE_FILTERS.map(f => (
-                            <button key={f.key} onClick={() => setTypeFilter(f.key)} style={{
+                            <button key={f.key} onClick={() => setTypeFilter(f.key)} aria-label={`Filter by ${f.label}`} style={{
                                 padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
                                 cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
                                 border: `1px solid ${typeFilter === f.key ? C.blue : C.border}`,
@@ -357,13 +362,25 @@ export default function SocialPagesHub() {
                 {/* Content */}
                 <div style={{ maxWidth: 960, margin: '0 auto', padding: 16 }}>
                     {loading ? (
-                        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-                            <div style={{
-                                width: 32, height: 32, border: `3px solid #E4E6EB`,
-                                borderTopColor: C.blue, borderRadius: '50%',
-                                animation: 'spin 0.8s linear infinite', margin: '0 auto',
-                            }} />
-                            <p style={{ color: C.textSec, fontSize: 14, marginTop: 12 }}>Loading Pages...</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+                            {[1, 2, 3, 4, 5, 6].map(i => (
+                                <div key={i} style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+                                    <div style={{ height: 100, background: '#E4E6EB', animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '300px 100%' }} />
+                                    <div style={{ padding: '12px 14px' }}>
+                                        <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                                            <div style={{ width: 48, height: 48, borderRadius: 10, background: '#E4E6EB', animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ width: '60%', height: 14, borderRadius: 4, background: '#E4E6EB', marginBottom: 6, animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                                <div style={{ width: '40%', height: 10, borderRadius: 4, background: '#E4E6EB', animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <div style={{ flex: 1, height: 36, borderRadius: 8, background: '#E4E6EB', animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                            <div style={{ flex: 1, height: 36, borderRadius: 8, background: '#E4E6EB', animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : pages.length === 0 ? (
                         <div style={{
@@ -374,10 +391,10 @@ export default function SocialPagesHub() {
                                 <rect x="2" y="3" width="20" height="18" rx="2" /><line x1="2" y1="9" x2="22" y2="9" />
                             </svg>
                             <h3 style={{ fontSize: 17, fontWeight: 700, color: C.text, margin: '16px 0 4px' }}>
-                                {tab === 'following' ? 'No followed pages yet' : tab === 'managed' ? 'No pages created yet' : 'No pages found'}
+                                {tab === 'following' ? 'No followed pages yet' : tab === 'managed' ? 'No pages created yet' : search ? `No results for "${search}"` : 'No pages found'}
                             </h3>
                             <p style={{ fontSize: 14, color: C.textSec, margin: 0 }}>
-                                {tab === 'managed' ? 'Create your first page to get started.' : 'Try a different search or filter.'}
+                                {tab === 'managed' ? 'Create your first page to get started.' : search ? 'Try a different search term or clear your filters.' : 'Try a different search or filter.'}
                             </p>
                             {tab === 'managed' && (
                                 <button onClick={() => router.push('/hub/social-pages/create')} style={{
@@ -416,7 +433,9 @@ export default function SocialPagesHub() {
 
             <style jsx global>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
-            `}</style>
+                @keyframes shimmerAnim { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+            `}
+            </style>
         </>
     );
 }

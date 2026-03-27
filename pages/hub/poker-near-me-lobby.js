@@ -1040,11 +1040,9 @@ export default function PokerNearMeLobby() {
       navigator.geolocation.getCurrentPosition(
         (pos) => onGpsSuccess(pos, { silent: false }),
         (err) => {
-          // Browser denied or Permissions-Policy blocked → show manual location setter
+          // Browser denied, API unavailable, or timeout → show manual location setter
           // so the user always has a way to set their location on first visit
-          if (err.code === 1 || err.code === 2) {
-            setShowManualLocation(true);
-          }
+          setShowManualLocation(true);
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
