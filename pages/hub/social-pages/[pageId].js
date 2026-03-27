@@ -60,6 +60,8 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     const [commentText, setCommentText] = useState('');
     const [comments, setComments] = useState([]);
     const [loadingComments, setLoadingComments] = useState(false);
+    // #8: Comment pagination — show first N, expand on demand
+    const [commentDisplayLimit, setCommentDisplayLimit] = useState(5);
     const [showMenu, setShowMenu] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
     const [editing, setEditing] = useState(false);
@@ -684,10 +686,20 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
             {showComments && (
                 <div style={{ padding: '8px 16px 12px' }}>
                     {loadingComments ? (
-                        <p style={{ fontSize: 13, color: C.textSec, textAlign: 'center' }}>Loading...</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {[1, 2, 3].map(i => (
+                                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#E4E6EB', flexShrink: 0, animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ width: '40%', height: 10, borderRadius: 4, background: '#E4E6EB', marginBottom: 6, animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                        <div style={{ width: '80%', height: 10, borderRadius: 4, background: '#E4E6EB', animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     ) : (
                         <>
-                            {comments.filter(c => !c.parent_id).map(c => (
+                            {comments.filter(c => !c.parent_id).slice(0, commentDisplayLimit).map(c => (
                                 <div key={c.id}>
                                     <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
                                         <Avatar src={c.author?.avatar_url} name={c.author?.full_name} size={28} />
@@ -783,6 +795,16 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                     )}
                                 </div>
                             ))}
+                            {/* #8: Show more comments */}
+                            {comments.filter(c => !c.parent_id).length > commentDisplayLimit && (
+                                <button onClick={() => setCommentDisplayLimit(prev => prev + 10)} style={{
+                                    width: '100%', padding: '8px 0', background: 'none', border: 'none',
+                                    fontSize: 13, fontWeight: 600, color: C.blue, cursor: 'pointer',
+                                    fontFamily: 'inherit', marginBottom: 8,
+                                }}>
+                                    Show {Math.min(10, comments.filter(c => !c.parent_id).length - commentDisplayLimit)} more comment{comments.filter(c => !c.parent_id).length - commentDisplayLimit !== 1 ? 's' : ''}
+                                </button>
+                            )}
                             {/* Main comment input — #11 optimistic + Phase 3: GIF picker + media */}
                             {user && (
                                 <div style={{ marginTop: 8 }}>
@@ -939,7 +961,17 @@ export default function SocialPageDetail() {
     const [gamesLoading, setGamesLoading] = useState(false);
     const [seatAction, setSeatAction] = useState(null); // { gameId, type }
     // P8-5: Post sorting
-    const [postSort, setPostSort] = useState('recent'); // 'recent' | 'top'
+    // #9: Post sort with localStorage persistence
+    const [postSort, setPostSort] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('sp_post_sort') || 'recent';
+        }
+        return 'recent';
+    });
+    const handleSetPostSort = (sort) => {
+        setPostSort(sort);
+        if (typeof window !== 'undefined') localStorage.setItem('sp_post_sort', sort);
+    };
 
     // Report (#6)
     const [showReportModal, setShowReportModal] = useState(false);
@@ -950,6 +982,10 @@ export default function SocialPageDetail() {
     // Notification toggle (#7)
     const [notifyEnabled, setNotifyEnabled] = useState(false);
     const [togglingNotify, setTogglingNotify] = useState(false);
+
+    // #1: Infinite scroll sentinel ref 
+    const loadMoreSentinelRef = useRef(null);
+    const loadMoreFetchRef = useRef(false); // debounce guard for #4
 
     // Media lightbox
     const [lightboxMedia, setLightboxMedia] = useState(null); // { list, index }
@@ -1090,6 +1126,8 @@ export default function SocialPageDetail() {
         setReviewsLoading(false);
     }, [page]);
     useEffect(() => { if (page && activeTab === 'reviews') fetchReviews(); }, [fetchReviews, page, activeTab]);
+
+    // #10: View count — already handled server-side via rpc('increment_page_views') on GET by slug
 
     // Fetch Games (#2) — MUST be declared before cross-tab sync effect
     const fetchGames = useCallback(async () => {
@@ -1333,6 +1371,33 @@ export default function SocialPageDetail() {
         });
         return cleanup;
     }, [fetchPosts]);
+
+    // #1: Infinite scroll observer
+    useEffect(() => {
+        if (!hasMorePosts || loadingMore || activeTab !== 'posts' || posts.length < 10) return;
+        const sentinel = loadMoreSentinelRef.current;
+        if (!sentinel) return;
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !loadMoreFetchRef.current && hasMorePosts) {
+                loadMoreFetchRef.current = true;
+                setLoadingMore(true);
+                fetch(`/api/social/pages/posts?page_id=${page.id}&offset=${posts.length}&limit=10${user?.id ? `&user_id=${user.id}` : ''}`)
+                    .then(r => r.json())
+                    .then(json => {
+                        if (json.success && json.data?.length > 0) {
+                            setPosts(prev => [...prev, ...json.data]);
+                            if (json.data.length < 10) setHasMorePosts(false);
+                        } else {
+                            setHasMorePosts(false);
+                        }
+                    })
+                    .catch(e => console.error(e))
+                    .finally(() => { setLoadingMore(false); loadMoreFetchRef.current = false; });
+            }
+        }, { rootMargin: '200px' });
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [hasMorePosts, loadingMore, activeTab, posts.length, page?.id, user?.id]);
 
     // P10-7: Scroll listener for scroll-to-top button
     useEffect(() => {
@@ -1801,7 +1866,7 @@ export default function SocialPageDetail() {
 
                         {/* Action Buttons */}
                         <div style={{ display: 'flex', gap: 8, margin: '16px 0', flexWrap: 'wrap' }}>
-                            <button onClick={handleFollow} style={{
+                            <button onClick={handleFollow} aria-label={isFollowing ? 'Unfollow this page' : 'Follow this page'} style={{
                                 padding: '10px 24px', borderRadius: 10, border: 'none', fontSize: 15,
                                 fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                                 background: isFollowing ? '#E4E6EB' : C.blue,
@@ -1818,7 +1883,7 @@ export default function SocialPageDetail() {
                                 )}
                             </button>
                             {isFollowing && (
-                                <button onClick={async () => {
+                                <button aria-label="Toggle notifications" onClick={async () => {
                                     setTogglingNotify(true);
                                     try {
                                         const token = getAccessToken();
@@ -1875,7 +1940,7 @@ export default function SocialPageDetail() {
                                     Go Live
                                 </button>
                             )}
-                            <button onClick={() => toast.success('Video calling coming soon!')} style={{
+                                <button onClick={() => toast.success('Video calling coming soon!')} aria-label="Start video call" style={{
                                 padding: '8px 16px', borderRadius: 20, border: `1px solid ${C.border}`,
                                 background: C.bg, color: C.text, fontSize: 13, fontWeight: 600,
                                 cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
@@ -1883,7 +1948,7 @@ export default function SocialPageDetail() {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
                                 Video
                             </button>
-                            <button onClick={() => toast.success('Voice calling coming soon!')} style={{
+                            <button onClick={() => toast.success('Voice calling coming soon!')} aria-label="Start voice call" style={{
                                 padding: '8px 16px', borderRadius: 20, border: `1px solid ${C.border}`,
                                 background: C.bg, color: C.text, fontSize: 13, fontWeight: 600,
                                 cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
@@ -1891,7 +1956,7 @@ export default function SocialPageDetail() {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.12.56.26 1.1.44 1.63a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.53.18 1.07.32 1.63.44A2 2 0 0122 16.92z"/></svg>
                                 Call
                             </button>
-                            <button onClick={() => { if (!user) { router.push('/auth/login'); return; } imageInputRef.current?.click(); }} style={{
+                            <button onClick={() => { if (!user) { router.push('/auth/login'); return; } imageInputRef.current?.click(); }} aria-label="Upload photo or video" style={{
                                 padding: '8px 16px', borderRadius: 20, border: `1px solid ${C.border}`,
                                 background: C.bg, color: C.text, fontSize: 13, fontWeight: 600,
                                 cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
@@ -1899,7 +1964,7 @@ export default function SocialPageDetail() {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
                                 Photo/Video
                             </button>
-                            <button onClick={() => setShowReportModal(true)} style={{
+                            <button onClick={() => setShowReportModal(true)} aria-label="Report this page" style={{
                                 padding: '8px 16px', borderRadius: 20, border: `1px solid ${C.border}`,
                                 background: C.bg, color: C.textSec, fontSize: 13, fontWeight: 600,
                                 cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
@@ -1907,7 +1972,7 @@ export default function SocialPageDetail() {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
                                 Report
                             </button>
-                            <button onClick={() => { if (!user) { router.push('/auth/login'); return; } setShowCheckInModal(true); }} style={{
+                            <button onClick={() => { if (!user) { router.push('/auth/login'); return; } setShowCheckInModal(true); }} aria-label="Check in at this venue" style={{
                                 padding: '8px 16px', borderRadius: 20, border: `1px solid ${C.border}`,
                                 background: C.bg, color: C.text, fontSize: 13, fontWeight: 600,
                                 cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
@@ -2083,7 +2148,7 @@ export default function SocialPageDetail() {
                                     {posts.length > 1 && (
                                         <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
                                             {[{ key: 'recent', label: 'Most Recent' }, { key: 'top', label: 'Top Posts' }].map(s => (
-                                                <button key={s.key} onClick={() => setPostSort(s.key)} style={{
+                                                <button key={s.key} onClick={() => handleSetPostSort(s.key)} aria-label={`Sort by ${s.label}`} style={{
                                                     padding: '6px 14px', borderRadius: 20, border: `1px solid ${postSort === s.key ? C.blue : C.border}`,
                                                     background: postSort === s.key ? '#E7F3FF' : C.card,
                                                     color: postSort === s.key ? C.blue : C.textSec,
@@ -2133,29 +2198,26 @@ export default function SocialPageDetail() {
                                             />
                                         ))
                                     )}
-                                    {/* #3 Load More */}
+                                    {/* #1 Infinite Scroll Sentinel */}
                                     {hasMorePosts && posts.length >= 10 && (
-                                        <div style={{ textAlign: 'center', padding: 16 }}>
-                                            <button onClick={async () => {
-                                                setLoadingMore(true);
-                                                try {
-                                                    const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&offset=${posts.length}&limit=10${user?.id ? `&user_id=${user.id}` : ''}`);
-                                                    const json = await res.json();
-                                                    if (json.success && json.data?.length > 0) {
-                                                        setPosts(prev => [...prev, ...json.data]);
-                                                        if (json.data.length < 10) setHasMorePosts(false);
-                                                    } else {
-                                                        setHasMorePosts(false);
-                                                    }
-                                                } catch (e) { console.error(e); }
-                                                setLoadingMore(false);
-                                            }} disabled={loadingMore} style={{
-                                                padding: '10px 28px', borderRadius: 8, border: `1px solid ${C.border}`,
-                                                background: C.card, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                                fontFamily: 'inherit', color: C.blue,
-                                            }}>
-                                                {loadingMore ? 'Loading...' : 'Load More Posts'}
-                                            </button>
+                                        <div ref={loadMoreSentinelRef} style={{ textAlign: 'center', padding: 16 }}>
+                                            {loadingMore && (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                                    {[1, 2].map(i => (
+                                                        <div key={i} style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16 }}>
+                                                            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                                                                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#E4E6EB', animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                                                <div style={{ flex: 1 }}>
+                                                                    <div style={{ width: '30%', height: 12, borderRadius: 4, background: '#E4E6EB', marginBottom: 6, animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                                                    <div style={{ width: '20%', height: 10, borderRadius: 4, background: '#E4E6EB', animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ width: '100%', height: 14, borderRadius: 4, background: '#E4E6EB', marginBottom: 6, animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                                            <div style={{ width: '70%', height: 14, borderRadius: 4, background: '#E4E6EB', animation: 'shimmerAnim 1.5s infinite linear', backgroundImage: 'linear-gradient(90deg, #E4E6EB 0px, #F0F2F5 40px, #E4E6EB 80px)', backgroundSize: '200px 100%' }} />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </>
@@ -3263,7 +3325,17 @@ export default function SocialPageDetail() {
                     onClose={() => setShowCheckInModal(false)}
                     userId={user?.id}
                     onSelect={(venue) => {
-                        // Handle check-in: create a check-in post on this page
+                        // #6: Optimistic check-in — show temp post immediately
+                        const checkinContent = `Checked in at ${venue.name}${venue.city ? ` \u2014 ${venue.city}${venue.state ? `, ${venue.state}` : ''}` : ''}`;
+                        const tempId = `temp-checkin-${Date.now()}`;
+                        const tempPost = {
+                            id: tempId, content: checkinContent, content_type: 'text',
+                            author_id: user?.id, page_id: page?.id, created_at: new Date().toISOString(),
+                            author: { id: user?.id, full_name: user?.user_metadata?.full_name || 'You', avatar_url: user?.user_metadata?.avatar_url },
+                            like_count: 0, comment_count: 0, user_liked: false, media_urls: [],
+                            checkin_venue: { name: venue.name, city: venue.city || '', state: venue.state || '' },
+                        };
+                        setPosts(prev => [tempPost, ...prev]);
                         (async () => {
                             try {
                                 const token = getAccessToken();
@@ -3272,7 +3344,7 @@ export default function SocialPageDetail() {
                                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                     body: JSON.stringify({
                                         page_id: page?.id,
-                                        content: `Checked in at ${venue.name}${venue.city ? ` — ${venue.city}${venue.state ? `, ${venue.state}` : ''}` : ''}`,
+                                        content: checkinContent,
                                         content_type: 'text',
                                         author_id: user?.id,
                                     }),
@@ -3281,10 +3353,14 @@ export default function SocialPageDetail() {
                                     busEmit.dataMutated('social-pages');
                                     broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
                                     toast.success('Checked in successfully!');
-                                    fetchPosts();
+                                    fetchPosts(); // Replace temp with real post
+                                } else {
+                                    setPosts(prev => prev.filter(p => p.id !== tempId));
+                                    toast.error('Check-in failed');
                                 }
                             } catch (e) {
                                 console.error('[CheckIn] Error:', e);
+                                setPosts(prev => prev.filter(p => p.id !== tempId));
                                 toast.error('Check-in failed');
                             }
                         })();

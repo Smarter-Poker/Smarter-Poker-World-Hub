@@ -681,6 +681,8 @@ export const ChatWindow = ({
     const [reminderPickerMsg, setReminderPickerMsg] = useState(null);
     const [reminderTime, setReminderTime] = useState('');
 
+    const conversationId = conversation?.id;
+
     // P19+P20+P21: Reset panel states on conversation switch
     useEffect(() => {
         // P19 resets
@@ -725,7 +727,6 @@ export const ChatWindow = ({
     const [recordingTime, setRecordingTime] = useState(0);
     const [prefs, updatePrefs] = useMessengerPrefs();
 
-    const conversationId = conversation?.id;
     const theme = prefs.themes[conversationId] || SP_COLORS.bgWhite;
     const disappearMs = prefs.disappearing[conversationId] || 0;
     const isDisappearing = disappearMs > 0;

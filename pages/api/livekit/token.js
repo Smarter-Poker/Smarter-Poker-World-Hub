@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       // BUG #247 FIX: Require JWT auth — token generation must be authenticated
       const _token = req.headers.authorization?.replace('Bearer ', '');
       if (!_token) return res.status(401).json({ error: 'Auth required' });
-      const { data: { user: _authUser }, error: _authErr } = await _supabase.auth.getUser(_token);
+      const { data: { user: _authUser }, error: _authErr } = await getSupabase().auth.getUser(_token);
       if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
 
       const { roomName, participantName, participantId } = req.body;

@@ -1118,7 +1118,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
 
                         // Regular text content - make URLs clickable
                         // Check if it's a call invite
-                        const isCallInvite = content.includes('Call Started!') && content.includes('meet.jit.si');
+                        const isCallInvite = content.includes('[CALL_RECEIPT]') || (content.includes('Call Started!') && content.includes('smarter-poker'));
 
                         // Convert URLs to clickable links
                         const urlRegex = /(https?:\/\/[^\s]+)/g;
