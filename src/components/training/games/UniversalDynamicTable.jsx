@@ -1902,7 +1902,7 @@ function UniversalDynamicTable({
                         if (activeCount <= 2) {
                             // Strict Absolute positions: completely outside the table
                             seatX = 50;
-                            seatY = isHero ? 78 : 8;
+                            seatY = isHero ? 82 : 2;
                         }
 
                         return (
@@ -3231,7 +3231,7 @@ const styles = {
         position: 'relative',
         width: '90%',
         maxWidth: 420,
-        aspectRatio: '1 / 1.1',
+        aspectRatio: '1 / 1.45',
         borderRadius: '50% / 25%',
         backgroundColor: '#1E3B22',
         border: '8px solid #1a1a1a',
