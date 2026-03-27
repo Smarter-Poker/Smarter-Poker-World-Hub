@@ -1802,9 +1802,13 @@ const scoreColor = '#22c55e'; // Default, overridden dynamically in render
 const styles = {
     fullScreenContainer: {
         width: '100%',
+        maxWidth: 900,
         height: '100vh',
         background: '#121212',
         overflow: 'hidden',
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        position: 'relative',
     },
 
     // ── PHASE 21: SPLASH SCREEN STYLES
@@ -1852,12 +1856,15 @@ const styles = {
 
     container: {
         width: '100%',
+        maxWidth: 900,
         height: '100vh',
         background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
         display: 'flex',
         flexDirection: 'column',
         fontFamily: "'Inter', -apple-system, sans-serif",
         overflow: 'hidden',
+        marginLeft: 'auto',
+        marginRight: 'auto',
     },
 
     header: {

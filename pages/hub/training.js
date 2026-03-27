@@ -1374,17 +1374,57 @@ export default function TrainingPage() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '0 16px 16px' }}>
                                 <motion.div
                                     whileTap={{ scale: 0.97 }}
+                                    whileHover={{ scale: 1.02 }}
                                     onClick={() => setShowRecapDrawer(true)}
-                                    style={{ cursor: 'pointer', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(34,197,94,0.2)' }}
+                                    style={{
+                                        cursor: 'pointer', borderRadius: 14, overflow: 'hidden',
+                                        border: '1px solid rgba(34,197,94,0.25)',
+                                        background: 'linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(22,163,74,0.05) 100%)',
+                                        position: 'relative',
+                                    }}
                                 >
-                                    <img src="/images/training/session-recap-tile.png" alt="Last Session Recap" style={{ width: '100%', height: 80, objectFit: 'cover' }} />
+                                    <img
+                                        src="/images/training/session-recap-tile.png"
+                                        alt="Last Session Recap"
+                                        style={{ width: '100%', height: 100, objectFit: 'cover' }}
+                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                    />
+                                    <div style={{
+                                        position: 'absolute', inset: 0,
+                                        display: 'flex', flexDirection: 'column',
+                                        alignItems: 'center', justifyContent: 'center',
+                                        background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)',
+                                    }}>
+                                        <div style={{ fontSize: 9, fontWeight: 700, color: '#4ade80', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>SESSION</div>
+                                        <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>Recap</div>
+                                    </div>
                                 </motion.div>
                                 <motion.div
                                     whileTap={{ scale: 0.97 }}
+                                    whileHover={{ scale: 1.02 }}
                                     onClick={() => setShowJarvisDrawer(true)}
-                                    style={{ cursor: 'pointer', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(0,212,255,0.2)' }}
+                                    style={{
+                                        cursor: 'pointer', borderRadius: 14, overflow: 'hidden',
+                                        border: '1px solid rgba(0,212,255,0.25)',
+                                        background: 'linear-gradient(135deg, rgba(0,212,255,0.1) 0%, rgba(59,130,246,0.05) 100%)',
+                                        position: 'relative',
+                                    }}
                                 >
-                                    <img src="/images/training/jarvis-recommends-tile.png" alt="Jarvis Recommends" style={{ width: '100%', height: 80, objectFit: 'cover' }} />
+                                    <img
+                                        src="/images/training/jarvis-recommends-tile.png"
+                                        alt="Jarvis Recommends"
+                                        style={{ width: '100%', height: 100, objectFit: 'cover' }}
+                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                    />
+                                    <div style={{
+                                        position: 'absolute', inset: 0,
+                                        display: 'flex', flexDirection: 'column',
+                                        alignItems: 'center', justifyContent: 'center',
+                                        background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)',
+                                    }}>
+                                        <div style={{ fontSize: 9, fontWeight: 700, color: '#00d4ff', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>JARVIS</div>
+                                        <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>Recommends</div>
+                                    </div>
                                 </motion.div>
                             </div>
                         )}
