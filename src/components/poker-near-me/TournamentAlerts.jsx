@@ -265,39 +265,39 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
         .tournament-alerts { padding: 0 0 20px; }
         .ta-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
         .ta-header h2 { font-size: 22px; font-weight: 700; color: #fff; margin: 0; flex: 1; }
-        .ta-toggle { padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); }
+        .ta-toggle { padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(88,166,255,0.2); background: rgba(13,17,23,0.7); color: rgba(200,214,229,0.5); }
         .ta-toggle.active { background: rgba(34,197,94,0.2); border-color: rgba(34,197,94,0.5); color: #22c55e; }
         .ta-matches-banner { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); border-radius: 12px; margin-bottom: 16px; position: relative; overflow: hidden; }
         .ta-matches-banner span { font-size: 14px; color: #fff; }
         .ta-matches-pulse { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #22c55e; animation: alertPulse 2s ease-in-out infinite; }
         @keyframes alertPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-        .ta-setup-toggle { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; transition: all 0.2s; }
-        .ta-setup-toggle:hover { background: rgba(255,255,255,0.08); }
-        .ta-prefs-panel { background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 20px; margin-top: 12px; }
+        .ta-setup-toggle { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 10px; color: rgba(200,214,229,0.6); font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; transition: all 0.2s; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); }
+        .ta-setup-toggle:hover { background: rgba(88,166,255,0.05); }
+        .ta-prefs-panel { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 14px; padding: 20px; margin-top: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
         .ta-pref-group { margin-bottom: 18px; }
         .ta-pref-group:last-child { margin-bottom: 0; }
-        .ta-pref-group label { display: block; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .ta-pref-group label { display: block; font-size: 12px; font-weight: 500; color: rgba(200,214,229,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
         .ta-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-        .ta-chip { padding: 8px 14px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); font-size: 13px; cursor: pointer; transition: all 0.2s; }
+        .ta-chip { padding: 8px 14px; border-radius: 8px; background: rgba(88,166,255,0.03); border: 1px solid rgba(88,166,255,0.2); color: rgba(200,214,229,0.7); font-size: 13px; cursor: pointer; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
         .ta-chip.small { padding: 6px 10px; font-size: 12px; }
-        .ta-chip.active { background: rgba(212,168,83,0.2); border-color: rgba(212,168,83,0.5); color: #d4a853; }
+        .ta-chip.active { background: rgba(88,166,255,0.15); border-color: rgba(88,166,255,0.4); color: #58a6ff; }
         .ta-range-row { display: flex; align-items: center; gap: 8px; }
-        .ta-range-input { flex: 1; padding: 10px 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; font-size: 14px; font-family: inherit; }
-        .ta-range-input::placeholder { color: rgba(255,255,255,0.3); }
-        .ta-range-sep { color: rgba(255,255,255,0.3); }
+        .ta-range-input { flex: 1; padding: 10px 12px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 8px; color: #e0e8f0; font-size: 14px; font-family: inherit; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .ta-range-input::placeholder { color: rgba(200,214,229,0.3); }
+        .ta-range-sep { color: rgba(200,214,229,0.3); }
         .push-row { display: flex; align-items: center; justify-content: space-between; }
-        .ta-push-btn { padding: 8px 16px; border-radius: 8px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #3b82f6; font-size: 13px; font-weight: 500; cursor: pointer; }
+        .ta-push-btn { padding: 8px 16px; border-radius: 8px; background: rgba(88,166,255,0.15); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; font-size: 13px; font-weight: 500; cursor: pointer; }
         .ta-match-list { margin-top: 16px; }
         .ta-match-list h3 { font-size: 16px; font-weight: 600; color: #fff; margin: 0 0 12px; }
-        .ta-match-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px; margin-bottom: 8px; transition: all 0.2s; }
-        .ta-match-card:hover { border-color: rgba(212,168,83,0.3); }
+        .ta-match-card { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 10px; padding: 14px; margin-bottom: 8px; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .ta-match-card:hover { border-color: rgba(88,166,255,0.3); }
         .ta-match-header { display: flex; justify-content: space-between; align-items: center; }
-        .ta-match-name { font-size: 14px; font-weight: 600; color: #fff; }
+        .ta-match-name { font-size: 14px; font-weight: 600; color: #e0e8f0; }
         .ta-match-buyin { padding: 2px 8px; border-radius: 4px; background: rgba(34,197,94,0.15); color: #22c55e; font-size: 12px; font-weight: 600; }
-        .ta-match-details { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
-        .ta-more { text-align: center; padding: 10px; color: rgba(255,255,255,0.4); font-size: 13px; }
+        .ta-match-details { font-size: 12px; color: rgba(200,214,229,0.4); margin-top: 4px; }
+        .ta-more { text-align: center; padding: 10px; color: rgba(200,214,229,0.4); font-size: 13px; }
         .ta-no-matches { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; text-align: center; }
-        .ta-no-matches p { color: rgba(255,255,255,0.4); font-size: 14px; margin: 8px 0 0; }
+        .ta-no-matches p { color: rgba(200,214,229,0.4); font-size: 14px; margin: 8px 0 0; }
       `}</style>
         </div>
     );
