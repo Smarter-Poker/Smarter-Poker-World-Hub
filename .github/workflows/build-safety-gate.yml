@@ -199,6 +199,8 @@ jobs:
         run: |
           set -o pipefail
           echo "Running Next.js build compilation check..."
+          # Clean stale .next cache to prevent ENOENT unlink errors on deleted/moved pages
+          rm -rf .next
           BUILD_EXIT=0
           NODE_OPTIONS="--max_old_space_size=4096" npx next build 2>&1 | tee build.log || BUILD_EXIT=$?
           if [ "$BUILD_EXIT" -ne 0 ] || grep -q "Failed to compile" build.log; then

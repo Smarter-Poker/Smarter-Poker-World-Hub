@@ -101,6 +101,9 @@ export async function validateYouTubeVideo(url) {
 // ═══════════════════════════════════════════════════════════════════════════
 export const MAX_MEDIA = 10;
 
+// Convenience alias — allows `import { C } from 'socialHelpers'` as a shorthand
+export { SOCIAL_COLORS as C };
+
 export async function compressImage(file, maxDim = 1920, quality = 0.85) {
     if (file.type === 'image/gif' || file.size < 200 * 1024) return file;
     return new Promise((resolve) => {

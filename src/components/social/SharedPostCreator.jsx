@@ -8,7 +8,7 @@ import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
 import CheckInModal from './CheckInModal';
 import TrendingVenues from './TrendingVenues';
 import { SharedAvatar as Avatar } from './SharedAvatar';
-import { MAX_MEDIA, compressImage, getYouTubeVideoId, validateYouTubeVideo, C } from '../../../src/lib/socialHelpers';
+import { MAX_MEDIA, compressImage, getYouTubeVideoId, validateYouTubeVideo, SOCIAL_COLORS as C } from '../../../src/lib/socialHelpers';
 
 export function SharedPostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages, authorOverride, context = 'social-media' }) {
     const [postVisibility, setPostVisibility] = useState('public');
