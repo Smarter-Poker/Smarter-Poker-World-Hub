@@ -1,0 +1,23 @@
+{
+  "scrape_url": "https://charityseriesofpoker.org",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T20:10:43.405694+00:00",
+  "scrape_html_hash": "2c310c1231975969186a232b567cdd144738dfa610f644a3ef172a260feb63f5",
+  "scrape_byte_count": 482287,
+  "scrape_batch_id": "ac6df9b8-56df-4329-8600-05beb5a2bbd8",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "Charity Series of Poker (CSOP)",
+  "extracted_data": {
+    "org_name": "Charity Series of Poker (CSOP)",
+    "page_title": "Charity Series of Poker",
+    "state": "MULTI",
+    "region": "National",
+    "org_type": "operator",
+    "json_ld": {},
+    "venues_discovered": [],
+    "schedules": [],
+    "ld_raw_count": 1
+  },
+  "venues_found": 0,
+  "body_preview": "<!DOCTYPE html><html dir=\"ltr\" lang=\"en-US\" prefix=\"og: https://ogp.me/ns#\"><head><meta http-equiv=\"origin-trial\" content=\"A7vZI3v+Gz7JfuRolKNM4Aff6zaGuT7X0mf3wtoZTnKv6497cVMnhy03KDqX7kBz/q/iidW7srW31oQbBt4VhgoAAACUeyJvcmlnaW4iOiJodHRwczovL3d3dy5nb29nbGUuY29tOjQ0MyIsImZlYXR1cmUiOiJEaXNhYmxlVGhpcmRQYXJ0eVN0b3JhZ2VQYXJ0aXRpb25pbmczIiwiZXhwaXJ5IjoxNzU3OTgwODAwLCJpc1N1YmRvbWFpbiI6dHJ1ZSwiaXNUaGlyZFBhcnR5Ijp0cnVlfQ==\">\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-"
+}
