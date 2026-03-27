@@ -846,6 +846,14 @@ export default function PokerNearMeLobby() {
     };
   }, []);
 
+  // ─── Cleanup timeouts on unmount (prevent setState on unmounted component) ───
+  useEffect(() => {
+    return () => {
+      if (locationToastTimeoutRef.current) clearTimeout(locationToastTimeoutRef.current);
+      if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
+    };
+  }, []);
+
   // ─── Reverse Geocode: lat/lng → city, state ───
   const reverseGeocode = useCallback(async (lat, lng) => {
     try {
@@ -919,6 +927,9 @@ export default function PokerNearMeLobby() {
       setGpsActive(false);
       setUserLocation(null);
       setLocationToast(null);
+      setLocationCity('');
+      setLocationState('');
+      setSortBy('trust'); // Revert to trust sort when GPS disabled
       if (userId) {
         updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
       }
@@ -970,30 +981,12 @@ export default function PokerNearMeLobby() {
     if (locationPref === true && savedLoc?.lat && savedLoc?.lng) {
       setUserLocation(savedLoc);
       setGpsActive(true);
+      setSortBy('distance'); // BUG-05 fix: auto-distance sort for returning users
       showLocationSuccessToast({
         city: preferences?.lastLocationCity || '',
         state: preferences?.lastLocationState || '',
       });
-      // Silently refresh GPS in background for accuracy (no error if it fails)
-      if (typeof navigator !== 'undefined' && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            setUserLocation(loc);
-            // Quietly fetch fresh venues with updated coordinates
-            const gpsUrl = `/api/poker/venues?limit=500&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
-            cachedFetch(gpsUrl).then(data => {
-              const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-              setVenues(newVenues);
-              setHasMore(newVenues.length >= PAGE_SIZE);
-              setPage(0);
-            }).catch(() => {});
-          },
-          () => { /* silent — saved location is still good */ },
-          { enableHighAccuracy: true, timeout: 8000 }
-        );
-      }
-      // Fetch venues with saved location immediately (don't wait for GPS refresh)
+      // Fetch venues with saved location immediately
       const gpsUrl = `/api/poker/venues?limit=500&offset=0&lat=${savedLoc.lat}&lng=${savedLoc.lng}&radius=250&sort=distance`;
       cachedFetch(gpsUrl).then(data => {
         const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
@@ -1001,6 +994,43 @@ export default function PokerNearMeLobby() {
         setHasMore(newVenues.length >= PAGE_SIZE);
         setPage(0);
       }).catch(() => {});
+      // Silently refresh GPS in background for accuracy (no error if it fails)
+      // Background refresh will override venues only if it succeeds AFTER the saved fetch
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setUserLocation(loc);
+            // Only re-fetch if we got a significantly different position (>0.01 deg ≈ 1km)
+            const movedSignificantly = Math.abs(loc.lat - savedLoc.lat) > 0.01 || Math.abs(loc.lng - savedLoc.lng) > 0.01;
+            if (movedSignificantly) {
+              const freshUrl = `/api/poker/venues?limit=500&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+              cachedFetch(freshUrl).then(data => {
+                const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+                setVenues(newVenues);
+                setHasMore(newVenues.length >= PAGE_SIZE);
+                setPage(0);
+              }).catch(() => {});
+              // Update saved location in Supabase since user moved
+              if (userId) {
+                reverseGeocode(loc.lat, loc.lng).then(geo => {
+                  if (geo?.city) {
+                    showLocationSuccessToast(geo);
+                    updatePokerNearMePreferences(userId, {
+                      locationEnabled: true,
+                      lastLocation: loc,
+                      lastLocationCity: geo.city,
+                      lastLocationState: geo.state || '',
+                    }).catch(() => {});
+                  }
+                }).catch(() => {});
+              }
+            }
+          },
+          () => { /* silent — saved location is still good */ },
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      };
       setFilters(prev => ({ ...prev, nmSearched: true, nmSort: 'distance', svHasSearched: true, svSort: 'distance' }));
       return;
     }
@@ -1029,6 +1059,7 @@ export default function PokerNearMeLobby() {
         const loc = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
         setUserLocation(loc);
         setGpsActive(true);
+        setSortBy('distance'); // BUG-02 fix: auto-distance sort on manual set
         setShowManualLocation(false);
         showLocationSuccessToast({ city: manualCity.trim(), state: manualState || '' });
         // Persist
