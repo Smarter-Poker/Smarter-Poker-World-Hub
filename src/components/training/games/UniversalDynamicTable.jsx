@@ -3229,10 +3229,10 @@ const styles = {
     // ── RACETRACK TABLE — Phase 18: Tall oval, NO overflow hidden so seats stay visible
     basicTable: {
         position: 'relative',
-        width: '95%',
-        maxWidth: 500,
-        aspectRatio: '1 / 2.0',
-        borderRadius: '50% / 20%',
+        width: '90%',
+        maxWidth: 420,
+        aspectRatio: '1 / 1.1',
+        borderRadius: '50% / 25%',
         backgroundColor: '#1E3B22',
         border: '8px solid #1a1a1a',
         boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
