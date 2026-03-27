@@ -1902,7 +1902,7 @@ function UniversalDynamicTable({
                         if (activeCount <= 2) {
                             // Strict Absolute positions: completely outside the table
                             seatX = 50;
-                            seatY = isHero ? 72 : -16;
+                            seatY = isHero ? 60 : -16;
                         }
 
                         return (
