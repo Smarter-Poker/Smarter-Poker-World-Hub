@@ -249,8 +249,8 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
 
   const renderTournamentCard = (t, i) => (
     <div key={t.id || i} style={{
-      background: 'rgba(110,231,239,0.04)', border: '1px solid rgba(110,231,239,0.1)',
-      borderRadius: 12, padding: '12px 16px', transition: 'border-color 0.2s',
+      background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(88,166,255,0.2)',
+      borderRadius: 12, padding: '12px 16px', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)'
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
         <div>
@@ -267,7 +267,7 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11, color: 'rgba(200,214,229,0.45)' }}>
         {t.start_time && <span>{t.start_time}</span>}
-        {t.game_type && <span style={{ color: '#6ee7ef' }}>{t.game_type}</span>}
+        {t.game_type && <span style={{ color: '#58a6ff' }}>{t.game_type}</span>}
         {t.guaranteed && <span style={{ color: '#f59e0b' }}>GTD: ${typeof t.guaranteed === 'number' ? t.guaranteed.toLocaleString() : t.guaranteed}</span>}
         {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString?.() || t.starting_stack}</span>}
         {t.blind_levels && <span>Blinds: {t.blind_levels}</span>}
@@ -284,11 +284,11 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
           <button key={day} onClick={() => handleDayChange(day)}
             style={{
               flexShrink: 0, padding: '6px 12px', borderRadius: 8,
-              border: selectedDay === day ? '1px solid rgba(34,197,94,0.6)' : '1px solid rgba(110,231,239,0.15)',
-              background: selectedDay === day ? 'rgba(34,197,94,0.15)' : 'rgba(110,231,239,0.04)',
-              color: selectedDay === day ? '#22c55e' : 'rgba(200,214,229,0.6)',
+              border: selectedDay === day ? '1px solid rgba(88,166,255,0.6)' : '1px solid rgba(88,166,255,0.2)',
+              background: selectedDay === day ? 'rgba(88,166,255,0.15)' : 'rgba(13,17,23,0.7)',
+              color: selectedDay === day ? '#58a6ff' : 'rgba(200,214,229,0.6)',
               fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-              textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s',
+              textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)'
             }}
           >
             {day === DAYS[TODAY_INDEX] ? 'Today' : day.slice(0, 3)}
@@ -303,10 +303,10 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
           <button key={gt} onClick={() => setGameType(gt)}
             style={{
               padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-              border: gameType === gt ? '1px solid rgba(110,231,239,0.5)' : '1px solid rgba(110,231,239,0.12)',
-              background: gameType === gt ? 'rgba(110,231,239,0.12)' : 'transparent',
-              color: gameType === gt ? '#6ee7ef' : 'rgba(200,214,229,0.5)', fontFamily: 'inherit',
-              transition: 'all 0.2s',
+              border: gameType === gt ? '1px solid rgba(88,166,255,0.5)' : '1px solid rgba(88,166,255,0.2)',
+              background: gameType === gt ? 'rgba(88,166,255,0.15)' : 'rgba(13,17,23,0.7)',
+              color: gameType === gt ? '#58a6ff' : 'rgba(200,214,229,0.5)', fontFamily: 'inherit',
+              transition: 'all 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)'
             }}
           >{gt === 'all' ? 'All Games' : gt}</button>
         ))}
@@ -315,22 +315,22 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
       {/* Advanced Filters Row */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <input type="number" placeholder="Min $" value={minBuyin} onChange={e => setMinBuyin(e.target.value)}
-          style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(110,231,239,0.15)', background: 'rgba(0,0,0,0.25)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+          style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(88,166,255,0.2)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
         <span style={{ color: 'rgba(200,214,229,0.3)', fontSize: 11 }}>to</span>
         <input type="number" placeholder="Max $" value={maxBuyin} onChange={e => setMaxBuyin(e.target.value)}
-          style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(110,231,239,0.15)', background: 'rgba(0,0,0,0.25)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+          style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(88,166,255,0.2)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
         <input type="number" placeholder="Min GTD" value={minGuaranteed} onChange={e => setMinGuaranteed(e.target.value)}
-          style={{ width: 85, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(110,231,239,0.15)', background: 'rgba(0,0,0,0.25)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+          style={{ width: 85, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(88,166,255,0.2)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
         <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-          style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(110,231,239,0.15)', background: 'rgba(0,0,0,0.25)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
-          {SORT_OPTS.map(o => <option key={o.v} value={o.v} style={{ background: '#0d1a2a' }}>{o.l}</option>)}
+          style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(88,166,255,0.2)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
+          {SORT_OPTS.map(o => <option key={o.v} value={o.v} style={{ background: '#0d1117' }}>{o.l}</option>)}
         </select>
         <button onClick={() => setGroupByState(!groupByState)}
           style={{
             padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-            border: groupByState ? '1px solid rgba(212,168,83,0.5)' : '1px solid rgba(110,231,239,0.12)',
-            background: groupByState ? 'rgba(212,168,83,0.12)' : 'transparent',
-            color: groupByState ? '#d4a853' : 'rgba(200,214,229,0.5)', fontFamily: 'inherit',
+            border: groupByState ? '1px solid rgba(212,168,83,0.5)' : '1px solid rgba(88,166,255,0.2)',
+            background: groupByState ? 'rgba(212,168,83,0.12)' : 'rgba(13,17,23,0.7)',
+            color: groupByState ? '#d4a853' : 'rgba(200,214,229,0.5)', fontFamily: 'inherit', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)'
           }}
         >By State</button>
       </div>
@@ -1641,13 +1641,13 @@ export default function PokerNearMeLobby() {
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
               <input type="text" placeholder="Search tours..." value={tourSearch}
                 onChange={(e) => setFilters(prev => ({ ...prev, tourSearch: e.target.value }))}
-                style={{ flex: 1, minWidth: 120, padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(110,231,239,0.2)', background: 'rgba(0,0,0,0.25)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+                style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(88,166,255,0.2)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
               <select value={tourState}
                 onChange={(e) => setFilters(prev => ({ ...prev, tourState: e.target.value }))}
-                style={{ background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 90 }}>
-                <option value="all" style={{ background: '#0d1a2a' }}>All States</option>
+                style={{ background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(88,166,255,0.2)', borderRadius: 8, padding: '8px 14px', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 110, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
+                <option value="all" style={{ background: '#0d1117' }}>All States</option>
                 {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                  <option key={st} value={st} style={{ background: '#0d1a2a' }}>{st}</option>
+                  <option key={st} value={st} style={{ background: '#0d1117' }}>{st}</option>
                 ))}
               </select>
               <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
@@ -1690,13 +1690,13 @@ export default function PokerNearMeLobby() {
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
               <input type="text" placeholder="Search series..." value={seriesSearch}
                 onChange={(e) => setFilters(prev => ({ ...prev, seriesSearch: e.target.value }))}
-                style={{ flex: 1, minWidth: 120, padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(110,231,239,0.2)', background: 'rgba(0,0,0,0.25)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
+                style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(88,166,255,0.2)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
               <select value={seriesState}
                 onChange={(e) => setFilters(prev => ({ ...prev, seriesState: e.target.value }))}
-                style={{ background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 90 }}>
-                <option value="all" style={{ background: '#0d1a2a' }}>All States</option>
+                style={{ background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(88,166,255,0.2)', borderRadius: 8, padding: '8px 14px', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 110, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
+                <option value="all" style={{ background: '#0d1117' }}>All States</option>
                 {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                  <option key={st} value={st} style={{ background: '#0d1a2a' }}>{st}</option>
+                  <option key={st} value={st} style={{ background: '#0d1117' }}>{st}</option>
                 ))}
               </select>
               <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)' }}>
