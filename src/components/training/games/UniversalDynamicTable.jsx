@@ -1916,7 +1916,7 @@ function UniversalDynamicTable({
                         if (activeCount <= 2) {
                             // Strict Absolute positions: completely outside the table
                             seatX = 50;
-                            seatY = isHero ? 106 : -16;
+                            seatY = isHero ? 92 : -16;
                         }
 
                         return (
@@ -3238,14 +3238,14 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '28px 16px 60px 16px',
+        padding: '28px 16px 20px 16px',
     },
 
     // ── NEW CUSTOM STANDALONE RACETRACK TABLE — fixed design size, scaled by Phase 16 container
     basicTable: {
         position: 'relative',
-        width: 260,
-        aspectRatio: '1 / 1.6',
+        width: 280,
+        aspectRatio: '1 / 1.7',
         borderRadius: '50% / 25%', 
         backgroundColor: '#1E3B22', // deep green felt
         border: '10px solid #1a1a1a', // solid dark rail
