@@ -961,13 +961,14 @@ export default function SocialPageDetail() {
     const [gamesLoading, setGamesLoading] = useState(false);
     const [seatAction, setSeatAction] = useState(null); // { gameId, type }
     // P8-5: Post sorting
-    // #9: Post sort with localStorage persistence
-    const [postSort, setPostSort] = useState(() => {
+    // #9: Post sort with localStorage persistence (hydration-safe: always init as 'recent')
+    const [postSort, setPostSort] = useState('recent');
+    useEffect(() => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('sp_post_sort') || 'recent';
+            const saved = localStorage.getItem('sp_post_sort');
+            if (saved && saved !== 'recent') setPostSort(saved);
         }
-        return 'recent';
-    });
+    }, []);
     const handleSetPostSort = (sort) => {
         setPostSort(sort);
         if (typeof window !== 'undefined') localStorage.setItem('sp_post_sort', sort);
@@ -2966,7 +2967,7 @@ export default function SocialPageDetail() {
                                     fontSize: 12, color: C.blue, wordBreak: 'break-all',
                                     border: `1px solid ${C.border}`, marginBottom: 8,
                                 }}>
-                                    {typeof window !== 'undefined' ? `${window.location.origin}/hub/social-pages/${page.slug || page.id}` : ''}
+                                    {`https://smarter.poker/hub/social-pages/${page.slug || page.id}`}
                                 </div>
                                 <button onClick={() => {
                                     const url = `${window.location.origin}/hub/social-pages/${page.slug || page.id}`;
@@ -2983,7 +2984,7 @@ export default function SocialPageDetail() {
                                 {page.slug && (() => {
                                     // Use referral QR API for attribution tracking
                                     const refCode = page.metadata?.referral_code;
-                                    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://smarter.poker';
+                                    const siteUrl = 'https://smarter.poker';
                                     const qrUrl = refCode
                                         ? `${siteUrl}/hub/social-media?ref=${refCode}`
                                         : `${siteUrl}/hub/social-pages/${page.slug}`;

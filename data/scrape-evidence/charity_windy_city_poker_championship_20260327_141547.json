@@ -1,0 +1,120 @@
+{
+  "scrape_url": "https://windycity.poker",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T19:15:47.077083+00:00",
+  "scrape_html_hash": "a835cf789e0c941b36d0f86a794ea56eb8a331b9b2257995b373ea3efbe10448",
+  "scrape_byte_count": 174060,
+  "scrape_batch_id": "b96114ae-45ba-4fb0-be47-24aba5a9103f",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "Windy City Poker Championship",
+  "extracted_data": {
+    "org_name": "Windy City Poker Championship",
+    "page_title": "Windy City Poker Championship ~ Your destination for charity poker events in Illinois - Windy City Poker Championship",
+    "state": "IL",
+    "region": "Chicagoland",
+    "org_type": "operator",
+    "json_ld": {},
+    "venues_discovered": [
+      {
+        "address": "18436 Governors Highway",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Hwy",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "60430",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Highway",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Hwy",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "60430",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Highway",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Hwy",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "60430",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Highway",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Hwy",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "60430",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Highway",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Hwy",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "60430",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Highway",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      },
+      {
+        "address": "18436 Governors Hwy",
+        "city": "Homewood",
+        "state": "IL",
+        "zip": "60430",
+        "org": "Windy City Poker Championship",
+        "source_url": "https://windycity.poker"
+      }
+    ],
+    "schedules": [],
+    "ld_raw_count": 0
+  },
+  "venues_found": 12,
+  "body_preview": "\n<!DOCTYPE html>\n<html lang=\"en-gb\" dir=\"ltr\">\n\n\n<head>\n<script type=\"text/javascript\">  (function(){    function blockCookies(disableCookies, disableLocal, disableSession){    if(disableCookies == 1){    if(!document.__defineGetter__){    Object.defineProperty(document, 'cookie',{    get: function(){ return ''; },    set: function(){ return true;}    });    }else{    var oldSetter = document.__lookupSetter__('cookie');    if(oldSetter) {    Object.defineProperty(document, 'cookie', {    get: fu"
+}
