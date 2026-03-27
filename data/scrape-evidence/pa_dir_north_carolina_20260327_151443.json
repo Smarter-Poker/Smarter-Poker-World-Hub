@@ -1,0 +1,429 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-rooms/north-carolina",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T20:14:43.484610+00:00",
+  "scrape_html_hash": "e365c6993d236f4e95551b7f959809075c343a0c742c9ed2729c3efd1c7b949d",
+  "scrape_byte_count": 151742,
+  "scrape_batch_id": "ac6df9b8-56df-4329-8600-05beb5a2bbd8",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "state": "NC",
+  "total_rooms": 66,
+  "charity_rooms": [
+    {
+      "slug": "tch-social-austin-best-in-austin",
+      "pa_url": "https://www.pokeratlas.com/poker-room/tch-social-austin/review/tch-social-austin-best-in-austin",
+      "name": "Tch Social Austin Best In Austin",
+      "state": "NC"
+    },
+    {
+      "slug": "tch-social-austin-best-room-in-texas-0c1e7d76-7075-4dc1-ab2e-b625f218509a",
+      "pa_url": "https://www.pokeratlas.com/poker-room/tch-social-austin/review/tch-social-austin-best-room-in-texas-0c1e7d76-7075-4dc1-ab2e-b625f218509a",
+      "name": "Tch Social Austin Best Room In Texas 0C1E7D76 7075 4Dc1 Ab2E B625F218509A",
+      "state": "NC"
+    },
+    {
+      "slug": "tch-social-austin",
+      "pa_url": "https://www.pokeratlas.com/poker-room/tch-social-austin",
+      "name": "Tch Social Austin",
+      "state": "NC"
+    }
+  ],
+  "all_rooms": [
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/caesars-palace-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "santa-fe-station-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/santa-fe-station-las-vegas",
+      "name": "Santa Fe Station Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/santa-fe-station-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/venetian-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/golden-nugget-lv-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/red-rock-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/boulder-station-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "skyline-casino-henderson",
+      "pa_url": "https://www.pokeratlas.com/poker-room/skyline-casino-henderson",
+      "name": "Skyline Casino Henderson",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/red-rock-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/the-orleans-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "9550",
+      "pa_url": "https://www.pokeratlas.com/poker-room/9550",
+      "name": "9550",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/westgate-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "bellagio-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas",
+      "name": "Bellagio Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/mgm-grand-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/green-valley-ranch-henderson/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/skyline-casino-henderson/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/world-series-of-poker-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/wynn-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "legends-poker-room-houston",
+      "pa_url": "https://www.pokeratlas.com/poker-room/legends-poker-room-houston",
+      "name": "Legends Poker Room Houston",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/golden-nugget-lv-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "10803",
+      "pa_url": "https://www.pokeratlas.com/poker-room/10803",
+      "name": "10803",
+      "state": "NC"
+    },
+    {
+      "slug": "westgate-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/westgate-las-vegas",
+      "name": "Westgate Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "tch-social-austin-best-in-austin",
+      "pa_url": "https://www.pokeratlas.com/poker-room/tch-social-austin/review/tch-social-austin-best-in-austin",
+      "name": "Tch Social Austin Best In Austin",
+      "state": "NC"
+    },
+    {
+      "slug": "golden-nugget-lv-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/golden-nugget-lv-las-vegas",
+      "name": "Golden Nugget Lv Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/skyline-casino-henderson/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/venetian-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "wynn-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/wynn-las-vegas",
+      "name": "Wynn Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "9608",
+      "pa_url": "https://www.pokeratlas.com/poker-room/9608",
+      "name": "9608",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/aria-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "boulder-station-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/boulder-station-las-vegas",
+      "name": "Boulder Station Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "the-orleans-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/the-orleans-las-vegas",
+      "name": "The Orleans Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "mandalay-bay-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas",
+      "name": "Mandalay Bay Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/santa-fe-station-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/caesars-palace-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "mgm-grand-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/mgm-grand-las-vegas",
+      "name": "Mgm Grand Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/mgm-grand-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/the-orleans-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/green-valley-ranch-henderson/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "casino-du-lac-leamy-gatineau",
+      "pa_url": "https://www.pokeratlas.com/poker-room/casino-du-lac-leamy-gatineau",
+      "name": "Casino Du Lac Leamy Gatineau",
+      "state": "NC"
+    },
+    {
+      "slug": "horseshoe-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas",
+      "name": "Horseshoe Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "world-series-of-poker-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/world-series-of-poker-las-vegas",
+      "name": "World Series Of Poker Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/wynn-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "green-valley-ranch-henderson",
+      "pa_url": "https://www.pokeratlas.com/poker-room/green-valley-ranch-henderson",
+      "name": "Green Valley Ranch Henderson",
+      "state": "NC"
+    },
+    {
+      "slug": "aria-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/aria-las-vegas",
+      "name": "Aria Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "caesars-palace-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/caesars-palace-las-vegas",
+      "name": "Caesars Palace Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "red-rock-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/red-rock-las-vegas",
+      "name": "Red Rock Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/world-series-of-poker-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "resorts-world-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
+      "name": "Resorts World Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/westgate-las-vegas/cash-games",
+      "name": "Cash Games",
+      "state": "NC"
+    },
+    {
+      "slug": "south-point-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas",
+      "name": "South Point Las Vegas",
+      "state": "NC"
+    },
+    {
+      "slug": "tch-social-austin-best-room-in-texas-0c1e7d76-7075-4dc1-ab2e-b625f218509a",
+      "pa_url": "https://www.pokeratlas.com/poker-room/tch-social-austin/review/tch-social-austin-best-room-in-texas-0c1e7d76-7075-4dc1-ab2e-b625f218509a",
+      "name": "Tch Social Austin Best Room In Texas 0C1E7D76 7075 4Dc1 Ab2E B625F218509A",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/boulder-station-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "9059",
+      "pa_url": "https://www.pokeratlas.com/poker-room/9059",
+      "name": "9059",
+      "state": "NC"
+    },
+    {
+      "slug": "tch-social-austin",
+      "pa_url": "https://www.pokeratlas.com/poker-room/tch-social-austin",
+      "name": "Tch Social Austin",
+      "state": "NC"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/aria-las-vegas/tournaments",
+      "name": "Tournaments",
+      "state": "NC"
+    },
+    {
+      "slug": "venetian-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/venetian-las-vegas",
+      "name": "Venetian Las Vegas",
+      "state": "NC"
+    }
+  ]
+}

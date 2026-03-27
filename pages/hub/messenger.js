@@ -1894,6 +1894,14 @@ function MessengerPage() {
                     typingTimerRef.current = setTimeout(() => setOtherTyping(false), 3000);
                 }
             })
+            .on('broadcast', { event: 'read_receipt' }, (payload) => {
+                // Other user read our messages — update ✓✓ checkmarks in real-time
+                if (payload.payload.readerId !== user.id) {
+                    setMessages(prev => prev.map(m =>
+                        m.sender_id === user.id ? { ...m, is_read: true, status: 'read' } : m
+                    ));
+                }
+            })
             .subscribe();
 
         return () => {

@@ -1,0 +1,111 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-rooms/virginia",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T20:14:55.987377+00:00",
+  "scrape_html_hash": "0e69b933ece23b29aaecb997bcb8e55bcf4b5fe993c94bb19bab7b51ddb155bf",
+  "scrape_byte_count": 101519,
+  "scrape_batch_id": "ac6df9b8-56df-4329-8600-05beb5a2bbd8",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "state": "VA",
+  "total_rooms": 13,
+  "charity_rooms": [
+    {
+      "slug": "tch-social-austin",
+      "pa_url": "https://www.pokeratlas.com/poker-room/tch-social-austin",
+      "name": "Tch Social Austin",
+      "state": "VA"
+    },
+    {
+      "slug": "tch-social-austin-best-room-in-texas-0c1e7d76-7075-4dc1-ab2e-b625f218509a",
+      "pa_url": "https://www.pokeratlas.com/poker-room/tch-social-austin/review/tch-social-austin-best-room-in-texas-0c1e7d76-7075-4dc1-ab2e-b625f218509a",
+      "name": "Tch Social Austin Best Room In Texas 0C1E7D76 7075 4Dc1 Ab2E B625F218509A",
+      "state": "VA"
+    },
+    {
+      "slug": "tch-social-austin-best-in-austin",
+      "pa_url": "https://www.pokeratlas.com/poker-room/tch-social-austin/review/tch-social-austin-best-in-austin",
+      "name": "Tch Social Austin Best In Austin",
+      "state": "VA"
+    }
+  ],
+  "all_rooms": [
+    {
+      "slug": "10804",
+      "pa_url": "https://www.pokeratlas.com/poker-room/10804",
+      "name": "10804",
+      "state": "VA"
+    },
+    {
+      "slug": "rivers-casino-portsmouth",
+      "pa_url": "https://www.pokeratlas.com/poker-room/rivers-casino-portsmouth",
+      "name": "Rivers Casino Portsmouth",
+      "state": "VA"
+    },
+    {
+      "slug": "wynn-las-vegas",
+      "pa_url": "https://www.pokeratlas.com/poker-room/wynn-las-vegas",
+      "name": "Wynn Las Vegas",
+      "state": "VA"
+    },
+    {
+      "slug": "legends-poker-room-houston",
+      "pa_url": "https://www.pokeratlas.com/poker-room/legends-poker-room-houston",
+      "name": "Legends Poker Room Houston",
+      "state": "VA"
+    },
+    {
+      "slug": "tch-social-austin",
+      "pa_url": "https://www.pokeratlas.com/poker-room/tch-social-austin",
+      "name": "Tch Social Austin",
+      "state": "VA"
+    },
+    {
+      "slug": "pops-poker-richmond",
+      "pa_url": "https://www.pokeratlas.com/poker-room/pops-poker-richmond",
+      "name": "Pops Poker Richmond",
+      "state": "VA"
+    },
+    {
+      "slug": "tch-social-austin-best-room-in-texas-0c1e7d76-7075-4dc1-ab2e-b625f218509a",
+      "pa_url": "https://www.pokeratlas.com/poker-room/tch-social-austin/review/tch-social-austin-best-room-in-texas-0c1e7d76-7075-4dc1-ab2e-b625f218509a",
+      "name": "Tch Social Austin Best Room In Texas 0C1E7D76 7075 4Dc1 Ab2E B625F218509A",
+      "state": "VA"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/pops-poker-richmond/tournaments",
+      "name": "Tournaments",
+      "state": "VA"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/rivers-casino-portsmouth/cash-games",
+      "name": "Cash Games",
+      "state": "VA"
+    },
+    {
+      "slug": "tournaments",
+      "pa_url": "https://www.pokeratlas.com/poker-room/rivers-casino-portsmouth/tournaments",
+      "name": "Tournaments",
+      "state": "VA"
+    },
+    {
+      "slug": "tch-social-austin-best-in-austin",
+      "pa_url": "https://www.pokeratlas.com/poker-room/tch-social-austin/review/tch-social-austin-best-in-austin",
+      "name": "Tch Social Austin Best In Austin",
+      "state": "VA"
+    },
+    {
+      "slug": "casino-du-lac-leamy-gatineau",
+      "pa_url": "https://www.pokeratlas.com/poker-room/casino-du-lac-leamy-gatineau",
+      "name": "Casino Du Lac Leamy Gatineau",
+      "state": "VA"
+    },
+    {
+      "slug": "cash-games",
+      "pa_url": "https://www.pokeratlas.com/poker-room/pops-poker-richmond/cash-games",
+      "name": "Cash Games",
+      "state": "VA"
+    }
+  ]
+}
