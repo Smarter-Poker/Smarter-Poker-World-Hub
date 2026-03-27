@@ -1,25 +1,46 @@
 {
   "metadata": {
-    "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6",
-    "scrape_timestamp": "2026-03-27T14:29:06.009795+00:00",
+    "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff",
+    "scrape_timestamp": "2026-03-27T15:04:13.914191+00:00",
     "venues_scraped": 156,
-    "venues_with_data": 84,
-    "venues_skipped": 72,
-    "total_records_saved": 325,
+    "venues_with_data": 102,
+    "venues_skipped": 54,
+    "total_records_saved": 379,
     "errors": 0,
-    "duration_seconds": 1162.64074,
-    "session_uptime_minutes": 19.154849449999997
+    "duration_seconds": 1257.145524,
+    "session_uptime_minutes": 55.86166908333333
   },
   "venues": [
     {
-      "venue_slug": "ameristar-st-charles",
-      "scrape_timestamp": "2026-03-27T14:30:03.480075+00:00",
-      "scrape_html_hash": "78d25d124b7dc124acc0a2db51eb462e3a8e420bc6a4b8c9d6d93443145904a0",
-      "scrape_byte_count": 25294,
+      "venue_slug": "agua-caliente-casino",
+      "scrape_timestamp": "2026-03-27T15:04:30.469078+00:00",
+      "scrape_html_hash": "2329960fcedd292f50982770d851d2a850d0082ce1dc4c7889fed6b88bcaf44d",
+      "scrape_byte_count": 31812,
       "live_games": [
         {
+          "game": "6-12 OMAHA H/L",
+          "tables": 1
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Agua Caliente Casino",
+      "address": "32-250 Bob Hope Drive, Rancho Mirage, CA, 92270",
+      "phone": "760-833-8251",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "ameristar-st-charles",
+      "scrape_timestamp": "2026-03-27T15:05:06.348482+00:00",
+      "scrape_html_hash": "3bff5740d8ad872eaf2eab70602333667cc12383a5d6ed6eb638aefb14bfa7b3",
+      "scrape_byte_count": 26524,
+      "live_games": [
+        {
+          "game": "1-2 NL HOLDEM",
+          "tables": 2
+        },
+        {
           "game": "3-6 HOLDEM",
-          "tables": 4
+          "tables": 8
         },
         {
           "game": "4-8 OMAHA H/L 1/2 KILL",
@@ -27,28 +48,28 @@
         },
         {
           "game": "20-40 Limit Holdem/Omaha High",
-          "tables": 10
+          "tables": 11
         }
       ],
       "waitlist": [],
       "venue_name": "Ameristar St. Charles",
       "address": "One Ameristar Blvd, St.Charles, MO, 63301",
       "phone": "636-940-4400",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "aria-resort-casino",
-      "scrape_timestamp": "2026-03-27T14:30:12.934967+00:00",
-      "scrape_html_hash": "1f43826c781ac16fd30f8236b5163be05c8a9d7a5955b33374da430d4cefe2e2",
+      "scrape_timestamp": "2026-03-27T15:05:20.864098+00:00",
+      "scrape_html_hash": "c1f03e7693081306c377bac20e5b1a2e590f9d9b2cf9f93ee51425b95ea61b4f",
       "scrape_byte_count": 21021,
       "live_games": [
         {
           "game": "1-3 NLH 8 Handed",
-          "tables": 3
+          "tables": 6
         },
         {
           "game": "2-5 NLH 8 Handed",
-          "tables": 3
+          "tables": 5
         },
         {
           "game": "5-10 PLO w/Rock - 8",
@@ -63,20 +84,37 @@
       "venue_name": "Aria Resort &amp; Casino",
       "address": "3730 Las Vegas Blvd, Las Vegas , NV, 89158",
       "phone": "702-590-7230",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "ballys-shreveport",
+      "scrape_timestamp": "2026-03-27T15:05:49.396718+00:00",
+      "scrape_html_hash": "5996400a364a53d3670f92e2955337f90ffd609282ef6be52cb40d0145de703a",
+      "scrape_byte_count": 19587,
+      "live_games": [
+        {
+          "game": "1-3 NL HoldEM",
+          "tables": 1
+        },
+        {
+          "game": "10-20 Omaha Hi-Lo Full Kill",
+          "tables": 2
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Bally's Shreveport",
+      "address": "451 Clyde Fant Pkwy, Shreveport, LA, 71101",
+      "phone": "318-220-5274",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "ballys-twin-river",
-      "scrape_timestamp": "2026-03-27T14:30:44.131121+00:00",
-      "scrape_html_hash": "3955108dcfea633d54a7399a3ef819b3dbb6062ac95bb8e3de2f12bdcaf78270",
-      "scrape_byte_count": 23265,
+      "scrape_timestamp": "2026-03-27T15:05:56.541664+00:00",
+      "scrape_html_hash": "b373ed4cf5f74b31f30270bab02f9582158649c0f447645fec5f515cf0c8c2fa",
+      "scrape_byte_count": 22946,
       "live_games": [
         {
           "game": "1-2 NL Holdem",
-          "tables": 5
-        },
-        {
-          "game": "2-5 NL Holdem",
           "tables": 6
         },
         {
@@ -96,13 +134,13 @@
       "venue_name": "Bally's Twin River",
       "address": "100 Twin River Rd, Lincoln, RI, 02865",
       "phone": "401-475-8300",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "bellagio",
-      "scrape_timestamp": "2026-03-27T14:31:01.662522+00:00",
-      "scrape_html_hash": "19958f9d6b16cd1903b6fbb8eb1fe09efb15211a93c9aa715a771932030e68ce",
-      "scrape_byte_count": 22872,
+      "scrape_timestamp": "2026-03-27T15:06:13.671849+00:00",
+      "scrape_html_hash": "4baaaf61c2457b3788491814b6a4e8e5ecca80e35e4aafbbc3e8a16d5c3c5b0f",
+      "scrape_byte_count": 22878,
       "live_games": [
         {
           "game": "0-0 Tourney Leaderboard",
@@ -121,46 +159,29 @@
       "venue_name": "Bellagio",
       "address": "3600 Las Vegas Blvd., Las Vegas, NV, 89109",
       "phone": "702-693-7291",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
-    },
-    {
-      "venue_slug": "boomtown-casino-biloxi",
-      "scrape_timestamp": "2026-03-27T14:31:09.579358+00:00",
-      "scrape_html_hash": "06119428f3ecdf8f5da58c58a29188f008f7f196ca5e03ac14692daba99b5014",
-      "scrape_byte_count": 19173,
-      "live_games": [
-        {
-          "game": "4-8 Holdem",
-          "tables": 2
-        }
-      ],
-      "waitlist": [],
-      "venue_name": "Boomtown Casino Biloxi",
-      "address": "676 Bayview Ave, Biloxi, MS, 39530",
-      "phone": "228-436-8999",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "borgata-hotel-casino-spa",
-      "scrape_timestamp": "2026-03-27T14:31:22.265302+00:00",
-      "scrape_html_hash": "e442056ea663887ce73430f75b64e16b9b5a3500c67cc7a114fde95c641c65c1",
-      "scrape_byte_count": 31598,
+      "scrape_timestamp": "2026-03-27T15:06:49.432033+00:00",
+      "scrape_html_hash": "846e7b8b3a65d058834846a81a3abbaf80cdc6aa4876acca94d4ccc233a82d1e",
+      "scrape_byte_count": 32131,
       "live_games": [
         {
           "game": "1-3 NL Holdem +",
-          "tables": 7
+          "tables": 14
         },
         {
           "game": "1-3 NLH BOMB+",
-          "tables": 1
+          "tables": 2
         },
         {
           "game": "2-5 NL Holdem ++",
-          "tables": 3
+          "tables": 10
         },
         {
           "game": "2-2 PLO 8 Max ++",
-          "tables": 1
+          "tables": 3
         },
         {
           "game": "2-2 PLO BOMB++",
@@ -171,12 +192,16 @@
           "tables": 7
         },
         {
-          "game": "20-40 LHE ++++",
-          "tables": 5
+          "game": "10-20 OM H/L ++",
+          "tables": 3
         },
         {
           "game": "20-40 STUD +++",
-          "tables": 2
+          "tables": 3
+        },
+        {
+          "game": "20-40 LHE ++++",
+          "tables": 5
         },
         {
           "game": "75-150 LHE ++++",
@@ -191,12 +216,37 @@
       "venue_name": "Borgata Hotel Casino &amp; Spa",
       "address": "1 Borgata Way, Atlantic City, NJ, 08401",
       "phone": "609-317-8262",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "caesars-new-orleans",
+      "scrape_timestamp": "2026-03-27T15:07:05.397860+00:00",
+      "scrape_html_hash": "1c291bad9f37caa309c15b072daa9f46a45faeb9fbb43bcf847b99edc3d476be",
+      "scrape_byte_count": 25897,
+      "live_games": [
+        {
+          "game": "1-3 NL HOLDEM",
+          "tables": 8
+        },
+        {
+          "game": "2-5 NL HOLDEM",
+          "tables": 1
+        },
+        {
+          "game": "24-7 Royal Flush Promo",
+          "tables": 16
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Caesars New Orleans",
+      "address": "8 CANAL ST  , NEW ORLEANS, LA, 70130",
+      "phone": "504-533-6043",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "caesars-palace",
-      "scrape_timestamp": "2026-03-27T14:31:46.396647+00:00",
-      "scrape_html_hash": "30f2970690c1967dc1e54a9b1f2ea9c965a694b588bdaef74cebd0b989bba6c2",
+      "scrape_timestamp": "2026-03-27T15:07:11.265318+00:00",
+      "scrape_html_hash": "6eecc6eb534207848468b90b434049796587ecc3feddf0ade8000c7122c7379a",
       "scrape_byte_count": 24890,
       "live_games": [
         {
@@ -212,34 +262,30 @@
       "venue_name": "Caesars Palace",
       "address": "3570 Las Vegas Blvd. South, Las Vegas, NV, 89109",
       "phone": "702-785-6566",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "caesars-southern-indiana",
-      "scrape_timestamp": "2026-03-27T14:31:58.613726+00:00",
-      "scrape_html_hash": "0c1cc3d488b454f8c8354377685c1c091a6191df758b593fdd6751c38202be9f",
-      "scrape_byte_count": 28322,
+      "scrape_timestamp": "2026-03-27T15:07:27.995534+00:00",
+      "scrape_html_hash": "5c3ad96ac0ed67385a210b0a508fea5677522f10b3410a8b23f6f903d088a22b",
+      "scrape_byte_count": 27819,
       "live_games": [
         {
-          "game": "1-3 No Limit Holdem",
-          "tables": 2
-        },
-        {
           "game": "1-2 MS PLO Omaha",
-          "tables": 1
+          "tables": 2
         }
       ],
       "waitlist": [],
       "venue_name": "Caesars Southern Indiana",
       "address": "11999 Casino Center Drive SE, Elizabeth, IN, 47117",
       "phone": "800-660-9744",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "caesars-virginia",
-      "scrape_timestamp": "2026-03-27T14:32:05.355389+00:00",
-      "scrape_html_hash": "ac4d7e5022edbe2f9425c50862558881a209d4329bcac4348809f74f4c3b9b7c",
-      "scrape_byte_count": 25591,
+      "scrape_timestamp": "2026-03-27T15:07:35.289972+00:00",
+      "scrape_html_hash": "37940c8a7ecb8a9986690bab26ca70300448971e049f08863e58e2f4983f4918",
+      "scrape_byte_count": 25592,
       "live_games": [
         {
           "game": "1-3 NLH 100-500",
@@ -247,11 +293,11 @@
         },
         {
           "game": "2-2 PLO (200-1000) $10-Straddle",
-          "tables": 5
+          "tables": 6
         },
         {
           "game": "2-5 NLH (300-1000)",
-          "tables": 7
+          "tables": 10
         },
         {
           "game": "5-5 PLO  5 card",
@@ -262,21 +308,17 @@
       "venue_name": "Caesars Virginia",
       "address": "1100 W Main St, Danville, VA, 24541",
       "phone": "434-483-4670",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "canterbury-park-card-casino",
-      "scrape_timestamp": "2026-03-27T14:32:24.698775+00:00",
-      "scrape_html_hash": "51ea09cbb57b5bbd3d58248c543e813e1ffea4e15a7256d0c2dece607ccf829d",
-      "scrape_byte_count": 30070,
+      "scrape_timestamp": "2026-03-27T15:08:03.929251+00:00",
+      "scrape_html_hash": "167f83f8fcb4084fc33dd1507d71938eabd36ff81d92d8671a8f85635e6581cb",
+      "scrape_byte_count": 29965,
       "live_games": [
         {
-          "game": "2-100 SL Holdem",
-          "tables": 5
-        },
-        {
-          "game": "6-12 OMAHA",
-          "tables": 1
+          "game": "3-6 Holdem Kill",
+          "tables": 4
         },
         {
           "game": "10-20 MIX-8",
@@ -295,13 +337,13 @@
       "venue_name": "Canterbury Park Card Casino",
       "address": "1100 Canterbury Road, Shakopee, MN, 55379",
       "phone": "952-445-6870",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "casino-miami",
-      "scrape_timestamp": "2026-03-27T14:32:42.916229+00:00",
-      "scrape_html_hash": "7227614315a1aa712fc30c34cedbf89af14303a1265638cedb252d33baceb99d",
-      "scrape_byte_count": 21426,
+      "scrape_timestamp": "2026-03-27T15:08:18.848183+00:00",
+      "scrape_html_hash": "faff04d418d30267e86eba0b2143e78e99d61093a64befa63504b15797c1dc1f",
+      "scrape_byte_count": 21643,
       "live_games": [
         {
           "game": "2-4 OMAHA $5 BOMB POT",
@@ -312,21 +354,63 @@
       "venue_name": "Casino Miami",
       "address": "3500 NW 37th Avenue, Miami, FL, 33142",
       "phone": "3056336400",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "choctaw-casino-durant",
+      "scrape_timestamp": "2026-03-27T15:08:49.953348+00:00",
+      "scrape_html_hash": "e8bb9d8e87c32e0add6906bba040b635b33913143aa6020dc3e2ca3b4a2acf5f",
+      "scrape_byte_count": 19919,
+      "live_games": [
+        {
+          "game": "1-2 $100 - $500 MAX",
+          "tables": 5
+        },
+        {
+          "game": "2-5 $200 - $1,000",
+          "tables": 1
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Choctaw Casino Durant",
+      "address": "3735 Choctaw Road, Durant , OK, 74701",
+      "phone": "",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "choctaw-pocola",
+      "scrape_timestamp": "2026-03-27T15:08:57.859022+00:00",
+      "scrape_html_hash": "05f1d07b544e3a122c45f473462ace5bcca688028f111623101b34915414077c",
+      "scrape_byte_count": 20982,
+      "live_games": [
+        {
+          "game": "1-2 NL Hold-Em 100-300",
+          "tables": 1
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Choctaw Pocola",
+      "address": "3400 Choctaw Road, Pocola, OK, 74902",
+      "phone": "",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "commerce-casino",
-      "scrape_timestamp": "2026-03-27T14:33:27.357463+00:00",
-      "scrape_html_hash": "cec2af12277e4d9bca9d77eb7a54c2ff4b65a5a61e2b9dffec91fc7cbd633efe",
-      "scrape_byte_count": 22400,
+      "scrape_timestamp": "2026-03-27T15:09:10.450067+00:00",
+      "scrape_html_hash": "4e896bb3162756cc42a51231aaa48a7be277e67243ad4f715e1dc97c908e1637",
+      "scrape_byte_count": 22892,
       "live_games": [
         {
           "game": "1-2 NL HOLDEM - 1/2",
-          "tables": 3
+          "tables": 1
         },
         {
           "game": "2-4 LIMIT HOLDEM - 2/4",
           "tables": 2
+        },
+        {
+          "game": "2-3 NL HOLDEM - 2/3",
+          "tables": 1
         },
         {
           "game": "3-6 LIMIT HOLDEM - 3/6",
@@ -334,40 +418,40 @@
         },
         {
           "game": "3-5 NL HOLDEM - 3/5",
-          "tables": 2
+          "tables": 4
         },
         {
           "game": "4-8 LIMIT HOLDEM W/KILL - 4/8",
           "tables": 6
         },
         {
-          "game": "5-10 NL HOLDEM - 5/10",
+          "game": "5-5 NL HOLDEM - 5/5",
           "tables": 1
         },
         {
-          "game": "8-16 LIMIT HOLDEM W/KILL - 8/16",
-          "tables": 2
+          "game": "5-10 NL HOLDEM - 5/10",
+          "tables": 1
         }
       ],
       "waitlist": [],
       "venue_name": "Commerce Casino",
       "address": "6131 East Telegraph Road, Commerce, CA, 90040",
       "phone": "323-721-2100",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "coushatta-casino",
-      "scrape_timestamp": "2026-03-27T14:33:34.604096+00:00",
-      "scrape_html_hash": "8c458b52a589202da1677e1dbc0e5b948490f2ea1bbcafa89daecb4ca1f17a52",
+      "scrape_timestamp": "2026-03-27T15:09:17.890238+00:00",
+      "scrape_html_hash": "d67ff755600fac444e16793e4863d565b31df605452cf1c83c8b89619b42f95f",
       "scrape_byte_count": 22054,
       "live_games": [
         {
           "game": "1-3 NL Holdem",
-          "tables": 4
+          "tables": 6
         },
         {
           "game": "4-8 Limit Holdem",
-          "tables": 10
+          "tables": 11
         },
         {
           "game": "4-8 Omaha Hi&amp;Hi/Lo Split 1/2 Kill",
@@ -378,59 +462,55 @@
       "venue_name": "Coushatta Casino",
       "address": "777 Coushatta Drive, Kinder, LA, 70648",
       "phone": "337-738-7336",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "daytona-beach-poker-room",
-      "scrape_timestamp": "2026-03-27T14:33:45.169928+00:00",
-      "scrape_html_hash": "d4bde30273f51f211cf8931d35f669b70ce1bdba72f0c2fc967570559641acb7",
-      "scrape_byte_count": 26279,
+      "scrape_timestamp": "2026-03-27T15:09:26.123556+00:00",
+      "scrape_html_hash": "6b1e795cfce2502543a68a0493c0ba4c3408bcd3b8f9ca848cac87b6735323fa",
+      "scrape_byte_count": 26185,
       "live_games": [
         {
-          "game": "1-2 NL Holdem",
-          "tables": 5
-        },
-        {
           "game": "2-5 NL HOLDEM",
-          "tables": 1
+          "tables": 3
         },
         {
           "game": "3-6 Holdem",
-          "tables": 3
+          "tables": 5
         }
       ],
       "waitlist": [],
       "venue_name": "Daytona Beach Poker Room",
       "address": "960 South Williamson Blvd, Daytona Beach , FL, 32114",
       "phone": "386-252-6484",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "del-lago-resort-casino",
-      "scrape_timestamp": "2026-03-27T14:33:52.399601+00:00",
-      "scrape_html_hash": "3c528044cfc789103762beec37f03842025711a56c15863781f01dfe231d3506",
+      "scrape_timestamp": "2026-03-27T15:09:33.295959+00:00",
+      "scrape_html_hash": "c3da9b9cc2d0151ba179712933d8da71db2369c90636af6f3ccd99cefb3b112a",
       "scrape_byte_count": 25047,
       "live_games": [
         {
           "game": "1-3 NL",
-          "tables": 3
+          "tables": 6
         }
       ],
       "waitlist": [],
       "venue_name": "del Lago Resort Casino",
       "address": "1133 State Route 414, Waterloo, NY, 13165",
       "phone": "315-946-1759",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "delaware-park-casino",
-      "scrape_timestamp": "2026-03-27T14:33:58.531113+00:00",
-      "scrape_html_hash": "a87130a59c7e33bec74fd92b80e5af81366cb58d1c75677a5bb2158a27224b0b",
+      "scrape_timestamp": "2026-03-27T15:09:44.989925+00:00",
+      "scrape_html_hash": "94d024b3799d8d38b3b61c3eeec3dae1259bbc4d138377a14781584e34df7a20",
       "scrape_byte_count": 24938,
       "live_games": [
         {
           "game": "1-3 NL Holdem",
-          "tables": 2
+          "tables": 4
         },
         {
           "game": "2-5 NL Holdem",
@@ -438,27 +518,23 @@
         },
         {
           "game": "5-5 PLO",
-          "tables": 3
+          "tables": 5
         }
       ],
       "waitlist": [],
       "venue_name": "Delaware Park Casino",
       "address": "777 Delaware Park Blvd, Wilmington, DE, 19804",
       "phone": "302-636-1050",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "desert-diamond-casino-west-valley",
-      "scrape_timestamp": "2026-03-27T14:34:13.309063+00:00",
-      "scrape_html_hash": "4a31b3dfbf76f1907eb57ea075583015b5bb4812f90dd2b099a688439072f3a7",
-      "scrape_byte_count": 22417,
+      "scrape_timestamp": "2026-03-27T15:09:59.525850+00:00",
+      "scrape_html_hash": "e041c4725b30ab115e7bc5f1e8b3f90a0acc3016c7798c0377139920f6b7a124",
+      "scrape_byte_count": 22085,
       "live_games": [
         {
           "game": "3-6 Limit Holdem Full Kill",
-          "tables": 5
-        },
-        {
-          "game": "4-8 Limit Holdem Full Kill",
           "tables": 2
         },
         {
@@ -470,37 +546,33 @@
       "venue_name": "Desert Diamond Casino West Valley",
       "address": "9431 W. Northern Ave, Glendale, AZ, 85305",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "empire-casino",
-      "scrape_timestamp": "2026-03-27T14:34:37.098178+00:00",
-      "scrape_html_hash": "7d22f82477644258bc59572d8165965cb7a62ea1f2987eec6eb799a9ea70b0d8",
-      "scrape_byte_count": 25642,
+      "scrape_timestamp": "2026-03-27T15:10:41.221865+00:00",
+      "scrape_html_hash": "cd5b26b0e314d149cf11920df180ee3f6e15bbba29df345ff2ed1b342c2b5963",
+      "scrape_byte_count": 25145,
       "live_games": [
         {
-          "game": "0-0 Transfer",
-          "tables": 1
-        },
-        {
           "game": "1-2 NL Holdem",
-          "tables": 1
+          "tables": 5
         },
         {
           "game": "2-2 4,5,6 PL Omaha",
-          "tables": 3
+          "tables": 2
         }
       ],
       "waitlist": [],
       "venue_name": "Empire Casino",
       "address": "5-6 Leicester Square, London, England, WC2H 7NA",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "firekeepers-casino-hotel",
-      "scrape_timestamp": "2026-03-27T14:34:47.340757+00:00",
-      "scrape_html_hash": "808d6300e8a583c37daa7aa35b68f23ef84b32ec7e05310bb96be9a1a58354dd",
+      "scrape_timestamp": "2026-03-27T15:10:57.842639+00:00",
+      "scrape_html_hash": "f76ae3c73ba67ca38ddb666525c6e5d91dd3c62858a6bcec813ba518999e3897",
       "scrape_byte_count": 30697,
       "live_games": [
         {
@@ -520,17 +592,38 @@
       "venue_name": "FireKeepers Casino Hotel",
       "address": "11177 E Michigan Ave, Battle Creek, MI, 49014",
       "phone": "269-660-5631",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "four-winds-south-bend",
+      "scrape_timestamp": "2026-03-27T15:11:04.291687+00:00",
+      "scrape_html_hash": "b8135af7f61afaf6d2e6254214101ffd58f02915eca2bdb0c1d9735433104803",
+      "scrape_byte_count": 21167,
+      "live_games": [
+        {
+          "game": "1-2 NL Holdem",
+          "tables": 1
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Four Winds South Bend",
+      "address": "3000 Prairie Ave, South Bend, IN, 46614",
+      "phone": "5749313309",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "foxwoods-resort-casino",
-      "scrape_timestamp": "2026-03-27T14:35:01.224198+00:00",
-      "scrape_html_hash": "0afe721bbade6d4c840d082550f0fc8fda65a213146a4a20b12b0af8689b9684",
-      "scrape_byte_count": 35067,
+      "scrape_timestamp": "2026-03-27T15:11:13.311848+00:00",
+      "scrape_html_hash": "56efe4efdae6dc83d507f29515647b392ca8907c62935de249a34890958a4860",
+      "scrape_byte_count": 34635,
       "live_games": [
         {
           "game": "1-2 NL Holdem   H",
-          "tables": 32
+          "tables": 18
+        },
+        {
+          "game": "1-5 Stud   M",
+          "tables": 3
         },
         {
           "game": "1-2 PL OMAHA H",
@@ -541,57 +634,45 @@
           "tables": 3
         },
         {
-          "game": "1-5 Stud   M",
-          "tables": 2
+          "game": "2-4 Holdem   M",
+          "tables": 4
         },
         {
           "game": "2-5 NL Holdem L",
-          "tables": 9
+          "tables": 3
         },
         {
           "game": "2-5 PL OMAHA L",
           "tables": 3
         },
         {
-          "game": "2-4 Holdem   M",
-          "tables": 5
-        },
-        {
           "game": "4-8 Holdem   M",
-          "tables": 5
+          "tables": 7
         },
         {
           "game": "5-10 Stud   M",
-          "tables": 3
+          "tables": 4
         },
         {
           "game": "20-40 Stud   H",
-          "tables": 15
-        },
-        {
-          "game": "40-80 Stud   HC",
-          "tables": 1
-        },
-        {
-          "game": "75-150 Stud 9  HC",
-          "tables": 5
+          "tables": 4
         },
         {
           "game": "75-150 MIXED   HC",
-          "tables": 1
+          "tables": 2
         }
       ],
       "waitlist": [],
       "venue_name": "Foxwoods Resort Casino",
       "address": "350 Trolley Line Blvd, Mashantucket, CT, 06338",
       "phone": "860-312-3177",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "golden-nugget-las-vegas",
-      "scrape_timestamp": "2026-03-27T14:35:16.163678+00:00",
-      "scrape_html_hash": "f544ea6b9847cb164f89b2b3de62d03a12e0793ab914b43bda892940c6cf1dea",
-      "scrape_byte_count": 31108,
+      "scrape_timestamp": "2026-03-27T15:11:31.238639+00:00",
+      "scrape_html_hash": "e8ac47b8f6a0728ed5ad0f69ad92f6ecfcb3d5042e5a3993652ea6561173f234",
+      "scrape_byte_count": 31107,
       "live_games": [
         {
           "game": "0-0 Promotions.",
@@ -618,17 +699,21 @@
       "venue_name": "Golden Nugget Las Vegas",
       "address": "129 Fremont Street, Las Vegas, NV, 89101",
       "phone": "702-386-8383",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "grand-victoria-casino-elgin",
-      "scrape_timestamp": "2026-03-27T14:35:28.931898+00:00",
-      "scrape_html_hash": "e11863dba3f790e964f3bffdababf47ed9d28f776777e0cc8749c41ad24336ba",
-      "scrape_byte_count": 27858,
+      "scrape_timestamp": "2026-03-27T15:11:47.784929+00:00",
+      "scrape_html_hash": "5b86d096165a27893043f3ddfe9d1f56038cafc85d2f69bcc67a6bec3c410f84",
+      "scrape_byte_count": 27859,
       "live_games": [
         {
           "game": "1-3 NL Holdem",
-          "tables": 6
+          "tables": 11
+        },
+        {
+          "game": "1-3 NL Mandatory Straddle",
+          "tables": 3
         },
         {
           "game": "1-3 RR Mandatory NLH/1-2 PLO",
@@ -637,10 +722,6 @@
         {
           "game": "1-2 BIG O",
           "tables": 1
-        },
-        {
-          "game": "1-3 NL Mandatory Straddle",
-          "tables": 2
         },
         {
           "game": "1-2 PLO",
@@ -663,12 +744,12 @@
       "venue_name": "Grand Victoria Casino Elgin",
       "address": "250 South Grove Ave, Elgin, IL, 60120",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "graton-resort-casino",
-      "scrape_timestamp": "2026-03-27T14:35:34.926209+00:00",
-      "scrape_html_hash": "d66d0ad11dd711b6929150e8dd45f00bf2810d26931c6642a8a137e4c8d88418",
+      "scrape_timestamp": "2026-03-27T15:11:55.358875+00:00",
+      "scrape_html_hash": "c68391e0ff928877dfb40b9bf97dc21906dbbc58fc2e1337cc82b07366c270cd",
       "scrape_byte_count": 25080,
       "live_games": [
         {
@@ -677,7 +758,7 @@
         },
         {
           "game": "1-3 NL HOLDEM",
-          "tables": 2
+          "tables": 3
         },
         {
           "game": "3-5 NL HOLDEM",
@@ -685,11 +766,11 @@
         },
         {
           "game": "4-8 HOLDEM 1/2 KILL",
-          "tables": 3
+          "tables": 5
         },
         {
           "game": "6-12 BIG-O 1/2 KILL",
-          "tables": 2
+          "tables": 7
         },
         {
           "game": "10-25 NLH",
@@ -700,29 +781,83 @@
       "venue_name": "Graton Resort &amp; Casino",
       "address": "630 Park Court Drive, Rohnert Park, CA, 94928",
       "phone": "707-588-7388",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
-      "venue_slug": "hard-rock-casino-cincinnati",
-      "scrape_timestamp": "2026-03-27T14:35:53.859097+00:00",
-      "scrape_html_hash": "1ab72901d99192ee3b7293977b28b82c818b0cf14be59e06d721ee67f68d0614",
-      "scrape_byte_count": 32370,
+      "venue_slug": "green-valley-ranch",
+      "scrape_timestamp": "2026-03-27T15:12:02.248617+00:00",
+      "scrape_html_hash": "1cdf89783c5fb7fab0121b14f3bf624e09a2654d3f3595908beae0f52b864693",
+      "scrape_byte_count": 20374,
       "live_games": [
         {
-          "game": "1-2 5 Card PLO",
-          "tables": 9
+          "game": "0-0 PROMOTIONS",
+          "tables": 7
+        },
+        {
+          "game": "1-3 NLHE",
+          "tables": 4
+        },
+        {
+          "game": "3-6 -9 LIMIT HOLDEM",
+          "tables": 2
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Green Valley Ranch",
+      "address": "2300 Paseo Verde Pkwy, Henderson, NV, 89052",
+      "phone": "7026176928",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "gun-lake-casino",
+      "scrape_timestamp": "2026-03-27T15:12:09.369309+00:00",
+      "scrape_html_hash": "4e1f8189b724d892c993cf461781a909ab7201b2db72d43a2060d4ad14bf42c8",
+      "scrape_byte_count": 25185,
+      "live_games": [
+        {
+          "game": "1-3 NL Hold em w/ Bomb Pots",
+          "tables": 2
         },
         {
           "game": "1-2 NL Holdem",
-          "tables": 3
+          "tables": 2
+        },
+        {
+          "game": "2-5 NL Holdem Sat - 4pm",
+          "tables": 8
+        },
+        {
+          "game": "5-5 PLO DBBP Friday 12p",
+          "tables": 15
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Gun Lake Casino Resort",
+      "address": "1123 129th Avenue, Wayland, MI, 49348",
+      "phone": "",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "hard-rock-casino-cincinnati",
+      "scrape_timestamp": "2026-03-27T15:12:17.046363+00:00",
+      "scrape_html_hash": "b0cd0aad8835f1eb3848f8c25842feff87297cdad98b5e9ccd3cbd02bcde6c92",
+      "scrape_byte_count": 32580,
+      "live_games": [
+        {
+          "game": "1-2 NL Holdem",
+          "tables": 6
+        },
+        {
+          "game": "1-2 5 Card PLO",
+          "tables": 5
         },
         {
           "game": "2-5 NL Holdem",
-          "tables": 1
+          "tables": 3
         },
         {
           "game": "5-5 5 Card PLO",
-          "tables": 5
+          "tables": 6
         },
         {
           "game": "5-10 5 Card PLO",
@@ -733,12 +868,12 @@
       "venue_name": "Hard Rock Casino Cincinnati",
       "address": "1000 Broadway Street, Cincinnati, OH, 45202",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "hard-rock-casino-rockford",
-      "scrape_timestamp": "2026-03-27T14:35:59.428300+00:00",
-      "scrape_html_hash": "bb4991fa36a4ada3bb0bae81bee9490a769dd8b1330e477b09e07f526455ef05",
+      "scrape_timestamp": "2026-03-27T15:12:22.931722+00:00",
+      "scrape_html_hash": "f04967c1deab91259a37979b1bd0d16589a6c0384bda1e1082a5d71a3efa04ef",
       "scrape_byte_count": 22993,
       "live_games": [
         {
@@ -747,19 +882,19 @@
         },
         {
           "game": "1-2 PLO",
-          "tables": 2
+          "tables": 3
         }
       ],
       "waitlist": [],
       "venue_name": "Hard Rock Casino Rockford",
       "address": "7801 E State St., Rockford, IL, 61108",
       "phone": "779-368-7410",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "hard-rock-hotel-casino-bristol",
-      "scrape_timestamp": "2026-03-27T14:36:06.126737+00:00",
-      "scrape_html_hash": "165112663b9f57685e89058e918ae5accdf334be09c247df75234e65a636d842",
+      "scrape_timestamp": "2026-03-27T15:12:32.238942+00:00",
+      "scrape_html_hash": "b351ddf5041cd4be6ed5aab1e762ff32d7c82e83f3f989f073333b480b0ce9f9",
       "scrape_byte_count": 26562,
       "live_games": [
         {
@@ -767,11 +902,11 @@
           "tables": 2
         },
         {
-          "game": "2-5 NLH $300-$1000",
-          "tables": 2
+          "game": "2-2 PLO $100-$500",
+          "tables": 1
         },
         {
-          "game": "2-2 PLO $100-$500",
+          "game": "2-5 NLH $300-$1000",
           "tables": 1
         },
         {
@@ -783,14 +918,18 @@
       "venue_name": "Hard Rock Hotel &amp; Casino Bristol",
       "address": "500 Gate City Highway, Bristol, VA, 24201",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "harrah-s-cherokee-valley-river",
-      "scrape_timestamp": "2026-03-27T14:36:19.035335+00:00",
-      "scrape_html_hash": "e6d175ac13b2c9b006a2d67604df8969a922c80e851c85c6a436fd0dc2f6321a",
-      "scrape_byte_count": 22507,
+      "scrape_timestamp": "2026-03-27T15:12:45.691082+00:00",
+      "scrape_html_hash": "5476fc20b6a13d5f61edd4352b6f73531494bbc63a124a686830b44d03a40949",
+      "scrape_byte_count": 23015,
       "live_games": [
+        {
+          "game": "0-0 9 seat 2-5 NL Holdem",
+          "tables": 1
+        },
         {
           "game": "1-3 NL Holdem",
           "tables": 9
@@ -808,37 +947,37 @@
       "venue_name": "Harrah\u2019s Cherokee Valley River",
       "address": "777 Casino Parkway, Murphy, NC, 28906",
       "phone": "8284225678",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "harrahs-cherokee",
-      "scrape_timestamp": "2026-03-27T14:36:32.630436+00:00",
-      "scrape_html_hash": "39f639a692d7dc368ebbdca82c5f67d72ab9ee44f76e04e6c34b08557e49adaf",
+      "scrape_timestamp": "2026-03-27T15:12:59.779578+00:00",
+      "scrape_html_hash": "cd9bed41f9621b3408cca777b0133410c7d004631443c573af5d30ad35159808",
       "scrape_byte_count": 32441,
       "live_games": [
         {
           "game": "1-3 No Limit Texas Holdem",
-          "tables": 2
+          "tables": 5
         },
         {
           "game": "2-5 No Limit Texas Holdem",
-          "tables": 1
+          "tables": 6
         },
         {
           "game": "10-25 Pot Limit Omaha",
-          "tables": 2
+          "tables": 3
         }
       ],
       "waitlist": [],
       "venue_name": "Harrah's Cherokee",
       "address": "777 Casino Drive, Cherokee, NC, 28719",
       "phone": "828-497-8284",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "harrahs-kansas-city",
-      "scrape_timestamp": "2026-03-27T14:36:39.150834+00:00",
-      "scrape_html_hash": "41985f205c53da9322440539c869aad168d94b6d3ddf42d2288157ec563c619f",
+      "scrape_timestamp": "2026-03-27T15:13:07.868352+00:00",
+      "scrape_html_hash": "848399cba27c1d61480e4779fae87c28814c7967f9b906ad265f92e3b14ac38a",
       "scrape_byte_count": 21807,
       "live_games": [
         {
@@ -850,13 +989,13 @@
       "venue_name": "Harrah's Kansas City",
       "address": "1 Riverboat Drive, Kansas City, MO, 64116",
       "phone": "816-460-5071",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "harrahs-pompano-beach",
-      "scrape_timestamp": "2026-03-27T14:37:00.877780+00:00",
-      "scrape_html_hash": "9472e1ffa9ab60c7c874e93b4b658767b3d130938b87138236f59c8d3f9ccc7e",
-      "scrape_byte_count": 31480,
+      "scrape_timestamp": "2026-03-27T15:13:24.401712+00:00",
+      "scrape_html_hash": "460fff60187eea50e7145a9548de1706849fe8410b2a8be1178a9d7c44b3533f",
+      "scrape_byte_count": 31697,
       "live_games": [
         {
           "game": "1-2 NL $60-$300",
@@ -864,7 +1003,7 @@
         },
         {
           "game": "2-2 PL OMAHA",
-          "tables": 5
+          "tables": 8
         },
         {
           "game": "2-5 NL 300-1000",
@@ -879,20 +1018,16 @@
       "venue_name": "Harrah's Pompano Beach",
       "address": "1800 SW 3rd ST, Pompano Beach, FL, 33069",
       "phone": "954-633-6680",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "hialeah-park-casino",
-      "scrape_timestamp": "2026-03-27T14:37:07.642666+00:00",
-      "scrape_html_hash": "b50d49e580f148f80f3021be48b6dba1bad17cdfc054cddab02e150391296418",
-      "scrape_byte_count": 25579,
+      "scrape_timestamp": "2026-03-27T15:13:30.926898+00:00",
+      "scrape_html_hash": "275729074a0e831ac9ff368ffc81722a1232a4b6bcf18a165a31e95a324a3a18",
+      "scrape_byte_count": 25291,
       "live_games": [
         {
           "game": "1-2 NL Hold\u2019em",
-          "tables": 5
-        },
-        {
-          "game": "2-4 Limit Omaha",
           "tables": 1
         },
         {
@@ -904,38 +1039,55 @@
       "venue_name": "Hialeah Park Casino",
       "address": "100 East 32nd Street, Hialeah, FL, 33013",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "hollywood-casino-at-the-meadows-poker-room",
-      "scrape_timestamp": "2026-03-27T14:37:26.112116+00:00",
-      "scrape_html_hash": "88f10d8e92d8fdd49253c90bc9f678b3599f12266d8454b8f204fa35a8164dc5",
-      "scrape_byte_count": 24292,
+      "scrape_timestamp": "2026-03-27T15:13:44.781265+00:00",
+      "scrape_html_hash": "d8bec62aa1010b3ab8638dc4cff9093848be125045b02c6d98352767df75c7c5",
+      "scrape_byte_count": 24500,
       "live_games": [
         {
           "game": "1-3 NL Holdem",
-          "tables": 9
+          "tables": 2
         },
         {
           "game": "2-5 NL Holdem",
-          "tables": 10
+          "tables": 2
         }
       ],
       "waitlist": [],
       "venue_name": "Hollywood Casino at The Meadows Poker Room",
       "address": "210 Racetrack Road, Washington, PA, 15301",
       "phone": "724-503-1700",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
-      "venue_slug": "hollywood-casino-columbus",
-      "scrape_timestamp": "2026-03-27T14:37:37.692496+00:00",
-      "scrape_html_hash": "a2ce630570a2e1c9a372a797382c3a0471f76bfc0f88a8a20c9fbe38df852be6",
-      "scrape_byte_count": 32099,
+      "venue_slug": "hollywood-casino-aurora",
+      "scrape_timestamp": "2026-03-27T15:13:51.487893+00:00",
+      "scrape_html_hash": "f0e6fcfc3b0d0437cddcb21d1e087a3ec75ae7360e61a66907d4034fcadc2073",
+      "scrape_byte_count": 21263,
       "live_games": [
         {
           "game": "1-3 NL HOLDEM",
           "tables": 1
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Hollywood Casino Aurora",
+      "address": "1 W. New York St., Aurora, IL, 60506",
+      "phone": "630-801-7471",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "hollywood-casino-columbus",
+      "scrape_timestamp": "2026-03-27T15:13:57.409413+00:00",
+      "scrape_html_hash": "8a6061d207b526f8993c0a1834760294d6e8d8e6f504c31d90d0451379460133",
+      "scrape_byte_count": 32099,
+      "live_games": [
+        {
+          "game": "1-3 NL HOLDEM",
+          "tables": 2
         },
         {
           "game": "1-3 NLH 2-2 PLO RxR",
@@ -950,42 +1102,83 @@
       "venue_name": "Hollywood Casino Columbus",
       "address": "200 Georgesville Road, Columbus, OH, 43228",
       "phone": "614-308-4655",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "hollywood-casino-gulf-coast",
-      "scrape_timestamp": "2026-03-27T14:37:43.931722+00:00",
-      "scrape_html_hash": "f3aa5454af3ed76c518a31a9db4212279f4b6a04e39200cd42c88989cbd0b04d",
+      "scrape_timestamp": "2026-03-27T15:14:07.665979+00:00",
+      "scrape_html_hash": "76a55cd56fd0d88f7a721371b01f2267f021961e93a6ddbd0c85c1a6e9bf1d70",
       "scrape_byte_count": 20090,
       "live_games": [
         {
           "game": "1-3 NL Holdem",
-          "tables": 2
+          "tables": 3
         },
         {
           "game": "4-8 Hold-em",
-          "tables": 2
+          "tables": 5
         },
         {
           "game": "4-12 Omaha",
-          "tables": 1
+          "tables": 5
         }
       ],
       "waitlist": [],
       "venue_name": "Hollywood Casino Gulf Coast",
       "address": "711 Hollywood Blvd, Bay St Louis, MS, 39520",
       "phone": "228-463-4026",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "hollywood-casino-toledo",
+      "scrape_timestamp": "2026-03-27T15:14:29.503406+00:00",
+      "scrape_html_hash": "5e9870d9c17def8034eb29cb9a401f8e93ff1bdf4de9f1dc56dfbfd418e5f0e4",
+      "scrape_byte_count": 26733,
+      "live_games": [
+        {
+          "game": "1-2 -3 NLH Wed@5PM",
+          "tables": 9
+        },
+        {
+          "game": "1-1 PLO SAT @ 5PM",
+          "tables": 14
+        },
+        {
+          "game": "1-3 No Limit Holdem",
+          "tables": 7
+        },
+        {
+          "game": "2-5 NLH Thurs@5PM",
+          "tables": 10
+        },
+        {
+          "game": "2-5 NLH $2.50 Comp",
+          "tables": 1
+        },
+        {
+          "game": "5-10 O/8 Tue @ 5 PM",
+          "tables": 3
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Hollywood Casino Toledo",
+      "address": "777 Hollywood Blvd., Toledo, OH, 43605",
+      "phone": "419-661-5185",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "hollywood-charles-town",
-      "scrape_timestamp": "2026-03-27T14:38:11.893556+00:00",
-      "scrape_html_hash": "0533f35e9c83f7604029d34eb5ec4a9e60ee4893e9d597427b38d69f9f2ad133",
-      "scrape_byte_count": 26454,
+      "scrape_timestamp": "2026-03-27T15:14:39.824308+00:00",
+      "scrape_html_hash": "e17517c5aad4f3827380df46c2d7cffb69b2eb111b4f96aaf4dbffc9d42fbea9",
+      "scrape_byte_count": 26778,
       "live_games": [
         {
+          "game": "1-2 NLH $100-$400",
+          "tables": 2
+        },
+        {
           "game": "2-2 PLO $200-$1000",
-          "tables": 9
+          "tables": 10
         },
         {
           "game": "2-5 NLH $300-$1000",
@@ -1000,13 +1193,13 @@
       "venue_name": "Hollywood Charles Town",
       "address": "750 Hollywood Dr.,  Charles Town , WV, 25414",
       "phone": "3047244654",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "hollywood-kansas-speedway",
-      "scrape_timestamp": "2026-03-27T14:38:21.400113+00:00",
-      "scrape_html_hash": "d6c302f0e74805fc3ace4174aea6e5364bb86fe7bcf98428050a646fb595a365",
-      "scrape_byte_count": 38216,
+      "scrape_timestamp": "2026-03-27T15:14:46.890751+00:00",
+      "scrape_html_hash": "17ce1cf417ec74c072a888df59cbbe73828ac033b622def0dc611f72914de8e7",
+      "scrape_byte_count": 39145,
       "live_games": [
         {
           "game": "1-2 PLO-$500 Cap",
@@ -1017,20 +1210,24 @@
           "tables": 1
         },
         {
-          "game": "4-8 Limit 9am Start",
-          "tables": 5
-        },
-        {
-          "game": "5-10 O8 10am Start",
-          "tables": 13
-        },
-        {
-          "game": "5-5 NL Holdem",
+          "game": "4-8 Limit Holdem",
           "tables": 3
         },
         {
+          "game": "4-8 Limit 9am Start",
+          "tables": 6
+        },
+        {
+          "game": "5-10 O8 10am Start",
+          "tables": 12
+        },
+        {
+          "game": "5-5 NL Holdem",
+          "tables": 16
+        },
+        {
           "game": "10-20 Omaha H/L 1/2 Kill",
-          "tables": 11
+          "tables": 17
         },
         {
           "game": "20-40 Holdem 11am Tomorrow",
@@ -1041,33 +1238,50 @@
       "venue_name": "Hollywood Kansas Speedway",
       "address": "777 Hollywood Casino Blvd, Kansas City, KS, 66111",
       "phone": "913-288-9315",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "hollywood-perryville",
+      "scrape_timestamp": "2026-03-27T15:14:57.648480+00:00",
+      "scrape_html_hash": "20381db98254c54677b435ee41064c5809db5122b9d101dacac88307196d2955",
+      "scrape_byte_count": 28981,
+      "live_games": [
+        {
+          "game": "2-2 PL OMAHA",
+          "tables": 1
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Hollywood Perryville",
+      "address": "1201 Chesapeake Overlook Pkwy, Perryville, MD, 21903",
+      "phone": "410-378-1074",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "hollywood-stl-poker-stlouispokerhc",
-      "scrape_timestamp": "2026-03-27T14:38:38.472070+00:00",
-      "scrape_html_hash": "3c32cf470735c48fffa0b92449557f4b6631f389e22de0122a7357bac18c350c",
-      "scrape_byte_count": 24101,
+      "scrape_timestamp": "2026-03-27T15:15:03.987600+00:00",
+      "scrape_html_hash": "0e6d5966f5006e66b2e4135c53e32a93208d2288f0243b50fcc5c0b1086133c1",
+      "scrape_byte_count": 24100,
       "live_games": [
         {
           "game": "1-2 No Limit",
-          "tables": 8
+          "tables": 6
         },
         {
           "game": "2-3 No Limit w/Straddle",
-          "tables": 11
+          "tables": 3
         }
       ],
       "waitlist": [],
       "venue_name": "Hollywood STL Poker @StLouisPokerHC",
       "address": "777 Casino Center Drive, Maryland Heights, MO, 63043",
       "phone": "314-770-7600",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "horseshoe-baltimore",
-      "scrape_timestamp": "2026-03-27T14:38:46.026730+00:00",
-      "scrape_html_hash": "08ddc7ce46a2e72de63954bddf9dff13726a08c2de673ee565e89242b5d13867",
+      "scrape_timestamp": "2026-03-27T15:15:10.245395+00:00",
+      "scrape_html_hash": "dfe248857721e55310ab023d489dc30b99676fe00eeb0dc6d5d382720cfb590a",
       "scrape_byte_count": 23445,
       "live_games": [
         {
@@ -1083,11 +1297,11 @@
           "tables": 1
         },
         {
-          "game": "5-5 PL Omaha 500-5000",
+          "game": "5-5 PL Omaha 1000 Min",
           "tables": 1
         },
         {
-          "game": "5-5 PL Omaha 1000 Min",
+          "game": "5-5 PL Omaha 500-5000",
           "tables": 1
         }
       ],
@@ -1095,17 +1309,17 @@
       "venue_name": "Horseshoe Baltimore",
       "address": "1525 Russell St, Baltimore, MD, 21230",
       "phone": "4439314499",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "horseshoe-bossier-city",
-      "scrape_timestamp": "2026-03-27T14:39:06.209438+00:00",
-      "scrape_html_hash": "0be514ca42537e0d9f8bfed8d0ebe37622ba96175ccc4b7d7632591c7964aa0d",
+      "scrape_timestamp": "2026-03-27T15:15:23.420527+00:00",
+      "scrape_html_hash": "061e86da010c1593da6ab7545a13b5bd02ab20b70386e68a723f1b61bc8c303e",
       "scrape_byte_count": 24831,
       "live_games": [
         {
           "game": "1-3 No-Limit Holdem",
-          "tables": 1
+          "tables": 2
         },
         {
           "game": "4-8 Limit Holdem",
@@ -1113,20 +1327,20 @@
         },
         {
           "game": "5-5 PLO/NLH",
-          "tables": 13
+          "tables": 14
         }
       ],
       "waitlist": [],
       "venue_name": "Horseshoe Bossier City",
       "address": "711 Horseshoe Blvd, Bossier City, LA, 71111",
       "phone": "318-741-7901",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "horseshoe-council-bluffs",
-      "scrape_timestamp": "2026-03-27T14:39:11.765746+00:00",
-      "scrape_html_hash": "a160866c889a12a7a3cc698953074b672514a1f9ff7bfb53c0799b55710f9772",
-      "scrape_byte_count": 35516,
+      "scrape_timestamp": "2026-03-27T15:15:36.938478+00:00",
+      "scrape_html_hash": "199c4126eef35b89db11921f1b08b632ef7d4c79d2878218fb7c7e83558b989c",
+      "scrape_byte_count": 35721,
       "live_games": [
         {
           "game": "0-0 Progressive Straight Flush",
@@ -1134,11 +1348,11 @@
         },
         {
           "game": "1-3 NL HOLDEM",
-          "tables": 2
+          "tables": 5
         },
         {
           "game": "2-3 -6 NLH",
-          "tables": 10
+          "tables": 4
         },
         {
           "game": "10-20 OMAHA 8 W/KILL",
@@ -1149,88 +1363,88 @@
       "venue_name": "Horseshoe Council Bluffs",
       "address": "2701 23rd Avenue, Council Bluffs, IA, 51501",
       "phone": "712-396-3805",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "horseshoe-indianapolis",
-      "scrape_timestamp": "2026-03-27T14:39:29.383893+00:00",
-      "scrape_html_hash": "1e5cfaaa44903b1524cc2bb8f66fac9f7507decc1001a2faf0a40934d2e61472",
-      "scrape_byte_count": 24518,
+      "scrape_timestamp": "2026-03-27T15:15:51.470479+00:00",
+      "scrape_html_hash": "5b48722ae0a30240811333264d9b5fe11e791578f75cff98443935b307eb7ef1",
+      "scrape_byte_count": 28820,
       "live_games": [
         {
-          "game": "1-3 NL Holdem 100-400 Match",
-          "tables": 1
-        },
-        {
           "game": "1-3 NLHE 100-500",
-          "tables": 1
+          "tables": 2
         },
         {
           "game": "1-2 PLO 200-Match",
           "tables": 1
         },
         {
+          "game": "1-3 NL Holdem 100-400 Match",
+          "tables": 2
+        },
+        {
           "game": "2-5 NLHE 300-800 MS",
-          "tables": 1
+          "tables": 2
         }
       ],
       "waitlist": [],
       "venue_name": "Horseshoe Indianapolis",
       "address": "4300 N Michigan Rd, Shelbyville, IN, 46176",
       "phone": "317-421-8290",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "horseshoe-las-vegas",
-      "scrape_timestamp": "2026-03-27T14:39:37.509466+00:00",
-      "scrape_html_hash": "8f82d10ae9c45c9020f87159df4e67358378cff1841d8a6907edda9416991d50",
-      "scrape_byte_count": 25760,
+      "scrape_timestamp": "2026-03-27T15:16:03.349276+00:00",
+      "scrape_html_hash": "cfcb2c0aaa6a003ea4e9035945b02d79bbb8b6cc60f50c7d4928931885eb6381",
+      "scrape_byte_count": 25761,
       "live_games": [
         {
           "game": "1-3 NL HOLDEM",
-          "tables": 7
+          "tables": 11
         },
         {
           "game": "1-2 Pot Limit Omaha",
-          "tables": 3
+          "tables": 2
         }
       ],
       "waitlist": [],
       "venue_name": "Horseshoe Las Vegas",
       "address": "3645 Las Vegas Blvd. South, Las Vegas, NV, 89109",
       "phone": "702-967-4403",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "horseshoe-st-louis",
-      "scrape_timestamp": "2026-03-27T14:39:43.453166+00:00",
-      "scrape_html_hash": "18b33f17a98d42d742b615ef8f1a06d466f2ea477a0385051d7a2444749f1266",
+      "scrape_timestamp": "2026-03-27T15:16:11.208266+00:00",
+      "scrape_html_hash": "c04435bf729d6afd3fa6d657462143e52128659dd3d341f344ed2ad91a307db4",
       "scrape_byte_count": 21356,
       "live_games": [
         {
-          "game": "1-2 5 PLO $100 - $1000",
+          "game": "1-3 NLH $100 - $500 75% Stack Match",
           "tables": 3
         },
         {
-          "game": "1-3 NLH $100 - $500 75% Stack Match",
-          "tables": 1
+          "game": "1-2 5 PLO $100 - $1000",
+          "tables": 3
         }
       ],
       "waitlist": [],
       "venue_name": "Horseshoe St. Louis",
       "address": "999 N. 2nd Street, St. Louis, MO, 63102",
       "phone": "314-881-7569",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "horseshoe-tunica",
-      "scrape_timestamp": "2026-03-27T14:39:51.421289+00:00",
-      "scrape_html_hash": "a206b1284225d9cb58f13c4d3c78857fdee2fe9f98fa83e7cc0a470eff98a7af",
-      "scrape_byte_count": 31030,
+      "scrape_timestamp": "2026-03-27T15:16:17.009956+00:00",
+      "scrape_html_hash": "b4a8a92190ae71c2d070c52be1c7187f975f338f7441027db919ef9796b78506",
+      "scrape_byte_count": 30530,
       "live_games": [
         {
           "game": "1-3 NL Holdem",
-          "tables": 3
+          "tables": 5
         },
         {
           "game": "2-5 NL Holdem",
@@ -1239,31 +1453,23 @@
         {
           "game": "2-3 NL Holdem",
           "tables": 1
-        },
-        {
-          "game": "6-12 Omaha hi/lo",
-          "tables": 1
         }
       ],
       "waitlist": [],
       "venue_name": "Horseshoe Tunica",
       "address": "1021 Casino Center Drive, Tunica Resorts, MS, 38664",
       "phone": "662-357-5608",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "jack-casino-cleveland",
-      "scrape_timestamp": "2026-03-27T14:40:20.972761+00:00",
-      "scrape_html_hash": "3848ef3262a1ee149dd7afd3e7c9d533f8d1d9073bc8c55052450467c3d68ba8",
-      "scrape_byte_count": 29162,
+      "scrape_timestamp": "2026-03-27T15:16:43.556740+00:00",
+      "scrape_html_hash": "71ae550c2e62c874610bf2468cba75c6422ecf32f4caf8fa3ab32708b310f806",
+      "scrape_byte_count": 28843,
       "live_games": [
         {
-          "game": "1-3 NL Holdem",
-          "tables": 1
-        },
-        {
           "game": "2-5 NL Holdem",
-          "tables": 2
+          "tables": 4
         },
         {
           "game": "5-5 PLO",
@@ -1274,17 +1480,54 @@
       "venue_name": "Jack Casino Cleveland",
       "address": "100 Public Square, Cleveland, OH, 44113",
       "phone": "216-297-4545",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "jamul-casino",
+      "scrape_timestamp": "2026-03-27T15:16:50.435593+00:00",
+      "scrape_html_hash": "156b96445fb31f2beee719bf6013b2e5035530aca5331acf9bcb9d516473a204",
+      "scrape_byte_count": 31240,
+      "live_games": [
+        {
+          "game": "1-3 NLH $40-$300",
+          "tables": 8
+        },
+        {
+          "game": "1-2 PLO",
+          "tables": 8
+        },
+        {
+          "game": "2-5 NLH $300-$1000",
+          "tables": 2
+        },
+        {
+          "game": "2-5 Holdem",
+          "tables": 5
+        },
+        {
+          "game": "5-10 NLH $500-$3000",
+          "tables": 1
+        },
+        {
+          "game": "10-20 MIXED GAME",
+          "tables": 1
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Jamul Casino",
+      "address": "14145 Campo Road, Jamul Casino, CA, 91935",
+      "phone": "",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "lake-elsinore-casino",
-      "scrape_timestamp": "2026-03-27T14:40:40.133397+00:00",
-      "scrape_html_hash": "c11b5e113f5628637b9ba22d66671d0601325c03a8efeaa924d5d57eef177548",
+      "scrape_timestamp": "2026-03-27T15:17:00.179464+00:00",
+      "scrape_html_hash": "838502a0737b8b8f2709e7ab3243f0d926954a483118b3f38cd1960e7633c4fe",
       "scrape_byte_count": 19832,
       "live_games": [
         {
           "game": "6-12 Omaha H/L",
-          "tables": 2
+          "tables": 4
         },
         {
           "game": "40-300 NL HOLDEM",
@@ -1292,49 +1535,61 @@
         },
         {
           "game": "300-1000 NL HOLDEM",
-          "tables": 1
+          "tables": 2
         }
       ],
       "waitlist": [],
       "venue_name": "Lake Elsinore Casino",
       "address": "20930 Malaga Rd., Lake Elsinore, CA, 92530",
       "phone": "951-674-5160",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "lauberge-baton-rouge",
-      "scrape_timestamp": "2026-03-27T14:40:49.415701+00:00",
-      "scrape_html_hash": "579d6ca85c9d933a21d3769cbb979cb9a9c48949cd1430587ad59e775d1124be",
-      "scrape_byte_count": 22018,
+      "scrape_timestamp": "2026-03-27T15:17:07.004245+00:00",
+      "scrape_html_hash": "1d479481d255f0238f5aca70259dde1c195d63d96c4c6a734a106956cffeda51",
+      "scrape_byte_count": 22520,
       "live_games": [
         {
           "game": "2-5 NL HOLDEM",
           "tables": 1
         },
         {
-          "game": "4-12 OMAHA",
+          "game": "4-12 HOLDEM/OMAHA",
           "tables": 1
+        },
+        {
+          "game": "4-12 OMAHA",
+          "tables": 2
         }
       ],
       "waitlist": [],
       "venue_name": "L'auberge Baton Rouge",
       "address": "777 L'auberge Avenue, Baton Rouge, LA, 70820",
       "phone": "225-224-4069",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "live-casino-hotel-philadelphia",
-      "scrape_timestamp": "2026-03-27T14:40:59.161311+00:00",
-      "scrape_html_hash": "36269a6150efdfb726d4ba0345b075f342ddb773fe7b54356dfff9e6536638f5",
-      "scrape_byte_count": 29765,
+      "scrape_timestamp": "2026-03-27T15:17:14.685800+00:00",
+      "scrape_html_hash": "94f1021e3537a4af7652ee117b8aa65b4fbd977836ca2fea2db796cb85b2f151",
+      "scrape_byte_count": 30774,
       "live_games": [
         {
           "game": "1-3 NLH 100-400",
-          "tables": 8
+          "tables": 9
+        },
+        {
+          "game": "2-2 5 CARD PLO 200-1000",
+          "tables": 3
         },
         {
           "game": "2-2 5 CARD PLO $5 STRADDLE",
           "tables": 6
+        },
+        {
+          "game": "2-5 NLH 300-1000",
+          "tables": 5
         },
         {
           "game": "4-8 Holdem",
@@ -1345,12 +1600,12 @@
       "venue_name": "Live! Casino &amp; Hotel Philadelphia",
       "address": "Shift Managers:                Brendan Sullivan, Scott McHugh, PJ Datta, Blas Galang                 900 Packer Ave,, Philadelphia, PA, 19148",
       "phone": "267-682-7426",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "live-casino-pittsburgh",
-      "scrape_timestamp": "2026-03-27T14:41:18.527008+00:00",
-      "scrape_html_hash": "5c4f19c755a1d13460e4da808e20d9f3ed3b829363c3234c1a36faaa4b26c720",
+      "scrape_timestamp": "2026-03-27T15:17:20.127033+00:00",
+      "scrape_html_hash": "2011100fc658f55dc7f006ed077b01185d2de325f7d5d4226061a87928212bab",
       "scrape_byte_count": 24474,
       "live_games": [
         {
@@ -1362,137 +1617,166 @@
       "venue_name": "Live! Casino Pittsburgh",
       "address": "5260 Lincoln Highway, US-30, Greensburg, PA, 15601",
       "phone": "878-787-7135",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "lone-butte",
-      "scrape_timestamp": "2026-03-27T14:41:30.928148+00:00",
-      "scrape_html_hash": "49f3390714ed402fdcef8d939e766c88bd1b824b02d55f69235493494b92e7ea",
-      "scrape_byte_count": 25468,
+      "scrape_timestamp": "2026-03-27T15:17:27.114694+00:00",
+      "scrape_html_hash": "152bd5249e0eb7d6d6eaf40a642d6c5ee531015cbff0096ba8b4f65e6d3a0168",
+      "scrape_byte_count": 24427,
       "live_games": [
-        {
-          "game": "1-2 NL Holdem",
-          "tables": 7
-        },
         {
           "game": "1-2 PLO FRIDAY AT 2PM",
           "tables": 6
+        },
+        {
+          "game": "6-12 MIX",
+          "tables": 1
         }
       ],
       "waitlist": [],
       "venue_name": "Lone Butte",
       "address": "1077 S. Kyrene Road, Chandler, AZ, 85226",
       "phone": "800-946-4452",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
-      "venue_slug": "maryland-live",
-      "scrape_timestamp": "2026-03-27T14:42:07.845241+00:00",
-      "scrape_html_hash": "78236c26493ea2d6739a51308a9222ad0e6343aae08ddf61c211e2d6730e2139",
-      "scrape_byte_count": 27860,
+      "venue_slug": "mardi-gras-west-virginia",
+      "scrape_timestamp": "2026-03-27T15:17:53.186853+00:00",
+      "scrape_html_hash": "183a6946222755f94f18cb360f26e11ba57b585944d83bde0c12c82acc167708",
+      "scrape_byte_count": 25467,
       "live_games": [
         {
           "game": "1-3 NL HOLDEM",
-          "tables": 11
+          "tables": 9
+        },
+        {
+          "game": "2-5 Pot Limit Omaha",
+          "tables": 12
+        },
+        {
+          "game": "5-10 Pot Limit Omaha",
+          "tables": 1
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Mardi Gras West Virginia",
+      "address": "1 Greyhound Drive, Cross Lanes , WV, 25313",
+      "phone": "",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "maryland-live",
+      "scrape_timestamp": "2026-03-27T15:18:03.018366+00:00",
+      "scrape_html_hash": "4761491303f99da0690a1e20a7a74a6b8ea01dc7c82908c13892c58fc5b3a3a5",
+      "scrape_byte_count": 32373,
+      "live_games": [
+        {
+          "game": "1-3 NL HOLDEM",
+          "tables": 13
         },
         {
           "game": "2-2 5 CARD PLO",
-          "tables": 5
+          "tables": 8
         },
         {
           "game": "2-5 NLH 300-1000",
-          "tables": 4
+          "tables": 7
         },
         {
           "game": "4-8 LIMIT HOLDEM",
-          "tables": 9
+          "tables": 2
         },
         {
           "game": "5-5 5 CARD PLO",
           "tables": 13
         },
         {
-          "game": "10-25 10/10/25",
-          "tables": 13
+          "game": "10-20 BIG O",
+          "tables": 7
         },
         {
-          "game": "10-20 BIG O",
-          "tables": 6
+          "game": "10-25 10/10/25",
+          "tables": 12
         }
       ],
       "waitlist": [],
       "venue_name": "Maryland Live!",
       "address": "7002 Arundel Mills Circle #7777, Hanover, MD, 21076",
       "phone": "443-492-3040",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "mgm-grand-detroit",
-      "scrape_timestamp": "2026-03-27T14:42:15.550457+00:00",
-      "scrape_html_hash": "37f6a46e37e4909fd5d6f03bfa4af138ccde40f41ac2cc3018fda5ec8f77b4fe",
-      "scrape_byte_count": 26150,
+      "scrape_timestamp": "2026-03-27T15:18:13.251217+00:00",
+      "scrape_html_hash": "dd2a77d80cd0ee6254a5c7d0356ba8b8ba5293d2d33f413479afdabee2b5df0b",
+      "scrape_byte_count": 26356,
       "live_games": [
         {
           "game": "1-3 NL Holdem",
-          "tables": 33
-        },
-        {
-          "game": "1-3 NLH Bomb Pots",
-          "tables": 16
-        },
-        {
-          "game": "1-3 Mix PLO / NLH",
-          "tables": 13
-        },
-        {
-          "game": "2-5 NL Holdem",
           "tables": 20
         },
         {
-          "game": "3-3 PL Omaha",
+          "game": "1-3 NLH Bomb Pots",
+          "tables": 8
+        },
+        {
+          "game": "1-3 Mix PLO / NLH",
           "tables": 10
+        },
+        {
+          "game": "2-5 NL Holdem",
+          "tables": 2
+        },
+        {
+          "game": "3-3 PL Omaha",
+          "tables": 5
         }
       ],
       "waitlist": [],
       "venue_name": "MGM Grand Detroit",
       "address": "1777 Third Street, Detroit, MI, 48226",
       "phone": "313-465-1070",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "mgm-grand",
-      "scrape_timestamp": "2026-03-27T14:42:24.069274+00:00",
-      "scrape_html_hash": "9fa034d27c3e165a478d63016c6fd22370af5cbfabbe565c16e49b021a4aa9e8",
-      "scrape_byte_count": 27778,
+      "scrape_timestamp": "2026-03-27T15:18:20.299093+00:00",
+      "scrape_html_hash": "9b67c3c93852e62184184670a7c461330bc46a000e50f22466d797ee6abeaa12",
+      "scrape_byte_count": 28097,
       "live_games": [
         {
           "game": "0-0 HIGH HANDS",
           "tables": 4
+        },
+        {
+          "game": "1-3 NL Holdem",
+          "tables": 1
         }
       ],
       "waitlist": [],
       "venue_name": "MGM Grand",
       "address": "3799 South Las Vegas Blvd, Las Vegas, NV, 89109",
       "phone": "702-891-7434",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "mgm-national-harbor-casino-resort",
-      "scrape_timestamp": "2026-03-27T14:42:32.130479+00:00",
-      "scrape_html_hash": "b4375ed7770f0f13a8a39732c0a40a60b493c5ec6c6b49382be5090ab7dbe978",
-      "scrape_byte_count": 24099,
+      "scrape_timestamp": "2026-03-27T15:18:28.159320+00:00",
+      "scrape_html_hash": "fb24019a8f614ce5ba00dd13d3ff86ed7f94fbbea3dd49265e1af334071fa24c",
+      "scrape_byte_count": 24532,
       "live_games": [
+        {
+          "game": "1-2 5 Card O High 200-700",
+          "tables": 3
+        },
         {
           "game": "2-5 NLH (300-1000)",
           "tables": 5
         },
         {
-          "game": "5-10 NLH 10 BB ANTE 600-2500",
-          "tables": 4
-        },
-        {
           "game": "10-20 LIMIT BIG O",
-          "tables": 13
+          "tables": 6
         },
         {
           "game": "10-25 NLH 25 BB ANTE  1500-7500",
@@ -1503,12 +1787,12 @@
       "venue_name": "MGM National Harbor Casino Resort",
       "address": "101 MGM National Ave, Oxon Hill, MD, 20745",
       "phone": "3019715600",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "mgm-springfield",
-      "scrape_timestamp": "2026-03-27T14:42:40.402537+00:00",
-      "scrape_html_hash": "937e5047fd8bc72e6f8aae092e521bbe7a54aa50b323ef16bcff1ac981fb3dd6",
+      "scrape_timestamp": "2026-03-27T15:18:35.798406+00:00",
+      "scrape_html_hash": "c9e6602fcd6a9dad44177eec03c71a2f1c896952499f4febd72cfd0056710afd",
       "scrape_byte_count": 24413,
       "live_games": [
         {
@@ -1521,58 +1805,50 @@
         },
         {
           "game": "4-8 Limit Holdem",
-          "tables": 5
+          "tables": 6
         }
       ],
       "waitlist": [],
       "venue_name": "MGM Springfield",
       "address": "One MGM Way, Springfield, MA, 01103",
       "phone": "413-273-5767",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "miccosukee-casino-resort",
-      "scrape_timestamp": "2026-03-27T14:42:46.788139+00:00",
-      "scrape_html_hash": "e55fd3e4179c024e140605e577521861eae32c36148cc97c59ad190401355f12",
-      "scrape_byte_count": 28100,
+      "scrape_timestamp": "2026-03-27T15:18:47.590734+00:00",
+      "scrape_html_hash": "75ee01b947382b01b50b01cadfdeed02a1fe8b97795e6b8b9d691cb12b69a925",
+      "scrape_byte_count": 27813,
       "live_games": [
         {
           "game": "1-2 NL Holdem ($50 - $300)",
-          "tables": 8
-        },
-        {
-          "game": "2-4 Omaha Limit ($20 min)",
-          "tables": 10
-        },
-        {
-          "game": "2-4 Mix Limit ($20 min)",
-          "tables": 5
+          "tables": 4
         },
         {
           "game": "2-2 PLO ($200 - $1000)",
-          "tables": 1
+          "tables": 3
+        },
+        {
+          "game": "2-4 Omaha Limit ($20 min)",
+          "tables": 8
         },
         {
           "game": "3-6 Omaha Hi/Low ($60 min)",
-          "tables": 4
+          "tables": 1
         }
       ],
       "waitlist": [],
       "venue_name": "Miccosukee Casino &amp; Resort",
       "address": "500 SW 177th Ave, Miami, FL, 33194",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "mohegan-sun",
-      "scrape_timestamp": "2026-03-27T14:43:01.841572+00:00",
-      "scrape_html_hash": "f0fec13e1923318cad23c3e34d6c77e410a51a548888a9eb3febfb3d664e2117",
-      "scrape_byte_count": 21581,
+      "scrape_timestamp": "2026-03-27T15:19:09.315742+00:00",
+      "scrape_html_hash": "788dacaf1baf280a78c371d33cd4c0cb1253fa33ca08425bc56e2bdca46b4a36",
+      "scrape_byte_count": 25570,
       "live_games": [
-        {
-          "game": "1-2 NLH",
-          "tables": 3
-        },
         {
           "game": "2-5 NLH",
           "tables": 2
@@ -1582,54 +1858,62 @@
       "venue_name": "Mohegan Sun",
       "address": "1 Mohegan Sun Blvd, Uncasville, CT, 06382",
       "phone": "860-862-2638",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "monarch-black-hawk",
-      "scrape_timestamp": "2026-03-27T14:43:08.670725+00:00",
-      "scrape_html_hash": "174e1af5ff9fe2762d5b4bd2eb221560debb9f3236677aa2883c28a830b49b2c",
-      "scrape_byte_count": 24008,
+      "scrape_timestamp": "2026-03-27T15:19:18.896539+00:00",
+      "scrape_html_hash": "60c980baae44f455460fe3b660e58c3b06240f1c7393885285bc4f742d8d55d7",
+      "scrape_byte_count": 24213,
       "live_games": [
         {
           "game": "1-3 NL Holdem",
-          "tables": 9
+          "tables": 15
         },
         {
           "game": "2-5 NL Holdem",
-          "tables": 4
+          "tables": 9
         },
         {
           "game": "2-10 NL Holdem",
-          "tables": 3
-        },
-        {
-          "game": "5-5 Big O",
-          "tables": 10
+          "tables": 4
         },
         {
           "game": "5-10 NL Holdem",
           "tables": 1
         },
         {
+          "game": "5-5 Big O",
+          "tables": 2
+        },
+        {
           "game": "25-750 Bomb Pot",
-          "tables": 4
+          "tables": 3
         }
       ],
       "waitlist": [],
       "venue_name": "Monarch Black Hawk",
       "address": "488 Main Street, Black Hawk, CO, 80422",
       "phone": "7204604055",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "morongo-casino-resort-spa",
-      "scrape_timestamp": "2026-03-27T14:43:18.284526+00:00",
-      "scrape_html_hash": "92dd1f8358ba5f7d9753a6d55288e74ca06c394b6ad24a73d3eb6b2c691a2e96",
-      "scrape_byte_count": 22554,
+      "scrape_timestamp": "2026-03-27T15:19:31.017409+00:00",
+      "scrape_html_hash": "727e599906b6985a6c72de9f04c3c02973841cd07fb66f468da96f2a37ccaf8e",
+      "scrape_byte_count": 23200,
       "live_games": [
         {
+          "game": "2-5 No Limit Holdem",
+          "tables": 1
+        },
+        {
           "game": "3-6 Limit Holdem W\\Kill",
-          "tables": 2
+          "tables": 4
+        },
+        {
+          "game": "4-8 Limit Omaha",
+          "tables": 1
         },
         {
           "game": "25-50 NL March 29th 3PM",
@@ -1640,16 +1924,24 @@
       "venue_name": "Morongo Casino Resort &amp; Spa",
       "address": "49500 Seminole Dr, Cabazon, CA, 92230",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "orange-city-poker",
-      "scrape_timestamp": "2026-03-27T14:43:40.389334+00:00",
-      "scrape_html_hash": "f55b3d35a380127c3f5c063123ea9331b60bae8af607d24945dc90e89bdd1243",
-      "scrape_byte_count": 26645,
+      "scrape_timestamp": "2026-03-27T15:20:00.013923+00:00",
+      "scrape_html_hash": "2dc40c051ca9da8a7a9fa890e05dc238b318a25b756fd74a5278cf32c135d9a8",
+      "scrape_byte_count": 27288,
       "live_games": [
         {
           "game": "1-2 PLO 8 Handed",
+          "tables": 2
+        },
+        {
+          "game": "2-5 PLO 8 Handed",
+          "tables": 1
+        },
+        {
+          "game": "2-5 NL 8 Handed",
           "tables": 1
         }
       ],
@@ -1657,21 +1949,21 @@
       "venue_name": "Orange City Poker",
       "address": "822-4 Saxon Blvd., Orange City, FL, 32763",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "parkwest-bicycle-club",
-      "scrape_timestamp": "2026-03-27T14:43:49.123191+00:00",
-      "scrape_html_hash": "3b6761feb46c348b6838d8760cccc65db161a543a763e3aab7ba002dffc3f88f",
+      "scrape_timestamp": "2026-03-27T15:20:16.753106+00:00",
+      "scrape_html_hash": "59112c9ee4115f0fd020c725a876baefafc00bf6bac649abb1ecfd91eda39a28",
       "scrape_byte_count": 27719,
       "live_games": [
         {
           "game": "1-3 NLH 80-120",
-          "tables": 11
+          "tables": 14
         },
         {
           "game": "2-3 NLH 100-300",
-          "tables": 4
+          "tables": 5
         },
         {
           "game": "2-3 MexicanPoker-NL 40-100",
@@ -1690,12 +1982,12 @@
           "tables": 1
         },
         {
-          "game": "5-5 10 NLH 300 - 100",
-          "tables": 1
-        },
-        {
           "game": "5-5 NLH 300-1000",
           "tables": 4
+        },
+        {
+          "game": "5-5 10 NLH 300 - 100",
+          "tables": 1
         },
         {
           "game": "5-10 MP -NL 200",
@@ -1723,11 +2015,11 @@
         },
         {
           "game": "40-80 LHE 400+",
-          "tables": 7
+          "tables": 9
         },
         {
           "game": "60-120 LHE 600+",
-          "tables": 2
+          "tables": 4
         },
         {
           "game": "80-160 MIX 800+",
@@ -1738,76 +2030,84 @@
       "venue_name": "Parkwest Bicycle Club",
       "address": ", Bell Gardens, CA, 90201",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "parx-casino",
-      "scrape_timestamp": "2026-03-27T14:43:54.576665+00:00",
-      "scrape_html_hash": "a0d9a4843af42d6a09f4b102da6e3fbbd94f92e7acc54f50fb77fa564d24d117",
-      "scrape_byte_count": 27566,
+      "scrape_timestamp": "2026-03-27T15:20:22.746992+00:00",
+      "scrape_html_hash": "18e6435f283f0126fb4cad2c9084c750aabfa6e3e43759564dacd96a527fa1b0",
+      "scrape_byte_count": 31842,
       "live_games": [
         {
           "game": "1-3 NL Holdem",
-          "tables": 8
-        },
-        {
-          "game": "2-2 PLO",
-          "tables": 10
+          "tables": 9
         },
         {
           "game": "2-5 NL Holdem",
-          "tables": 4
+          "tables": 10
+        },
+        {
+          "game": "2-2 PLO",
+          "tables": 13
         },
         {
           "game": "5-5 PLO",
-          "tables": 4
+          "tables": 6
+        },
+        {
+          "game": "10-10 No Limit Holdem",
+          "tables": 2
         },
         {
           "game": "10-10 PLO 8-HANDED",
           "tables": 3
-        },
-        {
-          "game": "10-10 No Limit Holdem",
-          "tables": 1
         }
       ],
       "waitlist": [],
       "venue_name": "Parx Casino",
       "address": "2999 Street Road, Bensalem, PA, 19020",
       "phone": "267-525-7300",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "pearl-river-resort",
-      "scrape_timestamp": "2026-03-27T14:44:01.183353+00:00",
-      "scrape_html_hash": "3ecf6ba98dc4202ece3f91ef5456d2a5f4364fcb473cbcc67ac3cffbac380f74",
-      "scrape_byte_count": 25179,
+      "scrape_timestamp": "2026-03-27T15:20:29.267901+00:00",
+      "scrape_html_hash": "3d64263714530a97d8a7f6fc1d12b27a431d3ba6b8f720f385963299b203cd02",
+      "scrape_byte_count": 25849,
       "live_games": [
         {
           "game": "1-2 PLO",
-          "tables": 2
+          "tables": 4
         },
         {
           "game": "1-3 NL Holdem",
-          "tables": 3
+          "tables": 7
         },
         {
           "game": "2-5 NL Holdem",
           "tables": 1
+        },
+        {
+          "game": "3-6 Holdem",
+          "tables": 2
         }
       ],
       "waitlist": [],
       "venue_name": "Pearl River Resort",
       "address": "13541 Hwy 16 W, Philadelphia, MS, 39350",
       "phone": "6016631040",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "peppermill-casino-wendover",
-      "scrape_timestamp": "2026-03-27T14:44:09.042762+00:00",
-      "scrape_html_hash": "1530b3c0eeb62699056c566a9e82b2e32258256340d11939b2f50f453decd448",
-      "scrape_byte_count": 23651,
+      "scrape_timestamp": "2026-03-27T15:20:37.271152+00:00",
+      "scrape_html_hash": "a16d8779d91bf23b0f28d64e2d5adbabec17c71f607b436f65921bdfad6746f0",
+      "scrape_byte_count": 23971,
       "live_games": [
+        {
+          "game": "1-3 N/L HOLDEM",
+          "tables": 1
+        },
         {
           "game": "1000-0 HIGH HAND",
           "tables": 1
@@ -1817,37 +2117,33 @@
       "venue_name": "Peppermill Casino Wendover",
       "address": "680 Wendover Boulevard, West Wendover, NV, 89883",
       "phone": "775-664-5500",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "peppermill-casino",
-      "scrape_timestamp": "2026-03-27T14:44:15.718642+00:00",
-      "scrape_html_hash": "2e543a60c3e91aadeaf8a61c9525063ab28c16ef14a47fb0e46a23c1a70a8a67",
-      "scrape_byte_count": 29662,
+      "scrape_timestamp": "2026-03-27T15:20:44.637207+00:00",
+      "scrape_html_hash": "923e256276fe48dd9da75315e0e1212e2337e76991eb1182f731bed25f596950",
+      "scrape_byte_count": 29551,
       "live_games": [
         {
           "game": "0-2 NL Holdem",
-          "tables": 4
+          "tables": 3
+        },
+        {
+          "game": "1-2 Pot Limit Omaha",
+          "tables": 2
         },
         {
           "game": "1-2 PLO/BIG O",
           "tables": 13
         },
         {
-          "game": "1-2 Pot Limit Omaha",
-          "tables": 1
-        },
-        {
           "game": "1-2 PLO 300Min SATURDAY 6PM",
-          "tables": 1
-        },
-        {
-          "game": "3-6 Holdem",
-          "tables": 3
+          "tables": 2
         },
         {
           "game": "4-8 Omaha",
-          "tables": 9
+          "tables": 2
         },
         {
           "game": "4-8 Holdem",
@@ -1866,67 +2162,75 @@
       "venue_name": "Peppermill Casino",
       "address": "2707 S. Virginia St, Reno, NV, 89502",
       "phone": "775-689-7275",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "potawatomi-casino-resort",
-      "scrape_timestamp": "2026-03-27T14:44:21.651702+00:00",
-      "scrape_html_hash": "85dfa07ed3fe8c5e37c8b6f6f19b3fea37778fe088ceaec32836041825eaffd6",
-      "scrape_byte_count": 22599,
+      "scrape_timestamp": "2026-03-27T15:20:58.527473+00:00",
+      "scrape_html_hash": "c11d861751f5ba70ff7421602ad38e90067a2214a78a5bacc2922e43d9d55a07",
+      "scrape_byte_count": 21886,
       "live_games": [
         {
           "game": "1-2 PLO: $100-$500",
-          "tables": 3
+          "tables": 2
         },
         {
           "game": "1-3 NL: $100-$500 Max",
-          "tables": 9
+          "tables": 4
         },
         {
           "game": "2-5 NL: $300-$1500 Max",
           "tables": 2
-        },
-        {
-          "game": "3-6 Limit Holdem",
-          "tables": 1
         }
       ],
       "waitlist": [],
       "venue_name": "Potawatomi Casino|Resort",
       "address": "1721 West Canal Street, Milwaukee, WI, 53223",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "red-rock-casino",
-      "scrape_timestamp": "2026-03-27T14:44:33.764254+00:00",
-      "scrape_html_hash": "e9f0a7a672c4b9b1126ca673b492086e793b8b600867dba3b3d77230f178c862",
-      "scrape_byte_count": 24556,
+      "scrape_timestamp": "2026-03-27T15:21:11.886599+00:00",
+      "scrape_html_hash": "088755a64adc8c5d725195e24d2bbe8d54c241b10209171df0f542bc5ee5ecda",
+      "scrape_byte_count": 25194,
       "live_games": [
         {
           "game": "0-0 PROMOS",
           "tables": 12
         },
         {
-          "game": "4-8 LIMIT HOLDEM",
+          "game": "1-3 NL HOLDEM",
+          "tables": 2
+        },
+        {
+          "game": "2-3 NL HOLDEM",
           "tables": 1
+        },
+        {
+          "game": "4-8 LIMIT HOLDEM",
+          "tables": 2
         }
       ],
       "waitlist": [],
       "venue_name": "Red Rock Casino",
       "address": "11011 West Charleston Blvd., Las Vegas, NV, 89135",
       "phone": "702-797-7766",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "resorts-world-catskills",
-      "scrape_timestamp": "2026-03-27T14:44:47.295643+00:00",
-      "scrape_html_hash": "ec75e309b2e289b8c98161a6cd0e8cdb50bc45408d6032bae0efcc725081eed7",
-      "scrape_byte_count": 25805,
+      "scrape_timestamp": "2026-03-27T15:21:25.575657+00:00",
+      "scrape_html_hash": "5ac3e0343ffd63f190b58896c2e8a134baef732419583cba4361d1e9706d4ebe",
+      "scrape_byte_count": 26138,
       "live_games": [
         {
+          "game": "1-3 No Limit Holdem",
+          "tables": 1
+        },
+        {
           "game": "1-3 Match MTS",
-          "tables": 4
+          "tables": 6
         },
         {
           "game": "2-2 Pot Limit Omaha",
@@ -1937,126 +2241,193 @@
       "venue_name": "Resorts World Catskills",
       "address": ", Monticello, NY, 12701",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "river-spirit-casino",
+      "scrape_timestamp": "2026-03-27T15:21:32.991258+00:00",
+      "scrape_html_hash": "fe953b42bfe47319a7181bfd709a931ee63ba81b9bc125e6a53a0387d8202814",
+      "scrape_byte_count": 21489,
+      "live_games": [
+        {
+          "game": "1-2 NL HOLDEM",
+          "tables": 15
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "River Spirit Casino",
+      "address": "8330 Riverside Parkway, Tulsa, OK, 74137",
+      "phone": "918-995-8183",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "rivers-casino-des-plaines",
-      "scrape_timestamp": "2026-03-27T14:45:01.023245+00:00",
-      "scrape_html_hash": "90e19388669a4f43d728418deb87572bcecdbcc05f8d182dec1741e9fcf1c53a",
-      "scrape_byte_count": 25561,
+      "scrape_timestamp": "2026-03-27T15:21:39.309573+00:00",
+      "scrape_html_hash": "33a2ba37215f6e057ec8f579b4baffa8489d455bf9de2cd6159d80a02b68d717",
+      "scrape_byte_count": 25774,
       "live_games": [
         {
           "game": "1-3 NLH 100-500",
-          "tables": 14
+          "tables": 12
         },
         {
           "game": "1-2 PLO 100-500",
-          "tables": 6
+          "tables": 10
         },
         {
           "game": "2-5 NLH 300-1000",
-          "tables": 9
-        },
-        {
-          "game": "5-5 NLH 500-2000",
-          "tables": 11
+          "tables": 13
         },
         {
           "game": "5-5 PLO 300-1000 HS",
-          "tables": 5
+          "tables": 8
+        },
+        {
+          "game": "5-5 NLH 500-2000",
+          "tables": 4
         }
       ],
       "waitlist": [],
       "venue_name": "Rivers Casino Des Plaines",
       "address": "3000 S River Rd, Des Plaines, IL, 60018",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "rivers-casino-new-york",
-      "scrape_timestamp": "2026-03-27T14:45:05.902829+00:00",
-      "scrape_html_hash": "bd4880d33b1264f12777712e48b744a0f7442ce32cb30872b6a315be4dc52d01",
+      "scrape_timestamp": "2026-03-27T15:21:44.682889+00:00",
+      "scrape_html_hash": "1839fe880342caebe9640580c603cc861ebcbb0e3a35081a5082d41e3160ae1e",
       "scrape_byte_count": 34463,
       "live_games": [
         {
           "game": "1-3 NL Holdem",
-          "tables": 16
+          "tables": 13
         },
         {
           "game": "2-3 NLH MTS",
-          "tables": 5
+          "tables": 6
         }
       ],
       "waitlist": [],
       "venue_name": "Rivers Casino New York",
       "address": "1 Rush Street, Schenectady, NY, 12305",
       "phone": "518-579-8810",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "rivers-casino-philadelphia",
+      "scrape_timestamp": "2026-03-27T15:21:52.660034+00:00",
+      "scrape_html_hash": "4b936fbde9c0401bbc8b3a1cf52aab3032e324cbb6830635486e8259db38a1e0",
+      "scrape_byte_count": 23520,
+      "live_games": [
+        {
+          "game": "1-3 No Limit Holdem",
+          "tables": 7
+        },
+        {
+          "game": "1-2 N/L Holdem",
+          "tables": 4
+        },
+        {
+          "game": "2-5 No Limit Holdem",
+          "tables": 1
+        },
+        {
+          "game": "3-6 Limit",
+          "tables": 2
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Rivers Casino Philadelphia",
+      "address": "1001 N Delaware Ave , Philadelphia, PA, 19125",
+      "phone": "215-717-3883",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "rivers-casino-portsmouth",
+      "scrape_timestamp": "2026-03-27T15:21:59.381669+00:00",
+      "scrape_html_hash": "cc5ceb483d0794cd99f2983f14e3bb1eb0893e8fc20129e03ad735833cc1d06c",
+      "scrape_byte_count": 25354,
+      "live_games": [
+        {
+          "game": "1-3 NLH 100-500",
+          "tables": 2
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Rivers Casino Portsmouth",
+      "address": "3630 Victory Blvd, Portsmouth, VA, 23701",
+      "phone": "",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "rivers-casino",
-      "scrape_timestamp": "2026-03-27T14:45:21.824112+00:00",
-      "scrape_html_hash": "95d8b450ddf9d3ac30ffdab7f7a224c16c03de805c015a7ea1bfa7f1bf695d32",
+      "scrape_timestamp": "2026-03-27T15:22:05.540011+00:00",
+      "scrape_html_hash": "7663b55a2088ed68476686216f1565a5994106bd969c1592c89a3605ddd1abc5",
       "scrape_byte_count": 22187,
       "live_games": [
         {
           "game": "1-3 NL Holdem",
-          "tables": 1
+          "tables": 5
         }
       ],
       "waitlist": [],
       "venue_name": "Rivers Casino",
       "address": "777 Casino Drive, Pittsburgh, PA, 15212",
       "phone": "412-566-4606",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "running-aces",
-      "scrape_timestamp": "2026-03-27T14:45:28.398948+00:00",
-      "scrape_html_hash": "2100d0ab38d55179001a7dbf07adbf55bca4dadfedbad9e3d848e02effb7f279",
-      "scrape_byte_count": 29834,
+      "scrape_timestamp": "2026-03-27T15:22:13.307139+00:00",
+      "scrape_html_hash": "30c99bc24fcd05da9ef1f5c00fc63932eb4642428804fd3e98962600b6ddad95",
+      "scrape_byte_count": 34482,
       "live_games": [
         {
           "game": "2-100 SL Holdem",
-          "tables": 2
+          "tables": 6
+        },
+        {
+          "game": "4-20 SL Omaha Hi 8H",
+          "tables": 1
         },
         {
           "game": "5-100 SL Omaha Hi 8H",
-          "tables": 5
+          "tables": 4
         }
       ],
       "waitlist": [],
       "venue_name": "Running Aces",
       "address": "15201 Running Aces Blvd, Columbus, MN, 55025",
       "phone": "651-925-4569",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "sandia-casino",
-      "scrape_timestamp": "2026-03-27T14:45:36.730981+00:00",
-      "scrape_html_hash": "15f09c7017d11a0f4db6109c81771a4cb689a91df67686a52f5130df2264f618",
-      "scrape_byte_count": 22421,
+      "scrape_timestamp": "2026-03-27T15:22:20.535892+00:00",
+      "scrape_html_hash": "737fbc32a8f61dd1d83ea9124bfc1c3c0378c27607b3b54a75963eb3d51fad39",
+      "scrape_byte_count": 22424,
       "live_games": [
         {
-          "game": "1-3 NL HOLDEM",
-          "tables": 1
+          "game": "2-5 N/L Friday 9am",
+          "tables": 5
         },
         {
-          "game": "2-5 N/L Friday 9am",
-          "tables": 4
+          "game": "3-6 LIMIT HOLDEM",
+          "tables": 1
         }
       ],
       "waitlist": [],
       "venue_name": "Sandia Casino",
       "address": "30 Rainbow Road NE, Albuquerque, NM, 87113",
       "phone": "",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "santa-fe-station",
-      "scrape_timestamp": "2026-03-27T14:45:42.518693+00:00",
-      "scrape_html_hash": "fbd7f9b3acb5b59a23dcd58cedb2641c3636f2945cf845013afb0b5b63d002fb",
-      "scrape_byte_count": 25563,
+      "scrape_timestamp": "2026-03-27T15:22:26.996552+00:00",
+      "scrape_html_hash": "681c15e6cb7e580f75c632896fcbac28a93f7b1ef2f5f78aca3a750090e072f1",
+      "scrape_byte_count": 25238,
       "live_games": [
         {
           "game": "0-0 PROMOTIONS",
@@ -2064,73 +2435,98 @@
         },
         {
           "game": "1-2 NL Holdem",
-          "tables": 1
-        },
-        {
-          "game": "4-8 Holdem 1/2 Kill",
-          "tables": 5
+          "tables": 4
         },
         {
           "game": "4-8 OMAHA H/L 1/2 KILL",
-          "tables": 3
+          "tables": 4
         }
       ],
       "waitlist": [],
       "venue_name": "Santa Fe Station",
       "address": "4949 North Rancho Drive, Las Vegas, NV, 89130",
       "phone": "702-515-4315",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
-      "venue_slug": "seminole-coconut-creek",
-      "scrape_timestamp": "2026-03-27T14:45:55.762578+00:00",
-      "scrape_html_hash": "5543fb23bf7f50eff838ba8f98333765e1ce452a018636ba4a19cbc96c25b4b0",
-      "scrape_byte_count": 28432,
+      "venue_slug": "saracen-casino-resort",
+      "scrape_timestamp": "2026-03-27T15:22:35.165669+00:00",
+      "scrape_html_hash": "9fe802d7f377bbe8ca28949636a52d9bdbeca375c2c3b4285b91b718b8efc8f7",
+      "scrape_byte_count": 29083,
       "live_games": [
         {
-          "game": "1-2 NL Holdem 8 Max",
-          "tables": 12
-        },
-        {
-          "game": "1-3 NL Holdem 8 Max",
-          "tables": 12
-        },
-        {
-          "game": "2-5 Pineapple^",
+          "game": "1-3 NL Holdem",
           "tables": 10
         },
         {
+          "game": "1-2 PLO",
+          "tables": 1
+        },
+        {
+          "game": "2-5 NL Holdem",
+          "tables": 3
+        },
+        {
+          "game": "4-8 Holdem",
+          "tables": 1
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Saracen Casino Resort",
+      "address": "1 Saracen Resort Dr, Pine Bluff, AR, 71601",
+      "phone": "870-686-9028",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "seminole-coconut-creek",
+      "scrape_timestamp": "2026-03-27T15:22:42.540284+00:00",
+      "scrape_html_hash": "1057a1a97fb0e65eccb9c6a4450aa17619e965ca60ef61404b3848bbf411bde3",
+      "scrape_byte_count": 32977,
+      "live_games": [
+        {
+          "game": "1-3 NL Holdem 8 Max",
+          "tables": 7
+        },
+        {
+          "game": "1-2 NL Holdem 8 Max",
+          "tables": 8
+        },
+        {
+          "game": "2-5 Pineapple^",
+          "tables": 13
+        },
+        {
           "game": "2-5 NL Holdem 8 Max^",
-          "tables": 5
+          "tables": 8
         },
         {
           "game": "2-2 Limit 8 Max",
-          "tables": 14
+          "tables": 7
         }
       ],
       "waitlist": [],
       "venue_name": "Seminole Coconut Creek",
       "address": "5550 Northwest 40th Street, Coconut Creek, FL, 33073",
       "phone": "954-283-2874",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "seminole-hard-rock-hollywood",
-      "scrape_timestamp": "2026-03-27T14:46:03.995075+00:00",
-      "scrape_html_hash": "c41c467773cf038f9b7d45b3c5970a032a52925c1e8aff637749e5a58b71daed",
-      "scrape_byte_count": 30988,
+      "scrape_timestamp": "2026-03-27T15:22:54.332896+00:00",
+      "scrape_html_hash": "b579bc045f4989a18677d77c4dca32ea221ab14b9054ceb7b5544299e3e966fb",
+      "scrape_byte_count": 31207,
       "live_games": [
         {
           "game": "1-3 NL Holdem 8 Max^",
-          "tables": 14
-        },
-        {
-          "game": "1-2 NL Holdem 8 Max",
           "tables": 4
         },
         {
+          "game": "1-2 NL Holdem 8 Max",
+          "tables": 7
+        },
+        {
           "game": "2-2 PLO 8 Max^",
-          "tables": 2
+          "tables": 6
         },
         {
           "game": "2-5 NL Holdem 8 Max^",
@@ -2138,65 +2534,69 @@
         },
         {
           "game": "5-5 5 card PLO^",
-          "tables": 3
+          "tables": 8
         },
         {
           "game": "5-10 NL Holdem 8 Max^",
-          "tables": 1
+          "tables": 3
         }
       ],
       "waitlist": [],
       "venue_name": "Seminole Hard Rock Hollywood",
       "address": "1 Seminole Way, Hollywood, FL, 33314",
       "phone": "954-585-5111",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "seminole-hard-rock-tampa",
-      "scrape_timestamp": "2026-03-27T14:46:12.407261+00:00",
-      "scrape_html_hash": "fc9e1527c484cb91d409894652362324c3988ee37f46046e8bdf277e84d626e2",
-      "scrape_byte_count": 26818,
+      "scrape_timestamp": "2026-03-27T15:23:02.141007+00:00",
+      "scrape_html_hash": "7dbc01def409e35a3d48734a6316bb6379784eab7373d4248152f9b9cd70e24c",
+      "scrape_byte_count": 32035,
       "live_games": [
         {
           "game": "1-2 NL Holdem",
-          "tables": 13
+          "tables": 11
         },
         {
           "game": "1-3 Ultra NLH ^",
-          "tables": 4
-        },
-        {
-          "game": "2-5 NL Holdem^",
-          "tables": 8
-        },
-        {
-          "game": "2-5 -10 NL Holdem^",
           "tables": 2
         },
         {
           "game": "2-2 PLO^ w/rock",
-          "tables": 9
+          "tables": 2
+        },
+        {
+          "game": "2-5 -10 NL Holdem^",
+          "tables": 3
+        },
+        {
+          "game": "2-5 NL Holdem^",
+          "tables": 5
+        },
+        {
+          "game": "4-8 Holdem",
+          "tables": 1
         }
       ],
       "waitlist": [],
       "venue_name": "Seminole Hard Rock Tampa",
       "address": "5223 Orient Road, Tampa, FL, 33610",
       "phone": "813-627-6650",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "south-point",
-      "scrape_timestamp": "2026-03-27T14:46:50.634948+00:00",
-      "scrape_html_hash": "b60aaaf309d9d295ee7bf8fbfdce349109377ff15eac2dbe2d2c90d18191d2b0",
+      "scrape_timestamp": "2026-03-27T15:23:21.748406+00:00",
+      "scrape_html_hash": "0a61214d755b3f154188e2a4f4d33387b66bce12186de6df9569d83dd8006547",
       "scrape_byte_count": 36246,
       "live_games": [
         {
           "game": "1-2 NL HOLDEM",
-          "tables": 4
+          "tables": 5
         },
         {
           "game": "2-3 NL HOLDEM",
-          "tables": 2
+          "tables": 1
         },
         {
           "game": "3-5 NL HOLDEM",
@@ -2208,28 +2608,28 @@
         },
         {
           "game": "4-8 HOLDEM",
-          "tables": 4
+          "tables": 1
         }
       ],
       "waitlist": [],
       "venue_name": "South Point",
       "address": "9777 Las Vegas Blvd South, Las Vegas, NV, 89183",
       "phone": "702-797-8073",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "sycuan-casino-resort",
-      "scrape_timestamp": "2026-03-27T14:46:58.051211+00:00",
-      "scrape_html_hash": "de9ba6f2fe15ae5aa5c382f11c769e63f810b76406136263afe4fb09faa67ccb",
-      "scrape_byte_count": 33173,
+      "scrape_timestamp": "2026-03-27T15:23:29.563839+00:00",
+      "scrape_html_hash": "acea87ec30eaa94dd4a57749800f9ab4ac272527aaf2145f0698e4ed76274f88",
+      "scrape_byte_count": 33174,
       "live_games": [
         {
           "game": "2-5 NLH. 300 - 1000",
-          "tables": 1
+          "tables": 3
         },
         {
           "game": "2-3 NLH 40-400",
-          "tables": 6
+          "tables": 8
         },
         {
           "game": "2-3 HALF &amp; HALF",
@@ -2241,7 +2641,7 @@
         },
         {
           "game": "4-8 Omaha",
-          "tables": 9
+          "tables": 10
         },
         {
           "game": "8-16 Holdem",
@@ -2256,21 +2656,21 @@
       "venue_name": "Sycuan Casino Resort",
       "address": "5469 Casino Way, El Cajon, CA, 92019",
       "phone": "619-659-3303",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "talking-stick-resort",
-      "scrape_timestamp": "2026-03-27T14:47:05.522108+00:00",
-      "scrape_html_hash": "8be94ba51916a4fa22911a62208ee1b50fdc716af4a74018a0e64ceaf4de5d25",
-      "scrape_byte_count": 49716,
+      "scrape_timestamp": "2026-03-27T15:23:37.826986+00:00",
+      "scrape_html_hash": "92b7cf7b6871d88360b3a26564fc9498f7e4e580c681f298ee0aa1b409c3bf64",
+      "scrape_byte_count": 50031,
       "live_games": [
         {
           "game": "2-3 NL HOLDEM",
-          "tables": 5
+          "tables": 8
         },
         {
           "game": "3-5 NL HOLDEM",
-          "tables": 3
+          "tables": 4
         },
         {
           "game": "3-6 HoldEm",
@@ -2278,7 +2678,11 @@
         },
         {
           "game": "4-8 HoldEm",
-          "tables": 6
+          "tables": 5
+        },
+        {
+          "game": "4-8 Big O",
+          "tables": 1
         },
         {
           "game": "6-12 MIX Saturday SCHEDULED Game",
@@ -2294,28 +2698,28 @@
         },
         {
           "game": "20-40 4 Game Mix",
-          "tables": 2
+          "tables": 5
         }
       ],
       "waitlist": [],
       "venue_name": "Talking Stick Resort",
       "address": "9800 Talking Stick Way, Scottsdale, AZ, 85256",
       "phone": "480-850-8693",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "the-big-easy-poker-room",
-      "scrape_timestamp": "2026-03-27T14:47:24.179638+00:00",
-      "scrape_html_hash": "6ae74e8fd1723c5e06194ffdf03c67c427d71f62781cf33272dc392fe906bf5a",
-      "scrape_byte_count": 27932,
+      "scrape_timestamp": "2026-03-27T15:23:50.850703+00:00",
+      "scrape_html_hash": "55e4a205a091968de36fcf9a32f6b7ff8f9f89349ecbe224f92c1bd195395063",
+      "scrape_byte_count": 28252,
       "live_games": [
-        {
-          "game": "1-2 NL Holdem 8 Handed",
-          "tables": 2
-        },
         {
           "game": "1-2 5 Card PLO",
           "tables": 4
+        },
+        {
+          "game": "1-2 NL Holdem 8 Handed",
+          "tables": 1
         },
         {
           "game": "1-2 NL $5 STRADDLE",
@@ -2323,57 +2727,78 @@
         },
         {
           "game": "2-2 Limit",
-          "tables": 1
+          "tables": 3
+        },
+        {
+          "game": "2-4 OMAHA HIGH",
+          "tables": 2
         },
         {
           "game": "3-3 Limit",
-          "tables": 6
+          "tables": 5
         }
       ],
       "waitlist": [],
       "venue_name": "The Big Easy Poker Room",
       "address": "831 North Federal Highway, Hallandale, FL, 33009",
       "phone": "954-924-3167",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "the-orleans",
-      "scrape_timestamp": "2026-03-27T14:47:37.308820+00:00",
-      "scrape_html_hash": "9f7c6181d9571c411d4d7f27de83d5b34555c4072968a16b8eb12b4da8bb8525",
+      "scrape_timestamp": "2026-03-27T15:24:04.827146+00:00",
+      "scrape_html_hash": "2c32df977d198fd21e1ebc9d0c2f03289442eb7a499805d71bdb9fc7ba84083c",
       "scrape_byte_count": 32739,
       "live_games": [
         {
           "game": "4-8 Omaha Hi Lo",
-          "tables": 1
+          "tables": 2
         },
         {
           "game": "8-16 Omaha Hi Lo",
-          "tables": 1
+          "tables": 2
         }
       ],
       "waitlist": [],
       "venue_name": "The Orleans",
       "address": "4500 West Tropicana Ave., Las Vegas, NV, 89103",
       "phone": "7023657150",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "tropicana-ac",
+      "scrape_timestamp": "2026-03-27T15:24:22.611929+00:00",
+      "scrape_html_hash": "1d6759793234e70d127d682a26b916ea018e2bdeb007975748be9dea8b140426",
+      "scrape_byte_count": 19007,
+      "live_games": [
+        {
+          "game": "1-2 No Limit Holdem 2",
+          "tables": 2
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Tropicana AC",
+      "address": "2831 Boardwalk, Atlantic City, NJ, 08401",
+      "phone": "609-340-4171",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "turning-stone-resort-casino",
-      "scrape_timestamp": "2026-03-27T14:47:59.851249+00:00",
-      "scrape_html_hash": "ad52149dd41b68837a80bdb6f3a3787d467da96bd0dbbffeb3c35e911233c939",
-      "scrape_byte_count": 30351,
+      "scrape_timestamp": "2026-03-27T15:24:30.480927+00:00",
+      "scrape_html_hash": "497cc2da12916c541ba8d9444287b6eb69d7a38b20b0fbe99d3c7b968ff93ff3",
+      "scrape_byte_count": 30561,
       "live_games": [
         {
-          "game": "1-3 B.B.S.",
-          "tables": 5
+          "game": "1-2 NL HOLDEM",
+          "tables": 8
         },
         {
-          "game": "1-2 NL HOLDEM",
-          "tables": 9
+          "game": "1-3 B.B.S.",
+          "tables": 7
         },
         {
           "game": "3-6 HOLDEM",
-          "tables": 4
+          "tables": 5
         },
         {
           "game": "20-40 HOLDEM H",
@@ -2384,24 +2809,49 @@
       "venue_name": "Turning Stone Resort Casino",
       "address": "5218 Patrick Rd., Verona, NY, 13478",
       "phone": "315-361-8676",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     },
     {
       "venue_slug": "wheeling-island-hotel-casino-racetrack",
-      "scrape_timestamp": "2026-03-27T14:48:13.307831+00:00",
-      "scrape_html_hash": "f4f360980b03fddc748b22c2c8efb7a2b1f578a8d40fc092170ec8aa08023688",
+      "scrape_timestamp": "2026-03-27T15:24:45.828909+00:00",
+      "scrape_html_hash": "247e7841cd6bf42e7e7c9f3070460414ef5eb8b911928f1cec0bc161607e8df9",
       "scrape_byte_count": 21477,
       "live_games": [
         {
           "game": "3-6 Holdem",
-          "tables": 1
+          "tables": 2
         }
       ],
       "waitlist": [],
       "venue_name": "Wheeling Island Hotel Casino Racetrack",
       "address": "1 South Stone St., Wheeling, WV, 26003",
       "phone": "304-231-1785",
-      "batch_id": "7f2a4bf3-9cbc-4632-b8d1-d13d671f59a6"
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
+    },
+    {
+      "venue_slug": "wind-creek-chicago-southland",
+      "scrape_timestamp": "2026-03-27T15:25:01.220810+00:00",
+      "scrape_html_hash": "b2c6de72c43fe79093f72b8e953809bad7cd67bd54b20936659964076c92e5ec",
+      "scrape_byte_count": 21592,
+      "live_games": [
+        {
+          "game": "1-3 NL Holdem $100-$500",
+          "tables": 12
+        },
+        {
+          "game": "1-2 PLO $100-$500 Max",
+          "tables": 4
+        },
+        {
+          "game": "2-5 NL Holdem $200-$1000",
+          "tables": 7
+        }
+      ],
+      "waitlist": [],
+      "venue_name": "Wind Creek Chicago Southland",
+      "address": "17300 S Halsted St, East Hazel Crest, IL, 60429",
+      "phone": "",
+      "batch_id": "decfb7de-da03-446f-90aa-d5c57344b2ff"
     }
   ]
 }
