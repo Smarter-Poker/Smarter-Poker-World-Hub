@@ -137,6 +137,10 @@ export function ReelsViewer({ onClose }) {
     const showErrorToast = (msg) => { setErrorToast(msg); setTimeout(() => setErrorToast(null), 3000); };
     // #6 Comment Like Counts
     const [commentLikeCounts, setCommentLikeCounts] = useState({});
+    // UX Overhaul — More menu + Reaction picker
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const [showReactionPicker, setShowReactionPicker] = useState(false);
+    const reactionTimerRef = useRef(null);
 
     useEffect(() => {
         loadReels();
@@ -1102,7 +1106,7 @@ export function ReelsViewer({ onClose }) {
                     })()}
                 </div>
 
-                {/* Bottom Overlay — tap to reveal, auto-hides after 2s */}
+                {/* Bottom Overlay — consolidated */}
                 <div
                     onClick={(e) => e.stopPropagation()}
                     style={{
@@ -1116,104 +1120,145 @@ export function ReelsViewer({ onClose }) {
                         zIndex: 20,
                     }}
                 >
-                    <button onClick={() => { handleLike(); haptic(15); }} aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'} style={{
-                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
-                    }}>
-                        <span style={{ fontSize: 22 }}>{liked[currentReel?.id] ? '\u2764\uFE0F' : '\uD83D\uDC4D'}</span>
-                        <span style={{
-                            fontSize: 9, fontWeight: 500,
-                            transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                            transform: likeBounceId === currentReel?.id ? 'scale(1.5)' : 'scale(1)',
-                            display: 'inline-block',
-                        }}>{likeCounts[currentReel?.id] || 0}</span>
-                    </button>
-                    <button onClick={() => { handleDislike(); haptic(10); }} aria-label={disliked[currentReel?.id] ? 'Remove dislike' : 'Dislike'} style={{
-                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', gap: 4, cursor: 'pointer', color: disliked[currentReel?.id] ? '#ef4444' : 'white',
-                    }}>
-                        <span style={{ fontSize: 22 }}>{disliked[currentReel?.id] ? '👎🏻' : '👎'}</span>
-                        <span style={{ fontSize: 9, fontWeight: 500 }}>{disliked[currentReel?.id] ? 'Disliked' : 'Dislike'}</span>
-                    </button>
+                    {/* Heart — tap to like, long-press for reactions */}
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => { handleLike(); haptic(15); }}
+                            onPointerDown={() => {
+                                reactionTimerRef.current = setTimeout(() => {
+                                    haptic(20);
+                                    setShowReactionPicker(true);
+                                }, 500);
+                            }}
+                            onPointerUp={() => clearTimeout(reactionTimerRef.current)}
+                            onPointerLeave={() => clearTimeout(reactionTimerRef.current)}
+                            aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'}
+                            style={{
+                                background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                            }}
+                        >
+                            <span style={{ fontSize: 22 }}>{liked[currentReel?.id] ? '\u2764\uFE0F' : '\u2764\uFE0F'}</span>
+                            <span style={{
+                                fontSize: 9, fontWeight: 500,
+                                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                transform: likeBounceId === currentReel?.id ? 'scale(1.5)' : 'scale(1)',
+                                display: 'inline-block',
+                            }}>{likeCounts[currentReel?.id] || 0}</span>
+                        </button>
+                        {showReactionPicker && (
+                            <div style={{
+                                position: 'absolute', left: '50%', bottom: '100%', transform: 'translateX(-50%)',
+                                display: 'flex', gap: 4, padding: '8px 12px', borderRadius: 24, marginBottom: 8,
+                                background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)',
+                                WebkitBackdropFilter: 'blur(12px)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                                animation: 'fadeInScale 0.2s ease',
+                            }}>
+                                {[
+                                    { emoji: '\u2764\uFE0F', label: 'Love', type: 'like' },
+                                    { emoji: '\uD83D\uDC4D', label: 'Thumbs Up', type: 'thumbsup' },
+                                    { emoji: '\uD83D\uDC4E', label: 'Thumbs Down', type: 'dislike' },
+                                    { emoji: '\uD83D\uDE02', label: 'Laughing', type: 'laughing' },
+                                    { emoji: '\uD83D\uDE22', label: 'Crying', type: 'crying' },
+                                    { emoji: '\uD83D\uDE21', label: 'Angry', type: 'angry' },
+                                ].map(r => (
+                                    <button key={r.type} onClick={() => {
+                                        if (r.type === 'dislike') handleDislike();
+                                        else handleLike();
+                                        setShowReactionPicker(false);
+                                        haptic(10);
+                                    }} aria-label={r.label} style={{
+                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        fontSize: 24, padding: '2px',
+                                        transition: 'transform 0.15s ease',
+                                    }}
+                                    onMouseEnter={e => e.target.style.transform = 'scale(1.3)'}
+                                    onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                                    >{r.emoji}</button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                     <button onClick={handleOpenComments} aria-label="Comments" style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
-                        <span style={{ fontSize: 22 }}>💬</span>
+                        <span style={{ fontSize: 22 }}>\uD83D\uDCAC</span>
                         <span style={{ fontSize: 9, fontWeight: 500 }}>{commentCounts[currentReel?.id] || 0}</span>
                     </button>
                     <button onClick={handleSave} aria-label={saved[currentReel?.id] ? 'Unsave' : 'Save'} style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
-                        <span style={{ fontSize: 22 }}>{saved[currentReel?.id] ? '💾' : '🔖'}</span>
+                        <span style={{ fontSize: 22 }}>{saved[currentReel?.id] ? '\uD83D\uDCBE' : '\uD83D\uDD16'}</span>
                         <span style={{ fontSize: 9, fontWeight: 500 }}>{saved[currentReel?.id] ? 'Saved' : 'Save'}</span>
                     </button>
                     <button onClick={() => { handleShare(); haptic(10); }} aria-label="Share" style={{
                         background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
                     }}>
-                        <span style={{ fontSize: 22 }}>📤</span>
+                        <span style={{ fontSize: 22 }}>\uD83D\uDCE4</span>
                         <span style={{ fontSize: 9, fontWeight: 500 }}>Share</span>
                     </button>
-                    <button onClick={() => setMuted(prev => !prev)} aria-label={muted ? 'Unmute' : 'Mute'} style={{
-                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
-                    }}>
-                        <span style={{ fontSize: 22 }}>{muted ? '\uD83D\uDD07' : '\uD83D\uDD0A'}</span>
-                        {/* #10 Sound Waveform Indicator */}
-                        {!muted && (
-                            <div style={{ display: 'flex', gap: 1.5, alignItems: 'flex-end', height: 8, marginBottom: -2 }}>
-                                {[2, 4, 7, 4, 2].map((h, i) => (
-                                    <div key={i} style={{
-                                        width: 2, background: '#00d4ff', borderRadius: 1,
-                                        animation: `soundWave 0.6s ${i * 0.1}s ease-in-out infinite alternate`,
-                                        height: h,
-                                    }} />
-                                ))}
+                    {/* More (...) — Sound, Speed, Link, Report */}
+                    <div style={{ position: 'relative' }}>
+                        <button onClick={() => setShowMoreMenu(prev => !prev)} aria-label="More options" style={{
+                            background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', gap: 4, cursor: 'pointer', color: 'white',
+                        }}>
+                            <span style={{ fontSize: 22 }}>{'\u22EF'}</span>
+                            <span style={{ fontSize: 9, fontWeight: 500 }}>More</span>
+                        </button>
+                        {showMoreMenu && (
+                            <div style={{
+                                position: 'absolute', right: 0, bottom: '100%',
+                                minWidth: 160, padding: '8px 0', borderRadius: 12, marginBottom: 8,
+                                background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(16px)',
+                                WebkitBackdropFilter: 'blur(16px)',
+                                border: '1px solid rgba(255,255,255,0.12)',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                                animation: 'fadeInScale 0.2s ease',
+                            }}>
+                                <button onClick={() => { setMuted(prev => !prev); setShowMoreMenu(false); }} style={{
+                                    display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px',
+                                    background: 'none', border: 'none', color: 'white', fontSize: 13, cursor: 'pointer', textAlign: 'left',
+                                }}>
+                                    <span style={{ fontSize: 18 }}>{muted ? '\uD83D\uDD07' : '\uD83D\uDD0A'}</span>
+                                    {muted ? 'Unmute' : 'Mute'}
+                                </button>
+                                <button onClick={() => { handleSpeedToggle(); setShowMoreMenu(false); }} style={{
+                                    display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px',
+                                    background: 'none', border: 'none', color: playbackSpeed !== 1 ? '#00d4ff' : 'white', fontSize: 13, cursor: 'pointer', textAlign: 'left',
+                                }}>
+                                    <div style={{ width: 18, height: 18, borderRadius: '50%', border: '1.5px solid currentColor', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700 }}>{playbackSpeed}x</div>
+                                    Speed ({playbackSpeed}x)
+                                </button>
+                                <button onClick={() => {
+                                    const url = `${window.location.origin}/hub/reels?id=${currentReel?.id || ''}`;
+                                    navigator.clipboard.writeText(url).then(() => {
+                                        setCopyToast(true); setTimeout(() => setCopyToast(false), 2000);
+                                    }).catch(() => {});
+                                    setShowMoreMenu(false);
+                                }} style={{
+                                    display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px',
+                                    background: 'none', border: 'none', color: 'white', fontSize: 13, cursor: 'pointer', textAlign: 'left',
+                                }}>
+                                    <span style={{ fontSize: 16 }}>{'\uD83D\uDD17'}</span>
+                                    Copy Link
+                                </button>
+                                <button onClick={() => { setShowReportModal(true); setShowMoreMenu(false); }} style={{
+                                    display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px',
+                                    background: 'none', border: 'none', color: '#ef4444', fontSize: 13, cursor: 'pointer', textAlign: 'left',
+                                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                                }}>
+                                    <span style={{ fontSize: 16 }}>{'\uD83D\uDEA9'}</span>
+                                    Report
+                                </button>
                             </div>
                         )}
-                        {muted && <span style={{ fontSize: 9, fontWeight: 500 }}>Unmute</span>}
-                    </button>
-                    <button onClick={() => setShowReportModal(true)} style={{
-                        background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', gap: 4, cursor: 'pointer', color: 'rgba(255,255,255,0.6)',
-                    }}>
-                        <span style={{ fontSize: 18 }}>🚩</span>
-                        <span style={{ fontSize: 9, fontWeight: 500 }}>Report</span>
-                    </button>
-
-                    {/* Phase 7 — Speed Control */}
-                    <button onClick={handleSpeedToggle} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                        color: playbackSpeed !== 1 ? '#00d4ff' : 'rgba(255,255,255,0.6)',
-                    }}>
-                        <div style={{
-                            width: 26, height: 26, borderRadius: '50%',
-                            background: playbackSpeed !== 1 ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.1)',
-                            border: playbackSpeed !== 1 ? '1px solid rgba(0,212,255,0.4)' : '1px solid rgba(255,255,255,0.2)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 9, fontWeight: 700,
-                        }}>{playbackSpeed}x</div>
-                        <span style={{ fontSize: 9, fontWeight: 500 }}>Speed</span>
-                    </button>
-
-                    {/* Phase 8 — Copy Reel Link */}
-                    <button onClick={() => {
-                        const url = `${window.location.origin}/hub/reels?id=${currentReel?.id || ''}`;
-                        navigator.clipboard.writeText(url).then(() => {
-                            setCopyToast(true);
-                            setTimeout(() => setCopyToast(false), 2000);
-                        }).catch(() => {});
-                    }} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                        color: 'rgba(255,255,255,0.6)',
-                    }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                        <span style={{ fontSize: 9, fontWeight: 500 }}>Link</span>
-                    </button>
+                    </div>
                 </div>
 
                 {/* Comment Drawer */}
