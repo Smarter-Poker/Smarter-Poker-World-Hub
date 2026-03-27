@@ -997,8 +997,8 @@ function UniversalDynamicTable({
 
     // Phase 16: Computed height for the scale container to prevent layout collapse
     const scaledTableHeight = useMemo(() => {
-        // Design height of the table area canvas (fixed)
-        const DESIGN_HEIGHT = 520;
+        // Design height of the table area canvas (fixed) — must match styles.tableArea.height
+        const DESIGN_HEIGHT = 600;
         return DESIGN_HEIGHT * scaleFactor;
     }, [scaleFactor]);
 
@@ -1916,7 +1916,7 @@ function UniversalDynamicTable({
                         if (activeCount <= 2) {
                             // Strict Absolute positions: completely outside the table
                             seatX = 50;
-                            seatY = isHero ? 116 : -16;
+                            seatY = isHero ? 106 : -16;
                         }
 
                         return (
@@ -3233,12 +3233,12 @@ const styles = {
     tableArea: {
         position: 'relative',
         width: 420,
-        height: 520,
+        height: 600,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '28px 16px 80px 16px',
+        padding: '28px 16px 60px 16px',
     },
 
     // ── NEW CUSTOM STANDALONE RACETRACK TABLE — fixed design size, scaled by Phase 16 container
