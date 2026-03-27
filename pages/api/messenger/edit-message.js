@@ -77,7 +77,7 @@ export default async function handler(req, res) {
           // Update the message
           const { error: updateErr } = await getSupabase()
               .from('social_messages')
-              .update({ content, updated_at: new Date().toISOString() })
+              .update({ content, is_edited: true, updated_at: new Date().toISOString() })
               .eq('id', messageId);
 
           if (updateErr) throw updateErr;
