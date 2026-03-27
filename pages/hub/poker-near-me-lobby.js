@@ -23,6 +23,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory } from '../../src/services/pokerNearMeSearchHistory';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
+import { supabase } from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../src/engine/EventBus';
 // BottomNavBar removed — Poker Near Me has its own navigation grid
@@ -773,6 +774,30 @@ export default function PokerNearMeLobby() {
     fetchSearchHistory();
     fetchPreferences();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Real-time Supabase Data Hydration ───
+  useEffect(() => {
+    const venueChannel = supabase.channel('public:venues_lobby')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'venues' }, (payload) => {
+        setVenues(prev => prev.map(v => v.id === payload.new.id ? { ...v, ...payload.new } : v));
+      }).subscribe();
+      
+    const tourChannel = supabase.channel('public:tours_lobby')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'poker_tours' }, (payload) => {
+        setTours(prev => prev.map(t => t.id === payload.new.id ? { ...t, ...payload.new } : t));
+      }).subscribe();
+      
+    const seriesChannel = supabase.channel('public:series_lobby')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'poker_series' }, (payload) => {
+        setSeries(prev => prev.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s));
+      }).subscribe();
+
+    return () => {
+      supabase.removeChannel(venueChannel);
+      supabase.removeChannel(tourChannel);
+      supabase.removeChannel(seriesChannel);
+    };
+  }, []);
 
   // ─── Batch fetch check-in counts when venues change ───
   useEffect(() => {
