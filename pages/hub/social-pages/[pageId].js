@@ -932,6 +932,7 @@ export default function SocialPageDetail() {
     const [watchingStream, setWatchingStream] = useState(null);
     const [showCheckInModal, setShowCheckInModal] = useState(false);
     const [articleReader, setArticleReader] = useState({ open: false, url: null, title: null });
+    const [posting, setPosting] = useState(false);
 
     // Live Games (#2)
     const [games, setGames] = useState([]);
