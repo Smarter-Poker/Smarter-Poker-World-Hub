@@ -966,7 +966,7 @@ function UniversalDynamicTable({
 
     // Phase 3: Study Mode (show frequencies before answering)
     const [studyMode, setStudyMode] = React.useState(false);
-    const [feedbackCollapsed, setFeedbackCollapsed] = React.useState(true);
+    const [feedbackCollapsed, setFeedbackCollapsed] = React.useState(false);
 
     // ═══ MOBILE RESPONSIVE DETECTION ═══
     const [isMobile, setIsMobile] = React.useState(false);
@@ -1503,7 +1503,7 @@ function UniversalDynamicTable({
     // Reset selectedAnswer + feedbackCollapsed on new question (BUG-1 fix)
     React.useEffect(() => {
         setSelectedAnswer(null);
-        setFeedbackCollapsed(true);
+        setFeedbackCollapsed(false);
         try { busEmit('ARENA_HAND_LOADED', { questionNumber, gameId: question?.gameId || null }); } catch { }
     }, [questionNumber]);
 
@@ -1894,7 +1894,7 @@ function UniversalDynamicTable({
                                 transition: 'all 0.15s ease',
                                 boxShadow: trainerConfig ? '0 0 8px rgba(0,212,255,0.15)' : 'none',
                             }}
-                            title={trainerConfig ? `Custom: ${trainerConfig.label}` : 'Configure Trainer'}
+                            title={trainerConfig ? `Custom: ${trainerConfig.label || 'Custom'}` : 'Configure Trainer'}
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="3" />
@@ -1918,7 +1918,7 @@ function UniversalDynamicTable({
                             letterSpacing: 0.5,
                             pointerEvents: 'none',
                         }}>
-                            {trainerConfig.label}
+                            {trainerConfig.label || 'Custom'}
                         </div>
                     )}
                 </div>
@@ -2040,13 +2040,15 @@ function UniversalDynamicTable({
 
                                     {/* Dealer Button — REMOVED for centering (position shown in scenario text) */}
 
+                                </motion.div>
+
                                     {/* Hero: face-up cards — CENTERED below badge */}
                                     {isHero && heroCards.length > 0 && (
                                         <div style={{
                                             display: 'flex',
                                             justifyContent: 'center',
                                             gap: 3,
-                                            marginTop: 4,
+                                            marginTop: 2,
                                             zIndex: 5,
                                         }}>
                                             {heroCards[0] && (
@@ -2092,7 +2094,7 @@ function UniversalDynamicTable({
                                             display: 'flex',
                                             justifyContent: 'center',
                                             gap: 2,
-                                            marginTop: 4,
+                                            marginTop: 2,
                                             zIndex: 1,
                                         }}>
                                             <div style={{
@@ -2124,7 +2126,6 @@ function UniversalDynamicTable({
                                         </div>
                                     )}
                                 </motion.div>
-                            </motion.div>
                         );
                     })}
                 </div>
@@ -3728,15 +3729,19 @@ const styles = {
         right: 0,
         bottom: 0,
         zIndex: 9999,
-        background: 'rgba(5,10,20,0.95)',
+        background: 'rgba(5,10,20,0.97)',
         backdropFilter: 'blur(8px)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'flex-start',
         gap: 8,
-        padding: '16px 20px',
+        padding: '24px 20px',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
+        maxWidth: 800,
+        marginLeft: 'auto',
+        marginRight: 'auto',
     },
 
     feedbackTopRow: {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '../../lib/supabase';
-import VenueCard from './VenueCard';
 
 // Dynamically import map to avoid SSR issues
 const VenueMapPanel = dynamic(() => import('./VenueMapPanel'), { ssr: false });
@@ -31,6 +30,27 @@ const renderSkeletons = (count = 4) => (
         `}</style>
     </div>
 );
+
+/**
+ * SOURCE BADGE: Shows the data source for a venue's live data.
+ * Bravo = real-time table counts. PokerAtlas = game catalog estimates.
+ */
+function SourceBadge({ source }) {
+    const isBravo = source === 'bravo';
+    return (
+        <span style={{
+            fontSize: 11,
+            color: isBravo ? 'rgba(239,68,68,0.9)' : 'rgba(88,166,255,0.9)',
+            background: isBravo ? 'rgba(239,68,68,0.15)' : 'rgba(88,166,255,0.15)',
+            padding: '2px 6px',
+            borderRadius: 4,
+            fontWeight: 800,
+            textTransform: 'uppercase',
+        }}>
+            {isBravo ? 'BRAVO LIVE' : 'POKERATLAS'}
+        </span>
+    );
+}
 
 export default function LiveGamesFeed({ 
     venues = [], 
@@ -75,10 +95,14 @@ export default function LiveGamesFeed({
                 (json.venues || []).forEach(v => {
                     const totalTables = v.games.reduce((acc, g) => acc + (g.tables_running || 0), 0);
                     const totalWait = v.games.reduce((acc, g) => acc + (g.players_waiting || 0), 0);
+                    // Determine primary source from games
+                    const sources = v.games.map(g => g.source).filter(Boolean);
+                    const primarySource = sources.includes('bravo') ? 'bravo' : (sources[0] || 'bravo');
                     mapping[v.bravo_slug] = {
                         ...v,
                         totalTables,
-                        totalWait
+                        totalWait,
+                        primarySource,
                     };
                 });
                 setLiveData(mapping);
@@ -126,35 +150,81 @@ export default function LiveGamesFeed({
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     };
 
+    /**
+     * CRITICAL FIX: Build venue list from LIVE DATA directly.
+     * 
+     * Previous bug: mergedVenues required parent `venues` to have `bravo_slug` field,
+     * but the `poker_venues` table has no `bravo_slug` column — so the merge always
+     * produced an empty array and "No Active Games Found" was always shown.
+     * 
+     * New approach: Build venue cards directly from liveData (which always has bravo_slug).
+     * Optionally enrich with parent venue data (lat/lng, trust_score) for distance/sorting
+     * by matching venue_name.
+     */
     const mergedVenues = useMemo(() => {
-        // Base is venues that actually possess live data right now
-        let list = venues.filter(v => v.bravo_slug && liveData[v.bravo_slug]);
-        
+        const liveEntries = Object.values(liveData);
+        if (liveEntries.length === 0) return [];
+
+        // Build a name→venue lookup from parent venues for enrichment
+        const venueByName = {};
+        const venueBySlug = {};
+        for (const v of venues) {
+            if (v.name) venueByName[v.name.toLowerCase()] = v;
+            if (v.bravo_slug) venueBySlug[v.bravo_slug] = v;
+        }
+
+        let list = liveEntries.map(liveEntry => {
+            // Try to find matching parent venue for enrichment (lat/lng, trust_score, state)
+            const parentVenue = venueBySlug[liveEntry.bravo_slug] 
+                || venueByName[(liveEntry.venue_name || '').toLowerCase()]
+                || null;
+            
+            return {
+                // Live data fields (always present)
+                bravo_slug: liveEntry.bravo_slug,
+                name: liveEntry.venue_name,
+                venue_name: liveEntry.venue_name,
+                totalTables: liveEntry.totalTables || 0,
+                totalWait: liveEntry.totalWait || 0,
+                games: liveEntry.games || [],
+                last_updated: liveEntry.last_updated,
+                primarySource: liveEntry.primarySource || 'bravo',
+                // Enrichment from parent venue (may be null)
+                id: parentVenue?.id || liveEntry.bravo_slug,
+                latitude: parentVenue?.latitude || null,
+                longitude: parentVenue?.longitude || null,
+                state: parentVenue?.state || null,
+                city: parentVenue?.city || null,
+                trust_score: parentVenue?.trust_score || 0,
+                address: parentVenue?.address || '',
+                _hasParentVenue: !!parentVenue,
+            };
+        });
+
         // Single venue override
         if (selectedVenue) {
-            return list.filter(v => v.id === selectedVenue.id);
+            const selectedSlug = selectedVenue.bravo_slug || selectedVenue.id;
+            return list.filter(v => v.bravo_slug === selectedSlug || v.id === selectedVenue.id);
         }
-        
-        // 1. Filter by State
+
+        // 1. Filter by State (only if venue has state from enrichment)
         if (filterState !== 'all') {
             list = list.filter(v => v.state === filterState);
         }
-        
-        // 2. Filter by Distance
+
+        // 2. Filter by Distance (only works if we have lat/lng from enrichment)
         if (userLocation && filterRadius !== 'any') {
-            list = list.filter(v => calcDist(v) <= Number(filterRadius));
+            list = list.filter(v => {
+                if (!v.latitude || !v.longitude) return true; // Keep venues without coords
+                return calcDist(v) <= Number(filterRadius);
+            });
         }
-        
+
         // 3. Sort
         list.sort((a, b) => {
             if (filterSort === 'tables') {
-                const tablesA = liveData[a.bravo_slug]?.totalTables || 0;
-                const tablesB = liveData[b.bravo_slug]?.totalTables || 0;
-                if (tablesB !== tablesA) return tablesB - tablesA; // primary descending
-                // Tie breaker: waitlist descending
-                const waitA = liveData[a.bravo_slug]?.totalWait || 0;
-                const waitB = liveData[b.bravo_slug]?.totalWait || 0;
-                return waitB - waitA;
+                if (b.totalTables !== a.totalTables) return b.totalTables - a.totalTables;
+                return b.totalWait - a.totalWait;
             }
             if (filterSort === 'distance') {
                 return calcDist(a) - calcDist(b);
@@ -164,7 +234,7 @@ export default function LiveGamesFeed({
             }
             return 0;
         });
-        
+
         return list;
     }, [venues, liveData, filterState, filterRadius, filterSort, userLocation, selectedVenue]);
 
@@ -173,10 +243,16 @@ export default function LiveGamesFeed({
         setSearchQuery(value);
         if (value.trim().length >= 2) {
             const q = value.trim().toLowerCase();
-            const matches = venues
-                .filter(v => v.bravo_slug && liveData[v.bravo_slug])
-                .filter(v => (v.name || '').toLowerCase().includes(q))
-                .slice(0, 8);
+            // Search against live data venue names (always populated)
+            const matches = Object.values(liveData)
+                .filter(v => (v.venue_name || '').toLowerCase().includes(q))
+                .slice(0, 8)
+                .map(v => ({
+                    id: v.bravo_slug,
+                    bravo_slug: v.bravo_slug,
+                    name: v.venue_name,
+                    totalTables: v.totalTables || 0,
+                }));
             setSearchSuggestions(matches);
             setShowSuggestions(matches.length > 0);
         } else {
@@ -203,11 +279,15 @@ export default function LiveGamesFeed({
         const data = liveData[venueSlug];
         if (!data || !data.games || data.games.length === 0) return null;
         
+        // Determine primary source for badge
+        const sources = data.games.map(g => g.source).filter(Boolean);
+        const primarySource = sources.includes('bravo') ? 'bravo' : (sources[0] || 'bravo');
+
         return (
             <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 6 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#e0e8f0' }}>Live Tables Breakdown</span>
-                    <span style={{ fontSize: 11, color: 'rgba(239,68,68,0.9)', background: 'rgba(239,68,68,0.15)', padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>BRAVO</span>
+                    <SourceBadge source={primarySource} />
                 </div>
                 {data.games.map((g, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, fontSize: 12 }}>
@@ -222,13 +302,98 @@ export default function LiveGamesFeed({
         );
     };
 
+    /**
+     * Render a live venue card directly from live data.
+     * Does not require a parent VenueCard component — renders its own card
+     * to ensure live data always displays regardless of poker_venues FK status.
+     */
+    const renderLiveVenueCard = (v) => {
+        const dist = calcDist(v);
+        return (
+            <div key={v.bravo_slug} style={{ position: 'relative' }}>
+                {/* Distance Badge */}
+                {userLocation && v.latitude && dist < 99999 && (
+                    <div style={{ position: 'absolute', top: -8, left: 16, zIndex: 10, padding: '2px 8px', borderRadius: 8, background: '#1f2937', border: '1px solid #3fb950', fontSize: 10, fontWeight: 800, color: '#3fb950', boxShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                        {dist < 1 ? `${(dist * 5280).toFixed(0)} ft` : `${dist.toFixed(1)} mi`} away
+                    </div>
+                )}
+                
+                {/* Live Games Summary Badge */}
+                <div style={{ position: 'absolute', top: -8, right: 16, zIndex: 10, padding: '2px 8px', borderRadius: 8, background: '#1f2937', border: '1px solid #ef4444', fontSize: 10, fontWeight: 800, color: '#ef4444', boxShadow: '0 2px 4px rgba(0,0,0,0.5)', display: 'flex', gap: 6 }}>
+                    <span>{v.totalTables} RUNNING</span>
+                    {v.totalWait > 0 && <span style={{ color: '#d4a853' }}>| {v.totalWait} WAIT</span>}
+                </div>
+
+                {/* Venue Card */}
+                <div style={{ 
+                    background: 'rgba(13,17,23,0.95)', 
+                    border: '1px solid rgba(48,54,61,0.8)', 
+                    borderRadius: 16, 
+                    overflow: 'hidden', 
+                    padding: '16px',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                }}>
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                        <div style={{ flex: 1 }}>
+                            <h3 style={{ 
+                                fontSize: 16, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px',
+                                cursor: v._hasParentVenue && router ? 'pointer' : 'default',
+                            }}
+                                onClick={() => {
+                                    if (v._hasParentVenue && router) {
+                                        router.push(`/hub/venues/${v.id}`);
+                                    }
+                                }}
+                            >
+                                {v.name}
+                            </h3>
+                            {(v.city || v.state) && (
+                                <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)' }}>
+                                    {[v.city, v.state].filter(Boolean).join(', ')}
+                                </div>
+                            )}
+                        </div>
+                        <SourceBadge source={v.primarySource} />
+                    </div>
+
+                    {/* Live Games Stats */}
+                    <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 22, fontWeight: 800, color: '#3fb950' }}>{v.totalTables}</div>
+                            <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tables</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 22, fontWeight: 800, color: v.totalWait > 0 ? '#d4a853' : 'rgba(200,214,229,0.3)' }}>{v.totalWait}</div>
+                            <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Waiting</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 22, fontWeight: 800, color: '#58a6ff' }}>{v.games?.length || 0}</div>
+                            <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Games</div>
+                        </div>
+                    </div>
+
+                    {/* Game Breakdown */}
+                    {renderTableBreakdown(v.bravo_slug)}
+
+                    {/* Last Updated */}
+                    {v.last_updated && (
+                        <div style={{ marginTop: 8, fontSize: 10, color: 'rgba(200,214,229,0.3)', textAlign: 'right' }}>
+                            Updated {new Date(v.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div style={{ padding: '0 16px 40px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <div>
                     <h2 style={{ fontSize: 20, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>Live Games</h2>
                     <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.5)', margin: 0 }}>
-                        Powered by Bravo Poker Live. Find active games instantly.
+                        Powered by Bravo Poker Live + PokerAtlas. Find active games instantly.
                     </p>
                 </div>
                 <button 
@@ -289,12 +454,12 @@ export default function LiveGamesFeed({
                             overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)'
                         }}>
                             {searchSuggestions.map((v, i) => (
-                                <div key={v.id} onClick={() => handleSelectSuggestion(v)} style={{
+                                <div key={v.bravo_slug || v.id} onClick={() => handleSelectSuggestion(v)} style={{
                                     padding: '12px 14px', borderBottom: i < searchSuggestions.length - 1 ? '1px solid rgba(48,54,61,0.5)' : 'none',
                                     cursor: 'pointer', color: '#fff', fontSize: 14, fontWeight: 600, display: 'flex', justifyContent: 'space-between'
                                 }}>
                                     <span>{v.name}</span>
-                                    <span style={{ fontSize: 12, color: '#d4a853' }}>{liveData[v.bravo_slug]?.totalTables || 0} tables</span>
+                                    <span style={{ fontSize: 12, color: '#d4a853' }}>{v.totalTables || 0} tables</span>
                                 </div>
                             ))}
                         </div>
@@ -321,7 +486,7 @@ export default function LiveGamesFeed({
                             background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '6px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer'
                         }}>
                             <option value="all">All States</option>
-                            {['AL','AK','AZ','CA','CO','CT','FL','IL','IN','IA','LA','MD','MA','MI','MS','MO','NV','NH','NJ','NM','NY','NC','OH','OK','OR','PA','RD','SD','TX','WA','WV'].map(st => (
+                            {['AL','AK','AZ','CA','CO','CT','FL','GA','IL','IN','IA','KS','LA','MD','MA','MI','MN','MS','MO','MT','NV','NH','NJ','NM','NY','NC','OH','OK','OR','PA','RI','SD','TN','TX','VA','WA','WV','WI'].map(st => (
                                 <option key={st} value={st}>{st}</option>
                             ))}
                         </select>
@@ -359,7 +524,7 @@ export default function LiveGamesFeed({
                             <span style={{ fontSize: 13, color: '#e0e8f0', fontWeight: 600 }}>
                                 <span style={{ color: '#ef4444' }}>{mergedVenues.length}</span> live venues matching filters
                             </span>
-                            <button onClick={fetchGlobalLiveData} style={{ background: 'none', border: 'none', color: '#58a6ff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Refresh</button>
+                            <button onClick={() => fetchGlobalLiveData(true)} style={{ background: 'none', border: 'none', color: '#58a6ff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Refresh</button>
                         </div>
                     )}
 
@@ -374,49 +539,13 @@ export default function LiveGamesFeed({
                     ) : (
                         viewMode === 'map' && !selectedVenue ? (
                             <VenueMapPanel 
-                                venues={mergedVenues} 
+                                venues={mergedVenues.filter(v => v.latitude && v.longitude)} 
                                 userLocation={userLocation} 
-                                onVenueSelect={(v) => { if(setSelectedVenueForReview) setSelectedVenueForReview(null); router.push(`/hub/venues/${v.id}`); }} 
+                                onVenueSelect={(v) => { if(setSelectedVenueForReview) setSelectedVenueForReview(null); if (router) router.push(`/hub/venues/${v.id}`); }} 
                             />
                         ) : (
                             <div style={{ display: 'grid', gap: 16, paddingBottom: 24 }}>
-                                {mergedVenues.slice(0, 50).map(v => {
-                                    const dist = calcDist(v);
-                                    const tables = liveData[v.bravo_slug]?.totalTables || 0;
-                                    const wait = liveData[v.bravo_slug]?.totalWait || 0;
-
-                                    return (
-                                        <div key={v.id} style={{ position: 'relative' }}>
-                                            {/* Distance Badge */}
-                                            {userLocation && dist < 99999 && (
-                                                <div style={{ position: 'absolute', top: -8, left: 16, zIndex: 10, padding: '2px 8px', borderRadius: 8, background: '#1f2937', border: '1px solid #3fb950', fontSize: 10, fontWeight: 800, color: '#3fb950', boxShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                                                    {dist < 1 ? `${(dist * 5280).toFixed(0)} ft` : `${dist.toFixed(1)} mi`} away
-                                                </div>
-                                            )}
-                                            
-                                            {/* Live Games Summary Badge */}
-                                            <div style={{ position: 'absolute', top: -8, right: 16, zIndex: 10, padding: '2px 8px', borderRadius: 8, background: '#1f2937', border: '1px solid #ef4444', fontSize: 10, fontWeight: 800, color: '#ef4444', boxShadow: '0 2px 4px rgba(0,0,0,0.5)', display: 'flex', gap: 6 }}>
-                                                <span>{tables} RUNNING</span>
-                                                {wait > 0 && <span style={{ color: '#d4a853' }}>| {wait} WAIT</span>}
-                                            </div>
-
-                                            <div style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 16, overflow: 'hidden', padding: 2 }}>
-                                                <VenueCard 
-                                                    venue={v} 
-                                                    isFavorited={!!favorites[v.id]}
-                                                    onFavorite={(e) => { e?.stopPropagation(); if(handleToggleFavorite) handleToggleFavorite(v.id, v); }}
-                                                    onNavigate={(url) => { if (url.includes('action=review')) { if(setSelectedVenueForReview) setSelectedVenueForReview({ id: v.id, name: v.name }); } else { if(router) router.push(url); } }}
-                                                    userLocation={userLocation} 
-                                                    checkinCount={checkinCounts[String(v.id)] || 0} 
-                                                />
-                                                {/* Injected Live Games Breakdown inside VenueCard parent wrapper */}
-                                                <div style={{ padding: '0 12px 12px' }}>
-                                                    {renderTableBreakdown(v.bravo_slug)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                {mergedVenues.slice(0, 50).map(v => renderLiveVenueCard(v))}
                             </div>
                         )
                     )}

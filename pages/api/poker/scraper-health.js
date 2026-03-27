@@ -63,14 +63,18 @@ export default async function handler(req, res) {
       const lastScrape = new Date(data[0].scrape_timestamp);
       const minutesAgo = Math.round((now - lastScrape) / 60000);
 
-      // Count records and unique venues
-      const { data: countData } = await supabase
+      // Count records efficiently (single query instead of fetching all rows)
+      const { count: records } = await supabase
+        .from('venue_live_tables')
+        .select('id', { count: 'exact', head: true })
+        .eq('source', source);
+
+      // Count unique venues
+      const { data: venueNames } = await supabase
         .from('venue_live_tables')
         .select('venue_name')
         .eq('source', source);
-
-      const records = countData ? countData.length : 0;
-      const venues = countData ? new Set(countData.map(r => r.venue_name)).size : 0;
+      const venues = venueNames ? new Set(venueNames.map(r => r.venue_name)).size : 0;
 
       let status = 'healthy';
       if (minutesAgo > 60) {
