@@ -177,6 +177,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
             if (reactionTimer.current) clearTimeout(reactionTimer.current);
             if (longPressTimer.current) clearTimeout(longPressTimer.current);
             if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            if (doubleTapTimer.current) clearTimeout(doubleTapTimer.current);
         };
     }, []);
 
