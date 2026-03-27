@@ -862,15 +862,15 @@ function EVLossTicker({ totalEVLoss, show }) {
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             style={{
                 position: 'absolute',
-                top: 8,
-                right: 12,
-                fontSize: 11,
+                top: 4,
+                right: 4,
+                fontSize: 9,
                 fontWeight: 700,
                 fontFamily: "'Inter', monospace",
                 color: evColor,
-                background: 'rgba(0,0,0,0.5)',
-                padding: '4px 10px',
-                borderRadius: 6,
+                background: 'rgba(0,0,0,0.6)',
+                padding: '2px 6px',
+                borderRadius: 4,
                 border: `1px solid ${evColor}33`,
                 zIndex: 50,
                 letterSpacing: 0.5,
@@ -1546,7 +1546,6 @@ function UniversalDynamicTable({
             ...styles.actionButton,
             ...m.actionButton,
             background: colors.bg,
-            borderBottom: `4px solid ${colors.border}`,
             color: colors.text,
         };
 
@@ -1981,29 +1980,7 @@ function UniversalDynamicTable({
                                         {stackSize} bb
                                     </div>
 
-                                    {/* Dealer Button — Absolute LEFT of badge */}
-                                    {isButton && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            left: -14,
-                                            top: '50%',
-                                            transform: 'translate(-100%, -50%)',
-                                            width: 22,
-                                            height: 22,
-                                            borderRadius: '50%',
-                                            background: 'linear-gradient(180deg, #ffffff 0%, #e8e0c8 100%)',
-                                            color: '#1a1a1a',
-                                            fontWeight: 900,
-                                            fontSize: 10,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
-                                            border: '2px solid #333',
-                                        }}>
-                                            D
-                                        </div>
-                                    )}
+                                    {/* Dealer Button — REMOVED for centering (position shown in scenario text) */}
 
                                     {/* Hero: face-up cards — RIGHT of badge (same layout as villain) */}
                                     {isHero && heroCards.length > 0 && (
@@ -2054,7 +2031,7 @@ function UniversalDynamicTable({
                                         </div>
                                     )}
 
-                                    {/* Villain: face-down cards — Absolute RIGHT of badge */}
+                                    {/* Villain: face-down cards — CSS-styled card backs */}
                                     {!isHero && !villainFolded && (
                                         <div style={{
                                             position: 'absolute',
@@ -2065,17 +2042,33 @@ function UniversalDynamicTable({
                                             gap: 1,
                                             zIndex: 1,
                                         }}>
-                                            <img src="/cards/back.png" alt="" style={{
-                                                width: isMobile ? 18 : 22, height: isMobile ? 26 : 32, borderRadius: 3,
-                                                boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
-                                                opacity: 0.7,
-                                            }} />
-                                            <img src="/cards/back.png" alt="" style={{
-                                                width: isMobile ? 18 : 22, height: isMobile ? 26 : 32, borderRadius: 3,
-                                                marginLeft: -8,
-                                                boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
-                                                opacity: 0.7,
-                                            }} />
+                                            <div style={{
+                                                width: 28, height: 40, borderRadius: 4,
+                                                background: 'linear-gradient(135deg, #8B0000 0%, #B22222 50%, #8B0000 100%)',
+                                                border: '2px solid #FFD700',
+                                                boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}>
+                                                <div style={{
+                                                    width: 16, height: 28, borderRadius: 2,
+                                                    border: '1px solid rgba(255,215,0,0.4)',
+                                                    background: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,215,0,0.1) 3px, rgba(255,215,0,0.1) 6px)',
+                                                }} />
+                                            </div>
+                                            <div style={{
+                                                width: 28, height: 40, borderRadius: 4,
+                                                marginLeft: -10,
+                                                background: 'linear-gradient(135deg, #8B0000 0%, #B22222 50%, #8B0000 100%)',
+                                                border: '2px solid #FFD700',
+                                                boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}>
+                                                <div style={{
+                                                    width: 16, height: 28, borderRadius: 2,
+                                                    border: '1px solid rgba(255,215,0,0.4)',
+                                                    background: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,215,0,0.1) 3px, rgba(255,215,0,0.1) 6px)',
+                                                }} />
+                                            </div>
                                         </div>
                                     )}
                                 </motion.div>
