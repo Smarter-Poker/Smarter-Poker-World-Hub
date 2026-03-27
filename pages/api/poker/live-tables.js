@@ -1,7 +1,7 @@
 /**
  * API: /api/poker/live-tables
- * Returns live table data from Bravo Poker Live.
- * Data is refreshed every 15 minutes by the autonomous daemon.
+ * Returns live table data from Bravo Poker Live + PokerAtlas.
+ * Data is refreshed every 15 minutes by autonomous daemons.
  *
  * Query params:
  *   ?venue=slug       — Filter by specific bravo_slug
@@ -90,6 +90,7 @@ export default async function handler(req, res) {
         game: row.game_name,
         tables_running: row.tables_running,
         players_waiting: row.players_waiting,
+        source: row.source || 'bravo',
       });
     }
 
@@ -108,7 +109,7 @@ export default async function handler(req, res) {
         venues_with_live_data: venues.length,
         total_tables_running: totalTables,
         total_players_waiting: totalWaiting,
-        data_source: 'Bravo Poker Live',
+        data_source: 'Bravo Poker Live + PokerAtlas',
         refresh_interval: '15 minutes',
         last_scrape: data?.[0]?.scrape_timestamp || null,
       },

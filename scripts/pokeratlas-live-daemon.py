@@ -482,6 +482,8 @@ def run_scrape_cycle(mgr):
 
     payload = []
     for venue_data in all_venues:
+        # Generate unique slug per venue (not per region!)
+        venue_slug = re.sub(r'[^a-z0-9]+', '-', venue_data['venue_name'].lower()).strip('-')
         for game in venue_data['games']:
             record = {
                 'venue_name': venue_data['venue_name'],
@@ -493,7 +495,7 @@ def run_scrape_cycle(mgr):
                 'scrape_batch_id': batch_id,
                 'data_quality': 'scraped_verified',
                 'source': 'pokeratlas',
-                'bravo_slug': f'pa-{venue_data["region_slug"]}',
+                'bravo_slug': f'pa-{venue_slug}',
             }
             payload.append(record)
 
