@@ -1,14 +1,14 @@
 {
   "metadata": {
-    "batch_id": "513d66e6-74f7-4a41-a10f-04dd26a95411",
-    "scrape_timestamp": "2026-03-27T18:56:34.369969+00:00",
+    "batch_id": "c21b7c4b-b5dc-42ec-b41e-502dcc9e9432",
+    "scrape_timestamp": "2026-03-27T19:19:48.726759+00:00",
     "source": "pokeratlas",
     "regions_scraped": 11,
     "venues_with_data": 149,
     "regions_skipped": 0,
     "total_records_saved": 729,
     "errors": 0,
-    "duration_seconds": 449.966272
+    "duration_seconds": 307.795063
   },
   "venues": [
     {

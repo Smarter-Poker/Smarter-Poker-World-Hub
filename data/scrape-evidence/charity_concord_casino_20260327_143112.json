@@ -1,0 +1,66 @@
+{
+  "scrape_url": "https://concordnhcasino.com",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T19:31:12.441360+00:00",
+  "scrape_html_hash": "14c7e1f037237253181fd2708f1f97a41744413c4069de689bd34b9d578038f4",
+  "scrape_byte_count": 154841,
+  "scrape_batch_id": "b96114ae-45ba-4fb0-be47-24aba5a9103f",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "Concord Casino",
+  "extracted_data": {
+    "org_name": "Concord Casino",
+    "page_title": "Concord NH Casino in Concord, New Hampshire",
+    "state": "NH",
+    "region": "Concord",
+    "org_type": "venue",
+    "json_ld": {
+      "address": "67 S Main St",
+      "city": "Concord",
+      "state": "NH",
+      "zip": "03301",
+      "phone": "",
+      "website": "concordnhcasino.com",
+      "latitude": 43.2005,
+      "longitude": -71.53319,
+      "name": "Concord NH Casino"
+    },
+    "venues_discovered": [
+      {
+        "address": "67 S Main St",
+        "city": "Concord",
+        "state": "NH",
+        "zip": "",
+        "org": "Concord Casino",
+        "source_url": "https://concordnhcasino.com"
+      },
+      {
+        "address": "67 S Main St",
+        "city": "Concord",
+        "state": "NH",
+        "zip": "",
+        "org": "Concord Casino",
+        "source_url": "https://concordnhcasino.com"
+      },
+      {
+        "address": "3 Card",
+        "city": "Poker",
+        "state": "NE",
+        "zip": "",
+        "org": "Concord Casino",
+        "source_url": "https://concordnhcasino.com"
+      },
+      {
+        "address": "67 S Main St",
+        "city": "reet",
+        "state": "CO",
+        "zip": "",
+        "org": "Concord Casino",
+        "source_url": "https://concordnhcasino.com"
+      }
+    ],
+    "schedules": [],
+    "ld_raw_count": 1
+  },
+  "venues_found": 4,
+  "body_preview": "<!DOCTYPE html><html lang=\"en-US\"><head><link rel=\"icon\" href=\"//img1.wsimg.com/isteam/ip/963e0e0e-c32e-4432-a715-3db3c4ca3ac2/favicon/ab844bc6-be3d-4bd8-a16f-5cd1d3d051cd.png/:/rs=w:16,h:16,m\" sizes=\"16x16\"><link rel=\"icon\" href=\"//img1.wsimg.com/isteam/ip/963e0e0e-c32e-4432-a715-3db3c4ca3ac2/favicon/ab844bc6-be3d-4bd8-a16f-5cd1d3d051cd.png/:/rs=w:24,h:24,m\" sizes=\"24x24\"><link rel=\"icon\" href=\"//img1.wsimg.com/isteam/ip/963e0e0e-c32e-4432-a715-3db3c4ca3ac2/favicon/ab844bc6-be3d-4bd8-a16f-5cd1d"
+}

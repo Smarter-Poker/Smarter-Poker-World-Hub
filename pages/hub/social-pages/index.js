@@ -13,13 +13,10 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import { SOCIAL_COLORS, timeAgo } from '../../../src/lib/socialHelpers';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
-const C = {
-    bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
-    border: '#DADDE1', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A',
-    red: '#FA383E', orange: '#F5A623',
-};
+const C = SOCIAL_COLORS;
 
 const TABS = [
     { key: 'discover', label: 'Discover' },
@@ -35,14 +32,7 @@ const TYPE_FILTERS = [
     { key: 'brand', label: 'Brands' },
 ];
 
-const timeAgo = (d) => {
-    if (!d) return '';
-    const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
-    if (s < 60) return 'Just now';
-    if (s < 3600) return `${Math.floor(s / 60)}m`;
-    if (s < 86400) return `${Math.floor(s / 3600)}h`;
-    return `${Math.floor(s / 86400)}d`;
-};
+
 
 function PageCard({ page, isFollowing, onFollow, onView, followBusy }) {
     const typeLabel = { venue: 'Venue', group: 'Group', community: 'Community', brand: 'Brand' };

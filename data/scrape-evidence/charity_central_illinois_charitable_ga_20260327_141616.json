@@ -1,0 +1,32 @@
+{
+  "scrape_url": "https://centralillinoischaritablegames.com",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-27T19:16:16.344419+00:00",
+  "scrape_html_hash": "a0ad13dd21302cec125e31bc8dfde29b2a87577545c9f4fe087e0461ca65749f",
+  "scrape_byte_count": 73545,
+  "scrape_batch_id": "b96114ae-45ba-4fb0-be47-24aba5a9103f",
+  "scrape_script": "scripts/scrape_charity_poker.py",
+  "org_name": "Central Illinois Charitable Games (CICG Poker)",
+  "extracted_data": {
+    "org_name": "Central Illinois Charitable Games (CICG Poker)",
+    "page_title": "CICG poker ~ Central Illinois Charitable Games-Live Charity Poker Events in Central Illinois",
+    "state": "IL",
+    "region": "Central Illinois",
+    "org_type": "operator",
+    "json_ld": {},
+    "venues_discovered": [
+      {
+        "address": "20 for charity poker tournaments. Central Illinois Area Poker Players can also pl",
+        "city": "ay several types of live poker cash ring games including Texas Holdem",
+        "state": "OM",
+        "zip": "",
+        "org": "Central Illinois Charitable Games (CICG Poker)",
+        "source_url": "https://centralillinoischaritablegames.com"
+      }
+    ],
+    "schedules": [],
+    "ld_raw_count": 0
+  },
+  "venues_found": 1,
+  "body_preview": "<!DOCTYPE html><html lang=\"en\" class=\"js\"><head>\n\t<meta charset=\"UTF-8\">\n<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n\t<link rel=\"pingback\" href=\"https://centralillinoischaritablegames.com/xmlrpc.php\">\n\n\t<script type=\"text/javascript\">\n\t\tdocument.documentElement.className = 'js';\n\t</script>\n\n\t<script>var et_site_url='https://centralillinoischaritablegames.com';var et_post_id='36';function et_core_page_resource_fallback(a,b){\"undefined\"===typeof b&&(b=a.sheet.cssRules&&0===a.sheet.cssRul"
+}
