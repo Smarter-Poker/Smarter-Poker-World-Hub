@@ -1052,7 +1052,6 @@ export default function ReelsPage() {
                 });
             }
             if (e.key === 'l' || e.key === 'L') { handleLikeRef.current?.(); haptic(15); }
-            if (e.key === 'd' || e.key === 'D') { handleDislikeRef.current?.(); haptic(10); }
             if (e.key === 's' || e.key === 'S') handleSaveRef.current?.();
             if (e.key === 'c' || e.key === 'C') handleCommentRef.current?.();
             if (e.key === '?') setShowShortcutsOverlay(prev => !prev);
@@ -1913,8 +1912,7 @@ export default function ReelsPage() {
                             {[
                                 ['↑ / ↓', 'Previous / Next Reel'],
                                 ['← / →', 'Previous / Next Reel'],
-                                ['L', 'Like'],
-                                ['D', 'Dislike'],
+                                ['L', 'Like / Heart'],
                                 ['S', 'Save / Bookmark'],
                                 ['C', 'Comments'],
                                 ['M', 'Mute / Unmute'],

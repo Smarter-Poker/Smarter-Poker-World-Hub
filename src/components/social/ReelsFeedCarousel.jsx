@@ -997,7 +997,6 @@ function ReelViewer({ reels, startIndex, onClose }) {
                 });
             }
             if (e.key === 'l' || e.key === 'L') { handleLikeRef.current?.(); haptic(15); }
-            if (e.key === 'd' || e.key === 'D') { handleDislikeRef.current?.(); haptic(10); }
             if (e.key === 's' || e.key === 'S') handleSaveRef.current?.();
             if (e.key === 'c' || e.key === 'C') handleCommentsRef.current?.();
             if (e.key === '?') setShowShortcutsOverlay(prev => !prev);
@@ -1447,8 +1446,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                             {[
                                 ['↑ / ↓', 'Previous / Next Reel'],
                                 ['← / →', 'Previous / Next Reel'],
-                                ['L', 'Like'],
-                                ['D', 'Dislike'],
+                                ['L', 'Like / Heart'],
                                 ['S', 'Save / Bookmark'],
                                 ['C', 'Comments'],
                                 ['M', 'Mute / Unmute'],
@@ -1560,15 +1558,13 @@ function ReelViewer({ reels, startIndex, onClose }) {
                         0% { height: 2px; }
                         100% { height: var(--max-h, 10px); }
                     }
+                    @keyframes fadeInScale {
+                        from { opacity: 0; transform: scale(0.85); }
+                        to { opacity: 1; transform: scale(1); }
+                    }
                 `}</style>
 
-                {/* Counter */}
-                <div style={{
-                    position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
-                    color: 'rgba(255,255,255,0.7)', fontSize: 12,
-                }}>
-                    {currentIndex + 1} / {reels.length}
-                </div>
+
 
                 {/* Comment drawer */}
                 {showComments && (

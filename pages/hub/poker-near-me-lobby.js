@@ -431,6 +431,7 @@ export default function PokerNearMeLobby() {
   const [fetchError, setFetchError] = useState(null);
   const [searchHistory, setSearchHistory] = useState([]);
   const [preferences, setPreferences] = useState({ geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true });
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [globalLeaders, setGlobalLeaders] = useState([]);
 
   // ─── Data State ───
@@ -644,12 +645,17 @@ export default function PokerNearMeLobby() {
 
   // ─── Fetch user preferences ───
   const fetchPreferences = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setPrefsLoaded(true); // No user — use defaults, allow auto-prompt
+      return;
+    }
     try {
       const prefs = await getPokerNearMePreferences(userId);
       setPreferences(prefs);
     } catch (err) {
       console.error('Failed to fetch preferences:', err);
+    } finally {
+      setPrefsLoaded(true);
     }
   }, [userId]);
 
@@ -965,6 +971,7 @@ export default function PokerNearMeLobby() {
   // ─── Auto-prompt GPS on first visit / silently re-enable if previously accepted ───
   const gpsAutoRef = useRef(false);
   useEffect(() => {
+    if (!prefsLoaded) return; // Wait for real preferences from Supabase before deciding
     if (gpsAutoRef.current || gpsActive) return;
     gpsAutoRef.current = true;
 
@@ -1047,7 +1054,7 @@ export default function PokerNearMeLobby() {
         { enableHighAccuracy: true, timeout: 8000 }
       );
     }
-  }, [preferences?.locationEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [prefsLoaded, preferences?.locationEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Manual Location Set ───
   const handleManualLocationSet = useCallback(async () => {
