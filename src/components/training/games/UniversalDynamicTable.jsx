@@ -2155,25 +2155,8 @@ function UniversalDynamicTable({
                 {/* Street indicator removed — already shown in header */}
             </div>
 
-            {/* Hand Strength indicator (cards now inline in seat) */}
-            {handStrength && !showFeedback && (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0', flexShrink: 0 }}>
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        style={{
-                            fontSize: 10, fontWeight: 'bold',
-                            color: handStrength.color,
-                            background: `${handStrength.color}15`,
-                            border: `1px solid ${handStrength.color}33`,
-                            padding: '2px 10px', borderRadius: 6,
-                            letterSpacing: 0.5,
-                        }}
-                    >
-                        {handStrength.label}
-                    </motion.div>
-                </div>
-            )}
+            {/* Hand Strength indicator — hidden when hero cards are giant */}
+            {/* (Removed to prevent collision with the large hero focal cards) */}
 
             {/* SESSION STATS HUD — Score, EV Loss, Mistakes + Difficulty Bar */}
             <div style={styles.statsHUD}>
@@ -3225,7 +3208,7 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: 280,
-        padding: '12px 16px 8px 16px',
+        padding: '28px 16px 80px 16px',
     },
 
     // ── NEW CUSTOM STANDALONE RACETRACK TABLE — vw-based for uniform scaling
@@ -3382,25 +3365,25 @@ const styles = {
 
     boardCards: {
         position: 'absolute',
-        top: '50%',
+        top: '45%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
         display: 'flex',
-        gap: 8,
+        gap: 4,
         zIndex: 3,
     },
 
     boardCard: {
-        width: 60,
-        height: 86,
-        borderRadius: 6,
-        boxShadow: '0 6px 24px rgba(0,0,0,0.6)',
+        width: 40,
+        height: 58,
+        borderRadius: 4,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
         border: '1px solid rgba(255,255,255,0.15)',
     },
 
     pot: {
         position: 'absolute',
-        top: '36%',
+        top: '28%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
         color: '#e2e8f0',
