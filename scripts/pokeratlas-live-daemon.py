@@ -38,6 +38,7 @@ SUPABASE_KEY = os.environ.get('SUPABASE_KEY',
 SCRAPE_INTERVAL = 900  # 15 minutes (offset 7min from Bravo via launchd start)
 RATE_LIMIT_DELAY = 1.0  # seconds between region page fetches
 MAX_RETRIES = 3
+CIRCUIT_BREAKER_THRESHOLD = 10 # Abort cycle + reconnect if this many consecutive regions fail
 
 # Directories
 LOG_DIR = BASE_DIR / 'data' / 'pokeratlas-logs'
@@ -394,9 +395,12 @@ class PokerAtlasSessionManager:
             err_msg = str(e)
             self.consecutive_fetch_failures += 1
 
-            # CRASH RECOVERY: Detect dead browser context
+            # CRASH RECOVERY: Detect dead browser context OR persistent timeouts
             if 'has been closed' in err_msg or 'Target page' in err_msg:
                 log.warning(f'  🔴 Browser context dead — marking for reconnection')
+                self._session_dead = True
+            elif ('Timeout' in err_msg or 'timed out' in err_msg.lower()) and self.consecutive_fetch_failures >= CIRCUIT_BREAKER_THRESHOLD:
+                log.warning(f'  🔴 {self.consecutive_fetch_failures} consecutive fetch timeouts — browser is zombie, marking dead')
                 self._session_dead = True
 
             log.warning(f'  ❌ Fetch error: {e}')
@@ -481,15 +485,25 @@ def run_scrape_cycle(mgr):
     errors = 0
     skipped = 0
 
+    consecutive_region_failures = 0
     for i, slug in enumerate(regions):
+        # CIRCUIT BREAKER: abort cycle if too many consecutive failures
+        if consecutive_region_failures >= CIRCUIT_BREAKER_THRESHOLD:
+            log.error(f'🔴 CIRCUIT BREAKER: {consecutive_region_failures} consecutive failures — aborting cycle, forcing reconnect')
+            mgr._session_dead = True
+            break
+
         url = f'https://www.pokeratlas.com/poker-cash-games/{slug}'
         html = mgr.fetch_page(url, expected_slug=slug)
 
         if html is None:
             errors += 1
+            consecutive_region_failures += 1
             if errors <= 3:
                 log.info(f'  [{i+1}/{len(regions)}] ❌ {slug[:30]:30} | failed')
             continue
+
+        consecutive_region_failures = 0  # Reset on success
 
         venues, rhash, now = extract_games_from_region(html, slug)
 

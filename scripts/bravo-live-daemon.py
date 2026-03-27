@@ -67,6 +67,7 @@ VENUE_TIMEOUT = 10000          # 10s per venue page load
 LOGIN_TIMEOUT = 15000          # 15s for login flow
 RATE_LIMIT_DELAY = 0.5         # 0.5s between venues
 HEALTH_CHECK_INTERVAL = 3      # Health-check every N cycles
+CIRCUIT_BREAKER_THRESHOLD = 10 # Abort cycle + reconnect if this many consecutive venues fail
 BASE_DIR = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub')
 LOG_DIR = BASE_DIR / 'data' / 'bravo-logs'
 EVIDENCE_DIR = BASE_DIR / 'data' / 'scrape-evidence'
@@ -450,9 +451,12 @@ class BravoSessionManager:
             err_msg = str(e)
             self.consecutive_nav_failures += 1
 
-            # CRASH RECOVERY: Detect dead browser context
+            # CRASH RECOVERY: Detect dead browser context OR persistent timeouts
             if 'has been closed' in err_msg or 'Target page' in err_msg:
                 log.warning(f'  🔴 Browser context dead — marking for reconnection')
+                self._session_dead = True
+            elif 'Timeout' in err_msg and self.consecutive_nav_failures >= CIRCUIT_BREAKER_THRESHOLD:
+                log.warning(f'  🔴 {self.consecutive_nav_failures} consecutive timeouts — browser is zombie, marking dead')
                 self._session_dead = True
 
             log.warning(f'  ❌ Navigate error on {slug}: {e}')
@@ -510,11 +514,21 @@ def run_scrape_cycle(mgr):
     errors = 0
     skipped = 0
 
+    consecutive_venue_failures = 0
     for i, slug in enumerate(slugs):
+        # CIRCUIT BREAKER: If too many consecutive venues fail, abort cycle and reconnect
+        if consecutive_venue_failures >= CIRCUIT_BREAKER_THRESHOLD:
+            log.error(f'🔴 CIRCUIT BREAKER: {consecutive_venue_failures} consecutive failures — aborting cycle, forcing reconnect')
+            mgr._session_dead = True
+            break
+
         html = mgr.navigate_venue(slug)
         if html is None:
             errors += 1
+            consecutive_venue_failures += 1
             continue
+
+        consecutive_venue_failures = 0  # Reset on success
 
         data = extract_live_data(html, slug)
         data['batch_id'] = batch_id

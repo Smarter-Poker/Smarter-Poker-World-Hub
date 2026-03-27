@@ -80,9 +80,9 @@ export default async function handler(req, res) {
       if (minutesAgo > 60) {
         status = 'dead';
         issues.push(`${source}: data is ${minutesAgo} min old (>60 min = DEAD)`);
-      } else if (minutesAgo > 20) {
+      } else if (minutesAgo > 40) {
         status = 'stale';
-        issues.push(`${source}: data is ${minutesAgo} min old (>20 min = STALE)`);
+        issues.push(`${source}: data is ${minutesAgo} min old (>40 min = STALE)`);
       }
 
       health[source] = {
@@ -105,8 +105,8 @@ export default async function handler(req, res) {
       scrapers: health,
       issues,
       thresholds: {
-        healthy: '< 20 minutes',
-        stale: '20-60 minutes',
+        healthy: '< 40 minutes',
+        stale: '40-60 minutes',
         dead: '> 60 minutes',
       },
     });
