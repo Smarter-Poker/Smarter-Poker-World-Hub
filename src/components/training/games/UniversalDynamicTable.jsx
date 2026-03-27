@@ -653,11 +653,11 @@ function detectActionType(text) {
 // GTO Wizard-style color-coded action buttons — matches their exact scheme
 // CHECK = green passive, FOLD = muted blue-grey, CALL = teal, RAISE/BET = red/salmon
 const ACTION_COLORS = {
-    fold: { bg: '#32303a', border: '#6b6478', text: '#b0aab8', accent: '#8a8495' },
-    check: { bg: '#1a3b3f', border: '#2d8f7f', text: '#5ee4cc', accent: '#38bfa8' },
-    call: { bg: '#1a2e4a', border: '#3b7dd8', text: '#6bb8f0', accent: '#4d9be6' },
-    raise: { bg: '#3e2020', border: '#d65a50', text: '#f09080', accent: '#e8584e' },
-    neutral: { bg: '#2a2a32', border: '#4a4a55', text: '#94a3b8', accent: '#64748b' },
+    fold: { bg: '#334155', border: '#1e293b', text: '#f8fafc', accent: '#475569' },
+    check: { bg: '#059669', border: '#047857', text: '#f0fdf4', accent: '#10b981' },
+    call: { bg: '#2563eb', border: '#1d4ed8', text: '#eff6ff', accent: '#3b82f6' },
+    raise: { bg: '#dc2626', border: '#b91c1c', text: '#fef2f2', accent: '#ef4444' },
+    neutral: { bg: '#334155', border: '#1e293b', text: '#f8fafc', accent: '#475569' },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1531,9 +1531,8 @@ function UniversalDynamicTable({
             ...styles.actionButton,
             ...m.actionButton,
             background: colors.bg,
-            borderColor: colors.border,
+            borderBottom: `4px solid ${colors.border}`,
             color: colors.text,
-            borderLeft: `3px solid ${colors.accent}`,
         };
 
         if (showFeedback) {
@@ -1987,15 +1986,16 @@ function UniversalDynamicTable({
                                         </div>
                                     )}
 
-                                    {/* Hero: face-up cards — Absolute RIGHT of badge */}
+                                    {/* Hero: face-up cards — Giant Focal Point, UNDER the badge */}
                                     {isHero && heroCards.length > 0 && (
                                         <div style={{
                                             position: 'absolute',
-                                            right: -8,
-                                            top: '50%',
-                                            transform: 'translate(100%, -50%)',
+                                            top: '100%',
+                                            left: '50%',
+                                            transform: 'translate(-50%, -10px)',
                                             display: 'flex',
-                                            gap: 2,
+                                            gap: 4,
+                                            marginTop: 14,
                                             zIndex: 1, // Behind badge if overlapping
                                         }}>
                                             {heroCards[0] && (
@@ -2007,11 +2007,11 @@ function UniversalDynamicTable({
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     transition={{ delay: 0.1, duration: 0.3, type: 'spring' }}
                                                     style={{
-                                                        width: isMobile ? 36 : 44,
-                                                        height: isMobile ? 52 : 62,
-                                                        borderRadius: 4,
-                                                        boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
-                                                        border: '1.5px solid rgba(255,255,255,0.3)',
+                                                        width: isMobile ? 64 : 76,
+                                                        height: isMobile ? 90 : 108,
+                                                        borderRadius: 6,
+                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
+                                                        border: '2px solid rgba(255,255,255,0.4)',
                                                     }}
                                                 />
                                             )}
@@ -2024,12 +2024,12 @@ function UniversalDynamicTable({
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     transition={{ delay: 0.2, duration: 0.3, type: 'spring' }}
                                                     style={{
-                                                        width: isMobile ? 36 : 44,
-                                                        height: isMobile ? 52 : 62,
-                                                        borderRadius: 4,
-                                                        marginLeft: -6,
-                                                        boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
-                                                        border: '1.5px solid rgba(255,255,255,0.3)',
+                                                        width: isMobile ? 64 : 76,
+                                                        height: isMobile ? 90 : 108,
+                                                        borderRadius: 6,
+                                                        marginLeft: -10,
+                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
+                                                        border: '2px solid rgba(255,255,255,0.4)',
                                                     }}
                                                 />
                                             )}
@@ -2390,28 +2390,25 @@ function UniversalDynamicTable({
                                     </span>
                                 )}
                                 <span style={styles.actionText}>
-                                    {text}
-                                    {/* UI-4: Pot-relative bet sizing label */}
+                                    <div style={{ fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>
+                                        {actionType === 'raise' ? 'BET / RAISE' : text.replace(/(\d+\.?\d*)\s*(bb|BB)/i, '').trim().toUpperCase()}
+                                    </div>
+                                    {/* Pot-relative bet sizing label */}
                                     {(() => {
-                                        if (pot <= 0) return null;
                                         const betMatch = text.match(/(\d+\.?\d*)\s*(bb|BB)/i);
                                         if (!betMatch) return null;
                                         const betSize = parseFloat(betMatch[1]);
-                                        const pctOfPot = Math.round((betSize / pot) * 100);
-                                        if (pctOfPot > 0 && pctOfPot <= 500) {
-                                            return (
-                                                <span style={{
-                                                    display: 'block',
-                                                    fontSize: 9,
-                                                    opacity: 0.6,
-                                                    marginTop: 1,
-                                                    fontWeight: 'normal',
-                                                }}>
-                                                    {pctOfPot}% Pot
-                                                </span>
-                                            );
-                                        }
-                                        return null;
+                                        return (
+                                            <div style={{
+                                                display: 'block',
+                                                fontSize: 16,
+                                                fontWeight: '900',
+                                                color: '#ffffff',
+                                                marginTop: 4,
+                                            }}>
+                                                {betSize} BB
+                                            </div>
+                                        );
                                     })()}
                                 </span>
                                 {/* Show frequency label on feedback OR study mode */}
@@ -3627,8 +3624,8 @@ const styles = {
     // ── ACTION BAR (GTO Wizard-style flat full-width buttons)
     actionBar: {
         display: 'flex',
-        gap: 0,
-        padding: '0',
+        gap: 12,
+        padding: '12px 16px',
         flexShrink: 0,
     },
 
@@ -3640,26 +3637,26 @@ const styles = {
 
     actionButton: {
         position: 'relative',
-        padding: '14px 8px',
-        minHeight: 60,
+        padding: '12px 8px',
+        minHeight: 64,
         fontSize: 14,
-        fontWeight: 700,
+        fontWeight: 800,
         fontFamily: "'Inter', sans-serif",
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
-        background: '#2a2a32',
+        background: '#334155',
         border: 'none',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 0,
-        color: '#e2e8f0',
+        borderRadius: 8,
+        color: '#ffffff',
         cursor: 'pointer',
         transition: 'all 0.12s ease-out',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 2,
+        gap: 4,
         width: '100%',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
     },
 
     actionText: {
