@@ -99,9 +99,6 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
     const [commentMediaUrl, setCommentMediaUrl] = useState(null);
     const [commentMediaType, setCommentMediaType] = useState(null);
     const [showGifPicker, setShowGifPicker] = useState(false);
-    const [gifSearch, setGifSearch] = useState('');
-    const [gifResults, setGifResults] = useState([]);
-    const [loadingGifs, setLoadingGifs] = useState(false);
     // Phase 3: Typing indicator
     const [isTyping, setIsTyping] = useState(false);
     const typingTimeoutRef = useRef(null);
@@ -880,49 +877,16 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                             </div>
                                             {/* Phase 3: GIF Picker */}
                                             {showGifPicker && (
-                                                <div style={{ marginTop: 6, border: `1px solid ${C.border}`, borderRadius: 12, padding: 8, background: C.card, maxHeight: 260, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                                                    <input type="text" value={gifSearch} onChange={e => {
-                                                        setGifSearch(e.target.value);
-                                                        // Debounced GIF search via Tenor
-                                                        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-                                                        typingTimeoutRef.current = setTimeout(async () => {
-                                                            const q = e.target.value.trim() || 'poker';
-                                                            setLoadingGifs(true);
-                                                            try {
-                                                                const r = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(q)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=smarter_poker&limit=20&media_filter=gif`);
-                                                                const d = await r.json();
-                                                                setGifResults((d.results || []).map(g => ({
-                                                                    url: g.media_formats?.gif?.url || g.media_formats?.tinygif?.url || '',
-                                                                    preview: g.media_formats?.tinygif?.url || g.media_formats?.nanogif?.url || '',
-                                                                    title: g.content_description || '',
-                                                                })).filter(g => g.url));
-                                                            } catch { setGifResults([]); }
-                                                            setLoadingGifs(false);
-                                                        }, 400);
-                                                    }} placeholder="Search GIFs..." style={{
-                                                        width: '100%', padding: '6px 10px', borderRadius: 8, border: `1px solid ${C.border}`,
-                                                        fontSize: 12, fontFamily: 'inherit', outline: 'none', background: C.bg, marginBottom: 6, boxSizing: 'border-box',
-                                                    }} />
-                                                    <div style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
-                                                        {loadingGifs ? (
-                                                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 16, color: C.textSec, fontSize: 12 }}>Searching...</div>
-                                                        ) : gifResults.length === 0 ? (
-                                                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 16, color: C.textSec, fontSize: 12 }}>Search for GIFs above</div>
-                                                        ) : gifResults.map((g, i) => (
-                                                            <img key={i} src={g.preview || g.url} alt={g.title} onClick={() => {
-                                                                setCommentMediaUrl(g.url);
-                                                                setCommentMediaType('gif');
-                                                                setShowGifPicker(false);
-                                                            }} style={{
-                                                                width: '100%', height: 70, objectFit: 'cover', borderRadius: 6,
-                                                                cursor: 'pointer', border: '2px solid transparent',
-                                                            }}
-                                                            onMouseEnter={e => e.target.style.borderColor = C.blue}
-                                                            onMouseLeave={e => e.target.style.borderColor = 'transparent'}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                    <div style={{ fontSize: 9, color: C.textSec, textAlign: 'right', marginTop: 4 }}>Powered by Tenor</div>
+                                                <div style={{ marginTop: 6 }}>
+                                                    <GiphyPicker
+                                                        compact
+                                                        onSelect={(gifUrl) => {
+                                                            setCommentMediaUrl(gifUrl);
+                                                            setCommentMediaType('gif');
+                                                            setShowGifPicker(false);
+                                                        }}
+                                                        onClose={() => setShowGifPicker(false)}
+                                                    />
                                                 </div>
                                             )}
                                         </div>
@@ -1454,6 +1418,7 @@ export default function SocialPageDetail() {
                 busEmit.dataMutated('social-pages');
                 busEmit.dataMutated('social');
                 busEmit.socialPostCreated(json.data?.id || 'unknown', user.id);
+                broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
                 fetchPosts();
                 setPosting(false);
                 return true;
@@ -2039,6 +2004,26 @@ export default function SocialPageDetail() {
                                                 isPosting={posting}
                                                 context="social-pages"
                                             />
+                                        </div>
+                                    )}
+
+                                    {/* Phase 9: Live Streams Section */}
+                                    {liveStreams.length > 0 && (
+                                        <div style={{ marginBottom: 16 }}>
+                                            <h4 style={{ margin: '0 0 10px 4px', fontSize: 16, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="6" fill="#FF0000"/></svg>
+                                                Live Now
+                                            </h4>
+                                            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
+                                                {liveStreams.map(stream => (
+                                                    <div key={stream.id} style={{ flexShrink: 0, width: 280 }}>
+                                                        <LiveStreamCard
+                                                            stream={stream}
+                                                            onClick={() => setWatchingStream(stream)}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
 
