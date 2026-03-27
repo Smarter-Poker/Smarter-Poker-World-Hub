@@ -69,17 +69,22 @@ export default function NearMeNowFeed({ userLocation, venues = [] }) {
     const refreshRef = useRef(null);
     const [lastRefresh, setLastRefresh] = useState(null);
 
-    // Distance filter helper
-    const isWithinRadius = useCallback((venue) => {
-        if (!userLocation || !venue.latitude || !venue.longitude) return true; // show all if no GPS
+    const computeDistance = useCallback((venue) => {
+        if (!userLocation || !venue.latitude || !venue.longitude) return null;
         const R = 3958.8;
         const toRad = (d) => (d * Math.PI) / 180;
         const dLat = toRad(parseFloat(venue.latitude) - userLocation.lat);
         const dLng = toRad(parseFloat(venue.longitude) - userLocation.lng);
         const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(userLocation.lat)) * Math.cos(toRad(parseFloat(venue.latitude))) * Math.sin(dLng / 2) ** 2;
-        const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }, [userLocation]);
+
+    // Distance filter helper
+    const isWithinRadius = useCallback((venue) => {
+        const dist = computeDistance(venue);
+        if (dist === null) return true; // show all if no GPS
         return dist <= radius;
-    }, [userLocation, radius]);
+    }, [computeDistance, radius]);
 
     // Fetch all feed data
     const fetchFeed = useCallback(async () => {
@@ -235,7 +240,17 @@ export default function NearMeNowFeed({ userLocation, venues = [] }) {
                                         <span className="nmf-item-title">{item.title}</span>
                                         <span className="nmf-item-time">{timeAgo(item.time)}</span>
                                     </div>
-                                    <div className="nmf-item-subtitle">{item.subtitle}</div>
+                                    <div className="nmf-item-subtitle">
+                                        {item.subtitle}
+                                        {item.venue && (() => {
+                                            const d = computeDistance(item.venue);
+                                            return d !== null ? (
+                                                <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: 'rgba(63,185,80,0.15)', color: '#3fb950', border: '1px solid rgba(63,185,80,0.25)' }}>
+                                                    {d < 1 ? '<1' : Math.round(d)} mi
+                                                </span>
+                                            ) : null;
+                                        })()}
+                                    </div>
                                     {item.detail && <div className="nmf-item-detail">{item.detail}</div>}
                                 </div>
                                 <span className="nmf-item-type" style={{ background: typeStyle.bg, color: typeStyle.text, borderColor: typeStyle.border }}>

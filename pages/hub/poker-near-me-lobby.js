@@ -455,6 +455,8 @@ export default function PokerNearMeLobby() {
   const [showManualLocation, setShowManualLocation] = useState(false);
   const [manualCity, setManualCity] = useState('');
   const [manualState, setManualState] = useState('');
+  const [locationCity, setLocationCity] = useState('');
+  const [locationState, setLocationState] = useState('');
   const locationToastTimeoutRef = useRef(null);
 
   // ─── Menu config ───
@@ -865,6 +867,8 @@ export default function PokerNearMeLobby() {
   const showLocationSuccessToast = useCallback((cityState) => {
     if (locationToastTimeoutRef.current) clearTimeout(locationToastTimeoutRef.current);
     setLocationToast(cityState);
+    if (cityState?.city) setLocationCity(cityState.city);
+    if (cityState?.state) setLocationState(cityState.state);
     locationToastTimeoutRef.current = setTimeout(() => setLocationToast(null), 2500);
   }, []);
 
@@ -873,7 +877,7 @@ export default function PokerNearMeLobby() {
     const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
     setUserLocation(loc);
     setGpsActive(true);
-    // Reverse geocode for city/state
+    setSortBy('distance'); // Auto-switch to distance sort when GPS enables
     const geo = await reverseGeocode(loc.lat, loc.lng);
     if (geo?.city) {
       showLocationSuccessToast(geo);
@@ -1888,6 +1892,9 @@ export default function PokerNearMeLobby() {
           gpsError={gpsError}
           searchHistory={searchHistory}
           onHistorySelect={handleCitySelect}
+          locationCity={locationCity}
+          locationState={locationState}
+          onManualLocation={() => setShowManualLocation(true)}
         />
 
 

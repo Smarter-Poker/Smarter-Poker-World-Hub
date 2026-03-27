@@ -967,8 +967,16 @@ function UniversalDynamicTable({
 
     // ═══ MOBILE RESPONSIVE DETECTION ═══
     const [isMobile, setIsMobile] = React.useState(false);
+    // ═══ PHASE 16: VIEWPORT SCALE-LOCK — continuous scaling, never repositioning ═══
+    const DESIGN_WIDTH = 420; // fixed design canvas width
+    const [scaleFactor, setScaleFactor] = React.useState(1);
     useEffect(() => {
-        const check = () => setIsMobile(window.innerWidth < 768);
+        const check = () => {
+            const vw = window.innerWidth;
+            setIsMobile(vw < 768);
+            // Scale factor: ratio of viewport to design width, capped at 1.0 (never upscale)
+            setScaleFactor(Math.min(vw / DESIGN_WIDTH, 1));
+        };
         check();
         window.addEventListener('resize', check);
         return () => window.removeEventListener('resize', check);
@@ -986,6 +994,13 @@ function UniversalDynamicTable({
         boardCards: isMobile ? { gap: 3 } : {},
         seat: isMobile ? { gap: 2 } : {},
     }), [isMobile]);
+
+    // Phase 16: Computed height for the scale container to prevent layout collapse
+    const scaledTableHeight = useMemo(() => {
+        // Design height of the table area canvas (fixed)
+        const DESIGN_HEIGHT = 520;
+        return DESIGN_HEIGHT * scaleFactor;
+    }, [scaleFactor]);
 
     // Phase 3: Floating EV popup
     const [evPopup, setEvPopup] = React.useState(null);
@@ -1801,8 +1816,22 @@ function UniversalDynamicTable({
 
 
 
-            {/* TABLE AREA - Center */}
-            <div style={styles.tableArea}>
+            {/* TABLE AREA - Center — Phase 16: Scale-Lock Container */}
+            <div style={{
+                position: 'relative',
+                width: '100%',
+                height: scaledTableHeight,
+                overflow: 'visible',
+                display: 'flex',
+                justifyContent: 'center',
+            }}>
+            <div style={{
+                ...styles.tableArea,
+                width: DESIGN_WIDTH,
+                transform: `scale(${scaleFactor})`,
+                transformOrigin: 'top center',
+                flexShrink: 0,
+            }}>
 
                 {/* Phase 3: Floating EV Popup */}
                 <AnimatePresence>
@@ -2154,6 +2183,7 @@ function UniversalDynamicTable({
 
                 {/* Street indicator removed — already shown in header */}
             </div>
+            </div> {/* END Phase 16 scale-lock outer */}
 
             {/* Hand Strength indicator — hidden when hero cards are giant */}
             {/* (Removed to prevent collision with the large hero focal cards) */}
@@ -3199,23 +3229,23 @@ const styles = {
         color: '#fbbf24',
     },
 
-    // ── TABLE AREA
+    // ── TABLE AREA — Phase 16: Fixed-dimension design canvas (420×520)
     tableArea: {
-        flex: 1,
         position: 'relative',
+        width: 420,
+        height: 520,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 280,
         padding: '28px 16px 80px 16px',
     },
 
-    // ── NEW CUSTOM STANDALONE RACETRACK TABLE — vw-based for uniform scaling
+    // ── NEW CUSTOM STANDALONE RACETRACK TABLE — fixed design size, scaled by Phase 16 container
     basicTable: {
         position: 'relative',
-        width: 'min(55vw, 240px)',
-        aspectRatio: '1 / 1.8',
+        width: 260,
+        aspectRatio: '1 / 1.6',
         borderRadius: '50% / 25%', 
         backgroundColor: '#1E3B22', // deep green felt
         border: '10px solid #1a1a1a', // solid dark rail
@@ -3369,14 +3399,14 @@ const styles = {
         left: '50%',
         transform: 'translate(-50%, -50%)',
         display: 'flex',
-        gap: 4,
+        gap: 5,
         zIndex: 3,
     },
 
     boardCard: {
-        width: 40,
-        height: 58,
-        borderRadius: 4,
+        width: 48,
+        height: 68,
+        borderRadius: 5,
         boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
         border: '1px solid rgba(255,255,255,0.15)',
     },

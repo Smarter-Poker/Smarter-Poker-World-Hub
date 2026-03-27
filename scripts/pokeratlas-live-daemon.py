@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-PokerAtlas Live Games — Autonomous Scraper Daemon v1.0
+PokerAtlas Live Games — Autonomous Scraper Daemon v2.0
 =====================================================
-Mirrors the Bravo daemon architecture using Scrapling + Camoufox
-for Cloudflare Turnstile bypass.
+Uses Scrapling + Camoufox StealthySession for Cloudflare bypass.
 
-Scrapes live cash game data from every PokerAtlas region page
-and upserts into venue_live_tables with source='pokeratlas'.
+Scrapes game catalog data from PokerAtlas region pages:
+- Venue name, game name, buy-in range, run schedule
+- This data COMPLEMENTS Bravo's real-time table counts
 
-Designed to run alongside bravo-live-daemon.py on offset cycles.
+Architecture mirrors bravo-live-daemon.py with source='pokeratlas'.
 """
 
 import hashlib
@@ -34,19 +34,10 @@ SUPABASE_KEY = os.environ.get('SUPABASE_KEY',
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.bbDqj-me78PID99npWCZ5qUuINSC1-eCBb1BVhgiSRs'
 )
 
-# PokerAtlas credentials
-PA_USERNAME = 'danbekavac4545'
-PA_PASSWORD = '215SlalomCt!'
-PA_LOGIN_URL = 'https://www.pokeratlas.com/login'
-PA_BASE_URL = 'https://www.pokeratlas.com'
-
 # Timing
-SCRAPE_INTERVAL = 900  # 15 minutes
-RATE_LIMIT_DELAY = 1.5  # seconds between venue page loads (lighter than Bravo)
+SCRAPE_INTERVAL = 900  # 15 minutes (offset 7min from Bravo via launchd start)
+RATE_LIMIT_DELAY = 1.0  # seconds between region page fetches
 MAX_RETRIES = 3
-LOGIN_TIMEOUT = 30000
-PAGE_TIMEOUT = 20000
-HEALTH_CHECK_INTERVAL = 3  # cycles between health checks
 
 # Directories
 LOG_DIR = BASE_DIR / 'data' / 'pokeratlas-logs'
@@ -73,13 +64,11 @@ log = logging.getLogger('pokeratlas-daemon')
 # ERROR CODES
 # ============================================================
 ERROR_CF_BLOCKED = 'ERROR_CF_BLOCKED'
-ERROR_LOGIN_FAILED = 'ERROR_LOGIN_FAILED'
 ERROR_SESSION_DEAD = 'ERROR_SESSION_DEAD'
-ERROR_PAGE_403 = 'ERROR_PAGE_403'
 ERROR_SUPABASE = 'ERROR_SUPABASE'
 
 # ============================================================
-# SUPABASE HELPERS (identical to Bravo)
+# SUPABASE HELPERS
 # ============================================================
 SB_HEADERS = {
     'apikey': SUPABASE_KEY,
@@ -122,111 +111,32 @@ def sb_delete(table, query):
 # ============================================================
 # POKERATLAS REGION REGISTRY
 # ============================================================
-# PokerAtlas organizes live cash games by region/city rather than
-# individual venues. Each region page lists ALL venues in that area.
-# URL pattern: /poker-cash-games/{city-state-slug}
+# PokerAtlas organizes data by region (city/state).
+# URL pattern: /poker-cash-games/{region-slug}
 
-# Master list of all US PokerAtlas cash game region slugs
 PA_REGION_SLUGS = [
-    # Nevada
-    'las-vegas-nevada', 'reno-nevada', 'laughlin-nevada',
-    # California
-    'los-angeles-california', 'san-francisco-bay-area-california',
+    # High-priority (major poker markets)
+    'las-vegas-nevada', 'los-angeles-california', 'south-florida',
+    'atlantic-city-new-jersey', 'san-francisco-bay-area-california',
+    'connecticut', 'michigan', 'pennsylvania', 'maryland',
+    'tampa-florida', 'central-florida', 'north-florida',
     'san-diego-california', 'sacramento-california',
+    'reno-nevada', 'laughlin-nevada',
+    'new-york', 'virginia', 'colorado', 'arizona',
+    'texas', 'illinois', 'indiana', 'ohio',
     'central-valley-california', 'inland-empire-california',
-    # Florida
-    'south-florida', 'central-florida', 'north-florida', 'tampa-florida',
-    # New Jersey / Atlantic City
-    'atlantic-city-new-jersey',
-    # New York
-    'new-york',
-    # Pennsylvania
-    'pennsylvania',
-    # Connecticut
-    'connecticut',
-    # Illinois
-    'illinois',
-    # Michigan
-    'michigan',
-    # Ohio
-    'ohio',
-    # Indiana
-    'indiana',
-    # Maryland
-    'maryland',
-    # Virginia
-    'virginia',
-    # Washington
-    'washington',
-    # Colorado
-    'colorado',
-    # Arizona
-    'arizona',
-    # Texas
-    'texas',
-    # Louisiana
-    'louisiana',
-    # Mississippi
-    'mississippi',
-    # Oklahoma
-    'oklahoma',
-    # Missouri
-    'missouri',
-    # Iowa
-    'iowa',
-    # Kansas
-    'kansas',
-    # Minnesota
-    'minnesota',
-    # Wisconsin
-    'wisconsin',
-    # Oregon
-    'oregon',
-    # North Carolina
-    'north-carolina',
-    # West Virginia
-    'west-virginia',
-    # South Carolina
-    'south-carolina',
-    # Maine
-    'maine',
-    # New Hampshire
-    'new-hampshire',
-    # Rhode Island
-    'rhode-island',
-    # Massachusetts
-    'massachusetts',
-    # Delaware
-    'delaware',
-    # New Mexico
-    'new-mexico',
-    # Montana
-    'montana',
-    # Idaho
-    'idaho',
-    # South Dakota
-    'south-dakota',
-    # North Dakota
-    'north-dakota',
-    # Nebraska
-    'nebraska',
-    # Alabama
-    'alabama',
-    # Georgia
-    'georgia',
-    # Tennessee
-    'tennessee',
-    # Kentucky
-    'kentucky',
-    # Arkansas
-    'arkansas',
-    # Hawaii
-    'hawaii',
-    # Alaska
-    'alaska',
-    # DC
-    'washington-dc',
-    # Canada (bonus coverage)
+    # Mid-tier
+    'louisiana', 'mississippi', 'oklahoma', 'missouri',
+    'iowa', 'kansas', 'minnesota', 'wisconsin',
+    'washington', 'oregon', 'north-carolina', 'west-virginia',
+    'south-carolina', 'massachusetts', 'rhode-island',
+    'delaware', 'new-mexico', 'montana', 'maine',
+    'new-hampshire', 'idaho',
+    # Lower priority
+    'south-dakota', 'north-dakota', 'nebraska', 'arkansas',
+    'alabama', 'georgia', 'tennessee', 'kentucky',
+    'hawaii', 'alaska', 'washington-dc',
+    # Canada
     'alberta-canada', 'british-columbia-canada', 'ontario-canada',
 ]
 
@@ -239,393 +149,271 @@ def load_pa_regions():
             return [r['slug'] for r in data.get('regions', [])]
     return PA_REGION_SLUGS
 
-def discover_pa_regions(page):
-    """Discover region slugs from PokerAtlas poker-rooms page."""
-    log.info('📡 Discovering PokerAtlas regions...')
-    try:
-        page.goto(f'{PA_BASE_URL}/poker-rooms')
-        page.wait_for_load_state('networkidle', timeout=PAGE_TIMEOUT)
-        html = page.content()
-
-        # Extract state/region links
-        slugs = sorted(set(re.findall(r'/poker-cash-games/([a-z0-9-]+)', html)))
-        if slugs:
-            log.info(f'  Discovered {len(slugs)} PokerAtlas region slugs')
-            reg = {
-                'metadata': {'generated': datetime.now(timezone.utc).isoformat(), 'total_regions': len(slugs)},
-                'regions': [{'slug': s, 'url': f'{PA_BASE_URL}/poker-cash-games/{s}'} for s in slugs]
-            }
-            (BASE_DIR / 'data').mkdir(exist_ok=True)
-            with open(BASE_DIR / 'data' / 'pokeratlas-room-registry.json', 'w') as f:
-                json.dump(reg, f, indent=2)
-            return slugs
-    except Exception as e:
-        log.warning(f'  Discovery failed: {e}')
-
-    return PA_REGION_SLUGS  # Fallback to hardcoded
-
 # ============================================================
-# DATA EXTRACTION — LOCKED IN
+# DATA EXTRACTION
 # ============================================================
-def extract_live_data(html, region_slug):
-    """Extract live cash game data from a PokerAtlas region page.
+def extract_games_from_region(html, region_slug):
+    """Extract cash game data from a PokerAtlas region cash-games page.
 
-    PokerAtlas page structure (region cash games):
-      - Each poker room is listed in a section with room name as header
-      - Under each room, a table of currently running games
-      - Columns typically: Game, Limit, Tables, Waiting, Players
+    HTML structure (from production analysis):
+    <li class="cash-games-list-item cds-item">
+      <a href="/poker-cash-game/venue-slug-game-type-stakes">
+        <div class="venue">
+          <div class="venue-title">
+            <h2 class="venue-name">VenueName</h2>
+          </div>
+        </div>
+        <div class="cash-games-item-overview">
+          <div class="uber-row title">
+            <ul class="inline-list">
+              <li class="inline-list-item">1/3 No Limit Holdem</li>
+            </ul>
+          </div>
+          <div class="uber-row details">
+            <ul class="inline-list">
+              <li class="inline-list-item">
+                <span class="label">Buy-in:</span> $100 to $500
+              </li>
+              <li class="inline-list-item">
+                <span class="label">Runs:</span> Always
+              </li>
+            </ul>
+          </div>
+        </div>
+      </a>
+    </li>
     """
     body = html.encode('utf-8')
     rhash = hashlib.sha256(body).hexdigest()
     now = datetime.now(timezone.utc).isoformat()
 
-    venues = []
+    venues = {}  # venue_name -> { games: [...] }
 
-    # PokerAtlas uses structured markup for cash game listings
-    # Pattern: room sections contain venue name + game rows
-    # Try multiple extraction patterns
+    # Split by cash-games-list-item to process each item
+    items = re.split(r'<li\s+class="cash-games-list-item\s+cds-item\s*">', html)
 
-    # Pattern 1: Table-based listing (most common)
-    # Look for venue sections: <h3 class="poker-room-name">VenueName</h3>
-    # followed by game rows
-    venue_sections = re.findall(
-        r'<(?:h[234]|div)[^>]*class="[^"]*(?:poker-room|room-name|venue)[^"]*"[^>]*>'
-        r'(?:<a[^>]*>)?\s*(.*?)\s*(?:</a>)?</(?:h[234]|div)>'
-        r'(.*?)(?=<(?:h[234]|div)[^>]*class="[^"]*(?:poker-room|room-name|venue)|$)',
-        html, re.DOTALL | re.IGNORECASE
-    )
+    for item in items[1:]:  # Skip first (before the first item)
+        # Extract venue name
+        venue_match = re.search(
+            r'<h2\s+class="venue-name">(.*?)</h2>',
+            item, re.DOTALL | re.IGNORECASE
+        )
+        if not venue_match:
+            continue
+        venue_name = re.sub(r'<[^>]+>', '', venue_match.group(1)).strip()
+        if not venue_name:
+            continue
 
-    if not venue_sections:
-        # Pattern 2: Generic table rows with venue grouping
-        # PokerAtlas often uses <tr> with venue name in first column
-        # and game data across the row
-        rows = re.findall(r'<tr[^>]*>(.*?)</tr>', html, re.DOTALL | re.IGNORECASE)
-        current_venue = None
+        # Extract game name from "uber-row title"
+        game_match = re.search(
+            r'<div\s+class="uber-row title">\s*<ul[^>]*>\s*<li[^>]*>(.*?)</li>',
+            item, re.DOTALL | re.IGNORECASE
+        )
+        game_name = ''
+        if game_match:
+            game_name = re.sub(r'<[^>]+>', '', game_match.group(1)).strip()
 
-        for row in rows:
-            cells = re.findall(r'<td[^>]*>\s*(.*?)\s*</td>', row, re.DOTALL)
-            if not cells:
-                continue
+        if not game_name:
+            continue
 
-            # Check for venue name header rows (typically bold/linked)
-            venue_link = re.search(r'<a[^>]*href="[^"]*poker-room[^"]*"[^>]*>(.*?)</a>', row, re.DOTALL)
-            if venue_link:
-                current_venue = re.sub(r'<[^>]+>', '', venue_link.group(1)).strip()
+        # Extract buy-in
+        buyin_match = re.search(
+            r'<span\s+class="label">Buy-in:</span>\s*(.*?)(?:</li>|<)',
+            item, re.DOTALL | re.IGNORECASE
+        )
+        buyin = ''
+        if buyin_match:
+            buyin = re.sub(r'<[^>]+>', '', buyin_match.group(1)).strip()
 
-            if current_venue and len(cells) >= 2:
-                # Extract game info from cells
-                game_name_raw = re.sub(r'<[^>]+>', '', cells[0]).strip()
-                if not game_name_raw or game_name_raw == current_venue:
-                    continue
+        # Extract runs schedule
+        runs_match = re.search(
+            r'<span\s+class="label">Runs:</span>\s*(.*?)(?:</li>|<)',
+            item, re.DOTALL | re.IGNORECASE
+        )
+        runs = ''
+        if runs_match:
+            runs = re.sub(r'<[^>]+>', '', runs_match.group(1)).strip()
 
-                # Look for numeric values in remaining cells
-                tables = 0
-                waiting = 0
-                for cell in cells[1:]:
-                    clean = re.sub(r'<[^>]+>', '', cell).strip()
-                    if clean.isdigit():
-                        if tables == 0:
-                            tables = int(clean)
-                        else:
-                            waiting = int(clean)
+        # Convert "runs" to a table estimate
+        tables_estimate = runs_to_tables(runs)
 
-                if tables > 0:
-                    # Find or create venue entry
-                    existing = next((v for v in venues if v['venue_name'] == current_venue), None)
-                    if not existing:
-                        existing = {
-                            'venue_name': current_venue,
-                            'region_slug': region_slug,
-                            'scrape_timestamp': now,
-                            'scrape_html_hash': rhash,
-                            'live_games': [],
-                        }
-                        venues.append(existing)
-
-                    existing['live_games'].append({
-                        'game': game_name_raw,
-                        'tables': tables,
-                        'players_waiting': waiting,
-                    })
-    else:
-        # Process venue_sections from Pattern 1
-        for venue_name_raw, section_html in venue_sections:
-            venue_name = re.sub(r'<[^>]+>', '', venue_name_raw).strip()
-            if not venue_name:
-                continue
-
-            venue_data = {
+        # Group by venue
+        if venue_name not in venues:
+            venues[venue_name] = {
                 'venue_name': venue_name,
                 'region_slug': region_slug,
                 'scrape_timestamp': now,
                 'scrape_html_hash': rhash,
-                'live_games': [],
+                'games': [],
             }
 
-            # Parse game rows within this venue section
-            game_rows = re.findall(r'<tr[^>]*>(.*?)</tr>', section_html, re.DOTALL)
-            for row in game_rows:
-                cells = re.findall(r'<td[^>]*>\s*(.*?)\s*</td>', row, re.DOTALL)
-                if len(cells) >= 2:
-                    game_name = re.sub(r'<[^>]+>', '', cells[0]).strip()
-                    if not game_name:
-                        continue
+        venues[venue_name]['games'].append({
+            'game': game_name,
+            'buyin': buyin,
+            'runs': runs,
+            'tables_estimate': tables_estimate,
+        })
 
-                    tables = 0
-                    waiting = 0
-                    for cell in cells[1:]:
-                        clean = re.sub(r'<[^>]+>', '', cell).strip()
-                        if clean.isdigit():
-                            if tables == 0:
-                                tables = int(clean)
-                            elif waiting == 0:
-                                waiting = int(clean)
+    return list(venues.values()), rhash, now
 
-                    if tables > 0:
-                        venue_data['live_games'].append({
-                            'game': game_name,
-                            'tables': tables,
-                            'players_waiting': waiting,
-                        })
 
-            if venue_data['live_games']:
-                venues.append(venue_data)
+def runs_to_tables(runs_text):
+    """Convert PokerAtlas 'Runs' description to estimated table count.
 
-    return venues, rhash, now
+    Examples:
+    - 'Always' → 3 (multiple tables always running)
+    - 'One or two tables' → 1
+    - 'Daily' → 2
+    - 'Multiple tables' → 3
+    - '' → 1 (default)
+    """
+    if not runs_text:
+        return 1
+
+    r = runs_text.lower()
+    if 'always' in r:
+        return 3
+    elif 'multiple' in r:
+        return 3
+    elif 'two' in r or '2' in r:
+        return 2
+    elif 'one' in r or '1' in r:
+        return 1
+    elif 'daily' in r:
+        return 2
+    elif 'weekday' in r or 'weekend' in r:
+        return 1
+    elif 'occasionally' in r or 'rare' in r:
+        return 0  # Not currently running
+    else:
+        return 1  # Default
+
 
 # ============================================================
-# PERSISTENT SESSION MANAGER
+# PERSISTENT SESSION MANAGER (Scrapling StealthySession)
 # ============================================================
 class PokerAtlasSessionManager:
-    """Manages a persistent Scrapling browser session with PokerAtlas.
+    """Manages a persistent Scrapling StealthySession.
 
-    Mirrors BravoSessionManager architecture:
-    - Session stays open between 15-minute scrape cycles
-    - Re-authenticates on session death or token expiry
-    - Cloudflare Turnstile bypass via Camoufox
+    Key insight from HTML analysis:
+    - PokerAtlas does NOT require login for cash games data
+    - session.fetch() handles Cloudflare bypass automatically
+    - No need for context.new_page() — fetch() returns parsed HTML
     """
 
     def __init__(self):
         self.session = None
-        self.context = None
-        self.page = None
-        self.is_authenticated = False
-        self.cycles_since_health_check = 0
         self.total_cycles = 0
         self.consecutive_failures = 0
-        self.last_login_time = None
+        self.last_connect_time = None
 
     def connect(self):
-        """Establish a new Scrapling StealthySession and login to PokerAtlas."""
+        """Establish a new StealthySession."""
         from scrapling.fetchers import StealthySession
 
         self.disconnect()
 
         log.info('🔌 Establishing new StealthySession...')
-
         try:
             self.session = StealthySession(headless=True, solve_cloudflare=True)
             self.session.start()
-
-            # Step 1: Solve Cloudflare Turnstile
-            log.info('  ☁️  Solving Cloudflare Turnstile...')
-            resp = self.session.fetch(PA_LOGIN_URL, google_search=True)
-
-            if resp.status != 200:
-                log.error(f'  {ERROR_CF_BLOCKED}: Status {resp.status}')
-                return False
-
-            log.info('  ✅ Cloudflare solved')
-
-            # Step 2: Create page in CF-cleared context and login
-            self.context = self.session.context
-            self.page = self.context.new_page()
-
-            return self._login()
-
+            self.last_connect_time = datetime.now(timezone.utc)
+            log.info('  ✅ Session ready')
+            return True
         except Exception as e:
             log.error(f'  {ERROR_SESSION_DEAD}: {e}')
             traceback.print_exc()
             self.disconnect()
             return False
 
-    def _login(self):
-        """Submit login credentials to PokerAtlas."""
-        log.info('  🔑 Logging in to PokerAtlas...')
+    def fetch_page(self, url):
+        """Fetch a page using the persistent session.
 
-        for attempt in range(MAX_RETRIES):
-            try:
-                self.page.goto(PA_LOGIN_URL)
-                self.page.wait_for_load_state('networkidle', timeout=LOGIN_TIMEOUT)
-
-                # Check if already logged in (was redirected)
-                if '/login' not in self.page.url:
-                    log.info(f'  ✅ Already logged in (URL: {self.page.url})')
-                    self.is_authenticated = True
-                    self.last_login_time = datetime.now(timezone.utc)
-                    return True
-
-                # Fill login form
-                content = self.page.content()
-
-                # PokerAtlas login form — search for email/username and password fields
-                email_selectors = ['input[name="email"]', 'input[name="username"]', 'input[type="email"]', '#email', '#username']
-                pass_selectors = ['input[name="password"]', 'input[type="password"]', '#password']
-
-                email_filled = False
-                for sel in email_selectors:
-                    try:
-                        el = self.page.query_selector(sel)
-                        if el:
-                            el.fill(PA_USERNAME)
-                            email_filled = True
-                            break
-                    except:
-                        continue
-
-                pass_filled = False
-                for sel in pass_selectors:
-                    try:
-                        el = self.page.query_selector(sel)
-                        if el:
-                            el.fill(PA_PASSWORD)
-                            pass_filled = True
-                            break
-                    except:
-                        continue
-
-                if not email_filled or not pass_filled:
-                    log.warning(f'  ⚠️  Login form fields not found (attempt {attempt + 1})')
-                    time.sleep(3)
-                    continue
-
-                # Submit
-                submit_selectors = ['button[type="submit"]', 'input[type="submit"]', '.login-btn', '#login-button']
-                submitted = False
-                for sel in submit_selectors:
-                    try:
-                        btn = self.page.query_selector(sel)
-                        if btn:
-                            btn.click()
-                            submitted = True
-                            break
-                    except:
-                        continue
-
-                if not submitted:
-                    # Try pressing Enter in password field
-                    self.page.keyboard.press('Enter')
-
-                self.page.wait_for_load_state('networkidle', timeout=LOGIN_TIMEOUT)
-
-                # Verify login success
-                post_url = self.page.url
-                if '/login' not in post_url:
-                    log.info(f'  ✅ Login successful (URL: {post_url})')
-                    self.is_authenticated = True
-                    self.last_login_time = datetime.now(timezone.utc)
-                    return True
-                else:
-                    log.warning(f'  ⚠️  Login attempt {attempt + 1} — still on login page')
-                    time.sleep(3)
-
-            except Exception as e:
-                log.warning(f'  ⚠️  Login attempt {attempt + 1} error: {e}')
-                time.sleep(3)
-
-        log.error(f'  {ERROR_LOGIN_FAILED}: All {MAX_RETRIES} attempts exhausted')
-        return False
-
-    def health_check(self):
-        """Verify the session is still alive."""
+        Returns HTML string or None on failure.
+        """
         try:
-            self.page.goto(f'{PA_BASE_URL}/poker-rooms')
-            self.page.wait_for_load_state('networkidle', timeout=PAGE_TIMEOUT)
-            content = self.page.content()
+            resp = self.session.fetch(url, google_search=False)
 
-            if 'Just a moment' in content:
-                log.warning('  ❌ Health check: CF challenge')
-                return False
-            if '/login' in self.page.url and 'Sign In' in content:
-                log.warning('  ❌ Health check: Session expired')
-                return False
+            if resp.status != 200:
+                log.warning(f'  ❌ HTTP {resp.status} for {url}')
+                return None
 
-            log.info('  ✅ Health check passed')
-            return True
-        except:
-            return False
+            # Get HTML content from Scrapling response
+            html = resp.html_content or ''
+            if not html:
+                html = resp.body.decode('utf-8', errors='ignore') if resp.body else ''
 
-    def ensure_connected(self):
-        """Ensure session is connected and authenticated."""
-        if not self.is_authenticated or not self.page:
-            log.info('🔄 Session not authenticated, connecting...')
-            return self.connect()
+            if not html:
+                log.warning(f'  ❌ Empty response for {url}')
+                return None
 
-        self.cycles_since_health_check += 1
-        if self.cycles_since_health_check >= HEALTH_CHECK_INTERVAL:
-            self.cycles_since_health_check = 0
-            if not self.health_check():
-                log.info('🔄 Health check failed, reconnecting...')
-                return self.connect()
-
-        return True
-
-    def navigate_region(self, slug):
-        """Navigate to a PokerAtlas cash games region page."""
-        try:
-            url = f'{PA_BASE_URL}/poker-cash-games/{slug}'
-            self.page.goto(url)
-            self.page.wait_for_load_state('networkidle', timeout=PAGE_TIMEOUT)
-
-            content = self.page.content()
-
-            # Check for login redirect
-            if '/login' in self.page.url:
-                log.warning(f'  ⚠️  Session expired during scrape, re-authenticating...')
-                if self._login():
-                    self.page.goto(url)
-                    self.page.wait_for_load_state('networkidle', timeout=PAGE_TIMEOUT)
-                    content = self.page.content()
+            # Check for CF challenge
+            if 'Just a moment' in html or 'Performing security verification' in html:
+                log.warning(f'  ⚠️  {ERROR_CF_BLOCKED}: CF challenge on {url}')
+                # Try reconnecting
+                if self.connect():
+                    resp = self.session.fetch(url, google_search=True)
+                    html = resp.html_content or ''
+                    if not html:
+                        html = resp.body.decode('utf-8', errors='ignore') if resp.body else ''
+                    if 'Just a moment' in html:
+                        return None
                 else:
                     return None
 
-            # Check for CF challenge
-            if 'Just a moment' in content:
-                log.warning(f'  ⚠️  {ERROR_PAGE_403}: CF challenge on {slug}')
-                return None
-
-            return content
+            return html
 
         except Exception as e:
-            log.warning(f'  ❌ Navigate error on {slug}: {e}')
+            log.warning(f'  ❌ Fetch error: {e}')
             return None
+
+    def ensure_connected(self):
+        """Ensure the session is alive."""
+        if not self.session:
+            return self.connect()
+        return True
 
     def disconnect(self):
         """Safely close the session."""
         try:
-            if self.page:
-                try:
-                    self.page.close()
-                except:
-                    pass
             if self.session:
-                try:
-                    self.session.close()
-                except:
-                    pass
+                self.session.close()
         except:
             pass
         finally:
-            self.page = None
-            self.context = None
             self.session = None
-            self.is_authenticated = False
+
+
+# ============================================================
+# REGION SLUG AUTO-DISCOVERY
+# ============================================================
+def discover_regions(mgr):
+    """Discover all region slugs from PokerAtlas poker-rooms page."""
+    log.info('📡 Discovering PokerAtlas regions...')
+    html = mgr.fetch_page('https://www.pokeratlas.com/poker-rooms')
+    if not html:
+        return PA_REGION_SLUGS
+
+    slugs = sorted(set(re.findall(r'/poker-cash-games/([a-z0-9-]+)', html)))
+    if slugs:
+        log.info(f'  Discovered {len(slugs)} region slugs')
+        reg = {
+            'metadata': {'generated': datetime.now(timezone.utc).isoformat(), 'total_regions': len(slugs)},
+            'regions': [{'slug': s, 'url': f'https://www.pokeratlas.com/poker-cash-games/{s}'} for s in slugs]
+        }
+        (BASE_DIR / 'data').mkdir(exist_ok=True)
+        with open(BASE_DIR / 'data' / 'pokeratlas-room-registry.json', 'w') as f:
+            json.dump(reg, f, indent=2)
+        return slugs
+
+    return PA_REGION_SLUGS
+
 
 # ============================================================
 # MAIN SCRAPE CYCLE
 # ============================================================
 def run_scrape_cycle(mgr):
-    """Run one full scrape cycle using the persistent session."""
+    """Run one full scrape cycle."""
     batch_id = str(uuid.uuid4())
     cycle_start = datetime.now(timezone.utc)
     log.info(f'=== SCRAPE CYCLE #{mgr.total_cycles + 1} | Batch: {batch_id[:8]} ===')
@@ -634,16 +422,15 @@ def run_scrape_cycle(mgr):
     if not mgr.ensure_connected():
         mgr.consecutive_failures += 1
         if mgr.consecutive_failures >= 5:
-            log.error(f'🚨 {mgr.consecutive_failures} consecutive failures — sleeping 5min before retry')
+            log.error(f'🚨 {mgr.consecutive_failures} consecutive failures — sleeping 5min')
             time.sleep(300)
             mgr.consecutive_failures = 0
         return 0
 
-    # Load region slugs
+    # Load or discover region slugs
     regions = load_pa_regions()
     if not regions:
-        log.info('No registry found, discovering regions...')
-        regions = discover_pa_regions(mgr.page)
+        regions = discover_regions(mgr)
     log.info(f'Scraping {len(regions)} regions...')
 
     # Scrape each region
@@ -652,34 +439,33 @@ def run_scrape_cycle(mgr):
     skipped = 0
 
     for i, slug in enumerate(regions):
-        html = mgr.navigate_region(slug)
+        url = f'https://www.pokeratlas.com/poker-cash-games/{slug}'
+        html = mgr.fetch_page(url)
+
         if html is None:
             errors += 1
             if errors <= 3:
                 log.info(f'  [{i+1}/{len(regions)}] ❌ {slug[:30]:30} | failed')
             continue
 
-        venues, rhash, now = extract_live_data(html, slug)
+        venues, rhash, now = extract_games_from_region(html, slug)
 
         if venues:
-            total_tables = sum(
-                sum(g['tables'] for g in v['live_games'])
-                for v in venues
-            )
+            total_games = sum(len(v['games']) for v in venues)
             log.info(
                 f'  [{i+1}/{len(regions)}] ✅ {slug[:30]:30} | '
-                f'{len(venues)} rooms | {total_tables} tables'
+                f'{len(venues)} rooms | {total_games} games'
             )
             all_venues.extend(venues)
         else:
             skipped += 1
             if skipped <= 5 or skipped % 10 == 0:
-                log.info(f'  [{i+1}/{len(regions)}] ⏭️  {slug[:30]:30} | no live data')
+                log.info(f'  [{i+1}/{len(regions)}] ⏭️  {slug[:30]:30} | no data')
 
         time.sleep(RATE_LIMIT_DELAY)
 
-        # Checkpoint every 20
-        if (i + 1) % 20 == 0:
+        # Checkpoint every 15
+        if (i + 1) % 15 == 0:
             log.info(f'  --- {i+1}/{len(regions)} | {len(all_venues)} venues | {errors} errors ---')
 
     # Build Supabase payload
@@ -687,27 +473,26 @@ def run_scrape_cycle(mgr):
 
     payload = []
     for venue_data in all_venues:
-        for game in venue_data['live_games']:
+        for game in venue_data['games']:
             record = {
                 'venue_name': venue_data['venue_name'],
                 'game_name': game['game'],
-                'tables_running': game['tables'],
-                'players_waiting': game.get('players_waiting', 0),
+                'tables_running': game['tables_estimate'],
+                'players_waiting': 0,
                 'scrape_timestamp': venue_data['scrape_timestamp'],
                 'scrape_html_hash': venue_data['scrape_html_hash'],
                 'scrape_batch_id': batch_id,
                 'data_quality': 'scraped_verified',
                 'source': 'pokeratlas',
-                'bravo_slug': f'pa-{venue_data["region_slug"]}',  # Prefix to avoid bravo slug collision
+                'bravo_slug': f'pa-{venue_data["region_slug"]}',
             }
             payload.append(record)
 
     saved = 0
     if payload:
-        # Atomic Batch Insert
+        # Atomic Batch Insert — only delete PokerAtlas records
         if sb_upsert('venue_live_tables', payload):
             saved = len(payload)
-            # Safe delete of stale PokerAtlas batches ONLY
             sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.pokeratlas')
 
     # Save evidence
@@ -721,22 +506,19 @@ def run_scrape_cycle(mgr):
         'total_records_saved': saved,
         'errors': errors,
         'duration_seconds': (datetime.now(timezone.utc) - cycle_start).total_seconds(),
-        'session_uptime_minutes': (
-            (datetime.now(timezone.utc) - mgr.last_login_time).total_seconds() / 60
-            if mgr.last_login_time else 0
-        ),
     }
     evidence_file = EVIDENCE_DIR / f'pokeratlas_live_{cycle_start.strftime("%Y%m%d_%H%M%S")}.json'
     with open(evidence_file, 'w') as f:
         json.dump(evidence, f, indent=2)
 
+    # Snapshot
     with open(BASE_DIR / 'data' / 'pokeratlas-live-snapshot.json', 'w') as f:
         json.dump({
             'metadata': evidence,
             'venues': [{
                 'venue_name': v['venue_name'],
                 'region': v['region_slug'],
-                'games': v['live_games'],
+                'games': v['games'],
             } for v in all_venues],
         }, f, indent=2, default=str)
 
@@ -764,11 +546,10 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 def main():
     log.info('=' * 60)
-    log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v1.0')
+    log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v2.0')
     log.info(f'Interval: {SCRAPE_INTERVAL}s ({SCRAPE_INTERVAL // 60}min)')
-    log.info(f'Persistent session: YES (stays logged in between cycles)')
-    log.info(f'Retry policy: {MAX_RETRIES}x with exponential backoff')
-    log.info(f'Health check: every {HEALTH_CHECK_INTERVAL} cycles')
+    log.info(f'Strategy: session.fetch() per region (no login needed)')
+    log.info(f'Data: game catalog + buy-in + run schedule')
     log.info(f'Log dir: {LOG_DIR}')
     log.info('=' * 60)
 
@@ -780,7 +561,6 @@ def main():
             if count > 0:
                 log.info(f'⏰ Next scrape in {SCRAPE_INTERVAL // 60} minutes...')
             else:
-                # Shorter backoff on failure
                 backoff = min(60 * (mgr.consecutive_failures + 1), 300)
                 log.warning(f'⏰ Retrying in {backoff}s (failure #{mgr.consecutive_failures})...')
                 for _ in range(backoff):
@@ -794,14 +574,13 @@ def main():
             traceback.print_exc()
             mgr.consecutive_failures += 1
 
-        # Sleep in 1s intervals for signal responsiveness
+        # Sleep for interval
         for _ in range(SCRAPE_INTERVAL):
             if not running:
                 break
             time.sleep(1)
 
-    # Clean shutdown
-    log.info('🛑 Shutting down, closing session...')
+    log.info('🛑 Shutting down...')
     mgr.disconnect()
     log.info('Daemon stopped.')
 
