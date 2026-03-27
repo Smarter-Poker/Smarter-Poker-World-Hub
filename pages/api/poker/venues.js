@@ -747,7 +747,9 @@ export default async function handler(req, res) {
 
           // --- Apply limit and return ---
           const total = venues.length;
-          const limited = venues.slice(0, maxResults);
+          // When GPS is active, radius already filters — return all venue types
+          // Without GPS, apply user-facing limit to prevent unbounded responses
+          const limited = hasGps ? venues : venues.slice(0, maxResults);
 
           return res.status(200).json({
               success: true,
