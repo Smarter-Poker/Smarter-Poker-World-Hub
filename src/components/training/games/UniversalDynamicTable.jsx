@@ -1902,7 +1902,7 @@ function UniversalDynamicTable({
                         if (activeCount <= 2) {
                             // Strict Absolute positions: completely outside the table
                             seatX = 50;
-                            seatY = isHero ? 60 : -16;
+                            seatY = isHero ? 88 : -14;
                         }
 
                         return (
@@ -3214,7 +3214,7 @@ const styles = {
         color: '#fbbf24',
     },
 
-    // ── TABLE AREA — Phase 17d: Fill available space, overflow hidden
+    // ── TABLE AREA — Phase 17e: Fill ALL available space, overflow hidden
     tableArea: {
         flex: 1,
         position: 'relative',
@@ -3223,21 +3223,22 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        padding: '4px 0',
+        padding: 0,
     },
 
-    // ── NEW CUSTOM STANDALONE RACETRACK TABLE — fixed design size, scaled by Phase 16 container
+    // ── RACETRACK TABLE — Phase 17e: Tall oval matching reference image
     basicTable: {
         position: 'relative',
-        width: '90%',
-        maxWidth: 400,
-        aspectRatio: '1 / 1.4',
-        borderRadius: '50% / 25%', 
-        backgroundColor: '#1E3B22', // deep green felt
-        border: '10px solid #1a1a1a', // solid dark rail
+        width: '95%',
+        maxWidth: 500,
+        aspectRatio: '1 / 2.0',
+        borderRadius: '50% / 20%',
+        backgroundColor: '#1E3B22',
+        border: '8px solid #1a1a1a',
         boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
         margin: '0 auto',
         flexShrink: 0,
+        overflow: 'hidden',
     },
 
     seatsContainer: {
