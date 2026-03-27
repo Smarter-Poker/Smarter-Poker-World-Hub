@@ -1848,8 +1848,8 @@ export default function ReelsPage() {
                                 padding: '16px 20px', color: 'white', fontSize: 16, fontWeight: 600, textAlign: 'left',
                                 display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
                             }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill={saved[currentReel?.id] ? 'white' : 'none'} stroke="white" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> 
-                                {saved[currentReel?.id] ? 'Unsave' : 'Save Reel'}
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill={savedReels.has(currentReel?.id) ? 'white' : 'none'} stroke="white" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> 
+                                {savedReels.has(currentReel?.id) ? 'Unsave' : 'Save Reel'}
                             </button>
                             <button onClick={() => { setShowContextMenu(false); handleShare(); }} style={{
                                 background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)',
