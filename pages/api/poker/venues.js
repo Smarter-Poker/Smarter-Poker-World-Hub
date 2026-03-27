@@ -302,7 +302,10 @@ export default async function handler(req, res) {
                       }
                   }
 
-                  q = q.order('trust_score', { ascending: false }).range(offset, offset + maxResults - 1);
+                  // Internal fetch limit higher than user-facing limit to capture all venue types
+                  // (home_games, poker_clubs have null trust_score and sort last)
+                  const internalLimit = Math.max(maxResults, 1000);
+                  q = q.order('trust_score', { ascending: false, nullsFirst: false }).range(offset, offset + internalLimit - 1);
                   const { data: dbVenues, error: dbErr, count: dbCount } = await q;
 
                   if (!dbErr && dbVenues && dbVenues.length > 0) {
