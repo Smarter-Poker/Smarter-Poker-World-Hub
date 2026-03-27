@@ -948,8 +948,8 @@ export default function UniversalHeader({
                         </span>
                     </div>
 
-                    {/* Messages - Custom Metallic Messenger icon */}
-                    <button onClick={() => openOverlay('messenger')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Messages">
+                    {/* Messages - Custom Metallic Messenger icon — Sovereign Redirect (no popup) */}
+                    <button onClick={() => { window.location.href = '/hub/messenger'; }} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Messages">
                             <img src="/images/header-messenger.png" alt="Messages" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                             {safeUnreadCount > 0 && (
                                 <span className="orb-badge">{safeUnreadCount > 99 ? '99+' : safeUnreadCount}</span>

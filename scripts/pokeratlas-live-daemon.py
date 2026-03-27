@@ -316,7 +316,9 @@ class PokerAtlasSessionManager:
         self.session = None
         self.total_cycles = 0
         self.consecutive_failures = 0
+        self.consecutive_fetch_failures = 0
         self.last_connect_time = None
+        self._session_dead = False
 
     def connect(self):
         """Establish a new StealthySession."""
@@ -329,6 +331,8 @@ class PokerAtlasSessionManager:
             self.session = StealthySession(headless=True, solve_cloudflare=True)
             self.session.start()
             self.last_connect_time = datetime.now(timezone.utc)
+            self._session_dead = False
+            self.consecutive_fetch_failures = 0
             log.info('  ✅ Session ready')
             return True
         except Exception as e:
@@ -342,6 +346,7 @@ class PokerAtlasSessionManager:
 
         Returns HTML string or None on failure.
         Detects 301 redirects that silently return Las Vegas data.
+        Auto-reconnects when browser context dies (crash recovery).
         """
         try:
             resp = self.session.fetch(url, google_search=False)
@@ -381,16 +386,33 @@ class PokerAtlasSessionManager:
                         # Silently redirected to Las Vegas — skip
                         return None
 
+            # Success — reset failure counter
+            self.consecutive_fetch_failures = 0
             return html
 
         except Exception as e:
+            err_msg = str(e)
+            self.consecutive_fetch_failures += 1
+
+            # CRASH RECOVERY: Detect dead browser context
+            if 'has been closed' in err_msg or 'Target page' in err_msg:
+                log.warning(f'  🔴 Browser context dead — marking for reconnection')
+                self._session_dead = True
+
             log.warning(f'  ❌ Fetch error: {e}')
             return None
 
     def ensure_connected(self):
-        """Ensure the session is alive."""
-        if not self.session:
+        """Ensure the session is alive. Auto-reconnects on dead browser."""
+        if not self.session or self._session_dead:
+            log.info('🔄 Session dead or missing, reconnecting...')
             return self.connect()
+
+        # If we've had 3+ consecutive fetch failures, force reconnect
+        if self.consecutive_fetch_failures >= 3:
+            log.warning(f'🔄 {self.consecutive_fetch_failures} consecutive fetch failures — forcing reconnect')
+            return self.connect()
+
         return True
 
     def disconnect(self):
@@ -402,6 +424,7 @@ class PokerAtlasSessionManager:
             pass
         finally:
             self.session = None
+            self._session_dead = False
 
 
 # ============================================================

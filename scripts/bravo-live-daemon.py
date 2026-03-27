@@ -253,7 +253,9 @@ class BravoSessionManager:
         self.cycles_since_health_check = 0
         self.total_cycles = 0
         self.consecutive_failures = 0
+        self.consecutive_nav_failures = 0
         self.last_login_time = None
+        self._session_dead = False
 
     def connect(self):
         """Establish a new Scrapling StealthySession and login to Bravo."""
@@ -267,6 +269,8 @@ class BravoSessionManager:
         try:
             self.session = StealthySession(headless=True, solve_cloudflare=True)
             self.session.start()
+            self._session_dead = False
+            self.consecutive_nav_failures = 0
 
             # Step 1: Solve Cloudflare Turnstile
             log.info('  ☁️  Solving Cloudflare Turnstile...')
@@ -387,6 +391,16 @@ class BravoSessionManager:
 
     def ensure_connected(self):
         """Ensure session is connected and authenticated, reconnecting if needed."""
+        # Check if session is dead from crash
+        if self._session_dead:
+            log.info('🔄 Session marked dead (browser crashed), reconnecting...')
+            return self.connect()
+
+        # Check consecutive navigation failures (crash recovery)
+        if self.consecutive_nav_failures >= 3:
+            log.warning(f'🔄 {self.consecutive_nav_failures} consecutive nav failures — forcing reconnect')
+            return self.connect()
+
         # Periodic health check
         self.cycles_since_health_check += 1
         needs_health = self.cycles_since_health_check >= HEALTH_CHECK_INTERVAL
@@ -428,9 +442,19 @@ class BravoSessionManager:
                 log.warning(f'  ⚠️  {ERROR_VENUE_403}: CF challenge on {slug}')
                 return None
 
+            # Success — reset failure counter
+            self.consecutive_nav_failures = 0
             return content
 
         except Exception as e:
+            err_msg = str(e)
+            self.consecutive_nav_failures += 1
+
+            # CRASH RECOVERY: Detect dead browser context
+            if 'has been closed' in err_msg or 'Target page' in err_msg:
+                log.warning(f'  🔴 Browser context dead — marking for reconnection')
+                self._session_dead = True
+
             log.warning(f'  ❌ Navigate error on {slug}: {e}')
             return None
 
@@ -454,6 +478,7 @@ class BravoSessionManager:
             self.context = None
             self.session = None
             self.is_authenticated = False
+            self._session_dead = False
 
 # ============================================================
 # MAIN SCRAPE CYCLE

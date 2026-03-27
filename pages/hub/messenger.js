@@ -183,7 +183,7 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
                     {initials}
                 </div>
             )}
-            {showOnline && online && (
+            {showOnline && (
                 <div
                     style={{
                         position: 'absolute',
@@ -192,8 +192,9 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
                         width: size * 0.3,
                         height: size * 0.3,
                         borderRadius: '50%',
-                        background: C.green,
+                        background: online ? C.green : '#E41E3F',
                         border: '2px solid white',
+                        boxShadow: online ? '0 0 4px rgba(49,162,76,0.6)' : '0 0 4px rgba(228,30,63,0.4)',
                     }}
                 />
             )}
@@ -1210,10 +1211,12 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
 // 📋 CONVERSATION LIST ITEM
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ConversationItem({ conversation, isActive, onClick, currentUserId }) {
+function ConversationItem({ conversation, isActive, onClick, currentUserId, onlineUsers }) {
     const otherUser = conversation.otherUser || conversation.participants?.find(p => p.id !== currentUserId);
     const lastMsg = conversation.last_message_preview || conversation.lastMessage;
     const isUnread = conversation.unreadCount > 0;
+    // Real-time online status from Supabase Presence channel
+    const isOtherOnline = onlineUsers?.has?.(otherUser?.id) || false;
 
     return (
         <div
@@ -1236,7 +1239,7 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId }) {
                 src={otherUser?.avatar_url}
                 name={otherUser?.username || otherUser?.name}
                 size={56}
-                online={otherUser?.online}
+                online={isOtherOnline}
             />
 
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -2955,33 +2958,101 @@ function MessengerPage() {
         }, 300);
     }, [activeConversation, user]);
 
-    // Update user presence on mount/unmount
+    // ════════════════════════════════════════════════════════████████████████
+    // 🟢🔴 REAL-TIME PRESENCE: WebSocket-based online/offline tracking
+    // Uses Supabase Realtime Presence channel for instant green/red dot updates
+    // ════════════════════════════════════════════════════════████████████████
     useEffect(() => {
-        if (!user) return;
+        if (!user?.id) return;
 
-        // Set online on mount
-        const updatePresence = async (isOnline) => {
+        // 1. Update DB presence (for cross-page last_seen_at persistence)
+        const updateDbPresence = async (isOnlineNow) => {
             try {
                 await supabase.rpc('fn_update_presence', {
                     p_user_id: user.id,
-                    p_is_online: isOnline,
+                    p_is_online: isOnlineNow,
                 });
             } catch (e) {
-                console.error('Presence update error:', e);
+                console.error('[Presence] DB update error:', e);
             }
         };
 
-        updatePresence(true);
+        updateDbPresence(true);
 
-        // Set offline on unmount or page close
-        const handleUnload = () => updatePresence(false);
+        // 2. Join global Presence channel — all messenger users share this channel
+        const presenceChannel = supabase.channel('messenger-online', {
+            config: { presence: { key: user.id } }
+        });
+
+        presenceChannel
+            .on('presence', { event: 'sync' }, () => {
+                const state = presenceChannel.presenceState();
+                const onlineSet = new Set(Object.keys(state));
+                setOnlineUsers(onlineSet);
+                console.log('[Presence] Sync — online users:', onlineSet.size);
+
+                // Update active conversation's other user status in real-time
+                if (activeConversationRef.current?.otherUser?.id) {
+                    const otherId = activeConversationRef.current.otherUser.id;
+                    setOtherUserStatus(onlineSet.has(otherId) ? 'online' : 'offline');
+                }
+            })
+            .on('presence', { event: 'join' }, ({ key }) => {
+                setOnlineUsers(prev => new Set([...prev, key]));
+                // Instant green dot if the joining user is the active chat partner
+                if (activeConversationRef.current?.otherUser?.id === key) {
+                    setOtherUserStatus('online');
+                }
+            })
+            .on('presence', { event: 'leave' }, ({ key }) => {
+                setOnlineUsers(prev => {
+                    const next = new Set(prev);
+                    next.delete(key);
+                    return next;
+                });
+                // Instant red dot if the leaving user is the active chat partner
+                if (activeConversationRef.current?.otherUser?.id === key) {
+                    setOtherUserStatus('offline');
+                    setOtherUserLastSeen(new Date().toISOString());
+                }
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await presenceChannel.track({
+                        online_at: new Date().toISOString(),
+                        user_id: user.id,
+                    });
+                    console.log('[Presence] Tracking — user is now visible as online');
+                }
+            });
+
+        // 3. Set offline on unmount or page close
+        const handleUnload = () => {
+            updateDbPresence(false);
+            presenceChannel.untrack();
+        };
         window.addEventListener('beforeunload', handleUnload);
+
+        // 4. Handle visibility changes (tab switch = away)
+        const handleVisibility = () => {
+            if (document.hidden) {
+                presenceChannel.untrack();
+            } else {
+                presenceChannel.track({
+                    online_at: new Date().toISOString(),
+                    user_id: user.id,
+                });
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
 
         return () => {
             window.removeEventListener('beforeunload', handleUnload);
-            updatePresence(false);
+            document.removeEventListener('visibilitychange', handleVisibility);
+            supabase.removeChannel(presenceChannel);
+            updateDbPresence(false);
         };
-    }, [user]);
+    }, [user?.id]);
 
     // Calculate total unread count + favicon badge
     useEffect(() => {
@@ -3870,6 +3941,7 @@ function MessengerPage() {
                                         isActive={activeConversation?.id === conv.id}
                                         onClick={() => handleSelectConversation(conv)}
                                         currentUserId={user.id}
+                                        onlineUsers={onlineUsers}
                                     />
                                 ))}
                             </>
@@ -3928,7 +4000,7 @@ function MessengerPage() {
                                     )}
 
                                     <Link href={`/hub/user/${otherUser?.username}`}>
-                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={40} online />
+                                        <Avatar src={otherUser?.avatar_url} name={otherUser?.username} size={40} online={otherUserStatus === 'online'} />
                                     </Link>
 
                                     <div style={{ flex: 1 }}>

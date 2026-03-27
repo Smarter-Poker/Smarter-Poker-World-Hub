@@ -63,12 +63,12 @@ const nextConfig = {
   },
   // ─── Dev Server Memory Management ──────────────────────────────────────────
   // With 952 pages, the dev server compiles pages on-demand and keeps them in memory.
-  // [HARDENED] Buffer increased from 3→8 to reduce vendor-chunks race conditions
-  // that occur when pages are evicted and recompiled too aggressively during
-  // high-concurrency dev sessions (e.g. multiple browser tabs + HMR).
+  // [HARDENED] Keep a reasonable number of pages hot — enough to avoid recompilation
+  // thrashing, but not so many that it wastes GB of RAM on a 950+ page codebase.
+  // Previous: 128 pages / 24h — consumed 2-4 GB keeping unused pages warm.
   onDemandEntries: {
-    maxInactiveAge: 24 * 60 * 60 * 1000, // Dispose compiled pages after 24h of inactivity (prevents eviction race conditions)
-    pagesBufferLength: 128,              // Keep 128 pages hot in memory to eliminate recompilation pressure
+    maxInactiveAge: 2 * 60 * 60 * 1000,  // Dispose compiled pages after 2h of inactivity
+    pagesBufferLength: 16,               // Keep 16 pages hot in memory (sufficient for active dev)
   },
 
   // ─── Webpack Dev Stability Fix ─────────────────────────────────────────────

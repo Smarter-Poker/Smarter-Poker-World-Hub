@@ -54,8 +54,8 @@ export default function ReelsPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
-    const [muted, setMuted] = useState(true); // MUST be true for autoplay to work
-    const [userWantsSound, setUserWantsSound] = useState(false); // localStorage preference
+    const [muted, setMuted] = useState(false); // Sound always ON — we unmute aggressively after autoplay
+    const [userWantsSound, setUserWantsSound] = useState(true); // Sound ON by default
     // Auto-play immediately - no tap required since videos are muted (browser policy compliant)
     const [liked, setLiked] = useState({});
     const [disliked, setDisliked] = useState({});
@@ -137,7 +137,7 @@ export default function ReelsPage() {
     const [showMoreMenu, setShowMoreMenu] = useState(false);
     const [showReactionPicker, setShowReactionPicker] = useState(false);
     const reactionTimerRef = useRef(null);
-    // Phase 10 — Universal HUD auto-hide
+    // Phase 10 — Universal HUD auto-hide (5s timeout for usability)
     const [showOverlay, setShowOverlay] = useState(false);
     const hudTimerRef = useRef(null);
     const revealOverlay = () => {
@@ -145,7 +145,7 @@ export default function ReelsPage() {
         setShowReactionPicker(false);
         setShowMoreMenu(false);
         clearTimeout(hudTimerRef.current);
-        hudTimerRef.current = setTimeout(() => { setShowOverlay(false); setShowReactionPicker(false); setShowMoreMenu(false); }, 2500);
+        hudTimerRef.current = setTimeout(() => { setShowOverlay(false); setShowReactionPicker(false); setShowMoreMenu(false); }, 5000);
     };
     const pullStartY = useRef(null);
     
@@ -184,8 +184,10 @@ export default function ReelsPage() {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const savedPref = localStorage.getItem('reels-sound-enabled');
-            if (savedPref === 'true') {
-                setUserWantsSound(true);
+            // Sound is ON by default — only turn off if explicitly set to false
+            if (savedPref === 'false') {
+                setUserWantsSound(false);
+                setMuted(true);
             }
         }
     }, []);
@@ -256,17 +258,19 @@ export default function ReelsPage() {
         }
     };
 
-    // Auto-play immediately on load (muted videos comply with browser autoplay policy)
-    // Then auto-unmute since user explicitly came here to watch videos with sound
+    // Auto-play AND auto-unmute on every reel — sound must ALWAYS be on
     useEffect(() => {
         if (!loading && reels.length > 0) {
-            // Retry loop: unmute at 500ms, 1200ms, 2500ms to ensure YouTube API is ready
-            const delays = [500, 1200, 2500];
+            // Aggressive unmute retry loop: 300ms, 800ms, 1500ms, 3000ms
+            // YouTube iframe starts muted for autoplay compliance, we unmute immediately after
+            const delays = [300, 800, 1500, 3000];
             const timers = delays.map(delay => setTimeout(() => {
                 sendYouTubeCommand('playVideo');
-                sendYouTubeCommand('unMute');
-                sendYouTubeCommand('setVolume', [100]);
-                setMuted(false);
+                if (userWantsSound) {
+                    sendYouTubeCommand('unMute');
+                    sendYouTubeCommand('setVolume', [100]);
+                    setMuted(false);
+                }
             }, delay));
             return () => timers.forEach(t => clearTimeout(t));
         }
@@ -1166,7 +1170,7 @@ export default function ReelsPage() {
                     if (data.info === 1) { // Playing
                         setShowOverlay(true);
                         clearTimeout(hudTimerRef.current);
-                        hudTimerRef.current = setTimeout(() => setShowOverlay(false), 2500);
+                        hudTimerRef.current = setTimeout(() => setShowOverlay(false), 5000);
                     }
                     if (data.info === 2) { // Paused
                         setShowOverlay(true);
@@ -1482,25 +1486,34 @@ export default function ReelsPage() {
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen
                             onLoad={() => {
-                                // Send playVideo immediately on load for all browsers
+                                // Play + unmute immediately on iframe load
                                 sendYouTubeCommand('playVideo');
-                                // Also try again after a short delay for Safari
+                                sendYouTubeCommand('unMute');
+                                sendYouTubeCommand('setVolume', [100]);
+                                setMuted(false);
+                                // Retry for Safari/slow API init
                                 setTimeout(() => {
                                     sendYouTubeCommand('playVideo');
-                                    if (userWantsSound) {
-                                        sendYouTubeCommand('unMute');
-                                        sendYouTubeCommand('setVolume', [100]);
-                                    }
-                                }, 300);
+                                    sendYouTubeCommand('unMute');
+                                    sendYouTubeCommand('setVolume', [100]);
+                                }, 200);
+                                setTimeout(() => {
+                                    sendYouTubeCommand('unMute');
+                                    sendYouTubeCommand('setVolume', [100]);
+                                }, 600);
                             }}
                             style={{
                                 position: 'absolute',
-                                top: -40,
-                                left: -40,
-                                width: 'calc(100% + 80px)',
-                                height: 'calc(100% + 80px)',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                width: '110%',
+                                height: '110%',
+                                minWidth: '100vw',
+                                minHeight: '100vh',
                                 border: 'none',
                                 pointerEvents: 'none',
+                                objectFit: 'cover',
                             }}
                         />
                     ) : null}
@@ -1863,6 +1876,50 @@ export default function ReelsPage() {
                     </div>
                 </div>
 
+                {/* Floating Mute/Unmute Button — Always visible */}
+                <button
+                    onClick={() => {
+                        if (muted) {
+                            handleUnmute();
+                        } else {
+                            handleMute();
+                        }
+                    }}
+                    aria-label={muted ? 'Unmute' : 'Mute'}
+                    style={{
+                        position: 'absolute',
+                        bottom: 20,
+                        right: 16,
+                        zIndex: 120,
+                        width: 44,
+                        height: 44,
+                        borderRadius: '50%',
+                        background: muted ? 'rgba(255,255,255,0.15)' : 'rgba(0,212,255,0.2)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: muted ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,212,255,0.4)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                    }}
+                >
+                    {muted ? (
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                            <line x1="23" y1="9" x2="17" y2="15" />
+                            <line x1="17" y1="9" x2="23" y2="15" />
+                        </svg>
+                    ) : (
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                        </svg>
+                    )}
+                </button>
+
                 {/* Instagram-style heart burst with particles */}
                 {showHeart && (
                     <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 150, width: 120, height: 120 }}>
@@ -2063,6 +2120,10 @@ export default function ReelsPage() {
                     @keyframes fadeInScale {
                         from { opacity: 0; transform: scale(0.85); }
                         to { opacity: 1; transform: scale(1); }
+                    }
+                    @keyframes pulse {
+                        0%, 100% { box-shadow: 0 0 0 0 rgba(0,212,255,0.3); }
+                        50% { box-shadow: 0 0 0 8px rgba(0,212,255,0); }
                     }
                 `}</style>
 

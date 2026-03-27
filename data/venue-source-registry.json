@@ -1,8 +1,8 @@
 {
   "metadata": {
     "description": "Source of Truth Registry \u2014 Authoritative scrape URL mappings for daily re-scraping",
-    "generated": "2026-03-26T14:25:32.214539+00:00",
-    "total_venues": 498,
+    "generated": "2026-03-27T19:11:58.318165+00:00",
+    "total_venues": 535,
     "source_hierarchy": [
       "1. Venue's own website (most authoritative for hours, address, phone, games)",
       "2. PokerAtlas (authoritative for table counts, stakes, tournament schedules)",
@@ -11,7 +11,8 @@
       "5. Google Maps / Yelp (address/phone verification)"
     ],
     "scrape_protocol": "Scrapling Fetcher.get(stealthy_headers=True) ONLY \u2014 no urllib/requests/fetch",
-    "provenance_requirements": "SHA-256 hash, UTC timestamp, batch UUID on every record"
+    "provenance_requirements": "SHA-256 hash, UTC timestamp, batch UUID on every record",
+    "charity_sources_added": 37
   },
   "venues": [
     {
@@ -21824,6 +21825,1212 @@
         "has_tables": false,
         "has_coords": false,
         "has_tournaments": true,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Chicago Charitable Games (CCG Poker)",
+      "type": "charity",
+      "state": "IL",
+      "city": "Chicago",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://chicagocharitablegames.com",
+          "scrape_for": [
+            "venues",
+            "schedule",
+            "tournaments",
+            "cash_games",
+            "hours"
+          ]
+        },
+        {
+          "tier": 2,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/chicago-charitable-games",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments",
+            "hours"
+          ]
+        }
+      ],
+      "id": 2766,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Rockford Charitable Games (RCG Poker)",
+      "type": "charity",
+      "state": "IL",
+      "city": "Rosemont",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://rcgpoker.com",
+          "scrape_for": [
+            "venues",
+            "schedule",
+            "tournaments",
+            "cash_games",
+            "hours",
+            "address"
+          ]
+        },
+        {
+          "tier": 2,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/rockford-charitable-games",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments"
+          ]
+        }
+      ],
+      "id": 2767,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Windy City Poker Championship",
+      "type": "charity",
+      "state": "IL",
+      "city": "Chicago",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://windycity.poker",
+          "scrape_for": [
+            "venues",
+            "schedule",
+            "tournaments",
+            "events"
+          ]
+        }
+      ],
+      "id": 2768,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Central Illinois Charitable Games (CICG Poker)",
+      "type": "charity",
+      "state": "IL",
+      "city": "Peoria",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://centralillinoischaritablegames.com",
+          "scrape_for": [
+            "venues",
+            "schedule",
+            "tournaments",
+            "cash_games"
+          ]
+        }
+      ],
+      "id": 2769,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Play Poker Chicago",
+      "type": "charity",
+      "state": "IL",
+      "city": "Chicago",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://playpokerchicago.com",
+          "scrape_for": [
+            "venues",
+            "schedule",
+            "tournaments",
+            "events"
+          ]
+        }
+      ],
+      "id": 2770,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Chicagoland Poker",
+      "type": "charity",
+      "state": "IL",
+      "city": "Arlington Heights",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://chicagopokerclub.net",
+          "scrape_for": [
+            "venues",
+            "schedule",
+            "tournaments"
+          ]
+        },
+        {
+          "tier": 2,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/chicagoland-charity-poker",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments"
+          ]
+        }
+      ],
+      "id": 2771,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "E3 Gaming \u2014 Westgate Poker Room",
+      "type": "charity",
+      "state": "MI",
+      "city": "Comstock Park",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://e3games.org",
+          "scrape_for": [
+            "venues",
+            "schedule",
+            "events",
+            "address",
+            "phone"
+          ]
+        }
+      ],
+      "id": 2772,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Monroe Boat Club (MBC-A Charity Poker)",
+      "type": "charity",
+      "state": "MI",
+      "city": "Westland",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://monroeboatclub.org",
+          "scrape_for": [
+            "schedule",
+            "events",
+            "venues"
+          ]
+        }
+      ],
+      "id": 2773,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Kings Poker Room",
+      "type": "charity",
+      "state": "MI",
+      "city": "Grand Rapids",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/kings-poker-room-grand-rapids",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments",
+            "hours",
+            "address"
+          ]
+        }
+      ],
+      "id": 2774,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Mr. B's Poker Room",
+      "type": "charity",
+      "state": "MI",
+      "city": "Utica",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/mr-bs-poker-room-utica",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments",
+            "hours",
+            "address"
+          ]
+        }
+      ],
+      "id": 2775,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Paradise Poker",
+      "type": "charity",
+      "state": "MI",
+      "city": "Utica",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/paradise-poker-utica",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments",
+            "hours",
+            "address"
+          ]
+        }
+      ],
+      "id": 2776,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Rosemack Poker Room",
+      "type": "charity",
+      "state": "MI",
+      "city": "Roseville",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/rosemack-poker-room",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments",
+            "hours",
+            "address"
+          ]
+        }
+      ],
+      "id": 2777,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Waterford Card Room at 300 Bowl",
+      "type": "charity",
+      "state": "MI",
+      "city": "Waterford",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/waterford-card-room-at-300-bowl",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments",
+            "hours",
+            "address"
+          ]
+        }
+      ],
+      "id": 2778,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Legends Poker Place of Metamora",
+      "type": "charity",
+      "state": "MI",
+      "city": "Metamora",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/legends-poker-place-metamora",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments",
+            "hours",
+            "address"
+          ]
+        }
+      ],
+      "id": 2779,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Momo's Poker Room",
+      "type": "charity",
+      "state": "MI",
+      "city": "Shelby Township",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/momos-poker-room",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments",
+            "hours",
+            "address"
+          ]
+        }
+      ],
+      "id": 2780,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "DiCicco's Poker Room",
+      "type": "charity",
+      "state": "MI",
+      "city": "Roseville",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/diciccos-poker-room",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments",
+            "hours",
+            "address"
+          ]
+        }
+      ],
+      "id": 2781,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Michigan Charitable Gaming Association",
+      "type": "charity",
+      "state": "MI",
+      "city": "Statewide",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "directory",
+          "url": "https://micga.org",
+          "scrape_for": [
+            "venues",
+            "events",
+            "directory"
+          ]
+        }
+      ],
+      "id": 2782,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Big Stack Poker Club",
+      "type": "charity",
+      "state": "OH",
+      "city": "Wickliffe",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://bigstackpokerclub.com",
+          "scrape_for": [
+            "schedule",
+            "tournaments",
+            "address",
+            "phone",
+            "hours"
+          ]
+        }
+      ],
+      "id": 2783,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Shark Tank Poker Club",
+      "type": "charity",
+      "state": "OH",
+      "city": "Columbus",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://sharktankpokerclub.com",
+          "scrape_for": [
+            "schedule",
+            "tournaments",
+            "address",
+            "phone",
+            "hours"
+          ]
+        }
+      ],
+      "id": 2784,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "The Reserve Poker Club",
+      "type": "charity",
+      "state": "OH",
+      "city": "Toledo",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://thereservepoker.com",
+          "scrape_for": [
+            "schedule",
+            "tournaments",
+            "address",
+            "phone"
+          ]
+        }
+      ],
+      "id": 2785,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "River Room Players Club",
+      "type": "charity",
+      "state": "OH",
+      "city": "Akron",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://riverroompoker.com",
+          "scrape_for": [
+            "schedule",
+            "tournaments",
+            "address",
+            "hours"
+          ]
+        }
+      ],
+      "id": 2786,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "The Joker Club",
+      "type": "charity",
+      "state": "OH",
+      "city": "Akron",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/the-joker-club-akron",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments",
+            "hours",
+            "address"
+          ]
+        }
+      ],
+      "id": 2787,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Westfield Lions Club Poker",
+      "type": "charity",
+      "state": "IN",
+      "city": "Westfield",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://lionspoker.org",
+          "scrape_for": [
+            "schedule",
+            "events",
+            "tournaments"
+          ]
+        }
+      ],
+      "id": 2788,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "OP Social Club / Outlaw Poker",
+      "type": "charity",
+      "state": "IN",
+      "city": "Lafayette",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://opsocialclub.com",
+          "scrape_for": [
+            "schedule",
+            "venues",
+            "tournaments"
+          ]
+        }
+      ],
+      "id": 2789,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Queens Club Inc.",
+      "type": "charity",
+      "state": "NC",
+      "city": "Charlotte",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://queensclubinc.org",
+          "scrape_for": [
+            "venues",
+            "schedule",
+            "locations",
+            "events"
+          ]
+        }
+      ],
+      "id": 2790,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "High Stax Poker",
+      "type": "charity",
+      "state": "NC",
+      "city": "Jacksonville",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://highstaxpoker.net",
+          "scrape_for": [
+            "venues",
+            "schedule",
+            "tournaments"
+          ]
+        }
+      ],
+      "id": 2791,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Kontenders Poker League",
+      "type": "charity",
+      "state": "NC",
+      "city": "Statewide",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://kontenderspoker.com",
+          "scrape_for": [
+            "schedule",
+            "events",
+            "tournaments"
+          ]
+        }
+      ],
+      "id": 2792,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Revo Casino & Social House Manchester",
+      "type": "charity",
+      "state": "NH",
+      "city": "Manchester",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/revo-casino-and-social-house-manchester",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments",
+            "hours",
+            "address",
+            "promotions"
+          ]
+        }
+      ],
+      "id": 2793,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Concord Casino",
+      "type": "charity",
+      "state": "NH",
+      "city": "Concord",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://concordnhcasino.com",
+          "scrape_for": [
+            "schedule",
+            "address",
+            "phone",
+            "hours",
+            "cash_games"
+          ]
+        },
+        {
+          "tier": 2,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/concord-casino",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments"
+          ]
+        }
+      ],
+      "id": 2794,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Revo Dover Poker Room",
+      "type": "charity",
+      "state": "NH",
+      "city": "Dover",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/revo-dover-poker-room",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments",
+            "hours",
+            "address"
+          ]
+        }
+      ],
+      "id": 2795,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Gate City Casino",
+      "type": "charity",
+      "state": "NH",
+      "city": "Nashua",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://thegatecitycasino.com",
+          "scrape_for": [
+            "schedule",
+            "tournaments",
+            "address",
+            "phone",
+            "hours"
+          ]
+        },
+        {
+          "tier": 2,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/gate-city-casino-nashua",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "tournaments"
+          ]
+        }
+      ],
+      "id": 2796,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Pop's Poker",
+      "type": "charity",
+      "state": "VA",
+      "city": "Virginia",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://popspoker.com",
+          "scrape_for": [
+            "schedule",
+            "tournaments",
+            "venues",
+            "events"
+          ]
+        }
+      ],
+      "id": 2797,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "RVA Charity Poker",
+      "type": "charity",
+      "state": "VA",
+      "city": "Richmond",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://rvacharitypoker.org",
+          "scrape_for": [
+            "schedule",
+            "events",
+            "tournaments"
+          ]
+        }
+      ],
+      "id": 2798,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Evlos Charity Poker",
+      "type": "charity",
+      "state": "MD",
+      "city": "Maryland",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://evloscharitypoker.com",
+          "scrape_for": [
+            "schedule",
+            "events",
+            "tournaments"
+          ]
+        }
+      ],
+      "id": 2799,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Charity Series of Poker (CSOP)",
+      "type": "charity",
+      "state": "MULTI",
+      "city": "National",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://charityseriesofpoker.org",
+          "scrape_for": [
+            "events",
+            "tournaments",
+            "schedule",
+            "venues"
+          ]
+        }
+      ],
+      "id": 2800,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "ACES Charity Poker",
+      "type": "charity",
+      "state": "MULTI",
+      "city": "National",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://acescharitypoker.org",
+          "scrape_for": [
+            "events",
+            "tournaments",
+            "schedule"
+          ]
+        }
+      ],
+      "id": 2801,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
+        "has_website": true
+      }
+    },
+    {
+      "name": "Poker For Good",
+      "type": "charity",
+      "state": "MULTI",
+      "city": "National",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "org_website",
+          "url": "https://pokerforgood.org",
+          "scrape_for": [
+            "events",
+            "tournaments"
+          ]
+        }
+      ],
+      "id": 2802,
+      "data_completeness": {
+        "has_address": false,
+        "has_phone": false,
+        "has_games": false,
+        "has_stakes": false,
+        "has_hours": false,
+        "has_tables": false,
+        "has_coords": false,
+        "has_tournaments": false,
         "has_website": true
       }
     }
