@@ -1902,7 +1902,7 @@ function UniversalDynamicTable({
                         if (activeCount <= 2) {
                             // Strict Absolute positions: completely outside the table
                             seatX = 50;
-                            seatY = isHero ? 80 : -16;
+                            seatY = isHero ? 72 : -16;
                         }
 
                         return (
@@ -2005,17 +2005,16 @@ function UniversalDynamicTable({
                                         </div>
                                     )}
 
-                                    {/* Hero: face-up cards — Giant Focal Point, UNDER the badge */}
+                                    {/* Hero: face-up cards — RIGHT of badge (same layout as villain) */}
                                     {isHero && heroCards.length > 0 && (
                                         <div style={{
                                             position: 'absolute',
-                                            top: '100%',
-                                            left: '50%',
-                                            transform: 'translate(-50%, -10px)',
+                                            right: -8,
+                                            top: '50%',
+                                            transform: 'translate(100%, -50%)',
                                             display: 'flex',
-                                            gap: 4,
-                                            marginTop: 14,
-                                            zIndex: 1, // Behind badge if overlapping
+                                            gap: 2,
+                                            zIndex: 5,
                                         }}>
                                             {heroCards[0] && (
                                                 <motion.img
@@ -2026,9 +2025,9 @@ function UniversalDynamicTable({
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     transition={{ delay: 0.1, duration: 0.3, type: 'spring' }}
                                                     style={{
-                                                        width: 36,
-                                                        height: 50,
-                                                        borderRadius: 6,
+                                                        width: 44,
+                                                        height: 62,
+                                                        borderRadius: 4,
                                                         boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
                                                         border: '2px solid rgba(255,255,255,0.4)',
                                                     }}
@@ -2043,10 +2042,10 @@ function UniversalDynamicTable({
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     transition={{ delay: 0.2, duration: 0.3, type: 'spring' }}
                                                     style={{
-                                                        width: 36,
-                                                        height: 50,
-                                                        borderRadius: 6,
-                                                        marginLeft: -10,
+                                                        width: 44,
+                                                        height: 62,
+                                                        borderRadius: 4,
+                                                        marginLeft: -6,
                                                         boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
                                                         border: '2px solid rgba(255,255,255,0.4)',
                                                     }}
