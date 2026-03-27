@@ -1816,22 +1816,8 @@ function UniversalDynamicTable({
 
 
 
-            {/* TABLE AREA - Center — Phase 16: Scale-Lock Container */}
-            <div style={{
-                position: 'relative',
-                width: '100%',
-                height: scaledTableHeight,
-                overflow: 'visible',
-                display: 'flex',
-                justifyContent: 'center',
-            }}>
-            <div style={{
-                ...styles.tableArea,
-                width: DESIGN_WIDTH,
-                transform: `scale(${scaleFactor})`,
-                transformOrigin: 'top center',
-                flexShrink: 0,
-            }}>
+            {/* TABLE AREA - Center */}
+            <div style={styles.tableArea}>
 
                 {/* Phase 3: Floating EV Popup */}
                 <AnimatePresence>
@@ -1916,7 +1902,7 @@ function UniversalDynamicTable({
                         if (activeCount <= 2) {
                             // Strict Absolute positions: completely outside the table
                             seatX = 50;
-                            seatY = isHero ? 92 : -16;
+                            seatY = isHero ? 80 : -16;
                         }
 
                         return (
@@ -2040,8 +2026,8 @@ function UniversalDynamicTable({
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     transition={{ delay: 0.1, duration: 0.3, type: 'spring' }}
                                                     style={{
-                                                        width: isMobile ? 50 : 64,
-                                                        height: isMobile ? 70 : 90,
+                                                        width: 36,
+                                                        height: 50,
                                                         borderRadius: 6,
                                                         boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
                                                         border: '2px solid rgba(255,255,255,0.4)',
@@ -2057,8 +2043,8 @@ function UniversalDynamicTable({
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     transition={{ delay: 0.2, duration: 0.3, type: 'spring' }}
                                                     style={{
-                                                        width: isMobile ? 50 : 64,
-                                                        height: isMobile ? 70 : 90,
+                                                        width: 36,
+                                                        height: 50,
                                                         borderRadius: 6,
                                                         marginLeft: -10,
                                                         boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
@@ -2183,7 +2169,6 @@ function UniversalDynamicTable({
 
                 {/* Street indicator removed — already shown in header */}
             </div>
-            </div> {/* END Phase 16 scale-lock outer */}
 
             {/* Hand Strength indicator — hidden when hero cards are giant */}
             {/* (Removed to prevent collision with the large hero focal cards) */}
@@ -3229,23 +3214,24 @@ const styles = {
         color: '#fbbf24',
     },
 
-    // ── TABLE AREA — Phase 16: Fixed-dimension design canvas (420×520)
+    // ── TABLE AREA — Phase 17: Standard flow layout, overflow hidden, no scale tricks
     tableArea: {
+        flex: 1,
         position: 'relative',
-        width: 420,
-        height: 600,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '28px 16px 20px 16px',
+        overflow: 'hidden',
+        padding: '28px 16px 8px 16px',
     },
 
     // ── NEW CUSTOM STANDALONE RACETRACK TABLE — fixed design size, scaled by Phase 16 container
     basicTable: {
         position: 'relative',
-        width: 280,
-        aspectRatio: '1 / 1.7',
+        width: '80%',
+        maxWidth: 320,
+        aspectRatio: '1 / 1.5',
         borderRadius: '50% / 25%', 
         backgroundColor: '#1E3B22', // deep green felt
         border: '10px solid #1a1a1a', // solid dark rail
