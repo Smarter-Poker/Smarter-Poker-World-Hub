@@ -1,0 +1,65 @@
+{
+  "metadata": {
+    "generated": "2026-03-27T15:14:11.436553+00:00",
+    "total_regions": 11,
+    "total_venues_across_regions": 149,
+    "total_games_across_regions": 729
+  },
+  "regions": [
+    {
+      "slug": "las-vegas-nevada",
+      "venues": 19,
+      "games": 210
+    },
+    {
+      "slug": "laughlin-nevada",
+      "venues": 2,
+      "games": 9
+    },
+    {
+      "slug": "atlantic-city-new-jersey",
+      "venues": 3,
+      "games": 33
+    },
+    {
+      "slug": "virginia",
+      "venues": 1,
+      "games": 34
+    },
+    {
+      "slug": "texas",
+      "venues": 65,
+      "games": 268
+    },
+    {
+      "slug": "biloxi-mississippi",
+      "venues": 7,
+      "games": 29
+    },
+    {
+      "slug": "iowa",
+      "venues": 7,
+      "games": 28
+    },
+    {
+      "slug": "wisconsin",
+      "venues": 2,
+      "games": 13
+    },
+    {
+      "slug": "portland-oregon",
+      "venues": 18,
+      "games": 53
+    },
+    {
+      "slug": "montana",
+      "venues": 24,
+      "games": 46
+    },
+    {
+      "slug": "georgia",
+      "venues": 1,
+      "games": 6
+    }
+  ]
+}

@@ -326,10 +326,11 @@ class PokerAtlasSessionManager:
             self.disconnect()
             return False
 
-    def fetch_page(self, url):
+    def fetch_page(self, url, expected_slug=None):
         """Fetch a page using the persistent session.
 
         Returns HTML string or None on failure.
+        Detects 301 redirects that silently return Las Vegas data.
         """
         try:
             resp = self.session.fetch(url, google_search=False)
@@ -350,7 +351,6 @@ class PokerAtlasSessionManager:
             # Check for CF challenge
             if 'Just a moment' in html or 'Performing security verification' in html:
                 log.warning(f'  ⚠️  {ERROR_CF_BLOCKED}: CF challenge on {url}')
-                # Try reconnecting
                 if self.connect():
                     resp = self.session.fetch(url, google_search=True)
                     html = resp.html_content or ''
@@ -360,6 +360,15 @@ class PokerAtlasSessionManager:
                         return None
                 else:
                     return None
+
+            # REDIRECT DETECTION: Check if page title matches requested region
+            if expected_slug and expected_slug != 'las-vegas-nevada':
+                title_match = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
+                if title_match:
+                    title = title_match.group(1).strip().lower()
+                    if 'las vegas' in title:
+                        # Silently redirected to Las Vegas — skip
+                        return None
 
             return html
 
@@ -440,7 +449,7 @@ def run_scrape_cycle(mgr):
 
     for i, slug in enumerate(regions):
         url = f'https://www.pokeratlas.com/poker-cash-games/{slug}'
-        html = mgr.fetch_page(url)
+        html = mgr.fetch_page(url, expected_slug=slug)
 
         if html is None:
             errors += 1
