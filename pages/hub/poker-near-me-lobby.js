@@ -451,6 +451,11 @@ export default function PokerNearMeLobby() {
   // ─── Location State ───
   const [userLocation, setUserLocation] = useState(null);
   const [gpsActive, setGpsActive] = useState(false);
+  const [locationToast, setLocationToast] = useState(null); // { city, state } for success toast
+  const [showManualLocation, setShowManualLocation] = useState(false);
+  const [manualCity, setManualCity] = useState('');
+  const [manualState, setManualState] = useState('');
+  const locationToastTimeoutRef = useRef(null);
 
   // ─── Menu config ───
   const menuConfig = useMemo(() => getMenuConfig('poker-near-me'), []);
@@ -839,16 +844,77 @@ export default function PokerNearMeLobby() {
     };
   }, []);
 
-  // ─── GPS (persists to Supabase) ───
+  // ─── Reverse Geocode: lat/lng → city, state ───
+  const reverseGeocode = useCallback(async (lat, lng) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10&addressdetails=1`, {
+        headers: { 'Accept-Language': 'en' }
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const addr = data?.address || {};
+      const city = addr.city || addr.town || addr.village || addr.suburb || addr.county || '';
+      const state = addr.state || '';
+      return { city, state };
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // ─── Show location success toast (auto-dismiss after 2s) ───
+  const showLocationSuccessToast = useCallback((cityState) => {
+    if (locationToastTimeoutRef.current) clearTimeout(locationToastTimeoutRef.current);
+    setLocationToast(cityState);
+    locationToastTimeoutRef.current = setTimeout(() => setLocationToast(null), 2500);
+  }, []);
+
+  // ─── GPS Success handler (shared between auto + manual click) ───
+  const onGpsSuccess = useCallback(async (pos, options = {}) => {
+    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    setUserLocation(loc);
+    setGpsActive(true);
+    // Reverse geocode for city/state
+    const geo = await reverseGeocode(loc.lat, loc.lng);
+    if (geo?.city) {
+      showLocationSuccessToast(geo);
+    }
+    // Persist enabled state + coordinates to Supabase
+    if (userId) {
+      updatePokerNearMePreferences(userId, {
+        locationEnabled: true,
+        lastLocation: loc,
+        lastLocationCity: geo?.city || '',
+        lastLocationState: geo?.state || '',
+        locationEnabledAt: new Date().toISOString(),
+      }).catch(() => {});
+    }
+    // Fetch ALL venues with GPS coordinates for distance sorting
+    const gpsUrl = `/api/poker/venues?limit=500&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+    cachedFetch(gpsUrl).then(data => {
+      const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+      setVenues(newVenues);
+      setHasMore(newVenues.length >= PAGE_SIZE);
+      setPage(0);
+    }).catch(err => console.error('GPS venue fetch failed:', err));
+    // Stay in current pod — auto-trigger search with distance sort
+    if (!options.silent) {
+      if (!activePod || activePod === 'search') {
+        setActivePod('nearme');
+      }
+      setShowPanel(true);
+      setFilters(prev => ({ ...prev, nmSearched: true, nmSort: 'distance', svHasSearched: true, svSort: 'distance' }));
+    }
+  }, [reverseGeocode, showLocationSuccessToast, userId, activePod]);
+
+  // ─── GPS Click handler ───
   const gpsErrorTimeoutRef = useRef(null);
   const handleGpsClick = useCallback(() => {
-    // Clear any pending error timeout from a previous click
     if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
 
     if (gpsActive) {
       setGpsActive(false);
       setUserLocation(null);
-      // Persist disabled state to Supabase
+      setLocationToast(null);
       if (userId) {
         updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
       }
@@ -860,65 +926,90 @@ export default function PokerNearMeLobby() {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserLocation(loc);
-        setGpsActive(true);
-        // Persist enabled state + coordinates to Supabase
-        if (userId) {
-          updatePokerNearMePreferences(userId, {
-            locationEnabled: true,
-            lastLocation: loc,
-            locationEnabledAt: new Date().toISOString(),
-          }).catch(() => {});
-        }
-        // Fetch ALL venues with GPS coordinates for distance sorting
-        const gpsUrl = `/api/poker/venues?limit=500&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
-        cachedFetch(gpsUrl).then(data => {
-          const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-          setVenues(newVenues);
-          setHasMore(newVenues.length >= PAGE_SIZE);
-          setPage(0);
-        }).catch(err => console.error('GPS venue fetch failed:', err));
-        // Stay in current pod — auto-trigger search with distance sort
-        if (!activePod || activePod === 'search') {
-          setActivePod('nearme');
-        }
-        setShowPanel(true);
-        // Auto-trigger the search results display
-        setFilters(prev => ({ ...prev, nmSearched: true, nmSort: 'distance', svHasSearched: true, svSort: 'distance' }));
-      },
+      (pos) => onGpsSuccess(pos),
       (err) => {
         setGpsActive(false);
-        setGpsError(err.code === 1 ? 'Location access denied' : 'Could not get location');
-        gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
-        // Persist error state
+        if (err.code === 1) {
+          // User denied → show manual location setter
+          setGpsError('Location access denied — set your location manually');
+          gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 4000);
+          setShowManualLocation(true);
+        } else {
+          setGpsError('Could not get location — try setting it manually');
+          gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
+          setShowManualLocation(true);
+        }
         if (userId) {
           updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
         }
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, [gpsActive, fetchVenues, userId, activePod]);
+  }, [gpsActive, userId, onGpsSuccess]);
 
-  // ─── Auto-enable GPS if previously enabled ───
+  // ─── Auto-prompt GPS on first visit ───
   const gpsAutoRef = useRef(false);
   useEffect(() => {
-    if (gpsAutoRef.current || !preferences?.locationEnabled || gpsActive) return;
+    if (gpsAutoRef.current || gpsActive) return;
     gpsAutoRef.current = true;
-    // Silently re-request GPS on mount if user previously enabled
+    // Prompt for GPS on first visit (both new + returning users)
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          setUserLocation(loc);
-          setGpsActive(true);
-        },
-        () => { /* silent — don't show error for auto-enable */ },
+        (pos) => onGpsSuccess(pos, { silent: true }),
+        () => { /* silent — don't show error for auto-prompt */ },
         { enableHighAccuracy: true, timeout: 8000 }
       );
     }
-  }, [preferences?.locationEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Manual Location Set ───
+  const handleManualLocationSet = useCallback(async () => {
+    if (!manualCity.trim()) return;
+    // Geocode the manual city/state input using Nominatim
+    try {
+      const query = manualState ? `${manualCity.trim()}, ${manualState}` : manualCity.trim();
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=us`, {
+        headers: { 'Accept-Language': 'en' }
+      });
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const loc = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        setUserLocation(loc);
+        setGpsActive(true);
+        setShowManualLocation(false);
+        showLocationSuccessToast({ city: manualCity.trim(), state: manualState || '' });
+        // Persist
+        if (userId) {
+          updatePokerNearMePreferences(userId, {
+            locationEnabled: true,
+            lastLocation: loc,
+            lastLocationCity: manualCity.trim(),
+            lastLocationState: manualState || '',
+            locationEnabledAt: new Date().toISOString(),
+            manualLocation: true,
+          }).catch(() => {});
+        }
+        // Fetch venues near this location
+        const gpsUrl = `/api/poker/venues?limit=500&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+        cachedFetch(gpsUrl).then(result => {
+          const newVenues = result?.data || result?.venues || (Array.isArray(result) ? result : []);
+          setVenues(newVenues);
+          setHasMore(newVenues.length >= PAGE_SIZE);
+          setPage(0);
+        }).catch(err => console.error('Manual location venue fetch failed:', err));
+        setFilters(prev => ({ ...prev, nmSearched: true, nmSort: 'distance', svHasSearched: true, svSort: 'distance' }));
+      } else {
+        setGpsError('Could not find that location — try a different city');
+        if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
+        gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
+      }
+    } catch (err) {
+      console.error('Manual geocode failed:', err);
+      setGpsError('Geocoding failed — check your connection');
+      if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
+      gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
+    }
+  }, [manualCity, manualState, userId, showLocationSuccessToast]);
 
   // ─── Pod click → open panel with feature ───
   const handlePodClick = useCallback((podId) => {
@@ -1868,12 +1959,144 @@ export default function PokerNearMeLobby() {
 
       </div>
 
+        {/* ═══ GPS LOCATION SUCCESS TOAST ═══ */}
+        {locationToast && (
+          <div style={{
+            position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 200,
+            background: 'linear-gradient(135deg, rgba(16,25,40,0.97), rgba(10,18,32,0.97))',
+            border: '1px solid rgba(63,185,80,0.5)', borderRadius: 16,
+            padding: '16px 28px', boxShadow: '0 12px 40px rgba(0,0,0,0.5), 0 0 20px rgba(63,185,80,0.15)',
+            display: 'flex', alignItems: 'center', gap: 14,
+            animation: 'lobby-toastSlideIn 0.3s ease-out',
+            backdropFilter: 'blur(16px)',
+            minWidth: 260, maxWidth: '90vw',
+          }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: '50%',
+              background: 'rgba(63,185,80,0.15)', border: '2px solid rgba(63,185,80,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2.5">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, color: '#3fb950', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 2 }}>Location Found</div>
+              <div style={{ fontSize: 17, color: '#e0e8f0', fontWeight: 700 }}>
+                {locationToast.city}{locationToast.state ? `, ${locationToast.state}` : ''}
+              </div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2" style={{ marginLeft: 'auto', opacity: 0.6 }}>
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        )}
+
+        {/* ═══ MANUAL LOCATION SETTER MODAL ═══ */}
+        {showManualLocation && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 150,
+            background: 'rgba(3,4,8,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{
+              width: 'min(440px, 92vw)',
+              background: 'linear-gradient(160deg, rgba(18,24,40,0.98), rgba(10,16,28,0.98))',
+              borderRadius: 20,
+              border: '1px solid rgba(88,166,255,0.2)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+              overflow: 'hidden',
+            }}>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1px solid rgba(88,166,255,0.1)' }}>
+                <div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#e0e8f0' }}>Set Your Location</div>
+                  <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>Enter your city to find poker near you</div>
+                </div>
+                <button onClick={() => setShowManualLocation(false)} style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.5)', cursor: 'pointer', fontSize: 22, padding: 4 }}>&times;</button>
+              </div>
+              {/* Body */}
+              <div style={{ padding: '20px 24px' }}>
+                {/* Try GPS Again button */}
+                <button onClick={() => { setShowManualLocation(false); handleGpsClick(); }}
+                  style={{
+                    width: '100%', padding: '12px 0', borderRadius: 12,
+                    border: '1px solid rgba(63,185,80,0.4)', background: 'linear-gradient(135deg, #238636, #196c2e)',
+                    color: '#ffffff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                    boxShadow: '0 4px 16px rgba(35,134,54,0.3)', marginBottom: 16,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  Try GPS Again
+                </button>
+
+                <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(200,214,229,0.35)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '1px' }}>or enter manually</div>
+
+                {/* City Input */}
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 11, color: '#8b949e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 4 }}>City</label>
+                  <input
+                    type="text" placeholder="e.g. Chicago" value={manualCity}
+                    onChange={(e) => setManualCity(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleManualLocationSet(); }}
+                    autoFocus
+                    style={{
+                      width: '100%', padding: '10px 14px', borderRadius: 10,
+                      border: '1px solid rgba(48,54,61,0.6)', background: '#0d1117',
+                      color: '#e0e8f0', fontSize: 15, fontFamily: 'inherit', outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                {/* State Select */}
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ fontSize: 11, color: '#8b949e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 4 }}>State</label>
+                  <select value={manualState} onChange={(e) => setManualState(e.target.value)}
+                    style={{
+                      width: '100%', padding: '10px 14px', borderRadius: 10,
+                      border: '1px solid rgba(48,54,61,0.6)', background: '#0d1117',
+                      color: '#c9d1d9', fontSize: 14, fontFamily: 'inherit', cursor: 'pointer', outline: 'none',
+                      boxSizing: 'border-box',
+                    }}>
+                    <option value="">Select State (optional)</option>
+                    {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                      <option key={st} value={st}>{st}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Set Location Button */}
+                <button onClick={handleManualLocationSet}
+                  disabled={!manualCity.trim()}
+                  style={{
+                    width: '100%', padding: '13px 0', borderRadius: 12,
+                    border: '1px solid rgba(88,166,255,0.4)',
+                    background: manualCity.trim() ? 'linear-gradient(135deg, #1f6feb, #1a5cc7)' : 'rgba(88,166,255,0.08)',
+                    color: manualCity.trim() ? '#ffffff' : 'rgba(200,214,229,0.4)',
+                    fontSize: 15, fontWeight: 800, cursor: manualCity.trim() ? 'pointer' : 'not-allowed',
+                    fontFamily: 'inherit', boxShadow: manualCity.trim() ? '0 4px 16px rgba(31,111,235,0.3)' : 'none',
+                    transition: 'all 0.2s',
+                  }}>
+                  Set Location
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       {/* Global keyframes for inline spinners used in panel loading states */}
       <style jsx global>{`
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes lobby-panelSlideUp {
         from { transform: translateY(100%); opacity: 0.5; }
         to { transform: translateY(0); opacity: 1; }
+      }
+      @keyframes lobby-toastSlideIn {
+        from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+        to { transform: translateX(-50%) translateY(0); opacity: 1; }
       }
     `}</style>
     </>

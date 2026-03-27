@@ -25,7 +25,6 @@ import { GoLiveModal } from '../../../src/components/social/GoLiveModal';
 import { LiveStreamCard } from '../../../src/components/social/LiveStreamCard';
 import { LiveStreamViewer } from '../../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../../src/services/LiveStreamService';
-import ArticleCard from '../../../src/components/social/ArticleCard';
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
 import CheckInModal from '../../../src/components/social/CheckInModal';
 import GiphyPicker from '../../../src/components/shared/GiphyPicker';
@@ -56,7 +55,7 @@ function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
     return <SharedAvatar src={src} name={name} size={size} online={online} onClick={onClick} linkTo={linkTo} />;
 }
 
-function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDeleteComment, isPageOwner, page, isOwnerOnOwnPage }) {
+function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDeleteComment, isPageOwner, page, isOwnerOnOwnPage, onOpenArticle }) {
     const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
     const [comments, setComments] = useState([]);
@@ -195,20 +194,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
         setShowComments(true);
     };
 
-    const submitComment = async () => {
-        if (!commentText.trim() || !user) return;
-        try {
-            const token = getAccessToken();
-            const res = await fetch('/api/social/pages/engage', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: commentText.trim() }),
-            });
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const json = await res.json();
-            if (json.success) { setComments(prev => [...prev, json.data]); setCommentText(''); onComment(post.id); }
-        } catch (e) { console.error("[[pageId].js]", e); }
-    };
+
 
     const handleEdit = async () => {
         if (!editContent.trim()) return;
@@ -437,7 +423,9 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
 
             {/* Link Preview — upgraded to SharedLinkPreviewCard from social-media */}
             {post.link_preview && post.link_preview.url && (
-                <SharedLinkPreviewCard url={post.link_preview.url} />
+                <div onClick={() => onOpenArticle?.({ open: true, url: post.link_preview.url, title: post.link_preview.title || 'Article' })} style={{ cursor: 'pointer' }}>
+                    <SharedLinkPreviewCard url={post.link_preview.url} />
+                </div>
             )}
 
             {/* FullScreen Video Viewer (feature parity with social-media) */}
@@ -1910,6 +1898,14 @@ export default function SocialPageDetail() {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
                                 Report
                             </button>
+                            <button onClick={() => { if (!user) { router.push('/auth/login'); return; } setShowCheckInModal(true); }} style={{
+                                padding: '8px 16px', borderRadius: 20, border: `1px solid ${C.border}`,
+                                background: C.bg, color: C.text, fontSize: 13, fontWeight: 600,
+                                cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
+                            }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                                Check In
+                            </button>
                         </div>
 
                         {/* Mobile Action Bar (hidden on desktop where sidebar has these widgets) */}
@@ -2124,6 +2120,7 @@ export default function SocialPageDetail() {
                                                 isPageOwner={isPageOwner}
                                                 page={page}
                                                 isOwnerOnOwnPage={isOwnerOnOwnPage}
+                                                onOpenArticle={setArticleReader}
                                             />
                                         ))
                                     )}
@@ -3254,13 +3251,34 @@ export default function SocialPageDetail() {
             {/* Phase 9: Check-In Modal */}
             {showCheckInModal && (
                 <CheckInModal
-                    isOpen={showCheckInModal}
                     onClose={() => setShowCheckInModal(false)}
-                    user={user}
-                    defaultVenue={page?.name}
-                    onCheckIn={() => {
-                        busEmit.dataMutated('social-pages');
-                        toast.success('Checked in successfully!');
+                    userId={user?.id}
+                    onSelect={(venue) => {
+                        // Handle check-in: create a check-in post on this page
+                        (async () => {
+                            try {
+                                const token = getAccessToken();
+                                const res = await fetch('/api/social/pages/posts', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                    body: JSON.stringify({
+                                        page_id: page?.id,
+                                        content: `Checked in at ${venue.name}${venue.city ? ` — ${venue.city}${venue.state ? `, ${venue.state}` : ''}` : ''}`,
+                                        content_type: 'text',
+                                        author_id: user?.id,
+                                    }),
+                                });
+                                if (res.ok) {
+                                    busEmit.dataMutated('social-pages');
+                                    broadcastSync('smarter_poker_social_sync', { action: 'refresh_feed', tabId: BROADCAST_TAB_ID });
+                                    toast.success('Checked in successfully!');
+                                    fetchPosts();
+                                }
+                            } catch (e) {
+                                console.error('[CheckIn] Error:', e);
+                                toast.error('Check-in failed');
+                            }
+                        })();
                         setShowCheckInModal(false);
                     }}
                 />
