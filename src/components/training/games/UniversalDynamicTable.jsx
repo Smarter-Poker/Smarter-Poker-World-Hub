@@ -1830,18 +1830,22 @@ function UniversalDynamicTable({
                     )}
                 </AnimatePresence>
 
-                {/* SCENARIO CONTEXT — Above the table */}
+                {/* SCENARIO CONTEXT — Fixed at the top of the table area, 3px below timer */}
                 {contextString && (
                     <div style={{
+                        position: 'absolute',
+                        top: 3,
+                        left: 0,
+                        right: 0,
                         textAlign: 'center',
-                        padding: '0 10px 16px 10px',
                         fontSize: 15,
                         fontWeight: 900,
                         color: '#ffffff',
                         textTransform: 'uppercase',
                         letterSpacing: 1,
-                        flexShrink: 0,
                         textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+                        zIndex: 5,
+                        pointerEvents: 'none',
                     }}>
                         {contextString}
                     </div>
@@ -3224,11 +3228,10 @@ const styles = {
         padding: '12px 16px 8px 16px',
     },
 
-    // ── NEW CUSTOM STANDALONE RACETRACK TABLE
+    // ── NEW CUSTOM STANDALONE RACETRACK TABLE — vw-based for uniform scaling
     basicTable: {
         position: 'relative',
-        width: '100%',
-        maxWidth: 240,
+        width: 'min(55vw, 240px)',
         aspectRatio: '1 / 1.8',
         borderRadius: '50% / 25%', 
         backgroundColor: '#1E3B22', // deep green felt
