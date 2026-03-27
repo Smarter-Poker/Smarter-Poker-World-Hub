@@ -389,27 +389,28 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         .road-trip-planner { padding: 0 0 20px; }
         .rtp-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .rtp-header h2 { font-size: 22px; font-weight: 700; color: #fff; margin: 0; }
-        .rtp-form { background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; }
+        .rtp-form { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 16px; padding: 20px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
         .rtp-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .rtp-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
         .rtp-dot.origin { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.5); }
-        .rtp-dot.waypoint { background: #3b82f6; box-shadow: 0 0 8px rgba(59,130,246,0.5); }
+        .rtp-dot.waypoint { background: #58a6ff; box-shadow: 0 0 8px rgba(88,166,255,0.5); }
         .rtp-dot.destination { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
-        .rtp-input { flex: 1; padding: 12px 16px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 14px; font-family: inherit; transition: border-color 0.2s; }
-        .rtp-input:focus { outline: none; border-color: rgba(212,168,83,0.5); }
-        .rtp-input::placeholder { color: rgba(255,255,255,0.3); }
-        .rtp-remove-btn { background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; width: 32px; height: 32px; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .rtp-add-waypoint { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 8px; color: #3b82f6; font-size: 13px; font-weight: 500; cursor: pointer; margin-bottom: 16px; }
-        .rtp-add-waypoint:hover { background: rgba(59,130,246,0.2); }
+        .rtp-input { flex: 1; padding: 12px 16px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 10px; color: #e0e8f0; font-size: 14px; font-family: inherit; transition: border-color 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .rtp-input:focus { outline: none; border-color: rgba(88,166,255,0.5); }
+        .rtp-input::placeholder { color: rgba(200,214,229,0.3); }
+        .rtp-remove-btn { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; width: 32px; height: 32px; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+        .rtp-remove-btn:hover { background: rgba(239,68,68,0.2); }
+        .rtp-add-waypoint { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); border-radius: 8px; color: #58a6ff; font-size: 13px; font-weight: 500; cursor: pointer; margin-bottom: 16px; transition: all 0.2s; }
+        .rtp-add-waypoint:hover { background: rgba(88,166,255,0.2); }
         .rtp-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
         @media (max-width: 600px) { .rtp-options { grid-template-columns: 1fr; } }
-        .rtp-option-group label { display: block; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .rtp-option-group label { display: block; font-size: 12px; font-weight: 500; color: rgba(200,214,229,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
         .rtp-chips { display: flex; gap: 6px; }
-        .rtp-chip { padding: 8px 14px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); font-size: 13px; cursor: pointer; transition: all 0.2s; }
-        .rtp-chip.active { background: rgba(212,168,83,0.2); border-color: rgba(212,168,83,0.5); color: #d4a853; }
+        .rtp-chip { padding: 8px 14px; border-radius: 8px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); color: rgba(200,214,229,0.7); font-size: 13px; cursor: pointer; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .rtp-chip.active { background: rgba(88,166,255,0.15); border-color: rgba(88,166,255,0.4); color: #58a6ff; }
         .rtp-date-row { display: flex; align-items: center; gap: 8px; }
-        .rtp-date { padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; font-size: 13px; font-family: inherit; color-scheme: dark; }
-        .rtp-date-sep { color: rgba(255,255,255,0.3); font-size: 16px; }
+        .rtp-date { padding: 8px 12px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 8px; color: #e0e8f0; font-size: 13px; font-family: inherit; color-scheme: dark; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .rtp-date-sep { color: rgba(200,214,229,0.3); font-size: 16px; }
         .rtp-calculate-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #d4a853, #b8860b); border: none; border-radius: 12px; color: #000; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: filter 0.2s; }
         .rtp-calculate-btn:hover { filter: brightness(1.1); }
         .rtp-calculate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -418,26 +419,26 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         .rtp-results { margin-top: 20px; }
         .rtp-stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
         @media (max-width: 500px) { .rtp-stats-bar { grid-template-columns: repeat(2, 1fr); } }
-        .rtp-stat { background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; text-align: center; }
-        .rtp-stat-value { display: block; font-size: 22px; font-weight: 700; color: #d4a853; }
-        .rtp-stat-label { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
-        .rtp-map { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; background: #0f172a; }
+        .rtp-stat { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 12px; padding: 16px; text-align: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .rtp-stat-value { display: block; font-size: 22px; font-weight: 700; color: #58a6ff; }
+        .rtp-stat-label { font-size: 11px; color: rgba(200,214,229,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
+        .rtp-map { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(88,166,255,0.2); margin-bottom: 20px; background: #0d1117; }
         .rtp-venues-section h3, .rtp-series-section h3 { font-size: 18px; font-weight: 600; color: #fff; margin: 0 0 12px; }
         .rtp-venue-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-        .rtp-venue-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px; transition: all 0.2s; }
-        .rtp-venue-card:hover { border-color: rgba(212,168,83,0.3); background: rgba(255,255,255,0.06); }
-        .rtp-venue-name { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 2px; }
-        .rtp-venue-loc { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+        .rtp-venue-card { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 10px; padding: 14px; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); cursor: pointer; }
+        .rtp-venue-card:hover { border-color: rgba(88,166,255,0.4); transform: translateY(-1px); }
+        .rtp-venue-name { font-size: 14px; font-weight: 600; color: #e0e8f0; margin-bottom: 2px; }
+        .rtp-venue-loc { font-size: 12px; color: rgba(200,214,229,0.4); margin-bottom: 6px; }
         .rtp-venue-tags { display: flex; gap: 6px; flex-wrap: wrap; }
         .rtp-tag { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
         .rtp-tag.type { background: rgba(99,102,241,0.2); color: #818cf8; }
-        .rtp-tag.trust { background: rgba(212,168,83,0.15); color: #d4a853; }
-        .rtp-more { padding: 14px; text-align: center; color: rgba(255,255,255,0.4); font-size: 13px; }
+        .rtp-tag.trust { background: rgba(88,166,255,0.15); color: #58a6ff; }
+        .rtp-more { padding: 14px; text-align: center; color: rgba(200,214,229,0.4); font-size: 13px; }
         .rtp-series-section { margin-top: 20px; }
-        .rtp-series-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px; margin-bottom: 8px; }
-        .rtp-series-name { font-size: 14px; font-weight: 600; color: #fff; }
-        .rtp-series-dates { font-size: 12px; color: rgba(255,255,255,0.4); }
-        .rtp-series-venue { font-size: 12px; color: #d4a853; margin-top: 2px; }
+        .rtp-series-card { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 10px; padding: 14px; margin-bottom: 8px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .rtp-series-name { font-size: 14px; font-weight: 600; color: #e0e8f0; }
+        .rtp-series-dates { font-size: 12px; color: rgba(200,214,229,0.4); }
+        .rtp-series-venue { font-size: 12px; color: #58a6ff; margin-top: 2px; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
         </div>

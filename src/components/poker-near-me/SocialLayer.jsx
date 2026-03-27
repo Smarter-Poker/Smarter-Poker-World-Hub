@@ -281,36 +281,37 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
         .sl-header h2 { font-size: 22px; font-weight: 700; color: #fff; margin: 0; flex: 1; }
         .sl-badge { padding: 4px 12px; border-radius: 20px; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; font-size: 12px; font-weight: 600; }
         .sl-login-prompt, .sl-empty { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; text-align: center; }
-        .sl-login-prompt p, .sl-empty p { color: rgba(255,255,255,0.5); font-size: 14px; margin: 12px 0 0; }
+        .sl-login-prompt p, .sl-empty p { color: rgba(200,214,229,0.5); font-size: 14px; margin: 12px 0 0; }
         .sl-loading { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 12px; }
-        .sl-spinner { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #d4a853; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        .sl-loading span { color: rgba(255,255,255,0.4); font-size: 13px; }
+        .sl-spinner { width: 32px; height: 32px; border: 3px solid rgba(88,166,255,0.1); border-top-color: #58a6ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .sl-loading span { color: rgba(200,214,229,0.4); font-size: 13px; }
         .sl-venue-list { display: flex; flex-direction: column; gap: 16px; }
-        .sl-venue-group { background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; overflow: hidden; }
-        .sl-venue-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .sl-venue-group { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 14px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .sl-venue-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(88,166,255,0.1); }
         .sl-venue-info { flex: 1; }
-        .sl-venue-name { font-size: 16px; font-weight: 600; color: #fff; }
-        .sl-venue-loc { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
-        .sl-venue-count { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; background: rgba(212,168,83,0.15); color: #d4a853; font-size: 13px; font-weight: 600; }
+        .sl-venue-name { font-size: 16px; font-weight: 600; color: #e0e8f0; }
+        .sl-venue-loc { font-size: 12px; color: rgba(200,214,229,0.4); margin-top: 2px; }
+        .sl-venue-count { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; background: rgba(88,166,255,0.15); color: #58a6ff; font-size: 13px; font-weight: 600; }
         .sl-friend-list { padding: 8px; }
         .sl-friend-card { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 10px; transition: background 0.2s; }
-        .sl-friend-card:hover { background: rgba(255,255,255,0.04); }
+        .sl-friend-card:hover { background: rgba(88,166,255,0.05); }
         .sl-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
         .sl-friend-info { flex: 1; min-width: 0; }
-        .sl-friend-name { font-size: 14px; font-weight: 600; color: #fff; }
-        .sl-friend-time { font-size: 12px; color: rgba(255,255,255,0.4); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+        .sl-friend-name { font-size: 14px; font-weight: 600; color: #e0e8f0; }
+        .sl-friend-time { font-size: 12px; color: rgba(200,214,229,0.5); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
         .sl-online-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
-        .sl-friend-msg { color: rgba(255,255,255,0.3); font-style: italic; }
-        .sl-invite-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 8px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #3b82f6; font-size: 12px; font-weight: 500; cursor: pointer; flex-shrink: 0; transition: all 0.2s; }
-        .sl-invite-btn:hover { background: rgba(59,130,246,0.25); }
+        .sl-friend-msg { color: rgba(200,214,229,0.3); font-style: italic; }
+        .sl-invite-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 8px; background: rgba(88,166,255,0.15); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; font-size: 12px; font-weight: 500; cursor: pointer; flex-shrink: 0; transition: all 0.2s; }
+        .sl-invite-btn:hover { background: rgba(88,166,255,0.25); }
         .sl-modal-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .sl-modal { background: #1e293b; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 24px; max-width: 420px; width: 100%; }
+        .sl-modal { background: #0d1117; border: 1px solid rgba(88,166,255,0.3); border-radius: 16px; padding: 24px; max-width: 420px; width: 100%; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
         .sl-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .sl-modal-header h3 { font-size: 18px; font-weight: 600; color: #fff; margin: 0; }
-        .sl-modal-close { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 24px; cursor: pointer; }
-        .sl-modal-text { font-size: 14px; color: rgba(255,255,255,0.6); margin: 0 0 16px; }
+        .sl-modal-close { background: none; border: none; color: rgba(200,214,229,0.4); font-size: 24px; cursor: pointer; transition: color 0.2s; }
+        .sl-modal-close:hover { color: #fff; }
+        .sl-modal-text { font-size: 14px; color: rgba(200,214,229,0.6); margin: 0 0 16px; }
         .sl-invite-link-box { display: flex; gap: 8px; }
-        .sl-invite-link-input { flex: 1; padding: 10px 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-size: 12px; font-family: monospace; }
+        .sl-invite-link-input { flex: 1; padding: 10px 12px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 8px; color: #e0e8f0; font-size: 12px; font-family: monospace; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
         .sl-copy-btn { padding: 10px 16px; background: linear-gradient(135deg, #d4a853, #b8860b); border: none; border-radius: 8px; color: #000; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>

@@ -58,13 +58,17 @@ export default function LiveGamesFeed({
     const [selectedVenue, setSelectedVenue] = useState(null);
     
     const refreshRef = useRef(null);
+    const debounceTimerRef = useRef(null);
 
     // ─── FETCH LIVE DATA ───
-    const fetchGlobalLiveData = async () => {
+    const fetchGlobalLiveData = async (isRealtimeEvent = false) => {
         setLiveLoading(true);
         try {
-            // Fetch without venue parameter to get all live venues
-            const res = await fetch('/api/poker/live-tables?list=false');
+            // Fetch without venue parameter. Append timestamp if triggered by realtime WebSocket to bust Edge Cache.
+            const url = isRealtimeEvent 
+                ? `/api/poker/live-tables?list=false&_t=${Date.now()}`
+                : '/api/poker/live-tables?list=false';
+            const res = await fetch(url);
             if (res.ok) {
                 const json = await res.json();
                 const mapping = {};
@@ -91,16 +95,21 @@ export default function LiveGamesFeed({
         // Subscribe to real-time WebSockets from Supabase
         const liveChannel = supabase.channel('public:venue_live_tables')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_live_tables' }, () => {
-                console.log('Live Games WebSocket: Change detected. Re-hydrating live data from daemon...');
-                fetchGlobalLiveData();
+                // Debounce the rapid database row mutations (e.g. 500 changes) into a single API fetch
+                if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                debounceTimerRef.current = setTimeout(() => {
+                    console.log('Live Games WebSocket: Atomic re-hydrate triggered from daemon sync.');
+                    fetchGlobalLiveData(true);
+                }, 2000);
             })
             .subscribe();
 
         // Fallback polling mechanic
-        refreshRef.current = setInterval(fetchGlobalLiveData, LIVE_REFRESH_MS);
+        refreshRef.current = setInterval(() => fetchGlobalLiveData(true), LIVE_REFRESH_MS);
         
         return () => { 
             if (refreshRef.current) clearInterval(refreshRef.current); 
+            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
             if (liveChannel) supabase.removeChannel(liveChannel);
         };
     }, []);

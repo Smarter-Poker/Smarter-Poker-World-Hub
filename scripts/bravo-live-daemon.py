@@ -517,9 +517,9 @@ def run_scrape_cycle(mgr):
 
     # Save to Supabase
     log.info(f'💾 Saving {len(results)} venue records to Supabase...')
-    sb_delete('venue_live_tables', 'id=gt.0')
-
-    saved = 0
+    
+    payload = []
+    
     for data in results:
         for game in data['live_games']:
             record = {
@@ -536,8 +536,7 @@ def run_scrape_cycle(mgr):
             for w in data['waitlist']:
                 if w['game'].lower() == game['game'].lower():
                     record['players_waiting'] = w['players_waiting']
-            if sb_upsert('venue_live_tables', record):
-                saved += 1
+            payload.append(record)
 
         live_names = [g['game'].lower() for g in data['live_games']]
         for w in data['waitlist']:
@@ -553,8 +552,15 @@ def run_scrape_cycle(mgr):
                     'scrape_batch_id': batch_id,
                     'data_quality': 'scraped_verified',
                 }
-                if sb_upsert('venue_live_tables', record):
-                    saved += 1
+                payload.append(record)
+
+    saved = 0
+    if payload:
+        # Atomic Batch Insert
+        if sb_upsert('venue_live_tables', payload):
+            saved = len(payload)
+            # Safe delete of stale batches using neq (not equal to current batch) to prevent UI empty flash
+            sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}')
 
     # Save evidence
     evidence = {

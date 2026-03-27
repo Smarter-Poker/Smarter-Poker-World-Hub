@@ -806,7 +806,7 @@ export default function ReelsPage() {
             if (error) throw error;
             try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
-            busEmit.socialCommentDeleted && busEmit.socialCommentDeleted(currentReel.id, user.id);
+            busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, user.id, { removed: true });
         } catch { setComments(prev); }
     };
 

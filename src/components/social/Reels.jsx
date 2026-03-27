@@ -587,6 +587,7 @@ export function ReelsViewer({ onClose }) {
             if (error) throw error;
             try { await supabase.rpc('decrement_post_count', { p_post_id: currentReel.id, p_field: 'comment_count' }); } catch {}
             setCommentCounts(p => ({ ...p, [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1) }));
+            busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, currentUserId, { removed: true });
         } catch { setReelComments(prev); }
     };
 
