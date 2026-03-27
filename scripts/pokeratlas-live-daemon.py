@@ -78,23 +78,34 @@ SB_HEADERS = {
 }
 
 def sb_upsert(table, data):
-    """UPSERT to Supabase REST API with retry."""
-    body = json.dumps(data).encode()
-    req = urllib.request.Request(
-        f'{SUPABASE_URL}/rest/v1/{table}',
-        data=body, method='POST',
-        headers={**SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal'}
-    )
-    for attempt in range(3):
-        try:
-            urllib.request.urlopen(req, timeout=15)
-            return True
-        except Exception as e:
-            if attempt < 2:
-                time.sleep(2 ** attempt)
-            else:
-                log.error(f'{ERROR_SUPABASE}: {e}')
-                return False
+    """UPSERT to Supabase REST API with chunked batches and retry."""
+    BATCH_SIZE = 100
+    total_saved = 0
+    for i in range(0, len(data), BATCH_SIZE):
+        chunk = data[i:i + BATCH_SIZE]
+        body = json.dumps(chunk).encode()
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/{table}',
+            data=body, method='POST',
+            headers={**SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal'}
+        )
+        success = False
+        for attempt in range(3):
+            try:
+                urllib.request.urlopen(req, timeout=30)
+                total_saved += len(chunk)
+                success = True
+                break
+            except Exception as e:
+                if attempt < 2:
+                    log.warning(f'  Batch {i//BATCH_SIZE + 1}: retry {attempt + 1} ({e})')
+                    time.sleep(2 ** attempt)
+                else:
+                    log.error(f'{ERROR_SUPABASE}: Batch {i//BATCH_SIZE + 1} FAILED after 3 retries: {e}')
+        if not success:
+            return False
+    log.info(f'  Upserted {total_saved}/{len(data)} records in {(len(data) + BATCH_SIZE - 1) // BATCH_SIZE} batches')
+    return True
 
 def sb_delete(table, query):
     """DELETE from Supabase REST API."""

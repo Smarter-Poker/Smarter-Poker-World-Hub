@@ -552,6 +552,7 @@ def run_scrape_cycle(mgr):
                     'scrape_html_hash': data['scrape_html_hash'],
                     'scrape_batch_id': batch_id,
                     'data_quality': 'scraped_verified',
+                    'source': 'bravo',
                 }
                 payload.append(record)
 
