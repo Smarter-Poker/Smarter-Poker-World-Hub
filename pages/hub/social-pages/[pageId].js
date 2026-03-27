@@ -176,6 +176,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
         return () => {
             if (reactionTimer.current) clearTimeout(reactionTimer.current);
             if (longPressTimer.current) clearTimeout(longPressTimer.current);
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         };
     }, []);
 
@@ -834,8 +835,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                             setComments(prev => [...prev, tempComment]);
                                                             const txt = commentText.trim(); const mUrl = commentMediaUrl; const mType = commentMediaType;
                                                             setCommentText(''); setCommentMediaUrl(null); setCommentMediaType(null); setShowGifPicker(false);
-                                                            onComment(post.id);
-                                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, media_url: mUrl, media_type: mType }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); eventBus.dispatchEvent(new CustomEvent(EventType.SOCIAL_COMMENT_UPDATE, { detail: { postId: post.id, userId: user.id, action: 'add', comment: json.data } })); } } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
+                                                            (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, media_url: mUrl, media_type: mType }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); onComment(post.id); eventBus.dispatchEvent(new CustomEvent(EventType.SOCIAL_COMMENT_UPDATE, { detail: { postId: post.id, userId: user.id, action: 'add', comment: json.data } })); } } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
                                                         }
                                                     }}
                                                     placeholder={isOwnerOnOwnPage ? `Comment as ${page?.name}...` : 'Write a comment...'}
@@ -854,8 +854,7 @@ function PostCard({ post, user, onLike, onComment, onDelete, onPin, onEdit, onDe
                                                     setComments(prev => [...prev, tempComment]);
                                                     const txt = commentText.trim(); const mUrl = commentMediaUrl; const mType = commentMediaType;
                                                     setCommentText(''); setCommentMediaUrl(null); setCommentMediaType(null); setShowGifPicker(false);
-                                                    onComment(post.id);
-                                                    (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, media_url: mUrl, media_type: mType }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); eventBus.dispatchEvent(new CustomEvent(EventType.SOCIAL_COMMENT_UPDATE, { detail: { postId: post.id, userId: user.id, action: 'add', comment: json.data } })); } } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
+                                                    (async () => { try { const token = getAccessToken(); const res = await fetch('/api/social/pages/engage', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ action: 'comment', post_id: post.id, user_id: user.id, content: txt, media_url: mUrl, media_type: mType }) }); if (res.ok) { const json = await res.json(); if (json.success) { setComments(prev => prev.map(x => x.id === tempComment.id ? json.data : x)); onComment(post.id); eventBus.dispatchEvent(new CustomEvent(EventType.SOCIAL_COMMENT_UPDATE, { detail: { postId: post.id, userId: user.id, action: 'add', comment: json.data } })); } } else { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } } catch(e) { setComments(prev => prev.filter(x => x.id !== tempComment.id)); } })();
                                                 }} disabled={!commentText.trim() && !commentMediaUrl} style={{
                                                     padding: '6px 12px', borderRadius: 20, border: 'none',
                                                     background: (commentText.trim() || commentMediaUrl) ? C.blue : '#E4E6EB',
@@ -1562,7 +1561,15 @@ export default function SocialPageDetail() {
                 }),
             });
             busEmit.dataMutated('friends');
-        } catch (e) { console.error('Follow user error:', e); }
+        } catch (e) {
+            console.error('Follow user error:', e);
+            // Rollback optimistic UI on failure
+            setFollowingUsers(prev => {
+                const next = new Set(prev);
+                isCurrentlyFollowing ? next.add(targetUserId) : next.delete(targetUserId);
+                return next;
+            });
+        }
     };
 
     const handleCommentAdded = (postId) => {
