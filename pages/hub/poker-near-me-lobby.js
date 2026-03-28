@@ -1153,30 +1153,34 @@ export default function PokerNearMeLobby() {
       return;
     }
 
-    // CASE 3: FIRST VISIT (no saved preference) → prompt for GPS permission
-    // Uses 2-tier approach: high accuracy first, then fallback to WiFi/IP-based
+    // CASE 3: FIRST VISIT (no saved preference) → show branded Enable Location popup
+    // Pre-permission pattern: show OUR popup first (explains WHY we need location),
+    // then the user clicks "Enable" which triggers the native browser prompt.
+    // This increases grant rates vs. cold-prompting with the native dialog.
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => onGpsSuccess(pos, { silent: false }),
-        (firstErr) => {
-          // Permission denied → show smart Enable Location popup
-          if (firstErr.code === 1) {
-            setPermissionState('denied');
-            setShowEnablePopup(true);
-            return;
-          }
-          // High accuracy failed → try low accuracy (WiFi/IP-based, works on desktops)
-          navigator.geolocation.getCurrentPosition(
-            (pos) => onGpsSuccess(pos, { silent: false }),
-            () => {
-              // Both tiers failed → show manual location setter
-              setShowManualLocation(true);
-            },
-            { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-          );
-        },
-        { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
-      );
+      // Check if permission is already granted (e.g. site-wide browser setting)
+      if (permissionState === 'granted') {
+        // Permission already granted — just acquire GPS silently
+        navigator.geolocation.getCurrentPosition(
+          (pos) => onGpsSuccess(pos, { silent: false }),
+          (firstErr) => {
+            if (firstErr.code === 1) {
+              setPermissionState('denied');
+              setShowEnablePopup(true);
+              return;
+            }
+            navigator.geolocation.getCurrentPosition(
+              (pos) => onGpsSuccess(pos, { silent: false }),
+              () => { setShowManualLocation(true); },
+              { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+            );
+          },
+          { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+        );
+      } else {
+        // Permission state is 'prompt' or 'denied' — show our branded popup first
+        setShowEnablePopup(true);
+      }
     }
   }, [prefsLoaded, preferences?.locationEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -2074,6 +2078,8 @@ export default function PokerNearMeLobby() {
           locationCity={locationCity}
           locationState={locationState}
           onManualLocation={() => setShowManualLocation(true)}
+          permissionState={permissionState}
+          onShowEnablePopup={() => setShowEnablePopup(true)}
         />
 
 
