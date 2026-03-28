@@ -80,7 +80,7 @@ async function geocodeCity(query) {
     return null;
 }
 
-export default function RoadTripPlanner({ venues = [], userLocation, dailyTournaments = [], series = [] }) {
+export default function RoadTripPlanner({ venues = [], userLocation, dailyTournaments = [], series = [], locationCity = '', locationState = '' }) {
     const [origin, setOrigin] = useState('');
     const [destination, setDestination] = useState('');
     const [waypoints, setWaypoints] = useState([]);
@@ -91,6 +91,17 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     const [error, setError] = useState(null);
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
+    const originAutoRef = useRef(false);
+
+    // Auto-populate origin with GPS city on first mount (one-time only)
+    useEffect(() => {
+        if (originAutoRef.current) return;
+        if (locationCity && userLocation) {
+            originAutoRef.current = true;
+            const cityStr = locationState ? `${locationCity}, ${locationState}` : locationCity;
+            setOrigin(cityStr);
+        }
+    }, [locationCity, locationState, userLocation]);
 
     const addWaypoint = () => setWaypoints(prev => [...prev, '']);
     const removeWaypoint = (idx) => setWaypoints(prev => prev.filter((_, i) => i !== idx));

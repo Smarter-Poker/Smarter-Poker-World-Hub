@@ -60,6 +60,10 @@ export default function LobbyOverlay({
   onManualLocation,
   permissionState,
   onShowEnablePopup,
+  savedLocation,
+  savedLocationCity,
+  savedLocationState,
+  onUseSavedLocation,
 }) {
   const searchRef = useRef(null);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -189,52 +193,91 @@ export default function LobbyOverlay({
             </div>
           )}
           {!gpsActive && (
-            <div
-              onClick={() => {
-                // Show the branded Enable Location popup for a better UX
-                if (onShowEnablePopup) {
-                  onShowEnablePopup();
-                } else if (onManualLocation) {
-                  onManualLocation();
-                } else if (onGpsClick) {
-                  onGpsClick();
-                }
-              }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                paddingTop: 8, paddingLeft: 0,
-                cursor: 'pointer', pointerEvents: 'auto',
-                padding: '10px 16px',
-                marginTop: 8,
-                background: 'linear-gradient(135deg, rgba(34,197,94,0.06), rgba(34,197,94,0.02))',
-                border: '1px solid rgba(34,197,94,0.2)',
-                borderRadius: 14,
-                transition: 'all 0.3s',
-              }}
-            >
-              <div style={{
-                width: 32, height: 32, borderRadius: '50%',
-                background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.08))',
-                border: '1px solid rgba(34,197,94,0.35)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-                animation: 'lobby-gpsPulse 2s ease-in-out infinite',
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-10-10h4m12 0h4"/>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+              {/* Use Saved Location — quick restore from previous session */}
+              {savedLocation?.lat && savedLocation?.lng && savedLocationCity && onUseSavedLocation && (
+                <div
+                  onClick={onUseSavedLocation}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    cursor: 'pointer', pointerEvents: 'auto',
+                    padding: '10px 16px',
+                    background: 'linear-gradient(135deg, rgba(88,166,255,0.08), rgba(88,166,255,0.02))',
+                    border: '1px solid rgba(88,166,255,0.2)',
+                    borderRadius: 14,
+                    transition: 'all 0.3s',
+                  }}
+                >
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: 'linear-gradient(135deg, rgba(88,166,255,0.2), rgba(88,166,255,0.08))',
+                    border: '1px solid rgba(88,166,255,0.35)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                      <path d="M3 3v5h5"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#58a6ff', letterSpacing: '-0.2px' }}>
+                      Use Saved Location
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
+                      {savedLocationCity}{savedLocationState ? `, ${savedLocationState}` : ''}
+                    </div>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(88,166,255,0.5)" strokeWidth="2" style={{ flexShrink: 0 }}>
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+              )}
+              {/* Enable Location — GPS fresh */}
+              <div
+                onClick={() => {
+                  if (onShowEnablePopup) {
+                    onShowEnablePopup();
+                  } else if (onManualLocation) {
+                    onManualLocation();
+                  } else if (onGpsClick) {
+                    onGpsClick();
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  cursor: 'pointer', pointerEvents: 'auto',
+                  padding: '10px 16px',
+                  background: 'linear-gradient(135deg, rgba(34,197,94,0.06), rgba(34,197,94,0.02))',
+                  border: '1px solid rgba(34,197,94,0.2)',
+                  borderRadius: 14,
+                  transition: 'all 0.3s',
+                }}
+              >
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.08))',
+                  border: '1px solid rgba(34,197,94,0.35)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                  animation: 'lobby-gpsPulse 2s ease-in-out infinite',
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-10-10h4m12 0h4"/>
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e', letterSpacing: '-0.2px' }}>
+                    Enable Location
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
+                    Find poker rooms, live games, and events near you
+                  </div>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(34,197,94,0.5)" strokeWidth="2" style={{ flexShrink: 0 }}>
+                  <polyline points="9 18 15 12 9 6" />
                 </svg>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e', letterSpacing: '-0.2px' }}>
-                  Enable Location
-                </div>
-                <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
-                  Find poker rooms, live games, and events near you
-                </div>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(34,197,94,0.5)" strokeWidth="2" style={{ flexShrink: 0 }}>
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
             </div>
           )}
 

@@ -1237,6 +1237,9 @@ export default function PokerNearMeLobby() {
     }
   }, [manualCity, manualState, userId, showLocationSuccessToast]);
 
+  // ─── Pods that require GPS to show meaningful results ───
+  const GPS_REQUIRED_PODS = new Set(['nearme', 'mapview', 'livegames']);
+
   // ─── Pod click → open panel with feature ───
   const handlePodClick = useCallback((podId) => {
     playClickSound();
@@ -1246,12 +1249,34 @@ export default function PokerNearMeLobby() {
       playPanelCloseSound();
       return;
     }
+    // GPS-dependent pod gating: if GPS is not active and the pod requires it,
+    // show the Enable Location popup instead of opening an empty panel.
+    // However, if the user already has venue data (e.g. from a search), let them through.
+    if (GPS_REQUIRED_PODS.has(podId) && !gpsActive && !userLocation) {
+      setShowEnablePopup(true);
+      // Still set the pod so that after enabling GPS, the user lands on the right panel
+      setActivePod(podId);
+      return;
+    }
     setActivePod(podId);
     setShowPanel(true);
     playPanelOpenSound();
     // Emit TrainingBus event for pod interaction tracking
     try { bus?.emitHandComplete?.({ action: 'pod_click', pod: podId }); } catch { }
-  }, [activePod, bus]);
+  }, [activePod, bus, gpsActive, userLocation]);
+
+  // ─── Auto-open panel for GPS-gated pods after GPS is enabled ───
+  // When a user clicks a GPS-required pod without GPS, we set activePod but
+  // don't open the panel (show Enable popup instead). This effect watches for
+  // GPS activation and auto-opens the panel for the pending pod.
+  const prevGpsActiveRef = useRef(gpsActive);
+  useEffect(() => {
+    if (gpsActive && !prevGpsActiveRef.current && activePod && GPS_REQUIRED_PODS.has(activePod) && !showPanel) {
+      setShowPanel(true);
+      playPanelOpenSound();
+    }
+    prevGpsActiveRef.current = gpsActive;
+  }, [gpsActive, activePod, showPanel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePanelClose = useCallback(() => {
     playPanelCloseSound();
@@ -1956,7 +1981,7 @@ export default function PokerNearMeLobby() {
         break;
 
       case 'roadtrip':
-        component = <RoadTripPlanner venues={venues} userLocation={userLocation} />;
+        component = <RoadTripPlanner venues={venues} userLocation={userLocation} locationCity={locationCity} locationState={locationState} />;
         break;
 
       case 'favorites': {
@@ -2080,6 +2105,28 @@ export default function PokerNearMeLobby() {
           onManualLocation={() => setShowManualLocation(true)}
           permissionState={permissionState}
           onShowEnablePopup={() => setShowEnablePopup(true)}
+          savedLocation={preferences?.lastLocation}
+          savedLocationCity={preferences?.lastLocationCity}
+          savedLocationState={preferences?.lastLocationState}
+          onUseSavedLocation={() => {
+            const saved = preferences?.lastLocation;
+            if (saved?.lat && saved?.lng) {
+              setUserLocation(saved);
+              setGpsActive(true);
+              setSortBy('distance');
+              showLocationSuccessToast({
+                city: preferences?.lastLocationCity || '',
+                state: preferences?.lastLocationState || '',
+              });
+              const gpsUrl = `/api/poker/venues?limit=10000&offset=0&lat=${saved.lat}&lng=${saved.lng}&radius=250&sort=distance`;
+              cachedFetch(gpsUrl).then(data => {
+                const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+                setVenues(newVenues);
+                setHasMore(newVenues.length >= PAGE_SIZE);
+                setPage(0);
+              }).catch(() => {});
+            }
+          }}
         />
 
 
