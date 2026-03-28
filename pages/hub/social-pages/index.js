@@ -4,9 +4,9 @@
  */
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
-import useSWR from 'swr';
+
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -167,28 +167,86 @@ export default function SocialPagesHub() {
     const [followingIds, setFollowingIds] = useState(new Set());
     const [followLoading, setFollowLoading] = useState(new Set());
 
+    // #2: Infinite scroll state
+    const PAGE_SIZE = 20;
+    const [pages, setPages] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [offset, setOffset] = useState(0);
+    const sentinelRef = useRef(null);
+    const fetchIdRef = useRef(0); // Prevent stale fetches
 
+    // Build query params (without offset — that's handled per-fetch)
+    const buildParams = useCallback((off = 0) => {
+        const p = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(off) });
+        if (typeFilter !== 'all') p.set('page_type', typeFilter);
+        if (search) p.set('search', search);
+        if (user?.id) p.set('user_id', user.id);
+        if (tab === 'following') p.set('followed_only', 'true');
+        if (tab === 'managed' && user?.id) p.set('owner_id', user.id);
+        return p;
+    }, [typeFilter, search, user, tab]);
 
-    // SWR-backed pages fetch — cached 60s, instant on tab/filter switch
-    const swrParams = new URLSearchParams({ limit: '50' });
-    if (typeFilter !== 'all') swrParams.set('page_type', typeFilter);
-    if (search) swrParams.set('search', search);
-    if (user?.id) swrParams.set('user_id', user.id);
-    if (tab === 'following') swrParams.set('followed_only', 'true');
-    if (tab === 'managed' && user?.id) swrParams.set('owner_id', user.id);
-    const swrKey = user !== undefined ? `/api/social/pages?${swrParams}` : null;
-
-    const { data: swrData, isLoading: loading, mutate: refreshPages } = useSWR(swrKey, (url) =>
-        fetch(url).then(r => r.json()).then(json => {
+    // Fetch a batch of pages
+    const fetchBatch = useCallback(async (off, append = false) => {
+        if (user === undefined) return; // auth not resolved yet
+        const id = ++fetchIdRef.current;
+        if (!append) setLoading(true);
+        else setLoadingMore(true);
+        try {
+            const params = buildParams(off);
+            const res = await fetch(`/api/social/pages?${params}`);
+            const json = await res.json();
+            if (id !== fetchIdRef.current) return; // stale
             if (json.success) {
+                const batch = json.data || [];
                 const followSet = new Set();
-                (json.data || []).forEach(p => { if (p.is_following) followSet.add(p.id); });
-                setFollowingIds(followSet);
+                batch.forEach(p => { if (p.is_following) followSet.add(p.id); });
+                if (append) {
+                    setPages(prev => [...prev, ...batch]);
+                    setFollowingIds(prev => { const n = new Set(prev); batch.forEach(p => { if (p.is_following) n.add(p.id); }); return n; });
+                } else {
+                    setPages(batch);
+                    setFollowingIds(followSet);
+                }
+                setHasMore(batch.length >= PAGE_SIZE);
+                setOffset(off + batch.length);
             }
-            return json.success ? (json.data || []) : [];
-        })
-    );
-    const pages = swrData || [];
+        } catch {}
+        if (!append) setLoading(false);
+        else setLoadingMore(false);
+    }, [user, buildParams]);
+
+    // Initial fetch + refetch when filters/tab/search change
+    useEffect(() => {
+        setOffset(0);
+        setHasMore(true);
+        setPages([]);
+        fetchBatch(0, false);
+    }, [fetchBatch]);
+
+    const refreshPages = useCallback(() => {
+        setOffset(0);
+        setHasMore(true);
+        setPages([]);
+        fetchBatch(0, false);
+    }, [fetchBatch]);
+
+    // #2: IntersectionObserver for infinite scroll
+    useEffect(() => {
+        if (!sentinelRef.current) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+                    fetchBatch(offset, true);
+                }
+            },
+            { rootMargin: '300px' }
+        );
+        observer.observe(sentinelRef.current);
+        return () => observer.disconnect();
+    }, [hasMore, loading, loadingMore, offset, fetchBatch]);
 
     // Listen for dataMutated events from other pages (create, manage, detail) to auto-refresh listing
     useEffect(() => {
@@ -414,6 +472,18 @@ export default function SocialPagesHub() {
                                     />
                                 ))}
                             </AnimatePresence>
+                        </div>
+                    )}
+
+                    {/* #2: Infinite Scroll Sentinel */}
+                    {!loading && hasMore && (
+                        <div ref={sentinelRef} style={{ display: 'flex', justifyContent: 'center', padding: '20px 0' }}>
+                            {loadingMore && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.textSec, fontSize: 13 }}>
+                                    <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid #E4E6EB`, borderTopColor: C.blue, animation: 'spin 0.6s linear infinite' }} />
+                                    Loading more...
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

@@ -3,7 +3,7 @@
  */
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { motion } from 'framer-motion';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
@@ -49,7 +49,17 @@ export default function CreateSocialPage() {
         allow_member_posts: true,
         require_post_approval: false,
         slug: '',
+        avatar_url: '',
+        cover_url: '',
     });
+
+    // #6: Avatar + Cover upload state
+    const avatarInputRef = useRef(null);
+    const coverInputRef = useRef(null);
+    const [avatarPreview, setAvatarPreview] = useState(null);
+    const [coverPreview, setCoverPreview] = useState(null);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const [uploadingCover, setUploadingCover] = useState(false);
 
     // Custom URL slug checking
     const [slugStatus, setSlugStatus] = useState(null);
@@ -87,6 +97,48 @@ export default function CreateSocialPage() {
     function update(field, value) {
         setForm(prev => ({ ...prev, [field]: value }));
     }
+
+    // #6: Handle file upload for avatar/cover
+    const handleFileUpload = useCallback(async (file, type) => {
+        if (!file) return;
+        const isAvatar = type === 'avatar';
+        if (isAvatar) setUploadingAvatar(true);
+        else setUploadingCover(true);
+
+        // Show local preview immediately
+        const previewUrl = URL.createObjectURL(file);
+        if (isAvatar) setAvatarPreview(previewUrl);
+        else setCoverPreview(previewUrl);
+
+        try {
+            const token = getAccessToken();
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('folder', isAvatar ? 'page-avatars' : 'page-covers');
+            fd.append('prefix', user?.id || 'anon');
+
+            const res = await fetch('/api/social/upload', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: fd,
+            });
+            const json = await res.json();
+            if (json.success && json.url) {
+                update(isAvatar ? 'avatar_url' : 'cover_url', json.url);
+            } else {
+                setError(`Failed to upload ${type}: ${json.error || 'Unknown error'}`);
+                // Revert preview
+                if (isAvatar) setAvatarPreview(null);
+                else setCoverPreview(null);
+            }
+        } catch {
+            setError(`Network error uploading ${type}`);
+            if (isAvatar) setAvatarPreview(null);
+            else setCoverPreview(null);
+        }
+        if (isAvatar) setUploadingAvatar(false);
+        else setUploadingCover(false);
+    }, [user]);
 
     async function handleSubmit(signal) {
         if (!form.name.trim()) { setError('Page name is required'); return; }
@@ -251,6 +303,64 @@ export default function CreateSocialPage() {
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                {/* #6: Avatar + Cover Upload */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 16, alignItems: 'start' }}>
+                                    {/* Avatar Upload */}
+                                    <div>
+                                        <label style={labelStyle}>Avatar</label>
+                                        <div
+                                            onClick={() => avatarInputRef.current?.click()}
+                                            style={{
+                                                width: 80, height: 80, borderRadius: 12, cursor: 'pointer',
+                                                border: `2px dashed ${C.border}`, background: avatarPreview || form.avatar_url
+                                                    ? `url(${avatarPreview || form.avatar_url}) center/cover` : C.bg,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                flexDirection: 'column', gap: 2, position: 'relative',
+                                                transition: 'border-color 0.2s',
+                                            }}
+                                            aria-label="Upload avatar photo"
+                                        >
+                                            {uploadingAvatar ? (
+                                                <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${C.border}`, borderTopColor: C.blue, animation: 'spin 0.6s linear infinite' }} />
+                                            ) : !(avatarPreview || form.avatar_url) && (
+                                                <>
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                                                    <span style={{ fontSize: 10, color: C.textSec, fontWeight: 500 }}>Upload</span>
+                                                </>
+                                            )}
+                                        </div>
+                                        <input ref={avatarInputRef} type="file" accept="image/*" hidden
+                                            onChange={e => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0], 'avatar'); e.target.value = ''; }} />
+                                    </div>
+
+                                    {/* Cover Upload */}
+                                    <div>
+                                        <label style={labelStyle}>Cover Photo</label>
+                                        <div
+                                            onClick={() => coverInputRef.current?.click()}
+                                            style={{
+                                                width: '100%', height: 80, borderRadius: 10, cursor: 'pointer',
+                                                border: `2px dashed ${C.border}`, background: coverPreview || form.cover_url
+                                                    ? `url(${coverPreview || form.cover_url}) center/cover` : C.bg,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                flexDirection: 'column', gap: 2, position: 'relative',
+                                                transition: 'border-color 0.2s',
+                                            }}
+                                            aria-label="Upload cover photo"
+                                        >
+                                            {uploadingCover ? (
+                                                <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${C.border}`, borderTopColor: C.blue, animation: 'spin 0.6s linear infinite' }} />
+                                            ) : !(coverPreview || form.cover_url) && (
+                                                <>
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.textSec} strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+                                                    <span style={{ fontSize: 10, color: C.textSec, fontWeight: 500 }}>Upload Cover</span>
+                                                </>
+                                            )}
+                                        </div>
+                                        <input ref={coverInputRef} type="file" accept="image/*" hidden
+                                            onChange={e => { if (e.target.files?.[0]) handleFileUpload(e.target.files[0], 'cover'); e.target.value = ''; }} />
+                                    </div>
+                                </div>
                                 <div>
                                     <label style={labelStyle}>Page Name *</label>
                                     <input type="text" value={form.name} onChange={e => {
