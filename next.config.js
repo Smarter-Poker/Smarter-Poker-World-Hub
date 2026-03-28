@@ -131,6 +131,24 @@ const nextConfig = {
     minimumCacheTTL: 3600, // Cache optimized images for 1 hour
   },
 
+  // ─── Security & Permissions Headers ──────────────────────────────────────────
+  // Ensures geolocation (GPS), microphone, and camera permissions are properly
+  // granted to the page origin. Without this, some browsers/CDNs may block
+  // navigator.geolocation calls. These headers also apply in local dev.
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'geolocation=*, microphone=(self), camera=()',
+          },
+        ],
+      },
+    ];
+  },
+
   // Club Arena pages are served directly from this deployment (no external proxy)
   async redirects() {
     return [

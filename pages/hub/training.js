@@ -1407,15 +1407,6 @@ export default function TrainingPage() {
                                         style={{ width: '100%', height: 100, objectFit: 'cover' }}
                                         onError={(e) => { e.target.style.display = 'none'; }}
                                     />
-                                    <div style={{
-                                        position: 'absolute', inset: 0,
-                                        display: 'flex', flexDirection: 'column',
-                                        alignItems: 'center', justifyContent: 'center',
-                                        background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)',
-                                    }}>
-                                        <div style={{ fontSize: 9, fontWeight: 700, color: '#00d4ff', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>JARVIS</div>
-                                        <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>Recommends</div>
-                                    </div>
                                 </motion.div>
                             </div>
                         )}

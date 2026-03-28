@@ -1569,10 +1569,14 @@ export default function PokerNearMeLobby() {
             <div style={{ background: 'rgba(13,17,23,0.95)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
               {/* Row 1: GPS + Distance */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
-                <button onClick={handleGpsClick}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : '1px solid rgba(88,166,255,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : 'rgba(88,166,255,0.08)', color: userLocation ? '#3fb950' : '#58a6ff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  {userLocation ? 'GPS Active' : 'Enable GPS'}
+                <button onClick={handleGpsClick} disabled={gpsLoading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : gpsLoading ? '1px solid rgba(255,213,0,0.4)' : '1px solid rgba(88,166,255,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : gpsLoading ? 'rgba(255,213,0,0.1)' : 'rgba(88,166,255,0.08)', color: userLocation ? '#3fb950' : gpsLoading ? '#ffd500' : '#58a6ff', fontSize: 13, fontWeight: 700, cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                  {gpsLoading ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" /></svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  )}
+                  {userLocation ? 'GPS Active' : gpsLoading ? 'Locating...' : 'Enable GPS'}
                 </button>
                 <select value={nmRadius} onChange={(e) => setFilters(prev => ({ ...prev, nmRadius: e.target.value }))}
                   style={{ background: 'rgba(13,17,23,0.9)', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>

@@ -1,0 +1,50 @@
+{
+  "scrape_url": "https://windycity.poker",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-28T02:14:54.485498+00:00",
+  "scrape_html_hash": "06e67d84f969f244ef26bf111fb67de9bda637d7b545def46f622a02cd5603da",
+  "scrape_byte_count": 186407,
+  "scrape_batch_id": "91c12ebb-64af-40c2-8fe8-af4bd7d86ba4",
+  "scrape_script": "scripts/charity_poker_expansion.py",
+  "label": "tourn_Windy City Poker Championship",
+  "extracted_data": {
+    "tournaments": [
+      {
+        "day_of_week": "Saturday",
+        "start_time": null,
+        "buy_in": 85,
+        "game_type": "NLH",
+        "raw_text": "- Mar 28 12p - $85 Uber Stack MTT 4p - $340 Deep Bounty MTT 6p - $85 Nightly Uber MTT"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": null,
+        "buy_in": 85,
+        "game_type": "NLH",
+        "raw_text": "- Apr 4 12p - $85 Uber Stack MTT 6p - $85 Nightly Uber MTT"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": null,
+        "buy_in": 85,
+        "game_type": "NLH",
+        "raw_text": "- Apr 11 12p - $85 Uber Stack MTT 6p - $120 Tag Team ($240 per team) 6p - $85 Nightly Uber MTT"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": null,
+        "buy_in": 85,
+        "game_type": "NLH",
+        "raw_text": "- Apr 18 12p - $85 Uber Stack MTT 6p - $85 Nightly Uber MTT"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": null,
+        "buy_in": 80,
+        "game_type": "NLH",
+        "raw_text": "- Apr 25 12p - $80 Ladies Only MTT 12p - $85 Uber Stack MTT 6p - $85 Nightly Uber MTT"
+      }
+    ]
+  },
+  "body_preview": "<!DOCTYPE html><html lang=\"en-gb\" dir=\"ltr\" class=\"n2webp pull__refresh\"><head><meta http-equiv=\"origin-trial\" content=\"A7vZI3v+Gz7JfuRolKNM4Aff6zaGuT7X0mf3wtoZTnKv6497cVMnhy03KDqX7kBz/q/iidW7srW31oQbBt4VhgoAAACUeyJvcmlnaW4iOiJodHRwczovL3d3dy5nb29nbGUuY29tOjQ0MyIsImZlYXR1cmUiOiJEaXNhYmxlVGhpcmRQYXJ0eVN0b3JhZ2VQYXJ0aXRpb25pbmczIiwiZXhwaXJ5IjoxNzU3OTgwODAwLCJpc1N1YmRvbWFpbiI6dHJ1ZSwiaXNUaGlyZFBhcnR5Ijp0cnVlfQ==\">\n<script type=\"text/javascript\" async=\"\" src=\"https://www.googletagmanager.com/gtag/js"
+}
