@@ -40,6 +40,7 @@ Usage:
 """
 
 import json
+import os
 import re
 import hashlib
 import sys
@@ -266,7 +267,6 @@ def write_heartbeat(status, extra=None):
     except Exception:
         pass  # Never crash on heartbeat write
 
-import os
 
 # ============================================================
 # FALLBACK FETCHER — TIER 2: PlayWrightFetcher
