@@ -1,44 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '../../lib/supabase';
+import { haversineMiles, timeAgo, getHeatLevel, parseMinStake } from './pnm-utils';
+import ReportGameModal from './ReportGameModal';
 
 // Dynamically import map to avoid SSR issues
 const VenueMapPanel = dynamic(() => import('./VenueMapPanel'), { ssr: false });
 
 const LIVE_REFRESH_MS = 2 * 60 * 1000; // 2 minutes
 const COLLAPSE_THRESHOLD = 5; // Show first N games, collapse rest
-
-// ─── SHARED UTILITIES ───
-// Haversine distance in miles (consolidated — was duplicated 4x across PNM components)
-function haversineMiles(lat1, lon1, lat2, lon2) {
-    const R = 3959;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-// Relative time helper (consolidated — was missing entirely)
-function timeAgo(dateStr) {
-    if (!dateStr) return '';
-    const ts = new Date(dateStr).getTime();
-    if (isNaN(ts)) return '';
-    const diff = Math.floor((Date.now() - ts) / 1000);
-    if (diff < 0) return 'Just now';
-    if (diff < 30) return 'Just now';
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
-}
-
-// Activity heat level for visual theming
-function getHeatLevel(totalTables) {
-    if (totalTables >= 20) return { color: '#ef4444', label: 'HOT', border: 'rgba(239,68,68,0.5)', bg: 'rgba(239,68,68,0.08)' };
-    if (totalTables >= 8) return { color: '#f59e0b', label: 'WARM', border: 'rgba(245,158,11,0.4)', bg: 'rgba(245,158,11,0.06)' };
-    if (totalTables >= 3) return { color: '#3fb950', label: 'ACTIVE', border: 'rgba(63,185,80,0.4)', bg: 'rgba(63,185,80,0.06)' };
-    return { color: '#58a6ff', label: 'OPEN', border: 'rgba(88,166,255,0.3)', bg: 'rgba(88,166,255,0.05)' };
-}
 
 // Skeleton loading
 const renderSkeletons = (count = 4) => (
@@ -108,12 +78,7 @@ const STAKES_FILTERS = [
     { key: '25', label: '25/50+' },
 ];
 
-function parseMinStake(gameName) {
-    // Extract numbers from game name like "1/2 No Limit Holdem" or "5-10 NLH"
-    const match = (gameName || '').match(/(\d+)[\/\-](\d+)/);
-    if (match) return Math.min(parseInt(match[1]), parseInt(match[2]));
-    return 0;
-}
+// parseMinStake is now imported from ./pnm-utils
 
 function venueHasStakes(games, minStake) {
     if (minStake === 'any' || !minStake) return true;
@@ -129,8 +94,13 @@ export default function LiveGamesFeed({
     handleToggleFavorite, 
     checkinCounts = {}, 
     router, 
-    setSelectedVenueForReview 
+    setSelectedVenueForReview,
+    user 
 }) {
+    // ─── REPORT GAME MODAL STATE ───
+    const [reportModalOpen, setReportModalOpen] = useState(false);
+    const [reportVenue, setReportVenue] = useState(null);
+    const [reportSuccess, setReportSuccess] = useState(null);
     // ─── STATE ───
     const [liveData, setLiveData] = useState({}); // Mapping: bravo_slug -> live data
     const [liveLoading, setLiveLoading] = useState(true);

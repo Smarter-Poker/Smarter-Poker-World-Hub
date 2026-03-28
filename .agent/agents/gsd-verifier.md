@@ -384,8 +384,8 @@ Anti-pattern scanning (Step 7) checks for code smells. Behavioral spot-checks go
 1. **Identify checkable behaviors** from must-haves truths. Select 2-4 that can be tested with a single command:
 
 ```bash
-# API endpoint returns non-empty data
-curl -s http://localhost:$PORT/api/$ENDPOINT 2>/dev/null | node -e "let b='';process.stdin.setEncoding('utf8');process.stdin.on('data',c=>b+=c);process.stdin.on('end',()=>{const d=JSON.parse(b);process.exit(Array.isArray(d)?(d.length>0?0:1):(Object.keys(d).length>0?0:1))})"
+# API endpoint returns non-empty data (ALWAYS use production — NEVER localhost)
+curl -s https://smarter.poker/api/$ENDPOINT 2>/dev/null | node -e "let b='';process.stdin.setEncoding('utf8');process.stdin.on('data',c=>b+=c);process.stdin.on('end',()=>{const d=JSON.parse(b);process.exit(Array.isArray(d)?(d.length>0?0:1):(Object.keys(d).length>0?0:1))})"
 
 # CLI command produces expected output
 node $CLI_PATH --help 2>&1 | grep -q "$EXPECTED_SUBCOMMAND"

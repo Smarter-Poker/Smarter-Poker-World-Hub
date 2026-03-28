@@ -10,6 +10,22 @@ Before answering ANY prompt, you MUST:
 
 ---
 
+## 🚨 PRODUCTION TESTING LAW — ZERO EXCEPTIONS
+
+**ALL browser testing, UI verification, screenshots, and API spot-checks MUST target the live production site:**
+
+### `https://smarter.poker`
+
+- **NEVER** open a browser to `localhost:3000` for testing
+- **NEVER** screenshot `localhost` or `127.0.0.1`
+- **NEVER** curl `localhost` for API verification
+- The local dev server is for **build compilation checks ONLY**
+- See `.agent/workflows/browser-testing.md` for test account credentials
+
+**Why:** Features that "work on localhost" often break in production. Only production testing catches real bugs.
+
+---
+
 ## 🔗 CHAIN OF THOUGHT
 Do not just write code. Explain your "Mental Sandbox" first:
 

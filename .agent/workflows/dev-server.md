@@ -4,6 +4,12 @@ description: How to start, restart, or verify the local dev server
 
 # Dev Server Workflow
 
+> **WARNING — BUILD VERIFICATION ONLY**
+>
+> The dev server exists ONLY to verify that code compiles and builds without errors.
+> **ALL browser testing and UI verification MUST be done on `https://smarter.poker`** — see `/browser-testing` workflow.
+> **NEVER** open a browser to `localhost:3000` for testing features.
+
 // turbo-all
 
 ## Check If Server Is Already Running

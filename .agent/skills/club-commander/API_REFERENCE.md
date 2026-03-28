@@ -8,7 +8,7 @@ All API endpoints are located under `/api/commander/`. Authentication is handled
 
 ```
 Production: https://smarter.poker/api/commander
-Development: http://localhost:3000/api/commander
+Development: https://smarter.poker/api/commander (ALWAYS test on production)
 ```
 
 ## Authentication

@@ -47,8 +47,8 @@ After agent says Phase 1 is complete:
 - [ ] Compare each table against DATABASE_SCHEMA.sql
 
 ### APIs
-- [ ] Test: `curl localhost:3000/api/commander/venues` - returns JSON
-- [ ] Test: `curl localhost:3000/api/commander/games/live` - returns JSON
+- [ ] Test: `curl https://smarter.poker/api/commander/venues` - returns JSON
+- [ ] Test: `curl https://smarter.poker/api/commander/games/live` - returns JSON
 - [ ] Test: POST to /api/commander/waitlist/join - works with auth
 - [ ] Verify no extra endpoints were created
 
