@@ -1,0 +1,71 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/westgate-poker-room-comstock-park",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-28T02:19:20.618908+00:00",
+  "scrape_html_hash": "6292f656c1187d46b4ce03b22d6e745ac40de13846e67d1a727950f323115aaa",
+  "scrape_byte_count": 105913,
+  "scrape_batch_id": "91c12ebb-64af-40c2-8fe8-af4bd7d86ba4",
+  "scrape_script": "scripts/charity_poker_expansion.py",
+  "label": "tourn_Westgate Poker Room",
+  "extracted_data": {
+    "tournaments": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "2:00pm",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Monday",
+        "start_time": "2:00am",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "2:00pm",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "2:00am",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "2:00pm",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "2:00am",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "2:00pm",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "2:00am",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      }
+    ]
+  },
+  "body_preview": "<!DOCTYPE html><html lang=\"en\" style=\"\" class=\" js no-touch csstransforms3d no-overflowscrolling csscalc\"><head><meta http-equiv=\"origin-trial\" content=\"3NNj0GXVktLOmVKwWUDendk4Vq2qgMVDBDX+Sni48ATJl9JBj+zF+9W2HGB3pvt6qowOihTbQgTeBm9SKbdTwYAAABfeyJvcmlnaW4iOiJodHRwczovL3JlY2FwdGNoYS5uZXQ6NDQzIiwiZmVhdHVyZSI6IlRwY2QiLCJleHBpcnkiOjE3MzUzNDM5OTksImlzVGhpcmRQYXJ0eSI6dHJ1ZX0=\"><meta http-equiv=\"origin-trial\" content=\"A6iYDRdcg1LVww9DNZEU+JUx2g1IJxSxk4P6F+LimR0ElFa38FydBqtz/AmsKdGr11ZooRgDPCInHJfGzwtR+"
+}
