@@ -1490,6 +1490,9 @@ function MessengerPage() {
     const outgoingRingToneRef = useRef(null); // Web Audio API ring tone (more reliable)
     const callTimeoutRef = useRef(null);
     const callStartTimeRef = useRef(null); // Track call start for duration
+    // BUG-3 FIX: Refs to avoid stale closures in long-lived Realtime signaling listener
+    const showCallRef = useRef(false);
+    const callingUserRef = useRef(null);
 
     // Hamburger Menu State
     const [menuOpen, setMenuOpen] = useState(false);
@@ -1921,7 +1924,12 @@ function MessengerPage() {
     // ═══════════════════════════════════════════════════════════════════════════
     // 📞 CALL SIGNALING VIA SUPABASE REALTIME
     // Listen for incoming calls, call accepted/declined, call ended
+    // BUG-3 FIX: Use refs for showCall/callingUser to avoid channel teardown on state changes
     // ═══════════════════════════════════════════════════════════════════════════
+    // Keep refs in sync with state (prevents stale closures in broadcast handlers)
+    useEffect(() => { showCallRef.current = showCall; }, [showCall]);
+    useEffect(() => { callingUserRef.current = callingUser; }, [callingUser]);
+
     useEffect(() => {
         if (!user) return;
 
@@ -1930,8 +1938,8 @@ function MessengerPage() {
             .on('broadcast', { event: 'incoming_call' }, (payload) => {
                 const { callerId, callerName, callerAvatar, callType, roomName } = payload.payload;
 
-                // Don't show incoming call if we're already in a call
-                if (showCall) return;
+                // Don't show incoming call if we're already in a call (read from ref, not state)
+                if (showCallRef.current) return;
 
                 // 🔒 TAB CLAIM: Only one tab should handle the call
                 // Use localStorage to prevent multiple tabs from all ringing
@@ -1964,12 +1972,19 @@ function MessengerPage() {
                 }, 30000);
             })
             .on('broadcast', { event: 'call_declined' }, (payload) => {
-                if (callingUser) {
+                // Read from ref to avoid stale closure
+                if (callingUserRef.current) {
                     const reason = payload.payload.reason === 'timeout' ? 'No answer' : 'Call declined';
                     setToast({ type: 'info', message: reason });
                     setCallingUser(null);
+                    // BUG-8 FIX: Also close the call modal — caller shouldn't stay in empty room
+                    setShowCall(false);
+                    setCallRoomName('');
                     // Stop outgoing ring (Web Audio only now)
-                    if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
+                    if (outgoingRingToneRef.current) {
+                        outgoingRingToneRef.current.stop();
+                        outgoingRingToneRef.current = null;
+                    }
                 }
             })
             .on('broadcast', { event: 'call_accepted' }, (payload) => {
@@ -1983,9 +1998,15 @@ function MessengerPage() {
             .on('broadcast', { event: 'call_ended' }, (payload) => {
                 setShowCall(false);
                 setCallRoomName('');
+                setCallingUser(null);
                 setToast({ type: 'info', message: 'Call Ended' });
                 // Stop any ringing (Web Audio only now)
                 if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
+                // BUG-7 FIX: Also stop incoming ring audio if it was playing
+                if (incomingCallAudioRef.current) {
+                    incomingCallAudioRef.current.pause();
+                    incomingCallAudioRef.current.currentTime = 0;
+                }
             })
             .subscribe();
 
@@ -1993,7 +2014,7 @@ function MessengerPage() {
             supabase.removeChannel(callChannel);
             if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
         };
-    }, [user, showCall, callingUser]);
+    }, [user]); // BUG-3 FIX: Only re-subscribe when user changes, not on showCall/callingUser
 
     // Handle accepting incoming call
     const handleAcceptCall = async () => {
@@ -3241,10 +3262,12 @@ function MessengerPage() {
         setShowCall(true);
 
         //  Play outgoing ring sound while waiting for answer
-        // Use Web Audio API ring tone only (removed backup audio element to prevent double ringtone)
-        if (!outgoingRingToneRef.current) {
-            outgoingRingToneRef.current = createRingTone();
+        // BUG-4 FIX: Always stop and clear existing ring tone before creating new one
+        if (outgoingRingToneRef.current) {
+            outgoingRingToneRef.current.stop();
+            outgoingRingToneRef.current = null;
         }
+        outgoingRingToneRef.current = createRingTone();
         if (outgoingRingToneRef.current) {
             outgoingRingToneRef.current.start();
         }
@@ -3254,6 +3277,16 @@ function MessengerPage() {
 
     // End call - notify the other party
     const endCall = async () => {
+        // BUG-7 FIX: Stop ALL audio sources immediately
+        if (outgoingRingToneRef.current) {
+            outgoingRingToneRef.current.stop();
+            outgoingRingToneRef.current = null;
+        }
+        if (incomingCallAudioRef.current) {
+            incomingCallAudioRef.current.pause();
+            incomingCallAudioRef.current.currentTime = 0;
+        }
+
         // Notify the other user that call ended (subscribe, send, then cleanup)
         if (activeConversation?.otherUser?.id) {
             try {
@@ -3314,6 +3347,22 @@ function MessengerPage() {
         setCallingUser(null);
         setToast({ type: 'info', message: 'Call Ended' });
     };
+
+    // BUG-4 FIX: Clean up ring tone AudioContext on component unmount
+    useEffect(() => {
+        return () => {
+            if (outgoingRingToneRef.current) {
+                outgoingRingToneRef.current.stop();
+                outgoingRingToneRef.current = null;
+            }
+            if (incomingCallAudioRef.current) {
+                incomingCallAudioRef.current.pause();
+            }
+            if (callTimeoutRef.current) {
+                clearTimeout(callTimeoutRef.current);
+            }
+        };
+    }, []);
 
     if (loading) {
         return (
@@ -3584,9 +3633,9 @@ function MessengerPage() {
             {/* Outgoing Ring: Using Web Audio API createRingTone() instead */}
 
             {/* ════════════════════════════════════════════════════════
-                INCOMING CALL POPUP - Shows when someone calls you
+                BUG-2 FIX: "CALLING..." OVERLAY - Shows while waiting for answer
                 ════════════════════════════════════════════════════════ */}
-            {incomingCall && (
+            {callingUser && !showCall && (
                 <div style={{
                     position: 'fixed',
                     inset: 0,
@@ -3613,7 +3662,112 @@ function MessengerPage() {
                             marginBottom: 16,
                             animation: 'pulse 1.5s infinite',
                         }}>
-                            {incomingCall.callType === 'video' ? 'Video' : 'Voice'}
+                            {callType === 'video' ? '\ud83d\udcf9' : '\ud83d\udcde'}
+                        </div>
+
+                        {/* Callee Avatar */}
+                        <div style={{
+                            width: 100,
+                            height: 100,
+                            borderRadius: '50%',
+                            margin: '0 auto 16px',
+                            background: callingUser.avatar_url
+                                ? `url(${callingUser.avatar_url}) center/cover`
+                                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 40,
+                            color: 'white',
+                            border: '3px solid rgba(255,255,255,0.2)',
+                            boxShadow: '0 0 0 4px rgba(0,132,255,0.3), 0 0 30px rgba(0,132,255,0.4)',
+                            animation: 'ring 1.5s infinite',
+                        }}>
+                            {!callingUser.avatar_url && (callingUser.username?.[0]?.toUpperCase() || callingUser.full_name?.[0]?.toUpperCase() || '?')}
+                        </div>
+
+                        {/* Callee Name */}
+                        <h2 style={{
+                            color: 'white',
+                            fontSize: 24,
+                            fontWeight: 600,
+                            margin: '0 0 8px 0',
+                        }}>
+                            {callingUser.full_name || callingUser.username || 'User'}
+                        </h2>
+
+                        {/* Status */}
+                        <p style={{
+                            color: 'rgba(255,255,255,0.7)',
+                            fontSize: 16,
+                            margin: '0 0 32px 0',
+                        }}>
+                            Calling...
+                        </p>
+
+                        {/* Cancel Button */}
+                        <button
+                            onClick={() => {
+                                setCallingUser(null);
+                                if (outgoingRingToneRef.current) {
+                                    outgoingRingToneRef.current.stop();
+                                    outgoingRingToneRef.current = null;
+                                }
+                                endCall();
+                            }}
+                            style={{
+                                width: 70,
+                                height: 70,
+                                borderRadius: '50%',
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #ff4757 0%, #c0392b 100%)',
+                                color: 'white',
+                                fontSize: 28,
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 20px rgba(255,71,87,0.4)',
+                                transition: 'transform 0.2s',
+                            }}
+                            onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                            onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                            title="Cancel Call"
+                        >
+                            ×
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ════════════════════════════════════════════════════════
+                INCOMING CALL POPUP - Shows when someone calls you
+                ════════════════════════════════════════════════════════ */}
+            {incomingCall && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 10000,
+                    background: 'rgba(0, 0, 0, 0.85)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}>
+                    <div style={{
+                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                        borderRadius: 24,
+                        padding: 40,
+                        textAlign: 'center',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        maxWidth: 360,
+                        width: '90%',
+                    }}>
+                        {/* BUG-6 FIX: Call Type Icon — show actual icons, not plain text */}
+                        <div style={{
+                            fontSize: 48,
+                            marginBottom: 16,
+                            animation: 'pulse 1.5s infinite',
+                        }}>
+                            {incomingCall.callType === 'video' ? '📹' : '📞'}
                         </div>
 
                         {/* Caller Avatar */}
@@ -3696,7 +3850,7 @@ function MessengerPage() {
                                 onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
                                 title="Accept"
                             >
-
+                                📞
                             </button>
                         </div>
                     </div>
@@ -3762,7 +3916,7 @@ function MessengerPage() {
                             📵 End Call
                         </button>
                     </div>
-                    {/* LiveKit Video Component */}
+                    {/* LiveKit Video Component — BUG-1 FIX: Pass auth token for API calls */}
                     <LiveKitCall
                         roomName={callRoomName}
                         participantName={user?.user_metadata?.username || user?.user_metadata?.poker_alias || 'User'}
@@ -3770,6 +3924,7 @@ function MessengerPage() {
                         callType={callType}
                         otherUserName={activeConversation?.otherUser?.username}
                         onEnd={endCall}
+                        authToken={getAccessToken()}
                     />
                 </div>
             )}

@@ -62,6 +62,7 @@ export function createRingTone() {
     };
 
     const stop = () => {
+        if (!isPlaying && !ringInterval && !audioContext) return; // Already stopped
         isPlaying = false;
         if (ringInterval) {
             clearInterval(ringInterval);

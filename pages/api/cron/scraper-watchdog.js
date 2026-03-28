@@ -14,8 +14,8 @@ import { sendSMS, isTwilioConfigured } from '../../../src/lib/commander/twilio';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const ADMIN_PHONE = '+17086775221';
-const STALE_THRESHOLD_MIN = 40;
-const DEAD_THRESHOLD_MIN = 60;
+const STALE_THRESHOLD_MIN = 45;
+const DEAD_THRESHOLD_MIN = 90;
 const ALERT_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour between alerts per source
 
 // Track last alert time in memory (resets on cold start, but that's fine)

@@ -18,17 +18,50 @@ import '@livekit/components-styles';
 import { Track } from 'livekit-client';
 
 /**
- * Fetches a LiveKit token from the server
+ * Resolves an auth token: uses the provided token, or falls back to localStorage.
  */
-export async function getLiveKitToken(roomName, participantName, participantId) {
+function resolveAuthToken(authToken) {
+    if (authToken) return authToken;
+    // Fallback: read from localStorage directly (same logic as getAccessToken)
+    if (typeof window === 'undefined') return null;
+    try {
+        const explicit = localStorage.getItem('smarter-poker-auth');
+        if (explicit) {
+            const parsed = JSON.parse(explicit);
+            if (parsed?.access_token) return parsed.access_token;
+        }
+        const sbKeys = Object.keys(localStorage).filter(
+            k => k.startsWith('sb-') && k.endsWith('-auth-token')
+        );
+        if (sbKeys.length > 0) {
+            const parsed = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+            return parsed?.access_token || null;
+        }
+    } catch (_) {}
+    return null;
+}
+
+/**
+ * Fetches a LiveKit token from the server.
+ * CRITICAL: Must include Authorization header — API requires JWT auth (BUG #247 fix).
+ */
+export async function getLiveKitToken(roomName, participantName, participantId, authToken) {
+    const token = resolveAuthToken(authToken);
+    if (!token) {
+        throw new Error('Not authenticated — please sign in to make calls');
+    }
+
     const response = await fetch('/api/livekit/token', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ roomName, participantName, participantId }),
     });
 
     if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
         throw new Error(error.error || 'Failed to get video token');
     }
 
@@ -117,6 +150,7 @@ function VideoCallUI({ onLeave }) {
  * - callType: 'video' or 'audio'
  * - otherUserName: Name of the person you're calling
  * - onEnd: Callback when call ends
+ * - authToken: JWT auth token for API calls (falls back to localStorage)
  */
 export default function LiveKitCall({
     roomName,
@@ -125,6 +159,7 @@ export default function LiveKitCall({
     callType = 'video',
     otherUserName,
     onEnd,
+    authToken,
 }) {
     const [token, setToken] = useState(null);
     const [wsUrl, setWsUrl] = useState(null);
@@ -135,7 +170,7 @@ export default function LiveKitCall({
     useEffect(() => {
         if (!roomName || !participantName) return;
 
-        getLiveKitToken(roomName, participantName, participantId)
+        getLiveKitToken(roomName, participantName, participantId, authToken)
             .then(({ token, wsUrl }) => {
                 setToken(token);
                 setWsUrl(wsUrl);
@@ -146,7 +181,7 @@ export default function LiveKitCall({
                 setError(err.message);
                 setConnecting(false);
             });
-    }, [roomName, participantName, participantId]);
+    }, [roomName, participantName, participantId, authToken]);
 
     const handleDisconnect = useCallback(() => {
         onEnd?.();

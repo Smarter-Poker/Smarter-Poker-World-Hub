@@ -61,6 +61,10 @@ logging.basicConfig(
 )
 log = logging.getLogger('pokeratlas-daemon')
 
+# Suppress Scrapling's noisy internal logger ('No Cloudflare challenge found' ERROR spam)
+for noisy_logger in ['scrapling', 'scrapling.fetchers', 'camoufox', 'browserforge']:
+    logging.getLogger(noisy_logger).setLevel(logging.CRITICAL)
+
 # ============================================================
 # ERROR CODES
 # ============================================================
@@ -463,6 +467,10 @@ def run_scrape_cycle(mgr):
     """Run one full scrape cycle."""
     batch_id = str(uuid.uuid4())
     cycle_start = datetime.now(timezone.utc)
+
+    # Rotate log file handler if day changed
+    _maybe_rotate_log()
+
     log.info(f'=== SCRAPE CYCLE #{mgr.total_cycles + 1} | Batch: {batch_id[:8]} ===')
 
     # Ensure connected
@@ -538,7 +546,7 @@ def run_scrape_cycle(mgr):
     bravo_names_normalized = set()
     try:
         req = urllib.request.Request(
-            f'{SUPABASE_URL}/rest/v1/venue_live_tables?source=eq.bravo&select=venue_name',
+            f'{SUPABASE_URL}/rest/v1/venue_live_tables?source=eq.bravo&select=venue_name&limit=5000',
             headers=SB_HEADERS,
         )
         resp = urllib.request.urlopen(req, timeout=15)
@@ -636,6 +644,26 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
+
+# ============================================================
+# LOG ROTATION HELPER
+# ============================================================
+_last_log_date = datetime.now().strftime('%Y%m%d')
+
+def _maybe_rotate_log():
+    """Rotate log file handler when date changes (midnight crossing)."""
+    global _last_log_date
+    today = datetime.now().strftime('%Y%m%d')
+    if today != _last_log_date:
+        _last_log_date = today
+        new_path = LOG_DIR / f'daemon_{today}.log'
+        root_logger = logging.getLogger()
+        for h in root_logger.handlers[:]:
+            if isinstance(h, logging.FileHandler) and 'daemon_' in str(h.baseFilename):
+                root_logger.removeHandler(h)
+                h.close()
+        root_logger.addHandler(logging.FileHandler(new_path))
+        log.info(f'\U0001f4c5 Rotated log file to {new_path}')
 
 def main():
     log.info('=' * 60)

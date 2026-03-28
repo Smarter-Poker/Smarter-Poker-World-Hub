@@ -82,7 +82,8 @@ export default function LiveGamesFeed({
 
     // ─── FETCH LIVE DATA ───
     const fetchGlobalLiveData = async (isRealtimeEvent = false) => {
-        setLiveLoading(true);
+        // Only show skeleton on initial load — not on WebSocket refetches (prevents UI flash)
+        if (!isRealtimeEvent) setLiveLoading(true);
         try {
             // Fetch without venue parameter. Append timestamp if triggered by realtime WebSocket to bust Edge Cache.
             const url = isRealtimeEvent 

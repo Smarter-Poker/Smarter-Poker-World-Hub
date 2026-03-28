@@ -69,12 +69,12 @@ export default async function handler(req, res) {
         .select('id', { count: 'exact', head: true })
         .eq('source', source);
 
-      // Count unique venues
-      const { data: venueNames } = await supabase
+      // Count unique venues (use bravo_slug — indexed, smaller payload than venue_name)
+      const { data: venueSlugs } = await supabase
         .from('venue_live_tables')
-        .select('venue_name')
+        .select('bravo_slug')
         .eq('source', source);
-      const venues = venueNames ? new Set(venueNames.map(r => r.venue_name)).size : 0;
+      const venues = venueSlugs ? new Set(venueSlugs.map(r => r.bravo_slug)).size : 0;
 
       let status = 'healthy';
       if (minutesAgo > 60) {

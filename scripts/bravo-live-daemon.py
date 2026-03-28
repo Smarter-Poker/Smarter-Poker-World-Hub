@@ -63,10 +63,11 @@ BRAVO_LOGIN_URL = 'https://www.bravopokerlive.com/login/'
 BRAVO_VENUE_URL = 'https://www.bravopokerlive.com/venues/{slug}/'
 SCRAPE_INTERVAL = 900          # 15 minutes
 MAX_RETRIES = 3                # Max login retries before full restart
-VENUE_TIMEOUT = 10000          # 10s per venue page load
+VENUE_TIMEOUT = 15000          # 15s per venue page load (was 10s — too tight for Bravo CDN)
 LOGIN_TIMEOUT = 15000          # 15s for login flow
 RATE_LIMIT_DELAY = 0.5         # 0.5s between venues
 HEALTH_CHECK_INTERVAL = 3      # Health-check every N cycles
+VENUE_RETRY_COUNT = 1          # Retry failed venues once before giving up
 CIRCUIT_BREAKER_THRESHOLD = 10 # Abort cycle + reconnect if this many consecutive venues fail
 BASE_DIR = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub')
 LOG_DIR = BASE_DIR / 'data' / 'bravo-logs'
@@ -109,23 +110,34 @@ SB_HEADERS = {
 }
 
 def sb_upsert(table, data):
-    """UPSERT to Supabase REST API with retry."""
-    body = json.dumps(data).encode()
-    req = urllib.request.Request(
-        f'{SUPABASE_URL}/rest/v1/{table}',
-        data=body, method='POST',
-        headers={**SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal'}
-    )
-    for attempt in range(3):
-        try:
-            urllib.request.urlopen(req, timeout=15)
-            return True
-        except Exception as e:
-            if attempt < 2:
-                time.sleep(2 ** attempt)
-            else:
-                log.error(f'{ERROR_SUPABASE}: {e}')
-                return False
+    """UPSERT to Supabase REST API with chunked batches and retry."""
+    BATCH_SIZE = 100
+    total_saved = 0
+    for i in range(0, len(data), BATCH_SIZE):
+        chunk = data[i:i + BATCH_SIZE]
+        body = json.dumps(chunk).encode()
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/{table}',
+            data=body, method='POST',
+            headers={**SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal'}
+        )
+        success = False
+        for attempt in range(3):
+            try:
+                urllib.request.urlopen(req, timeout=30)
+                total_saved += len(chunk)
+                success = True
+                break
+            except Exception as e:
+                if attempt < 2:
+                    log.warning(f'  Batch {i//BATCH_SIZE + 1}: retry {attempt + 1} ({e})')
+                    time.sleep(2 ** attempt)
+                else:
+                    log.error(f'{ERROR_SUPABASE}: Batch {i//BATCH_SIZE + 1} FAILED after 3 retries: {e}')
+        if not success:
+            return False
+    log.info(f'  Upserted {total_saved}/{len(data)} records in {(len(data) + BATCH_SIZE - 1) // BATCH_SIZE} batches')
+    return True
 
 def sb_delete(table, query):
     """DELETE from Supabase REST API."""
@@ -301,7 +313,7 @@ class BravoSessionManager:
 
         for attempt in range(MAX_RETRIES):
             try:
-                self.page.goto(f'{BRAVO_LOGIN_URL}?ReturnUrl=%2fvenues%2f')
+                self.page.goto(f'{BRAVO_LOGIN_URL}?ReturnUrl=%2fvenues%2f', timeout=LOGIN_TIMEOUT, wait_until='load')
                 self.page.wait_for_load_state('networkidle', timeout=LOGIN_TIMEOUT)
 
                 content = self.page.content()
@@ -420,47 +432,56 @@ class BravoSessionManager:
         return True
 
     def navigate_venue(self, slug):
-        """Navigate to a venue page, auto-reconnecting on session death."""
-        try:
-            self.page.goto(BRAVO_VENUE_URL.format(slug=slug))
-            self.page.wait_for_load_state('networkidle', timeout=VENUE_TIMEOUT)
+        """Navigate to a venue page, auto-reconnecting on session death.
+        Includes single retry for transient timeouts."""
+        for attempt in range(1 + VENUE_RETRY_COUNT):
+            try:
+                self.page.goto(BRAVO_VENUE_URL.format(slug=slug), timeout=VENUE_TIMEOUT, wait_until='load')
 
-            content = self.page.content()
+                content = self.page.content()
 
-            # Check if we got redirected to login (session expired)
-            if 'name="Email"' in content and 'loginmodal' in content.lower():
-                log.warning(f'  ⚠️  Session expired during scrape, re-authenticating...')
-                if self._login():
-                    # Retry the venue
-                    self.page.goto(BRAVO_VENUE_URL.format(slug=slug))
-                    self.page.wait_for_load_state('networkidle', timeout=VENUE_TIMEOUT)
-                    content = self.page.content()
-                else:
+                # Check if we got redirected to login (session expired)
+                if 'name="Email"' in content and 'loginmodal' in content.lower():
+                    log.warning(f'  ⚠️  Session expired during scrape, re-authenticating...')
+                    if self._login():
+                        # Retry the venue
+                        self.page.goto(BRAVO_VENUE_URL.format(slug=slug), timeout=VENUE_TIMEOUT, wait_until='load')
+                        content = self.page.content()
+                    else:
+                        return None
+
+                # Check for CF challenge
+                if 'Just a moment' in content:
+                    log.warning(f'  ⚠️  {ERROR_VENUE_403}: CF challenge on {slug}')
                     return None
 
-            # Check for CF challenge
-            if 'Just a moment' in content:
-                log.warning(f'  ⚠️  {ERROR_VENUE_403}: CF challenge on {slug}')
+                # Success — reset failure counter
+                self.consecutive_nav_failures = 0
+                return content
+
+            except Exception as e:
+                err_msg = str(e)
+
+                # CRASH RECOVERY: Detect dead browser context
+                if 'has been closed' in err_msg or 'Target page' in err_msg:
+                    log.warning(f'  🔴 Browser context dead — marking for reconnection')
+                    self._session_dead = True
+                    self.consecutive_nav_failures += 1
+                    return None
+
+                # Retry on timeout (transient network issue)
+                if attempt < VENUE_RETRY_COUNT and 'Timeout' in err_msg:
+                    log.info(f'  🔄 Retry {attempt + 1} for {slug} (timeout)')
+                    time.sleep(1)
+                    continue
+
+                self.consecutive_nav_failures += 1
+                if 'Timeout' in err_msg and self.consecutive_nav_failures >= CIRCUIT_BREAKER_THRESHOLD:
+                    log.warning(f'  🔴 {self.consecutive_nav_failures} consecutive timeouts — browser is zombie, marking dead')
+                    self._session_dead = True
+
+                log.warning(f'  ❌ Navigate error on {slug}: {e}')
                 return None
-
-            # Success — reset failure counter
-            self.consecutive_nav_failures = 0
-            return content
-
-        except Exception as e:
-            err_msg = str(e)
-            self.consecutive_nav_failures += 1
-
-            # CRASH RECOVERY: Detect dead browser context OR persistent timeouts
-            if 'has been closed' in err_msg or 'Target page' in err_msg:
-                log.warning(f'  🔴 Browser context dead — marking for reconnection')
-                self._session_dead = True
-            elif 'Timeout' in err_msg and self.consecutive_nav_failures >= CIRCUIT_BREAKER_THRESHOLD:
-                log.warning(f'  🔴 {self.consecutive_nav_failures} consecutive timeouts — browser is zombie, marking dead')
-                self._session_dead = True
-
-            log.warning(f'  ❌ Navigate error on {slug}: {e}')
-            return None
 
     def disconnect(self):
         """Safely close the session."""
@@ -491,6 +512,10 @@ def run_scrape_cycle(mgr):
     """Run one full scrape cycle using the persistent session."""
     batch_id = str(uuid.uuid4())
     cycle_start = datetime.now(timezone.utc)
+
+    # Rotate log file handler if day changed
+    _maybe_rotate_log()
+
     log.info(f'=== SCRAPE CYCLE #{mgr.total_cycles + 1} | Batch: {batch_id[:8]} ===')
 
     # Ensure connected
@@ -649,6 +674,26 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
+
+# ============================================================
+# LOG ROTATION HELPER
+# ============================================================
+_last_log_date = datetime.now().strftime('%Y%m%d')
+
+def _maybe_rotate_log():
+    """Rotate log file handler when date changes (midnight crossing)."""
+    global _last_log_date
+    today = datetime.now().strftime('%Y%m%d')
+    if today != _last_log_date:
+        _last_log_date = today
+        new_path = LOG_DIR / f'daemon_{today}.log'
+        root_logger = logging.getLogger()
+        for h in root_logger.handlers[:]:
+            if isinstance(h, logging.FileHandler) and 'daemon_' in str(h.baseFilename):
+                root_logger.removeHandler(h)
+                h.close()
+        root_logger.addHandler(logging.FileHandler(new_path))
+        log.info(f'📅 Rotated log file to {new_path}')
 
 def main():
     log.info('=' * 60)

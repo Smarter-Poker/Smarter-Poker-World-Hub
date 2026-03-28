@@ -1,0 +1,16 @@
+{
+  "scrape_url": "https://centralillinoischaritablegames.com",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-28T02:07:27.622223+00:00",
+  "scrape_html_hash": "e5dca8a4707353ab02ae7d32c9b7f1a756be34e79010be8304cad03219b1c4df",
+  "scrape_byte_count": 71793,
+  "scrape_batch_id": "91c12ebb-64af-40c2-8fe8-af4bd7d86ba4",
+  "scrape_script": "scripts/charity_poker_expansion.py",
+  "label": "enrich_Central Illinois Charitable Games (CICG Poker)",
+  "extracted_data": {
+    "addr": {},
+    "phone": "(630) 901-9797",
+    "hours": ".jpg);background-color:#ffffff}body #page-container"
+  },
+  "body_preview": "<!DOCTYPE html><html lang=\"en\" class=\"js\"><head>\n\t<meta charset=\"UTF-8\">\n<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n\t<link rel=\"pingback\" href=\"https://centralillinoischaritablegames.com/xmlrpc.php\">\n\n\t<script type=\"text/javascript\">\n\t\tdocument.documentElement.className = 'js';\n\t</script>\n\n\t<script>var et_site_url='https://centralillinoischaritablegames.com';var et_post_id='36';function et_core_page_resource_fallback(a,b){\"undefined\"===typeof b&&(b=a.sheet.cssRules&&0===a.sheet.cssRul"
+}

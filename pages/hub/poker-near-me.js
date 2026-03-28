@@ -3138,22 +3138,22 @@ export default function PokerNearMePage() {
                         }
                     }
 
-                    /* Entity Cards */
+                    /* Entity Cards — v2.1 */
                     .entity-card {
-                        background: linear-gradient(145deg, rgba(15, 23, 42, 0.7), rgba(10, 18, 32, 0.85));
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-radius: 14px;
-                        padding: 18px;
+                        background: linear-gradient(145deg, rgba(15, 23, 42, 0.75), rgba(10, 18, 32, 0.9));
+                        border: 1px solid rgba(255,255,255,0.14);
+                        border-radius: 16px;
+                        padding: 16px 18px;
                         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        backdrop-filter: blur(8px);
-                        -webkit-backdrop-filter: blur(8px);
-                        box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+                        backdrop-filter: blur(10px);
+                        -webkit-backdrop-filter: blur(10px);
+                        box-shadow: 0 2px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04);
                     }
                     .entity-card:hover {
-                        border-color: rgba(212,168,83,0.25);
-                        background: linear-gradient(145deg, rgba(15, 23, 42, 0.85), rgba(10, 18, 32, 0.95));
-                        box-shadow: 0 4px 24px rgba(212,168,83,0.08), 0 2px 12px rgba(0,0,0,0.3);
-                        transform: translateY(-1px);
+                        border-color: rgba(212,168,83,0.3);
+                        background: linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(10, 18, 32, 0.96));
+                        box-shadow: 0 6px 28px rgba(212,168,83,0.1), 0 2px 12px rgba(0,0,0,0.35);
+                        transform: translateY(-2px);
                     }
                     .card-header {
                         display: flex;
@@ -3168,23 +3168,20 @@ export default function PokerNearMePage() {
                         color: #fff;
                     }
 
-                    /* ═══ PREMIUM VENUE CARD STYLES ═══ */
+                    /* ═══ PREMIUM VENUE CARD v2.1 ═══ */
                     .venue-card {
                         position: relative;
                         overflow: hidden;
                     }
-                    .venue-card::before {
-                        content: '';
+                    .venue-accent-line {
                         position: absolute;
-                        top: 0;
-                        left: 0;
-                        right: 0;
+                        top: 0; left: 0; right: 0;
                         height: 3px;
-                        background: linear-gradient(90deg, #d4a853, rgba(212,168,83,0.3), transparent);
-                        opacity: 0;
+                        border-radius: 16px 16px 0 0;
+                        opacity: 0.7;
                         transition: opacity 0.3s;
                     }
-                    .venue-card:hover::before {
+                    .venue-card:hover .venue-accent-line {
                         opacity: 1;
                     }
 
@@ -3220,23 +3217,24 @@ export default function PokerNearMePage() {
                         margin-bottom: 8px;
                     }
 
-                    /* Venue Name */
+                    /* Venue Name — enhanced */
                     .venue-name {
-                        font-size: 17px !important;
-                        font-weight: 700 !important;
+                        font-size: 18px !important;
+                        font-weight: 800 !important;
                         margin: 0 0 6px !important;
-                        color: #fff;
+                        color: #f0f4f8;
                         padding-right: 80px;
                         line-height: 1.3;
+                        letter-spacing: -0.2px;
                     }
 
-                    /* Venue Address */
+                    /* Venue Address — improved contrast */
                     .venue-address {
                         display: flex;
                         align-items: center;
                         gap: 5px;
-                        font-size: 12.5px;
-                        color: rgba(255,255,255,0.45);
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.58);
                         margin: 0 0 10px;
                         line-height: 1.4;
                     }
@@ -3258,37 +3256,53 @@ export default function PokerNearMePage() {
                         font-weight: 500;
                     }
 
-                    /* Trust Score Row */
+                    /* Trust Score Row — v2.1 */
                     .trust-score-row {
                         display: flex;
                         align-items: center;
                         gap: 8px;
-                        padding: 10px 0;
-                        border-top: 1px solid rgba(255,255,255,0.06);
-                        margin-top: 6px;
+                        padding: 10px 0 8px;
+                        border-top: 1px solid rgba(255,255,255,0.07);
+                        margin-top: 4px;
                     }
                     .trust-score-label {
-                        font-size: 11px;
-                        font-weight: 600;
+                        font-size: 11.5px;
+                        font-weight: 700;
                         white-space: nowrap;
                     }
                     .trust-score-bar {
                         flex: 1;
-                        height: 4px;
+                        height: 6px;
                         background: rgba(255,255,255,0.08);
-                        border-radius: 2px;
+                        border-radius: 3px;
                         overflow: hidden;
                     }
                     .trust-score-fill {
                         height: 100%;
-                        border-radius: 2px;
-                        transition: width 0.5s ease;
+                        border-radius: 3px;
+                        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
                     }
                     .trust-score-val {
-                        font-size: 11px;
-                        font-weight: 700;
+                        font-size: 11.5px;
+                        font-weight: 800;
                         white-space: nowrap;
                     }
+                    /* Unified Action Bar v2.1 */
+                    .venue-action-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.07); margin-top: 6px; }
+                    .venue-secondary-actions { display: flex; gap: 6px; }
+                    .venue-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); text-decoration: none; cursor: pointer; transition: all 0.2s; }
+                    .venue-icon-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+                    .venue-primary-actions { display: flex; gap: 6px; flex: 1; justify-content: flex-end; }
+                    .venue-action-pill { display: inline-flex; align-items: center; gap: 4px; padding: 7px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; font-family: inherit; white-space: nowrap; }
+                    .venue-action-pill span { font-size: 11.5px; }
+                    .venue-action-pill.checkin { background: rgba(34,197,94,0.12); color: #4ade80; border-color: rgba(34,197,94,0.25); }
+                    .venue-action-pill.checkin:hover { background: rgba(34,197,94,0.22); box-shadow: 0 0 12px rgba(34,197,94,0.15); }
+                    .venue-action-pill.review { background: rgba(59,130,246,0.12); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
+                    .venue-action-pill.review:hover { background: rgba(59,130,246,0.22); box-shadow: 0 0 12px rgba(59,130,246,0.15); }
+                    .venue-action-pill.details { background: rgba(212,168,83,0.12); color: #d4a853; border-color: rgba(212,168,83,0.25); }
+                    .venue-action-pill.details:hover { background: rgba(212,168,83,0.22); box-shadow: 0 0 12px rgba(212,168,83,0.15); }
+                    .venue-action-row { display: none; }
+                    .venue-quick-actions { display: none; }
 
                     /* Action Buttons Row (Web/Call/Map) */
                     .venue-action-row {
@@ -3619,13 +3633,16 @@ export default function PokerNearMePage() {
                         margin-bottom: 8px;
                     }
                     .mini-badge {
-                        padding: 2px 8px;
-                        border-radius: 4px;
-                        font-size: 10px;
-                        font-weight: 600;
+                        padding: 3px 9px;
+                        border-radius: 5px;
+                        font-size: 11px;
+                        font-weight: 700;
                         text-transform: uppercase;
-                        letter-spacing: 0.3px;
+                        letter-spacing: 0.4px;
                     }
+                    .live-badge { background: rgba(239,68,68,0.18); color: #ef4444; border: 1px solid rgba(239,68,68,0.4); box-shadow: 0 0 8px rgba(239,68,68,0.2); animation: livePulse 2s ease-in-out infinite; }
+                    .checkin-badge { background: rgba(230,81,0,0.15); color: #E65100; border: 1px solid rgba(230,81,0,0.3); cursor: pointer; }
+                    @keyframes livePulse { 0%, 100% { box-shadow: 0 0 8px rgba(239,68,68,0.2); } 50% { box-shadow: 0 0 14px rgba(239,68,68,0.35); } }
                     .featured-badge {
                         background: rgba(212,168,83,0.2);
                         color: #d4a853;
