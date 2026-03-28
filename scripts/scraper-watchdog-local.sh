@@ -17,8 +17,8 @@ LOG_FILE="/Users/smarter.poker/.smarter-poker/logs/scraper-watchdog.log"
 BRAVO_HEARTBEAT="/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/bravo-logs/heartbeat.json"
 PA_HEARTBEAT="/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/data/pokeratlas-logs/heartbeat.json"
 
-BRAVO_PLIST="com.smarter-poker.bravo-live-daemon"
-PA_PLIST="com.smarter-poker.pokeratlas-live-daemon"
+BRAVO_PLIST="com.smarter-poker.bravo-daemon"
+PA_PLIST="com.smarter-poker.pokeratlas-daemon"
 
 # Max heartbeat age in seconds before auto-restart (30 minutes)
 MAX_HEARTBEAT_AGE=1800
