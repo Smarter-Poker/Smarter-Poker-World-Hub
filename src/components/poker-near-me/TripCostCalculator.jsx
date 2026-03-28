@@ -3,6 +3,7 @@
  * Estimate total cost: gas, buy-ins, hotel, meals.
  */
 import React, { useState, useMemo } from 'react';
+import { haversineMiles } from './pnm-utils';
 
 // Tier-based nightly hotel costs
 const CITY_TIER = {
@@ -17,16 +18,7 @@ const MEALS_PER_DAY = 50;
 const PREMIUM_MEAL_MULT = 2.2;
 const AVG_MPG = 28;
 
-// Haversine in miles
-function calcDistance(lat1, lng1, lat2, lng2) {
-    if (!lat1 || !lng1 || !lat2 || !lng2) return 0;
-    const R = 3958.8;
-    const toRad = (d) => (d * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
+// calcDistance is now imported as haversineMiles from ./pnm-utils
 
 export default function TripCostCalculator({ venues = [], userLocation }) {
     const [selectedVenue, setSelectedVenue] = useState(null);
@@ -51,7 +43,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
 
         // Distance & gas
         const distance = userLocation
-            ? calcDistance(userLocation.lat, userLocation.lng, parseFloat(selectedVenue.latitude), parseFloat(selectedVenue.longitude))
+            ? haversineMiles(userLocation.lat, userLocation.lng, parseFloat(selectedVenue.latitude), parseFloat(selectedVenue.longitude))
             : 0;
         const roundTripMiles = distance * 2;
         const gallons = roundTripMiles / AVG_MPG;

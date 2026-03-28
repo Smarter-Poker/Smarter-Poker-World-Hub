@@ -3,6 +3,7 @@
  * Real-time scrolling feed combining live games, check-ins, tournament starts, and promotions.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { haversineMiles } from './pnm-utils';
 
 const FEED_REFRESH_MS = 60000; // 1 minute
 
@@ -71,12 +72,7 @@ export default function NearMeNowFeed({ userLocation, venues = [] }) {
 
     const computeDistance = useCallback((venue) => {
         if (!userLocation || !venue.latitude || !venue.longitude) return null;
-        const R = 3958.8;
-        const toRad = (d) => (d * Math.PI) / 180;
-        const dLat = toRad(parseFloat(venue.latitude) - userLocation.lat);
-        const dLng = toRad(parseFloat(venue.longitude) - userLocation.lng);
-        const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(userLocation.lat)) * Math.cos(toRad(parseFloat(venue.latitude))) * Math.sin(dLng / 2) ** 2;
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return haversineMiles(userLocation.lat, userLocation.lng, parseFloat(venue.latitude), parseFloat(venue.longitude));
     }, [userLocation]);
 
     // Distance filter helper

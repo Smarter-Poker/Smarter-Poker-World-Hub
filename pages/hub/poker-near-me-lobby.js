@@ -1813,7 +1813,8 @@ export default function PokerNearMeLobby() {
           handleToggleFavorite={handleToggleFavorite} 
           checkinCounts={checkinCounts} 
           router={router} 
-          setSelectedVenueForReview={setSelectedVenueForReview} 
+          setSelectedVenueForReview={setSelectedVenueForReview}
+          user={user}
         />;
         break;
 

@@ -472,21 +472,37 @@ export default function LiveGamesFeed({
                             <div style={{ fontSize: 20, fontWeight: 800, color: '#58a6ff' }}>{v.games?.length || 0}</div>
                             <div style={{ fontSize: 9, color: 'rgba(200,214,229,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Games</div>
                         </div>
-                        {/* View Venue Link */}
-                        {v._hasParentVenue && router && (
-                            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
-                                <button 
-                                    onClick={() => router.push(`/hub/venues/${v.id}`)}
-                                    style={{ 
-                                        background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', 
-                                        borderRadius: 8, padding: '6px 12px', color: '#6ee7ef', 
-                                        fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                        display: 'flex', alignItems: 'center', gap: 4,
-                                    }}
-                                >
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
-                                    View
-                                </button>
+                        {/* View Venue + Report Buttons */}
+                        {v._hasParentVenue && (
+                            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                {user && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setReportVenue({ id: v.id, name: v.name, city: v.city, state: v.state }); setReportModalOpen(true); }}
+                                        style={{ 
+                                            background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)', 
+                                            borderRadius: 8, padding: '6px 12px', color: '#d4a853', 
+                                            fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                            display: 'flex', alignItems: 'center', gap: 4,
+                                        }}
+                                    >
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                        Report
+                                    </button>
+                                )}
+                                {router && (
+                                    <button 
+                                        onClick={() => router.push(`/hub/venues/${v.id}`)}
+                                        style={{ 
+                                            background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', 
+                                            borderRadius: 8, padding: '6px 12px', color: '#6ee7ef', 
+                                            fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                            display: 'flex', alignItems: 'center', gap: 4,
+                                        }}
+                                    >
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                                        View
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
@@ -749,6 +765,58 @@ export default function LiveGamesFeed({
                         )
                     )}
                 </>
+            )}
+
+            {/* ─── REPORT GAME MODAL ─── */}
+            <ReportGameModal
+                venue={reportVenue}
+                isOpen={reportModalOpen}
+                onClose={() => { setReportModalOpen(false); setReportVenue(null); }}
+                onSubmit={(game) => {
+                    setReportSuccess(reportVenue?.name || 'Venue');
+                    setTimeout(() => setReportSuccess(null), 4000);
+                    // Force a live data refresh to show the community report
+                    fetchGlobalLiveData(true);
+                }}
+                user={user}
+            />
+
+            {/* ─── REPORT SUCCESS TOAST ─── */}
+            {reportSuccess && (
+                <div style={{
+                    position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+                    background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff',
+                    padding: '12px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700,
+                    boxShadow: '0 8px 32px rgba(34,197,94,0.4)', zIndex: 9999,
+                    animation: 'lgf-fadeInUp 0.3s ease-out',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                    Game reported at {reportSuccess}
+                </div>
+            )}
+
+            {/* ─── FLOATING REPORT BUTTON (authenticated users only) ─── */}
+            {user && !reportModalOpen && (
+                <button
+                    onClick={() => { setReportVenue(null); setReportModalOpen(true); }}
+                    style={{
+                        position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
+                        width: 52, height: 52, borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #d4a853, #b8860b)',
+                        border: '2px solid rgba(255,255,255,0.2)',
+                        boxShadow: '0 6px 24px rgba(212,168,83,0.5)',
+                        color: '#000', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'transform 0.2s, box-shadow 0.2s',
+                    }}
+                    title="Report a live game"
+                >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                </button>
             )}
 
             {/* ─── SCOPED CSS ─── */}
