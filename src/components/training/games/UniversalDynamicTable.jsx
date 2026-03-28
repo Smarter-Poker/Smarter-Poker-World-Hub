@@ -3284,6 +3284,9 @@ const styles = {
         boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
         margin: '0 auto',
         flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
     },
 
     seatsContainer: {
@@ -3303,8 +3306,10 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 0,
         pointerEvents: 'auto',
+        textAlign: 'center',
     },
 
     // GTO Wizard-style position circle indicator (no avatar images)
@@ -3431,6 +3436,8 @@ const styles = {
         left: '50%',
         transform: 'translate(-50%, -50%)',
         display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         gap: 5,
         zIndex: 3,
     },
@@ -3456,10 +3463,13 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: 2,
         background: 'transparent',
         padding: 0,
         border: 'none',
+        textAlign: 'center',
+        whiteSpace: 'nowrap',
     },
 
     chipIcon: {
@@ -3469,6 +3479,7 @@ const styles = {
     // GAP-2: SPR + Pot Odds overlays
     potOverlayRow: {
         display: 'flex',
+        justifyContent: 'center',
         gap: 6,
         marginTop: 2,
     },
