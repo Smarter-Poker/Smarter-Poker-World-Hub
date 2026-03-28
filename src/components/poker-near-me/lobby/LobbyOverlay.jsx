@@ -47,6 +47,7 @@ export default function LobbyOverlay({
   onSearchChange,
   liveData = {},
   gpsActive,
+  gpsLoading,
   onGpsClick,
   citySuggestions = [],
   onCitySelect,
@@ -147,13 +148,21 @@ export default function LobbyOverlay({
             {gpsActive !== undefined && (
               <button
                 type="button"
-                className={`lobby-gps-btn ${gpsActive ? 'active' : ''}`}
+                className={`lobby-gps-btn ${gpsActive ? 'active' : ''} ${gpsLoading ? 'loading' : ''}`}
                 onClick={onGpsClick}
-                aria-label="Use GPS location"
+                disabled={gpsLoading}
+                aria-label={gpsLoading ? 'Locating...' : 'Use GPS location'}
+                style={gpsLoading ? { opacity: 0.6, cursor: 'wait' } : undefined}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                </svg>
+                {gpsLoading ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                  </svg>
+                )}
               </button>
             )}
           </div>

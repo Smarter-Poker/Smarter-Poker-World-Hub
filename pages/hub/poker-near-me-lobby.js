@@ -918,9 +918,13 @@ export default function PokerNearMeLobby() {
 
   // ─── GPS Click handler (2-tier: high accuracy → low accuracy fallback) ───
   const gpsErrorTimeoutRef = useRef(null);
+  const gpsRequestIdRef = useRef(0); // Generation counter to cancel stale GPS callbacks
   const handleGpsClick = useCallback((options = {}) => {
     const { fromModal = false } = options;
     if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
+
+    // Prevent concurrent GPS requests (race condition on rapid clicks)
+    if (gpsLoading) return;
 
     if (gpsActive && !fromModal) {
       setGpsActive(false);
@@ -945,10 +949,12 @@ export default function PokerNearMeLobby() {
 
     setGpsLoading(true);
     setGpsError(null);
+    const requestId = ++gpsRequestIdRef.current;
 
     // ── Tier 1: Try high accuracy (GPS/cellular) — 15s timeout ──
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (gpsRequestIdRef.current !== requestId) return; // Stale callback
         setGpsLoading(false);
         setShowManualLocation(false);
         onGpsSuccess(pos);
@@ -956,6 +962,7 @@ export default function PokerNearMeLobby() {
       (highAccErr) => {
         // ── PERMISSION DENIED (code 1) — no fallback possible ──
         if (highAccErr.code === 1) {
+          if (gpsRequestIdRef.current !== requestId) return; // Stale callback
           setGpsActive(false);
           setGpsLoading(false);
           setGpsError('Location access denied — enable location in your browser settings or set manually');
@@ -971,11 +978,13 @@ export default function PokerNearMeLobby() {
         // High accuracy failed (POSITION_UNAVAILABLE or TIMEOUT) — try without GPS
         navigator.geolocation.getCurrentPosition(
           (pos) => {
+            if (gpsRequestIdRef.current !== requestId) return; // Stale callback
             setGpsLoading(false);
             setShowManualLocation(false);
             onGpsSuccess(pos);
           },
           (lowAccErr) => {
+            if (gpsRequestIdRef.current !== requestId) return; // Stale callback
             setGpsActive(false);
             setGpsLoading(false);
             if (lowAccErr.code === 1) {
@@ -994,7 +1003,7 @@ export default function PokerNearMeLobby() {
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
-  }, [gpsActive, userId, onGpsSuccess]);
+  }, [gpsActive, gpsLoading, userId, onGpsSuccess]);
 
   // ─── Auto-prompt GPS on first visit / silently re-enable if previously accepted ───
   const gpsAutoRef = useRef(false);
@@ -1032,11 +1041,11 @@ export default function PokerNearMeLobby() {
       // Silently refresh GPS in background for accuracy (no error if it fails)
       // Background refresh will override venues only if it succeeds AFTER the saved fetch
       if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        // Tier 1: High accuracy GPS
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             setUserLocation(loc);
-            // Only re-fetch if we got a significantly different position (>0.01 deg ≈ 1km)
             const movedSignificantly = Math.abs(loc.lat - savedLoc.lat) > 0.01 || Math.abs(loc.lng - savedLoc.lng) > 0.01;
             if (movedSignificantly) {
               const freshUrl = `/api/poker/venues?limit=10000&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
@@ -1046,7 +1055,6 @@ export default function PokerNearMeLobby() {
                 setHasMore(newVenues.length >= PAGE_SIZE);
                 setPage(0);
               }).catch(() => {});
-              // Update saved location in Supabase since user moved
               if (userId) {
                 reverseGeocode(loc.lat, loc.lng).then(geo => {
                   if (geo?.city) {
@@ -1062,8 +1070,43 @@ export default function PokerNearMeLobby() {
               }
             }
           },
-          () => { /* silent — saved location is still good */ },
-          { enableHighAccuracy: true, timeout: 8000 }
+          (highAccErr) => {
+            // Permission denied → stop (already have saved location)
+            if (highAccErr.code === 1) return;
+            // Tier 2: Fallback to WiFi/IP-based (works on desktops)
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                setUserLocation(loc);
+                const movedSignificantly = Math.abs(loc.lat - savedLoc.lat) > 0.01 || Math.abs(loc.lng - savedLoc.lng) > 0.01;
+                if (movedSignificantly) {
+                  const freshUrl = `/api/poker/venues?limit=10000&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+                  cachedFetch(freshUrl).then(data => {
+                    const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+                    setVenues(newVenues);
+                    setHasMore(newVenues.length >= PAGE_SIZE);
+                    setPage(0);
+                  }).catch(() => {});
+                  if (userId) {
+                    reverseGeocode(loc.lat, loc.lng).then(geo => {
+                      if (geo?.city) {
+                        showLocationSuccessToast(geo);
+                        updatePokerNearMePreferences(userId, {
+                          locationEnabled: true,
+                          lastLocation: loc,
+                          lastLocationCity: geo.city,
+                          lastLocationState: geo.state || '',
+                        }).catch(() => {});
+                      }
+                    }).catch(() => {});
+                  }
+                }
+              },
+              () => { /* Both tiers failed — saved location is still good */ },
+              { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+            );
+          },
+          { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
         );
       };
       // GPS restore — user must click search to see results
@@ -1099,6 +1142,9 @@ export default function PokerNearMeLobby() {
   // ─── Manual Location Set ───
   const handleManualLocationSet = useCallback(async () => {
     if (!manualCity.trim()) return;
+    // Cancel any pending GPS request to prevent overwriting this manual location
+    setGpsLoading(false);
+    gpsRequestIdRef.current++; // Invalidate any in-flight GPS callbacks
     // Geocode the manual city/state input using Nominatim
     try {
       const query = manualState ? `${manualCity.trim()}, ${manualState}` : manualCity.trim();
@@ -1975,6 +2021,7 @@ export default function PokerNearMeLobby() {
           onSearchChange={handleSearchChange}
           liveData={liveData}
           gpsActive={gpsActive}
+          gpsLoading={gpsLoading}
           onGpsClick={handleGpsClick}
           citySuggestions={citySuggestions}
           onCitySelect={handleCitySelect}
