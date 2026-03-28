@@ -85,38 +85,32 @@ This gate runs unconditionally on every audit. The .gitignore ensures screenshot
 
 ## Screenshot Capture (CLI only — no MCP, no persistent browser)
 
+> **MANDATORY: All screenshots MUST target the production site `https://smarter.poker`.**
+> **NEVER** screenshot `localhost` or any local dev server. See `/browser-testing` workflow.
+
 ```bash
-# Check for running dev server
-DEV_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null || echo "000")
+SCREENSHOT_DIR=".planning/ui-reviews/${PADDED_PHASE}-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$SCREENSHOT_DIR"
 
-if [ "$DEV_STATUS" = "200" ]; then
-  SCREENSHOT_DIR=".planning/ui-reviews/${PADDED_PHASE}-$(date +%Y%m%d-%H%M%S)"
-  mkdir -p "$SCREENSHOT_DIR"
+# Desktop
+npx playwright screenshot https://smarter.poker \
+  "$SCREENSHOT_DIR/desktop.png" \
+  --viewport-size=1440,900 2>/dev/null
 
-  # Desktop
-  npx playwright screenshot http://localhost:3000 \
-    "$SCREENSHOT_DIR/desktop.png" \
-    --viewport-size=1440,900 2>/dev/null
+# Mobile
+npx playwright screenshot https://smarter.poker \
+  "$SCREENSHOT_DIR/mobile.png" \
+  --viewport-size=375,812 2>/dev/null
 
-  # Mobile
-  npx playwright screenshot http://localhost:3000 \
-    "$SCREENSHOT_DIR/mobile.png" \
-    --viewport-size=375,812 2>/dev/null
+# Tablet
+npx playwright screenshot https://smarter.poker \
+  "$SCREENSHOT_DIR/tablet.png" \
+  --viewport-size=768,1024 2>/dev/null
 
-  # Tablet
-  npx playwright screenshot http://localhost:3000 \
-    "$SCREENSHOT_DIR/tablet.png" \
-    --viewport-size=768,1024 2>/dev/null
-
-  echo "Screenshots captured to $SCREENSHOT_DIR"
-else
-  echo "No dev server at localhost:3000 — code-only audit"
-fi
+echo "Screenshots captured to $SCREENSHOT_DIR"
 ```
 
-If dev server not detected: audit runs on code review only (Tailwind class audit, string audit for generic labels, state handling check). Note in output that visual screenshots were not captured.
-
-Try port 3000 first, then 5173 (Vite default), then 8080.
+If the production site is unreachable (unlikely): audit runs on code review only. Note in output that visual screenshots were not captured.
 
 </screenshot_approach>
 

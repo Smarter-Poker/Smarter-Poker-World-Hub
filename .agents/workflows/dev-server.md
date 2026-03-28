@@ -6,6 +6,12 @@ description: How to start, restart, or verify the local dev server
 
 > **CRITICAL**: The dev server runs on port 3000 ONLY. Never start on 3001/3002/etc.
 
+> **WARNING — BUILD VERIFICATION ONLY**
+>
+> The dev server exists ONLY to verify that code compiles and builds without errors.
+> **ALL browser testing and UI verification MUST be done on `https://smarter.poker`** — see `/browser-testing` workflow.
+> **NEVER** open a browser to `localhost:3000` for testing features.
+
 ## Check if the server is already running
 
 // turbo
