@@ -1,0 +1,21 @@
+{
+  "scrape_url": "https://playpokerchicago.com",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-28T02:07:44.987170+00:00",
+  "scrape_html_hash": "a8d8c9b9c6636dcce896d71bf1f9982af258a9ba8eb86777191a2cd4d4d8f698",
+  "scrape_byte_count": 200260,
+  "scrape_batch_id": "91c12ebb-64af-40c2-8fe8-af4bd7d86ba4",
+  "scrape_script": "scripts/charity_poker_expansion.py",
+  "label": "enrich_Play Poker Chicago",
+  "extracted_data": {
+    "addr": {
+      "address": "1101 North Independence Blvd.",
+      "city": "Romeoville",
+      "state": "IL",
+      "zip": "60446"
+    },
+    "phone": "(630) 452-3416",
+    "hours": "mind and look at it from every side"
+  },
+  "body_preview": "<!DOCTYPE html><html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" class=\"pointer skrollr skrollr-desktop\"><head>\n    <style id=\"customRules\"></style><meta charset=\"utf-8\">\n    \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<script type=\"text/javascript\" async=\"\" src=\"https://www.google-analytics.com/analytics.js\"></script><script type=\"text/javascript\" async=\"\" src=\"https://www.googletagmanager.com/gtag/js?id=G-VB8B1MX24H&amp;cx=c&amp;gtm=4e63q0h2\"></script><script async=\"\" src=\"//d32hwlnfiv2gyn.cloudfr"
+}

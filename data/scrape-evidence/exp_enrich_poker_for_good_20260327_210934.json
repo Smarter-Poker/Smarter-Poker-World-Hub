@@ -1,0 +1,16 @@
+{
+  "scrape_url": "https://pokerforgood.org",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-28T02:09:34.105221+00:00",
+  "scrape_html_hash": "a18aa4e43dc1026d2e1291bb748ec666858a3b5c05398bff647dbee9f1c7ffed",
+  "scrape_byte_count": 159532,
+  "scrape_batch_id": "91c12ebb-64af-40c2-8fe8-af4bd7d86ba4",
+  "scrape_script": "scripts/charity_poker_expansion.py",
+  "label": "enrich_Poker For Good",
+  "extracted_data": {
+    "addr": {},
+    "phone": null,
+    "hours": "type\");font-weight:300;font-style:normal;font-stretch:normal;font-display:auto;}@font-face{font-family:proxima-nova;src:url(https://use"
+  },
+  "body_preview": "<!DOCTYPE html><html xmlns:og=\"http://opengraphprotocol.org/schema/\" xmlns:fb=\"http://www.facebook.com/2008/fbml\" lang=\"en-US\" class=\"yui3-js-enabled js flexbox canvas canvastext webgl no-touch hashchange history draganddrop rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms no-csstransforms3d csstransitions video audio svg inlinesvg svgclippaths wf-proximasoft-n4-active wf-proximasoft-n7-a"
+}

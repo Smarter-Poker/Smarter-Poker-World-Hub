@@ -1,0 +1,16 @@
+{
+  "scrape_url": "https://highstaxpoker.net",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-28T02:08:34.150133+00:00",
+  "scrape_html_hash": "19b87eaaa667e654ba25b73d5b11f0abe419cb0f822d83e9a2d6916c4aeed34b",
+  "scrape_byte_count": 34504,
+  "scrape_batch_id": "91c12ebb-64af-40c2-8fe8-af4bd7d86ba4",
+  "scrape_script": "scripts/charity_poker_expansion.py",
+  "label": "enrich_High Stax Poker",
+  "extracted_data": {
+    "addr": {},
+    "phone": null,
+    "hours": null
+  },
+  "body_preview": "<!DOCTYPE html><html lang=\"en-US\" class=\"dark-mode\"><head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  \n  <title>High Stax Poker</title>\n  <meta name=\"apple-mobile-web-app-title\" content=\"High Stax\">\n\n  <!-- SEO meta tags -->\n  <meta name=\"description\" content=\"High Stax Poker is a premier bar poker league hosting nightly poker tournaments across venues in Florida, Texas, and North Carolina. Join us for exciting poker games and make friends"
+}

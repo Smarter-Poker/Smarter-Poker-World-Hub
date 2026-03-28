@@ -1,0 +1,16 @@
+{
+  "scrape_url": "https://evloscharitypoker.com",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-28T02:09:26.193048+00:00",
+  "scrape_html_hash": "785320cd5772822a001fd8e893223bd1b14df1188a7ff065922630a743fb6a41",
+  "scrape_byte_count": 203343,
+  "scrape_batch_id": "91c12ebb-64af-40c2-8fe8-af4bd7d86ba4",
+  "scrape_script": "scripts/charity_poker_expansion.py",
+  "label": "enrich_Evlos Charity Poker",
+  "extracted_data": {
+    "addr": {},
+    "phone": null,
+    "hours": "ingHours\":\"\",\"@context\":\"http://schema"
+  },
+  "body_preview": "<!DOCTYPE html><html xmlns:og=\"http://opengraphprotocol.org/schema/\" xmlns:fb=\"http://www.facebook.com/2008/fbml\" lang=\"en-US\" class=\"yui3-js-enabled js flexbox canvas canvastext webgl no-touch hashchange history draganddrop rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms no-csstransforms3d csstransitions video audio svg inlinesvg svgclippaths\" id=\"yui_3_17_2_1_1774663764471_100\" style=\""
+}

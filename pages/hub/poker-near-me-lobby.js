@@ -454,6 +454,7 @@ export default function PokerNearMeLobby() {
   const [gpsActive, setGpsActive] = useState(false);
   const [locationToast, setLocationToast] = useState(null); // { city, state } for success toast
   const [showManualLocation, setShowManualLocation] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
   const [manualCity, setManualCity] = useState('');
   const [manualState, setManualState] = useState('');
   const [locationCity, setLocationCity] = useState('');
@@ -915,13 +916,15 @@ export default function PokerNearMeLobby() {
     // GPS updates location + venues silently — user must click search to see results
   }, [reverseGeocode, showLocationSuccessToast, userId]);
 
-  // ─── GPS Click handler ───
+  // ─── GPS Click handler (2-tier: high accuracy → low accuracy fallback) ───
   const gpsErrorTimeoutRef = useRef(null);
-  const handleGpsClick = useCallback(() => {
+  const handleGpsClick = useCallback((options = {}) => {
+    const { fromModal = false } = options;
     if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
 
-    if (gpsActive) {
+    if (gpsActive && !fromModal) {
       setGpsActive(false);
+      setGpsLoading(false);
       setUserLocation(null);
       setLocationToast(null);
       setLocationCity('');
@@ -934,28 +937,62 @@ export default function PokerNearMeLobby() {
     }
     if (!navigator.geolocation) {
       setGpsError('GPS not supported on this device');
+      setGpsLoading(false);
       gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
+      if (!fromModal) setShowManualLocation(true);
       return;
     }
+
+    setGpsLoading(true);
+    setGpsError(null);
+
+    // ── Tier 1: Try high accuracy (GPS/cellular) — 15s timeout ──
     navigator.geolocation.getCurrentPosition(
-      (pos) => onGpsSuccess(pos),
-      (err) => {
-        setGpsActive(false);
-        if (err.code === 1) {
-          // User denied → show manual location setter
-          setGpsError('Location access denied — set your location manually');
-          gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 4000);
-          setShowManualLocation(true);
-        } else {
-          setGpsError('Could not get location — try setting it manually');
-          gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
-          setShowManualLocation(true);
-        }
-        if (userId) {
-          updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
-        }
+      (pos) => {
+        setGpsLoading(false);
+        setShowManualLocation(false);
+        onGpsSuccess(pos);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      (highAccErr) => {
+        // ── PERMISSION DENIED (code 1) — no fallback possible ──
+        if (highAccErr.code === 1) {
+          setGpsActive(false);
+          setGpsLoading(false);
+          setGpsError('Location access denied — enable location in your browser settings or set manually');
+          gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 5000);
+          setShowManualLocation(true);
+          if (userId) {
+            updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
+          }
+          return;
+        }
+
+        // ── Tier 2: Fallback to low accuracy (WiFi/IP-based) — works on desktops ──
+        // High accuracy failed (POSITION_UNAVAILABLE or TIMEOUT) — try without GPS
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setGpsLoading(false);
+            setShowManualLocation(false);
+            onGpsSuccess(pos);
+          },
+          (lowAccErr) => {
+            setGpsActive(false);
+            setGpsLoading(false);
+            if (lowAccErr.code === 1) {
+              setGpsError('Location access denied — enable location in your browser settings or set manually');
+            } else {
+              setGpsError('Could not determine location — set your location manually below');
+            }
+            gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 5000);
+            setShowManualLocation(true);
+            if (userId) {
+              updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
+            }
+          },
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
   }, [gpsActive, userId, onGpsSuccess]);
 
@@ -1231,10 +1268,14 @@ export default function PokerNearMeLobby() {
             <div style={{ background: 'rgba(13,17,23,0.95)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
               {/* GPS + Distance */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
-                <button onClick={handleGpsClick}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : '1px solid rgba(88,166,255,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : 'rgba(88,166,255,0.08)', color: userLocation ? '#3fb950' : '#58a6ff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  {userLocation ? 'GPS Active' : 'Enable GPS'}
+                <button onClick={handleGpsClick} disabled={gpsLoading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : gpsLoading ? '1px solid rgba(255,213,0,0.4)' : '1px solid rgba(88,166,255,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : gpsLoading ? 'rgba(255,213,0,0.1)' : 'rgba(88,166,255,0.08)', color: userLocation ? '#3fb950' : gpsLoading ? '#ffd500' : '#58a6ff', fontSize: 13, fontWeight: 700, cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                  {gpsLoading ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" /></svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  )}
+                  {userLocation ? 'GPS Active' : gpsLoading ? 'Locating...' : 'Enable GPS'}
                 </button>
                 <select value={svRadius} onChange={(e) => setFilters(prev => ({ ...prev, svRadius: e.target.value }))}
                   style={{ background: 'rgba(13,17,23,0.9)', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
@@ -2107,19 +2148,39 @@ export default function PokerNearMeLobby() {
               {/* Body */}
               <div style={{ padding: '20px 24px' }}>
                 {/* Try GPS Again button */}
-                <button onClick={() => { setShowManualLocation(false); handleGpsClick(); }}
+                <button onClick={() => handleGpsClick({ fromModal: true })}
+                  disabled={gpsLoading}
                   style={{
                     width: '100%', padding: '12px 0', borderRadius: 12,
-                    border: '1px solid rgba(63,185,80,0.4)', background: 'linear-gradient(135deg, #238636, #196c2e)',
-                    color: '#ffffff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                    boxShadow: '0 4px 16px rgba(35,134,54,0.3)', marginBottom: 16,
+                    border: gpsLoading ? '1px solid rgba(88,166,255,0.4)' : '1px solid rgba(63,185,80,0.4)',
+                    background: gpsLoading ? 'rgba(88,166,255,0.12)' : 'linear-gradient(135deg, #238636, #196c2e)',
+                    color: '#ffffff', fontSize: 14, fontWeight: 700,
+                    cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit',
+                    boxShadow: gpsLoading ? 'none' : '0 4px 16px rgba(35,134,54,0.3)', marginBottom: 16,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    transition: 'all 0.2s',
                   }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                  </svg>
-                  Try GPS Again
+                  {gpsLoading ? (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}>
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" />
+                      </svg>
+                      Locating...
+                    </>
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                      </svg>
+                      Try GPS Again
+                    </>
+                  )}
                 </button>
+                {gpsError && (
+                  <div style={{ padding: '8px 12px', marginBottom: 12, borderRadius: 8, background: 'rgba(248,81,73,0.1)', border: '1px solid rgba(248,81,73,0.3)', color: '#f85149', fontSize: 12, fontWeight: 600, textAlign: 'center' }}>
+                    {gpsError}
+                  </div>
+                )}
 
                 <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(200,214,229,0.35)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '1px' }}>or enter manually</div>
 

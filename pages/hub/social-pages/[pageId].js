@@ -1001,6 +1001,10 @@ export default function SocialPageDetail() {
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const coverInputRef = useRef(null);
     const avatarInputRef = useRef(null);
+    // #9: Milestone confetti state
+    const [showMilestone, setShowMilestone] = useState(null);
+    // #10: Suggested pages
+    const [suggestedSidebarPages, setSuggestedSidebarPages] = useState([]);
     // P10-7: Scroll-to-top
     const [showScrollTop, setShowScrollTop] = useState(false);
 
@@ -1030,6 +1034,24 @@ export default function SocialPageDetail() {
     const isPageOwner = userRole === 'owner';
     const isOwnerOnOwnPage = isPageOwner && !!page;
 
+    // #10: Fetch suggested sidebar pages
+    useEffect(() => {
+        if (!user || !page || isPageOwner) { setSuggestedSidebarPages([]); return; }
+        const fetchSugg = async () => {
+            try {
+                const p = new URLSearchParams({ limit: '5', user_id: user.id });
+                if (page.page_type) p.set('page_type', page.page_type);
+                const res = await fetch(`/api/social/pages?${p}`);
+                const json = await res.json();
+                if (json.success) {
+                    setSuggestedSidebarPages(
+                        (json.data || []).filter(sp => sp.id !== page.id && !sp.is_following).slice(0, 3)
+                    );
+                }
+            } catch {}
+        };
+        fetchSugg();
+    }, [user, page?.id, isPageOwner]);
 
 
     const fetchPage = useCallback(async (signal, { silent = false } = {}) => {
@@ -1435,6 +1457,17 @@ export default function SocialPageDetail() {
             toast.success(newState ? 'Following!' : 'Unfollowed');
             busEmit.dataMutated('social-pages');
             fetchFollowers();
+
+            // #9: Follower milestone toast
+            if (newState && isPageOwner) {
+                const newCount = (page?.follower_count || 0) + 1;
+                const milestones = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
+                const hit = milestones.find(m => newCount === m);
+                if (hit) {
+                    setShowMilestone(hit);
+                    setTimeout(() => setShowMilestone(null), 5000);
+                }
+            }
         } catch (e) {
             console.error("[[pageId].js]", e);
             // Rollback optimistic update
@@ -2060,10 +2093,52 @@ export default function SocialPageDetail() {
                         <div style={{ minWidth: 0 }}>
                             {activeTab === 'posts' && (
                                 <>
+                                    {/* #8: Pinned Posts Highlight Strip */}
+                                    {(() => {
+                                        const pinnedPosts = posts.filter(p => p.is_pinned);
+                                        if (pinnedPosts.length === 0) return null;
+                                        return (
+                                            <div style={{ marginBottom: 14 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F5A623" strokeWidth="2">
+                                                        <path d="M12 17v5" /><path d="M9 10.76a2 2 0 01-1 1.73V15h6v-2.51a2 2 0 01-1-1.73V4a2 2 0 00-4 0v6.76z" />
+                                                    </svg>
+                                                    <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Pinned</span>
+                                                </div>
+                                                <div style={{
+                                                    display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6,
+                                                    WebkitOverflowScrolling: 'touch',
+                                                }}>
+                                                    {pinnedPosts.map(pp => (
+                                                        <div key={pp.id} onClick={() => {
+                                                            const el = document.getElementById(`post-${pp.id}`);
+                                                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                        }} style={{
+                                                            flexShrink: 0, width: 220, padding: '10px 12px',
+                                                            background: '#FFFBF0', borderRadius: 10,
+                                                            border: '1px solid #F5D78E', cursor: 'pointer',
+                                                            transition: 'transform 0.15s',
+                                                        }}
+                                                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                                                        onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                                                        >
+                                                            <div style={{ fontSize: 12, fontWeight: 600, color: C.text, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}>
+                                                                {pp.content || 'Pinned post'}
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: 10, marginTop: 6, fontSize: 11, color: C.textSec }}>
+                                                                <span>{pp.like_count || 0} likes</span>
+                                                                <span>{pp.comment_count || 0} comments</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                     {/* Create Post */}
                                     {user && (isFollowing || userRole === 'owner') && (
                                         <div style={{ paddingBottom: 16 }}>
-                                            <SharedPostCreator 
+                                            <SharedPostCreator
                                                 user={user}
                                                 authorOverride={isOwnerOnOwnPage ? {
                                                     id: page.id,
@@ -3002,6 +3077,140 @@ export default function SocialPageDetail() {
                                 })()}
                             </div>
 
+                            {/* #11: OG Share Card Preview */}
+                            <div style={{
+                                background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16, marginBottom: 12,
+                            }}>
+                                <h3 style={{ fontSize: 13, fontWeight: 700, color: C.textSec, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Share Preview</h3>
+                                <div style={{
+                                    borderRadius: 10, border: `1px solid ${C.border}`, overflow: 'hidden',
+                                    background: '#fafafa',
+                                }}>
+                                    <div style={{
+                                        height: 100,
+                                        background: page.cover_url
+                                            ? `url(${page.cover_url}) center/cover`
+                                            : `linear-gradient(135deg, ${C.blue}, #8b5cf6)`,
+                                    }} />
+                                    <div style={{ padding: '10px 12px' }}>
+                                        <div style={{ fontSize: 10, fontWeight: 600, color: C.textSec, marginBottom: 2, textTransform: 'uppercase' }}>smarter.poker</div>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>{page.name}</div>
+                                        <div style={{ fontSize: 11, color: C.textSec, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                            {page.description || 'A social page on Smarter.Poker'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <p style={{ fontSize: 10, color: C.textSec, margin: '6px 0 0', textAlign: 'center' }}>This is how your page looks when shared</p>
+                            </div>
+
+                            {/* #12: Page Insights Widget (Owner-Only) */}
+                            {isPageOwner && posts.length > 0 && (
+                                <div style={{
+                                    background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16, marginBottom: 12,
+                                }}>
+                                    <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2">
+                                            <path d="M21 12V7H5a2 2 0 010-4h14v4" /><path d="M3 5v14a2 2 0 002 2h16v-5" />
+                                            <path d="M18 12a2 2 0 000 4h4v-4h-4z" />
+                                        </svg>
+                                        Page Insights
+                                    </h3>
+                                    {/* 7-day post sparkline */}
+                                    {(() => {
+                                        const now = Date.now();
+                                        const days = Array.from({ length: 7 }, (_, i) => {
+                                            const dayStart = new Date(now - (6 - i) * 86400000);
+                                            dayStart.setHours(0, 0, 0, 0);
+                                            const dayEnd = new Date(dayStart.getTime() + 86400000);
+                                            return posts.filter(p => {
+                                                const t = new Date(p.created_at).getTime();
+                                                return t >= dayStart.getTime() && t < dayEnd.getTime();
+                                            }).length;
+                                        });
+                                        const max = Math.max(...days, 1);
+                                        const h = 40;
+                                        const w = 200;
+                                        const points = days.map((v, i) => `${(i / 6) * w},${h - (v / max) * h}`).join(' ');
+                                        return (
+                                            <div style={{ marginBottom: 10 }}>
+                                                <div style={{ fontSize: 11, color: C.textSec, fontWeight: 600, marginBottom: 4 }}>Post Activity (7 days)</div>
+                                                <svg width={w} height={h + 4} viewBox={`0 0 ${w} ${h + 4}`}>
+                                                    <polyline points={points} fill="none" stroke={C.blue} strokeWidth="2" strokeLinejoin="round" />
+                                                    {days.map((v, i) => (
+                                                        <circle key={i} cx={(i / 6) * w} cy={h - (v / max) * h} r="3" fill={C.blue} />
+                                                    ))}
+                                                </svg>
+                                            </div>
+                                        );
+                                    })()}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text }}>
+                                            <span>Total Followers</span>
+                                            <span style={{ fontWeight: 700 }}>{page.follower_count || 0}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text }}>
+                                            <span>Total Posts</span>
+                                            <span style={{ fontWeight: 700 }}>{posts.length}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text }}>
+                                            <span>Engagement Rate</span>
+                                            <span style={{ fontWeight: 700, color: C.blue }}>
+                                                {posts.length > 0
+                                                    ? `${((posts.reduce((s, p) => s + (p.like_count || 0) + (p.comment_count || 0), 0) / posts.length / Math.max(page.follower_count || 1, 1)) * 100).toFixed(1)}%`
+                                                    : '0%'}
+                                            </span>
+                                        </div>
+                                        {(() => {
+                                            const topPost = [...posts].sort((a, b) => ((b.like_count || 0) + (b.comment_count || 0)) - ((a.like_count || 0) + (a.comment_count || 0)))[0];
+                                            if (!topPost) return null;
+                                            return (
+                                                <div style={{ marginTop: 6, padding: '8px 10px', background: C.bg, borderRadius: 8 }}>
+                                                    <div style={{ fontSize: 10, fontWeight: 700, color: C.textSec, marginBottom: 4, textTransform: 'uppercase' }}>Top Post</div>
+                                                    <div style={{ fontSize: 12, color: C.text, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                        {topPost.content || 'Media post'}
+                                                    </div>
+                                                    <div style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>
+                                                        {topPost.like_count || 0} likes · {topPost.comment_count || 0} comments
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* #10: Suggested Pages */}
+                            {user && !isPageOwner && suggestedSidebarPages.length > 0 && (
+                                <div style={{
+                                    background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 16, marginBottom: 12,
+                                }}>
+                                    <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 10px' }}>Suggested Pages</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        {suggestedSidebarPages.map(sp => (
+                                            <div key={sp.id} onClick={() => window.location.href = `/hub/social-pages/${sp.slug || sp.id}`} style={{
+                                                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                                                borderRadius: 8, background: C.bg, cursor: 'pointer',
+                                                transition: 'background 0.15s',
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.background = '#E7F3FF'}
+                                            onMouseLeave={e => e.currentTarget.style.background = C.bg}
+                                            >
+                                                <div style={{
+                                                    width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                                                    background: sp.avatar_url ? `url(${sp.avatar_url}) center/cover` : C.blue,
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    color: '#fff', fontWeight: 700, fontSize: 14,
+                                                }}>{!sp.avatar_url && (sp.name || '?')[0].toUpperCase()}</div>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sp.name}</div>
+                                                    <div style={{ fontSize: 11, color: C.textSec }}>{sp.follower_count || 0} followers</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Invite Friends Card */}
                             {user && (
                                 <div style={{
@@ -3379,6 +3588,8 @@ export default function SocialPageDetail() {
                 .shimmer { background: linear-gradient(90deg, #E4E6EB 25%, #F0F2F5 50%, #E4E6EB 75%) !important; background-size: 400px 100%; animation: shimmerAnim 1.2s ease-in-out infinite; }
                 @keyframes sp-toast-in { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
                 @keyframes sp-bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+                @keyframes sp-confetti-fall { 0% { transform: translateY(-20px) rotate(0deg); opacity: 1; } 100% { transform: translateY(60px) rotate(720deg); opacity: 0; } }
+                @keyframes sp-milestone-in { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
                 @media (max-width: 768px) {
                     div[style*="grid-template-columns: 1fr 320px"] {
                         grid-template-columns: 1fr !important;
@@ -3388,6 +3599,38 @@ export default function SocialPageDetail() {
                     }
                 }
             `}</style>
+
+            {/* #9: Milestone Confetti Overlay */}
+            {showMilestone && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 99999, pointerEvents: 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                    {/* Confetti particles */}
+                    {Array.from({ length: 24 }).map((_, i) => (
+                        <div key={i} style={{
+                            position: 'absolute',
+                            top: `${15 + Math.random() * 30}%`,
+                            left: `${10 + Math.random() * 80}%`,
+                            width: 8, height: 8,
+                            borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+                            background: ['#F5A623', '#E74C3C', '#3498DB', '#2ECC71', '#9B59B6', '#E91E63'][i % 6],
+                            animation: `sp-confetti-fall ${1.5 + Math.random()}s ease-out ${Math.random() * 0.5}s forwards`,
+                        }} />
+                    ))}
+                    {/* Milestone card */}
+                    <div style={{
+                        background: '#fff', borderRadius: 20, padding: '24px 36px',
+                        boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
+                        textAlign: 'center', animation: 'sp-milestone-in 0.5s ease-out',
+                        border: '3px solid #F5A623',
+                    }}>
+                        <div style={{ fontSize: 42, marginBottom: 4 }}>🎉</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: '#050505' }}>{showMilestone.toLocaleString()} Followers!</div>
+                        <div style={{ fontSize: 14, color: '#65676B', marginTop: 4 }}>Your page hit a milestone!</div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

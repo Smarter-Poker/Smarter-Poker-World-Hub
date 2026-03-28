@@ -1,0 +1,16 @@
+{
+  "scrape_url": "https://lionspoker.org",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-28T02:08:44.931186+00:00",
+  "scrape_html_hash": "d21f622a219beeeef0575318c069c5b714278ac5c8a35d5c82cc311765ddf1fe",
+  "scrape_byte_count": 102513,
+  "scrape_batch_id": "91c12ebb-64af-40c2-8fe8-af4bd7d86ba4",
+  "scrape_script": "scripts/charity_poker_expansion.py",
+  "label": "enrich_Westfield Lions Club Poker",
+  "extracted_data": {
+    "addr": {},
+    "phone": "(317) 804-1875",
+    "hours": null
+  },
+  "body_preview": "<!DOCTYPE html><html lang=\"en-US\" class=\"js\"><head>\n\t<meta charset=\"UTF-8\">\n\t<link rel=\"profile\" href=\"http://gmpg.org/xfn/11\">\n\t<link rel=\"pingback\" href=\"https://lionspoker.org/xmlrpc.php\">\n\n\t<script>(function(html){html.className = html.className.replace(/\\bno-js\\b/,'js')})(document.documentElement);</script>\n<title>Lions Poker \u2013 Lions Poker for Sight</title>\n<meta name=\"robots\" content=\"max-image-preview:large\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><link rel=\"p"
+}

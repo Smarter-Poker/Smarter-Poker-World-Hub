@@ -32,22 +32,52 @@ const TYPE_FILTERS = [
     { key: 'brand', label: 'Brands' },
 ];
 
+// #2: Category filter chips
+const CATEGORIES = [
+    { key: 'all', label: 'All Categories' },
+    { key: 'poker room', label: 'Poker Rooms' },
+    { key: 'home game', label: 'Home Games' },
+    { key: 'study group', label: 'Study Groups' },
+    { key: 'tournament circuit', label: 'Tournaments' },
+    { key: 'coaching', label: 'Coaching' },
+    { key: 'entertainment', label: 'Entertainment' },
+    { key: 'strategy', label: 'Strategy' },
+];
+
 
 
 function PageCard({ page, isFollowing, onFollow, onView, followBusy }) {
     const typeLabel = { venue: 'Venue', group: 'Group', community: 'Community', brand: 'Brand' };
     const typeColor = { venue: C.blue, group: C.green, community: '#8b5cf6', brand: C.orange };
+    // #3: Featured detection
+    const isFeatured = page.metadata?.featured || page.is_verified;
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
-                background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
+                background: C.card, borderRadius: 12,
+                border: isFeatured ? '2px solid #F5A623' : `1px solid ${C.border}`,
                 overflow: 'hidden', cursor: 'pointer',
+                boxShadow: isFeatured ? '0 4px 16px rgba(245,166,35,0.15)' : 'none',
+                position: 'relative',
             }}
             onClick={onView}
         >
+            {/* #3: Featured badge */}
+            {isFeatured && (
+                <div style={{
+                    position: 'absolute', top: 0, right: 0, zIndex: 5,
+                    background: 'linear-gradient(135deg, #F5A623, #FF8C00)', color: '#fff',
+                    padding: '4px 10px 4px 14px', fontSize: 10, fontWeight: 800,
+                    borderBottomLeftRadius: 10, letterSpacing: 0.5,
+                    display: 'flex', alignItems: 'center', gap: 3,
+                }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    FEATURED
+                </div>
+            )}
             {/* Cover */}
             <div style={{
                 height: 100, background: page.cover_url
@@ -64,8 +94,8 @@ function PageCard({ page, isFollowing, onFollow, onView, followBusy }) {
                 </span>
                 {page.is_verified && (
                     <span style={{
-                        position: 'absolute', top: 8, right: 8, padding: '3px 8px',
-                        borderRadius: 4, fontSize: 11, fontWeight: 700,
+                        position: 'absolute', top: 8, right: isFeatured ? 'auto' : 8, left: isFeatured ? 8 : 'auto', top: isFeatured ? 'auto' : 8, bottom: isFeatured ? 8 : 'auto',
+                        padding: '3px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700,
                         background: C.blue, color: '#fff',
                     }}>Verified</span>
                 )}
@@ -167,6 +197,16 @@ export default function SocialPagesHub() {
     const [followingIds, setFollowingIds] = useState(new Set());
     const [followLoading, setFollowLoading] = useState(new Set());
 
+    // #1: Trending pages state
+    const [trendingPages, setTrendingPages] = useState([]);
+    // #2: Category filter
+    const [categoryFilter, setCategoryFilter] = useState(() => {
+        if (typeof window !== 'undefined') return localStorage.getItem('sp_cat_filter') || 'all';
+        return 'all';
+    });
+    // #4: Suggested pages
+    const [suggestedPages, setSuggestedPages] = useState([]);
+
     // #2: Infinite scroll state
     const PAGE_SIZE = 20;
     const [pages, setPages] = useState([]);
@@ -259,7 +299,43 @@ export default function SocialPagesHub() {
         return () => { if (typeof unsub === 'function') unsub(); };
     }, [refreshPages]);
 
+    // #1: Fetch trending pages (top by follower count, separate from main listing)
+    useEffect(() => {
+        if (tab !== 'discover' || search) return;
+        const fetchTrending = async () => {
+            try {
+                const p = new URLSearchParams({ limit: '8', sort: 'popular' });
+                if (user?.id) p.set('user_id', user.id);
+                const res = await fetch(`/api/social/pages?${p}`);
+                const json = await res.json();
+                if (json.success) setTrendingPages((json.data || []).filter(pg => (pg.follower_count || 0) > 0).slice(0, 8));
+            } catch {}
+        };
+        fetchTrending();
+    }, [tab, user, search]);
 
+    // #4: Fetch suggested pages (different category/type from followed)
+    useEffect(() => {
+        if (!user || tab !== 'discover' || search) { setSuggestedPages([]); return; }
+        const fetchSuggested = async () => {
+            try {
+                const p = new URLSearchParams({ limit: '6' });
+                p.set('user_id', user.id);
+                const res = await fetch(`/api/social/pages?${p}`);
+                const json = await res.json();
+                if (json.success) {
+                    const notFollowed = (json.data || []).filter(pg => !followingIds.has(pg.id));
+                    setSuggestedPages(notFollowed.slice(0, 4));
+                }
+            } catch {}
+        };
+        fetchSuggested();
+    }, [user, tab, search, followingIds]);
+
+    // #2: Persist category filter
+    useEffect(() => {
+        if (typeof window !== 'undefined') localStorage.setItem('sp_cat_filter', categoryFilter);
+    }, [categoryFilter]);
 
     useEffect(() => {
         const t = setTimeout(() => setSearch(searchInput), 300);
@@ -391,7 +467,7 @@ export default function SocialPagesHub() {
                 }}>
                     <div style={{
                         maxWidth: 960, margin: '0 auto', padding: '8px 16px',
-                        display: 'flex', gap: 8, overflowX: 'auto',
+                        display: 'flex', gap: 8, overflowX: 'auto', WebkitOverflowScrolling: 'touch',
                     }}>
                         {TYPE_FILTERS.map(f => (
                             <button key={f.key} onClick={() => setTypeFilter(f.key)} aria-label={`Filter by ${f.label}`} style={{
@@ -405,10 +481,85 @@ export default function SocialPagesHub() {
                             </button>
                         ))}
                     </div>
+                    {/* #2: Category Filter Chips */}
+                    <div style={{
+                        maxWidth: 960, margin: '0 auto', padding: '4px 16px 8px',
+                        display: 'flex', gap: 6, overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+                    }}>
+                        {CATEGORIES.map(cat => (
+                            <button key={cat.key} onClick={() => setCategoryFilter(cat.key)} aria-label={`Category: ${cat.label}`} style={{
+                                padding: '4px 12px', borderRadius: 14, fontSize: 12, fontWeight: 500,
+                                cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                                border: categoryFilter === cat.key ? 'none' : `1px solid ${C.border}`,
+                                background: categoryFilter === cat.key ? 'linear-gradient(135deg, #667eea, #764ba2)' : 'transparent',
+                                color: categoryFilter === cat.key ? '#fff' : C.textSec,
+                                transition: 'all 0.2s',
+                            }}>
+                                {cat.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Content */}
                 <div style={{ maxWidth: 960, margin: '0 auto', padding: 16 }}>
+
+                    {/* #1: Trending Pages Banner */}
+                    {tab === 'discover' && !search && trendingPages.length > 0 && (
+                        <div style={{ marginBottom: 20 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A623" strokeWidth="2">
+                                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                                </svg>
+                                <h3 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>Trending Now</h3>
+                            </div>
+                            <div style={{
+                                display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8,
+                                WebkitOverflowScrolling: 'touch',
+                            }}>
+                                {trendingPages.map((tp, idx) => {
+                                    const tColor = { venue: C.blue, group: C.green, community: '#8b5cf6', brand: C.orange };
+                                    return (
+                                        <div key={tp.id} onClick={() => router.push(`/hub/social-pages/${tp.slug || tp.id}`)} style={{
+                                            flexShrink: 0, width: 180, background: C.card, borderRadius: 12,
+                                            border: `1px solid ${C.border}`, overflow: 'hidden', cursor: 'pointer',
+                                            transition: 'transform 0.15s', position: 'relative',
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                        onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                                        >
+                                            <div style={{
+                                                height: 60, background: tp.cover_url
+                                                    ? `url(${tp.cover_url}) center/cover`
+                                                    : `linear-gradient(135deg, ${tColor[tp.page_type] || C.blue}, #8b5cf6)`,
+                                            }} />
+                                            {/* Rank badge */}
+                                            <div style={{
+                                                position: 'absolute', top: 6, left: 6, width: 22, height: 22, borderRadius: '50%',
+                                                background: idx < 3 ? '#F5A623' : 'rgba(0,0,0,0.5)', color: '#fff',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: 11, fontWeight: 800,
+                                            }}>{idx + 1}</div>
+                                            <div style={{ padding: '8px 10px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <div style={{
+                                                        width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                                                        background: tp.avatar_url ? `url(${tp.avatar_url}) center/cover` : tColor[tp.page_type] || C.blue,
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        color: '#fff', fontWeight: 700, fontSize: 12,
+                                                    }}>{!tp.avatar_url && (tp.name || '?')[0].toUpperCase()}</div>
+                                                    <div style={{ minWidth: 0 }}>
+                                                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tp.name}</div>
+                                                        <div style={{ fontSize: 11, color: C.textSec }}>{tp.follower_count || 0} followers</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                     {loading ? (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
                             {[1, 2, 3, 4, 5, 6].map(i => (
@@ -461,7 +612,9 @@ export default function SocialPagesHub() {
                             gap: 12,
                         }}>
                             <AnimatePresence>
-                                {pages.map(page => (
+                                {pages
+                                    .filter(pg => categoryFilter === 'all' || (pg.category || '').toLowerCase() === categoryFilter)
+                                    .map(page => (
                                     <PageCard
                                         key={page.id}
                                         page={page}
@@ -484,6 +637,52 @@ export default function SocialPagesHub() {
                                     Loading more...
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {/* #4: Pages You May Like — Suggestion Rail */}
+                    {tab === 'discover' && !search && !loading && suggestedPages.length > 0 && (
+                        <div style={{
+                            marginTop: 24, background: C.card, borderRadius: 12,
+                            border: `1px solid ${C.border}`, padding: 16,
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2">
+                                    <circle cx="9" cy="7" r="4" /><path d="M2 21v-2a7 7 0 0114 0v2" />
+                                    <line x1="19" y1="8" x2="19" y2="14" /><line x1="16" y1="11" x2="22" y2="11" />
+                                </svg>
+                                <h3 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>Pages You May Like</h3>
+                            </div>
+                            <div style={{
+                                display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4,
+                                WebkitOverflowScrolling: 'touch',
+                            }}>
+                                {suggestedPages.map(sp => {
+                                    const spColor = { venue: C.blue, group: C.green, community: '#8b5cf6', brand: C.orange };
+                                    return (
+                                        <div key={sp.id} style={{
+                                            flexShrink: 0, width: 200, background: C.bg, borderRadius: 10,
+                                            border: `1px solid ${C.border}`, overflow: 'hidden',
+                                        }}>
+                                            <div style={{
+                                                height: 50, background: sp.cover_url
+                                                    ? `url(${sp.cover_url}) center/cover`
+                                                    : `linear-gradient(135deg, ${spColor[sp.page_type] || C.blue}, #8b5cf6)`,
+                                            }} />
+                                            <div style={{ padding: '8px 10px' }}>
+                                                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sp.name}</div>
+                                                <div style={{ fontSize: 11, color: C.textSec, marginBottom: 8 }}>{sp.follower_count || 0} followers</div>
+                                                <button onClick={(e) => { e.stopPropagation(); handleFollow(sp.id); }} style={{
+                                                    width: '100%', padding: '6px 0', borderRadius: 6, border: 'none',
+                                                    background: followingIds.has(sp.id) ? '#E4E6EB' : C.blue,
+                                                    color: followingIds.has(sp.id) ? C.text : '#fff',
+                                                    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                                                }}>{followingIds.has(sp.id) ? 'Following' : 'Follow'}</button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </div>

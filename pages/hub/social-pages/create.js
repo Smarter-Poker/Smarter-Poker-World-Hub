@@ -51,6 +51,11 @@ export default function CreateSocialPage() {
         slug: '',
         avatar_url: '',
         cover_url: '',
+        // #7: Social links
+        social_twitter: '',
+        social_instagram: '',
+        social_discord: '',
+        social_facebook: '',
     });
 
     // #6: Avatar + Cover upload state
@@ -258,6 +263,42 @@ export default function CreateSocialPage() {
                             <div style={{ flex: 1, height: 4, borderRadius: 2, background: step >= 2 ? C.blue : '#E4E6EB', transition: 'background 0.3s' }} />
                         </div>
 
+                        {/* #5: Template Gallery — shown above Step 1 type selector */}
+                        {step === 1 && (
+                            <div style={{ marginBottom: 20, padding: 14, background: '#F8F9FA', borderRadius: 10, border: `1px solid ${C.border}` }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></svg>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Quick Templates</span>
+                                    <span style={{ fontSize: 11, color: C.textSec, marginLeft: 'auto' }}>Pre-fill your page</span>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                    {[
+                                        { type: 'venue', name: 'Poker Room', desc: 'Professional card room venue with schedule & games', cat: 'poker room', icon: '🏢' },
+                                        { type: 'group', name: 'Home Game Group', desc: 'Private home game with regular schedule', cat: 'home game', icon: '🏠' },
+                                        { type: 'group', name: 'Study Group', desc: 'Strategy & hand analysis discussion group', cat: 'study group', icon: '📚' },
+                                        { type: 'community', name: 'Tournament Series', desc: 'Tournament circuit or series community page', cat: 'tournament circuit', icon: '🏆' },
+                                    ].map(tmpl => (
+                                        <button key={tmpl.cat} onClick={() => {
+                                            update('page_type', tmpl.type);
+                                            update('category', tmpl.cat);
+                                            update('description', tmpl.desc);
+                                            setStep(2);
+                                        }} style={{
+                                            padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`,
+                                            background: C.card, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                                            transition: 'border-color 0.2s, box-shadow 0.2s',
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.borderColor = C.blue; e.currentTarget.style.boxShadow = '0 2px 8px rgba(24,119,242,0.1)'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none'; }}
+                                        >
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>{tmpl.icon} {tmpl.name}</div>
+                                            <div style={{ fontSize: 11, color: C.textSec, lineHeight: 1.3 }}>{tmpl.desc}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {error && (
                             <div style={{
                                 padding: '10px 14px', borderRadius: 8, background: '#FEE2E2',
@@ -302,7 +343,9 @@ export default function CreateSocialPage() {
                                 ))}
                             </div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <div style={{ display: 'flex', gap: 16 }}>
+                            {/* Main Form Column */}
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
                                 {/* #6: Avatar + Cover Upload */}
                                 <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 16, alignItems: 'start' }}>
                                     {/* Avatar Upload */}
@@ -607,6 +650,35 @@ export default function CreateSocialPage() {
                                     ))}
                                 </div>
 
+                                {/* #7: Social Links */}
+                                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
+                                    <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" /></svg>
+                                        Social Links
+                                    </h3>
+                                    <p style={{ fontSize: 12, color: C.textSec, margin: '0 0 10px' }}>Connect your social accounts (optional)</p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                        {[
+                                            { key: 'social_twitter', label: 'Twitter/X', placeholder: '@handle', color: '#1DA1F2' },
+                                            { key: 'social_instagram', label: 'Instagram', placeholder: '@username', color: '#E4405F' },
+                                            { key: 'social_discord', label: 'Discord', placeholder: 'Invite link', color: '#5865F2' },
+                                            { key: 'social_facebook', label: 'Facebook', placeholder: 'Page URL', color: '#1877F2' },
+                                        ].map(sl => (
+                                            <div key={sl.key}>
+                                                <label style={{ fontSize: 12, fontWeight: 600, color: sl.color, display: 'block', marginBottom: 4 }}>{sl.label}</label>
+                                                <input type="text" value={form[sl.key]} onChange={e => update(sl.key, e.target.value)}
+                                                    placeholder={sl.placeholder}
+                                                    style={{
+                                                        width: '100%', padding: '8px 10px', borderRadius: 6, fontSize: 13,
+                                                        border: `1px solid ${C.border}`, fontFamily: 'inherit', outline: 'none',
+                                                        background: C.bg, color: C.text, boxSizing: 'border-box',
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 <button onClick={handleSubmit} disabled={submitting || slugStatus === 'checking' || slugStatus === 'taken' || slugStatus === 'invalid'} style={{
                                     width: '100%', padding: '12px 0', borderRadius: 8, border: 'none',
                                     background: (submitting || slugStatus === 'checking' || slugStatus === 'taken' || slugStatus === 'invalid') ? '#CCD0D5' : C.blue, color: '#fff',
@@ -615,6 +687,77 @@ export default function CreateSocialPage() {
                                 }}>
                                     {submitting ? 'Creating...' : 'Create Page'}
                                 </button>
+                            </div>
+
+                            {/* #6: Live Preview Card */}
+                            <div style={{ width: 260, flexShrink: 0, position: 'sticky', top: 80 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: C.textSec, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Live Preview</div>
+                                <div style={{
+                                    background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
+                                    overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+                                }}>
+                                    {/* Preview cover */}
+                                    <div style={{
+                                        height: 80,
+                                        background: coverPreview || form.cover_url
+                                            ? `url(${coverPreview || form.cover_url}) center/cover`
+                                            : `linear-gradient(135deg, ${{ venue: C.blue, group: C.green, community: '#8b5cf6', brand: C.orange }[form.page_type] || C.blue}, #8b5cf6)`,
+                                        position: 'relative',
+                                    }}>
+                                        <span style={{
+                                            position: 'absolute', top: 6, left: 6, padding: '2px 6px',
+                                            borderRadius: 3, fontSize: 10, fontWeight: 700,
+                                            background: 'rgba(0,0,0,0.5)', color: '#fff',
+                                            textTransform: 'uppercase',
+                                        }}>
+                                            {{ venue: 'Venue', group: 'Group', community: 'Community', brand: 'Brand' }[form.page_type] || 'Page'}
+                                        </span>
+                                    </div>
+                                    {/* Preview avatar */}
+                                    <div style={{ padding: '0 10px', marginTop: -18 }}>
+                                        <div style={{
+                                            width: 36, height: 36, borderRadius: 8, border: `2px solid ${C.card}`,
+                                            background: avatarPreview || form.avatar_url
+                                                ? `url(${avatarPreview || form.avatar_url}) center/cover`
+                                                : ({ venue: C.blue, group: C.green, community: '#8b5cf6', brand: C.orange }[form.page_type] || '#CCC'),
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: '#fff', fontWeight: 800, fontSize: 15,
+                                        }}>
+                                            {!(avatarPreview || form.avatar_url) && (form.name || '?')[0].toUpperCase()}
+                                        </div>
+                                    </div>
+                                    {/* Preview info */}
+                                    <div style={{ padding: '6px 10px 12px' }}>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: form.name ? C.text : '#CCC', marginBottom: 2 }}>
+                                            {form.name || 'Page Name'}
+                                        </div>
+                                        <div style={{
+                                            fontSize: 11, color: form.description ? C.textSec : '#DDD',
+                                            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                                        }}>
+                                            {form.description || 'Description will appear here...'}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 8, marginTop: 6, fontSize: 11, color: C.textSec }}>
+                                            <span>0 followers</span>
+                                            <span>0 posts</span>
+                                            {form.location_city && <span>{form.location_city}{form.location_state ? `, ${form.location_state}` : ''}</span>}
+                                        </div>
+                                        {/* Preview social links */}
+                                        {(form.social_twitter || form.social_instagram || form.social_discord || form.social_facebook) && (
+                                            <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                                                {form.social_twitter && <span style={{ padding: '2px 6px', borderRadius: 4, background: '#E8F5FE', color: '#1DA1F2', fontSize: 10, fontWeight: 600 }}>X</span>}
+                                                {form.social_instagram && <span style={{ padding: '2px 6px', borderRadius: 4, background: '#FCE4EC', color: '#E4405F', fontSize: 10, fontWeight: 600 }}>IG</span>}
+                                                {form.social_discord && <span style={{ padding: '2px 6px', borderRadius: 4, background: '#EDE7F6', color: '#5865F2', fontSize: 10, fontWeight: 600 }}>DC</span>}
+                                                {form.social_facebook && <span style={{ padding: '2px 6px', borderRadius: 4, background: '#E3F2FD', color: '#1877F2', fontSize: 10, fontWeight: 600 }}>FB</span>}
+                                            </div>
+                                        )}
+                                        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                                            <div style={{ flex: 1, height: 28, borderRadius: 6, background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 600 }}>Follow</div>
+                                            <div style={{ flex: 1, height: 28, borderRadius: 6, background: '#E4E6EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text, fontSize: 11, fontWeight: 600 }}>View Page</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             </div>
                         )}
                         </>

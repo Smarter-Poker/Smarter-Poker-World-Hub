@@ -1389,15 +1389,6 @@ export default function TrainingPage() {
                                         style={{ width: '100%', height: 100, objectFit: 'cover' }}
                                         onError={(e) => { e.target.style.display = 'none'; }}
                                     />
-                                    <div style={{
-                                        position: 'absolute', inset: 0,
-                                        display: 'flex', flexDirection: 'column',
-                                        alignItems: 'center', justifyContent: 'center',
-                                        background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%)',
-                                    }}>
-                                        <div style={{ fontSize: 9, fontWeight: 700, color: '#4ade80', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>SESSION</div>
-                                        <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>Recap</div>
-                                    </div>
                                 </motion.div>
                                 <motion.div
                                     whileTap={{ scale: 0.97 }}

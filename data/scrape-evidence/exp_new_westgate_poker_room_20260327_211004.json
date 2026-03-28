@@ -1,0 +1,85 @@
+{
+  "scrape_url": "https://www.pokeratlas.com/poker-room/westgate-poker-room-comstock-park",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-28T02:10:04.386770+00:00",
+  "scrape_html_hash": "30019ac9217ed6fa14a8054f714e0c3b18b1755047cd2b1fe56e2ef4875c42d0",
+  "scrape_byte_count": 106248,
+  "scrape_batch_id": "91c12ebb-64af-40c2-8fe8-af4bd7d86ba4",
+  "scrape_script": "scripts/charity_poker_expansion.py",
+  "label": "new_Westgate Poker Room",
+  "extracted_data": {
+    "addr": {
+      "address": "4486 Alpine Ave. NW",
+      "city": "Comstock Park",
+      "state": "MI",
+      "zip": "49321",
+      "phone": "(616) 913-8900",
+      "website": "https://www.pokeratlas.com/poker-room/westgate-poker-room-comstock-park",
+      "latitude": 43.0453925,
+      "longitude": -85.6915243,
+      "name": "Westgate Poker Room"
+    },
+    "phone": "(616) 913-8900",
+    "hours": "-hours-10930')",
+    "page_title": "Westgate Poker Poker Room Comstock Park, MI Tournaments, Reviews,",
+    "tournaments": [
+      {
+        "day_of_week": "Monday",
+        "start_time": "2:00pm",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Monday",
+        "start_time": "2:00am",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "2:00pm",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Tuesday",
+        "start_time": "2:00am",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "2:00pm",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Wednesday",
+        "start_time": "2:00am",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "2:00pm",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      },
+      {
+        "day_of_week": "Thursday",
+        "start_time": "2:00am",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "2:00pm - 2:00am"
+      }
+    ]
+  },
+  "body_preview": "<!DOCTYPE html><html lang=\"en\" style=\"\" class=\" js no-touch csstransforms3d no-overflowscrolling csscalc\"><head><meta http-equiv=\"origin-trial\" content=\"3NNj0GXVktLOmVKwWUDendk4Vq2qgMVDBDX+Sni48ATJl9JBj+zF+9W2HGB3pvt6qowOihTbQgTeBm9SKbdTwYAAABfeyJvcmlnaW4iOiJodHRwczovL3JlY2FwdGNoYS5uZXQ6NDQzIiwiZmVhdHVyZSI6IlRwY2QiLCJleHBpcnkiOjE3MzUzNDM5OTksImlzVGhpcmRQYXJ0eSI6dHJ1ZX0=\"><meta http-equiv=\"origin-trial\" content=\"A6iYDRdcg1LVww9DNZEU+JUx2g1IJxSxk4P6F+LimR0ElFa38FydBqtz/AmsKdGr11ZooRgDPCInHJfGzwtR+"
+}

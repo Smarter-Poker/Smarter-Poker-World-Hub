@@ -1,0 +1,21 @@
+{
+  "scrape_url": "https://acescharitypoker.org",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-28T02:09:17.765597+00:00",
+  "scrape_html_hash": "6d396ba66739e5e0bc0b6cbc9110e5dd1ae5a74d018b5fe5fe728623081ed04a",
+  "scrape_byte_count": 1006011,
+  "scrape_batch_id": "91c12ebb-64af-40c2-8fe8-af4bd7d86ba4",
+  "scrape_script": "scripts/charity_poker_expansion.py",
+  "label": "enrich_ACES Charity Poker \u2014 SportsLine Bar & Grille",
+  "extracted_data": {
+    "addr": {
+      "address": "540 Atlanta Hwy",
+      "city": "Loganville",
+      "state": "GA",
+      "zip": "30052"
+    },
+    "phone": "(470) 640-4309",
+    "hours": ",h=document"
+  },
+  "body_preview": "<!DOCTYPE html><html lang=\"en\" style=\"\"><head>\n  \n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" id=\"wixDesktopViewport\">\n  <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n  <meta name=\"generator\" content=\"Wix.com Website Builder\">\n\n  <link rel=\"icon\" sizes=\"192x192\" href=\"https://static.wixstatic.com/media/a3f81b_3b19914223aa44b0b19a1aef9ebf7362%7Emv2.jpg/v1/fill/w_192%2Ch_192%2Clg_1%2Cusm_0.66_1.00_0.01/a3f81b_3b19914223aa44b0b19a1aef9ebf73"
+}
