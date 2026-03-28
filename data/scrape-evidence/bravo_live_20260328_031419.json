@@ -1,0 +1,11 @@
+{
+  "batch_id": "ea7711b7-80ad-4fb0-ab60-72a050262acd",
+  "scrape_timestamp": "2026-03-28T03:14:19.472245+00:00",
+  "venues_scraped": 156,
+  "venues_with_data": 128,
+  "venues_skipped": 28,
+  "total_records_saved": 484,
+  "errors": 0,
+  "duration_seconds": 959.529874,
+  "session_uptime_minutes": 52.43294206666667
+}

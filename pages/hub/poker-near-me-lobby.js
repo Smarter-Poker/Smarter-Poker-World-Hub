@@ -455,6 +455,10 @@ export default function PokerNearMeLobby() {
   const [locationToast, setLocationToast] = useState(null); // { city, state } for success toast
   const [showManualLocation, setShowManualLocation] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  // ─── Smart Permission State ───
+  const [permissionState, setPermissionState] = useState('prompt'); // 'prompt' | 'denied' | 'granted'
+  const [showEnablePopup, setShowEnablePopup] = useState(false);
+  const [deviceType, setDeviceType] = useState('desktop'); // 'ios' | 'android' | 'desktop'
   const [manualCity, setManualCity] = useState('');
   const [manualState, setManualState] = useState('');
   const [locationCity, setLocationCity] = useState('');
@@ -859,6 +863,40 @@ export default function PokerNearMeLobby() {
     };
   }, []);
 
+  // ─── Smart Permission & Device Detection ───
+  useEffect(() => {
+    // Detect device type for platform-specific instructions
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent || '';
+      if (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+        setDeviceType('ios');
+      } else if (/android/i.test(ua)) {
+        setDeviceType('android');
+      } else {
+        setDeviceType('desktop');
+      }
+    }
+    // Monitor geolocation permission state (Permissions API)
+    if (typeof navigator !== 'undefined' && navigator.permissions) {
+      navigator.permissions.query({ name: 'geolocation' }).then(status => {
+        setPermissionState(status.state); // 'granted' | 'denied' | 'prompt'
+        // Listen for real-time changes (user toggles permission in browser settings)
+        status.onchange = () => {
+          setPermissionState(status.state);
+          if (status.state === 'granted') {
+            // Permission just got enabled — auto-trigger GPS
+            setShowEnablePopup(false);
+            setShowManualLocation(false);
+            handleGpsClick({ fromModal: true });
+          }
+        };
+      }).catch(() => {
+        // Permissions API not supported — fall back to 'prompt'
+        setPermissionState('prompt');
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ─── Reverse Geocode: lat/lng → city, state ───
   const reverseGeocode = useCallback(async (lat, lng) => {
     try {
@@ -960,14 +998,14 @@ export default function PokerNearMeLobby() {
         onGpsSuccess(pos);
       },
       (highAccErr) => {
-        // ── PERMISSION DENIED (code 1) — no fallback possible ──
+        // ── PERMISSION DENIED (code 1) — show smart Enable Location popup ──
         if (highAccErr.code === 1) {
           if (gpsRequestIdRef.current !== requestId) return; // Stale callback
           setGpsActive(false);
           setGpsLoading(false);
-          setGpsError('Location access denied — enable location in your browser settings or set manually');
-          gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 5000);
-          setShowManualLocation(true);
+          setPermissionState('denied');
+          setShowEnablePopup(true);
+          setShowManualLocation(false); // Don't show manual — show smart popup instead
           if (userId) {
             updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
           }
@@ -988,12 +1026,14 @@ export default function PokerNearMeLobby() {
             setGpsActive(false);
             setGpsLoading(false);
             if (lowAccErr.code === 1) {
-              setGpsError('Location access denied — enable location in your browser settings or set manually');
+              setPermissionState('denied');
+              setShowEnablePopup(true);
+              setShowManualLocation(false);
             } else {
               setGpsError('Could not determine location — set your location manually below');
+              gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 5000);
+              setShowManualLocation(true);
             }
-            gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 5000);
-            setShowManualLocation(true);
             if (userId) {
               updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
             }
@@ -1119,9 +1159,10 @@ export default function PokerNearMeLobby() {
       navigator.geolocation.getCurrentPosition(
         (pos) => onGpsSuccess(pos, { silent: false }),
         (firstErr) => {
-          // Permission denied → show manual location setter
+          // Permission denied → show smart Enable Location popup
           if (firstErr.code === 1) {
-            setShowManualLocation(true);
+            setPermissionState('denied');
+            setShowEnablePopup(true);
             return;
           }
           // High accuracy failed → try low accuracy (WiFi/IP-based, works on desktops)

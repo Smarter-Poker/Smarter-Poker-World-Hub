@@ -68,10 +68,13 @@ LOGIN_TIMEOUT = 15000          # 15s for login flow
 RATE_LIMIT_DELAY = 0.5         # 0.5s between venues
 HEALTH_CHECK_INTERVAL = 3      # Health-check every N cycles
 VENUE_RETRY_COUNT = 1          # Retry failed venues once before giving up
-CIRCUIT_BREAKER_THRESHOLD = 10 # Abort cycle + reconnect if this many consecutive venues fail
+CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive venues fail (was 10)
+SESSION_REFRESH_MINUTES = 90   # Proactive session refresh to prevent zombie browsers
 BASE_DIR = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub')
 LOG_DIR = BASE_DIR / 'data' / 'bravo-logs'
 EVIDENCE_DIR = BASE_DIR / 'data' / 'scrape-evidence'
+HEARTBEAT_FILE = LOG_DIR / 'heartbeat.json'
+COOKIE_CACHE_FILE = LOG_DIR / 'cf_cookies.json'
 
 # ============================================================
 # LOGGING
@@ -245,17 +248,106 @@ def extract_live_data(html, venue_slug):
     return result
 
 # ============================================================
+# HEARTBEAT WRITER
+# ============================================================
+def write_heartbeat(status, extra=None):
+    """Write a heartbeat file so external watchdog can detect stale daemons."""
+    try:
+        hb = {
+            'daemon': 'bravo',
+            'status': status,
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'pid': os.getpid(),
+        }
+        if extra:
+            hb.update(extra)
+        with open(HEARTBEAT_FILE, 'w') as f:
+            json.dump(hb, f, indent=2)
+    except Exception:
+        pass  # Never crash on heartbeat write
+
+import os
+
+# ============================================================
+# FALLBACK FETCHER — TIER 2: PlayWrightFetcher
+# ============================================================
+def fallback_fetch_venue_playwright(slug):
+    """Tier 2 fallback: Use Scrapling's PlayWrightFetcher (non-stealth but faster reconnect)."""
+    try:
+        from scrapling.fetchers import PlayWrightFetcher
+        fetcher = PlayWrightFetcher(headless=True)
+        url = BRAVO_VENUE_URL.format(slug=slug)
+        resp = fetcher.fetch(url)
+        if resp and resp.status == 200:
+            html = resp.html_content or ''
+            if not html:
+                html = resp.body.decode('utf-8', errors='ignore') if resp.body else ''
+            if html and 'Current Live Games' in html:
+                log.info(f'  🔄 TIER-2 (PlayWrightFetcher) success for {slug}')
+                return html
+    except Exception as e:
+        log.debug(f'  Tier-2 failed for {slug}: {e}')
+    return None
+
+
+def fallback_fetch_venue_urllib(slug):
+    """Tier 3 fallback: Use raw urllib with cached CF cookies (fastest, least reliable)."""
+    try:
+        if not COOKIE_CACHE_FILE.exists():
+            return None
+        with open(COOKIE_CACHE_FILE) as f:
+            cookies = json.load(f)
+        if not cookies.get('cf_clearance'):
+            return None
+
+        url = BRAVO_VENUE_URL.format(slug=slug)
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Cookie': f'cf_clearance={cookies["cf_clearance"]}; bravo_session={cookies.get("bravo_session", "")}',
+            'Accept': 'text/html,application/xhtml+xml',
+        })
+        resp = urllib.request.urlopen(req, timeout=10)
+        html = resp.read().decode('utf-8', errors='ignore')
+        if 'Current Live Games' in html:
+            log.info(f'  🔄 TIER-3 (urllib+cookies) success for {slug}')
+            return html
+    except Exception as e:
+        log.debug(f'  Tier-3 failed for {slug}: {e}')
+    return None
+
+
+def save_cookies_from_page(page):
+    """Extract CF cookies from browser context for Tier 3 fallback."""
+    try:
+        cookies = page.context.cookies()
+        cache = {}
+        for c in cookies:
+            if c.get('name') in ('cf_clearance', '__cf_bm', 'bravo_session', '_bravo_session'):
+                cache[c['name']] = c['value']
+        if cache:
+            with open(COOKIE_CACHE_FILE, 'w') as f:
+                json.dump(cache, f)
+    except Exception:
+        pass
+
+
+# ============================================================
 # PERSISTENT SESSION MANAGER
 # ============================================================
 class BravoSessionManager:
     """Manages a persistent Scrapling browser session with Bravo.
     
-    The session stays open between 15-minute scrape cycles.
+    Multi-tier fallback strategy:
+      Tier 1: StealthySession (primary — full CF bypass)
+      Tier 2: PlayWrightFetcher (no CF solve, but fast reconnect)
+      Tier 3: Raw urllib with cached CF cookies (fastest, needs valid cookies)
+    
     Only re-authenticates when:
       - Session is first created
       - Health check detects session death
       - Cloudflare rotates its challenge
       - Login token expires (redirected to login page)
+      - Proactive refresh after SESSION_REFRESH_MINUTES
     """
 
     def __init__(self):
@@ -269,6 +361,7 @@ class BravoSessionManager:
         self.consecutive_nav_failures = 0
         self.last_login_time = None
         self._session_dead = False
+        self.tier2_failures = 0  # Track Tier 2 failures to avoid wasting time
 
     def connect(self):
         """Establish a new Scrapling StealthySession and login to Bravo."""
@@ -414,6 +507,13 @@ class BravoSessionManager:
             log.warning(f'🔄 {self.consecutive_nav_failures} consecutive nav failures — forcing reconnect')
             return self.connect()
 
+        # PROACTIVE SESSION REFRESH — prevent zombie browsers
+        if self.last_login_time:
+            age_minutes = (datetime.now(timezone.utc) - self.last_login_time).total_seconds() / 60
+            if age_minutes >= SESSION_REFRESH_MINUTES:
+                log.info(f'🔄 Proactive session refresh (age: {age_minutes:.0f}min >= {SESSION_REFRESH_MINUTES}min)')
+                return self.connect()
+
         # Periodic health check
         self.cycles_since_health_check += 1
         needs_health = self.cycles_since_health_check >= HEALTH_CHECK_INTERVAL
@@ -432,8 +532,13 @@ class BravoSessionManager:
         return True
 
     def navigate_venue(self, slug):
-        """Navigate to a venue page, auto-reconnecting on session death.
-        Includes single retry for transient timeouts."""
+        """Navigate to a venue page with multi-tier fallback.
+        
+        Tier 1: Primary StealthySession page navigation
+        Tier 2: PlayWrightFetcher (independent browser, no CF solve)
+        Tier 3: Raw urllib with cached CF cookies
+        """
+        # === TIER 1: Primary StealthySession ===
         for attempt in range(1 + VENUE_RETRY_COUNT):
             try:
                 self.page.goto(BRAVO_VENUE_URL.format(slug=slug), timeout=VENUE_TIMEOUT, wait_until='load')
@@ -448,15 +553,16 @@ class BravoSessionManager:
                         self.page.goto(BRAVO_VENUE_URL.format(slug=slug), timeout=VENUE_TIMEOUT, wait_until='load')
                         content = self.page.content()
                     else:
-                        return None
+                        break  # Fall through to Tier 2
 
                 # Check for CF challenge
                 if 'Just a moment' in content:
                     log.warning(f'  ⚠️  {ERROR_VENUE_403}: CF challenge on {slug}')
-                    return None
+                    break  # Fall through to Tier 2
 
-                # Success — reset failure counter
+                # Success — reset failure counter, cache cookies for Tier 3
                 self.consecutive_nav_failures = 0
+                save_cookies_from_page(self.page)
                 return content
 
             except Exception as e:
@@ -464,10 +570,10 @@ class BravoSessionManager:
 
                 # CRASH RECOVERY: Detect dead browser context
                 if 'has been closed' in err_msg or 'Target page' in err_msg:
-                    log.warning(f'  🔴 Browser context dead — marking for reconnection')
+                    log.warning(f'  🔴 Browser context dead — trying fallback fetchers')
                     self._session_dead = True
                     self.consecutive_nav_failures += 1
-                    return None
+                    break  # Fall through to Tier 2
 
                 # Retry on timeout (transient network issue)
                 if attempt < VENUE_RETRY_COUNT and 'Timeout' in err_msg:
@@ -480,8 +586,26 @@ class BravoSessionManager:
                     log.warning(f'  🔴 {self.consecutive_nav_failures} consecutive timeouts — browser is zombie, marking dead')
                     self._session_dead = True
 
-                log.warning(f'  ❌ Navigate error on {slug}: {e}')
-                return None
+                log.warning(f'  ❌ Tier-1 navigate error on {slug}: {e}')
+                break  # Fall through to Tier 2
+
+        # === TIER 2: PlayWrightFetcher (independent browser) ===
+        if self.tier2_failures < 5:  # Don't keep trying Tier 2 if it's dead too
+            html = fallback_fetch_venue_playwright(slug)
+            if html:
+                self.consecutive_nav_failures = 0
+                return html
+            else:
+                self.tier2_failures += 1
+
+        # === TIER 3: Raw urllib with cached cookies ===
+        html = fallback_fetch_venue_urllib(slug)
+        if html:
+            self.consecutive_nav_failures = 0
+            return html
+
+        # All tiers failed
+        return None
 
     def disconnect(self):
         """Safely close the session."""
@@ -521,6 +645,7 @@ def run_scrape_cycle(mgr):
     # Ensure connected
     if not mgr.ensure_connected():
         mgr.consecutive_failures += 1
+        write_heartbeat('connect_failed', {'consecutive_failures': mgr.consecutive_failures})
         if mgr.consecutive_failures >= 5:
             log.error(f'🚨 {mgr.consecutive_failures} consecutive failures — sleeping 5min before retry')
             time.sleep(300)
@@ -545,6 +670,7 @@ def run_scrape_cycle(mgr):
         if consecutive_venue_failures >= CIRCUIT_BREAKER_THRESHOLD:
             log.error(f'🔴 CIRCUIT BREAKER: {consecutive_venue_failures} consecutive failures — aborting cycle, forcing reconnect')
             mgr._session_dead = True
+            mgr.tier2_failures = 0  # Reset Tier 2 counter on full reconnect
             break
 
         html = mgr.navigate_venue(slug)
@@ -629,6 +755,7 @@ def run_scrape_cycle(mgr):
             sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.bravo')
 
     # Save evidence
+    duration = (datetime.now(timezone.utc) - cycle_start).total_seconds()
     evidence = {
         'batch_id': batch_id,
         'scrape_timestamp': cycle_start.isoformat(),
@@ -637,7 +764,7 @@ def run_scrape_cycle(mgr):
         'venues_skipped': skipped,
         'total_records_saved': saved,
         'errors': errors,
-        'duration_seconds': (datetime.now(timezone.utc) - cycle_start).total_seconds(),
+        'duration_seconds': duration,
         'session_uptime_minutes': (
             (datetime.now(timezone.utc) - mgr.last_login_time).total_seconds() / 60
             if mgr.last_login_time else 0
@@ -653,9 +780,18 @@ def run_scrape_cycle(mgr):
             'venues': results,
         }, f, indent=2, default=str)
 
-    duration = (datetime.now(timezone.utc) - cycle_start).total_seconds()
     mgr.total_cycles += 1
     mgr.consecutive_failures = 0
+
+    # Write heartbeat for external watchdog
+    write_heartbeat('ok' if saved > 0 else 'empty', {
+        'cycle': mgr.total_cycles,
+        'records_saved': saved,
+        'venues_with_data': len(results),
+        'errors': errors,
+        'duration_seconds': round(duration),
+    })
+
     log.info(
         f'=== CYCLE #{mgr.total_cycles} COMPLETE | {len(results)}/{len(slugs)} venues | '
         f'{saved} records | {duration:.0f}s | Errors: {errors} ==='

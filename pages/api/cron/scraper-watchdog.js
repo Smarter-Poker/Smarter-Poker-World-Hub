@@ -3,23 +3,26 @@
  * Runs every 5 minutes via Vercel Cron.
  * 
  * Checks both Bravo and PokerAtlas scraper data freshness.
- * If data is stale (>30 min) or dead (>60 min), sends:
+ * If data is stale (>45 min) or dead (>90 min), sends:
  *   1. SMS to admin via Twilio
  *   2. Push notification via OneSignal
  * 
- * Rate-limited: only sends ONE alert per scraper per hour
- * to prevent alert fatigue.
+ * ALERT RATE LIMITING:
+ *   - Uses Supabase table for persistent cooldown tracking
+ *     (survives Vercel cold starts, unlike in-memory tracking)
+ *   - Tier 1 (>30 min): Log only, no alert
+ *   - Tier 2 (>45 min): SMS alert, max 1 per hour per source
+ *   - Tier 3 (>90 min): SMS + push every 30 min until resolved
+ *   - Auto-resolves: Sends "all clear" when data becomes fresh again
  */
 import { sendSMS, isTwilioConfigured } from '../../../src/lib/commander/twilio';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const ADMIN_PHONE = '+17086775221';
-const STALE_THRESHOLD_MIN = 45;
-const DEAD_THRESHOLD_MIN = 90;
-const ALERT_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour between alerts per source
-
-// Track last alert time in memory (resets on cold start, but that's fine)
-const lastAlerts = {};
+const STALE_THRESHOLD_MIN = 45;    // Tier 2: SMS alert
+const DEAD_THRESHOLD_MIN = 90;     // Tier 3: Escalated alert
+const TIER2_COOLDOWN_MS = 60 * 60 * 1000;  // 1 hour between Tier 2 alerts
+const TIER3_COOLDOWN_MS = 30 * 60 * 1000;  // 30 min between Tier 3 alerts
 
 let _supabase = null;
 function getSupabase() {
@@ -29,6 +32,52 @@ function getSupabase() {
     _supabase = createClient(url, key);
   }
   return _supabase;
+}
+
+// ============================================================
+// PERSISTENT ALERT STATE (Supabase-backed)
+// ============================================================
+// Uses a simple key-value approach in the scraper_watchdog_state table
+// Falls back to in-memory if table doesn't exist
+
+let alertStateCache = {};
+
+async function getAlertState(supabase, source) {
+  const key = `${source}_last_alert`;
+  
+  // Try Supabase first
+  try {
+    const { data, error } = await supabase
+      .from('scraper_watchdog_state')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle();
+    
+    if (!error && data) {
+      return JSON.parse(data.value);
+    }
+  } catch (e) {
+    // Table might not exist — fall through to in-memory
+  }
+  
+  return alertStateCache[key] || { last_alert_ms: 0, was_alerting: false };
+}
+
+async function setAlertState(supabase, source, state) {
+  const key = `${source}_last_alert`;
+  alertStateCache[key] = state;
+  
+  try {
+    await supabase
+      .from('scraper_watchdog_state')
+      .upsert({
+        key,
+        value: JSON.stringify(state),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'key' });
+  } catch (e) {
+    // Silently fail — in-memory cache is the fallback
+  }
 }
 
 async function sendOneSignalAlert(title, message) {
@@ -59,15 +108,15 @@ async function sendOneSignalAlert(title, message) {
 export default async function handler(req, res) {
   // Verify cron secret (Vercel sends this automatically)
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-    // Allow without secret in dev, but log warning
     if (process.env.NODE_ENV === 'production' && process.env.CRON_SECRET) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
   }
 
   const now = new Date();
+  const nowMs = now.getTime();
   const supabase = getSupabase();
-  const results = { checked_at: now.toISOString(), sources: {}, alerts_sent: [] };
+  const results = { checked_at: now.toISOString(), sources: {}, alerts_sent: [], resolved: [] };
 
   for (const source of ['bravo', 'pokeratlas']) {
     try {
@@ -80,7 +129,7 @@ export default async function handler(req, res) {
 
       if (error || !data || data.length === 0) {
         results.sources[source] = { status: 'NO_DATA', minutes_ago: null };
-        await sendAlert(source, 'NO DATA — scraper may be completely dead', now, results);
+        await sendSmartAlert(supabase, source, 'NO DATA — scraper may be completely dead', 'dead', now, results);
         continue;
       }
 
@@ -90,49 +139,88 @@ export default async function handler(req, res) {
       results.sources[source] = { status: 'ok', minutes_ago: minutesAgo };
 
       if (minutesAgo >= DEAD_THRESHOLD_MIN) {
+        // TIER 3: Dead — escalated alerts, shorter cooldown
         results.sources[source].status = 'DEAD';
-        await sendAlert(source, `DEAD — no data for ${minutesAgo} minutes`, now, results);
+        await sendSmartAlert(supabase, source, `DEAD — no data for ${minutesAgo} minutes`, 'dead', now, results);
       } else if (minutesAgo >= STALE_THRESHOLD_MIN) {
+        // TIER 2: Stale — standard alerts
         results.sources[source].status = 'STALE';
-        await sendAlert(source, `STALE — data is ${minutesAgo} minutes old`, now, results);
+        await sendSmartAlert(supabase, source, `STALE — data is ${minutesAgo} minutes old`, 'stale', now, results);
+      } else {
+        // HEALTHY — check if we need to send "all clear"
+        const alertState = await getAlertState(supabase, source);
+        if (alertState.was_alerting) {
+          await sendRecoveryAlert(supabase, source, minutesAgo, results);
+        }
       }
     } catch (err) {
       results.sources[source] = { status: 'ERROR', error: err.message };
-      await sendAlert(source, `CHECK ERROR: ${err.message}`, now, results);
+      console.error(`Watchdog error for ${source}:`, err.message);
     }
   }
 
   return res.status(200).json(results);
 }
 
-async function sendAlert(source, message, now, results) {
-  const alertKey = `${source}_alert`;
-  const lastAlert = lastAlerts[alertKey] || 0;
+async function sendSmartAlert(supabase, source, message, severity, now, results) {
+  const nowMs = now.getTime();
+  const alertState = await getAlertState(supabase, source);
+  const cooldown = severity === 'dead' ? TIER3_COOLDOWN_MS : TIER2_COOLDOWN_MS;
 
-  // Rate limit: 1 alert per source per hour
-  if (now.getTime() - lastAlert < ALERT_COOLDOWN_MS) {
-    results.alerts_sent.push({ source, message, skipped: 'cooldown' });
+  // Rate limit check
+  if (nowMs - (alertState.last_alert_ms || 0) < cooldown) {
+    const nextIn = Math.round((cooldown - (nowMs - alertState.last_alert_ms)) / 60000);
+    results.alerts_sent.push({ source, message, skipped: `cooldown (${nextIn}min remaining)` });
     return;
   }
 
-  const fullMessage = `🚨 SCRAPER ALERT\n${source.toUpperCase()}: ${message}\nCheck: smarter.poker/api/poker/scraper-health`;
+  const fullMessage = `SCRAPER ALERT\n${source.toUpperCase()}: ${message}\nCheck: smarter.poker/api/poker/scraper-health`;
 
   // SMS via Twilio
   if (isTwilioConfigured()) {
     try {
       await sendSMS(ADMIN_PHONE, fullMessage);
-      results.alerts_sent.push({ source, type: 'sms', sent: true });
+      results.alerts_sent.push({ source, type: 'sms', severity, sent: true });
     } catch (err) {
       results.alerts_sent.push({ source, type: 'sms', error: err.message });
     }
   }
 
-  // Push via OneSignal
-  await sendOneSignalAlert(
-    `Scraper Alert: ${source.toUpperCase()}`,
-    message
-  );
-  results.alerts_sent.push({ source, type: 'push', sent: true });
+  // Push via OneSignal (only for DEAD tier)
+  if (severity === 'dead') {
+    await sendOneSignalAlert(
+      `Scraper Alert: ${source.toUpperCase()}`,
+      message
+    );
+    results.alerts_sent.push({ source, type: 'push', sent: true });
+  }
 
-  lastAlerts[alertKey] = now.getTime();
+  // Persist alert state
+  await setAlertState(supabase, source, {
+    last_alert_ms: nowMs,
+    was_alerting: true,
+    last_severity: severity,
+    last_message: message,
+  });
+}
+
+async function sendRecoveryAlert(supabase, source, minutesAgo, results) {
+  const message = `ALL CLEAR\n${source.toUpperCase()} scraper recovered! Data is now ${minutesAgo} min fresh.`;
+
+  if (isTwilioConfigured()) {
+    try {
+      await sendSMS(ADMIN_PHONE, message);
+      results.resolved.push({ source, type: 'sms', sent: true });
+    } catch (err) {
+      results.resolved.push({ source, type: 'sms', error: err.message });
+    }
+  }
+
+  // Clear alert state
+  await setAlertState(supabase, source, {
+    last_alert_ms: 0,
+    was_alerting: false,
+    last_severity: null,
+    last_message: null,
+  });
 }

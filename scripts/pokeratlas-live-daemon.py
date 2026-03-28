@@ -38,11 +38,13 @@ SUPABASE_KEY = os.environ.get('SUPABASE_KEY',
 SCRAPE_INTERVAL = 900  # 15 minutes (offset 7min from Bravo via launchd start)
 RATE_LIMIT_DELAY = 1.0  # seconds between region page fetches
 MAX_RETRIES = 3
-CIRCUIT_BREAKER_THRESHOLD = 10 # Abort cycle + reconnect if this many consecutive regions fail
+CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive regions fail (was 10)
+SESSION_REFRESH_MINUTES = 90   # Proactive session refresh
 
 # Directories
 LOG_DIR = BASE_DIR / 'data' / 'pokeratlas-logs'
 EVIDENCE_DIR = BASE_DIR / 'data' / 'scrape-evidence'
+HEARTBEAT_FILE = LOG_DIR / 'heartbeat.json'
 
 # ============================================================
 # LOGGING
@@ -136,7 +138,25 @@ def sb_delete(table, query):
 # PokerAtlas organizes data by region (city/state).
 # URL pattern: /poker-cash-games/{region-slug}
 
-PA_REGION_SLUGS = [
+# VALIDATED regions that actually return unique data (not 301 → Las Vegas)
+# These 11 regions are the ONLY ones that contain unique games data.
+# All other slugs redirect to Las Vegas and waste cycle time.
+PA_VALIDATED_REGIONS = [
+    'las-vegas-nevada',
+    'texas',
+    'montana',
+    'portland-oregon',
+    'biloxi-mississippi',
+    'iowa',
+    'atlantic-city-new-jersey',
+    'wisconsin',
+    'laughlin-nevada',
+    'virginia',
+    'georgia',
+]
+
+# Full list for daily discovery pass (to detect new regions)
+PA_ALL_REGION_SLUGS = [
     # High-priority (major poker markets)
     'las-vegas-nevada', 'los-angeles-california', 'south-florida',
     'atlantic-city-new-jersey', 'san-francisco-bay-area-california',
@@ -162,14 +182,32 @@ PA_REGION_SLUGS = [
     'alberta-canada', 'british-columbia-canada', 'ontario-canada',
 ]
 
+# Track last full discovery time
+_last_discovery_date = None
+
 def load_pa_regions():
-    """Always use hardcoded master list as the floor.
+    """Return validated regions for normal scraping.
     
-    Registry file is no longer used for region loading — the hardcoded
-    PA_REGION_SLUGS list covers all 61 US regions + Canada and must
-    never be overridden by a restrictive auto-discovered subset.
+    Only the 11 validated regions are scraped each cycle (~2-3 min).
+    A full discovery pass runs once per day to detect new regions.
     """
-    return PA_REGION_SLUGS
+    global _last_discovery_date
+    today = datetime.now().strftime('%Y%m%d')
+    
+    # Check if we have a cached discovery file with additional regions
+    discovery_file = BASE_DIR / 'data' / 'pokeratlas-discovered-regions.json'
+    extra_regions = []
+    if discovery_file.exists():
+        try:
+            with open(discovery_file) as f:
+                data = json.load(f)
+                extra_regions = data.get('extra_validated', [])
+        except Exception:
+            pass
+    
+    # Merge validated + any discovered extras (dedup)
+    all_valid = list(dict.fromkeys(PA_VALIDATED_REGIONS + extra_regions))
+    return all_valid
 
 # ============================================================
 # DATA EXTRACTION
@@ -311,16 +349,87 @@ def runs_to_tables(runs_text):
         return 1  # Default
 
 
+import os
+
+# ============================================================
+# HEARTBEAT WRITER
+# ============================================================
+def write_heartbeat(status, extra=None):
+    """Write a heartbeat file so external watchdog can detect stale daemons."""
+    try:
+        hb = {
+            'daemon': 'pokeratlas',
+            'status': status,
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'pid': os.getpid(),
+        }
+        if extra:
+            hb.update(extra)
+        with open(HEARTBEAT_FILE, 'w') as f:
+            json.dump(hb, f, indent=2)
+    except Exception:
+        pass
+
+
+# ============================================================
+# FALLBACK FETCHERS
+# ============================================================
+def fallback_fetch_playwright(url, expected_slug=None):
+    """Tier 2 fallback: Use Scrapling's PlayWrightFetcher."""
+    try:
+        from scrapling.fetchers import PlayWrightFetcher
+        fetcher = PlayWrightFetcher(headless=True)
+        resp = fetcher.fetch(url)
+        if resp and resp.status == 200:
+            html = resp.html_content or ''
+            if not html:
+                html = resp.body.decode('utf-8', errors='ignore') if resp.body else ''
+            if html:
+                # Redirect check
+                if expected_slug and expected_slug != 'las-vegas-nevada':
+                    title_match = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
+                    if title_match and 'las vegas' in title_match.group(1).strip().lower():
+                        return 'REDIRECT'
+                if 'cash-games-list-item' in html:
+                    log.info(f'  \U0001f504 TIER-2 (PlayWrightFetcher) success')
+                    return html
+    except Exception as e:
+        log.debug(f'  Tier-2 failed: {e}')
+    return None
+
+
+def fallback_fetch_urllib(url, expected_slug=None):
+    """Tier 3 fallback: Use raw urllib (works when CF isn't blocking)."""
+    try:
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml',
+        })
+        resp = urllib.request.urlopen(req, timeout=15)
+        html = resp.read().decode('utf-8', errors='ignore')
+        # Redirect check
+        if expected_slug and expected_slug != 'las-vegas-nevada':
+            title_match = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
+            if title_match and 'las vegas' in title_match.group(1).strip().lower():
+                return 'REDIRECT'
+        if 'cash-games-list-item' in html:
+            log.info(f'  \U0001f504 TIER-3 (urllib) success')
+            return html
+    except Exception as e:
+        log.debug(f'  Tier-3 failed: {e}')
+    return None
+
+
 # ============================================================
 # PERSISTENT SESSION MANAGER (Scrapling StealthySession)
 # ============================================================
 class PokerAtlasSessionManager:
     """Manages a persistent Scrapling StealthySession.
 
-    Key insight from HTML analysis:
-    - PokerAtlas does NOT require login for cash games data
-    - session.fetch() handles Cloudflare bypass automatically
-    - No need for context.new_page() — fetch() returns parsed HTML
+    Multi-tier fallback strategy:
+      Tier 1: StealthySession.fetch() (primary — full CF bypass)
+      Tier 2: PlayWrightFetcher (no CF solve, but fast reconnect)
+      Tier 3: Raw urllib (fastest, only works when CF isn't blocking)
     """
 
     def __init__(self):
@@ -330,6 +439,7 @@ class PokerAtlasSessionManager:
         self.consecutive_fetch_failures = 0
         self.last_connect_time = None
         self._session_dead = False
+        self.tier2_failures = 0
 
     def connect(self):
         """Establish a new StealthySession."""
@@ -416,6 +526,32 @@ class PokerAtlasSessionManager:
             log.warning(f'  ❌ Fetch error: {e}')
             return None
 
+    def fetch_with_fallback(self, url, expected_slug=None):
+        """Fetch a page with multi-tier fallback.
+        
+        Tier 1: Primary StealthySession
+        Tier 2: PlayWrightFetcher
+        Tier 3: Raw urllib
+        """
+        # === TIER 1 ===
+        result = self.fetch_page(url, expected_slug=expected_slug)
+        if result is not None:
+            return result
+
+        # === TIER 2: PlayWrightFetcher ===
+        if self.tier2_failures < 5:
+            result = fallback_fetch_playwright(url, expected_slug=expected_slug)
+            if result is not None:
+                return result
+            self.tier2_failures += 1
+
+        # === TIER 3: Raw urllib ===
+        result = fallback_fetch_urllib(url, expected_slug=expected_slug)
+        if result is not None:
+            return result
+
+        return None
+
     def ensure_connected(self):
         """Ensure the session is alive. Auto-reconnects on dead browser."""
         if not self.session or self._session_dead:
@@ -426,6 +562,13 @@ class PokerAtlasSessionManager:
         if self.consecutive_fetch_failures >= 3:
             log.warning(f'🔄 {self.consecutive_fetch_failures} consecutive fetch failures — forcing reconnect')
             return self.connect()
+
+        # PROACTIVE SESSION REFRESH
+        if self.last_connect_time:
+            age_minutes = (datetime.now(timezone.utc) - self.last_connect_time).total_seconds() / 60
+            if age_minutes >= SESSION_REFRESH_MINUTES:
+                log.info(f'🔄 Proactive session refresh (age: {age_minutes:.0f}min >= {SESSION_REFRESH_MINUTES}min)')
+                return self.connect()
 
         return True
 
@@ -445,25 +588,51 @@ class PokerAtlasSessionManager:
 # REGION SLUG AUTO-DISCOVERY
 # ============================================================
 def discover_regions(mgr):
-    """Discover new region slugs from PokerAtlas and MERGE with hardcoded list.
+    """Daily discovery pass: scrape ALL regions to detect new data sources.
     
-    IMPORTANT: The hardcoded PA_REGION_SLUGS is the FLOOR — discovery can only
-    ADD new regions, never shrink the list. This prevents PokerAtlas's index page
-    (which only shows ~11 links) from overriding our comprehensive 61-region coverage.
+    Runs once per day. Saves any newly discovered valid regions to a cache file
+    so they get included in the fast primary loop.
     """
-    log.info('📡 Discovering PokerAtlas regions (additive only)...')
-    html = mgr.fetch_page('https://www.pokeratlas.com/poker-rooms')
-    if not html:
-        return PA_REGION_SLUGS
-
-    discovered = set(re.findall(r'/poker-cash-games/([a-z0-9-]+)', html))
-    hardcoded = set(PA_REGION_SLUGS)
-    merged = sorted(hardcoded | discovered)
-    new_slugs = discovered - hardcoded
-    if new_slugs:
-        log.info(f'  Discovered {len(new_slugs)} NEW regions: {new_slugs}')
-    log.info(f'  Total regions: {len(merged)} (hardcoded: {len(hardcoded)}, discovered: {len(discovered)})')
-    return merged
+    global _last_discovery_date
+    today = datetime.now().strftime('%Y%m%d')
+    
+    # Only run once per day
+    if _last_discovery_date == today:
+        return
+    _last_discovery_date = today
+    
+    log.info('📡 Running daily discovery pass (all regions)...')
+    new_valid = []
+    
+    for slug in PA_ALL_REGION_SLUGS:
+        if slug in PA_VALIDATED_REGIONS:
+            continue  # Already in primary list
+        
+        url = f'https://www.pokeratlas.com/poker-cash-games/{slug}'
+        html = mgr.fetch_with_fallback(url, expected_slug=slug)
+        
+        if html and html != 'REDIRECT':
+            venues, _, _ = extract_games_from_region(html, slug)
+            if venues:
+                new_valid.append(slug)
+                log.info(f'  💡 NEW valid region: {slug} ({len(venues)} venues)')
+        
+        time.sleep(RATE_LIMIT_DELAY)
+    
+    if new_valid:
+        log.info(f'  Discovered {len(new_valid)} new valid regions: {new_valid}')
+        # Save to cache file
+        discovery_file = BASE_DIR / 'data' / 'pokeratlas-discovered-regions.json'
+        try:
+            with open(discovery_file, 'w') as f:
+                json.dump({
+                    'discovered': today,
+                    'extra_validated': new_valid,
+                }, f, indent=2)
+        except Exception:
+            pass
+    else:
+        log.info('  No new regions discovered.')
 
 
 # ============================================================
@@ -482,17 +651,19 @@ def run_scrape_cycle(mgr):
     # Ensure connected
     if not mgr.ensure_connected():
         mgr.consecutive_failures += 1
+        write_heartbeat('connect_failed', {'consecutive_failures': mgr.consecutive_failures})
         if mgr.consecutive_failures >= 5:
             log.error(f'🚨 {mgr.consecutive_failures} consecutive failures — sleeping 5min')
             time.sleep(300)
             mgr.consecutive_failures = 0
         return 0
 
-    # Load or discover region slugs
+    # Load validated region slugs (fast — only ~11 regions)
     regions = load_pa_regions()
-    if not regions:
-        regions = discover_regions(mgr)
-    log.info(f'Scraping {len(regions)} regions...')
+    log.info(f'Scraping {len(regions)} validated regions...')
+
+    # Run daily discovery in background (once per day)
+    discover_regions(mgr)
 
     # Scrape each region
     all_venues = []
@@ -508,7 +679,7 @@ def run_scrape_cycle(mgr):
             break
 
         url = f'https://www.pokeratlas.com/poker-cash-games/{slug}'
-        html = mgr.fetch_page(url, expected_slug=slug)
+        html = mgr.fetch_with_fallback(url, expected_slug=slug)
 
         # REDIRECT is a valid "no data" response — NOT a session failure
         if html == 'REDIRECT':
@@ -632,6 +803,17 @@ def run_scrape_cycle(mgr):
     duration = (datetime.now(timezone.utc) - cycle_start).total_seconds()
     mgr.total_cycles += 1
     mgr.consecutive_failures = 0
+
+    # Write heartbeat for external watchdog
+    write_heartbeat('ok' if saved > 0 else 'empty', {
+        'cycle': mgr.total_cycles,
+        'records_saved': saved,
+        'venues_with_data': len(all_venues),
+        'errors': errors,
+        'duration_seconds': round(duration),
+        'regions_scraped': len(regions),
+    })
+
     log.info(
         f'=== CYCLE #{mgr.total_cycles} COMPLETE | {len(all_venues)} venues | '
         f'{saved} records | {duration:.0f}s | Errors: {errors} ==='

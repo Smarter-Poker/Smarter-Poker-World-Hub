@@ -620,17 +620,20 @@ export default function PokerNearMePage() {
         activeTab: 'venues',
         activeEventTab: 'daily',
         sortBy: 'default',
-        seriesViewMode: 'grid'
+        seriesViewMode: 'grid',
+        venueViewMode: 'list'
     });
 
     const activeTab = uiFilters.activeTab;
     const activeEventTab = uiFilters.activeEventTab || 'daily';
     const sortBy = uiFilters.sortBy;
     const seriesViewMode = uiFilters.seriesViewMode;
+    const venueViewMode = uiFilters.venueViewMode || 'list';
     const setActiveTab = (val) => setUiFilter('activeTab', val);
     const setActiveEventTab = (val) => setUiFilter('activeEventTab', val);
     const setSortBy = (val) => setUiFilter('sortBy', val);
     const setSeriesViewMode = (val) => setUiFilter('seriesViewMode', val);
+    const setVenueViewMode = (val) => setUiFilter('venueViewMode', val);
 
 
     // Data states
@@ -647,6 +650,7 @@ export default function PokerNearMePage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [userLocation, setUserLocation] = useState(null);
     const [gpsLoading, setGpsLoading] = useState(false);
+    const [gpsLocationLabel, setGpsLocationLabel] = useState(null);
     const [showFilters, setShowFilters] = useState(false);
     const [selectedCity, setSelectedCity] = useState(null);
     const [nearestDistance, setNearestDistance] = useState(null);
@@ -1104,14 +1108,20 @@ export default function PokerNearMePage() {
     };
 
     const getSortedVenues = (venueList) => {
-        if (sortBy === 'default') return venueList;
+        // When GPS is active and sort is 'default', auto-sort by distance
+        const effectiveSort = (sortBy === 'default' && userLocation) ? 'distance' : sortBy;
+        if (effectiveSort === 'default') return venueList;
         const sorted = [...venueList];
-        switch (sortBy) {
+        const VENUE_TYPE_ORDER = { casino: 0, card_room: 1, poker_club: 2, charity: 3, home_game: 4 };
+        switch (effectiveSort) {
             case 'trust-desc': return sorted.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
             case 'trust-asc': return sorted.sort((a, b) => (a.trust_score || 0) - (b.trust_score || 0));
             case 'distance': return sorted.sort((a, b) => (a.distance_mi || 9999) - (b.distance_mi || 9999));
             case 'name-az': return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
             case 'name-za': return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+            case 'venue-type': return sorted.sort((a, b) => (VENUE_TYPE_ORDER[a.venue_type] ?? 99) - (VENUE_TYPE_ORDER[b.venue_type] ?? 99));
+            case 'state-az': return sorted.sort((a, b) => (a.state || '').localeCompare(b.state || ''));
+            case 'most-tables': return sorted.sort((a, b) => (b.poker_tables || 0) - (a.poker_tables || 0));
             default: return sorted;
         }
     };
@@ -1131,45 +1141,70 @@ export default function PokerNearMePage() {
         return (hasLowStakes && highTrust) || (isCardRoom && highTrust);
     };
 
+    // Reverse geocode lat/lng to city, state using OpenStreetMap Nominatim (free, no API key)
+    const reverseGeocode = useCallback(async (lat, lng) => {
+        try {
+            const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&zoom=12`;
+            const resp = await fetch(url, { headers: { 'Accept-Language': 'en-US,en' } });
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            const addr = data.address || {};
+            const city = addr.city || addr.town || addr.village || addr.hamlet || addr.county || '';
+            const state = addr.state || '';
+            // Abbreviate US state names
+            const STATE_ABBREVS = { Alabama:'AL',Alaska:'AK',Arizona:'AZ',Arkansas:'AR',California:'CA',Colorado:'CO',Connecticut:'CT',Delaware:'DE',Florida:'FL',Georgia:'GA',Hawaii:'HI',Idaho:'ID',Illinois:'IL',Indiana:'IN',Iowa:'IA',Kansas:'KS',Kentucky:'KY',Louisiana:'LA',Maine:'ME',Maryland:'MD',Massachusetts:'MA',Michigan:'MI',Minnesota:'MN',Mississippi:'MS',Missouri:'MO',Montana:'MT',Nebraska:'NE',Nevada:'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY','North Carolina':'NC','North Dakota':'ND',Ohio:'OH',Oklahoma:'OK',Oregon:'OR',Pennsylvania:'PA','Rhode Island':'RI','South Carolina':'SC','South Dakota':'SD',Tennessee:'TN',Texas:'TX',Utah:'UT',Vermont:'VT',Virginia:'VA',Washington:'WA','West Virginia':'WV',Wisconsin:'WI',Wyoming:'WY','District of Columbia':'DC' };
+            const stateAbbrev = STATE_ABBREVS[state] || state;
+            if (city && stateAbbrev) return `${city}, ${stateAbbrev}`;
+            if (city) return city;
+            if (stateAbbrev) return stateAbbrev;
+            return null;
+        } catch (e) {
+            console.warn('Reverse geocode failed:', e);
+            return null;
+        }
+    }, []);
+
+    const handleGpsSuccess = useCallback((pos) => {
+        setSearchQuery('');
+        setSelectedCity(null);
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(loc);
+        setGpsLocationLabel('Locating...');
+        setHasSearched(true);
+        setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
+        setTimeout(() => { fetchAllData({ includeVenues: true }); }, 0);
+        setGpsLoading(false);
+        // Resolve city/state asynchronously
+        reverseGeocode(loc.lat, loc.lng).then(label => {
+            if (label) setGpsLocationLabel(label);
+            else setGpsLocationLabel(`${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`);
+        });
+    }, [reverseGeocode]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const requestGpsLocation = () => {
         if (!navigator.geolocation) {
             alert('Geolocation is not supported by your browser');
             return;
         }
         setGpsLoading(true);
+        setGpsLocationLabel('Locating...');
         // Tier 1: High accuracy (GPS/cellular)
         navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                setSearchQuery('');
-                setSelectedCity(null);
-                const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                setUserLocation(loc);
-                setHasSearched(true);
-                setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
-                setTimeout(() => { fetchAllData({ includeVenues: true }); }, 0);
-                setGpsLoading(false);
-            },
+            handleGpsSuccess,
             (highAccErr) => {
                 if (highAccErr.code === 1) {
                     alert('Location access denied. Please enable location services in your browser settings.');
                     setGpsLoading(false);
+                    setGpsLocationLabel(null);
                     return;
                 }
                 // Tier 2: Fallback to WiFi/IP-based (works on desktops)
                 navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        setSearchQuery('');
-                        setSelectedCity(null);
-                        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                        setUserLocation(loc);
-                        setHasSearched(true);
-                        setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
-                        setTimeout(() => { fetchAllData({ includeVenues: true }); }, 0);
-                        setGpsLoading(false);
-                    },
+                    handleGpsSuccess,
                     () => {
                         alert('Unable to determine your location. Please enter a city manually or try enabling location services.');
                         setGpsLoading(false);
+                        setGpsLocationLabel(null);
                     },
                     { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
                 );
@@ -1702,11 +1737,11 @@ export default function PokerNearMePage() {
                         <VenueCard
                             key={venue.id || i}
                             venue={venue}
+                            index={i}
                             isFavorited={true}
                             isNewcomer={isNewcomerFriendly(venue)}
                             onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
-                            promotionVenueIds={promotionVenueIds}
-                            router={router}
+                            onNavigate={(path) => router.push(path)}
                         />
                     ))}
                 </div>
@@ -1717,11 +1752,13 @@ export default function PokerNearMePage() {
     const clearFilters = () => {
         setSelectedCity(null);
         setUserLocation(null);
+        setGpsLocationLabel(null);
         setSearchQuery('');
         setHasSearched(false);
         setVenues([]);
         setShowCitySuggestions(false);
         setFetchError(null);
+        setNearestDistance(null);
         setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
         setFilters({
             radius: 50,
@@ -2046,39 +2083,95 @@ export default function PokerNearMePage() {
                 </div>
                 {/* Sort & Results Bar */}
                 <div className="results-bar">
-                    <span className="results-count">{venues.length} result{venues.length !== 1 ? 's' : ''} found</span>
-                    <div className="sort-controls">
-                        <label>Sort:</label>
-                        <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="sort-select">
-                            <option value="default">Default</option>
-                            <option value="trust-desc">Trust (High To Low)</option>
-                            <option value="trust-asc">Trust (Low To High)</option>
-                            <option value="distance">Distance (Nearest First)</option>
-                            <option value="name-az">Name (A-Z)</option>
-                            <option value="name-za">Name (Z-A)</option>
-                        </select>
+                    <span className="results-count">{venues.length} result{venues.length !== 1 ? 's' : ''} found{userLocation && sortBy === 'default' ? ' (sorted by distance)' : ''}</span>
+                    <div className="sort-and-view-controls">
+                        <div className="view-mode-toggle">
+                            <button className={'view-mode-btn' + (venueViewMode === 'list' ? ' active' : '')} onClick={() => setVenueViewMode('list')} aria-label="List view" title="List View">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+                            </button>
+                            <button className={'view-mode-btn' + (venueViewMode === 'map' ? ' active' : '')} onClick={() => setVenueViewMode('map')} aria-label="Map view" title="Map View">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg>
+                            </button>
+                        </div>
+                        <div className="sort-controls">
+                            <label>Sort:</label>
+                            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="sort-select">
+                                <option value="default">{userLocation ? 'Distance (Nearest)' : 'Default'}</option>
+                                <option value="trust-desc">Trust (High To Low)</option>
+                                <option value="trust-asc">Trust (Low To High)</option>
+                                <option value="distance">Distance (Nearest First)</option>
+                                <option value="name-az">Name (A-Z)</option>
+                                <option value="name-za">Name (Z-A)</option>
+                                <option value="venue-type">Venue Type</option>
+                                <option value="state-az">State (A-Z)</option>
+                                <option value="most-tables">Most Tables</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-                <div className="card-grid">
-                    {displayed.map((venue, i) => (
-                        <VenueCard
-                            key={venue.id || i}
-                            venue={venue}
-                            isFavorited={isFavorited('venue', venue.id)}
-                            isNewcomer={isNewcomerFriendly(venue)}
-                            hasPromo={promotionVenueIds.has(String(venue.id))}
-                            onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
-                            onNavigate={(path) => router.push(path)}
-                        />
-                    ))}
-                </div>
-                {/* Load More */}
-                {displayCount.venues < venues.length && (
-                    <div className="load-more">
-                        <button className="load-more-btn" onClick={() => loadMore('venues')}>
-                            Show More Results ({venues.length - displayed.length} more)
-                        </button>
+                {/* Venue View: List or Map */}
+                {venueViewMode === 'map' ? (
+                    <div className="inline-map-container">
+                        <MapErrorBoundary>
+                            <VenueMap
+                                key={'inline-' + sorted.length + '-' + (sorted[0]?.id || 'none')}
+                                venues={sorted}
+                                userLocation={userLocation}
+                            />
+                        </MapErrorBoundary>
+                        {userLocation && (
+                            <button className="map-recenter-btn" onClick={requestGpsLocation} aria-label="Recenter on my location" style={{ marginTop: 8 }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+                                </svg>
+                                My Location
+                            </button>
+                        )}
+                        {/* Mini venue list below map */}
+                        <div className="inline-map-venue-list">
+                            <h3 className="inline-map-list-title">{userLocation ? 'Closest Poker Rooms' : 'Poker Rooms'}</h3>
+                            <div className="inline-map-list-scroll">
+                                {sorted.slice(0, 12).map((venue, i) => (
+                                    <div key={venue.id || i} className="inline-map-mini-card" onClick={() => router.push(venue.is_social_page ? `/club/${venue.social_page_id}` : `/hub/venues/${venue.id}`)}>
+                                        <div className="mini-card-name">{venue.name}</div>
+                                        <div className="mini-card-loc">
+                                            {venue.city}, {venue.state}
+                                            {venue.distance_mi && <span className="mini-card-dist"> &bull; {venue.distance_mi.toFixed(1)} mi</span>}
+                                        </div>
+                                        <div className="mini-card-tags">
+                                            {venue.venue_type && <span className="mini-card-tag">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
+                ) : (
+                    <>
+                        <div className="card-grid">
+                            {displayed.map((venue, i) => (
+                                <VenueCard
+                                    key={venue.id || i}
+                                    venue={venue}
+                                    index={i}
+                                    isFavorited={isFavorited('venue', venue.id)}
+                                    isNewcomer={isNewcomerFriendly(venue)}
+                                    hasPromo={promotionVenueIds.has(String(venue.id))}
+                                    onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
+                                    onNavigate={(path) => router.push(path)}
+                                />
+                            ))}
+                        </div>
+                        {/* Load More */}
+                        {displayCount.venues < venues.length && (
+                            <div className="load-more">
+                                <button className="load-more-btn" onClick={() => loadMore('venues')}>
+                                    Show More Results ({venues.length - displayed.length} more)
+                                </button>
+                            </div>
+                        )}
+                    </>
                 )}
             </>
         );
@@ -2667,10 +2760,15 @@ export default function PokerNearMePage() {
                             </button>
                         </form>
                         
-                        <button className={'native-gps-btn' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading} aria-label="Use GPS">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20"/><path d="M2 12h20"/>
-                            </svg>
+                        <button className={'native-gps-btn' + (userLocation ? ' active' : '') + (gpsLoading ? ' loading' : '')} onClick={requestGpsLocation} disabled={gpsLoading} aria-label="Use GPS">
+                            {gpsLoading ? (
+                                <div style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#d4a853', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                            ) : (
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+                                </svg>
+                            )}
                         </button>
                         <button className={'native-filter-btn' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)} aria-label="Filters">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2678,6 +2776,27 @@ export default function PokerNearMePage() {
                             </svg>
                         </button>
                     </div>
+
+                    {/* ═══ GPS LOCATION BANNER ═══ */}
+                    {gpsLocationLabel && userLocation && (
+                        <div className="gps-location-banner">
+                            <div className="gps-banner-inner">
+                                <div className="gps-pulse-dot" />
+                                <span className="gps-label">
+                                    {gpsLocationLabel === 'Locating...' ? (
+                                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>Determining your location...</span>
+                                    ) : (
+                                        <>Near <strong>{gpsLocationLabel}</strong></>
+                                    )}
+                                </span>
+                                <button className="gps-clear-btn" onClick={() => { setUserLocation(null); setGpsLocationLabel(null); setHasSearched(false); setVenues([]); setNearestDistance(null); }} aria-label="Clear GPS location">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* ═══ MOBILE TAB BAR (6 Primary Tabs) ═══ */}
                     <div className="mobile-tab-bar">
@@ -3187,215 +3306,308 @@ export default function PokerNearMePage() {
                         color: #fff;
                     }
 
-                    /* ═══ PREMIUM VENUE CARD v2.1 ═══ */
-                    .venue-card {
+                    /* ═══ PREMIUM VENUE CARD v3.0 — smarter.poker dark ═══ */
+                    .vc3-card {
                         position: relative;
                         overflow: hidden;
+                        background: linear-gradient(160deg, #111820, #0c1018);
+                        border: 1px solid rgba(255,255,255,0.12);
+                        border-radius: 14px;
+                        padding: 16px 18px 14px;
+                        transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+                        backdrop-filter: blur(10px);
+                        -webkit-backdrop-filter: blur(10px);
+                        box-shadow: 0 2px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
                     }
-                    .venue-accent-line {
+                    .vc3-card:hover {
+                        border-color: rgba(212,168,83,0.3);
+                        background: linear-gradient(160deg, #151d28, #0e1420);
+                        box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(212,168,83,0.1);
+                    }
+
+                    /* Accent Line */
+                    .vc3-accent {
                         position: absolute;
                         top: 0; left: 0; right: 0;
                         height: 3px;
-                        border-radius: 16px 16px 0 0;
-                        opacity: 0.7;
+                        border-radius: 14px 14px 0 0;
+                        opacity: 0.75;
                         transition: opacity 0.3s;
                     }
-                    .venue-card:hover .venue-accent-line {
-                        opacity: 1;
-                    }
+                    .vc3-card:hover .vc3-accent { opacity: 1; }
 
-                    /* Distance Pill */
-                    .venue-distance-pill {
-                        position: absolute;
-                        top: 14px;
-                        right: 50px;
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 4px;
-                        padding: 4px 10px;
-                        background: rgba(34,197,94,0.12);
-                        border: 1px solid rgba(34,197,94,0.25);
-                        border-radius: 20px;
-                        font-size: 11px;
-                        font-weight: 600;
-                        color: #4ade80;
-                        z-index: 1;
-                    }
-
-                    /* Venue Type Badge */
-                    .venue-type-badge {
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 5px;
-                        padding: 4px 10px;
-                        border-radius: 6px;
-                        font-size: 11px;
-                        font-weight: 600;
-                        text-transform: uppercase;
-                        letter-spacing: 0.3px;
-                        margin-bottom: 8px;
-                    }
-
-                    /* Venue Name — enhanced */
-                    .venue-name {
-                        font-size: 18px !important;
-                        font-weight: 800 !important;
-                        margin: 0 0 6px !important;
-                        color: #f0f4f8;
-                        padding-right: 80px;
-                        line-height: 1.3;
-                        letter-spacing: -0.2px;
-                    }
-
-                    /* Venue Address — improved contrast */
-                    .venue-address {
+                    /* Header zone: type badge + status indicators */
+                    .vc3-header {
                         display: flex;
                         align-items: center;
-                        gap: 5px;
-                        font-size: 13px;
-                        color: rgba(255,255,255,0.58);
-                        margin: 0 0 10px;
-                        line-height: 1.4;
+                        justify-content: space-between;
+                        gap: 8px;
+                        margin-bottom: 10px;
                     }
-
-                    /* Venue Host Row */
-                    .venue-host-row {
+                    .vc3-type-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 5px;
+                        padding: 3px 9px;
+                        border-radius: 6px;
+                        font-size: 10.5px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.4px;
+                        border: 1px solid;
+                    }
+                    .vc3-status-group {
                         display: flex;
                         align-items: center;
                         gap: 6px;
-                        margin-top: 4px;
+                    }
+                    .vc3-open-pill {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 4px;
+                        padding: 3px 8px;
+                        background: rgba(34,197,94,0.10);
+                        border: 1px solid rgba(34,197,94,0.22);
+                        border-radius: 12px;
+                        font-size: 10px;
+                        font-weight: 600;
+                        color: #4ade80;
+                        white-space: nowrap;
+                    }
+                    .vc3-open-dot {
+                        width: 5px; height: 5px;
+                        background: #4ade80;
+                        border-radius: 50%;
+                        animation: vc3pulse 2s ease-in-out infinite;
+                    }
+                    @keyframes vc3pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 4px #4ade80; } 50% { opacity: 0.5; box-shadow: 0 0 8px #4ade80; } }
+                    .vc3-distance {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 3px;
+                        padding: 3px 8px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 12px;
+                        font-size: 10.5px;
+                        font-weight: 600;
+                        color: rgba(255,255,255,0.6);
+                        white-space: nowrap;
+                    }
+
+                    /* Favorite button */
+                    .vc3-fav {
+                        position: absolute;
+                        top: 12px; right: 12px;
+                        background: rgba(0,0,0,0.35);
+                        border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 50%;
+                        width: 34px; height: 34px;
+                        display: flex; align-items: center; justify-content: center;
+                        cursor: pointer;
+                        z-index: 2;
+                        transition: all 0.2s;
+                    }
+                    .vc3-fav:hover { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.3); transform: scale(1.1); }
+                    .vc3-fav.active { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.25); }
+
+                    /* Venue name */
+                    .vc3-name {
+                        font-size: 17px;
+                        font-weight: 800;
+                        margin: 0 0 5px;
+                        color: #e8ecf0;
+                        padding-right: 42px;
+                        line-height: 1.3;
+                        letter-spacing: -0.15px;
+                    }
+
+                    /* Address */
+                    .vc3-address {
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 5px;
+                        font-size: 12.5px;
+                        color: rgba(255,255,255,0.48);
+                        margin: 0 0 8px;
+                        line-height: 1.35;
+                    }
+                    .vc3-address span {
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+
+                    /* Host row (home games) */
+                    .vc3-host {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        margin: 2px 0 4px;
+                    }
+                    .vc3-host-name { font-size: 12px; color: #58a6ff; font-weight: 600; }
+                    .vc3-host-link { font-size: 11px; color: #3fb950; text-decoration: underline; margin-left: 2px; }
+                    .vc3-description { font-size: 12px; color: rgba(255,255,255,0.4); margin: 0 0 6px; line-height: 1.4; font-style: italic; }
+
+                    /* Badge row */
+                    .vc3-badges {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 5px;
+                        margin-bottom: 8px;
+                    }
+                    .vc3-badge {
+                        padding: 2px 8px;
+                        border-radius: 4px;
+                        font-size: 10px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.4px;
+                        border: 1px solid transparent;
+                    }
+                    .vc3-badge-featured { background: rgba(212,168,83,0.12); color: #d4a853; border-color: rgba(212,168,83,0.25); }
+                    .vc3-badge-newcomer { background: rgba(34,197,94,0.10); color: #4ade80; border-color: rgba(34,197,94,0.2); }
+                    .vc3-badge-promo { background: rgba(139,92,246,0.10); color: #a78bfa; border-color: rgba(139,92,246,0.2); }
+                    .vc3-badge-live {
+                        display: inline-flex; align-items: center; gap: 4px;
+                        background: rgba(239,68,68,0.12); color: #ef4444; border-color: rgba(239,68,68,0.3);
+                        animation: vc3livePulse 2s ease-in-out infinite;
+                    }
+                    .vc3-live-dot { width: 5px; height: 5px; background: #ef4444; border-radius: 50%; }
+                    @keyframes vc3livePulse { 0%, 100% { box-shadow: 0 0 6px rgba(239,68,68,0.15); } 50% { box-shadow: 0 0 12px rgba(239,68,68,0.3); } }
+                    .vc3-badge-tourney { background: rgba(59,130,246,0.10); color: #60a5fa; border-color: rgba(59,130,246,0.2); }
+                    .vc3-badge-checkin { background: rgba(230,81,0,0.10); color: #fb923c; border-color: rgba(230,81,0,0.2); cursor: pointer; }
+
+                    /* Data zone */
+                    .vc3-data-zone {
                         margin-bottom: 4px;
                     }
 
-                    /* Venue Stakes */
-                    .venue-stakes {
-                        font-size: 12.5px;
-                        color: rgba(212,168,83,0.85);
-                        margin: 0 0 10px;
-                        font-weight: 500;
+                    /* Live info row */
+                    .vc3-live-info {
+                        display: flex;
+                        gap: 16px;
+                        padding: 8px 12px;
+                        background: rgba(34,197,94,0.06);
+                        border: 1px solid rgba(34,197,94,0.12);
+                        border-radius: 8px;
+                        margin-bottom: 8px;
                     }
-
-                    /* Trust Score Row — v2.1 */
-                    .trust-score-row {
+                    .vc3-live-stat {
                         display: flex;
                         align-items: center;
-                        gap: 8px;
-                        padding: 10px 0 8px;
-                        border-top: 1px solid rgba(255,255,255,0.07);
-                        margin-top: 4px;
+                        gap: 4px;
                     }
-                    .trust-score-label {
-                        font-size: 11.5px;
-                        font-weight: 700;
-                        white-space: nowrap;
-                    }
-                    .trust-score-bar {
-                        flex: 1;
-                        height: 6px;
-                        background: rgba(255,255,255,0.08);
-                        border-radius: 3px;
-                        overflow: hidden;
-                    }
-                    .trust-score-fill {
-                        height: 100%;
-                        border-radius: 3px;
-                        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-                    }
-                    .trust-score-val {
-                        font-size: 11.5px;
-                        font-weight: 800;
-                        white-space: nowrap;
-                    }
-                    /* Unified Action Bar v2.1 */
-                    .venue-action-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.07); margin-top: 6px; }
-                    .venue-secondary-actions { display: flex; gap: 6px; }
-                    .venue-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); text-decoration: none; cursor: pointer; transition: all 0.2s; }
-                    .venue-icon-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-                    .venue-primary-actions { display: flex; gap: 6px; flex: 1; justify-content: flex-end; }
-                    .venue-action-pill { display: inline-flex; align-items: center; gap: 4px; padding: 7px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; font-family: inherit; white-space: nowrap; }
-                    .venue-action-pill span { font-size: 11.5px; }
-                    .venue-action-pill.checkin { background: rgba(34,197,94,0.12); color: #4ade80; border-color: rgba(34,197,94,0.25); }
-                    .venue-action-pill.checkin:hover { background: rgba(34,197,94,0.22); box-shadow: 0 0 12px rgba(34,197,94,0.15); }
-                    .venue-action-pill.review { background: rgba(59,130,246,0.12); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
-                    .venue-action-pill.review:hover { background: rgba(59,130,246,0.22); box-shadow: 0 0 12px rgba(59,130,246,0.15); }
-                    .venue-action-pill.details { background: rgba(212,168,83,0.12); color: #d4a853; border-color: rgba(212,168,83,0.25); }
-                    .venue-action-pill.details:hover { background: rgba(212,168,83,0.22); box-shadow: 0 0 12px rgba(212,168,83,0.15); }
-                    .venue-action-row { display: none; }
-                    .venue-quick-actions { display: none; }
+                    .vc3-live-stat-val { font-size: 14px; font-weight: 800; color: #e8ecf0; }
+                    .vc3-live-stat-label { font-size: 11px; color: rgba(255,255,255,0.45); font-weight: 500; }
 
-                    /* Action Buttons Row (Web/Call/Map) */
-                    .venue-action-row {
+                    /* Hours */
+                    .vc3-hours {
                         display: flex;
-                        gap: 8px;
-                        padding-top: 10px;
-                        margin-top: 2px;
-                    }
-                    .venue-action-btn {
-                        display: inline-flex;
                         align-items: center;
                         gap: 5px;
-                        padding: 6px 12px;
                         font-size: 12px;
-                        font-weight: 500;
-                        color: rgba(255,255,255,0.7);
-                        text-decoration: none;
-                        border: 1px solid rgba(255,255,255,0.12);
-                        border-radius: 8px;
-                        background: rgba(255,255,255,0.04);
-                        transition: all 0.2s;
-                        cursor: pointer;
-                    }
-                    .venue-action-btn:hover {
-                        background: rgba(255,255,255,0.08);
-                        border-color: rgba(255,255,255,0.2);
-                        color: #fff;
-                    }
-                    .venue-action-btn span {
-                        font-size: 12px;
+                        color: rgba(255,255,255,0.42);
+                        margin: 0 0 6px;
                     }
 
-                    /* Quick Actions (Check In/Review/Details) */
-                    .venue-quick-actions {
+                    /* Game chips — color-coded */
+                    .vc3-games {
                         display: flex;
+                        flex-wrap: wrap;
+                        gap: 5px;
+                        margin-bottom: 6px;
+                    }
+                    .vc3-game-chip {
+                        padding: 3px 8px;
+                        border-radius: 4px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        border: 1px solid;
+                        white-space: nowrap;
+                    }
+
+                    /* Stakes */
+                    .vc3-stakes {
+                        display: flex;
+                        align-items: center;
+                        gap: 5px;
+                        font-size: 12px;
+                        color: rgba(212,168,83,0.8);
+                        font-weight: 600;
+                        margin: 0 0 6px;
+                    }
+
+                    /* Trust score */
+                    .vc3-trust {
+                        padding: 8px 0 6px;
+                        border-top: 1px solid rgba(255,255,255,0.06);
+                        margin-top: 4px;
+                    }
+                    .vc3-trust-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 5px;
+                    }
+                    .vc3-trust-label { font-size: 11px; font-weight: 700; }
+                    .vc3-trust-val { font-size: 11px; font-weight: 800; }
+                    .vc3-trust-track {
+                        height: 4px;
+                        background: rgba(255,255,255,0.06);
+                        border-radius: 2px;
+                        overflow: hidden;
+                    }
+                    .vc3-trust-fill {
+                        height: 100%;
+                        border-radius: 2px;
+                        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                    }
+
+                    /* Action bar */
+                    .vc3-actions {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
                         gap: 8px;
                         padding-top: 10px;
                         border-top: 1px solid rgba(255,255,255,0.06);
-                        margin-top: 10px;
+                        margin-top: 6px;
                     }
-                    .venue-quick-btn {
-                        flex: 1;
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 5px;
-                        padding: 8px 8px;
-                        border-radius: 8px;
-                        font-size: 12px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        border: 1px solid transparent;
+                    .vc3-actions-secondary { display: flex; gap: 5px; }
+                    .vc3-actions-primary { display: flex; gap: 5px; flex: 1; justify-content: flex-end; }
+
+                    .vc3-icon-btn {
+                        display: flex; align-items: center; justify-content: center;
+                        width: 34px; height: 34px; border-radius: 8px;
+                        border: 1px solid rgba(255,255,255,0.09);
+                        background: rgba(255,255,255,0.04);
+                        color: rgba(255,255,255,0.5);
+                        text-decoration: none; cursor: pointer;
                         transition: all 0.2s;
-                        font-family: inherit;
+                    }
+                    .vc3-icon-btn:hover {
+                        background: rgba(255,255,255,0.08);
+                        border-color: rgba(255,255,255,0.2);
+                        color: #fff;
+                        transform: translateY(-1px);
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                    }
+
+                    .vc3-pill {
+                        display: inline-flex; align-items: center; gap: 4px;
+                        padding: 7px 11px; border-radius: 8px;
+                        font-size: 11.5px; font-weight: 700;
+                        cursor: pointer; border: 1px solid transparent;
+                        transition: all 0.2s; font-family: inherit;
                         white-space: nowrap;
                     }
-                    .venue-quick-btn.checkin {
-                        background: rgba(34,197,94,0.12);
-                        color: #4ade80;
-                        border-color: rgba(34,197,94,0.25);
-                    }
-                    .venue-quick-btn.checkin:hover { background: rgba(34,197,94,0.22); }
-                    .venue-quick-btn.review {
-                        background: rgba(59,130,246,0.12);
-                        color: #60a5fa;
-                        border-color: rgba(59,130,246,0.25);
-                    }
-                    .venue-quick-btn.review:hover { background: rgba(59,130,246,0.22); }
-                    .venue-quick-btn.details {
-                        background: rgba(212,168,83,0.12);
-                        color: #d4a853;
-                        border-color: rgba(212,168,83,0.25);
-                    }
-                    .venue-quick-btn.details:hover { background: rgba(212,168,83,0.22); }
+                    .vc3-pill span { font-size: 11px; }
+                    .vc3-pill-checkin { background: rgba(34,197,94,0.10); color: #4ade80; border-color: rgba(34,197,94,0.2); }
+                    .vc3-pill-checkin:hover { background: rgba(34,197,94,0.2); box-shadow: 0 0 10px rgba(34,197,94,0.12); }
+                    .vc3-pill-review { background: rgba(59,130,246,0.10); color: #60a5fa; border-color: rgba(59,130,246,0.2); }
+                    .vc3-pill-review:hover { background: rgba(59,130,246,0.2); box-shadow: 0 0 10px rgba(59,130,246,0.12); }
+                    .vc3-pill-details { background: rgba(212,168,83,0.10); color: #d4a853; border-color: rgba(212,168,83,0.2); }
+                    .vc3-pill-details:hover { background: rgba(212,168,83,0.2); box-shadow: 0 0 10px rgba(212,168,83,0.12); }
                     .card-location {
                         font-size: 13px;
                         color: rgba(255,255,255,0.5);
@@ -4452,35 +4664,57 @@ export default function PokerNearMePage() {
                             min-width: 80px;
                         }
 
-                        /* Venue card mobile */
-                        .venue-distance-pill {
-                            top: 10px;
-                            right: 44px;
-                            font-size: 10px;
-                            padding: 3px 8px;
+                        /* vc3 Venue card mobile */
+                        .vc3-card {
+                            padding: 14px 14px 12px;
+                            border-radius: 12px;
                         }
-                        .venue-name {
-                            padding-right: 70px !important;
-                            font-size: 15px !important;
+                        .vc3-name {
+                            font-size: 15px;
+                            padding-right: 38px;
                         }
-                        .venue-action-row {
+                        .vc3-header {
+                            gap: 4px;
+                            margin-bottom: 8px;
+                        }
+                        .vc3-type-badge {
+                            font-size: 9.5px;
+                            padding: 2px 7px;
+                        }
+                        .vc3-status-group {
+                            gap: 4px;
+                        }
+                        .vc3-fav {
+                            width: 32px; height: 32px;
+                            top: 10px; right: 10px;
+                        }
+                        .vc3-actions {
+                            gap: 4px;
                             flex-wrap: wrap;
                         }
-                        .venue-action-btn {
-                            flex: 1;
-                            justify-content: center;
-                            min-width: 70px;
-                        }
-                        .venue-quick-actions {
+                        .vc3-actions-primary {
                             flex-wrap: wrap;
+                            gap: 4px;
                         }
-                        .venue-quick-btn {
+                        .vc3-pill {
+                            padding: 8px 10px;
                             font-size: 11px;
-                            padding: 7px 6px;
-                            gap: 3px;
+                            min-height: 36px;
                         }
-                        .trust-score-row {
-                            gap: 6px;
+                        .vc3-icon-btn {
+                            width: 36px;
+                            height: 36px;
+                        }
+                        .vc3-live-info {
+                            padding: 6px 10px;
+                            gap: 12px;
+                        }
+                        .vc3-games {
+                            gap: 4px;
+                        }
+                        .vc3-game-chip {
+                            font-size: 10px;
+                            padding: 2px 6px;
                         }
 
                         /* Search landing */
@@ -4892,6 +5126,189 @@ export default function PokerNearMePage() {
                         font-size: 13px;
                         font-weight: 600;
                         cursor: pointer;
+                    }
+
+                    /* ═══ GPS LOCATION BANNER ═══ */
+                    .gps-location-banner {
+                        padding: 0 20px 12px;
+                        max-width: 1400px;
+                        margin: 0 auto;
+                    }
+                    .gps-banner-inner {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 10px 16px;
+                        background: rgba(59, 130, 246, 0.1);
+                        border: 1px solid rgba(59, 130, 246, 0.25);
+                        border-radius: 12px;
+                        backdrop-filter: blur(12px);
+                        -webkit-backdrop-filter: blur(12px);
+                        animation: gpsBannerSlideIn 0.3s ease-out;
+                    }
+                    @keyframes gpsBannerSlideIn {
+                        from { opacity: 0; transform: translateY(-8px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                    .gps-pulse-dot {
+                        width: 10px;
+                        height: 10px;
+                        border-radius: 50%;
+                        background: #3b82f6;
+                        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+                        animation: gpsDotPulse 2s ease-in-out infinite;
+                        flex-shrink: 0;
+                    }
+                    @keyframes gpsDotPulse {
+                        0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+                        50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+                    }
+                    .gps-label {
+                        flex: 1;
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.8);
+                        font-weight: 500;
+                    }
+                    .gps-label strong {
+                        color: #60a5fa;
+                        font-weight: 700;
+                    }
+                    .gps-clear-btn {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 28px;
+                        height: 28px;
+                        border-radius: 8px;
+                        border: 1px solid rgba(255,255,255,0.15);
+                        background: rgba(255,255,255,0.06);
+                        color: rgba(255,255,255,0.5);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        flex-shrink: 0;
+                    }
+                    .gps-clear-btn:hover {
+                        background: rgba(239,68,68,0.15);
+                        border-color: rgba(239,68,68,0.3);
+                        color: #ef4444;
+                    }
+
+                    /* ═══ VIEW MODE TOGGLE ═══ */
+                    .sort-and-view-controls {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                    }
+                    .view-mode-toggle {
+                        display: flex;
+                        background: rgba(15, 23, 42, 0.6);
+                        border: 1px solid rgba(255,255,255,0.12);
+                        border-radius: 10px;
+                        overflow: hidden;
+                    }
+                    .view-mode-btn {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 36px;
+                        height: 32px;
+                        border: none;
+                        background: transparent;
+                        color: rgba(255,255,255,0.4);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .view-mode-btn.active {
+                        background: rgba(212, 168, 83, 0.2);
+                        color: #d4a853;
+                    }
+                    .view-mode-btn:hover:not(.active) {
+                        background: rgba(255,255,255,0.06);
+                        color: rgba(255,255,255,0.7);
+                    }
+
+                    /* ═══ INLINE MAP CONTAINER (Venues Tab) ═══ */
+                    .inline-map-container {
+                        margin-top: 4px;
+                    }
+                    .inline-map-venue-list {
+                        margin-top: 16px;
+                    }
+                    .inline-map-list-title {
+                        font-size: 15px;
+                        font-weight: 700;
+                        color: rgba(255,255,255,0.8);
+                        margin: 0 0 12px;
+                    }
+                    .inline-map-list-scroll {
+                        display: grid;
+                        grid-template-columns: 1fr;
+                        gap: 8px;
+                    }
+                    @media (min-width: 640px) {
+                        .inline-map-list-scroll {
+                            grid-template-columns: repeat(2, 1fr);
+                        }
+                    }
+                    @media (min-width: 1024px) {
+                        .inline-map-list-scroll {
+                            grid-template-columns: repeat(3, 1fr);
+                        }
+                    }
+                    .inline-map-mini-card {
+                        padding: 12px 16px;
+                        background: rgba(15, 23, 42, 0.7);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 12px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .inline-map-mini-card:hover {
+                        border-color: rgba(212,168,83,0.3);
+                        background: rgba(15, 23, 42, 0.85);
+                        transform: translateY(-1px);
+                    }
+                    .mini-card-name {
+                        font-size: 14px;
+                        font-weight: 700;
+                        color: #f0f4f8;
+                        margin-bottom: 3px;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .mini-card-loc {
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.5);
+                        margin-bottom: 4px;
+                    }
+                    .mini-card-dist {
+                        color: #4ade80;
+                        font-weight: 600;
+                    }
+                    .mini-card-tags {
+                        display: flex;
+                        gap: 4px;
+                    }
+                    .mini-card-tag {
+                        padding: 2px 8px;
+                        border-radius: 4px;
+                        background: rgba(99,102,241,0.15);
+                        color: #818cf8;
+                        font-size: 10px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                    }
+
+                    /* GPS button loading animation */
+                    .native-gps-btn.loading {
+                        opacity: 0.7;
+                        pointer-events: none;
+                    }
+
+                    @keyframes userPulse {
+                        0%, 100% { transform: scale(1); opacity: 0.5; }
+                        50% { transform: scale(1.8); opacity: 0; }
                     }
                 `}</style>
                       <BottomNavBar />

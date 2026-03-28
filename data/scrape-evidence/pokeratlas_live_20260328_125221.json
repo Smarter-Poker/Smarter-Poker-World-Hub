@@ -1,0 +1,11 @@
+{
+  "batch_id": "6cf95d04-6bf3-4a97-81de-60df157b931d",
+  "scrape_timestamp": "2026-03-28T12:52:21.531271+00:00",
+  "source": "pokeratlas",
+  "regions_scraped": 61,
+  "venues_with_data": 0,
+  "regions_skipped": 0,
+  "total_records_saved": 0,
+  "errors": 10,
+  "duration_seconds": 0.369983
+}
