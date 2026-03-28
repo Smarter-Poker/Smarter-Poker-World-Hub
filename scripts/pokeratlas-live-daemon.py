@@ -384,8 +384,8 @@ class PokerAtlasSessionManager:
                 if title_match:
                     title = title_match.group(1).strip().lower()
                     if 'las vegas' in title:
-                        # Silently redirected to Las Vegas — skip
-                        return None
+                        # Silently redirected to Las Vegas — NOT a failure, just no data
+                        return 'REDIRECT'
 
             # Success — reset failure counter
             self.consecutive_fetch_failures = 0
@@ -495,6 +495,11 @@ def run_scrape_cycle(mgr):
 
         url = f'https://www.pokeratlas.com/poker-cash-games/{slug}'
         html = mgr.fetch_page(url, expected_slug=slug)
+
+        # REDIRECT is a valid "no data" response — NOT a session failure
+        if html == 'REDIRECT':
+            skipped += 1
+            continue
 
         if html is None:
             errors += 1
