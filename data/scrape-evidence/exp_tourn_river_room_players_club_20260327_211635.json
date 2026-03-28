@@ -1,0 +1,64 @@
+{
+  "scrape_url": "https://riverroompoker.com",
+  "scrape_http_status": 200,
+  "scrape_timestamp": "2026-03-28T02:16:35.806210+00:00",
+  "scrape_html_hash": "b7622760b8ba8eb98fdbdb11779d15261b4e7e08401556f9b6f6c3d26dcd41a0",
+  "scrape_byte_count": 28776,
+  "scrape_batch_id": "91c12ebb-64af-40c2-8fe8-af4bd7d86ba4",
+  "scrape_script": "scripts/charity_poker_expansion.py",
+  "label": "tourn_River Room Players Club",
+  "extracted_data": {
+    "tournaments": [
+      {
+        "day_of_week": "Thursday",
+        "start_time": "11:00pm",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "6:00-11:00pm - MIKE'S CASH GAME"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "6:30pm",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "6:30pm - TOURNAMENT"
+      },
+      {
+        "day_of_week": "Friday",
+        "start_time": "6:30PM",
+        "buy_in": 50,
+        "game_type": "NLH",
+        "raw_text": ", MARCH 27th TOURNAMENT &nbsp; &nbsp; *NEW* SUPER STACK TOURNAMENT &nbsp; &nbsp; STARTS AT 6:30PM $ 50 &nbsp;BUY IN&nbsp; $50K IN CHIPS&nbsp; EXTRA $5K IN BONUS CHIPS FOR EARLY REGISTRATION EXTRA $5k "
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": "5:30pm",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "5:30pm - TOURNAMENT"
+      },
+      {
+        "day_of_week": "Saturday",
+        "start_time": null,
+        "buy_in": 25,
+        "game_type": "NLH",
+        "raw_text": "REGISTRATION (Follow instructions after clicking link) BOUNTY TOURNAMENT &nbsp; * * COLLECT $25 BOUNTIES * * &nbsp;"
+      },
+      {
+        "day_of_week": "Sunday",
+        "start_time": "1:00pm",
+        "buy_in": null,
+        "game_type": "NLH",
+        "raw_text": "1:00pm - TOURNAMENT ***&nbsp; Subject to change . Check below for updates&nbsp; ***"
+      },
+      {
+        "day_of_week": "Sunday",
+        "start_time": "1:00PM",
+        "buy_in": 75,
+        "game_type": "NLH",
+        "raw_text": ", MARCH 29th TOURNAMENT &nbsp; *NEW* DEEP STACK TOURNAMENT &nbsp;&nbsp; STARTS AT 1:00PM $75 BUY IN&nbsp; $60K IN CHIPS&nbsp; EXTRA $5K IN BONUS CHIPS FOR EARLY REGISTRATION EXTRA $5K INITIAL ADD-ON A"
+      }
+    ]
+  },
+  "body_preview": "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"><html><head>\n   \n   <title>River Room Players Club / Live Tournaments With 100% Payouts 100% Of The Time</title>\n   <meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\">\n   <meta http-equiv=\"Expires\" content=\"0\">\n   <meta name=\"generator\" content=\"Trellix Site Builder\">\n   <meta name=\"TRELLIX_BUILDER_VER\" content=\"1.0\"><meta name=\"TRELLIX_OPEN_SITE_COMMAND\" content=\"http://sitebuilder.myregisteredsite.com:80SiteBui"
+}

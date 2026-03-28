@@ -1071,15 +1071,27 @@ export default function PokerNearMeLobby() {
     }
 
     // CASE 3: FIRST VISIT (no saved preference) → prompt for GPS permission
+    // Uses 2-tier approach: high accuracy first, then fallback to WiFi/IP-based
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => onGpsSuccess(pos, { silent: false }),
-        (err) => {
-          // Browser denied, API unavailable, or timeout → show manual location setter
-          // so the user always has a way to set their location on first visit
-          setShowManualLocation(true);
+        (firstErr) => {
+          // Permission denied → show manual location setter
+          if (firstErr.code === 1) {
+            setShowManualLocation(true);
+            return;
+          }
+          // High accuracy failed → try low accuracy (WiFi/IP-based, works on desktops)
+          navigator.geolocation.getCurrentPosition(
+            (pos) => onGpsSuccess(pos, { silent: false }),
+            () => {
+              // Both tiers failed → show manual location setter
+              setShowManualLocation(true);
+            },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+          );
         },
-        { enableHighAccuracy: true, timeout: 8000 }
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
       );
     }
   }, [prefsLoaded, preferences?.locationEnabled]); // eslint-disable-line react-hooks/exhaustive-deps

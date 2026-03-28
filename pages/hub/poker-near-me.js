@@ -1137,6 +1137,7 @@ export default function PokerNearMePage() {
             return;
         }
         setGpsLoading(true);
+        // Tier 1: High accuracy (GPS/cellular)
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 setSearchQuery('');
@@ -1144,18 +1145,36 @@ export default function PokerNearMePage() {
                 const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                 setUserLocation(loc);
                 setHasSearched(true);
-                // Reset pagination on new GPS search
                 setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
-                setTimeout(() => {
-                    fetchAllData({ includeVenues: true });
-                }, 0);
+                setTimeout(() => { fetchAllData({ includeVenues: true }); }, 0);
                 setGpsLoading(false);
             },
-            () => {
-                alert('Unable to get your location. Please enable location services.');
-                setGpsLoading(false);
+            (highAccErr) => {
+                if (highAccErr.code === 1) {
+                    alert('Location access denied. Please enable location services in your browser settings.');
+                    setGpsLoading(false);
+                    return;
+                }
+                // Tier 2: Fallback to WiFi/IP-based (works on desktops)
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        setSearchQuery('');
+                        setSelectedCity(null);
+                        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                        setUserLocation(loc);
+                        setHasSearched(true);
+                        setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
+                        setTimeout(() => { fetchAllData({ includeVenues: true }); }, 0);
+                        setGpsLoading(false);
+                    },
+                    () => {
+                        alert('Unable to determine your location. Please enter a city manually or try enabling location services.');
+                        setGpsLoading(false);
+                    },
+                    { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+                );
             },
-            { enableHighAccuracy: true, timeout: 10000 }
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
         );
     };
 

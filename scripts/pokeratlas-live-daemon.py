@@ -61,9 +61,15 @@ logging.basicConfig(
 )
 log = logging.getLogger('pokeratlas-daemon')
 
-# Suppress Scrapling's noisy internal logger ('No Cloudflare challenge found' ERROR spam)
-for noisy_logger in ['scrapling', 'scrapling.fetchers', 'camoufox', 'browserforge']:
-    logging.getLogger(noisy_logger).setLevel(logging.CRITICAL)
+# Suppress Scrapling's noisy 'No Cloudflare challenge found' ERROR spam
+# Scrapling uses a LoggerProxy that bypasses standard logger hierarchy,
+# so we must filter at the root handler level instead of setLevel
+class _CloudflareNoiseFilter(logging.Filter):
+    def filter(self, record):
+        return 'No Cloudflare challenge found' not in str(record.getMessage())
+
+for handler in logging.getLogger().handlers:
+    handler.addFilter(_CloudflareNoiseFilter())
 
 # ============================================================
 # ERROR CODES
