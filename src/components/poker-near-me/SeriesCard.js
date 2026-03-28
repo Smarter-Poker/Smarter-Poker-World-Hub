@@ -1,10 +1,15 @@
 /**
  * SeriesCard - Tournament series card for Poker Near Me page
+ * Handles both poker_series objects and poker_venues entries with venue_type='series'
  */
 import { TourBadge, formatDate, formatMoney } from './TourCard';
 
 export default function SeriesCard({ series: s, index, isFavorited, onFavorite, onNavigate }) {
+    const isVenueEntry = !s.series_code && s.venue_type === 'series';
     const detailUrl = s.series_code ? '/hub/series/' + s.series_code : '/hub/venues/' + (s.id || (index + 1));
+    const shortCode = s.tour_code || s.short_name || (s.name || '').replace(/[^A-Z]/g, '').slice(0, 4) || 'SER';
+    const displayLocation = s.location || (((s.city || s.venue || '') + (s.state ? ', ' + s.state : '')) || 'Location TBD');
+
     return (
         <div className="entity-card series-card" onClick={() => onNavigate && onNavigate(detailUrl)} style={{ cursor: 'pointer' }}>
             <button className={'fav-btn' + (isFavorited ? ' active' : '')} onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}>
@@ -13,24 +18,38 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
                 </svg>
             </button>
             <div className="card-header">
-                <TourBadge tourCode={s.tour_code || s.short_name} size="small" />
+                <TourBadge tourCode={shortCode} size="small" />
                 {s.series_type && <span className="badge series-type">{s.series_type}</span>}
+                {isVenueEntry && <span className="badge series-type" style={{ background: 'rgba(6,182,212,0.15)', color: '#06b6d4', border: '1px solid rgba(6,182,212,0.3)', padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>Series</span>}
             </div>
             <h4>{s.name}</h4>
-            <p className="card-location">{s.location || (((s.city || s.venue || '') + (s.state ? ', ' + s.state : '')) || 'Location TBD')}</p>
-            <p className="card-dates">{formatDate(s.start_date)} - {formatDate(s.end_date)}</p>
+            <p className="card-location">{displayLocation}</p>
+            {/* Date range — from poker_series data */}
+            {(s.start_date || s.end_date) && (
+                <p className="card-dates">{formatDate(s.start_date)} - {formatDate(s.end_date)}</p>
+            )}
             <div className="card-tags">
                 {s.total_events && <span className="tag events">{s.total_events} Events</span>}
                 {s.main_event_buyin && <span className="tag buyin">{formatMoney(s.main_event_buyin)} Main</span>}
+                {/* Games offered — from poker_venues data */}
+                {!s.total_events && Array.isArray(s.games_offered) && s.games_offered.slice(0, 4).map((g, i) => (
+                    <span key={g || i} className="tag game">{g}</span>
+                ))}
             </div>
+            {/* Stakes — from poker_venues data */}
+            {!s.main_event_guaranteed && Array.isArray(s.stakes_cash) && s.stakes_cash.length > 0 && (
+                <p className="card-detail" style={{ color: 'rgba(212,168,83,0.85)', fontSize: 12, marginTop: 4 }}>
+                    Stakes: {s.stakes_cash.slice(0, 3).join(', ')}
+                </p>
+            )}
             {s.main_event_guaranteed && (
                 <p className="card-detail guaranteed">{formatMoney(s.main_event_guaranteed)}+ GTD</p>
             )}
             <div className="card-footer">
                 <div className="card-actions">
                     <span className="action-btn primary">Details</span>
-                    {s.source_url && (
-                        <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Source</a>
+                    {(s.source_url || s.website) && (
+                        <a href={(() => { const w = s.source_url || s.website; return w && w.startsWith('http') ? w : 'https://' + (w || ''); })()} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>{s.source_url ? 'Source' : 'Website'}</a>
                     )}
                 </div>
             </div>

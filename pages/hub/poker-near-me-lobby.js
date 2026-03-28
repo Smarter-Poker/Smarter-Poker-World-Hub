@@ -477,7 +477,7 @@ export default function PokerNearMeLobby() {
     if (q) {
       setSearchQuery(q);
       // Deep-link search: fetch venues matching the URL query
-      const deepUrl = `/api/poker/venues?limit=${PAGE_SIZE}&offset=0&search=${encodeURIComponent(q)}&sort=trust`;
+      const deepUrl = `/api/poker/venues?limit=10000&offset=0&search=${encodeURIComponent(q)}&sort=trust`;
       cachedFetch(deepUrl).then(data => {
         const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
         setVenues(newVenues);
@@ -526,7 +526,7 @@ export default function PokerNearMeLobby() {
     setLoading(true);
     setFetchError(null);
     try {
-      let url = `/api/poker/venues?limit=${PAGE_SIZE}&offset=${pageNum * PAGE_SIZE}`;
+      let url = `/api/poker/venues?limit=10000&offset=${pageNum * PAGE_SIZE}`;
       if (query) url += `&search=${encodeURIComponent(query)}`;
       if (userLocation) {
         url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`;
@@ -561,14 +561,13 @@ export default function PokerNearMeLobby() {
     fetchVenues(searchQuery, page + 1, true);
   }, [fetchVenues, searchQuery, page]);
 
-  // ─── Fetch tours ───
+  // ─── Fetch tours (venue_type = 'tour' from poker_venues table) ───
   const fetchTours = useCallback(async () => {
     try {
-      const data = await cachedFetch('/api/poker/venues?tournaments=true&limit=50');
-      if (data?.data) setTours(data.data.filter(v => v.has_tournaments));
-      else if (data?.tours) setTours(data.tours);
+      const data = await cachedFetch('/api/poker/venues?venue_type=tour&limit=10000');
+      const tourData = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+      setTours(tourData);
     } catch (err) {
-      setLoading(false);
       console.error('Failed to fetch tours:', err);
     } finally {
       setToursLoaded(true);
@@ -601,13 +600,12 @@ export default function PokerNearMeLobby() {
     }
   }, [userId]);
 
-  // ─── Fetch series ───
+  // ─── Fetch series (venue_type = 'series' from poker_venues table) ───
   const fetchSeries = useCallback(async () => {
     try {
-      const data = await cachedFetch('/api/poker/venues?tournaments=true&limit=50');
-      if (data?.data) setSeries(data.data.filter(v => v.has_tournaments));
-      else if (data?.series) setSeries(data.series);
-      else if (Array.isArray(data)) setSeries(data);
+      const data = await cachedFetch('/api/poker/venues?venue_type=series&limit=10000');
+      const seriesData = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+      setSeries(seriesData);
     } catch (err) {
       console.error('Failed to fetch series:', err);
     } finally {
@@ -703,7 +701,7 @@ export default function PokerNearMeLobby() {
   // ─── Batch fetch check-in counts when venues change ───
   useEffect(() => {
     if (venues.length === 0) return;
-    const ids = venues.map(v => v.id).filter(Boolean).slice(0, 50).join(',');
+    const ids = venues.map(v => v.id).filter(Boolean).join(',');
     if (!ids) return;
     fetch('/api/poker/checkins/batch-counts?venue_ids=' + ids)
       .then(r => r.json())

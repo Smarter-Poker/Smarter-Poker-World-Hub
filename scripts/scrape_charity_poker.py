@@ -340,22 +340,80 @@ def extract_address_from_jsonld(ld_list):
 
 
 def extract_venues_from_html(html, org_name, state, source_url):
-    """Extract individual venue listings from an org's page."""
+    """Extract individual venue listings from an org's page.
+    
+    HARDENED v2 — Strict validation to prevent garbage data ingestion.
+    The original regex was too loose and matched random page body text.
+    """
+    VALID_US_STATES = {
+        'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN',
+        'IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV',
+        'NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN',
+        'TX','UT','VT','VA','WA','WV','WI','WY','DC',
+    }
+
+    # Noise words that NEVER appear as city names — catches body-text matches
+    NOISE_WORDS = {
+        'the','and','for','with','our','your','this','that','from','all',
+        'are','was','were','has','have','had','not','but','can','will',
+        'its','per','new','one','two','any','use','get','set','let',
+        'play','game','poker','card','table','club','event','tournament',
+        'free','join','sign','click','learn','more','here','next','last',
+        'open','close','live','full','best','top','real','time','week',
+        'daily','monthly','weekly','info','page','site','home','about',
+        'contact','privacy','terms',
+    }
+
     venues = []
     
-    # Try to find venue-like patterns in the HTML
-    # Look for address patterns
+    # Strip HTML tags to work with visible text only — prevents regex from
+    # matching inside href, alt, or other attribute values
+    clean_text = re.sub(r'<[^>]+>', ' ', html)
+    clean_text = re.sub(r'\s+', ' ', clean_text)
+    
     address_pattern = re.compile(
-        r'(\d+\s+[A-Za-z\s\.]+(?:St|Ave|Rd|Dr|Blvd|Ln|Way|Ct|Pkwy|Hwy|Road|Street|Avenue|Drive|Boulevard|Lane|Court|Place|Pl|Cir|Circle)\.?)\s*[,\s]*'
-        r'([A-Za-z\s\.]+)\s*,\s*([A-Z]{2})\s*(\d{5})?',
+        r'(\d{1,6}\s+[A-Za-z0-9\s\.]{3,50}(?:St|Ave|Rd|Dr|Blvd|Ln|Way|Ct|Pkwy|Hwy|Road|Street|Avenue|Drive|Boulevard|Lane|Court|Place|Pl|Cir|Circle)\.?)'
+        r'\s*[,\s]+([A-Za-z\s\.]{2,30})\s*,\s*([A-Z]{2})\s*(\d{5})?',
         re.IGNORECASE
     )
     
-    for match in address_pattern.finditer(html):
+    seen = set()
+    for match in address_pattern.finditer(clean_text):
         address = match.group(1).strip()
         city = match.group(2).strip()
         st = match.group(3).strip().upper()
         zipcode = match.group(4) if match.group(4) else ''
+        
+        # ── Validation Gate 1: Valid US state ──
+        if st not in VALID_US_STATES:
+            continue
+        
+        # ── Validation Gate 2: Address must start with a real number ──
+        num_match = re.match(r'^(\d+)', address)
+        if not num_match or int(num_match.group(1)) < 1:
+            continue
+        
+        # ── Validation Gate 3: City must not be a noise word ──
+        city_lower = city.lower().strip()
+        if city_lower in NOISE_WORDS or len(city_lower) < 2:
+            continue
+        
+        # ── Validation Gate 4: City must contain at least one alpha char ──
+        if not re.search(r'[a-zA-Z]{2,}', city):
+            continue
+        
+        # ── Validation Gate 5: Deduplicate ──
+        dedup_key = f'{address.lower()}|{city.lower()}|{st}'
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+        
+        # ── Confidence scoring ──
+        confidence = 'medium'
+        if zipcode and len(address) > 10 and len(city) > 2:
+            confidence = 'high'
+        elif not zipcode and len(address) < 8:
+            confidence = 'low'
         
         venues.append({
             'address': address,
@@ -364,6 +422,7 @@ def extract_venues_from_html(html, org_name, state, source_url):
             'zip': zipcode,
             'org': org_name,
             'source_url': source_url,
+            'confidence': confidence,
         })
     
     return venues

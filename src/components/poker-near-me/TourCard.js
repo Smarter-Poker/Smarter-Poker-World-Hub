@@ -64,10 +64,14 @@ function TourBadge({ tourCode, size = 'normal' }) {
 }
 
 export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) {
-    // Support both tour objects and venue objects (venues with has_tournaments)
+    // Support both poker_tours objects (with tour_code) and poker_venues entries (venue_type='tour')
+    const isVenueEntry = !tour.tour_code && tour.venue_type === 'tour';
     const displayName = tour.tour_name || tour.name || 'Unknown Tour';
     const displayLocation = tour.headquarters || ((tour.city || '') + (tour.city && tour.state ? ', ' : '') + (tour.state || ''));
     const detailUrl = tour.tour_code ? '/hub/tours/' + tour.tour_code : '/hub/venues/' + tour.id;
+
+    // For venue-table entries, derive a short code from the name
+    const shortCode = tour.tour_code || (tour.name || '').replace(/[^A-Z]/g, '').slice(0, 4) || 'TOUR';
 
     return (
         <div className="entity-card tour-card" onClick={() => onNavigate && onNavigate(detailUrl)} style={{ cursor: 'pointer' }}>
@@ -77,19 +81,33 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
                 </svg>
             </button>
             <div className="card-header">
-                <TourBadge tourCode={tour.tour_code} />
-                <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || tour.venue_type || tour.tour_type}</span>
+                <TourBadge tourCode={shortCode} />
+                <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || (isVenueEntry ? 'Tour' : tour.venue_type || tour.tour_type)}</span>
             </div>
             <h4 className="tour-name">{displayName}</h4>
             {displayLocation && <p className="card-location">{displayLocation}</p>}
+            {/* Buy-in range — from poker_tours data */}
             {tour.typical_buyins && (tour.typical_buyins.min || tour.typical_buyins.max) && (
                 <p className="card-detail">
                     Buy-ins: {formatMoney(tour.typical_buyins.min)}{tour.typical_buyins.min && tour.typical_buyins.max ? ' - ' : ''}{formatMoney(tour.typical_buyins.max)}
                 </p>
             )}
+            {/* Stakes — from poker_venues data */}
+            {!tour.typical_buyins && Array.isArray(tour.stakes_cash) && tour.stakes_cash.length > 0 && (
+                <p className="card-detail" style={{ color: 'rgba(212,168,83,0.85)' }}>
+                    Stakes: {tour.stakes_cash.slice(0, 3).join(', ')}
+                </p>
+            )}
+            {/* Regions — from poker_tours data */}
             {tour.regions && tour.regions.length > 0 && (
                 <div className="card-tags">
                     {tour.regions.map(r => <span key={r} className="tag region">{r}</span>)}
+                </div>
+            )}
+            {/* Games offered — from poker_venues data */}
+            {!tour.regions && Array.isArray(tour.games_offered) && tour.games_offered.length > 0 && (
+                <div className="card-tags">
+                    {tour.games_offered.slice(0, 4).map((g, i) => <span key={g || i} className="tag game">{g}</span>)}
                 </div>
             )}
             {tour.upcoming_series && tour.upcoming_series.length > 0 && (

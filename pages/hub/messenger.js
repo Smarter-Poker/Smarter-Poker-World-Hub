@@ -2593,10 +2593,10 @@ function MessengerPage() {
             if (!sendResp.ok || !sendResult.success) throw new Error(sendResult.error || 'Send failed');
             const data = sendResult.msgId;
 
-            // Replace optimistic message with real one
+            // Replace optimistic message with real one (use server-sanitized content)
             setMessages(prev => prev.map(m =>
                 m.id === tempId
-                    ? { ...m, id: data, status: 'sent' }
+                    ? { ...m, id: data, content: sendResult.content || m.content, status: 'sent' }
                     : m
             ));
 
@@ -2712,9 +2712,11 @@ function MessengerPage() {
             });
             const result = await resp.json();
             if (result.success) {
+                // Use server-returned sanitized content (not raw editText) for UI parity
+                const sanitizedContent = result.content || editText.trim();
                 setMessages(prev => prev.map(m =>
                     m.id === editingMessage.id
-                        ? { ...m, content: editText.trim(), is_edited: true }
+                        ? { ...m, content: sanitizedContent, is_edited: true }
                         : m
                 ));
                 setToast({ type: 'success', message: 'Message Edited' });

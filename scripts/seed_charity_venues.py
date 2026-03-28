@@ -498,7 +498,7 @@ VERIFIED_VENUES = [
     {
         'name': 'Evlos Charity Poker',
         'address': '',
-        'city': '',
+        'city': 'Baltimore',
         'state': 'MD',
         'country': 'US',
         'venue_type': 'charity',
@@ -518,7 +518,7 @@ VERIFIED_VENUES = [
     {
         'name': 'Charity Series of Poker (CSOP)',
         'address': '',
-        'city': '',
+        'city': 'Las Vegas',
         'state': 'NV',
         'country': 'US',
         'venue_type': 'charity',
@@ -639,8 +639,8 @@ VERIFIED_VENUES = [
     {
         'name': 'Poker For Good',
         'address': '',
-        'city': '',
-        'state': '',
+        'city': 'National',
+        'state': 'US',
         'country': 'US',
         'venue_type': 'charity',
         'website': 'https://pokerforgood.org',
