@@ -3141,6 +3141,12 @@ function MessengerPage() {
     // Start a Jitsi call - Now uses real-time signaling for instant popup
     const startCall = async (type) => {
         if (!activeConversation || !user) return;
+
+        // BUG-9 FIX: Prevent double-click or calling while already in a call
+        if (callingUser || showCall) {
+            return;
+        }
+
         const otherUser = activeConversation?.otherUser;
 
         // 🔒 CRITICAL VALIDATION: Ensure we're calling the right person
