@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     
     let query = supabase
       .from('venue_live_history')
-      .select('venue_name, total_tables, snapshot_time, game_type')
+      .select('venue_name, total_tables, snapshot_time')
       .gte('snapshot_time', twoWeeksAgo)
       .order('snapshot_time', { ascending: true });
     
@@ -41,9 +41,8 @@ export default async function handler(req, res) {
       query = query.ilike('venue_name', `%${venue}%`);
     }
     
-    if (game_type) {
-      query = query.ilike('game_type', `%${game_type}%`);
-    }
+    // Note: game_type filtering not supported by venue_live_history schema
+    // Filter is applied client-side if needed
     
     const { data, error } = await query.limit(10000);
     
