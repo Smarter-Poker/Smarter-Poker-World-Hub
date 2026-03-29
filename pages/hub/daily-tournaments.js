@@ -38,7 +38,33 @@ const BUYIN_RANGES = [
 
 function formatTime(timeStr) {
     if (!timeStr) return '';
-    return timeStr.replace(/([AP])M$/i, ' $1M');
+    // Handle HH:MM:SS format from database
+    const colonParts = timeStr.split(':');
+    if (colonParts.length >= 2 && !timeStr.match(/[AP]M/i)) {
+        let h = parseInt(colonParts[0], 10);
+        const m = colonParts[1];
+        if (!isNaN(h)) {
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            if (h === 0) h = 12;
+            else if (h > 12) h -= 12;
+            return `${h}:${m} ${ampm}`;
+        }
+    }
+    // Handle existing AM/PM strings — ensure proper capitalization
+    return timeStr.replace(/([AP])M$/i, (_, p) => ` ${p.toUpperCase()}M`);
+}
+
+function formatGameType(raw) {
+    if (!raw) return 'NLH';
+    const lower = raw.toLowerCase();
+    if (lower === 'holdem' || lower === 'hold\'em' || lower === 'texas hold\'em') return 'Hold\'em';
+    if (lower === 'nlh' || lower === 'no limit holdem' || lower === 'no limit hold\'em') return 'NLH';
+    if (lower === 'plo' || lower === 'omaha') return 'PLO';
+    if (lower === 'horse') return 'HORSE';
+    if (lower === 'mixed') return 'Mixed';
+    if (lower === 'stud') return 'Stud';
+    // Capitalize first letter of each word for anything else
+    return raw.replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function formatMoney(amount) {
@@ -972,12 +998,12 @@ function TournamentCard({ tournament }) {
             ) : (
                 <h4 className="card-venue">{t.venue_name}</h4>
             )}
-            <p className="card-location">{t.city}, {t.state}</p>
+            {(t.city || t.state) && <p className="card-location">{[t.city, t.state].filter(Boolean).join(', ')}</p>}
             <div className="card-tags">
-                <span className={`tag game-type ${t.game_type?.toLowerCase()}`}>{t.game_type || 'NLH'}</span>
+                <span className={`tag game-type ${(t.game_type || '').toLowerCase()}`}>{formatGameType(t.game_type)}</span>
                 {t.format && <span className="tag format">{t.format}</span>}
                 {t.guaranteed && <span className="tag guaranteed">{formatMoney(t.guaranteed)} GTD</span>}
-                <span className="tag venue-type">{t.venueType}</span>
+                {t.venueType && t.venueType !== 'Unknown' && <span className="tag venue-type">{t.venueType}</span>}
             </div>
             <div className="card-actions">
                 {t.venue_id && (
