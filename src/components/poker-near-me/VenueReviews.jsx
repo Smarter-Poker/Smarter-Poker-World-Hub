@@ -180,24 +180,32 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         }
     };
 
-    // Vote helpful
-    const voteHelpful = async (reviewId) => {
+    // Vote helpful/unhelpful
+    const voteReview = async (reviewId, action) => {
         // Optimistic update
         setReviews(prev => prev.map(r =>
-            r.id === reviewId ? { ...r, helpful_count: (r.helpful_count || 0) + 1, voted: true } : r
+            r.id === reviewId ? {
+                ...r,
+                [action + '_count']: (r[action + '_count'] || 0) + 1,
+                ['voted_' + action]: true
+            } : r
         ));
         // Persist to API
         try {
             const resp = await fetch('/api/poker/reviews', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}) },
-                body: JSON.stringify({ review_id: reviewId, action: 'helpful' }),
+                body: JSON.stringify({ review_id: reviewId, action }),
             });
             if (!resp.ok) throw new Error('API error');
         } catch {
             // Rollback on failure
             setReviews(prev => prev.map(r =>
-                r.id === reviewId ? { ...r, helpful_count: Math.max((r.helpful_count || 1) - 1, 0), voted: false } : r
+                r.id === reviewId ? {
+                    ...r,
+                    [action + '_count']: Math.max((r[action + '_count'] || 1) - 1, 0),
+                    ['voted_' + action]: false
+                } : r
             ));
         }
     };
@@ -328,7 +336,16 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                                     {(r.reviewer_name || '?')[0].toUpperCase()}
                                 </div>
                                 <div className="vr-reviewer-info">
-                                    <span className="vr-reviewer-name">{r.reviewer_name}</span>
+                                    <span className="vr-reviewer-name">
+                                        {r.reviewer_name}
+                                        {r.metadata?.verified_player && (
+                                            <span className="vr-verified-badge" title="Verified Player — has played at this venue">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="#22c55e" stroke="#22c55e" strokeWidth="2">
+                                                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+                                                </svg>
+                                            </span>
+                                        )}
+                                    </span>
                                     <span className="vr-review-date">{timeAgo(r.created_at)}</span>
                                 </div>
                                 <StarRating rating={r.rating} size={12} />
@@ -340,9 +357,19 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                                 </div>
                             )}
                             <div className="vr-review-actions">
-                                <button className={'vr-helpful-btn' + (r.voted ? ' voted' : '')} onClick={() => !r.voted && voteHelpful(r.id)}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z" /><path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" /></svg>
+                                <button className={'vr-helpful-btn' + (r.voted_helpful ? ' voted' : '')} onClick={() => !r.voted_helpful && voteReview(r.id, 'helpful')}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}>
+                                        <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z" />
+                                        <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" />
+                                    </svg>
                                     Helpful {r.helpful_count > 0 ? `(${r.helpful_count})` : ''}
+                                </button>
+                                <button className={'vr-unhelpful-btn' + (r.voted_unhelpful ? ' voted' : '')} onClick={() => !r.voted_unhelpful && voteReview(r.id, 'unhelpful')}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4, transform: 'rotate(180deg)' }}>
+                                        <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z" />
+                                        <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" />
+                                    </svg>
+                                    {r.unhelpful_count > 0 ? `(${r.unhelpful_count})` : ''}
                                 </button>
                             </div>
                         </div>
@@ -405,10 +432,14 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         .vr-review-text { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.5; margin: 0; }
         .vr-review-photos { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; }
         .vr-review-photo { width: 80px; height: 60px; border-radius: 6px; object-fit: cover; }
-        .vr-review-actions { margin-top: 10px; }
-        .vr-helpful-btn { padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .vr-review-actions { margin-top: 10px; display: flex; gap: 6px; }
+        .vr-helpful-btn { padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; }
         .vr-helpful-btn:hover { background: rgba(255,255,255,0.08); }
         .vr-helpful-btn.voted { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); color: #3b82f6; }
+        .vr-unhelpful-btn { padding: 6px 10px; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.35); font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; }
+        .vr-unhelpful-btn:hover { background: rgba(239,68,68,0.06); }
+        .vr-unhelpful-btn.voted { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
+        .vr-verified-badge { display: inline-flex; align-items: center; margin-left: 4px; vertical-align: middle; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
         </div>

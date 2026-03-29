@@ -16,11 +16,18 @@ import path from 'path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 config({ path: path.resolve(__dirname, '../../../.env.local') });
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Lazy-init Supabase client (RAT-AUTH-NUCLEAR compliant)
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!key) throw new Error('[HorseMessengerEngine] No Supabase key — check Vercel env vars');
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 const XAI_API_KEY = process.env.XAI_API_KEY;
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /**
  * Interface with xAI / Grok API
@@ -94,7 +101,7 @@ async function processDirectMessages() {
     console.log('\n💬 HORSE MESSENGER ENGINE RUNNING...');
 
     // 1. Get all active horses
-    const { data: horses } = await supabase
+    const { data: horses } = await getSupabase()
         .from('content_authors')
         .select('id, profile_id, name, specialty')
         .eq('is_active', true)
@@ -111,7 +118,7 @@ async function processDirectMessages() {
     // Instead of a complex subquery, let's fetch recent messages sent BY humans
     const fifteenMinsAgo = new Date(Date.now() - 15 * 60000).toISOString();
     
-    const { data: recentMsgs } = await supabase
+    const { data: recentMsgs } = await getSupabase()
         .from('social_messages')
         .select('id, conversation_id, sender_id, content, created_at')
         .gte('created_at', fifteenMinsAgo)
@@ -142,7 +149,7 @@ async function processDirectMessages() {
 
     for (const convId of Object.keys(convMap)) {
         // Fetch the conversation details to see who is in it
-        const { data: convInfo } = await supabase
+        const { data: convInfo } = await getSupabase()
             .from('social_conversations')
             .select('user1_id, user2_id')
             .eq('id', convId)
@@ -163,7 +170,7 @@ async function processDirectMessages() {
         const humanId = isUser1Horse ? convInfo.user2_id : convInfo.user1_id;
 
         // 3. Fetch conversation history to see if the horse already replied
-        const { data: history } = await supabase
+        const { data: history } = await getSupabase()
             .from('social_messages')
             .select('sender_id, content, read_at')
             .eq('conversation_id', convId)
@@ -185,7 +192,7 @@ async function processDirectMessages() {
         // Phase 17: Read Receipt — Mark the human's last message as "Seen"
         const lastHumanMsg = [...history].reverse().find(h => h.sender_id !== targetHorseId);
         if (lastHumanMsg && !lastHumanMsg.read_at) {
-            await supabase.from('social_messages')
+            await getSupabase().from('social_messages')
                 .update({ read_at: new Date().toISOString() })
                 .eq('conversation_id', convId)
                 .eq('sender_id', lastHumanMsg.sender_id)
@@ -210,7 +217,7 @@ async function processDirectMessages() {
         if (!replyContent) continue;
 
         // 5. Send the reply
-        const { error: insertErr } = await supabase
+        const { error: insertErr } = await getSupabase()
             .from('social_messages')
             .insert({
                 conversation_id: convId,
@@ -220,7 +227,7 @@ async function processDirectMessages() {
 
         if (!insertErr) {
             // Update conversation preview
-            await supabase.from('social_conversations')
+            await getSupabase().from('social_conversations')
                 .update({ 
                     last_message_preview: replyContent, 
                     updated_at: new Date().toISOString() 

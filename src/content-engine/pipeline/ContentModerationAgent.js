@@ -31,8 +31,17 @@ const __dirname = path.dirname(__filename);
 // Load environment
 config({ path: path.resolve(__dirname, '../../../.env.local') });
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Lazy-init Supabase client (RAT-AUTH-NUCLEAR compliant)
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!key) throw new Error('[ContentModerationAgent] No Supabase key — check Vercel env vars');
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONTENT QUALITY LAW - HARD RULES
@@ -72,11 +81,11 @@ const KNOWN_VIOLATORS = [
 
 class ContentModerationAgent {
     constructor() {
-        if (!SUPABASE_URL || !SUPABASE_KEY) {
-            throw new Error('Missing Supabase credentials');
-        }
-        this.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
         this.violations = [];
+    }
+
+    get supabase() {
+        return getSupabase();
     }
 
     /**

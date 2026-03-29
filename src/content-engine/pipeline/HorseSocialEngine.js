@@ -18,11 +18,18 @@ import { config } from 'dotenv';
 import { shouldHorseBeActive, getHorseActivityRate, isHorseActiveHour, isHorseActiveHourTZ, applyWritingStyle } from './HorseScheduler.js';
 config({ path: '../../../.env.local' });
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-// Use service role key for reliable writes, fall back to anon key
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
+// Lazy-init Supabase client (RAT-AUTH-NUCLEAR compliant)
+// Prevents "supabaseKey is required" crash when env vars aren't yet available at module load
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!key) throw new Error('[HorseSocialEngine] No Supabase key available — check Vercel env vars');
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 // Helper function to send PWA push notifications to real users for social interactions
 async function sendSocialPush(targetId, horseIds, title, message, urlString) {
     if (!targetId || horseIds.includes(targetId)) return; // Do not push to other horses
@@ -228,21 +235,21 @@ async function checkDailyLimit(horseProfileId, actionType) {
     let count = 0;
 
     if (actionType === 'likes') {
-        const { count: likeCount } = await supabase
+        const { count: likeCount } = await getSupabase()
             .from('social_likes')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', horseProfileId)
             .gte('created_at', today);
         count = likeCount || 0;
     } else if (actionType === 'comments' || actionType === 'replies') {
-        const { count: commentCount } = await supabase
+        const { count: commentCount } = await getSupabase()
             .from('social_comments')
             .select('*', { count: 'exact', head: true })
             .eq('author_id', horseProfileId)
             .gte('created_at', today);
         count = commentCount || 0;
     } else if (actionType === 'friend_requests') {
-        const { count: friendCount } = await supabase
+        const { count: friendCount } = await getSupabase()
             .from('friendships')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', horseProfileId)
@@ -278,7 +285,7 @@ async function checkCooldown(horseProfileId, targetId, actionType) {
 
     const cutoffTime = new Date(Date.now() - cooldownMs).toISOString();
 
-    const { data } = await supabase
+    const { data } = await getSupabase()
         .from(tableName)
         .select('id')
         .eq(targetColumn === 'post_id' ? (tableName === 'social_likes' ? 'post_id' : 'post_id') : 'parent_id', targetId)
@@ -310,7 +317,7 @@ async function sendFriendRequests(maxRequests = 10) {
     console.log('\n🤝 SENDING FRIEND REQUESTS...');
 
     // Get all horses
-    const { data: horses } = await supabase
+    const { data: horses } = await getSupabase()
         .from('content_authors')
         .select('id, name, profile_id')
         .eq('is_active', true)
@@ -321,7 +328,7 @@ async function sendFriendRequests(maxRequests = 10) {
     const horseIds = horses.map(h => h.profile_id);
 
     // Get real users (non-horse profiles) for horses to befriend
-    const { data: realUsers } = await supabase
+    const { data: realUsers } = await getSupabase()
         .from('profiles')
         .select('id, username, full_name')
         .not('id', 'in', `(${horseIds.join(',')})`)
@@ -347,7 +354,7 @@ async function sendFriendRequests(maxRequests = 10) {
         if (!target) continue;
 
         // Check if already friends or pending
-        const { data: existing } = await supabase
+        const { data: existing } = await getSupabase()
             .from('friendships')
             .select('id')
             .or(`and(user_id.eq.${horse.profile_id},friend_id.eq.${target.profile_id}),and(user_id.eq.${target.profile_id},friend_id.eq.${horse.profile_id})`)
@@ -356,7 +363,7 @@ async function sendFriendRequests(maxRequests = 10) {
         if (existing) continue; // Already have relationship
 
         // Send friend request
-        const { error } = await supabase
+        const { error } = await getSupabase()
             .from('friendships')
             .insert({
                 user_id: horse.profile_id,
@@ -385,7 +392,7 @@ async function acceptFriendRequests(maxAccepts = 15) {
     console.log('\n✅ ACCEPTING FRIEND REQUESTS...');
 
     // Get all horses
-    const { data: horses } = await supabase
+    const { data: horses } = await getSupabase()
         .from('content_authors')
         .select('id, name, profile_id')
         .eq('is_active', true)
@@ -396,7 +403,7 @@ async function acceptFriendRequests(maxAccepts = 15) {
     const horseIds = horses.map(h => h.profile_id);
 
     // Find pending requests TO horses
-    const { data: pending } = await supabase
+    const { data: pending } = await getSupabase()
         .from('friendships')
         .select('id, user_id, friend_id')
         .eq('status', 'pending')
@@ -413,7 +420,7 @@ async function acceptFriendRequests(maxAccepts = 15) {
     for (const request of pending) {
         // Random chance to accept (80%)
         if (Math.random() < 0.8) {
-            const { error } = await supabase
+            const { error } = await getSupabase()
                 .from('friendships')
                 .update({ status: 'accepted' })
                 .eq('id', request.id);
@@ -456,7 +463,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
     console.log(`\n💬 HORSES COMMENTING ON POSTS... (minute ${currentMinute})`);
 
     // Get all horses
-    const { data: allHorses } = await supabase
+    const { data: allHorses } = await getSupabase()
         .from('content_authors')
         .select('id, name, profile_id, avatar_url, timezone')
         .eq('is_active', true)
@@ -546,7 +553,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
         // 🟢 DYNAMIC TYPING INDICATOR (Phase 11)
         // Broadcast a typing payload to all connected clients viewing this post
         try {
-            await supabase.channel('social-feed').send({
+            await getSupabase().channel('social-feed').send({
                 type: 'broadcast',
                 event: 'typing',
                 payload: {
@@ -564,7 +571,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
             await new Promise(r => setTimeout(r, typingMs));
             
             // Send stop typing event
-            await supabase.channel('social-feed').send({
+            await getSupabase().channel('social-feed').send({
                 type: 'broadcast',
                 event: 'typing',
                 payload: { post_id: post.id, user_id: horse.profile_id, isTyping: false }
@@ -574,7 +581,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
         }
 
         // Insert comment
-        const { error } = await supabase
+        const { error } = await getSupabase()
             .from('social_comments')
             .insert({
                 post_id: post.id,
@@ -587,18 +594,18 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
             const otherHorses = allHorses.filter(h => h.profile_id !== horse.profile_id);
             if (otherHorses.length > 0) {
                 const friend = otherHorses[Math.floor(Math.random() * otherHorses.length)];
-                const { data: friendProfile } = await supabase
+                const { data: friendProfile } = await getSupabase()
                     .from('profiles').select('username').eq('id', friend.profile_id).maybeSingle();
                 if (friendProfile?.username) {
                     const mentionComment = `@${friendProfile.username} ${comment}`;
-                    await supabase.from('social_comments').update({ content: mentionComment })
+                    await getSupabase().from('social_comments').update({ content: mentionComment })
                         .eq('post_id', post.id).eq('author_id', horse.profile_id)
                         .eq('content', comment);
                     comment = mentionComment;
                     console.log(`   ${horse.name} tagged @${friendProfile.username}`);
                     
                     // Phase 28 Fix: Insert notification for the mentioned friend
-                    await supabase.from('notifications').insert({
+                    await getSupabase().from('notifications').insert({
                         user_id: friend.profile_id,
                         actor_id: horse.profile_id,
                         type: 'mention',
@@ -621,9 +628,9 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
             commented++;
             
             // Sync denormalized comment_count on social_posts (fire-and-forget)
-            supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(() => {
-                supabase.from('social_posts').select('comment_count').eq('id', post.id).maybeSingle().then(({ data: p }) => {
-                    if (p) supabase.from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', post.id);
+            getSupabase().rpc('increment_post_count', { p_post_id: post.id, p_field: 'comment_count' }).catch(() => {
+                getSupabase().from('social_posts').select('comment_count').eq('id', post.id).maybeSingle().then(({ data: p }) => {
+                    if (p) getSupabase().from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', post.id);
                 }).catch(() => {});
             });
 
@@ -650,7 +657,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
     console.log(`\n❤️ HORSES LIKING POSTS... (minute ${currentMinute})`);
 
     // Get all horses
-    const { data: allHorses } = await supabase
+    const { data: allHorses } = await getSupabase()
         .from('content_authors')
         .select('id, name, profile_id, timezone')
         .eq('is_active', true)
@@ -710,7 +717,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
             if (!canLike) continue;
 
             // Check for existing like
-            const { data: existing } = await supabase
+            const { data: existing } = await getSupabase()
                 .from('social_likes')
                 .select('id')
                 .eq('post_id', post.id)
@@ -729,7 +736,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
             // else: 'like' (40%)
 
             // Insert like with reaction type
-            const { error } = await supabase
+            const { error } = await getSupabase()
                 .from('social_likes')
                 .insert({
                     post_id: post.id,
@@ -746,9 +753,9 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
                 liked++;
                 
                 // Sync denormalized like_count on social_posts (fire-and-forget)
-                supabase.rpc('increment_post_count', { p_post_id: post.id, p_field: 'like_count' }).catch(() => {
-                    supabase.from('social_posts').select('like_count').eq('id', post.id).maybeSingle().then(({ data: p }) => {
-                        if (p) supabase.from('social_posts').update({ like_count: (p.like_count || 0) + 1 }).eq('id', post.id);
+                getSupabase().rpc('increment_post_count', { p_post_id: post.id, p_field: 'like_count' }).catch(() => {
+                    getSupabase().from('social_posts').select('like_count').eq('id', post.id).maybeSingle().then(({ data: p }) => {
+                        if (p) getSupabase().from('social_posts').update({ like_count: (p.like_count || 0) + 1 }).eq('id', post.id);
                     }).catch(() => {});
                 });
             }
@@ -778,7 +785,7 @@ async function replyToComments(maxReplies = 15) {
     console.log(`\n💬 HORSES REPLYING TO COMMENTS... (minute ${currentMinute})`);
 
     // Get all horses
-    const { data: allHorses } = await supabase
+    const { data: allHorses } = await getSupabase()
         .from('content_authors')
         .select('id, name, profile_id, voice, timezone')
         .eq('is_active', true)
@@ -803,7 +810,7 @@ async function replyToComments(maxReplies = 15) {
     const horseIds = allHorses.map(h => h.profile_id);
 
     // Get recent comments
-    const { data: comments } = await supabase
+    const { data: comments } = await getSupabase()
         .from('social_comments')
         .select('id, post_id, author_id, content, created_at')
         .order('created_at', { ascending: false })
@@ -840,7 +847,7 @@ async function replyToComments(maxReplies = 15) {
         if (!canReply) continue;
 
         // Check for existing reply
-        const { data: existingReply } = await supabase
+        const { data: existingReply } = await getSupabase()
             .from('social_comments')
             .select('id')
             .eq('parent_id', comment.id)
@@ -862,7 +869,7 @@ async function replyToComments(maxReplies = 15) {
         replyText = applyWritingStyle(replyText, horse.profile_id);
 
         // Insert reply
-        const { error } = await supabase
+        const { error } = await getSupabase()
             .from('social_comments')
             .insert({
                 post_id: comment.post_id,
@@ -879,9 +886,9 @@ async function replyToComments(maxReplies = 15) {
             replied++;
             
             // Sync denormalized comment_count on social_posts (fire-and-forget)
-            supabase.rpc('increment_post_count', { p_post_id: comment.post_id, p_field: 'comment_count' }).catch(() => {
-                supabase.from('social_posts').select('comment_count').eq('id', comment.post_id).maybeSingle().then(({ data: p }) => {
-                    if (p) supabase.from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', comment.post_id);
+            getSupabase().rpc('increment_post_count', { p_post_id: comment.post_id, p_field: 'comment_count' }).catch(() => {
+                getSupabase().from('social_posts').select('comment_count').eq('id', comment.post_id).maybeSingle().then(({ data: p }) => {
+                    if (p) getSupabase().from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', comment.post_id);
                 }).catch(() => {});
             });
 
@@ -979,7 +986,7 @@ async function reactToComments(maxReactions = 15) {
 
     console.log(`\n🔥 HORSES REACTING TO COMMENTS... (minute ${currentMinute})`);
 
-    const { data: allHorses } = await supabase
+    const { data: allHorses } = await getSupabase()
         .from('content_authors')
         .select('id, name, profile_id, timezone')
         .eq('is_active', true)
@@ -998,7 +1005,7 @@ async function reactToComments(maxReactions = 15) {
     const horseIds = allHorses.map(h => h.profile_id);
 
     // Get recent comments from other horses
-    const { data: recentComments } = await supabase
+    const { data: recentComments } = await getSupabase()
         .from('social_comments')
         .select('id, author_id')
         .in('author_id', horseIds)
@@ -1025,7 +1032,7 @@ async function reactToComments(maxReactions = 15) {
         else if (roll > 0.50) reaction = 'haha';
         else if (roll > 0.30) reaction = 'love';
 
-        const { error } = await supabase
+        const { error } = await getSupabase()
             .from('social_comment_likes')
             .upsert({
                 comment_id: comment.id,

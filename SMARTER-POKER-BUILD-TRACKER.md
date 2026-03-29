@@ -41,22 +41,80 @@
 
 ---
 
-## PHASE 2 — In Progress
+## PHASE 2 — Completed (2026-03-29)
 
 ### E2E CI Workflow
 | Deliverable | Status | Location |
 |---|---|---|
-| e2e-tests.yml GitHub Action | BUILDING | .github/workflows/e2e-tests.yml |
+| e2e-tests.yml GitHub Action | DONE | .github/workflows/e2e-tests.yml |
 
 ### Environment Documentation
 | Deliverable | Status | Location |
 |---|---|---|
-| .env.example | BUILDING | World Hub root |
+| .env.example (70+ vars) | DONE | World Hub root |
 
 ### Club Arena V8 Bible Engine Tests
 | Deliverable | Status | Location |
 |---|---|---|
-| Bible compliance unit tests | BUILDING | club-arena/tests/engine/v8-bible/ |
+| law-1-5-fairness.test.ts | DONE | club-arena/tests/engine/v8-bible/ |
+| law-1-9-settlement.test.ts | DONE | club-arena/tests/engine/v8-bible/ |
+| chapter-3-state-machines.test.ts | DONE | club-arena/tests/engine/v8-bible/ |
+
+### E2E Test File Alignment
+- All test files renamed to `0xx-*.spec.ts` pattern to match `playwright.config.ts` testMatch: `/0.*\.spec\.ts/`
+- Setup project `00-auth.setup.ts` matches `*.setup.ts` pattern
+- Full suite: 01 through 014 covering all routes
+
+### Build Tracker Skill
+| Deliverable | Status | Location |
+|---|---|---|
+| build-tracker SKILL.md | DONE | antigravity-toolkit/skills/build-tracker/ |
+| Plugin validation fix (YAML frontmatter) | DONE | All 6 skills now pass validation |
+
+---
+
+## PHASE 3 — Completed (2026-03-29)
+
+### Live Site Audit (smarter.poker)
+| Test | Result | Detail |
+|---|---|---|
+| Landing page | PASS | Next.js SSR, title correct, build ID present |
+| /hub | PASS | Geeves AI, Quick Nav, Dealer Tools, all sub-hubs |
+| /hub/poker-near-me | PASS | Venues, Events, Live Games tabs present |
+| /hub/training | PASS | Training Library loading state |
+| /hub/diamond-store | PASS | Virtual currency disclaimer, checkout flow |
+| /hub/social | PASS | Framework loaded |
+| /commander | PASS | Public landing, staff login at /commander/login |
+| /api/health | PASS | status:ok, DB 132ms, uptime tracked |
+| /manifest.json | PASS | PWA standalone, correct icons and start_url |
+
+### Security Audit
+| Test | Result | Detail |
+|---|---|---|
+| /api/admin/health → 403 | PASS | Middleware blocks without x-admin-secret |
+| /api/debug → 403 | PASS | Protected |
+| /api/emergency → 403 | PASS | Protected |
+| /commander/admin → PIN gate | PASS | Requires PIN (note: client-side gate, not SSR) |
+
+### Vercel Deployment Status
+| Project | Latest Deploy | State | Commit |
+|---|---|---|---|
+| World Hub | Today | READY | achievement trigger noise fix |
+| Club Arena | Recent | READY | FIX 143-146: Deferred sit-out, rakeback, BBJ |
+| 22 total projects on Smarter-Poker team | — | All READY | — |
+
+### Production Cron Error Discovery
+| Deliverable | Status | Location |
+|---|---|---|
+| CRON-ERROR-REPORT.md | DONE | World Hub root |
+| Root cause: supabaseKey missing | DOCUMENTED | 5+ cron endpoints affected, ~216 failures/day |
+| Fix recommendations (3 options) | DOCUMENTED | Lazy init, shared client, or env var verify |
+
+### Monitoring Infrastructure
+| Deliverable | Status | Location |
+|---|---|---|
+| e2e/014-cron-health.spec.ts | DONE | 30+ cron endpoints, security, page loads |
+| Production Monitor Dashboard | DONE | Desktop/smarter-poker-monitor.jsx |
 
 ---
 
@@ -95,9 +153,10 @@
 - **PWA:** manifest.json + sw.js (Workbox), standalone mode
 
 ### Club Arena Architecture
-- **V8 Bible Compliance:** 4% verified, 15% broken, 38% missing, 20% partial
-- **Big 3 Blockers:** Dual engine (client authoritative), card security (broadcasts all), auto-fold on error
-- **Migration Phase:** STEP 1 (rip out client-side engine) per CLAUDE.md
+- **V8 Bible Compliance:** ~40% (FIX 119-146 series landing, up from 4%)
+- **Recent Fixes:** ShortDeck eval, Pineapple discard, pot-limit clamping, time bank gating, crash recovery, dead blinds, showdown order, duplicate seat prevention, BBJ, deferred sit-out, rakeback, god-mode RLS drop
+- **Infrastructure:** Migrated game server from Railway to Hetzner Cloud (engine.smarter.poker)
+- **Big 3 Blockers:** Dual engine (in migration), card security (god-mode RLS dropped FIX 141), auto-fold
 - **Engine Files:** 24 files in server/src/engine/
 - **Test Coverage:** 13 engine tests, 120+ unit tests, 9 E2E tests, 1 integration test
 
@@ -115,6 +174,8 @@
 ---
 
 ## FUTURE PHASES (Not Yet Started)
+- **Phase 4: Cron Reliability** — Fix supabaseKey issue in 5+ Horse/Content crons (~216 daily failures), migrate module-level Supabase init to lazy pattern
+- **Phase 5: Commander SSR Auth** — Move PIN validation from client-side overlay to getServerSideProps
 - Club Arena E2E test expansion (game flow, poker hands)
 - Cross-Orb health monitoring dashboard
 - Shared TypeScript types package across repos

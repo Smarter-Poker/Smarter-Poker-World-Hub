@@ -15,8 +15,17 @@ import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
 config({ path: '../../../.env.local' });
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Lazy-init Supabase client (RAT-AUTH-NUCLEAR compliant)
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!key) throw new Error('[HorseStable] No Supabase key — check Vercel env vars');
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HORSE STABLE - Singleton coordination hub
@@ -30,9 +39,10 @@ class HorseStable {
 
         // Social coordination  
         this.recentInteractions = new Map(); // Track interactions
+    }
 
-        // Supabase client
-        this.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    get supabase() {
+        return getSupabase();
     }
 
     // ═══════════════════════════════════════════════════════════
