@@ -2,22 +2,24 @@
  * VenueCompare.jsx — Side-by-side venue comparison panel
  * Allows users to compare 2-3 venues across key metrics.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { haversineMiles } from './pnm-utils';
 
 const COMPARE_FIELDS = [
   { key: 'name', label: 'Venue' },
   { key: 'city_state', label: 'Location' },
   { key: 'distance', label: 'Distance' },
+  { key: 'live_games', label: 'Live Games' },
+  { key: 'waiting_list', label: 'Waitlist' },
   { key: 'trust_score', label: 'Trust Score' },
-  { key: 'tables_count', label: 'Tables' },
+  { key: 'tables_count', label: 'Total Tables' },
   { key: 'venue_type', label: 'Type' },
   { key: 'games_offered', label: 'Games' },
   { key: 'hours', label: 'Hours' },
   { key: 'phone', label: 'Phone' },
 ];
 
-function getFieldValue(venue, field, userLocation) {
+function getFieldValue(venue, field, userLocation, liveDataMap = {}) {
   switch (field) {
     case 'name': return venue.name || 'Unknown';
     case 'city_state': return `${venue.city || ''}${venue.state ? `, ${venue.state}` : ''}`;
@@ -25,6 +27,18 @@ function getFieldValue(venue, field, userLocation) {
       if (!userLocation || !venue.latitude || !venue.longitude) return '—';
       const d = haversineMiles(userLocation.lat, userLocation.lng, parseFloat(venue.latitude), parseFloat(venue.longitude));
       return d < 1 ? `${(d * 5280).toFixed(0)} ft` : `${d.toFixed(1)} mi`;
+    case 'live_games': {
+      const live = liveDataMap[String(venue.id)];
+      if (!live || live.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>—</span>;
+      const active = live.reduce((sum, g) => sum + (parseInt(g.tables_running) || 0), 0);
+      return active > 0 ? <span style={{ color: '#3fb950', fontWeight: 700 }}>{active} Running</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
+    }
+    case 'waiting_list': {
+      const live = liveDataMap[String(venue.id)];
+      if (!live || live.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>—</span>;
+      const wait = live.reduce((sum, g) => sum + (parseInt(g.players_waiting) || 0), 0);
+      return wait > 0 ? <span style={{ color: '#f59e0b', fontWeight: 700 }}>{wait} Waiting</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
+    }
     case 'trust_score': return venue.trust_score ? `${venue.trust_score}/100` : '—';
     case 'tables_count': return venue.tables_count || venue.total_tables || '—';
     case 'venue_type': return (venue.venue_type || 'casino').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -39,6 +53,24 @@ function getFieldValue(venue, field, userLocation) {
 export default function VenueCompare({ venues = [], userLocation, onClose }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [liveData, setLiveData] = useState({});
+
+  useEffect(() => {
+    fetch('/api/poker/live-tables')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          const map = {};
+          data.data.forEach(g => {
+            const vId = String(g.venue_id);
+            if (!map[vId]) map[vId] = [];
+            map[vId].push(g);
+          });
+          setLiveData(map);
+        }
+      })
+      .catch(err => console.error('Failed to load live data for compare:', err));
+  }, []);
 
   const selectedVenues = useMemo(() =>
     selectedIds.map(id => venues.find(v => String(v.id) === String(id))).filter(Boolean),

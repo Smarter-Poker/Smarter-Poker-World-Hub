@@ -9,7 +9,7 @@
  *   type       - filter by venue_type (casino, card_room, charity, poker_club)
  *   tournaments - if 'true', only venues with has_tournaments=true
  *   search     - search by name, city, address, or state (case-insensitive)
- *   lat + lng + radius (default 100km) - GPS-based search with Haversine distance
+ *   lat + lng + radius (default 100mi) - GPS-based search with Haversine distance
  *   limit      - max results (default: all, no cap)
  *   featured   - if 'true', only featured venues
  */
@@ -649,11 +649,11 @@ export default async function handler(req, res) {
               });
 
               // Filter venues WITH coordinates by radius; KEEP venues without coordinates (sorted to end)
-              const withinRadius = venues.filter(v => v.distance_km != null && v.distance_km <= maxRadius);
-              const noCoords = venues.filter(v => v.distance_km == null);
+              const withinRadius = venues.filter(v => v.distance_mi != null && v.distance_mi <= maxRadius);
+              const noCoords = venues.filter(v => v.distance_mi == null);
 
               // Sort: distance-first for GPS venues, then no-coord venues (charity, clubs, home games) at end
-              withinRadius.sort((a, b) => a.distance_km - b.distance_km);
+              withinRadius.sort((a, b) => a.distance_mi - b.distance_mi);
               venues = [...withinRadius, ...noCoords];
           }
 
