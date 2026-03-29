@@ -37,17 +37,40 @@ export default function HandHistoryPage() {
   const handleAiUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    if (!window.confirm("Using the AI Hand Scanner costs 5 Diamonds per scan (Free for VIP). Do you want to proceed?")) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setUploadingImage(true);
     try {
-      const formData = new FormData();
-      formData.append('image', file);
-      // Optional: Add session token if required by endpoint
-      const res = await fetch('/api/poker/parse-image', { method: 'POST', body: formData });
+      // Read file as base64
+      const base64Str = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = error => reject(error);
+      });
+      
+      const sessionStr = localStorage.getItem('smarter-poker-auth');
+      const token = sessionStr ? JSON.parse(sessionStr).access_token : null;
+      
+      const res = await fetch('/api/poker/ai-hand-reader', { 
+          method: 'POST', 
+          headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ imageBase64: base64Str })
+      });
       if (res.ok) {
         alert("Hand parsed and saved to history!");
         fetchHands();
+        window.dispatchEvent(new CustomEvent('vip-status-changed')); // Force refresh to show deducted diamonds
       } else {
-        alert("Failed to parse image check logs.");
+        const errData = await res.json().catch(() => ({}));
+        alert(`Failed to parse image: ${errData.error || 'Server error'}`);
       }
     } catch(err) {
       console.error("Upload error", err);

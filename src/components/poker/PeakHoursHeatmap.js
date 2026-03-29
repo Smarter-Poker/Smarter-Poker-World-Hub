@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import useVIPGate from '../../hooks/useVIPGate';
-import VIPGateModal from './VIPGateModal';
+import VIPGateModal from '../ui/VIPGateModal';
 
 const T = {
     text: '#E4E6EB',
