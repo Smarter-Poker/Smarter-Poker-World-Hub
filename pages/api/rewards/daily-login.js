@@ -61,6 +61,7 @@ export default async function handler(req, res) {
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const userId = user.id; // From JWT, not body
+      const supabase = getSupabase(); // Local reference for all downstream queries
 
       const now = new Date();
       const cstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));

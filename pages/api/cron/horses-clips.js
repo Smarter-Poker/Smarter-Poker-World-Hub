@@ -735,8 +735,8 @@ export default async function handler(req, res) {
           const results = [];
 
           for (const horse of selectedHorses) {
-              // Random delay 5-15 seconds between posts (stay under 60s timeout)
-              await new Promise(r => setTimeout(r, Math.random() * 10000 + 5000));
+              // Reduced delay between posts (1-3 seconds) for cron efficiency
+              await new Promise(r => setTimeout(r, 1000 + Math.random() * 2000));
 
               // 100% VIDEO CLIPS ONLY - no AI generated content
               const result = await postVideoClip(horse, recentlyUsedClips);

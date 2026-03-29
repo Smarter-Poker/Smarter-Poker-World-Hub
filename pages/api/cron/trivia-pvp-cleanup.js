@@ -38,6 +38,7 @@ export default async function handler(req, res) {
           const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
 
           // Find abandoned active matches (older than 10 minutes)
+          const supabase = getSupabase();
           const { data: abandonedMatches } = await supabase
               .from('trivia_pvp_matches')
               .select('*')
@@ -76,7 +77,7 @@ export default async function handler(req, res) {
           }
 
           // Also clean up stale queue entries (older than 5 minutes)
-          await supabase
+          await getSupabase()
               .from('trivia_pvp_queue')
               .update({ status: 'expired' })
               .eq('status', 'waiting')
@@ -128,7 +129,7 @@ async function awardForfeitWin(winnerId, loserId, stakeAmount, matchId) {
     });
 
     // Update match
-    await supabase
+    await getSupabase()
         .from('trivia_pvp_matches')
         .update({
             status: 'complete',
@@ -145,7 +146,7 @@ async function awardForfeitWin(winnerId, loserId, stakeAmount, matchId) {
 async function updatePlayerStats(playerId, outcome, diamondsDelta) {
     if (!playerId) return;
 
-    const { data: current } = await supabase
+    const { data: current } = await getSupabase()
         .from('trivia_pvp_stats')
         .select('*')
         .eq('user_id', playerId)
@@ -171,7 +172,7 @@ async function updatePlayerStats(playerId, outcome, diamondsDelta) {
         updated_at: new Date().toISOString()
     };
 
-    await supabase
+    await getSupabase()
         .from('trivia_pvp_stats')
         .upsert(updates, { onConflict: 'user_id' });
 }

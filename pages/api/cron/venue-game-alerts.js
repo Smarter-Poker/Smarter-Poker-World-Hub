@@ -52,13 +52,20 @@ export default async function handler(req, res) {
       return res.status(200).json({ ...results, message: 'No active alerts' });
     }
 
-    // 2. Get current live tables
-    const { data: liveTables, error: liveErr } = await supabase
-      .from('venue_live_tables')
-      .select('venue_name, game_name, tables_running, source')
-      .limit(5000);
-
-    if (liveErr) throw liveErr;
+    let liveTables = [];
+    try {
+      const { data: liveData, error: liveErr } = await supabase
+        .from('venue_live_tables')
+        .select('venue_name, game_name, tables_running, source')
+        .limit(5000);
+      if (liveErr) {
+        console.warn('venue_live_tables query failed:', liveErr.message);
+        return res.status(200).json({ ...results, message: 'Live tables data not available' });
+      }
+      liveTables = liveData || [];
+    } catch (_) {
+      return res.status(200).json({ ...results, message: 'Live tables system not initialized' });
+    }
 
     // 3. Check each alert against live tables
     for (const alert of alerts) {

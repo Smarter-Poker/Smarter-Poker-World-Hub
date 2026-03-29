@@ -78,7 +78,7 @@ export default async function handler(req, res) {
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'user_id, target_player_id' })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
             return res.status(200).json({ success: true, note: data });
