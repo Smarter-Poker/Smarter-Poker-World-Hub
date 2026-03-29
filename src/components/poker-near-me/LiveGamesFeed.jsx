@@ -32,7 +32,7 @@ const renderSkeletons = (count = 4) => (
 
 /**
  * SOURCE BADGE: Shows the data source for a venue's live data.
- * Bravo = real-time table counts. PokerAtlas = game catalog estimates.
+ * Source badge shows whether data is real-time or catalog-estimated.
  */
 function SourceBadge({ source }) {
     const isBravo = source === 'bravo';
@@ -46,7 +46,7 @@ function SourceBadge({ source }) {
             fontWeight: 800,
             textTransform: 'uppercase',
         }}>
-            {isBravo ? 'BRAVO LIVE' : 'POKERATLAS'}
+            {isBravo ? 'LIVE DATA' : 'CATALOG'}
         </span>
     );
 }
@@ -643,7 +643,7 @@ export default function LiveGamesFeed({
                 <div>
                     <h2 style={{ fontSize: 20, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>Live Games</h2>
                     <p style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', margin: 0 }}>
-                        Powered by Bravo Poker Live + PokerAtlas
+                        Powered by Smarter.Poker Intelligence
                     </p>
                 </div>
                 <button 

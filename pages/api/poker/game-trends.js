@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     // Get current snapshot (latest batch)
     const { data: currentData, error: currentErr } = await supabase
       .from('venue_live_tables')
-      .select('game, source')
+      .select('game_name, source')
       .order('scrape_timestamp', { ascending: false })
       .limit(5000);
 
@@ -30,17 +30,23 @@ export default async function handler(req, res) {
 
     // Get historical snapshot from ~7 days ago
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: histData, error: histErr } = await supabase
-      .from('venue_live_history')
-      .select('snapshot_data')
-      .gte('snapshot_time', weekAgo)
-      .order('snapshot_time', { ascending: true })
-      .limit(1);
+    let histData = null;
+    try {
+      const { data: hd, error: histErr } = await supabase
+        .from('venue_live_history')
+        .select('snapshot_data')
+        .gte('snapshot_time', weekAgo)
+        .order('snapshot_time', { ascending: true })
+        .limit(1);
+      if (!histErr) histData = hd;
+    } catch (_) {
+      // venue_live_history may not exist yet — skip historical comparison
+    }
 
     // Aggregate current games by type
     const currentCounts = {};
     (currentData || []).forEach(row => {
-      const game = normalizeGameType(row.game);
+      const game = normalizeGameType(row.game_name);
       currentCounts[game] = (currentCounts[game] || 0) + 1;
     });
 

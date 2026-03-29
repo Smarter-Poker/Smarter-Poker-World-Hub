@@ -33,20 +33,29 @@ export default async function handler(req, res) {
 
   try {
     // 1. Get all active alerts
-    const { data: alerts, error: alertErr } = await supabase
-      .from('venue_game_alerts')
-      .select('*')
-      .eq('active', true);
-
-    if (alertErr) throw alertErr;
-    if (!alerts || alerts.length === 0) {
+    let alerts = [];
+    try {
+      const { data: alertData, error: alertErr } = await supabase
+        .from('venue_game_alerts')
+        .select('*')
+        .eq('active', true);
+      if (alertErr) {
+        // Table may not exist yet
+        console.warn('venue_game_alerts query failed (table may not exist):', alertErr.message);
+        return res.status(200).json({ ...results, message: 'Alerts table not available yet' });
+      }
+      alerts = alertData || [];
+    } catch (_) {
+      return res.status(200).json({ ...results, message: 'Alerts system not initialized' });
+    }
+    if (alerts.length === 0) {
       return res.status(200).json({ ...results, message: 'No active alerts' });
     }
 
     // 2. Get current live tables
     const { data: liveTables, error: liveErr } = await supabase
       .from('venue_live_tables')
-      .select('venue_name, game, tables_running, source')
+      .select('venue_name, game_name, tables_running, source')
       .limit(5000);
 
     if (liveErr) throw liveErr;
@@ -55,7 +64,7 @@ export default async function handler(req, res) {
     for (const alert of alerts) {
       const matchingTables = (liveTables || []).filter(t => {
         const venueMatch = t.venue_name?.toLowerCase().includes(alert.venue_name?.toLowerCase());
-        const gameMatch = t.game?.toLowerCase().includes(alert.game_type?.toLowerCase());
+        const gameMatch = t.game_name?.toLowerCase().includes(alert.game_type?.toLowerCase());
         return venueMatch && gameMatch;
       });
 

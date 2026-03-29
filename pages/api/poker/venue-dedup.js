@@ -87,7 +87,7 @@ export default async function handler(req, res) {
     // Get all live tables
     const { data, error } = await supabase
       .from('venue_live_tables')
-      .select('venue_name, game, source, tables_running, players_waiting')
+      .select('venue_name, game_name, source, tables_running, players_waiting')
       .limit(5000);
     
     if (error) throw error;

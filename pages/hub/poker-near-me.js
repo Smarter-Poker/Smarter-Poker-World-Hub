@@ -771,7 +771,7 @@ export default function PokerNearMePage() {
         return () => window.removeEventListener('poker-near-me-filters-sync', handleSync);
     }, [filters]);
 
-    // --- Live games search-first (Bravo Poker Live) ---
+    // --- Live games search-first ---
     const [liveGames, setLiveGames] = useState([]);
     const [liveLoading, setLiveLoading] = useState(false);
     const liveRefreshRef = useRef(null);
@@ -2449,7 +2449,7 @@ export default function PokerNearMePage() {
         );
     };
 
-    // --- Live Games Renderer (Search-First: Bravo Poker Live) ---
+    // --- Live Games Renderer (Search-First) ---
     const renderLiveGames = () => {
         const totalTables = liveGames.reduce((sum, g) => sum + (g.table_count || 0), 0);
 
@@ -2524,7 +2524,7 @@ export default function PokerNearMePage() {
                         </svg>
                         <p style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginTop: 12 }}>Search For A Casino</p>
                         <p style={{ fontSize: 13, opacity: 0.4, marginTop: 6, maxWidth: 320, textAlign: 'center' }}>
-                            Type a casino or poker room name above to see what games are running right now. Data updates every 15 minutes via Bravo Poker Live.
+                            Type a casino or poker room name above to see what games are running right now. Data updates every 15 minutes via Smarter.Poker Intelligence.
                         </p>
                     </div>
                 )}
@@ -2556,7 +2556,7 @@ export default function PokerNearMePage() {
                             </span>
                             <div className="live-refresh">
                                 <span className="live-dot"></span>
-                                <span>Bravo Poker Live</span>
+                                <span>Smarter.Poker Live</span>
                                 <button className="refresh-btn" onClick={() => fetchLiveGames(selectedLiveVenue.slug)} disabled={liveLoading}>
                                     {liveLoading ? 'Refreshing...' : 'Refresh'}
                                 </button>
@@ -2584,7 +2584,7 @@ export default function PokerNearMePage() {
                                 </div>
                                 <div className="card-footer">
                                     <span className="live-time">Updated {liveGames[0]?.created_at ? new Date(liveGames[0].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'recently'}</span>
-                                    <span style={{ fontSize: 11, opacity: 0.4 }}>via Bravo</span>
+                                    <span style={{ fontSize: 11, opacity: 0.4 }}>via Smarter.Poker</span>
                                 </div>
                             </div>
                         </div>

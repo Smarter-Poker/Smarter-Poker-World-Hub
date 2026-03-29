@@ -290,7 +290,7 @@ export default function DailyTournaments() {
 
                         <div className="sidebar-section source-info">
                             <h3>Data Source</h3>
-                            <p>Tournament Schedules From PokerAtlas For 163 Verified Venues With Confirmed Daily Tournaments.</p>
+                            <p>Tournament Schedules For 163 Verified Venues With Confirmed Daily Tournaments.</p>
                             <div className="source-badge">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -1019,7 +1019,7 @@ function TournamentCard({ tournament }) {
                 )}
                 {t.pokerAtlasUrl && (
                     <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="card-link">
-                        View on PokerAtlas
+                        View Details
                     </a>
                 )}
             </div>

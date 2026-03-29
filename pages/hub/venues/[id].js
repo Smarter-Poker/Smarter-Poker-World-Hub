@@ -1,5 +1,5 @@
 /**
- * VENUE DETAIL PAGE - PokerAtlas-style venue profile
+ * VENUE DETAIL PAGE - Venue profile
  * Displays full venue info, contact details, daily tournament schedules,
  * live games, check-ins, reviews, activity feed, and claim page
  * Fetches venue data from /api/poker/venues?id=X
@@ -1199,7 +1199,7 @@ export default function VenueDetailPage() {
                   </div>
                 </div>
 
-                {/* PokerAtlas */}
+                {/* External Listing */}
                 <div className="info-card">
                   <div className="info-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1209,10 +1209,10 @@ export default function VenueDetailPage() {
                     </svg>
                   </div>
                   <div className="info-content">
-                    <span className="info-label">PokerAtlas</span>
+                    <span className="info-label">External Listing</span>
                     {venue.poker_atlas_url ? (
                       <a href={venue.poker_atlas_url} target="_blank" rel="noopener noreferrer" className="info-value info-link">
-                        View on PokerAtlas
+                        View Details
                       </a>
                     ) : (
                       <span className="info-value muted">Not Listed</span>
@@ -1343,7 +1343,7 @@ export default function VenueDetailPage() {
                   <p>Tournament Schedule Data Is Being Collected For This Venue.</p>
                   {venue.poker_atlas_url && (
                     <a href={venue.poker_atlas_url} target="_blank" rel="noopener noreferrer" className="pa-link">
-                      Check PokerAtlas for current schedule
+                      Check venue website for current schedule
                     </a>
                   )}
                 </div>
