@@ -173,11 +173,28 @@
 
 ---
 
+## PHASE 4 — Completed (2026-03-29)
+
+### Cron Reliability Fix
+| Endpoint | Old Status | New Status | Fix |
+|---|---|---|---|
+| /api/cron/horses-social-all | 500 every 15m (~96/day) | 200 ✅ | getSupabase() fix in HorseSocialEngine.js (commit 411ff14) |
+| /api/cron/trivia-pvp-cleanup | 500 every hour (~24/day) | Fixed ✅ | Patched by dc75bcb5e (84 bare supabase refs) |
+| /api/cron/venue-game-alerts | 500 every 15m (~96/day) | 401 ✅ (auth gate) | Patched in deployed commits |
+| /api/rewards/daily-login | 500 (user-triggered) | Fixed ✅ | Patched by dc75bcb5e |
+| /api/poker/peak-activity | 500 (user-triggered) | 200 ✅ | Schema alignment (e7f1998fd) |
+| /api/poker/game-trends | 500 (user-triggered) | 200 ✅ | Schema alignment (e7f1998fd) |
+| /api/poker/venue-dedup | 500 (user-triggered) | 200 ✅ | Schema alignment (e7f1998fd) |
+
+**Impact:** ~300+ daily failures eliminated. Deploy c43293ee0 on hub-vanguard includes all fixes.
+**Verification:** Live runtime logs confirmed 0 new 500s after deploy (21:20 UTC onward).
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 4: Cron Reliability** — Fix supabaseKey issue in 5+ Horse/Content crons (~216 daily failures), migrate module-level Supabase init to lazy pattern
 - **Phase 5: Commander SSR Auth** — Move PIN validation from client-side overlay to getServerSideProps
-- Club Arena E2E test expansion (game flow, poker hands)
-- Cross-Orb health monitoring dashboard
-- Shared TypeScript types package across repos
-- Performance benchmarking baseline
-- Database migration safety tooling
+- **Phase 6: Cron Monitoring Automation** — Set up scheduled task to monitor cron health and alert on regressions
+- **Phase 7: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
+- **Phase 8: Cross-Orb Health Dashboard** — Unified monitoring across all 22 Vercel projects
+- **Phase 9: Performance Baseline** — Lighthouse scores, Core Web Vitals, API latency benchmarks
+- **Phase 10: Infrastructure Hardening** — Shared TypeScript types package, database migration safety tooling, Supabase RPC audit

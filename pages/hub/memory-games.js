@@ -48,6 +48,10 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 import dynamic from 'next/dynamic';
 const SpotTrainerGame = dynamic(() => import('../../src/games/SpotTrainerGame'), { ssr: false });
 const TournamentModeGame = dynamic(() => import('../../src/games/TournamentModeGame'), { ssr: false });
+const SpeedDrillGame = dynamic(() => import('../../src/games/SpeedDrillGame'), { ssr: false });
+const PressureCookerGame = dynamic(() => import('../../src/games/PressureCookerGame'), { ssr: false });
+const PatternRecognitionGame = dynamic(() => import('../../src/games/PatternRecognitionGame'), { ssr: false });
+const MixedStrategyGame = dynamic(() => import('../../src/games/MixedStrategyGame'), { ssr: false });
 import ScenarioFilterPanel, { filterScenarios } from '../../src/games/ScenarioFilterPanel';
 import { getAccessToken } from '../../src/lib/authUtils';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
@@ -99,20 +103,14 @@ function gradeUserGrid(userGrid, solution) {
     return { score: Math.max(0, score), correctHands, missedHands, extraHands, wrongActionHands, mistakes };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ++ SPEED DRILL GAME COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
-    const [gameState, setGameState] = useState('ready'); // ready | playing | revealed | gameover
-    const [currentHand, setCurrentHand] = useState(null);
-    const [score, setScore] = useState(0);
-    const [streak, setStreak] = useState(0);
-    const [maxStreak, setMaxStreak] = useState(0);
-    const [lives, setLives] = useState(3);
-    const [timeRemaining, setTimeRemaining] = useState(3000);
-    const [currentTimeLimit, setCurrentTimeLimit] = useState(3000);
-    const [userAnswer, setUserAnswer] = useState(null);
-    const [handsPlayed, setHandsPlayed] = useState(0);
+// SpeedDrillGame — extracted to src/games/SpeedDrillGame.js (dynamic import above)
+// PressureCookerGame — extracted to src/games/PressureCookerGame.js (dynamic import above)
+// PatternRecognitionGame — extracted to src/games/PatternRecognitionGame.js (dynamic import above)
+// MixedStrategyGame — extracted to src/games/MixedStrategyGame.js (dynamic import above)
+
+
+
+
     const timerRef = useRef(null);
 
     const INITIAL_TIME = 3000;

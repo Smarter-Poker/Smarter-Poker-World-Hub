@@ -4670,22 +4670,28 @@ export default function PokerNearMePage() {
                         align-items: center;
                         gap: 6px;
                         padding: 8px 14px;
-                        border-radius: 20px;
-                        background: rgba(255,255,255,0.06);
-                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 8px;
+                        background: linear-gradient(180deg, rgba(25,35,55,0.8) 0%, rgba(15,23,42,0.9) 100%);
+                        border: 1.5px solid rgba(148,163,184,0.12);
                         font-size: 13px;
-                        color: rgba(255,255,255,0.7);
+                        color: rgba(148,163,184,0.65);
                         cursor: pointer;
-                        transition: all 0.2s;
+                        transition: all 0.25s;
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.04),
+                            0 2px 4px rgba(0,0,0,0.25);
                     }
                     .filter-chip:hover {
-                        background: rgba(255,255,255,0.1);
-                        border-color: rgba(255,255,255,0.2);
+                        border-color: rgba(148,163,184,0.25);
+                        color: #e2e8f0;
                     }
                     .filter-chip.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
+                        background: linear-gradient(180deg, rgba(212,168,83,0.15) 0%, rgba(184,134,11,0.08) 100%);
+                        border-color: rgba(212,168,83,0.4);
                         color: #d4a853;
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.12),
+                            0 0 8px rgba(212,168,83,0.08);
                     }
                     .chip-dot {
                         width: 8px;
@@ -4714,16 +4720,22 @@ export default function PokerNearMePage() {
                         gap: 12px;
                     }
                     .room-list-card {
-                        background: rgba(255,255,255,0.04);
-                        border: 1px solid rgba(255,255,255,0.08);
+                        background: linear-gradient(160deg, rgba(18,28,45,0.85) 0%, rgba(10,16,28,0.92) 100%);
+                        border: 1.5px solid rgba(148,163,184,0.12);
                         border-radius: 12px;
                         padding: 16px;
                         cursor: pointer;
-                        transition: all 0.2s;
+                        transition: all 0.25s;
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.04),
+                            0 3px 12px rgba(0,0,0,0.3);
                     }
                     .room-list-card:hover {
-                        background: rgba(255,255,255,0.08);
+                        background: linear-gradient(160deg, rgba(20,32,50,0.9) 0%, rgba(12,20,34,0.95) 100%);
                         border-color: rgba(212,168,83,0.3);
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.06),
+                            0 6px 20px rgba(0,0,0,0.4);
                     }
                     .room-card-header {
                         display: flex;
@@ -4776,10 +4788,13 @@ export default function PokerNearMePage() {
                         gap: 16px;
                     }
                     .sidebar-filters {
-                        background: rgba(255,255,255,0.04);
-                        border: 1px solid rgba(255,255,255,0.08);
+                        background: linear-gradient(160deg, rgba(18,28,45,0.85) 0%, rgba(10,16,28,0.92) 100%);
+                        border: 1.5px solid rgba(148,163,184,0.12);
                         border-radius: 12px;
                         padding: 20px;
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.04),
+                            0 4px 16px rgba(0,0,0,0.3);
                     }
                     .sidebar-title {
                         font-size: 16px;
@@ -4807,20 +4822,23 @@ export default function PokerNearMePage() {
                     .sidebar-chip {
                         padding: 6px 12px;
                         border-radius: 6px;
-                        background: rgba(255,255,255,0.06);
-                        border: 1px solid rgba(255,255,255,0.1);
+                        background: linear-gradient(180deg, rgba(25,35,55,0.75) 0%, rgba(15,23,42,0.85) 100%);
+                        border: 1px solid rgba(148,163,184,0.1);
                         font-size: 12px;
-                        color: rgba(255,255,255,0.7);
+                        color: rgba(148,163,184,0.65);
                         cursor: pointer;
-                        transition: all 0.2s;
+                        transition: all 0.25s;
+                        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
                     }
                     .sidebar-chip:hover {
-                        background: rgba(255,255,255,0.1);
+                        border-color: rgba(148,163,184,0.22);
+                        color: #e2e8f0;
                     }
                     .sidebar-chip.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
+                        background: linear-gradient(180deg, rgba(212,168,83,0.14) 0%, rgba(184,134,11,0.07) 100%);
+                        border-color: rgba(212,168,83,0.4);
                         color: #d4a853;
+                        box-shadow: inset 0 1px 0 rgba(212,168,83,0.1);
                     }
                     .sidebar-range-inputs {
                         display: flex;
@@ -4875,12 +4893,15 @@ export default function PokerNearMePage() {
                         filter: brightness(1.1);
                     }
 
-                    /* Room Detail Panel */
+                    /* Room Detail Panel — Metal Frame */
                     .room-detail-panel {
-                        background: rgba(255,255,255,0.04);
-                        border: 1px solid rgba(255,255,255,0.08);
+                        background: linear-gradient(160deg, rgba(18,28,45,0.9) 0%, rgba(10,16,28,0.95) 100%);
+                        border: 1.5px solid rgba(148,163,184,0.12);
                         border-radius: 12px;
                         padding: 20px;
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.04),
+                            0 4px 16px rgba(0,0,0,0.3);
                     }
                     .detail-header {
                         display: flex;

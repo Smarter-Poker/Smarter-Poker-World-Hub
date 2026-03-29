@@ -70,6 +70,7 @@ const PeakActivityHeatmap = dynamic(() => import('../../src/components/poker-nea
 const GameTrendsDashboard = dynamic(() => import('../../src/components/poker-near-me/GameTrendsDashboard'), { ssr: false });
 const DailyTournamentsPanel = dynamic(() => import('../../src/components/poker-near-me/DailyTournamentsPanel'), { ssr: false });
 const VenueGameAlerts = dynamic(() => import('../../src/components/poker-near-me/VenueGameAlerts'), { ssr: false });
+const CreateHomeGame = dynamic(() => import('../../src/components/poker-near-me/CreateHomeGame'), { ssr: false });
 
 // ─── Error Boundary for Pod Content ───
 class PodErrorBoundary extends React.Component {
@@ -1539,6 +1540,49 @@ export default function PokerNearMeLobby() {
                 <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5 }}>Search for home games near you or filter by state. Use the search bar above to get started.</p>
               </div>
             )}
+
+            {/* List Your Home Game section */}
+            <div style={{ marginTop: 16 }}>
+              <button
+                onClick={() => setFilters(prev => ({ ...prev, showCreateHomeGame: !prev.showCreateHomeGame }))}
+                style={{
+                  width: '100%', padding: '12px 0',
+                  borderRadius: 12,
+                  border: filters.showCreateHomeGame ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(110,231,239,0.15)',
+                  background: filters.showCreateHomeGame ? 'rgba(34,197,94,0.08)' : 'rgba(110,231,239,0.04)',
+                  color: filters.showCreateHomeGame ? '#22c55e' : 'rgba(200,214,229,0.6)',
+                  fontSize: 14, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: 'Inter, system-ui, sans-serif',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  transition: 'all 0.2s',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                {filters.showCreateHomeGame ? 'Cancel Listing' : 'List Your Home Game'}
+              </button>
+              {filters.showCreateHomeGame && (
+                <div style={{
+                  marginTop: 12,
+                  background: 'rgba(13,17,23,0.95)',
+                  border: '1px solid rgba(34,197,94,0.2)',
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                }}>
+                  <CreateHomeGame
+                    userId={userId}
+                    onSuccess={(newVenue) => {
+                      if (newVenue) {
+                        setVenues(prev => [...prev, newVenue]);
+                      }
+                      setFilters(prev => ({ ...prev, showCreateHomeGame: false, hgHasSearched: true }));
+                    }}
+                    onCancel={() => setFilters(prev => ({ ...prev, showCreateHomeGame: false }))}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         );
         break;
