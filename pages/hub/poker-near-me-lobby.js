@@ -434,6 +434,15 @@ export default function PokerNearMeLobby() {
   const [searchHistory, setSearchHistory] = useState([]);
   const [preferences, setPreferences] = useState({ geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true });
   const [prefsLoaded, setPrefsLoaded] = useState(false);
+  // ─── Location Prompt Dismissal (ONE-TIME-AND-DONE) ───
+  // Once the user dismisses the Enable Location prompt, we never auto-show it again.
+  // Persisted via localStorage (instant, no-auth) + Supabase prefs (cross-device).
+  const [locationPromptDismissed, setLocationPromptDismissed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('pnm_location_prompt_dismissed') === '1';
+    }
+    return false;
+  });
   const [globalLeaders, setGlobalLeaders] = useState([]);
 
   // ─── Data State ───
@@ -1047,6 +1056,26 @@ export default function PokerNearMeLobby() {
     );
   }, [gpsActive, gpsLoading, userId, onGpsSuccess]);
 
+  // ─── Persist dismissal helper (localStorage + Supabase) ───
+  const dismissLocationPrompt = useCallback(() => {
+    setLocationPromptDismissed(true);
+    try { localStorage.setItem('pnm_location_prompt_dismissed', '1'); } catch { /* private browsing */ }
+    if (userId) {
+      updatePokerNearMePreferences(userId, {
+        locationEnabled: false,
+        locationPromptDismissed: true,
+      }).catch(() => {});
+    }
+  }, [userId]);
+
+  // ─── Sync Supabase dismissal flag into state (for cross-device persistence) ───
+  useEffect(() => {
+    if (prefsLoaded && preferences?.locationPromptDismissed && !locationPromptDismissed) {
+      setLocationPromptDismissed(true);
+      try { localStorage.setItem('pnm_location_prompt_dismissed', '1'); } catch { /* */ }
+    }
+  }, [prefsLoaded, preferences?.locationPromptDismissed, locationPromptDismissed]);
+
   // ─── Auto-prompt GPS on first visit / silently re-enable if previously accepted ───
   const gpsAutoRef = useRef(false);
   useEffect(() => {
@@ -1081,9 +1110,7 @@ export default function PokerNearMeLobby() {
         setPage(0);
       }).catch(() => {});
       // Silently refresh GPS in background for accuracy (no error if it fails)
-      // Background refresh will override venues only if it succeeds AFTER the saved fetch
       if (typeof navigator !== 'undefined' && navigator.geolocation) {
-        // Tier 1: High accuracy GPS
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -1113,9 +1140,7 @@ export default function PokerNearMeLobby() {
             }
           },
           (highAccErr) => {
-            // Permission denied → stop (already have saved location)
             if (highAccErr.code === 1) return;
-            // Tier 2: Fallback to WiFi/IP-based (works on desktops)
             navigator.geolocation.getCurrentPosition(
               (pos) => {
                 const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -1151,16 +1176,14 @@ export default function PokerNearMeLobby() {
           { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
         );
       };
-      // GPS restore — user must click search to see results
       return;
     }
 
-    // CASE 3: FIRST VISIT (no saved preference) → show branded Enable Location popup
-    // Pre-permission pattern: show OUR popup first (explains WHY we need location),
-    // then the user clicks "Enable" which triggers the native browser prompt.
-    // This increases grant rates vs. cold-prompting with the native dialog.
+    // CASE 3: FIRST VISIT (no saved preference)
+    // ── ONE-TIME-AND-DONE: If user already dismissed the prompt, never show it again ──
+    if (locationPromptDismissed) return;
+
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      // Check if permission is already granted (e.g. site-wide browser setting)
       if (permissionState === 'granted') {
         // Permission already granted — just acquire GPS silently
         navigator.geolocation.getCurrentPosition(
@@ -1173,18 +1196,18 @@ export default function PokerNearMeLobby() {
             }
             navigator.geolocation.getCurrentPosition(
               (pos) => onGpsSuccess(pos, { silent: false }),
-              () => { setShowManualLocation(true); },
+              () => { /* Silent fail — don't show manual modal automatically */ },
               { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
             );
           },
           { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
         );
       } else {
-        // Permission state is 'prompt' or 'denied' — show our branded popup first
+        // Permission state is 'prompt' or 'denied' — show our branded popup (one time only)
         setShowEnablePopup(true);
       }
     }
-  }, [prefsLoaded, preferences?.locationEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [prefsLoaded, preferences?.locationEnabled, locationPromptDismissed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Manual Location Set ───
   const handleManualLocationSet = useCallback(async () => {
@@ -1251,21 +1274,16 @@ export default function PokerNearMeLobby() {
       playPanelCloseSound();
       return;
     }
-    // GPS-dependent pod gating: if GPS is not active and the pod requires it,
-    // show the Enable Location popup instead of opening an empty panel.
-    // However, if the user already has venue data (e.g. from a search), let them through.
-    if (GPS_REQUIRED_PODS.has(podId) && !gpsActive && !userLocation) {
-      setShowEnablePopup(true);
-      // Still set the pod so that after enabling GPS, the user lands on the right panel
-      setActivePod(podId);
-      return;
-    }
+    // GPS-dependent pods: always let the user through to the panel.
+    // If GPS is not active, the panel will show a gentle inline location CTA
+    // instead of blocking the entire UI with a modal.
+    // ONE-TIME-AND-DONE: never block navigation with popups.
     setActivePod(podId);
     setShowPanel(true);
     playPanelOpenSound();
     // Emit TrainingBus event for pod interaction tracking
     try { bus?.emitHandComplete?.({ action: 'pod_click', pod: podId }); } catch { }
-  }, [activePod, bus, gpsActive, userLocation]);
+  }, [activePod, bus]);
 
   // ─── Auto-open panel for GPS-gated pods after GPS is enabled ───
   // When a user clicks a GPS-required pod without GPS, we set activePod but
@@ -2328,7 +2346,7 @@ export default function PokerNearMeLobby() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setShowEnablePopup(false)}
+                  onClick={() => { setShowEnablePopup(false); dismissLocationPrompt(); }}
                   style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.45)', cursor: 'pointer', fontSize: 24, padding: 4, lineHeight: 1 }}
                 >&times;</button>
               </div>
@@ -2546,7 +2564,7 @@ export default function PokerNearMeLobby() {
                   <div style={{ fontSize: 17, fontWeight: 700, color: '#e0e8f0' }}>Set Your Location</div>
                   <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>Enter your city to find poker near you</div>
                 </div>
-                <button onClick={() => setShowManualLocation(false)} style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.5)', cursor: 'pointer', fontSize: 22, padding: 4 }}>&times;</button>
+                <button onClick={() => { setShowManualLocation(false); dismissLocationPrompt(); }} style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.5)', cursor: 'pointer', fontSize: 22, padding: 4 }}>&times;</button>
               </div>
               {/* Body */}
               <div style={{ padding: '20px 24px' }}>
