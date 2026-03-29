@@ -23,6 +23,33 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbk
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Helper function to send PWA push notifications to real users for social interactions
+async function sendSocialPush(targetId, horseIds, title, message, urlString) {
+    if (!targetId || horseIds.includes(targetId)) return; // Do not push to other horses
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smarter.poker';
+    const finalUrl = urlString.startsWith('http') ? urlString : `${baseUrl}${urlString}`;
+
+    try {
+        await fetch(`${baseUrl}/api/notifications/send`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+            },
+            body: JSON.stringify({
+                title,
+                message,
+                url: finalUrl,
+                externalUserIds: [targetId],
+                category: 'social_mentions'
+            })
+        });
+    } catch (e) {
+        console.error('Failed to send social interaction push:', e.message);
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // AUTHENTIC COMMENT TEMPLATES (100+ phrases)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -578,11 +605,17 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
                         reference_id: post.id,
                         message: `mentioned you in a comment`
                     });
+                    
+                    // Trigger push notification to mentioned user
+                    await sendSocialPush(friend.profile_id, horseIds, 'New Mention', `${horse.name} mentioned you in a comment.`, `/hub/social-feed?post_id=${post.id}`);
                 }
             }
         }
 
         if (!error) {
+            // Trigger push notification to the post author
+            await sendSocialPush(post.author_id, horseIds, 'New Comment', `${horse.name} commented on your post: "${comment}"`, `/hub/social-feed?post_id=${post.id}`);
+
             const author = allHorses.find(h => h.profile_id === post.author_id);
             console.log(`   ${horse.name} → ${author?.name || 'User'}'s post: "${comment}"`);
             commented++;
@@ -705,6 +738,10 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
                 });
 
             if (!error) {
+                // Trigger push notification to post author
+                const reactionEmoji = reaction === 'love' ? '❤️' : reaction === 'fire' ? '🔥' : reaction === 'wow' ? '😲' : reaction === 'haha' ? '😂' : '👍';
+                await sendSocialPush(post.author_id, horseIds, `New Reaction`, `${horse.name} reacted ${reactionEmoji} to your post.`, `/hub/social-feed?post_id=${post.id}`);
+
                 console.log(`   ${horse.name} liked a post ❤️`);
                 liked++;
                 
@@ -835,6 +872,9 @@ async function replyToComments(maxReplies = 15) {
             });
 
         if (!error) {
+            // Trigger push notification to the original comment author
+            await sendSocialPush(comment.author_id, horseIds, 'New Reply', `${horse.name} replied to your comment: "${replyText}"`, `/hub/social-feed?post_id=${comment.post_id}`);
+
             console.log(`   ${horse.name} replied: "${replyText}"`);
             replied++;
             
