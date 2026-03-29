@@ -642,7 +642,12 @@ export default function PokerNearMePage() {
     const sortBy = uiFilters.sortBy;
     const seriesViewMode = uiFilters.seriesViewMode;
     const venueViewMode = uiFilters.venueViewMode || 'list';
-    const setActiveTab = (val) => setUiFilter('activeTab', val);
+    const setActiveTab = (val) => {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            try { navigator.vibrate(1); } catch (e) { /* ignore */ }
+        }
+        setUiFilter('activeTab', val);
+    };
     const setActiveEventTab = (val) => setUiFilter('activeEventTab', val);
     const setSortBy = (val) => setUiFilter('sortBy', val);
     const setSeriesViewMode = (val) => setUiFilter('seriesViewMode', val);
@@ -1518,6 +1523,7 @@ export default function PokerNearMePage() {
         setShowSearchHistory(false);
         setShowCitySuggestions(false);
         setHasSearched(true);
+        setShowFilters(false);
         // Reset pagination on new search
         setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
         // Track search analytics
@@ -1730,12 +1736,15 @@ export default function PokerNearMePage() {
 
         if (favCount === 0) {
             return (
-                <div className="empty-state">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
-                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                    </svg>
-                    <p>No Favorites Yet</p>
-                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Tap the ♥ icon on any venue to save it here</p>
+                <div className="empty-state" style={{ padding: '60px 20px', background: 'radial-gradient(circle at center, rgba(239,68,68,0.05) 0%, transparent 70%)' }}>
+                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                        </svg>
+                    </div>
+                    <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Your Saved Venues</h3>
+                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', maxWidth: 320, lineHeight: 1.5, margin: '0 auto 24px' }}>Keep track of your favorite card rooms, local games, and regular stops. Tap the heart icon on any venue card to save it here.</p>
+                    <button onClick={() => setActiveTab('venues')} className="primary-btn" style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 14px rgba(239,68,68,0.3)' }}>Explore Venues</button>
                 </div>
             );
         }
@@ -1746,17 +1755,20 @@ export default function PokerNearMePage() {
                     <span className="results-count">{favVenues.length} saved venue{favVenues.length !== 1 ? 's' : ''}</span>
                 </div>
                 <div className="card-grid">
-                    {favVenues.map((venue, i) => (
-                        <VenueCard
-                            key={venue.id || i}
-                            venue={venue}
-                            index={i}
-                            isFavorited={true}
-                            isNewcomer={isNewcomerFriendly(venue)}
-                            onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
-                            onNavigate={(path) => router.push(path)}
-                        />
-                    ))}
+                    {favVenues.map((venue, i) => {
+                        const maxGtd = (dailyTournaments || []).filter(t => String(t.venue_id) === String(venue.id) && t.guaranteed).reduce((m, t) => Math.max(m, Number(t.guaranteed)), 0);
+                        return (
+                            <VenueCard
+                                key={venue.id || i}
+                                venue={{ ...venue, max_gtd: maxGtd }}
+                                index={i}
+                                isFavorited={true}
+                                isNewcomer={isNewcomerFriendly(venue)}
+                                onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
+                                onNavigate={(path) => router.push(path)}
+                            />
+                        );
+                    })}
                 </div>
             </>
         );
@@ -2163,18 +2175,21 @@ export default function PokerNearMePage() {
                 ) : (
                     <>
                         <div className="card-grid">
-                            {displayed.map((venue, i) => (
-                                <VenueCard
-                                    key={venue.id || i}
-                                    venue={venue}
-                                    index={i}
-                                    isFavorited={isFavorited('venue', venue.id)}
-                                    isNewcomer={isNewcomerFriendly(venue)}
-                                    hasPromo={promotionVenueIds.has(String(venue.id))}
-                                    onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
-                                    onNavigate={(path) => router.push(path)}
-                                />
-                            ))}
+                            {displayed.map((venue, i) => {
+                                const maxGtd = (dailyTournaments || []).filter(t => String(t.venue_id) === String(venue.id) && t.guaranteed).reduce((m, t) => Math.max(m, Number(t.guaranteed)), 0);
+                                return (
+                                    <VenueCard
+                                        key={venue.id || i}
+                                        venue={{ ...venue, max_gtd: maxGtd }}
+                                        index={i}
+                                        isFavorited={isFavorited('venue', venue.id)}
+                                        isNewcomer={isNewcomerFriendly(venue)}
+                                        hasPromo={promotionVenueIds.has(String(venue.id))}
+                                        onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
+                                        onNavigate={(path) => router.push(path)}
+                                    />
+                                );
+                            })}
                         </div>
                         {/* Load More */}
                         {displayCount.venues < venues.length && (
@@ -2764,6 +2779,7 @@ export default function PokerNearMePage() {
                                 value={searchQuery}
                                 onChange={handleSearchInputChange}
                                 autoComplete="off"
+                                autoFocus={!hasSearched && !searchQuery}
                             />
                             <button type="submit" className="native-search-btn" aria-label="Search">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -4226,13 +4242,28 @@ export default function PokerNearMePage() {
                     }
                     .skel {
                         border-radius: 6px;
-                        background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%);
-                        background-size: 200% 100%;
-                        animation: shimmer 1.5s ease-in-out infinite;
+                        background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(212,168,83,0.06) 50%, rgba(255,255,255,0.02) 75%);
+                        background-size: 400% 100%;
+                        animation: shimmer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+                        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+                        overflow: hidden;
+                        position: relative;
+                    }
+                    .skel::after {
+                        content: '';
+                        position: absolute;
+                        inset: 0;
+                        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.02), transparent);
+                        transform: skewX(-20deg) translateX(-150%);
+                        animation: shimmer-glare 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
                     }
                     @keyframes shimmer {
-                        0% { background-position: 200% 0; }
-                        100% { background-position: -200% 0; }
+                        0% { background-position: 100% 0; }
+                        100% { background-position: -100% 0; }
+                    }
+                    @keyframes shimmer-glare {
+                        0% { transform: skewX(-20deg) translateX(-150%); }
+                        100% { transform: skewX(-20deg) translateX(150%); }
                     }
                     .skel-header {
                         height: 20px;
@@ -4436,13 +4467,17 @@ export default function PokerNearMePage() {
                             gap: 2px;
                             padding: 6px 8px;
                             margin: -8px 4px 8px;
-                            background: rgba(15,23,42,0.8);
+                            background: rgba(15,23,42,0.85);
                             border: 1px solid rgba(255,255,255,0.08);
                             border-radius: 12px;
-                            backdrop-filter: blur(10px);
-                            -webkit-backdrop-filter: blur(10px);
+                            backdrop-filter: blur(12px);
+                            -webkit-backdrop-filter: blur(12px);
                             overflow-x: auto;
                             -webkit-overflow-scrolling: touch;
+                            position: sticky;
+                            top: 8px;
+                            z-index: 100;
+                            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
                         }
                     }
                     .mtab {

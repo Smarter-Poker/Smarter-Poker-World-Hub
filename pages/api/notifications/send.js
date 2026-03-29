@@ -76,10 +76,35 @@ export default async function handler(req, res) {
               callType,        // NEW: 'voice' or 'video'
               roomName,        // NEW: Room to join if accepted
               callerId,        // NEW: Who is calling
+              category,        // NEW: 'tournament_reminders' | 'venue_alerts' | etc
           } = req.body;
 
           if (!message) {
               return res.status(400).json({ success: false, error: 'Message is required' });
+          }
+
+          // ── Enforce User Preferences (Opt-Outs) ──
+          let finalExternalUserIds = externalUserIds;
+          if (category && finalExternalUserIds?.length > 0) {
+              const { data: prefs } = await getSupabase()
+                  .from('user_notification_preferences')
+                  .select(`user_id, ${category}`)
+                  .in('user_id', finalExternalUserIds);
+
+              if (prefs) {
+                  const optedOutUsers = new Set(
+                      prefs.filter(p => p[category] === false).map(p => p.user_id)
+                  );
+                  finalExternalUserIds = finalExternalUserIds.filter(id => !optedOutUsers.has(id));
+                  
+                  if (finalExternalUserIds.length === 0) {
+                      return res.status(200).json({ 
+                          success: true, 
+                          message: 'Notification skipped: all target users opted out.', 
+                          skipped: true 
+                      });
+                  }
+              }
           }
 
           // Build notification payload
@@ -145,8 +170,8 @@ export default async function handler(req, res) {
           // Set targeting
           if (playerIds && playerIds.length > 0) {
               notification.include_player_ids = playerIds;
-          } else if (externalUserIds && externalUserIds.length > 0) {
-              notification.include_external_user_ids = externalUserIds;
+          } else if (finalExternalUserIds && finalExternalUserIds.length > 0) {
+              notification.include_external_user_ids = finalExternalUserIds;
               notification.channel_for_external_user_ids = 'push';
           } else if (tags) {
               notification.filters = tags;

@@ -55,7 +55,7 @@ export default async function handler(req, res) {
           const challengeDate = today.toISOString().split('T')[0];
 
           // Check if challenge already exists for today
-          const { data: existing } = await supabase
+          const { data: existing } = await getSupabase()
               .from('training_daily_challenges')
               .select('id')
               .eq('challenge_date', challengeDate)
@@ -86,7 +86,7 @@ export default async function handler(req, res) {
           const bonusDiamonds = isWeekend ? 100 : 50;
 
           // Insert the daily challenge
-          const { data: challenge, error } = await supabase
+          const { data: challenge, error } = await getSupabase()
               .from('training_daily_challenges')
               .insert({
                   challenge_date: challengeDate,
@@ -104,6 +104,30 @@ export default async function handler(req, res) {
               return res.status(500).json({ error: error.message });
           }
 
+          // ── SEND NOTIFICATION BATCH ──
+          try {
+              const { data: profiles } = await getSupabase().from('profiles').select('id');
+              if (profiles && profiles.length > 0) {
+                  const targetUserIds = profiles.map(p => p.id);
+                  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smarter.poker';
+                  await fetch(`${baseUrl}/api/notifications/send`, {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+                      },
+                      body: JSON.stringify({
+                          title: 'New Daily Challenge! 🏆',
+                          message: `Today's Challenge is Live! Test your skills in ${gameId.replace(/-/g, ' ')} for extra diamonds.`,
+                          url: `${baseUrl}/hub/training/arena`,
+                          externalUserIds: targetUserIds,
+                          category: 'daily_challenges'
+                      })
+                  });
+              }
+          } catch(e) {
+              console.error('Push broadcast error:', e);
+          }
 
           return res.status(200).json({
               success: true,

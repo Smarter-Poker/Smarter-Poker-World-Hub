@@ -113,7 +113,20 @@ export default function NotificationPrompt({ userId, onDismiss }) {
 
             // Only show if OneSignal is initialized and user hasn't responded anywhere
             if (capturedIsInit && !capturedIsSub && capturedPerm !== 'denied') {
-                // 60 second delay after page load (first login experience)
+                let isFirstVisit = true;
+                try {
+                    const visited = localStorage.getItem('sp_first_visit_cleared');
+                    if (!visited) {
+                        localStorage.setItem('sp_first_visit_cleared', 'true');
+                    } else {
+                        isFirstVisit = false;
+                    }
+                } catch {}
+
+                // Do not show prompt on first ever visit to prevent interrupting onboarding/first experience
+                if (isFirstVisit) return;
+
+                // 5 second delay on returning visits
                 timerRef.current = setTimeout(() => {
                     // Guard: check mounted + localStorage before showing
                     if (!mountedRef.current) return;
@@ -132,7 +145,7 @@ export default function NotificationPrompt({ userId, onDismiss }) {
                     } catch {
                         // localStorage disabled — don't show (can't persist choice)
                     }
-                }, 60000);
+                }, 5000);
             }
         });
 

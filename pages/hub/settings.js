@@ -163,6 +163,19 @@ export default function SettingsPage() {
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [deleteLoading, setDeleteLoading] = useState(false);
 
+    // PWA Push Notification Preferences State
+    const [notificationPrefs, setNotificationPrefs] = useState({
+        tournament_reminders: true,
+        social_mentions: true,
+        friend_activity: true,
+        venue_alerts: true,
+        daily_challenges: true,
+        messenger_alerts: true,
+        diamond_rewards: true,
+        club_updates: true
+    });
+    const [notificationsLoaded, setNotificationsLoaded] = useState(false);
+
     // Mobile Responsive State
     const [isMobile, setIsMobile] = useState(() => {
         if (typeof window === 'undefined') return false;
@@ -790,6 +803,55 @@ export default function SettingsPage() {
         }
     }, [activeSection, user?.id, blockedLoaded]);
 
+    // Load notification preferences when section is activated
+    useEffect(() => {
+        if (activeSection === 'notifications' && user?.id && !notificationsLoaded) {
+            supabase
+                .from('user_notification_preferences')
+                .select('*')
+                .eq('user_id', user.id)
+                .maybeSingle()
+                .then(({ data }) => {
+                    if (data) {
+                        setNotificationPrefs(data);
+                    } else {
+                        // Create default row
+                        supabase
+                            .from('user_notification_preferences')
+                            .insert({ user_id: user.id })
+                            .select()
+                            .single()
+                            .then(({ data: newPrefs }) => {
+                                if (newPrefs) setNotificationPrefs(newPrefs);
+                            });
+                    }
+                    setNotificationsLoaded(true);
+                })
+                .catch(err => console.error('[Settings] Error loading notification prefs:', err));
+        }
+    }, [activeSection, user?.id, notificationsLoaded]);
+
+    const updateNotificationPref = async (key, value) => {
+        const newPrefs = { ...notificationPrefs, [key]: value };
+        setNotificationPrefs(newPrefs); // Optimistic UI
+        
+        if (user?.id) {
+            const { error } = await supabase
+                .from('user_notification_preferences')
+                .update({ [key]: value })
+                .eq('user_id', user.id);
+                
+            if (error) {
+                console.error('[Settings] Failed to save push preference:', error);
+                // Revert on failure
+                setNotificationPrefs(prev => ({ ...prev, [key]: !value }));
+            } else {
+                setSaved(true);
+                setTimeout(() => setSaved(false), 2000);
+            }
+        }
+    };
+
     const redeemPromoCode = async () => {
         if (!promoCode.trim()) return;
         if (!user?.id) {
@@ -1396,42 +1458,79 @@ export default function SettingsPage() {
                                 <h2 style={styles.sectionTitle}>Notification Preferences</h2>
 
                                 <div style={styles.card}>
-                                    <Toggle
-                                        label="Email Notifications"
-                                        description="Receive Updates Via Email"
-                                        value={settings.emailNotifications}
-                                        onChange={(v) => updateSetting('emailNotifications', v)}
-                                    />
-                                    <Toggle
-                                        label="Push Notifications"
-                                        description="Browser And Mobile Alerts"
-                                        value={settings.pushNotifications}
-                                        onChange={(v) => updateSetting('pushNotifications', v)}
-                                    />
-                                    <Toggle
-                                        label="Sound Effects"
-                                        description="In-App Sound Effects"
-                                        value={settings.soundEffects}
-                                        onChange={(v) => updateSetting('soundEffects', v)}
-                                    />
-                                    <Toggle
-                                        label="Tournament Alerts"
-                                        description="Get Notified About Tournaments"
-                                        value={settings.tournamentAlerts}
-                                        onChange={(v) => updateSetting('tournamentAlerts', v)}
-                                    />
-                                    <Toggle
-                                        label="Jackpot Bounty Alerts"
-                                        description="Get Notified About Massive Mystery Bounties"
-                                        value={settings.bountyAlerts !== false}
-                                        onChange={(v) => updateSetting('bountyAlerts', v)}
-                                    />
-                                    <Toggle
-                                        label="Friend Activity"
-                                        description="See When Friends Are Online"
-                                        value={settings.friendActivity}
-                                        onChange={(v) => updateSetting('friendActivity', v)}
-                                    />
+                                    <div style={{ padding: '0 0 16px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '16px' }}>
+                                        <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: '#fff' }}>Global Base Settings</h3>
+                                        <Toggle
+                                            label="Email Notifications"
+                                            description="Receive Updates Via Email"
+                                            value={settings.emailNotifications}
+                                            onChange={(v) => updateSetting('emailNotifications', v)}
+                                        />
+                                        <Toggle
+                                            label="Push Notifications"
+                                            description="Browser And Mobile Alerts"
+                                            value={settings.pushNotifications}
+                                            onChange={(v) => updateSetting('pushNotifications', v)}
+                                        />
+                                        <Toggle
+                                            label="Sound Effects"
+                                            description="In-App Sound Effects"
+                                            value={settings.soundEffects}
+                                            onChange={(v) => updateSetting('soundEffects', v)}
+                                        />
+                                    </div>
+
+                                    <div style={{ paddingTop: '8px' }}>
+                                        <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: '#fff' }}>Detailed Alert Preferences</h3>
+                                        <Toggle
+                                            label="Tournament Reminders"
+                                            description="Get Notified When Your Registered Flights Are Starting"
+                                            value={notificationPrefs.tournament_reminders}
+                                            onChange={(v) => updateNotificationPref('tournament_reminders', v)}
+                                        />
+                                        <Toggle
+                                            label="Venue Activity Alerts"
+                                            description="Updates When Games Fire At Favorited Venues"
+                                            value={notificationPrefs.venue_alerts}
+                                            onChange={(v) => updateNotificationPref('venue_alerts', v)}
+                                        />
+                                        <Toggle
+                                            label="Social Mentions"
+                                            description="When Someone Likes Or Replies To Your Content"
+                                            value={notificationPrefs.social_mentions}
+                                            onChange={(v) => updateNotificationPref('social_mentions', v)}
+                                        />
+                                        <Toggle
+                                            label="Friend Activity"
+                                            description="When Friends Register For Tournaments Or Log In"
+                                            value={notificationPrefs.friend_activity}
+                                            onChange={(v) => updateNotificationPref('friend_activity', v)}
+                                        />
+                                        <Toggle
+                                            label="Messenger Alerts"
+                                            description="New Direct Messages"
+                                            value={notificationPrefs.messenger_alerts}
+                                            onChange={(v) => updateNotificationPref('messenger_alerts', v)}
+                                        />
+                                        <Toggle
+                                            label="Daily Challenges"
+                                            description="New Missions And Challenge Completions"
+                                            value={notificationPrefs.daily_challenges}
+                                            onChange={(v) => updateNotificationPref('daily_challenges', v)}
+                                        />
+                                        <Toggle
+                                            label="Diamond Rewards"
+                                            description="Bounties And Diamond Economy Updates"
+                                            value={notificationPrefs.diamond_rewards}
+                                            onChange={(v) => updateNotificationPref('diamond_rewards', v)}
+                                        />
+                                        <Toggle
+                                            label="Club Updates"
+                                            description="Announcements From Clubs You Are A Member Of"
+                                            value={notificationPrefs.club_updates}
+                                            onChange={(v) => updateNotificationPref('club_updates', v)}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         )}

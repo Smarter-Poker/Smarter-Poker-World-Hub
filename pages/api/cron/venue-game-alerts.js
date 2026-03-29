@@ -82,33 +82,26 @@ export default async function handler(req, res) {
           tables_running: totalRunning,
         });
 
-        // Send push notification via OneSignal
-        const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-        const apiKey = process.env.ONESIGNAL_REST_API_KEY;
-        
-        if (appId && apiKey) {
-          try {
-            await fetch('https://onesignal.com/api/v1/notifications', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${apiKey}`,
-              },
-              body: JSON.stringify({
-                app_id: appId,
-                filters: [
-                  { field: 'tag', key: 'user_id', value: alert.user_id }
-                ],
-                headings: { en: `${alert.game_type} is Running` },
-                contents: { en: `${alert.venue_name} has ${totalRunning} ${alert.game_type} table${totalRunning > 1 ? 's' : ''} running right now.` },
-                priority: 10,
-                url: 'https://smarter.poker/hub/poker-near-me-lobby?pod=live',
-              }),
-            });
-            results.notifications_sent++;
-          } catch (pushErr) {
-            console.error('Push notification failed:', pushErr.message);
-          }
+        // Send push notification via Internal API for Preference Checks
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smarter.poker';
+        try {
+          await fetch(`${baseUrl}/api/notifications/send`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+            },
+            body: JSON.stringify({
+              title: `${alert.game_type} is Running`,
+              message: `${alert.venue_name} has ${totalRunning} ${alert.game_type} table${totalRunning > 1 ? 's' : ''} running right now.`,
+              url: `${baseUrl}/hub/poker-near-me-lobby?pod=live`,
+              externalUserIds: [alert.user_id],
+              category: 'venue_alerts'
+            })
+          });
+          results.notifications_sent++;
+        } catch (pushErr) {
+          console.error('Venue Push notification failed:', pushErr.message);
         }
 
         // Update last_triggered timestamp
