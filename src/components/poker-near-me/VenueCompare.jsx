@@ -210,7 +210,7 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
                   </td>
                   {selectedVenues.map(v => (
                     <td key={v.id} style={{ padding: '8px 14px', textAlign: 'center', color: '#e0e8f0', borderBottom: '1px solid rgba(88,166,255,0.05)' }}>
-                      {getFieldValue(v, field.key, userLocation)}
+                      {getFieldValue(v, field.key, userLocation, liveData)}
                     </td>
                   ))}
                 </tr>
