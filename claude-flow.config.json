@@ -1,0 +1,7 @@
+{
+  "version": "3.0.0",
+  "memory": { "type": "hybrid", "path": "./data/ruflo" },
+  "swarm": { "topology": "distributed", "maxAgents": 10 },
+  "security": { "mode": "standard" },
+  "neural": { "enabled": false }
+}

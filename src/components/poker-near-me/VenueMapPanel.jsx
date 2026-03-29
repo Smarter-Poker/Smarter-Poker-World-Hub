@@ -31,6 +31,30 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
         document.head.appendChild(link);
       }
+      // MarkerCluster CSS
+      if (!document.querySelector('link[href*="MarkerCluster"]')) {
+        const mcLink = document.createElement('link');
+        mcLink.rel = 'stylesheet';
+        mcLink.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css';
+        document.head.appendChild(mcLink);
+        const mcDefault = document.createElement('link');
+        mcDefault.rel = 'stylesheet';
+        mcDefault.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
+        document.head.appendChild(mcDefault);
+        // Custom cluster styling for dark theme
+        const clusterStyle = document.createElement('style');
+        clusterStyle.textContent = `
+          .marker-cluster-small { background-color: rgba(110,231,239,0.25); }
+          .marker-cluster-small div { background-color: rgba(110,231,239,0.5); color: #fff; font-weight: 700; font-size: 12px; }
+          .marker-cluster-medium { background-color: rgba(212,168,83,0.25); }
+          .marker-cluster-medium div { background-color: rgba(212,168,83,0.5); color: #fff; font-weight: 700; font-size: 13px; }
+          .marker-cluster-large { background-color: rgba(239,68,68,0.25); }
+          .marker-cluster-large div { background-color: rgba(239,68,68,0.5); color: #fff; font-weight: 700; font-size: 14px; }
+          .leaflet-popup-content-wrapper { background: rgba(12,18,28,0.97) !important; color: #e0e8f0 !important; border: 1px solid rgba(110,231,239,0.2) !important; backdrop-filter: blur(12px); border-radius: 10px !important; }
+          .leaflet-popup-tip { background: rgba(12,18,28,0.97) !important; }
+        `;
+        document.head.appendChild(clusterStyle);
+      }
 
       const L = (await import('leaflet')).default;
 
@@ -53,8 +77,24 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         maxZoom: 19,
       }).addTo(map);
 
-      // Create a layer group for venue markers (allows clearing on re-render)
-      markersLayerRef.current = L.layerGroup().addTo(map);
+      // Create a marker cluster group for venue markers (better performance & UX at 351+ venues)
+      let MCG;
+      try {
+        const mcModule = await import('leaflet.markercluster');
+        MCG = mcModule.default || mcModule;
+      } catch (e) {
+        console.warn('MarkerCluster not available, falling back to layer group');
+      }
+      markersLayerRef.current = MCG
+        ? L.markerClusterGroup({
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            disableClusteringAtZoom: 14,
+          })
+        : L.layerGroup();
+      markersLayerRef.current.addTo(map);
 
       mapInstanceRef.current = map;
       setMapReady(true);
@@ -139,7 +179,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       <div
         ref={mapRef}
         style={{
-          width: '100%', height: 400, borderRadius: 12, overflow: 'hidden',
+          width: '100%', height: 500, borderRadius: 12, overflow: 'hidden',
           border: '1px solid rgba(110,231,239,0.15)',
           background: '#0a1628',
         }}

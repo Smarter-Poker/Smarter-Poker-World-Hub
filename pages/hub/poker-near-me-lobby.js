@@ -21,6 +21,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
+import { haversineMiles } from '../../src/components/poker-near-me/pnm-utils';
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory } from '../../src/services/pokerNearMeSearchHistory';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import { supabase } from '../../src/lib/supabase';
@@ -199,6 +200,7 @@ const POD_FEATURES = {
   favorites: { title: 'Saved', tab: 'favorites' },
   social: { title: 'Friends', tab: 'social' },
   alerts: { title: 'Alerts', tab: 'alerts' },
+  tripcost: { title: 'Trip Cost Calculator', tab: 'tripcost' },
   scraperhealth: { title: 'Scraper Health', tab: 'scraperhealth' },
 };
 
@@ -251,34 +253,50 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
   const GAME_TYPES = ['all', 'NLH', 'PLO', 'Mixed', 'Omaha'];
   const SORT_OPTS = [{ v: 'time', l: 'Start Time' }, { v: 'buyin', l: 'Buy-In' }, { v: 'guaranteed', l: 'Guaranteed' }];
 
-  const renderTournamentCard = (t, i) => (
-    <div key={t.id || i} style={{
+  // Buy-in color coding: green <$100, gold $100-500, red $500+
+  const getBuyinColor = (buyIn) => {
+    if (!buyIn) return { color: 'rgba(200,214,229,0.5)', bg: 'rgba(200,214,229,0.06)', border: 'rgba(200,214,229,0.12)' };
+    if (buyIn < 100) return { color: '#22c55e', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.25)' };
+    if (buyIn <= 500) return { color: '#d4a853', bg: 'rgba(212,168,83,0.1)', border: 'rgba(212,168,83,0.25)' };
+    return { color: '#ef4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.25)' };
+  };
+
+  const renderTournamentCard = (t, i) => {
+    const buyinStyle = getBuyinColor(t.buy_in);
+    return (
+    <div key={t.id || i} onClick={() => t.venue_id ? window.location.href = `/hub/venues/${t.venue_id}` : null} style={{
       background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(88,166,255,0.2)',
-      borderRadius: 12, padding: '12px 16px', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)'
+      borderRadius: 12, padding: '12px 16px', transition: 'all 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
+      cursor: t.venue_id ? 'pointer' : 'default',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', marginBottom: 2 }}>
             {t.tournament_name || t.name || `${t.game_type || 'NLH'} Tournament`}
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.55)' }}>
-            {t.venue_name || 'Unknown Venue'}{t.venue_state ? `, ${t.venue_state}` : ''}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'rgba(200,214,229,0.55)' }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            {t.venue_name || 'Unknown Venue'}
+            {(t.venue_city || t.city) && <span style={{ color: 'rgba(200,214,229,0.35)' }}>{t.venue_city || t.city}{(t.venue_state || t.state) ? `, ${t.venue_state || t.state}` : ''}</span>}
           </div>
         </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e', background: 'rgba(34,197,94,0.1)', padding: '3px 10px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: buyinStyle.color, background: buyinStyle.bg, border: `1px solid ${buyinStyle.border}`, padding: '3px 10px', borderRadius: 6, whiteSpace: 'nowrap', flexShrink: 0, marginLeft: 8 }}>
           {t.buy_in ? `$${t.buy_in}` : 'TBD'}
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11, color: 'rgba(200,214,229,0.45)' }}>
-        {t.start_time && <span>{t.start_time}</span>}
-        {t.game_type && <span style={{ color: '#58a6ff' }}>{t.game_type}</span>}
+        {t.start_time && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{t.start_time}</span>}
+        {t.game_type && <span style={{ color: '#58a6ff', background: 'rgba(88,166,255,0.08)', padding: '1px 6px', borderRadius: 4 }}>{t.game_type}</span>}
         {t.guaranteed && <span style={{ color: '#f59e0b' }}>GTD: ${typeof t.guaranteed === 'number' ? t.guaranteed.toLocaleString() : t.guaranteed}</span>}
         {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString?.() || t.starting_stack}</span>}
         {t.blind_levels && <span>Blinds: {t.blind_levels}</span>}
         {t.rebuy_addon && <span>{t.rebuy_addon}</span>}
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div>
@@ -1662,14 +1680,10 @@ export default function PokerNearMeLobby() {
             return true;
           });
         }
-        // Haversine distance
+        // Haversine distance — uses shared utility from pnm-utils.js
         const nmDist = (v) => {
           if (!userLocation || !v.latitude || !v.longitude) return 99999;
-          const R = 3959;
-          const dLat = (v.latitude - userLocation.lat) * Math.PI / 180;
-          const dLon = (v.longitude - userLocation.lng) * Math.PI / 180;
-          const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(userLocation.lat*Math.PI/180)*Math.cos(v.latitude*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-          return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          return haversineMiles(userLocation.lat, userLocation.lng, v.latitude, v.longitude);
         };
         if (userLocation && nmRadius !== 'any') nmResults = nmResults.filter(v => nmDist(v) <= Number(nmRadius));
         // Sort
@@ -2001,7 +2015,31 @@ export default function PokerNearMeLobby() {
         break;
 
       case 'roadtrip':
-        component = <RoadTripPlanner venues={venues} userLocation={userLocation} locationCity={locationCity} locationState={locationState} />;
+        component = (
+          <div>
+            <RoadTripPlanner venues={venues} userLocation={userLocation} locationCity={locationCity} locationState={locationState} />
+            {/* Trip Cost Calculator — accessible from Trip Planner */}
+            <div style={{ marginTop: 20, padding: '16px 0', borderTop: '1px solid rgba(110,231,239,0.1)' }}>
+              <button
+                onClick={() => { setActivePod('tripcost'); playPanelOpenSound(); }}
+                style={{
+                  width: '100%', padding: '12px 20px', borderRadius: 12,
+                  border: '1px solid rgba(212,168,83,0.3)',
+                  background: 'linear-gradient(135deg, rgba(212,168,83,0.08), rgba(212,168,83,0.03))',
+                  color: '#d4a853', fontSize: 14, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  transition: 'all 0.2s',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                </svg>
+                Estimate Trip Costs
+              </button>
+            </div>
+          </div>
+        );
         break;
 
       case 'favorites': {
@@ -2048,6 +2086,27 @@ export default function PokerNearMeLobby() {
 
       case 'alerts':
         component = <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} userLocation={userLocation} />;
+        break;
+
+      case 'tripcost':
+        component = (
+          <div>
+            <TripCostCalculator venues={venues} userLocation={userLocation} />
+            <div style={{ marginTop: 16, textAlign: 'center' }}>
+              <button
+                onClick={() => { setActivePod('roadtrip'); }}
+                style={{
+                  background: 'none', border: '1px solid rgba(110,231,239,0.2)',
+                  borderRadius: 8, padding: '8px 20px', color: '#6ee7ef',
+                  fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'all 0.2s',
+                }}
+              >
+                Back to Trip Planner
+              </button>
+            </div>
+          </div>
+        );
         break;
 
       case 'scraperhealth':
