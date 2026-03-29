@@ -168,6 +168,19 @@ function formatMoney(amount) {
     return '$' + amount.toLocaleString();
 }
 
+function formatGameType(raw) {
+    if (!raw) return 'NLH';
+    const lower = raw.toLowerCase();
+    if (lower === 'holdem' || lower === 'hold\'em' || lower === 'texas hold\'em') return 'Hold\'em';
+    if (lower === 'nlh' || lower === 'no limit holdem' || lower === 'no limit hold\'em') return 'NLH';
+    if (lower === 'plo' || lower === 'omaha') return 'PLO';
+    if (lower === 'horse') return 'HORSE';
+    if (lower === 'mixed') return 'Mixed';
+    if (lower === 'stud') return 'Stud';
+    if (lower === 'deepstack' || lower === 'deep stack') return 'Deep Stack';
+    return raw.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 function getCurrentDay() {
     return DAYS_OF_WEEK[new Date().getDay()];
 }
@@ -2408,10 +2421,10 @@ export default function PokerNearMePage() {
                             <div key={t.id || i} className="entity-card daily-card">
                                 <div className="card-header">
                                     <span className="time-badge">{t.start_time}</span>
-                                    <span className="badge game-type">{t.game_type || 'NLH'}</span>
+                                    <span className="badge game-type">{formatGameType(t.game_type)}</span>
                                 </div>
                                 <h4>{t.venue_name}</h4>
-                                <p className="card-location">{t.city}, {t.state}</p>
+                                {(t.city || t.state) && <p className="card-location">{[t.city, t.state].filter(Boolean).join(', ')}</p>}
                                 <div className="card-tags">
                                     <span className="tag buyin">${t.buy_in}</span>
                                     {t.guaranteed && <span className="tag gtd">{formatMoney(t.guaranteed)} GTD</span>}
@@ -2421,7 +2434,7 @@ export default function PokerNearMePage() {
                                     <p className="card-detail">{t.tournament_name}</p>
                                 )}
                                 <div className="card-footer">
-                                    <span className="venue-type">{t.venueType}</span>
+                                    {t.venueType && t.venueType !== 'Unknown' && <span className="venue-type">{t.venueType.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>}
                                     {t.pokerAtlasUrl && (
                                         <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="action-btn primary">
                                             Info
@@ -2558,7 +2571,7 @@ export default function PokerNearMePage() {
                                 <div className="live-games-list">
                                     {liveGames.map((game, gi) => (
                                         <div key={gi} className="live-game-row">
-                                            <span className="live-game-type">{game.game_type || 'NLH'}</span>
+                                            <span className="live-game-type">{formatGameType(game.game_type)}</span>
                                             <span className="live-game-stakes">{game.stakes || game.game_name_raw || '-'}</span>
                                             <span className="live-game-tables">{game.table_count || 0} table{(game.table_count || 0) !== 1 ? 's' : ''}</span>
                                             {game.wait_time !== null && game.wait_time !== undefined && (
