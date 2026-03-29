@@ -671,13 +671,17 @@ def main():
                 # Derive location from slug
                 location = slug.split('-')[-2].replace('-', ' ').title() if '-' in slug else 'Unknown'
             
+            # Dates — must be non-null for tournament_series
+            ts_start = series_rec.get('start_date') or datetime.now(timezone.utc).strftime('%Y-%m-%d')
+            ts_end = series_rec.get('end_date') or ts_start
+            
             ts_rec = {
                 'name': series_rec.get('series_name', '') or slug,
                 'short_name': series_rec.get('tour', 'PA'),
                 'venue_name': series_rec.get('venue_name', '') or 'Unknown',
                 'location': location,
-                'start_date': series_rec.get('start_date'),
-                'end_date': series_rec.get('end_date'),
+                'start_date': ts_start,
+                'end_date': ts_end,
                 'total_events': len(events),
                 'series_type': series_rec.get('tier', 'regional'),
                 'is_featured': series_rec.get('tier') == 'major',
