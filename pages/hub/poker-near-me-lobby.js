@@ -229,6 +229,12 @@ export default function PokerNearMeLobby() {
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
   const [checkinCounts, setCheckinCounts] = useState({});
+  const [liveGameCount, setLiveGameCount] = useState(0);
+  const [lastFetchTime, setLastFetchTime] = useState(null);
+  const [showTutorial, setShowTutorial] = useState(() => {
+    if (typeof window !== 'undefined') return !localStorage.getItem('pnm_tutorial_seen');
+    return false;
+  });
 
   // ─── Location State ───
   const [userLocation, setUserLocation] = useState(null);
@@ -263,7 +269,7 @@ export default function PokerNearMeLobby() {
     if (q) {
       setSearchQuery(q);
       // Deep-link search: fetch venues matching the URL query
-      const deepUrl = `/api/poker/venues?limit=10000&offset=0&search=${encodeURIComponent(q)}&sort=trust`;
+      const deepUrl = `/api/poker/venues?limit=200&offset=0&search=${encodeURIComponent(q)}&sort=trust`;
       cachedFetch(deepUrl).then(data => {
         const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
         setVenues(newVenues);
@@ -331,7 +337,7 @@ export default function PokerNearMeLobby() {
     setLoading(true);
     setFetchError(null);
     try {
-      let url = `/api/poker/venues?limit=10000&offset=${pageNum * PAGE_SIZE}`;
+      let url = `/api/poker/venues?limit=${PAGE_SIZE}&offset=${pageNum * PAGE_SIZE}`;
       if (query) url += `&search=${encodeURIComponent(query)}`;
       if (userLocation) {
         url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`;
@@ -369,7 +375,7 @@ export default function PokerNearMeLobby() {
   // ─── Fetch tours (venue_type = 'tour' from poker_venues table) ───
   const fetchTours = useCallback(async () => {
     try {
-      const data = await cachedFetch('/api/poker/venues?venue_type=tour&limit=10000');
+      const data = await cachedFetch('/api/poker/venues?venue_type=tour&limit=200');
       const tourData = data?.data || data?.venues || (Array.isArray(data) ? data : []);
       setTours(tourData);
     } catch (err) {
@@ -408,7 +414,7 @@ export default function PokerNearMeLobby() {
   // ─── Fetch series (venue_type = 'series' from poker_venues table) ───
   const fetchSeries = useCallback(async () => {
     try {
-      const data = await cachedFetch('/api/poker/venues?venue_type=series&limit=10000');
+      const data = await cachedFetch('/api/poker/venues?venue_type=series&limit=200');
       const seriesData = data?.data || data?.venues || (Array.isArray(data) ? data : []);
       setSeries(seriesData);
     } catch (err) {
@@ -477,6 +483,7 @@ export default function PokerNearMeLobby() {
     fetchFavorites();
     fetchSearchHistory();
     fetchPreferences();
+    setLastFetchTime(Date.now());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Real-time Supabase Data Hydration ───
@@ -521,6 +528,42 @@ export default function PokerNearMeLobby() {
       .then(j => { if (j.success && j.leaders) setGlobalLeaders(j.leaders.slice(0, 5)); })
       .catch(() => {});
   }, []);
+
+  // ─── Fetch live game count from scraper data (venue_live_tables) ───
+  useEffect(() => {
+    fetch('/api/poker/live-tables')
+      .then(r => r.json())
+      .then(j => {
+        if (j.metadata?.total_tables_running != null) {
+          setLiveGameCount(j.metadata.total_tables_running);
+        } else if (j.venues) {
+          // Fallback: count total tables from venue data
+          const total = j.venues.reduce((sum, v) => sum + v.games.reduce((s, g) => s + (g.tables_running || 0), 0), 0);
+          setLiveGameCount(total);
+        }
+      })
+      .catch(() => { /* live game count unavailable */ });
+  }, []);
+
+  // ─── Refresh all data callback ───
+  const handleRefreshAll = useCallback(() => {
+    setLastFetchTime(Date.now());
+    fetchVenues(searchQuery);
+    fetchTours();
+    fetchSeries();
+    fetchDaily();
+    if (userId) {
+      fetchFavorites();
+      fetchSearchHistory();
+    }
+    // Re-fetch live game count
+    fetch('/api/poker/live-tables')
+      .then(r => r.json())
+      .then(j => {
+        if (j.metadata?.total_tables_running != null) setLiveGameCount(j.metadata.total_tables_running);
+      })
+      .catch(() => {});
+  }, [fetchVenues, searchQuery, fetchTours, fetchSeries, fetchDaily, fetchFavorites, fetchSearchHistory, userId]);
 
   // ─── Live games refresh handled by <LiveGamesFeed> component ───
 
@@ -754,7 +797,7 @@ export default function PokerNearMeLobby() {
       }).catch(() => {});
     }
     // Fetch ALL venues with GPS coordinates for distance sorting
-    const gpsUrl = `/api/poker/venues?limit=10000&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+    const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
     cachedFetch(gpsUrl).then(data => {
       const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
       setVenues(newVenues);
@@ -930,7 +973,7 @@ export default function PokerNearMeLobby() {
         state: restoreState,
       });
       // Fetch venues with saved location immediately
-      const gpsUrl = `/api/poker/venues?limit=10000&offset=0&lat=${restoreLoc.lat}&lng=${restoreLoc.lng}&radius=250&sort=distance`;
+      const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${restoreLoc.lat}&lng=${restoreLoc.lng}&radius=250&sort=distance`;
       cachedFetch(gpsUrl).then(data => {
         const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
         setVenues(newVenues);
@@ -945,7 +988,7 @@ export default function PokerNearMeLobby() {
             setUserLocation(loc);
             const movedSignificantly = Math.abs(loc.lat - restoreLoc.lat) > 0.01 || Math.abs(loc.lng - restoreLoc.lng) > 0.01;
             if (movedSignificantly) {
-              const freshUrl = `/api/poker/venues?limit=10000&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+              const freshUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
               cachedFetch(freshUrl).then(data => {
                 const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
                 setVenues(newVenues);
@@ -975,7 +1018,7 @@ export default function PokerNearMeLobby() {
                 setUserLocation(loc);
                 const movedSignificantly = Math.abs(loc.lat - restoreLoc.lat) > 0.01 || Math.abs(loc.lng - restoreLoc.lng) > 0.01;
                 if (movedSignificantly) {
-                  const freshUrl = `/api/poker/venues?limit=10000&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+                  const freshUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
                   cachedFetch(freshUrl).then(data => {
                     const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
                     setVenues(newVenues);
@@ -1077,7 +1120,7 @@ export default function PokerNearMeLobby() {
           }).catch(() => {});
         }
         // Fetch venues near this location
-        const gpsUrl = `/api/poker/venues?limit=10000&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
+        const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
         cachedFetch(gpsUrl).then(result => {
           const newVenues = result?.data || result?.venues || (Array.isArray(result) ? result : []);
           setVenues(newVenues);
@@ -1260,7 +1303,7 @@ export default function PokerNearMeLobby() {
           const apiRadius = userLocation && svRadius !== 'any' ? `&radius=${svRadius}` : '';
           const apiLoc = userLocation ? `&lat=${userLocation.lat}&lng=${userLocation.lng}` : '';
           const apiSort = svSort ? `&sort=${svSort}` : '';
-          const apiUrl = `/api/poker/venues?limit=10000&offset=0${apiLoc}${apiRadius}${apiState}${apiVenueType}${apiSort}`;
+          const apiUrl = `/api/poker/venues?limit=200&offset=0${apiLoc}${apiRadius}${apiState}${apiVenueType}${apiSort}`;
           setLoading(true);
           cachedFetch(apiUrl).then(data => {
             const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
@@ -1438,7 +1481,7 @@ export default function PokerNearMeLobby() {
                 const hgApiState = hgState !== 'all' ? `&state=${hgState}` : '';
                 const hgApiSearch = hgSearch ? `&search=${encodeURIComponent(hgSearch)}` : '';
                 const hgApiLoc = userLocation ? `&lat=${userLocation.lat}&lng=${userLocation.lng}` : '';
-                const hgUrl = `/api/poker/venues?limit=10000&offset=0&venue_type=home_game${hgApiState}${hgApiSearch}${hgApiLoc}`;
+                const hgUrl = `/api/poker/venues?limit=200&offset=0&venue_type=home_game${hgApiState}${hgApiSearch}${hgApiLoc}`;
                 setLoading(true);
                 cachedFetch(hgUrl).then(data => {
                   const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
@@ -1559,7 +1602,7 @@ export default function PokerNearMeLobby() {
           const apiRadius = userLocation && nmRadius !== 'any' ? `&radius=${nmRadius}` : '';
           const apiLoc = userLocation ? `&lat=${userLocation.lat}&lng=${userLocation.lng}` : '';
           const apiSort = nmSort ? `&sort=${nmSort}` : '';
-          const apiUrl = `/api/poker/venues?limit=10000&offset=0${apiLoc}${apiRadius}${apiState}${apiVenueType}${apiSort}`;
+          const apiUrl = `/api/poker/venues?limit=200&offset=0${apiLoc}${apiRadius}${apiState}${apiVenueType}${apiSort}`;
           setLoading(true);
           cachedFetch(apiUrl).then(data => {
             const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
@@ -2016,18 +2059,52 @@ export default function PokerNearMeLobby() {
   }, [activePod, venues, tours, series, dailyTournaments, favorites, loading, userLocation, userId, router, handleToggleFavorite, sortBy, showFilters, filters, hasMore, page, fetchDaily, loadMore, handleSortChange, handleFilterChange, favoritedVenues, fetchError, fetchVenues, searchQuery, toursLoaded, seriesLoaded, checkinCounts]);
 
   // ─── Live data for the 3D scene (drives visual behavior) ───
-  const liveData = useMemo(() => ({
-    venueCount: venues.length,
-    liveGameCount: 0, // Live game count managed by LiveGamesFeed component internally
-    tourCount: tours.length,
-    seriesCount: series.length,
-    dailyCount: dailyTournaments.length,
-    alertCount: dailyTournaments.length + tours.length,
-    savedCount: Object.keys(favorites).filter(k => favorites[k]).length,
-    friendsNearby: 0,
-    homeGameCount: venues.filter(v => v.venue_type === 'home_game').length,
-    mappableCount: venues.filter(v => v.latitude && v.longitude).length,
-  }), [venues, tours.length, series.length, dailyTournaments.length, favorites]);
+  // ─── Contextual badge counts (not raw data totals) ───
+  // Badge semantics: show actionable/relevant counts, not misleading "99+" totals
+  const liveData = useMemo(() => {
+    const today = new Date();
+    const todayDay = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][today.getDay()];
+    const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    // Tours with upcoming dates (next 30 days)
+    const upcomingTours = tours.filter(t => {
+      if (!t.start_date && !t.next_event_date) return false;
+      const d = new Date(t.next_event_date || t.start_date);
+      return d >= today && d <= thirtyDaysFromNow;
+    });
+
+    // Active/upcoming series
+    const activeSeries = series.filter(s => {
+      if (!s.end_date && !s.start_date) return true; // no dates = include
+      const end = s.end_date ? new Date(s.end_date) : new Date(s.start_date);
+      return end >= today;
+    });
+
+    // Today's tournaments
+    const todaysTournaments = dailyTournaments.filter(t => {
+      const day = t.day_of_week || t.day;
+      return day && day.toLowerCase() === todayDay.toLowerCase();
+    });
+
+    // Nearby venues (with GPS) vs total venues (without GPS)
+    const nearbyVenues = userLocation
+      ? venues.filter(v => v.distance_mi != null && v.distance_mi <= 100)
+      : [];
+
+    return {
+      venueCount: userLocation ? nearbyVenues.length : Math.min(venues.length, 50),
+      liveGameCount: liveGameCount,
+      tourCount: upcomingTours.length,
+      seriesCount: activeSeries.length,
+      dailyCount: todaysTournaments.length,
+      alertCount: upcomingTours.length, // alerts = upcoming tour events only
+      savedCount: Object.keys(favorites).filter(k => favorites[k]).length,
+      friendsNearby: -1, // sentinel: -1 = "Coming Soon" in LobbyOverlay
+      homeGameCount: venues.filter(v => v.venue_type === 'home_game').length,
+      mappableCount: venues.filter(v => v.latitude && v.longitude).length,
+      lastFetchTime: lastFetchTime,
+    };
+  }, [venues, tours, series, dailyTournaments, favorites, liveGameCount, userLocation, lastFetchTime]);
 
   return (
     <>
@@ -2066,6 +2143,9 @@ export default function PokerNearMeLobby() {
           searchQuery={searchQuery}
           onSearchChange={handleSearchChange}
           liveData={liveData}
+          onRefresh={handleRefreshAll}
+          showTutorial={showTutorial}
+          onTutorialDismiss={() => { setShowTutorial(false); try { localStorage.setItem('pnm_tutorial_seen', '1'); } catch {} }}
           gpsActive={gpsActive}
           gpsLoading={gpsLoading}
           onGpsClick={handleGpsClick}
@@ -2093,7 +2173,7 @@ export default function PokerNearMeLobby() {
                 city: preferences?.lastLocationCity || '',
                 state: preferences?.lastLocationState || '',
               });
-              const gpsUrl = `/api/poker/venues?limit=10000&offset=0&lat=${saved.lat}&lng=${saved.lng}&radius=250&sort=distance`;
+              const gpsUrl = `/api/poker/venues?limit=200&offset=0&lat=${saved.lat}&lng=${saved.lng}&radius=250&sort=distance`;
               cachedFetch(gpsUrl).then(data => {
                 const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
                 setVenues(newVenues);

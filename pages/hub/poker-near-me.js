@@ -2699,10 +2699,10 @@ export default function PokerNearMePage() {
                         position: fixed;
                         inset: 0;
                         background:
-                            radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-                            radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-                            radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.08) 0%, transparent 60%),
-                            linear-gradient(180deg, #030712 0%, #0a1628 30%, #0f172a 50%, #0a1628 70%, #030712 100%);
+                            radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+                            radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                            radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
+                            linear-gradient(180deg, #020408 0%, #0a1628 30%, #0d1b2a 50%, #0a1628 70%, #020408 100%);
                         z-index: -2;
                     }
                     .space-bg::before {
@@ -2710,31 +2710,31 @@ export default function PokerNearMePage() {
                         position: absolute;
                         inset: 0;
                         background-image:
-                            radial-gradient(1px 1px at 20px 30px, rgba(255,255,255,0.4), transparent),
-                            radial-gradient(1px 1px at 40px 70px, rgba(255,255,255,0.3), transparent),
-                            radial-gradient(1px 1px at 50px 160px, rgba(255,255,255,0.4), transparent),
-                            radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.3), transparent),
-                            radial-gradient(2px 2px at 160px 120px, rgba(255,255,255,0.5), transparent);
-                        background-repeat: repeat;
-                        background-size: 350px 200px;
-                        animation: twinkle 8s ease-in-out infinite alternate;
+                            repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(148,163,184,0.04) 39px, rgba(148,163,184,0.04) 40px),
+                            repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(148,163,184,0.04) 39px, rgba(148,163,184,0.04) 40px);
+                        background-size: 40px 40px;
                     }
-                    @keyframes twinkle {
-                        0% { opacity: 0.6; }
-                        100% { opacity: 1; }
+                    .space-bg::after {
+                        content: '';
+                        position: absolute;
+                        inset: 0;
+                        background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+                        pointer-events: none;
                     }
                     .space-overlay {
                         position: fixed;
                         inset: 0;
-                        background: linear-gradient(180deg, rgba(3,7,18,0.3) 0%, transparent 20%, transparent 80%, rgba(3,7,18,0.5) 100%);
+                        background:
+                            radial-gradient(ellipse at 50% 0%, rgba(148,163,184,0.05) 0%, transparent 50%),
+                            linear-gradient(180deg, rgba(3,7,18,0.4) 0%, transparent 15%, transparent 85%, rgba(3,7,18,0.6) 100%);
                         z-index: -1;
                     }
 
-                    /* ═══ CSS NATIVE SEARCH ROW ═══ */
+                    /* ═══ CSS NATIVE SEARCH ROW — Metal Framed ═══ */
                     .native-search-row {
                         position: relative;
                         display: flex;
-                        gap: 12px;
+                        gap: 10px;
                         padding: 16px 20px;
                         margin: 0 auto;
                         max-width: 1400px;
@@ -2743,79 +2743,107 @@ export default function PokerNearMePage() {
                     .native-search-form {
                         flex: 1;
                         position: relative;
-                        background: rgba(15, 23, 42, 0.85);
-                        backdrop-filter: blur(12px);
-                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        background: linear-gradient(180deg, rgba(20,30,48,0.95) 0%, rgba(12,18,30,0.98) 100%);
+                        border: 2px solid rgba(148,163,184,0.18);
                         border-radius: 12px;
                         display: flex;
                         align-items: center;
                         overflow: hidden;
+                        box-shadow:
+                            inset 0 2px 6px rgba(0,0,0,0.4),
+                            inset 0 -1px 0 rgba(148,163,184,0.08),
+                            0 2px 8px rgba(0,0,0,0.3);
                     }
                     .native-search-input {
                         flex: 1;
                         background: transparent;
                         border: none;
                         padding: 14px 16px;
-                        color: #fff;
+                        color: #e2e8f0;
                         font-size: 16px;
                         font-family: inherit;
                         outline: none;
                     }
-                    .native-search-input::placeholder { color: rgba(255,255,255,0.4); }
+                    .native-search-input::placeholder { color: rgba(148,163,184,0.4); }
                     .native-search-btn {
                         background: transparent;
                         border: none;
-                        color: rgba(255,255,255,0.6);
+                        color: rgba(148,163,184,0.6);
                         padding: 0 16px;
                         cursor: pointer;
                         display: flex;
                         align-items: center;
                         justify-content: center;
+                        transition: color 0.2s;
                     }
+                    .native-search-btn:hover { color: #d4a853; }
                     .native-gps-btn, .native-filter-btn {
-                        background: rgba(15, 23, 42, 0.85);
-                        backdrop-filter: blur(12px);
-                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        background: linear-gradient(180deg, rgba(20,30,48,0.95) 0%, rgba(12,18,30,0.98) 100%);
+                        border: 2px solid rgba(148,163,184,0.18);
                         border-radius: 12px;
                         width: 48px;
                         flex-shrink: 0;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        color: rgba(255,255,255,0.8);
+                        color: rgba(148,163,184,0.7);
                         cursor: pointer;
-                        transition: all 0.2s;
+                        transition: all 0.25s;
+                        box-shadow:
+                            inset 0 2px 4px rgba(0,0,0,0.35),
+                            inset 0 -1px 0 rgba(148,163,184,0.06),
+                            0 2px 6px rgba(0,0,0,0.25);
+                    }
+                    .native-gps-btn:hover, .native-filter-btn:hover {
+                        border-color: rgba(148,163,184,0.3);
+                        color: #e2e8f0;
                     }
                     .native-gps-btn.active, .native-filter-btn.active {
-                        background: rgba(212, 168, 83, 0.2);
-                        border-color: #d4a853;
+                        background: linear-gradient(180deg, rgba(212,168,83,0.15) 0%, rgba(184,134,11,0.1) 100%);
+                        border-color: rgba(212,168,83,0.5);
                         color: #d4a853;
+                        box-shadow:
+                            inset 0 2px 4px rgba(0,0,0,0.3),
+                            0 0 12px rgba(212,168,83,0.15);
                     }
 
-                    /* ═══ EVENT SUB-TABS ROW ═══ */
+                    /* ═══ EVENT SUB-TABS ROW — Metal Strip ═══ */
                     .sub-tab-row {
                         display: flex;
                         justify-content: center;
-                        gap: 8px;
+                        gap: 6px;
                         padding: 0 20px 16px;
                         max-width: 1400px;
                         margin: 0 auto;
                     }
                     .sub-tab-btn {
-                        padding: 8px 16px;
-                        background: rgba(15, 23, 42, 0.6);
-                        border: 1px solid rgba(255, 255, 255, 0.1);
-                        border-radius: 20px;
-                        color: rgba(255, 255, 255, 0.7);
+                        padding: 8px 18px;
+                        background: linear-gradient(180deg, rgba(25,35,55,0.9) 0%, rgba(15,23,42,0.95) 100%);
+                        border: 1.5px solid rgba(148,163,184,0.15);
+                        border-radius: 8px;
+                        color: rgba(148,163,184,0.7);
                         font-size: 13px;
                         font-weight: 600;
                         cursor: pointer;
-                        transition: all 0.2s;
+                        transition: all 0.25s;
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.06),
+                            0 2px 4px rgba(0,0,0,0.3);
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .sub-tab-btn:hover {
+                        border-color: rgba(148,163,184,0.3);
+                        color: #e2e8f0;
                     }
                     .sub-tab-btn.active {
-                        background: rgba(212, 168, 83, 0.2);
-                        border-color: #d4a853;
+                        background: linear-gradient(180deg, rgba(212,168,83,0.12) 0%, rgba(184,134,11,0.08) 100%);
+                        border-color: rgba(212,168,83,0.45);
                         color: #d4a853;
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.15),
+                            0 0 10px rgba(212,168,83,0.1),
+                            0 2px 4px rgba(0,0,0,0.3);
                     }
 
 
@@ -2826,34 +2854,53 @@ export default function PokerNearMePage() {
                         margin: 0 auto;
                     }
 
-                    /* Loading / Empty State */
+                    /* Loading / Empty State — Metal Container */
                     .loading-state, .empty-state, .search-landing {
                         display: flex;
                         flex-direction: column;
                         align-items: center;
                         justify-content: center;
-                        padding: 80px 20px;
-                        color: rgba(255,255,255,0.5);
+                        padding: 60px 20px;
+                        color: rgba(148,163,184,0.6);
                         text-align: center;
+                        background: linear-gradient(160deg, rgba(15,23,42,0.5) 0%, rgba(8,14,25,0.7) 100%);
+                        border: 1.5px solid rgba(148,163,184,0.1);
+                        border-radius: 16px;
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.04),
+                            0 4px 16px rgba(0,0,0,0.3);
+                        margin: 8px 0;
                     }
                     .spinner {
                         width: 40px;
                         height: 40px;
-                        border: 3px solid rgba(255,255,255,0.1);
+                        border: 3px solid rgba(148,163,184,0.12);
                         border-top-color: #d4a853;
                         border-radius: 50%;
                         animation: spin 1s linear infinite;
                         margin-bottom: 16px;
+                        box-shadow: 0 0 12px rgba(212,168,83,0.15);
                     }
                     @keyframes spin { to { transform: rotate(360deg); } }
                     .empty-state button {
                         margin-top: 16px;
                         padding: 12px 24px;
-                        background: rgba(212,168,83,0.2);
-                        border: 1px solid rgba(212,168,83,0.4);
+                        background: linear-gradient(180deg, rgba(212,168,83,0.15) 0%, rgba(184,134,11,0.1) 100%);
+                        border: 1.5px solid rgba(212,168,83,0.4);
                         border-radius: 8px;
                         color: #d4a853;
                         cursor: pointer;
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.15),
+                            0 2px 6px rgba(0,0,0,0.3);
+                        transition: all 0.25s;
+                    }
+                    .empty-state button:hover {
+                        border-color: rgba(212,168,83,0.6);
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.2),
+                            0 0 12px rgba(212,168,83,0.15),
+                            0 2px 6px rgba(0,0,0,0.3);
                     }
 
                     /* Card Grid */
@@ -2878,21 +2925,37 @@ export default function PokerNearMePage() {
                         }
                     }
 
-                    /* Entity Cards — v2.1 */
+                    /* Entity Cards — Vault-V3 Metal Frame */
                     .entity-card {
-                        background: linear-gradient(145deg, rgba(15, 23, 42, 0.75), rgba(10, 18, 32, 0.9));
-                        border: 1px solid rgba(255,255,255,0.14);
-                        border-radius: 16px;
+                        position: relative;
+                        background: linear-gradient(160deg, rgba(18,28,45,0.92) 0%, rgba(10,16,28,0.96) 100%);
+                        border: 2px solid rgba(148,163,184,0.16);
+                        border-radius: 14px;
                         padding: 16px 18px;
                         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        backdrop-filter: blur(10px);
-                        -webkit-backdrop-filter: blur(10px);
-                        box-shadow: 0 2px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04);
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.06),
+                            inset 0 -1px 0 rgba(0,0,0,0.3),
+                            inset 0 0 20px rgba(148,163,184,0.04),
+                            0 4px 20px rgba(0,0,0,0.4),
+                            0 1px 3px rgba(0,0,0,0.2);
+                    }
+                    .entity-card::before {
+                        content: '';
+                        position: absolute;
+                        top: 0; left: 0; right: 0;
+                        height: 1px;
+                        background: linear-gradient(90deg, transparent 10%, rgba(148,163,184,0.2) 50%, transparent 90%);
+                        border-radius: 14px 14px 0 0;
                     }
                     .entity-card:hover {
-                        border-color: rgba(212,168,83,0.3);
-                        background: linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(10, 18, 32, 0.96));
-                        box-shadow: 0 6px 28px rgba(212,168,83,0.1), 0 2px 12px rgba(0,0,0,0.35);
+                        border-color: rgba(212,168,83,0.35);
+                        background: linear-gradient(160deg, rgba(20,32,50,0.95) 0%, rgba(12,20,34,0.98) 100%);
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.1),
+                            inset 0 0 20px rgba(212,168,83,0.03),
+                            0 8px 32px rgba(0,0,0,0.5),
+                            0 0 0 1px rgba(212,168,83,0.08);
                         transform: translateY(-2px);
                     }
                     .card-header {
@@ -2908,23 +2971,38 @@ export default function PokerNearMePage() {
                         color: #fff;
                     }
 
-                    /* ═══ PREMIUM VENUE CARD v3.0 — smarter.poker dark ═══ */
+                    /* ═══ PREMIUM VENUE CARD v3.0 — Vault-V3 Metal Frame ═══ */
                     .vc3-card {
                         position: relative;
                         overflow: hidden;
-                        background: linear-gradient(160deg, #111820, #0c1018);
-                        border: 1px solid rgba(255,255,255,0.12);
+                        background: linear-gradient(160deg, rgba(16,24,36,0.95) 0%, rgba(10,16,26,0.98) 100%);
+                        border: 2px solid rgba(148,163,184,0.16);
                         border-radius: 14px;
                         padding: 16px 18px 14px;
                         transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
-                        backdrop-filter: blur(10px);
-                        -webkit-backdrop-filter: blur(10px);
-                        box-shadow: 0 2px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.06),
+                            inset 0 -1px 0 rgba(0,0,0,0.3),
+                            inset 0 0 20px rgba(148,163,184,0.04),
+                            0 4px 20px rgba(0,0,0,0.45),
+                            0 1px 3px rgba(0,0,0,0.2);
+                    }
+                    .vc3-card::after {
+                        content: '';
+                        position: absolute;
+                        top: 0; left: 0; right: 0;
+                        height: 1px;
+                        background: linear-gradient(90deg, transparent 5%, rgba(148,163,184,0.25) 30%, rgba(148,163,184,0.15) 70%, transparent 95%);
+                        pointer-events: none;
                     }
                     .vc3-card:hover {
-                        border-color: rgba(212,168,83,0.3);
-                        background: linear-gradient(160deg, #151d28, #0e1420);
-                        box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(212,168,83,0.1);
+                        border-color: rgba(212,168,83,0.35);
+                        background: linear-gradient(160deg, rgba(18,28,42,0.97) 0%, rgba(12,20,32,0.99) 100%);
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.1),
+                            inset 0 0 20px rgba(212,168,83,0.03),
+                            0 8px 32px rgba(0,0,0,0.55),
+                            0 0 0 1px rgba(212,168,83,0.08);
                     }
 
                     /* Accent Line */
@@ -3139,10 +3217,10 @@ export default function PokerNearMePage() {
                         margin: 0 0 6px;
                     }
 
-                    /* Trust score */
+                    /* Trust score — Illuminated Gauge */
                     .vc3-trust {
                         padding: 8px 0 6px;
-                        border-top: 1px solid rgba(255,255,255,0.06);
+                        border-top: 1px solid rgba(148,163,184,0.08);
                         margin-top: 4px;
                     }
                     .vc3-trust-header {
@@ -3154,15 +3232,28 @@ export default function PokerNearMePage() {
                     .vc3-trust-label { font-size: 11px; font-weight: 700; }
                     .vc3-trust-val { font-size: 11px; font-weight: 800; }
                     .vc3-trust-track {
-                        height: 5px;
-                        background: rgba(255,255,255,0.10);
+                        height: 6px;
+                        background: rgba(148,163,184,0.08);
                         border-radius: 3px;
                         overflow: hidden;
+                        box-shadow:
+                            inset 0 1px 2px rgba(0,0,0,0.4),
+                            0 0 0 1px rgba(148,163,184,0.06);
                     }
                     .vc3-trust-fill {
                         height: 100%;
                         border-radius: 3px;
                         transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                        box-shadow: 0 0 8px currentColor;
+                        position: relative;
+                    }
+                    .vc3-trust-fill::after {
+                        content: '';
+                        position: absolute;
+                        top: 0; left: 0; right: 0;
+                        height: 2px;
+                        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                        border-radius: 3px;
                     }
 
                     /* Action bar */
@@ -3181,35 +3272,64 @@ export default function PokerNearMePage() {
                     .vc3-icon-btn {
                         display: flex; align-items: center; justify-content: center;
                         width: 34px; height: 34px; border-radius: 8px;
-                        border: 1px solid rgba(255,255,255,0.09);
-                        background: rgba(255,255,255,0.04);
-                        color: rgba(255,255,255,0.5);
+                        border: 1.5px solid rgba(148,163,184,0.12);
+                        background: linear-gradient(180deg, rgba(25,35,55,0.8) 0%, rgba(15,23,42,0.9) 100%);
+                        color: rgba(148,163,184,0.5);
                         text-decoration: none; cursor: pointer;
-                        transition: all 0.2s;
+                        transition: all 0.25s;
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.04),
+                            0 2px 4px rgba(0,0,0,0.25);
                     }
                     .vc3-icon-btn:hover {
-                        background: rgba(255,255,255,0.08);
-                        border-color: rgba(255,255,255,0.2);
-                        color: #fff;
+                        background: linear-gradient(180deg, rgba(30,42,65,0.9) 0%, rgba(20,30,48,0.95) 100%);
+                        border-color: rgba(148,163,184,0.25);
+                        color: #e2e8f0;
                         transform: translateY(-1px);
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.06),
+                            0 4px 8px rgba(0,0,0,0.35);
                     }
 
                     .vc3-pill {
                         display: inline-flex !important; align-items: center; gap: 5px;
                         padding: 8px 12px; border-radius: 8px;
                         font-size: 11.5px; font-weight: 700;
-                        cursor: pointer; border: 1px solid transparent;
-                        transition: all 0.2s; font-family: inherit;
+                        cursor: pointer; border: 1.5px solid transparent;
+                        transition: all 0.25s; font-family: inherit;
                         white-space: nowrap; line-height: 1;
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.06),
+                            0 2px 4px rgba(0,0,0,0.25);
                     }
                     .vc3-pill span { font-size: 11px; }
-                    .vc3-pill-checkin { background: rgba(34,197,94,0.15); color: #4ade80; border-color: rgba(34,197,94,0.25); }
-                    .vc3-pill-checkin:hover { background: rgba(34,197,94,0.25); box-shadow: 0 0 12px rgba(34,197,94,0.15); }
-                    .vc3-pill-review { background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
-                    .vc3-pill-review:hover { background: rgba(59,130,246,0.25); box-shadow: 0 0 12px rgba(59,130,246,0.15); }
-                    .vc3-pill-details { background: rgba(212,168,83,0.15); color: #d4a853; border-color: rgba(212,168,83,0.25); }
-                    .vc3-pill-details:hover { background: rgba(212,168,83,0.25); box-shadow: 0 0 12px rgba(212,168,83,0.15); }
+                    .vc3-pill-checkin {
+                        background: linear-gradient(180deg, rgba(34,197,94,0.18) 0%, rgba(34,197,94,0.1) 100%);
+                        color: #4ade80;
+                        border-color: rgba(34,197,94,0.25);
+                    }
+                    .vc3-pill-checkin:hover {
+                        background: linear-gradient(180deg, rgba(34,197,94,0.28) 0%, rgba(34,197,94,0.18) 100%);
+                        box-shadow: 0 0 12px rgba(34,197,94,0.15), inset 0 1px 0 rgba(34,197,94,0.2);
+                    }
+                    .vc3-pill-review {
+                        background: linear-gradient(180deg, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0.1) 100%);
+                        color: #60a5fa;
+                        border-color: rgba(59,130,246,0.25);
+                    }
+                    .vc3-pill-review:hover {
+                        background: linear-gradient(180deg, rgba(59,130,246,0.28) 0%, rgba(59,130,246,0.18) 100%);
+                        box-shadow: 0 0 12px rgba(59,130,246,0.15), inset 0 1px 0 rgba(59,130,246,0.2);
+                    }
+                    .vc3-pill-details {
+                        background: linear-gradient(180deg, rgba(212,168,83,0.18) 0%, rgba(212,168,83,0.1) 100%);
+                        color: #d4a853;
+                        border-color: rgba(212,168,83,0.25);
+                    }
+                    .vc3-pill-details:hover {
+                        background: linear-gradient(180deg, rgba(212,168,83,0.28) 0%, rgba(212,168,83,0.18) 100%);
+                        box-shadow: 0 0 12px rgba(212,168,83,0.15), inset 0 1px 0 rgba(212,168,83,0.2);
+                    }
                     .card-location {
                         font-size: 13px;
                         color: rgba(255,255,255,0.5);
@@ -3363,7 +3483,7 @@ export default function PokerNearMePage() {
                         color: #d4a853;
                     }
 
-                    /* Daily tournaments */
+                    /* Daily tournaments — Metal day selector */
                     .day-selector {
                         display: flex;
                         justify-content: center;
@@ -3373,18 +3493,30 @@ export default function PokerNearMePage() {
                     }
                     .day-btn {
                         padding: 10px 16px;
-                        background: rgba(15, 23, 42, 0.6);
-                        border: 1px solid rgba(255,255,255,0.1);
+                        background: linear-gradient(180deg, rgba(25,35,55,0.85) 0%, rgba(15,23,42,0.92) 100%);
+                        border: 1.5px solid rgba(148,163,184,0.12);
                         border-radius: 8px;
-                        color: rgba(255,255,255,0.7);
+                        color: rgba(148,163,184,0.65);
                         font-size: 13px;
                         font-weight: 500;
                         cursor: pointer;
+                        transition: all 0.25s;
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.04),
+                            0 2px 4px rgba(0,0,0,0.25);
+                    }
+                    .day-btn:hover {
+                        border-color: rgba(148,163,184,0.25);
+                        color: #e2e8f0;
                     }
                     .day-btn.active {
-                        background: rgba(212,168,83,0.2);
-                        border-color: rgba(212,168,83,0.5);
+                        background: linear-gradient(180deg, rgba(212,168,83,0.15) 0%, rgba(184,134,11,0.08) 100%);
+                        border-color: rgba(212,168,83,0.45);
                         color: #d4a853;
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.15),
+                            0 0 10px rgba(212,168,83,0.1),
+                            0 2px 4px rgba(0,0,0,0.3);
                     }
                     .time-badge {
                         padding: 4px 10px;
@@ -3536,7 +3668,18 @@ export default function PokerNearMePage() {
                     }
                     .review-btn:hover { background: rgba(59,130,246,0.25); }
 
-                    /* Load More */
+                    /* Action bar borders — Metal */
+                    .vc3-actions {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 8px;
+                        padding-top: 10px;
+                        border-top: 1px solid rgba(148,163,184,0.08);
+                        margin-top: 6px;
+                    }
+
+                    /* Load More — Metal Button */
                     .load-more {
                         display: flex;
                         justify-content: center;
@@ -3544,17 +3687,25 @@ export default function PokerNearMePage() {
                     }
                     .load-more-btn {
                         padding: 12px 32px;
-                        background: rgba(212,168,83,0.15);
-                        border: 1px solid rgba(212,168,83,0.3);
+                        background: linear-gradient(180deg, rgba(212,168,83,0.12) 0%, rgba(184,134,11,0.06) 100%);
+                        border: 1.5px solid rgba(212,168,83,0.3);
                         border-radius: 10px;
                         color: #d4a853;
                         font-size: 14px;
                         font-weight: 500;
                         cursor: pointer;
-                        transition: all 0.2s;
+                        transition: all 0.25s;
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.1),
+                            0 2px 6px rgba(0,0,0,0.3);
                     }
                     .load-more-btn:hover {
-                        background: rgba(212,168,83,0.25);
+                        background: linear-gradient(180deg, rgba(212,168,83,0.2) 0%, rgba(184,134,11,0.12) 100%);
+                        border-color: rgba(212,168,83,0.5);
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.15),
+                            0 0 12px rgba(212,168,83,0.1),
+                            0 2px 6px rgba(0,0,0,0.3);
                     }
 
                     /* Live Games */
@@ -4029,7 +4180,7 @@ export default function PokerNearMePage() {
                         }
                     }
 
-                    /* ═══ MOBILE TAB BAR ═══ */
+                    /* ═══ MOBILE TAB BAR — Metal Navigation Rail ═══ */
                     .mobile-tab-bar {
                         display: none;
                     }
@@ -4040,17 +4191,19 @@ export default function PokerNearMePage() {
                             gap: 2px;
                             padding: 6px 8px;
                             margin: -8px 4px 8px;
-                            background: rgba(15,23,42,0.85);
-                            border: 1px solid rgba(255,255,255,0.08);
+                            background: linear-gradient(180deg, rgba(20,30,48,0.96) 0%, rgba(10,16,28,0.98) 100%);
+                            border: 2px solid rgba(148,163,184,0.15);
                             border-radius: 12px;
-                            backdrop-filter: blur(12px);
-                            -webkit-backdrop-filter: blur(12px);
                             overflow-x: auto;
                             -webkit-overflow-scrolling: touch;
                             position: sticky;
                             top: 8px;
                             z-index: 100;
-                            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                            box-shadow:
+                                inset 0 1px 0 rgba(255,255,255,0.06),
+                                inset 0 -1px 0 rgba(0,0,0,0.4),
+                                0 4px 20px rgba(0,0,0,0.5),
+                                0 1px 3px rgba(0,0,0,0.3);
                         }
                     }
                     .mtab {
@@ -4062,24 +4215,34 @@ export default function PokerNearMePage() {
                         padding: 8px 4px;
                         border-radius: 8px;
                         background: transparent;
-                        border: none;
+                        border: 1px solid transparent;
                         cursor: pointer;
-                        transition: all 0.2s;
+                        transition: all 0.25s;
                         position: relative;
                         min-width: 0;
                     }
+                    .mtab:hover {
+                        background: rgba(148,163,184,0.06);
+                    }
                     .mtab.active {
-                        background: rgba(212,168,83,0.15);
-                        box-shadow: inset 0 -2px 0 #d4a853;
+                        background: linear-gradient(180deg, rgba(212,168,83,0.12) 0%, rgba(184,134,11,0.06) 100%);
+                        border-color: rgba(212,168,83,0.25);
+                        box-shadow:
+                            inset 0 -2px 0 #d4a853,
+                            inset 0 0 8px rgba(212,168,83,0.08),
+                            0 0 8px rgba(212,168,83,0.1);
                     }
                     .mtab-icon {
                         font-size: 16px;
                         line-height: 1;
                     }
+                    .mtab.active .mtab-icon {
+                        filter: drop-shadow(0 0 4px rgba(212,168,83,0.3));
+                    }
                     .mtab-label {
                         font-size: 9px;
                         font-weight: 600;
-                        color: rgba(255,255,255,0.5);
+                        color: rgba(148,163,184,0.5);
                         text-transform: uppercase;
                         letter-spacing: 0.3px;
                     }
