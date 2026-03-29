@@ -1466,6 +1466,17 @@ export default function PokerNearMeLobby() {
     setActivePod(null);
   }, []);
 
+  // ─── Keyboard: Escape to close panel ───
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showPanel) {
+        handlePanelClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showPanel, handlePanelClose]);
+
   // ─── Favorite toggle ───
   const handleToggleFavorite = useCallback(async (venueId, venueData) => {
     if (!userId) return;
@@ -2165,7 +2176,25 @@ export default function PokerNearMeLobby() {
       }
 
       case 'daily':
-        component = <DailyTournamentsPanel tournaments={dailyTournaments} onDayChange={fetchDaily} />;
+        if (dailyTournaments.length === 0 && !loading) {
+          component = (
+            <div style={{ display: 'grid', gap: 10 }}>
+              {[1,2,3,4,5].map(n => (
+                <div key={n} style={{
+                  height: 80, borderRadius: 12,
+                  background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)',
+                  backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite',
+                  border: '1px solid rgba(88,166,255,0.1)',
+                }} />
+              ))}
+              <div style={{ textAlign: 'center', padding: 12, color: 'rgba(200,214,229,0.4)', fontSize: 13 }}>
+                Loading daily tournaments...
+              </div>
+            </div>
+          );
+        } else {
+          component = <DailyTournamentsPanel tournaments={dailyTournaments} onDayChange={fetchDaily} />;
+        }
         break;
 
       case 'calendar':
@@ -2489,6 +2518,38 @@ export default function PokerNearMeLobby() {
                     </svg>
                   </button>
                 </div>
+              </div>
+              {/* Quick Pod Navigation — switch between pods without closing */}
+              <div style={{
+                display: 'flex', gap: 2, padding: '6px 12px', flexShrink: 0,
+                overflowX: 'auto', scrollbarWidth: 'none',
+                borderBottom: '1px solid rgba(110,231,239,0.06)',
+                background: 'rgba(6,15,28,0.6)',
+              }}>
+                {[
+                  { id: 'nearme', icon: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z', label: 'Near Me' },
+                  { id: 'search', icon: 'M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-5.2-5.2', label: 'Search' },
+                  { id: 'daily', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', label: 'Daily' },
+                  { id: 'livegames', icon: 'M13 10V3L4 14h7v7l9-11h-7z', label: 'Live' },
+                  { id: 'mapview', icon: 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7', label: 'Map' },
+                  { id: 'tours', icon: 'M3 21l1.65-3.8a9 9 0 1112.7 0L21 21', label: 'Tours' },
+                  { id: 'series', icon: 'M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z', label: 'Series' },
+                  { id: 'favorites', icon: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z', label: 'Saved' },
+                ].map(p => (
+                  <button key={p.id} onClick={() => { setActivePod(p.id); playClickSound(); }}
+                    style={{
+                      flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
+                      padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                      border: activePod === p.id ? '1px solid rgba(110,231,239,0.4)' : '1px solid transparent',
+                      background: activePod === p.id ? 'rgba(110,231,239,0.1)' : 'transparent',
+                      color: activePod === p.id ? '#6ee7ef' : 'rgba(200,214,229,0.35)',
+                      cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                      letterSpacing: '0.02em',
+                    }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d={p.icon}/></svg>
+                    {p.label}
+                  </button>
+                ))}
               </div>
               {/* GPS Intel Banner — contextual stats when GPS active */}
               {userLocation && (activePod === 'nearme' || activePod === 'search' || activePod === 'livegames' || activePod === 'daily') && (
