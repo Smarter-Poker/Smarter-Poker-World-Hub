@@ -55,3 +55,13 @@ _legacy_scripts/
 _legacy_logs/
 _legacy_sql/
 .venv
+
+# Scraper daemon outputs (data goes to Supabase, these are ephemeral local audit trails)
+data/scrape-evidence/
+data/bravo-live-snapshot.json
+data/pokeratlas-live-snapshot.json
+data/bravo-logs/
+data/pokeratlas-logs/
+
+# Background shell state
+.bg-shell/
