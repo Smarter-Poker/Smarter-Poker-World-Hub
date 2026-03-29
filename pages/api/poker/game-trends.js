@@ -26,7 +26,10 @@ export default async function handler(req, res) {
       .order('scrape_timestamp', { ascending: false })
       .limit(5000);
 
-    if (currentErr) throw currentErr;
+    if (currentErr) {
+      console.warn('Game trends: live tables query failed:', currentErr.message);
+      return res.status(200).json({ trends: [], total_games_now: 0, has_historical_data: false, analyzed_at: new Date().toISOString() });
+    }
 
     // Get historical snapshot from ~7 days ago
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();

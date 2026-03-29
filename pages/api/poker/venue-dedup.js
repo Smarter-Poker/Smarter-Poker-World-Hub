@@ -90,7 +90,10 @@ export default async function handler(req, res) {
       .select('venue_name, game_name, source, tables_running, players_waiting')
       .limit(5000);
     
-    if (error) throw error;
+    if (error) {
+      console.warn('Venue dedup: live tables query failed:', error.message);
+      return res.status(200).json({ total_venues_raw: 0, total_venues_after_dedup: 0, duplicates_resolved: 0, resolved: [], alias_registry_size: Object.keys(VENUE_ALIASES).length });
+    }
     
     const merged = mergeVenueData(data || []);
     

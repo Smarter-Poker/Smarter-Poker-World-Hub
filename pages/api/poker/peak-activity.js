@@ -47,7 +47,15 @@ export default async function handler(req, res) {
     
     const { data, error } = await query.limit(10000);
     
-    if (error) throw error;
+    if (error) {
+      console.warn('Peak activity query failed (table may not exist):', error.message);
+      return res.status(200).json({ 
+        message: 'Historical data not available yet.',
+        heatmap: [],
+        peak_hours: [],
+        peak_days: [],
+      });
+    }
     
     if (!data || data.length === 0) {
       return res.status(200).json({ 
