@@ -38,7 +38,12 @@ function isBlockedUrl(urlStr) {
     }
 }
 
+import { applyRateLimit, LIMITS } from '../../src/lib/apiRateLimit';
+
 export default async function handler(req, res) {
+    // Rate limit — this endpoint makes external requests, protect against abuse
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+
     // Allow CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');

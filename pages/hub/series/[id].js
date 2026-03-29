@@ -13,7 +13,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
-import { formatGameType } from '../../../src/utils/pokerFormatters';
+import { formatGameType, decodeHtml } from '../../../src/utils/pokerFormatters';
 
 // Tour badge color mapping
 const TOUR_COLORS = {
@@ -369,7 +369,7 @@ export default function SeriesDetailPage() {
             </span>
           </div>
 
-          <h1 className="series-title">{series.name}</h1>
+          <h1 className="series-title">{decodeHtml(series.name)}</h1>
 
           {/* Action Buttons */}
           <div className="action-buttons">
@@ -538,7 +538,7 @@ export default function SeriesDetailPage() {
                         >
                           <td className="event-num">{evtKey}</td>
                           <td className="event-name">
-                            {evt.event_name || 'TBD'}
+                            {decodeHtml(evt.event_name) || 'TBD'}
                             <span className="expand-indicator">{isExpanded ? '\u25B2' : '\u25BC'}</span>
                           </td>
                           <td className="event-date">{formatEventDate(evt.start_date)}</td>

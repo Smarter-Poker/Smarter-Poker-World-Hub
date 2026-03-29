@@ -105,3 +105,22 @@ export function formatDateRange(startDate, endDate) {
     const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     return `${startStr} – ${endStr}`;
 }
+
+/**
+ * Decode HTML entities from scraped data.
+ * Handles common entities that appear in tournament/series names from PokerAtlas.
+ * @param {string} str - String potentially containing HTML entities
+ * @returns {string} Decoded string
+ */
+export function decodeHtml(str) {
+    if (!str) return str;
+    return str
+        .replace(/&#39;/g, "'")
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#x27;/g, "'")
+        .replace(/&#x2F;/g, '/')
+        .replace(/&nbsp;/g, ' ');
+}

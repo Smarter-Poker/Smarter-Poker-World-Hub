@@ -13,18 +13,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
-import { formatGameType } from '../../src/utils/pokerFormatters';
-
-// Decode HTML entities from scraped data (e.g., &#39; → ')
-function decodeHtml(str) {
-    if (!str) return str;
-    return str
-        .replace(/&#39;/g, "'")
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"');
-}
+import { formatGameType, decodeHtml } from '../../src/utils/pokerFormatters';
 
 const C = { bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B', border: '#DADDE1', blue: '#1877F2', green: '#42B72A' };
 

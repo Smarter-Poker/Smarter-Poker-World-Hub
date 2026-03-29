@@ -1680,7 +1680,7 @@ export default function PokerNearMeLobby() {
                             )}
                             <VenueCard venue={v} isFavorited={!!favorites[v.id]}
                               onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
-                              onNavigate={(url) => { if (url.includes('action=review')) { setSelectedVenueForReview({ id: v.id, name: v.name }); } else { router.push(url); } }}
+                              onNavigate={(url) => handleVenueNavigate(url, v)}
                               userLocation={userLocation} checkinCount={checkinCounts[String(v.id)] || 0} />
                           </div>
                         );
@@ -1789,10 +1789,7 @@ export default function PokerNearMeLobby() {
                       venue={v}
                       isFavorited={!!favorites[v.id]}
                       onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
-                      onNavigate={(url) => {
-                        if (url.includes('action=review')) { setSelectedVenueForReview({ id: v.id, name: v.name }); }
-                        else { router.push(url); }
-                      }}
+                      onNavigate={(url) => handleVenueNavigate(url, v)}
                       userLocation={userLocation}
                       checkinCount={checkinCounts[String(v.id)] || 0}
                     />
@@ -1988,7 +1985,7 @@ export default function PokerNearMeLobby() {
                             )}
                             <VenueCard venue={v} isFavorited={!!favorites[v.id]}
                               onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
-                              onNavigate={(url) => { if (url.includes('action=review')) { setSelectedVenueForReview({ id: v.id, name: v.name }); } else { router.push(url); } }}
+                              onNavigate={(url) => handleVenueNavigate(url, v)}
                               userLocation={userLocation} checkinCount={checkinCounts[String(v.id)] || 0} />
                           </div>
                         );
@@ -2219,13 +2216,7 @@ export default function PokerNearMeLobby() {
                 venue={v}
                 isFavorited={true}
                 onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
-                onNavigate={(url) => {
-                  if (url.includes('action=review')) {
-                    setSelectedVenueForReview({ id: v.id, name: v.name });
-                  } else {
-                    router.push(url);
-                  }
-                }}
+                onNavigate={(url) => handleVenueNavigate(url, v)}
                 userLocation={userLocation}
                 checkinCount={checkinCounts[String(v.id)] || 0}
               />
@@ -2522,10 +2513,29 @@ export default function PokerNearMeLobby() {
                 </div>
               )}
               {/* Content — full remaining height with error recovery */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 90px', WebkitOverflowScrolling: 'touch' }}>
+              <div id="pnm-panel-scroll" style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 90px', WebkitOverflowScrolling: 'touch', position: 'relative' }}>
                 <PodErrorBoundary podName={panelContent?.title || activePod} onReset={() => setActivePod(null)}>
                   {panelContent.component}
                 </PodErrorBoundary>
+                {/* Scroll-to-Top FAB */}
+                <button
+                  id="pnm-scroll-top"
+                  onClick={() => { document.getElementById('pnm-panel-scroll')?.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  style={{
+                    position: 'sticky', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+                    width: 40, height: 40, borderRadius: '50%', cursor: 'pointer',
+                    background: 'linear-gradient(135deg, rgba(110,231,239,0.15), rgba(110,231,239,0.05))',
+                    border: '1px solid rgba(110,231,239,0.3)',
+                    color: '#6ee7ef', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                    transition: 'all 0.2s', zIndex: 5,
+                  }}
+                  aria-label="Scroll to top"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="18 15 12 9 6 15"/>
+                  </svg>
+                </button>
               </div>
             </div>
           </>
@@ -2550,6 +2560,39 @@ export default function PokerNearMeLobby() {
               </div>
               <div style={{ padding: 20 }}>
                 <VoiceSearch onResult={handleVoiceResult} />
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Login Prompt Modal — auth gate for Check In / Review */}
+        {showLoginPrompt && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(3,4,8,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }} onClick={() => setShowLoginPrompt(false)}>
+            <div onClick={e => e.stopPropagation()} style={{
+              width: 'min(380px, 85vw)', padding: '32px 28px', textAlign: 'center',
+              background: 'rgba(18,24,40,0.97)', borderRadius: 20,
+              border: '1px solid rgba(110,231,239,0.15)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}>
+              <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.6 }}>🔒</div>
+              <h3 style={{ color: '#e2e8f0', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Sign In Required</h3>
+              <p style={{ color: 'rgba(200,214,229,0.5)', fontSize: 13, lineHeight: 1.5, marginBottom: 24 }}>
+                You need to be signed in to check in at venues and leave reviews. Create a free account to unlock all features.
+              </p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                <button onClick={() => setShowLoginPrompt(false)} style={{
+                  padding: '10px 24px', borderRadius: 10, border: '1px solid rgba(110,231,239,0.15)',
+                  background: 'transparent', color: 'rgba(200,214,229,0.6)', fontSize: 14, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>Cancel</button>
+                <button onClick={() => { setShowLoginPrompt(false); router.push('/auth/login?redirect=' + encodeURIComponent('/hub/poker-near-me-lobby')); }} style={{
+                  padding: '10px 28px', borderRadius: 10, border: 'none',
+                  background: 'linear-gradient(135deg, #00D4FF, #6ee7ef)', color: '#0a1628', fontSize: 14, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(0,212,255,0.25)',
+                }}>Sign In</button>
               </div>
             </div>
           </div>

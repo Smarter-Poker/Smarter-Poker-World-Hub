@@ -246,7 +246,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 <p className="vc3-description">{venue.description}</p>
             )}
 
-            {/* === BADGE ROW === */}
+            {/* === QUICK TAGS (auto-generated intelligence) === */}
             <div className="vc3-badges">
                 {venue.is_featured && <span className="vc3-badge vc3-badge-featured">Featured</span>}
                 {isNewcomer && <span className="vc3-badge vc3-badge-newcomer">Newcomer Friendly</span>}
@@ -258,6 +258,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     </span>
                 )}
                 {venue.has_tournaments && <span className="vc3-badge vc3-badge-tourney">Tournaments</span>}
+                {(venue.hours === '24/7' || venue.hours_weekday === '24/7') && <span className="vc3-badge" style={{ background: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.3)', color: '#22c55e' }}>24/7</span>}
+                {Array.isArray(venue.games_offered) && venue.games_offered.some(g => /plo|omaha/i.test(g)) && <span className="vc3-badge" style={{ background: 'rgba(139,92,246,0.12)', borderColor: 'rgba(139,92,246,0.3)', color: '#a78bfa' }}>PLO Room</span>}
+                {venue.total_tables > 20 && <span className="vc3-badge" style={{ background: 'rgba(212,168,83,0.12)', borderColor: 'rgba(212,168,83,0.3)', color: '#d4a853' }}>Large Room</span>}
                 {checkinCount > 0 && (
                     <span className="vc3-badge vc3-badge-checkin" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '#checkins'); }}>
                         {checkinCount} here today

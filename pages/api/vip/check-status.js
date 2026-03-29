@@ -14,8 +14,10 @@ function getSupabase() {
     }
     return _supabase;
 }
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
   try {
       if (req.method !== 'GET') {
           return res.status(405).json({ error: 'Method not allowed' });
