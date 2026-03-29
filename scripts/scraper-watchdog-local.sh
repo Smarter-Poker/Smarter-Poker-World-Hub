@@ -43,6 +43,20 @@ notify() {
   osascript -e "display notification \"$1\" with title \"🔧 Scraper Watchdog\" sound name \"Sosumi\"" 2>/dev/null
 }
 
+# Discord webhook alert (fires even when Mac is sleeping)
+# Set DISCORD_SCRAPER_WEBHOOK in ~/.zshenv or launchd env
+DISCORD_WEBHOOK="${DISCORD_SCRAPER_WEBHOOK:-}"
+
+discord_alert() {
+  local message="$1"
+  if [ -n "$DISCORD_WEBHOOK" ]; then
+    curl -s -H "Content-Type: application/json" \
+      -d "{\"content\":\"🔧 **Scraper Watchdog** — ${message}\"}" \
+      "$DISCORD_WEBHOOK" > /dev/null 2>&1
+    log "  Discord alert sent: ${message}"
+  fi
+}
+
 # Check heartbeat freshness
 check_heartbeat() {
   local name="$1"
@@ -85,6 +99,7 @@ check_heartbeat() {
 
     log "  ${name}: Restart issued (launchctl stop/start)"
     notify "${name}: Auto-restarted (heartbeat was ${age_min}min stale)"
+    discord_alert "${name}: Auto-restarted (heartbeat was ${age_min}min stale)"
   else
     local age_min=$((age / 60))
     # Read status from heartbeat file
@@ -112,6 +127,7 @@ check_pid_alive() {
       launchctl start "$plist" 2>/dev/null
       log "  ${name}: Restart issued for dead PID"
       notify "${name}: Restarted (PID ${pid} was dead)"
+      discord_alert "${name}: Restarted (PID ${pid} was dead)"
     fi
   fi
 }

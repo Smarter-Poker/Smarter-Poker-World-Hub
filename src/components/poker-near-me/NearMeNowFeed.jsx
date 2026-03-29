@@ -1,6 +1,7 @@
 /**
  * NearMeNowFeed.jsx — Feature #10: "Near Me Now" Live Feed
  * Real-time scrolling feed combining live games, check-ins, tournament starts, and promotions.
+ * v2.0 — Enhanced with CTA-rich empty states and skeleton loading
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { haversineMiles } from './pnm-utils';
@@ -62,7 +63,25 @@ const TYPE_COLORS = {
 
 const RADIUS_OPTIONS = [10, 25, 50, 100];
 
-export default function NearMeNowFeed({ userLocation, venues = [] }) {
+// Skeleton placeholder for loading state
+function FeedSkeleton({ count = 3 }) {
+    return (
+        <div className="nmf-feed-list">
+            {Array.from({ length: count }).map((_, i) => (
+                <div key={`skel-${i}`} className="nmf-item nmf-skeleton">
+                    <div className="nmf-skel-icon" />
+                    <div className="nmf-skel-content">
+                        <div className="nmf-skel-line nmf-skel-title" />
+                        <div className="nmf-skel-line nmf-skel-sub" />
+                    </div>
+                    <div className="nmf-skel-badge" />
+                </div>
+            ))}
+        </div>
+    );
+}
+
+export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS, onSwitchTab }) {
     const [feedItems, setFeedItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [radius, setRadius] = useState(50);
@@ -206,21 +225,46 @@ export default function NearMeNowFeed({ userLocation, venues = [] }) {
             </div>
 
             {/* Feed */}
-            {loading && (
-                <div className="nmf-loading">
-                    <div className="nmf-spinner" />
-                    <span>Scanning nearby activity...</span>
-                </div>
-            )}
+            {loading && <FeedSkeleton count={4} />}
 
             {!loading && filteredItems.length === 0 && (
                 <div className="nmf-empty">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 8v4M12 16h.01" />
-                    </svg>
-                    <p>No activity nearby right now</p>
-                    <p style={{ fontSize: 12 }}>Try increasing your radius or check back soon</p>
+                    <div className="nmf-empty-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.3)" strokeWidth="1.5">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 8v4M12 16h.01" />
+                        </svg>
+                    </div>
+                    <p className="nmf-empty-title">No activity nearby right now</p>
+                    <p className="nmf-empty-hint">Try increasing your radius or check back soon</p>
+                    
+                    {/* CTA Buttons */}
+                    <div className="nmf-empty-ctas">
+                        {!userLocation && onRequestGPS && (
+                            <button className="nmf-cta-btn nmf-cta-gps" onClick={onRequestGPS}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="10" /><path d="M22 12h-4M6 12H2M12 6V2M12 22v-4" />
+                                </svg>
+                                Enable GPS
+                            </button>
+                        )}
+                        {onSwitchTab && (
+                            <button className="nmf-cta-btn nmf-cta-live" onClick={() => onSwitchTab('live')}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+                                </svg>
+                                View Live Games
+                            </button>
+                        )}
+                        {onSwitchTab && (
+                            <button className="nmf-cta-btn nmf-cta-map" onClick={() => onSwitchTab('map')}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
+                                </svg>
+                                Browse Map
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -267,13 +311,8 @@ export default function NearMeNowFeed({ userLocation, venues = [] }) {
         .nmf-controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
         .nmf-radius, .nmf-type-filter { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .nmf-ctrl-label { font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 500; }
-        .nmf-chip { padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .nmf-chip { padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; font-family: inherit; }
         .nmf-chip.active { background: rgba(212,168,83,0.15); border-color: rgba(212,168,83,0.4); color: #d4a853; }
-        .nmf-loading { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 12px; }
-        .nmf-spinner { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #d4a853; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        .nmf-loading span { color: rgba(255,255,255,0.4); font-size: 13px; }
-        .nmf-empty { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; text-align: center; }
-        .nmf-empty p { color: rgba(255,255,255,0.4); font-size: 14px; margin: 8px 0 0; }
         .nmf-feed-list { display: flex; flex-direction: column; gap: 6px; }
         .nmf-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.06); border-left: 3px solid #d4a853; border-radius: 10px; transition: all 0.2s; }
         .nmf-item:hover { background: rgba(15,23,42,0.7); border-color: rgba(255,255,255,0.1); }
@@ -285,6 +324,31 @@ export default function NearMeNowFeed({ userLocation, venues = [] }) {
         .nmf-item-subtitle { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
         .nmf-item-detail { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .nmf-item-type { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; border: 1px solid; flex-shrink: 0; align-self: center; }
+        
+        /* Skeleton styles */
+        .nmf-skeleton { animation: nmf-pulse 1.5s ease-in-out infinite; }
+        .nmf-skel-icon { width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.06); flex-shrink: 0; }
+        .nmf-skel-content { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+        .nmf-skel-line { border-radius: 4px; background: rgba(255,255,255,0.06); }
+        .nmf-skel-title { width: 65%; height: 14px; }
+        .nmf-skel-sub { width: 40%; height: 10px; }
+        .nmf-skel-badge { width: 60px; height: 20px; border-radius: 4px; background: rgba(255,255,255,0.04); flex-shrink: 0; align-self: center; }
+        
+        /* Empty state with CTAs */
+        .nmf-empty { display: flex; flex-direction: column; align-items: center; padding: 48px 20px 32px; text-align: center; }
+        .nmf-empty-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(212,168,83,0.06); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+        .nmf-empty-title { color: rgba(255,255,255,0.6); font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+        .nmf-empty-hint { color: rgba(255,255,255,0.3); font-size: 13px; margin: 0 0 20px; }
+        .nmf-empty-ctas { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .nmf-cta-btn { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: 1px solid; font-family: inherit; }
+        .nmf-cta-gps { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); color: #22c55e; }
+        .nmf-cta-gps:hover { background: rgba(34,197,94,0.2); }
+        .nmf-cta-live { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
+        .nmf-cta-live:hover { background: rgba(239,68,68,0.2); }
+        .nmf-cta-map { background: rgba(88,166,255,0.1); border-color: rgba(88,166,255,0.3); color: #58a6ff; }
+        .nmf-cta-map:hover { background: rgba(88,166,255,0.2); }
+        
+        @keyframes nmf-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
         </div>

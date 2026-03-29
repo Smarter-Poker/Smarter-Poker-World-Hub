@@ -69,12 +69,14 @@ export default async function handler(req, res) {
         .select('id', { count: 'exact', head: true })
         .eq('source', source);
 
-      // Count unique venues (use bravo_slug — indexed, smaller payload than venue_name)
-      const { data: venueSlugs } = await supabase
+      // Count unique venues + aggregate stats
+      const { data: venueRows } = await supabase
         .from('venue_live_tables')
-        .select('bravo_slug')
+        .select('bravo_slug, tables_running, players_waiting')
         .eq('source', source);
-      const venues = venueSlugs ? new Set(venueSlugs.map(r => r.bravo_slug)).size : 0;
+      const venues = venueRows ? new Set(venueRows.map(r => r.bravo_slug)).size : 0;
+      const tablesRunning = (venueRows || []).reduce((s, r) => s + (r.tables_running || 0), 0);
+      const playersWaiting = (venueRows || []).reduce((s, r) => s + (r.players_waiting || 0), 0);
 
       let status = 'healthy';
       if (minutesAgo > 60) {
@@ -91,6 +93,8 @@ export default async function handler(req, res) {
         minutes_ago: minutesAgo,
         records,
         venues,
+        tables_running: tablesRunning,
+        players_waiting: playersWaiting,
         batch_id: data[0].scrape_batch_id,
       };
     }

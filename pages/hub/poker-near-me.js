@@ -3552,14 +3552,14 @@ export default function PokerNearMePage() {
                     .vc3-trust-label { font-size: 11px; font-weight: 700; }
                     .vc3-trust-val { font-size: 11px; font-weight: 800; }
                     .vc3-trust-track {
-                        height: 4px;
-                        background: rgba(255,255,255,0.06);
-                        border-radius: 2px;
+                        height: 5px;
+                        background: rgba(255,255,255,0.10);
+                        border-radius: 3px;
                         overflow: hidden;
                     }
                     .vc3-trust-fill {
                         height: 100%;
-                        border-radius: 2px;
+                        border-radius: 3px;
                         transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
                     }
 
@@ -3574,7 +3574,7 @@ export default function PokerNearMePage() {
                         margin-top: 6px;
                     }
                     .vc3-actions-secondary { display: flex; gap: 5px; }
-                    .vc3-actions-primary { display: flex; gap: 5px; flex: 1; justify-content: flex-end; }
+                    .vc3-actions-primary { display: flex !important; gap: 6px; flex: 1; justify-content: flex-end; flex-wrap: nowrap; }
 
                     .vc3-icon-btn {
                         display: flex; align-items: center; justify-content: center;
@@ -3594,20 +3594,20 @@ export default function PokerNearMePage() {
                     }
 
                     .vc3-pill {
-                        display: inline-flex; align-items: center; gap: 4px;
-                        padding: 7px 11px; border-radius: 8px;
+                        display: inline-flex !important; align-items: center; gap: 5px;
+                        padding: 8px 12px; border-radius: 8px;
                         font-size: 11.5px; font-weight: 700;
                         cursor: pointer; border: 1px solid transparent;
                         transition: all 0.2s; font-family: inherit;
-                        white-space: nowrap;
+                        white-space: nowrap; line-height: 1;
                     }
                     .vc3-pill span { font-size: 11px; }
-                    .vc3-pill-checkin { background: rgba(34,197,94,0.10); color: #4ade80; border-color: rgba(34,197,94,0.2); }
-                    .vc3-pill-checkin:hover { background: rgba(34,197,94,0.2); box-shadow: 0 0 10px rgba(34,197,94,0.12); }
-                    .vc3-pill-review { background: rgba(59,130,246,0.10); color: #60a5fa; border-color: rgba(59,130,246,0.2); }
-                    .vc3-pill-review:hover { background: rgba(59,130,246,0.2); box-shadow: 0 0 10px rgba(59,130,246,0.12); }
-                    .vc3-pill-details { background: rgba(212,168,83,0.10); color: #d4a853; border-color: rgba(212,168,83,0.2); }
-                    .vc3-pill-details:hover { background: rgba(212,168,83,0.2); box-shadow: 0 0 10px rgba(212,168,83,0.12); }
+                    .vc3-pill-checkin { background: rgba(34,197,94,0.15); color: #4ade80; border-color: rgba(34,197,94,0.25); }
+                    .vc3-pill-checkin:hover { background: rgba(34,197,94,0.25); box-shadow: 0 0 12px rgba(34,197,94,0.15); }
+                    .vc3-pill-review { background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
+                    .vc3-pill-review:hover { background: rgba(59,130,246,0.25); box-shadow: 0 0 12px rgba(59,130,246,0.15); }
+                    .vc3-pill-details { background: rgba(212,168,83,0.15); color: #d4a853; border-color: rgba(212,168,83,0.25); }
+                    .vc3-pill-details:hover { background: rgba(212,168,83,0.25); box-shadow: 0 0 12px rgba(212,168,83,0.15); }
                     .card-location {
                         font-size: 13px;
                         color: rgba(255,255,255,0.5);
@@ -4689,17 +4689,23 @@ export default function PokerNearMePage() {
                             top: 10px; right: 10px;
                         }
                         .vc3-actions {
-                            gap: 4px;
-                            flex-wrap: wrap;
+                            gap: 6px;
+                            flex-wrap: nowrap;
                         }
                         .vc3-actions-primary {
-                            flex-wrap: wrap;
-                            gap: 4px;
+                            display: flex !important;
+                            flex-wrap: nowrap !important;
+                            gap: 5px;
+                            overflow-x: auto;
+                            -webkit-overflow-scrolling: touch;
                         }
                         .vc3-pill {
+                            display: inline-flex !important;
+                            align-items: center;
                             padding: 8px 10px;
                             font-size: 11px;
                             min-height: 36px;
+                            flex-shrink: 0;
                         }
                         .vc3-icon-btn {
                             width: 36px;

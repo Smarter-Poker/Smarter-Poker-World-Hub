@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '../../lib/supabase';
-import { haversineMiles, timeAgo, getHeatLevel, parseMinStake } from './pnm-utils';
+import { haversineMiles, timeAgo, getHeatLevel, parseMinStake, getVenueLogoUrl, estimateWaitTime, saveFilters, loadFilters } from './pnm-utils';
+import { normalizeGameName } from './normalize-game';
 import ReportGameModal from './ReportGameModal';
 
 // Dynamically import map to avoid SSR issues
@@ -9,6 +10,7 @@ const VenueMapPanel = dynamic(() => import('./VenueMapPanel'), { ssr: false });
 
 const LIVE_REFRESH_MS = 2 * 60 * 1000; // 2 minutes
 const COLLAPSE_THRESHOLD = 5; // Show first N games, collapse rest
+const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes — show warning banner
 
 // Skeleton loading
 const renderSkeletons = (count = 4) => (
@@ -110,14 +112,21 @@ export default function LiveGamesFeed({
     
     // Global stats from API metadata
     const [globalStats, setGlobalStats] = useState({ venues: 0, tables: 0, waiting: 0, lastScrape: null });
+    const [isDataStale, setIsDataStale] = useState(false);
     
-    // Filters
-    const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
-    const [filterState, setFilterState] = useState('all');
-    const [filterRadius, setFilterRadius] = useState('any');
-    const [filterSort, setFilterSort] = useState('tables'); // 'tables', 'distance', 'trust'
-    const [filterGameType, setFilterGameType] = useState('all');
-    const [filterStakes, setFilterStakes] = useState('any');
+    // Filters — restore from session if available
+    const savedFilters = typeof window !== 'undefined' ? loadFilters('lgf', {}) : {};
+    const [viewMode, setViewMode] = useState(savedFilters.viewMode || 'list');
+    const [filterState, setFilterState] = useState(savedFilters.filterState || 'all');
+    const [filterRadius, setFilterRadius] = useState(savedFilters.filterRadius || 'any');
+    const [filterSort, setFilterSort] = useState(savedFilters.filterSort || 'tables');
+    const [filterGameType, setFilterGameType] = useState(savedFilters.filterGameType || 'all');
+    const [filterStakes, setFilterStakes] = useState(savedFilters.filterStakes || 'any');
+
+    // Persist filters on change
+    useEffect(() => {
+        saveFilters('lgf', { viewMode, filterState, filterRadius, filterSort, filterGameType, filterStakes });
+    }, [viewMode, filterState, filterRadius, filterSort, filterGameType, filterStakes]);
     
     // Single Venue drill-down (from autocomplete or clicking a card)
     const [searchQuery, setSearchQuery] = useState('');
@@ -169,6 +178,11 @@ export default function LiveGamesFeed({
                 }
                 setLastRefreshTime(new Date());
                 setRefreshCountdown(LIVE_REFRESH_MS / 1000);
+                // Check staleness (#3)
+                if (json.metadata?.last_scrape) {
+                    const age = Date.now() - new Date(json.metadata.last_scrape).getTime();
+                    setIsDataStale(age > STALE_THRESHOLD_MS);
+                }
             }
         } catch (e) {
             console.error('Fetch global live data error:', e);
@@ -208,10 +222,9 @@ export default function LiveGamesFeed({
         };
     }, [fetchGlobalLiveData]);
 
-    // ─── FILTER & MERGE ───
+    // ─── FILTER & MERGE (with fallback to last-known data) ───
     const mergedVenues = useMemo(() => {
         const liveEntries = Object.values(liveData);
-        if (liveEntries.length === 0) return [];
 
         // Build lookups from parent venues for enrichment
         const venueByName = {};
@@ -221,30 +234,74 @@ export default function LiveGamesFeed({
             if (v.bravo_slug) venueBySlug[v.bravo_slug] = v;
         }
 
-        let list = liveEntries.map(liveEntry => {
-            const parentVenue = venueBySlug[liveEntry.bravo_slug] 
-                || venueByName[(liveEntry.venue_name || '').toLowerCase()]
-                || null;
-            
-            return {
-                bravo_slug: liveEntry.bravo_slug,
-                name: liveEntry.venue_name,
-                venue_name: liveEntry.venue_name,
-                totalTables: liveEntry.totalTables || 0,
-                totalWait: liveEntry.totalWait || 0,
-                games: liveEntry.games || [],
-                last_updated: liveEntry.last_updated,
-                primarySource: liveEntry.primarySource || 'bravo',
-                id: parentVenue?.id || liveEntry.bravo_slug,
-                latitude: parentVenue?.latitude || null,
-                longitude: parentVenue?.longitude || null,
-                state: parentVenue?.state || null,
-                city: parentVenue?.city || null,
-                trust_score: parentVenue?.trust_score || 0,
-                address: parentVenue?.address || '',
-                _hasParentVenue: !!parentVenue,
-            };
-        });
+        let list = [];
+
+        if (liveEntries.length > 0) {
+            // PRIMARY: Use live data when available
+            list = liveEntries.map(liveEntry => {
+                const parentVenue = venueBySlug[liveEntry.bravo_slug] 
+                    || venueByName[(liveEntry.venue_name || '').toLowerCase()]
+                    || null;
+                const logoUrl = getVenueLogoUrl(parentVenue || { website: null });
+                const waitEst = liveEntry.totalWait > 0 
+                    ? estimateWaitTime(liveEntry.totalWait, liveEntry.totalTables) 
+                    : null;
+                
+                return {
+                    bravo_slug: liveEntry.bravo_slug,
+                    name: liveEntry.venue_name,
+                    venue_name: liveEntry.venue_name,
+                    totalTables: liveEntry.totalTables || 0,
+                    totalWait: liveEntry.totalWait || 0,
+                    games: liveEntry.games || [],
+                    last_updated: liveEntry.last_updated,
+                    primarySource: liveEntry.primarySource || 'bravo',
+                    id: parentVenue?.id || liveEntry.bravo_slug,
+                    latitude: parentVenue?.latitude || null,
+                    longitude: parentVenue?.longitude || null,
+                    state: parentVenue?.state || null,
+                    city: parentVenue?.city || null,
+                    trust_score: parentVenue?.trust_score || 0,
+                    address: parentVenue?.address || '',
+                    phone: parentVenue?.phone || '',
+                    website: parentVenue?.website || '',
+                    logoUrl,
+                    waitEstimate: waitEst,
+                    _hasParentVenue: !!parentVenue,
+                    _isLive: true,
+                };
+            });
+        } else {
+            // FALLBACK: Show last-known venue data when no live data
+            list = venues
+                .filter(v => v.games_offered && v.games_offered.length > 0 && v.poker_tables > 0)
+                .map(v => {
+                    const logoUrl = getVenueLogoUrl(v);
+                    return {
+                        bravo_slug: v.bravo_slug || v.slug || '',
+                        name: v.name,
+                        venue_name: v.name,
+                        totalTables: v.poker_tables || 0,
+                        totalWait: 0,
+                        games: (v.games_offered || []).map(g => ({ game: g, tables_running: 0, source: 'catalog' })),
+                        last_updated: null,
+                        primarySource: 'catalog',
+                        id: v.id,
+                        latitude: v.latitude,
+                        longitude: v.longitude,
+                        state: v.state,
+                        city: v.city,
+                        trust_score: v.trust_score || 0,
+                        address: v.address || '',
+                        phone: v.phone || '',
+                        website: v.website || '',
+                        logoUrl,
+                        waitEstimate: null,
+                        _hasParentVenue: true,
+                        _isLive: false,
+                    };
+                });
+        }
 
         // Single venue override
         if (selectedVenue) {
@@ -348,15 +405,34 @@ export default function LiveGamesFeed({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, paddingBottom: 5, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(224,232,240,0.7)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Game Breakdown</span>
                 </div>
-                {displayGames.map((g, i) => (
+                {displayGames.map((g, i) => {
+                    const normalized = normalizeGameName(g.game);
+                    const isPASource = g.source === 'pokeratlas';
+                    return (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3, fontSize: 12, padding: '2px 0' }}>
-                        <span style={{ color: '#8b949e', fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }}>{g.game}</span>
+                        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', marginRight: 8 }}>
+                            <span style={{ color: '#8b949e', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+                                {normalized.canonical !== 'Unknown' ? normalized.canonical : g.game}
+                            </span>
+                            {g.buyin && (
+                                <span style={{ fontSize: 10, color: 'rgba(212,168,83,0.7)', fontWeight: 500 }}>
+                                    Buy-in: {g.buyin}
+                                </span>
+                            )}
+                        </div>
                         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
                             {g.players_waiting > 0 && <span style={{ color: '#d4a853', fontSize: 11 }}>{g.players_waiting} waiting</span>}
-                            <span style={{ color: '#3fb950', fontWeight: 700, whiteSpace: 'nowrap' }}>{g.tables_running} {g.tables_running === 1 ? 'table' : 'tables'}</span>
+                            {isPASource ? (
+                                <span style={{ color: '#58a6ff', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 11 }}>
+                                    {g.runs || `~${g.tables_running} est.`}
+                                </span>
+                            ) : (
+                                <span style={{ color: '#3fb950', fontWeight: 700, whiteSpace: 'nowrap' }}>{g.tables_running} {g.tables_running === 1 ? 'table' : 'tables'}</span>
+                            )}
                         </div>
                     </div>
-                ))}
+                    );
+                })}
                 {needsCollapse && (
                     <button 
                         onClick={() => toggleBreakdown(venueSlug)} 
@@ -413,47 +489,64 @@ export default function LiveGamesFeed({
                     transition: 'all 0.2s ease',
                     cursor: v._hasParentVenue && router ? 'pointer' : 'default',
                 }}>
-                    {/* Header */}
+                    {/* Header — with venue logo */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <h3 
-                                    style={{ 
-                                        fontSize: 15, fontWeight: 700, color: '#e0e8f0', margin: 0,
-                                        cursor: v._hasParentVenue && router ? 'pointer' : 'default',
-                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                        flex: 1,
-                                    }}
-                                    onClick={() => {
-                                        if (v._hasParentVenue && router) router.push(`/hub/venues/${v.id}`);
-                                    }}
-                                >
-                                    {v.name}
-                                </h3>
-                                {/* Favorite Button */}
-                                {handleToggleFavorite && (
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleToggleFavorite(v.id, v); }}
+                        <div style={{ display: 'flex', gap: 10, flex: 1, minWidth: 0, alignItems: 'center' }}>
+                            {/* Venue Logo */}
+                            {v.logoUrl ? (
+                                <img 
+                                    src={v.logoUrl} alt="" loading="lazy"
+                                    style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(255,255,255,0.08)' }}
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                            ) : (
+                                <div style={{ width: 36, height: 36, borderRadius: 8, background: `hsl(${Math.abs((v.name || '').charCodeAt(0) * 37) % 360}, 40%, 30%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)', flexShrink: 0, border: '1px solid rgba(255,255,255,0.06)' }}>
+                                    {(v.name || '?').split(/[\s-]+/).map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+                                </div>
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <h3 
                                         style={{ 
-                                            background: 'none', border: 'none', cursor: 'pointer', padding: 2, 
-                                            color: isFav ? '#ef4444' : 'rgba(200,214,229,0.25)', fontSize: 16,
-                                            transition: 'color 0.2s', flexShrink: 0, lineHeight: 1,
+                                            fontSize: 15, fontWeight: 700, color: '#e0e8f0', margin: 0,
+                                            cursor: v._hasParentVenue && router ? 'pointer' : 'default',
+                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                            flex: 1,
                                         }}
-                                        title={isFav ? 'Remove from saved' : 'Save venue'}
+                                        onClick={() => {
+                                            if (v._hasParentVenue && router) router.push(`/hub/venues/${v.id}`);
+                                        }}
                                     >
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? '#ef4444' : 'none'} stroke="currentColor" strokeWidth="2">
-                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                                        </svg>
-                                    </button>
-                                )}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
-                                {(v.city || v.state) && (
-                                    <span style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)' }}>
-                                        {[v.city, v.state].filter(Boolean).join(', ')}
-                                    </span>
-                                )}
-                                <SourceBadge source={v.primarySource} />
+                                        {v.name}
+                                    </h3>
+                                    {/* Favorite Button */}
+                                    {handleToggleFavorite && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleToggleFavorite(v.id, v); }}
+                                            style={{ 
+                                                background: 'none', border: 'none', cursor: 'pointer', padding: 2, 
+                                                color: isFav ? '#ef4444' : 'rgba(200,214,229,0.25)', fontSize: 16,
+                                                transition: 'color 0.2s', flexShrink: 0, lineHeight: 1,
+                                            }}
+                                            title={isFav ? 'Remove from saved' : 'Save venue'}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? '#ef4444' : 'none'} stroke="currentColor" strokeWidth="2">
+                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                                    {(v.city || v.state) && (
+                                        <span style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)' }}>
+                                            {[v.city, v.state].filter(Boolean).join(', ')}
+                                        </span>
+                                    )}
+                                    <SourceBadge source={v.primarySource} />
+                                    {!v._isLive && (
+                                        <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 700, textTransform: 'uppercase' }}>LAST KNOWN</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -466,7 +559,9 @@ export default function LiveGamesFeed({
                         </div>
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: 20, fontWeight: 800, color: v.totalWait > 0 ? '#d4a853' : 'rgba(200,214,229,0.2)' }}>{v.totalWait}</div>
-                            <div style={{ fontSize: 9, color: 'rgba(200,214,229,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Waiting</div>
+                            <div style={{ fontSize: 9, color: 'rgba(200,214,229,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                Waiting{v.waitEstimate ? ` (~${v.waitEstimate.label})` : ''}
+                            </div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: 20, fontWeight: 800, color: '#58a6ff' }}>{v.games?.length || 0}</div>
@@ -717,6 +812,38 @@ export default function LiveGamesFeed({
                 renderSkeletons(4)
             ) : (
                 <>
+                    {/* ─── STALE DATA WARNING BANNER (#3) ─── */}
+                    {isDataStale && !selectedVenue && (
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '10px 14px', marginBottom: 10, borderRadius: 10,
+                            background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
+                            animation: 'lgf-fadeInUp 0.3s ease-out',
+                        }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                            <div>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Data May Be Stale</div>
+                                <div style={{ fontSize: 11, color: 'rgba(245,158,11,0.7)' }}>
+                                    Last scraper update was {globalStats.lastScrape ? timeAgo(globalStats.lastScrape) : 'unknown'}. Live game counts may not be current.
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => fetchGlobalLiveData(true)}
+                                style={{
+                                    marginLeft: 'auto', padding: '5px 12px', borderRadius: 6, fontSize: 11,
+                                    fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+                                    background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)',
+                                    color: '#f59e0b', whiteSpace: 'nowrap',
+                                }}
+                            >
+                                Retry
+                            </button>
+                        </div>
+                    )}
+
                     {/* Header stat bar */}
                     {!selectedVenue && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, padding: '7px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.5)' }}>
@@ -745,11 +872,23 @@ export default function LiveGamesFeed({
 
                     {mergedVenues.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: 40, background: 'rgba(13,17,23,0.6)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.1)' }}>
-                            <div style={{ width: 48, height: 48, borderRadius: 24, background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            <div style={{ width: 64, height: 64, borderRadius: 32, background: 'rgba(212,168,83,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.4)" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
                             </div>
                             <p style={{ fontSize: 16, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>No Active Games Found</p>
-                            <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.5)' }}>Try expanding your filters or clearing the game type.</p>
+                            <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.5)', marginBottom: 16 }}>Try expanding your filters or clearing the game type.</p>
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                                <button onClick={handleResetFilters} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(212,168,83,0.1)', border: '1px solid rgba(212,168,83,0.3)', color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg>
+                                    Reset All Filters
+                                </button>
+                                {user && (
+                                    <button onClick={() => { setReportVenue(null); setReportModalOpen(true); }} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                        Report a Game
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     ) : (
                         viewMode === 'map' && !selectedVenue ? (

@@ -3,6 +3,7 @@
  * Multi-stop trip builder with route overlay showing poker venues along the way.
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { getVenueLogoUrl } from './pnm-utils';
 import { haversineMiles } from './pnm-utils';
 
 const CORRIDOR_OPTIONS = [25, 50, 100];
@@ -89,6 +90,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     const [routeResult, setRouteResult] = useState(null);
     const [calculating, setCalculating] = useState(false);
     const [error, setError] = useState(null);
+    const [mapExpanded, setMapExpanded] = useState(true);
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const originAutoRef = useRef(false);
@@ -350,23 +352,42 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         </div>
                     </div>
 
-                    {/* Map */}
-                    <div ref={mapRef} className="rtp-map" />
+                    {/* Map — collapsible on mobile */}
+                    <div className="rtp-map-wrapper">
+                        <button className="rtp-map-toggle" onClick={() => setMapExpanded(e => !e)}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
+                            </svg>
+                            {mapExpanded ? 'Hide Map' : 'Show Map'}
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: mapExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+                        <div ref={mapRef} className="rtp-map" style={{ display: mapExpanded ? 'block' : 'none' }} />
+                    </div>
 
                     {/* Venues along route */}
                     <div className="rtp-venues-section">
                         <h3>Poker Rooms Along Your Route</h3>
                         <div className="rtp-venue-list">
-                            {routeResult.venues.slice(0, 20).map((v, i) => (
+                            {routeResult.venues.slice(0, 20).map((v, i) => {
+                                const logo = getVenueLogoUrl(v);
+                                return (
                                 <div key={v.id || i} className="rtp-venue-card">
-                                    <div className="rtp-venue-name">{v.name}</div>
-                                    <div className="rtp-venue-loc">{v.city}, {v.state}</div>
+                                    <div className="rtp-venue-card-row">
+                                        {logo && <img src={logo} alt="" className="rtp-venue-logo" onError={e => { e.target.style.display = 'none'; }} loading="lazy" />}
+                                        <div>
+                                            <div className="rtp-venue-name">{v.name}</div>
+                                            <div className="rtp-venue-loc">{v.city}, {v.state}</div>
+                                        </div>
+                                    </div>
                                     <div className="rtp-venue-tags">
                                         {v.venue_type && <span className="rtp-tag type">{v.venue_type.replace('_', ' ')}</span>}
                                         {v.trust_score && <span className="rtp-tag trust">Trust: {v.trust_score}/5</span>}
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                             {routeResult.venues.length > 20 && (
                                 <div className="rtp-more">+{routeResult.venues.length - 20} more venues</div>
                             )}
@@ -426,7 +447,13 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         .rtp-stat { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 12px; padding: 16px; text-align: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
         .rtp-stat-value { display: block; font-size: 22px; font-weight: 700; color: #58a6ff; }
         .rtp-stat-label { font-size: 11px; color: rgba(200,214,229,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
-        .rtp-map { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(88,166,255,0.2); margin-bottom: 20px; background: #0d1117; }
+        .rtp-map-wrapper { margin-bottom: 20px; }
+        .rtp-map-toggle { display: none; width: 100%; padding: 10px; background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.2); border-radius: 10px; color: #58a6ff; font-size: 13px; font-weight: 600; cursor: pointer; align-items: center; justify-content: center; gap: 6px; font-family: inherit; margin-bottom: 8px; }
+        @media (max-width: 600px) { .rtp-map-toggle { display: flex; } }
+        .rtp-map { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(88,166,255,0.2); background: #0d1117; }
+        @media (max-width: 600px) { .rtp-map { height: 250px; } }
+        .rtp-venue-card-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+        .rtp-venue-logo { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
         .rtp-venues-section h3, .rtp-series-section h3 { font-size: 18px; font-weight: 600; color: #fff; margin: 0 0 12px; }
         .rtp-venue-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
         .rtp-venue-card { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 10px; padding: 14px; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); cursor: pointer; }

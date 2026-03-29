@@ -630,6 +630,112 @@ class BravoSessionManager:
             self._session_dead = False
 
 # ============================================================
+# CLEANUP: EVIDENCE FILES (keep last 7 days)
+# ============================================================
+def cleanup_evidence_files():
+    """Delete evidence JSON files older than 7 days."""
+    try:
+        cutoff = time.time() - (7 * 86400)
+        count = 0
+        for f in EVIDENCE_DIR.glob('bravo_live_*.json'):
+            if f.stat().st_mtime < cutoff:
+                f.unlink()
+                count += 1
+        if count:
+            log.info(f'  🧹 Cleaned up {count} evidence files (>7 days old)')
+    except Exception as e:
+        log.debug(f'  Evidence cleanup error: {e}')
+
+
+# ============================================================
+# CLEANUP: LOG FILES (keep last 14 days)
+# ============================================================
+def cleanup_log_files():
+    """Delete daemon log files older than 14 days."""
+    try:
+        cutoff = time.time() - (14 * 86400)
+        count = 0
+        for f in LOG_DIR.glob('daemon_*.log'):
+            if f.stat().st_mtime < cutoff:
+                f.unlink()
+                count += 1
+        if count:
+            log.info(f'  🧹 Cleaned up {count} log files (>14 days old)')
+    except Exception as e:
+        log.debug(f'  Log cleanup error: {e}')
+
+
+# ============================================================
+# DAILY DISCOVERY: Detect new/removed Bravo venues
+# ============================================================
+_last_bravo_discovery_date = None
+
+def daily_bravo_discovery(mgr):
+    """Once per day, scrape Bravo homepage to detect new venue slugs."""
+    global _last_bravo_discovery_date
+    today = datetime.now().strftime('%Y%m%d')
+    if _last_bravo_discovery_date == today:
+        return
+    _last_bravo_discovery_date = today
+
+    log.info('📡 Running daily Bravo venue discovery...')
+    try:
+        current_slugs = set(load_bravo_slugs())
+        new_slugs = discover_bravo_slugs(mgr.page)
+        new_set = set(new_slugs)
+
+        added = new_set - current_slugs
+        removed = current_slugs - new_set
+
+        if added:
+            log.info(f'  💡 NEW venues discovered: {sorted(added)}')
+        if removed:
+            log.info(f'  🗑️  Venues no longer listed: {sorted(removed)}')
+        if not added and not removed:
+            log.info(f'  ✅ No venue changes (still {len(new_set)} venues)')
+    except Exception as e:
+        log.warning(f'  ⚠️ Daily discovery failed: {e}')
+
+
+# ============================================================
+# HISTORICAL SNAPSHOT: Save per-cycle venue summary for trending
+# ============================================================
+def save_history_snapshot(batch_id, results):
+    """Insert a summary row per venue into venue_live_history for trending."""
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        rows = []
+        for data in results:
+            total_tables = sum(g['tables'] for g in data['live_games'])
+            total_waiting = sum(w['players_waiting'] for w in data['waitlist'])
+            rows.append({
+                'bravo_slug': data['venue_slug'],
+                'venue_name': data['venue_name'],
+                'total_tables': total_tables,
+                'total_waiting': total_waiting,
+                'game_count': len(data['live_games']),
+                'source': 'bravo',
+                'snapshot_time': now,
+                'batch_id': batch_id,
+            })
+        if rows:
+            body = json.dumps(rows).encode()
+            req = urllib.request.Request(
+                f'{SUPABASE_URL}/rest/v1/venue_live_history',
+                data=body, method='POST',
+                headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
+            )
+            try:
+                urllib.request.urlopen(req, timeout=15)
+                log.info(f'  📊 Saved {len(rows)} history snapshots')
+            except Exception as e:
+                # Table may not exist yet — that's OK, don't crash
+                log.debug(f'  History snapshot insert skipped: {e}')
+    except Exception as e:
+        log.debug(f'  History snapshot error: {e}')
+
+
+# ============================================================
 # MAIN SCRAPE CYCLE
 # ============================================================
 def run_scrape_cycle(mgr):
@@ -639,6 +745,10 @@ def run_scrape_cycle(mgr):
 
     # Rotate log file handler if day changed
     _maybe_rotate_log()
+
+    # Run periodic cleanup (lightweight, runs at start of each cycle)
+    cleanup_evidence_files()
+    cleanup_log_files()
 
     log.info(f'=== SCRAPE CYCLE #{mgr.total_cycles + 1} | Batch: {batch_id[:8]} ===')
 
@@ -651,6 +761,9 @@ def run_scrape_cycle(mgr):
             time.sleep(300)
             mgr.consecutive_failures = 0
         return 0
+
+    # Daily discovery pass (once per day)
+    daily_bravo_discovery(mgr)
 
     # Load venue slugs
     slugs = load_bravo_slugs()
@@ -753,6 +866,8 @@ def run_scrape_cycle(mgr):
             saved = len(payload)
             # Safe delete of stale batches using neq (not equal to current batch) to prevent UI empty flash
             sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.bravo')
+            # Save historical snapshot for trend analysis (#5)
+            save_history_snapshot(batch_id, results)
 
     # Save evidence
     duration = (datetime.now(timezone.utc) - cycle_start).total_seconds()

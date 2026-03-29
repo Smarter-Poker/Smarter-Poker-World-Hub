@@ -1,18 +1,15 @@
 /**
  * VenueCard - Premium poker venue card for Poker Near Me page
- * v3.0 — Round 2 UI Overhaul: smarter.poker dark schema
- *
- * Improvements:
- * - Open/Closed real-time status indicator
- * - Enhanced card hierarchy with visual grouping
- * - Staggered mount animation
- * - Color-coded game type chips
- * - Live table count / wait list quick-info row
- * - Improved mobile touch targets
- * - Premium dark glassmorphic aesthetic
+ * v4.0 — Full UI Overhaul:
+ * - Official venue logos with intelligent fallback chain
+ * - Real-time Open/Closed status with time parsing
+ * - Crowd meter visualization (Quiet → Packed)
+ * - Waitlist time estimates
+ * - Enhanced visual hierarchy
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { getVenueLogoUrl, getOpenStatus, getCrowdLevel, estimateWaitTime } from './pnm-utils';
 
 const VENUE_TYPE_LABELS = {
     casino: 'Casino',
@@ -103,12 +100,19 @@ function getTrustLevel(score) {
     return { label: 'Low', color: '#ef4444', pct: 30 };
 }
 
-// Determine open/closed status from hours string
-function getOpenStatus(venue) {
-    if (venue.is_24_hours || venue.hours === '24/7') return { open: true, label: 'Open 24/7', always: true };
-    if (!venue.hours && !venue.hours_of_operation) return null; // Unknown
-    // For now, if they have hours listed, show it generically
-    return null;
+// Generate venue initials for logo placeholder
+function getVenueInitials(name) {
+    if (!name) return '?';
+    return name.split(/[\s\-]+/).filter(w => w.length > 0).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+// Deterministic color from venue name
+function venueNameToColor(name) {
+    let hash = 0;
+    for (let i = 0; i < (name || '').length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return `hsl(${Math.abs(hash) % 360}, 45%, 35%)`;
 }
 
 // Get the correct detail URL for a venue or social page
@@ -127,12 +131,18 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const typeIcon = VENUE_TYPE_ICONS[venue.venue_type] || VENUE_TYPE_ICONS.casino;
     const openStatus = getOpenStatus(venue);
     const hasLiveData = venue.live_data && venue.live_data.tables_running > 0;
+    const logoUrl = getVenueLogoUrl(venue);
+    const crowd = getCrowdLevel(venue, checkinCount);
+    const waitEstimate = hasLiveData && venue.live_data.players_waiting > 0
+        ? estimateWaitTime(venue.live_data.players_waiting, venue.live_data.tables_running)
+        : null;
 
     // Animated trust bar + staggered card entrance
     const [mounted, setMounted] = useState(false);
+    const [logoError, setLogoError] = useState(false);
     const cardRef = useRef(null);
     useEffect(() => {
-        const delay = Math.min(index * 40, 400); // stagger up to 400ms
+        const delay = Math.min(index * 40, 400);
         const timer = setTimeout(() => setMounted(true), delay);
         return () => clearTimeout(timer);
     }, []);
@@ -156,22 +166,39 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
             {/* === HEADER ZONE === */}
             <div className="vc3-header">
-                {/* Left: Type badge */}
-                <div className="vc3-type-badge" style={{
-                    background: typeColor.bg,
-                    borderColor: typeColor.border,
-                    color: typeColor.color,
-                }}>
-                    {typeIcon}
-                    <span>{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
+                {/* Left: Logo + Type badge */}
+                <div className="vc3-header-left">
+                    {/* Venue Logo */}
+                    <div className="vc3-logo" style={!logoUrl || logoError ? { background: venueNameToColor(venue.name) } : {}}>
+                        {logoUrl && !logoError ? (
+                            <img
+                                src={logoUrl}
+                                alt=""
+                                className="vc3-logo-img"
+                                onError={() => setLogoError(true)}
+                                loading="lazy"
+                            />
+                        ) : (
+                            <span className="vc3-logo-initials">{getVenueInitials(venue.name)}</span>
+                        )}
+                    </div>
+                    <div className="vc3-type-badge" style={{
+                        background: typeColor.bg,
+                        borderColor: typeColor.border,
+                        color: typeColor.color,
+                    }}>
+                        {typeIcon}
+                        <span>{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
+                    </div>
                 </div>
 
                 {/* Right: Status indicators */}
                 <div className="vc3-status-group">
                     {/* Open/Closed indicator */}
-                    {openStatus && openStatus.open && (
-                        <span className="vc3-open-pill">
-                            <span className="vc3-open-dot" />
+                    {openStatus && (
+                        <span className={`vc3-open-pill ${openStatus.open ? 'open' : 'closed'}`}
+                              title={openStatus.nextChange || ''}>
+                            <span className={`vc3-open-dot ${openStatus.open ? '' : 'closed'}`} />
                             {openStatus.label}
                         </span>
                     )}
@@ -242,6 +269,33 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 )}
             </div>
 
+            {/* === CROWD METER === */}
+            {(hasLiveData || checkinCount > 0) && (
+                <div className="vc3-crowd-meter">
+                    <div className="vc3-crowd-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={crowd.color} strokeWidth="2">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+                        </svg>
+                        <span className="vc3-crowd-label" style={{ color: crowd.color }}>{crowd.label}</span>
+                        {waitEstimate && (
+                            <span className="vc3-wait-estimate">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2.5">
+                                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                                </svg>
+                                Est. wait: {waitEstimate.label}
+                            </span>
+                        )}
+                    </div>
+                    <div className="vc3-crowd-track">
+                        <div className="vc3-crowd-fill" style={{
+                            width: mounted ? `${crowd.score}%` : '0%',
+                            background: `linear-gradient(90deg, ${crowd.color}cc, ${crowd.color}55)`,
+                            boxShadow: `0 0 8px ${crowd.color}33`,
+                        }} />
+                    </div>
+                </div>
+            )}
+
             {/* === DATA ZONE === */}
             <div className="vc3-data-zone">
                 {/* Live Info Row — tables and waitlist */}
@@ -267,12 +321,15 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 )}
 
                 {/* Hours */}
-                {venue.hours && (
+                {(venue.hours || venue.hours_weekday) && (
                     <p className="vc3-hours">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
                             <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                         </svg>
-                        {venue.hours === '24/7' ? 'Open 24/7' : venue.hours}
+                        {(venue.hours === '24/7' || venue.hours_weekday === '24/7') ? 'Open 24/7' : (venue.hours_weekday || venue.hours)}
+                        {openStatus && openStatus.nextChange && !openStatus.always && (
+                            <span className="vc3-hours-next"> ({openStatus.nextChange})</span>
+                        )}
                     </p>
                 )}
 
@@ -369,6 +426,22 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     </button>
                 </div>
             </div>
+
+            <style jsx>{`
+                .vc3-header-left { display: flex; align-items: center; gap: 8px; }
+                .vc3-logo { width: 36px; height: 36px; border-radius: 8px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); }
+                .vc3-logo-img { width: 100%; height: 100%; object-fit: cover; }
+                .vc3-logo-initials { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; }
+                .vc3-open-pill.closed { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
+                .vc3-open-dot.closed { background: #ef4444; animation: none; }
+                .vc3-hours-next { color: rgba(255,255,255,0.3); font-size: 11px; }
+                .vc3-crowd-meter { margin: 8px 0; padding: 8px 10px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); }
+                .vc3-crowd-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+                .vc3-crowd-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+                .vc3-wait-estimate { margin-left: auto; font-size: 11px; color: #d4a853; display: flex; align-items: center; gap: 4px; font-weight: 600; }
+                .vc3-crowd-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+                .vc3-crowd-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease-out 0.3s; }
+            `}</style>
         </div>
     );
 }

@@ -153,6 +153,23 @@ PA_VALIDATED_REGIONS = [
     'laughlin-nevada',
     'virginia',
     'georgia',
+    # Expanded coverage (#7) — major poker markets
+    'los-angeles-california',
+    'south-florida',
+    'san-francisco-bay-area-california',
+    'connecticut',
+    'michigan',
+    'pennsylvania',
+    'maryland',
+    'tampa-florida',
+    'central-florida',
+    'north-florida',
+    'san-diego-california',
+    'sacramento-california',
+    'reno-nevada',
+    'colorado',
+    'arizona',
+    'new-york',
 ]
 
 # Full list for daily discovery pass (to detect new regions)
@@ -583,6 +600,79 @@ class PokerAtlasSessionManager:
 
 
 # ============================================================
+# CLEANUP: EVIDENCE FILES (keep last 7 days)
+# ============================================================
+def cleanup_evidence_files():
+    """Delete evidence JSON files older than 7 days."""
+    try:
+        cutoff = time.time() - (7 * 86400)
+        count = 0
+        for f in EVIDENCE_DIR.glob('pokeratlas_live_*.json'):
+            if f.stat().st_mtime < cutoff:
+                f.unlink()
+                count += 1
+        if count:
+            log.info(f'  \U0001f9f9 Cleaned up {count} evidence files (>7 days old)')
+    except Exception as e:
+        log.debug(f'  Evidence cleanup error: {e}')
+
+
+# ============================================================
+# CLEANUP: LOG FILES (keep last 14 days)
+# ============================================================
+def cleanup_log_files():
+    """Delete daemon log files older than 14 days."""
+    try:
+        cutoff = time.time() - (14 * 86400)
+        count = 0
+        for f in LOG_DIR.glob('daemon_*.log'):
+            if f.stat().st_mtime < cutoff:
+                f.unlink()
+                count += 1
+        if count:
+            log.info(f'  \U0001f9f9 Cleaned up {count} log files (>14 days old)')
+    except Exception as e:
+        log.debug(f'  Log cleanup error: {e}')
+
+
+# ============================================================
+# HISTORICAL SNAPSHOT: Save per-cycle venue summary for trending
+# ============================================================
+def save_history_snapshot(batch_id, all_venues):
+    """Insert a summary row per venue into venue_live_history for trending."""
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        rows = []
+        for vdata in all_venues:
+            total_tables = sum(g['tables_estimate'] for g in vdata['games'])
+            venue_slug = re.sub(r'[^a-z0-9]+', '-', vdata['venue_name'].lower()).strip('-')
+            rows.append({
+                'bravo_slug': f'pa-{venue_slug}',
+                'venue_name': vdata['venue_name'],
+                'total_tables': total_tables,
+                'total_waiting': 0,
+                'game_count': len(vdata['games']),
+                'source': 'pokeratlas',
+                'snapshot_time': now,
+                'batch_id': batch_id,
+            })
+        if rows:
+            body = json.dumps(rows).encode()
+            req = urllib.request.Request(
+                f'{SUPABASE_URL}/rest/v1/venue_live_history',
+                data=body, method='POST',
+                headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
+            )
+            try:
+                urllib.request.urlopen(req, timeout=15)
+                log.info(f'  \U0001f4ca Saved {len(rows)} history snapshots')
+            except Exception as e:
+                log.debug(f'  History snapshot insert skipped: {e}')
+    except Exception as e:
+        log.debug(f'  History snapshot error: {e}')
+
+
+# ============================================================
 # REGION SLUG AUTO-DISCOVERY
 # ============================================================
 def discover_regions(mgr):
@@ -599,7 +689,7 @@ def discover_regions(mgr):
         return
     _last_discovery_date = today
     
-    log.info('📡 Running daily discovery pass (all regions)...')
+    log.info('\U0001f4e1 Running daily discovery pass (all regions)...')
     new_valid = []
     
     for slug in PA_ALL_REGION_SLUGS:
@@ -613,13 +703,12 @@ def discover_regions(mgr):
             venues, _, _ = extract_games_from_region(html, slug)
             if venues:
                 new_valid.append(slug)
-                log.info(f'  💡 NEW valid region: {slug} ({len(venues)} venues)')
+                log.info(f'  \U0001f4a1 NEW valid region: {slug} ({len(venues)} venues)')
         
         time.sleep(RATE_LIMIT_DELAY)
     
     if new_valid:
         log.info(f'  Discovered {len(new_valid)} new valid regions: {new_valid}')
-        # Save to cache file
         discovery_file = BASE_DIR / 'data' / 'pokeratlas-discovered-regions.json'
         try:
             with open(discovery_file, 'w') as f:
@@ -643,6 +732,10 @@ def run_scrape_cycle(mgr):
 
     # Rotate log file handler if day changed
     _maybe_rotate_log()
+
+    # Run periodic cleanup (lightweight, runs at start of each cycle)
+    cleanup_evidence_files()
+    cleanup_log_files()
 
     log.info(f'=== SCRAPE CYCLE #{mgr.total_cycles + 1} | Batch: {batch_id[:8]} ===')
 
@@ -758,6 +851,8 @@ def run_scrape_cycle(mgr):
                 'data_quality': 'scraped_verified',
                 'source': 'pokeratlas',
                 'bravo_slug': f'pa-{venue_slug}',
+                'buyin_range': game.get('buyin', ''),
+                'runs_schedule': game.get('runs', ''),
             }
             payload.append(record)
 
@@ -770,6 +865,8 @@ def run_scrape_cycle(mgr):
         if sb_upsert('venue_live_tables', payload):
             saved = len(payload)
             sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.pokeratlas')
+            # Save historical snapshot for trend analysis (#5)
+            save_history_snapshot(batch_id, all_venues)
 
     # Save evidence
     evidence = {

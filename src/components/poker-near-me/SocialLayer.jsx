@@ -190,17 +190,32 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
 
             {userId && !loading && friendCheckins.length === 0 && (
                 <div className="sl-empty">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
-                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-                    </svg>
+                    <div className="sl-empty-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.25)" strokeWidth="1.5">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+                        </svg>
+                    </div>
                     <p style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>No Friends Checked In</p>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 16 }}>
                         {friendsList.length === 0
                             ? 'Add friends to see when they visit poker rooms!'
                             : `None of your ${friendsList.length} friends are checked in right now`}
                     </p>
+                    <div className="sl-empty-ctas">
+                        <button className="sl-cta-btn sl-cta-checkin" onClick={() => { if (typeof window !== 'undefined') window.location.href = '/hub/poker-near-me-lobby?tab=venues'; }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+                            </svg>
+                            Check In at a Venue
+                        </button>
+                        <button className="sl-cta-btn sl-cta-invite" onClick={() => { if (typeof navigator !== 'undefined' && navigator.share) navigator.share({ title: 'Join me on Smarter.Poker', url: typeof window !== 'undefined' ? window.location.origin : '' }).catch(() => {}); }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
+                            </svg>
+                            Invite Friends
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -313,6 +328,13 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
         .sl-invite-link-box { display: flex; gap: 8px; }
         .sl-invite-link-input { flex: 1; padding: 10px 12px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 8px; color: #e0e8f0; font-size: 12px; font-family: monospace; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
         .sl-copy-btn { padding: 10px 16px; background: linear-gradient(135deg, #d4a853, #b8860b); border: none; border-radius: 8px; color: #000; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .sl-empty-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(212,168,83,0.06); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+        .sl-empty-ctas { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .sl-cta-btn { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: 1px solid; font-family: inherit; }
+        .sl-cta-checkin { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); color: #22c55e; }
+        .sl-cta-checkin:hover { background: rgba(34,197,94,0.2); }
+        .sl-cta-invite { background: rgba(88,166,255,0.1); border-color: rgba(88,166,255,0.3); color: #58a6ff; }
+        .sl-cta-invite:hover { background: rgba(88,166,255,0.2); }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
         </div>

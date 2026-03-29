@@ -3,7 +3,8 @@
  * Filter by game type, stakes, venue type, and radius
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { saveFilters, loadFilters } from './pnm-utils';
 
 const GAME_TYPES = [
     { value: 'all', label: 'All Games' },
@@ -48,14 +49,20 @@ export default function FilterPanel({
     showRadius = true,
     showVenueType = true
 }) {
+    const savedFilters = typeof window !== 'undefined' ? loadFilters('fp', {}) : {};
     const [localFilters, setLocalFilters] = useState(filters || {
-        gameType: 'all',
-        stakes: 'all',
-        venueType: 'all',
-        radius: 50,
-        hasLiveGames: false,
-        hasTournaments: false
+        gameType: savedFilters.gameType || 'all',
+        stakes: savedFilters.stakes || 'all',
+        venueType: savedFilters.venueType || 'all',
+        radius: savedFilters.radius || 50,
+        hasLiveGames: savedFilters.hasLiveGames || false,
+        hasTournaments: savedFilters.hasTournaments || false
     });
+
+    // Persist filters on change
+    useEffect(() => {
+        saveFilters('fp', localFilters);
+    }, [localFilters]);
 
     const handleChange = (key, value) => {
         const newFilters = { ...localFilters, [key]: value };

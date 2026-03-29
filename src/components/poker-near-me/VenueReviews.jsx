@@ -4,12 +4,30 @@
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
+const CATEGORY_ICONS = {
+    dealers: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" /></svg>
+    ),
+    game_quality: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+    ),
+    rake: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
+    ),
+    food: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8h1a4 4 0 010 8h-1" /><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z" /><line x1="6" y1="1" x2="6" y2="4" /><line x1="10" y1="1" x2="10" y2="4" /><line x1="14" y1="1" x2="14" y2="4" /></svg>
+    ),
+    atmosphere: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3a6 6 0 00-6 6c0 7 6 13 6 13s6-6 6-13a6 6 0 00-6-6z" /><circle cx="12" cy="9" r="2" /></svg>
+    ),
+};
+
 const CATEGORIES = [
-    { key: 'dealers', label: 'Dealers', icon: '🃏' },
-    { key: 'game_quality', label: 'Game Quality', icon: '⭐' },
-    { key: 'rake', label: 'Rake', icon: '💰' },
-    { key: 'food', label: 'Food & Drinks', icon: '🍔' },
-    { key: 'atmosphere', label: 'Atmosphere', icon: '🎭' },
+    { key: 'dealers', label: 'Dealers' },
+    { key: 'game_quality', label: 'Game Quality' },
+    { key: 'rake', label: 'Rake' },
+    { key: 'food', label: 'Food & Drinks' },
+    { key: 'atmosphere', label: 'Atmosphere' },
 ];
 
 const SORT_OPTIONS = [
@@ -235,7 +253,7 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                             <div className="vr-category-ratings">
                                 {CATEGORIES.map(cat => (
                                     <div key={cat.key} className="vr-cat-row">
-                                        <span className="vr-cat-label">{cat.icon} {cat.label}</span>
+                                        <span className="vr-cat-label">{CATEGORY_ICONS[cat.key]} {cat.label}</span>
                                         <StarRating
                                             rating={categoryRatings[cat.key] || 0}
                                             size={16}
@@ -323,7 +341,8 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                             )}
                             <div className="vr-review-actions">
                                 <button className={'vr-helpful-btn' + (r.voted ? ' voted' : '')} onClick={() => !r.voted && voteHelpful(r.id)}>
-                                    👍 Helpful {r.helpful_count > 0 ? `(${r.helpful_count})` : ''}
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z" /><path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" /></svg>
+                                    Helpful {r.helpful_count > 0 ? `(${r.helpful_count})` : ''}
                                 </button>
                             </div>
                         </div>

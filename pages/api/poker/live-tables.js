@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       query = query.ilike('venue_name', `%${search}%`);
     }
 
-    const { data, error } = await query.limit(3000);
+    const { data, error } = await query.limit(10000);
 
     if (error) {
       console.error('Live tables query error:', error);
@@ -91,6 +91,9 @@ export default async function handler(req, res) {
         tables_running: row.tables_running,
         players_waiting: row.players_waiting,
         source: row.source || 'bravo',
+        buyin: row.buyin_range || null,
+        runs: row.runs_schedule || null,
+        data_quality: row.data_quality || null,
       });
     }
 
