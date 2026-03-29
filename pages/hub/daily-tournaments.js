@@ -63,8 +63,14 @@ function formatGameType(raw) {
     if (lower === 'horse') return 'HORSE';
     if (lower === 'mixed') return 'Mixed';
     if (lower === 'stud') return 'Stud';
+    if (lower === 'deepstack' || lower === 'deep stack') return 'Deep Stack';
     // Capitalize first letter of each word for anything else
-    return raw.replace(/\b\w/g, c => c.toUpperCase());
+    return raw.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function formatVenueType(raw) {
+    if (!raw || raw === 'Unknown') return null;
+    return raw.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function formatMoney(amount) {
@@ -396,7 +402,7 @@ export default function DailyTournaments() {
                             <div className="game-breakdown">
                                 {stats.byGameType && Object.entries(stats.byGameType).map(([game, count]) => (
                                     <div key={game} className="game-item">
-                                        <span className="game-name">{game}</span>
+                                        <span className="game-name">{formatGameType(game)}</span>
                                         <span className="game-count">{count}</span>
                                     </div>
                                 ))}
@@ -1003,7 +1009,7 @@ function TournamentCard({ tournament }) {
                 <span className={`tag game-type ${(t.game_type || '').toLowerCase()}`}>{formatGameType(t.game_type)}</span>
                 {t.format && <span className="tag format">{t.format}</span>}
                 {t.guaranteed && <span className="tag guaranteed">{formatMoney(t.guaranteed)} GTD</span>}
-                {t.venueType && t.venueType !== 'Unknown' && <span className="tag venue-type">{t.venueType}</span>}
+                {t.venueType && t.venueType !== 'Unknown' && <span className="tag venue-type">{formatVenueType(t.venueType)}</span>}
             </div>
             <div className="card-actions">
                 {t.venue_id && (
