@@ -123,6 +123,27 @@ const PeakActivityHeatmap = dynamic(() => import('../../src/components/poker-nea
 const GameTrendsDashboard = dynamic(() => import('../../src/components/poker-near-me/GameTrendsDashboard'), { ssr: false });
 const VenueGameAlerts = dynamic(() => import('../../src/components/poker-near-me/VenueGameAlerts'), { ssr: false });
 
+// ─── Error Boundary for Pod Content ───
+class PodErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, info) { console.error(`[PNM] Pod "${this.props.podName}" crashed:`, error, info); }
+  render() {
+    if (this.state.hasError) {
+      return React.createElement('div', { style: { textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.5)' } },
+        React.createElement('div', { style: { fontSize: 36, marginBottom: 12, opacity: 0.3 } }, '\u26A0'),
+        React.createElement('p', { style: { fontSize: 15, fontWeight: 600, marginBottom: 8, color: '#f59e0b' } }, `"${this.props.podName}" encountered an error`),
+        React.createElement('p', { style: { fontSize: 12, marginBottom: 16, color: 'rgba(200,214,229,0.35)' } }, String(this.state.error?.message || 'Unknown error')),
+        React.createElement('button', {
+          onClick: () => { this.setState({ hasError: false, error: null }); if (this.props.onReset) this.props.onReset(); },
+          style: { padding: '8px 20px', borderRadius: 8, border: '1px solid rgba(110,231,239,0.25)', background: 'rgba(110,231,239,0.08)', color: '#6ee7ef', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
+        }, 'Reset Pod')
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ─── Constants ───
 const SEARCH_DEBOUNCE_MS = 400;
 const API_CACHE_TTL = 60000;
