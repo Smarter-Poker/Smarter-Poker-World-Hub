@@ -284,6 +284,10 @@
     {
       "path": "/api/cron/scraper-watchdog",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/venue-game-alerts",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

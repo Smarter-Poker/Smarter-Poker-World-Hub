@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '../../lib/supabase';
-import { haversineMiles, timeAgo, getHeatLevel, parseMinStake, getVenueLogoUrl, estimateWaitTime, saveFilters, loadFilters } from './pnm-utils';
+import { haversineMiles, timeAgo, getHeatLevel, parseMinStake, getVenueLogoUrl, estimateWaitTime, saveFilters, loadFilters, isStaleData, getInitialsColor } from './pnm-utils';
 import { normalizeGameName } from './normalize-game';
 import ReportGameModal from './ReportGameModal';
 
@@ -500,7 +500,7 @@ export default function LiveGamesFeed({
                                     onError={(e) => { e.target.style.display = 'none'; }}
                                 />
                             ) : (
-                                <div style={{ width: 36, height: 36, borderRadius: 8, background: `hsl(${Math.abs((v.name || '').charCodeAt(0) * 37) % 360}, 40%, 30%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)', flexShrink: 0, border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <div style={{ width: 36, height: 36, borderRadius: 8, background: getInitialsColor(v.id || 0).bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: getInitialsColor(v.id || 0).text, flexShrink: 0, border: `1px solid ${getInitialsColor(v.id || 0).border}` }}>
                                     {(v.name || '?').split(/[\s-]+/).map(w => w[0]).join('').toUpperCase().slice(0, 2)}
                                 </div>
                             )}
@@ -605,15 +605,21 @@ export default function LiveGamesFeed({
                     {/* Game Breakdown — COLLAPSIBLE */}
                     {renderTableBreakdown(v.bravo_slug, v.games)}
 
-                    {/* Last Updated — RELATIVE TIME */}
-                    {v.last_updated && (
-                        <div 
-                            style={{ marginTop: 6, fontSize: 10, color: 'rgba(200,214,229,0.25)', textAlign: 'right' }}
-                            title={new Date(v.last_updated).toLocaleString()}
-                        >
-                            Updated {timeAgo(v.last_updated)}
-                        </div>
-                    )}
+                    {/* Last Updated — RELATIVE TIME with Stale Indicator */}
+                    {v.last_updated && (() => {
+                        const staleInfo = isStaleData(v.last_updated);
+                        return (
+                            <div 
+                                style={{ marginTop: 6, fontSize: 10, color: staleInfo.stale ? 'rgba(245,158,11,0.6)' : 'rgba(200,214,229,0.25)', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}
+                                title={new Date(v.last_updated).toLocaleString()}
+                            >
+                                {staleInfo.stale && (
+                                    <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 700, textTransform: 'uppercase' }}>STALE</span>
+                                )}
+                                Updated {staleInfo.age}
+                            </div>
+                        );
+                    })()}
                 </div>
             </div>
         );

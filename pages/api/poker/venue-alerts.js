@@ -6,6 +6,7 @@
  * DELETE: Remove an alert
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 let _supabase = null;
 function getSupabase() {
@@ -21,6 +22,9 @@ export default async function handler(req, res) {
   const supabase = getSupabase();
   
   try {
+    const limitType = req.method === 'GET' ? LIMITS.read : LIMITS.write;
+    if (!applyRateLimit(req, res, limitType)) return;
+
     if (req.method === 'GET') {
       const { user_id } = req.query;
       if (!user_id) return res.status(400).json({ error: 'user_id required' });
@@ -67,7 +71,7 @@ export default async function handler(req, res) {
           last_triggered: null,
         })
         .select()
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return res.status(201).json({ alert: data });

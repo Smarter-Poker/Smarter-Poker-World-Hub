@@ -150,7 +150,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       marker.bindPopup(
         `<div style="font-family:sans-serif;font-size:13px;min-width:160px;">
             <strong>${safeName}</strong><br/>
-            <span style="color:#666;">${v.city || ''}, ${v.state || ''}</span>
+            <span style="color:rgba(200,214,229,0.55);">${v.city || ''}, ${v.state || ''}</span>
             ${gamesHtml}
             <br/><a href="/hub/venues/${v.id}" style="color:#6ee7ef;font-size:12px;text-decoration:underline;margin-top:4px;display:inline-block;">View Details</a>
           </div>`,

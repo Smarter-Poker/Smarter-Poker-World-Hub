@@ -119,6 +119,9 @@ const VoiceSearch = dynamic(() => import('../../src/components/poker-near-me/Voi
 const VenueReviews = dynamic(() => import('../../src/components/poker-near-me/VenueReviews'), { ssr: false });
 const VenueMapPanel = dynamic(() => import('../../src/components/poker-near-me/VenueMapPanel'), { ssr: false });
 const ScraperHealthDashboard = dynamic(() => import('../../src/components/poker-near-me/ScraperHealthDashboard'), { ssr: false });
+const PeakActivityHeatmap = dynamic(() => import('../../src/components/poker-near-me/PeakActivityHeatmap'), { ssr: false });
+const GameTrendsDashboard = dynamic(() => import('../../src/components/poker-near-me/GameTrendsDashboard'), { ssr: false });
+const VenueGameAlerts = dynamic(() => import('../../src/components/poker-near-me/VenueGameAlerts'), { ssr: false });
 
 // ─── Constants ───
 const SEARCH_DEBOUNCE_MS = 400;
@@ -204,6 +207,9 @@ const POD_FEATURES = {
   tripcost: { title: 'Trip Cost Calculator', tab: 'tripcost' },
   compare: { title: 'Compare Venues', tab: 'compare' },
   scraperhealth: { title: 'Scraper Health', tab: 'scraperhealth' },
+  peakheatmap: { title: 'Peak Activity', tab: 'peakheatmap' },
+  gametrends: { title: 'Game Trends', tab: 'gametrends' },
+  gamealerts: { title: 'Game Alerts', tab: 'gamealerts' },
 };
 
 // ─── Daily Tournaments Panel with day-of-week tabs ───
@@ -2154,6 +2160,18 @@ export default function PokerNearMeLobby() {
         component = <ScraperHealthDashboard />;
         break;
 
+      case 'peakheatmap':
+        component = <PeakActivityHeatmap />;
+        break;
+
+      case 'gametrends':
+        component = <GameTrendsDashboard />;
+        break;
+
+      case 'gamealerts':
+        component = <VenueGameAlerts userId={userId} venues={venues} />;
+        break;
+
       default:
         component = (
           <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
@@ -2313,9 +2331,11 @@ export default function PokerNearMeLobby() {
                   </svg>
                 </button>
               </div>
-              {/* Content — full remaining height */}
+              {/* Content — full remaining height with error recovery */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 90px', WebkitOverflowScrolling: 'touch' }}>
-                {panelContent.component}
+                <PodErrorBoundary podName={panelContent?.title || activePod} onReset={() => setActivePod(null)}>
+                  {panelContent.component}
+                </PodErrorBoundary>
               </div>
             </div>
           </>

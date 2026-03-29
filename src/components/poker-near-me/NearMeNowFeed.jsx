@@ -4,22 +4,9 @@
  * v2.0 — Enhanced with CTA-rich empty states and skeleton loading
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { haversineMiles } from './pnm-utils';
+import { haversineMiles, timeAgo } from './pnm-utils';
 
 const FEED_REFRESH_MS = 60000; // 1 minute
-
-function timeAgo(dateStr) {
-    if (!dateStr) return 'Recently';
-    const ts = new Date(dateStr).getTime();
-    if (isNaN(ts)) return 'Recently';
-    const diff = Math.floor((Date.now() - ts) / 1000);
-    if (diff < 0) return 'Just now';
-    if (diff < 30) return 'Just now';
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
-}
 
 // Dynamic SVG icons for each feed item type
 const FEED_ICONS = {

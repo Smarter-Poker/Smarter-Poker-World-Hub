@@ -352,6 +352,43 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         </div>
                     </div>
 
+                    {/* Save / Share Actions */}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                        <button
+                            onClick={() => {
+                                try {
+                                    const trip = { origin, destination, waypoints, corridorMi, dateRange, savedAt: new Date().toISOString() };
+                                    const saved = JSON.parse(localStorage.getItem('pnm_saved_trips') || '[]');
+                                    saved.unshift(trip);
+                                    localStorage.setItem('pnm_saved_trips', JSON.stringify(saved.slice(0, 10)));
+                                    alert('Trip saved! You can reload this page to find your saved trips.');
+                                } catch { alert('Failed to save trip.'); }
+                            }}
+                            style={{ flex: 1, padding: '8px 12px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, color: '#22c55e', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            Save Trip
+                        </button>
+                        <button
+                            onClick={() => {
+                                try {
+                                    const params = new URLSearchParams();
+                                    params.set('pod', 'roadtrip');
+                                    if (origin) params.set('from', origin);
+                                    if (destination) params.set('to', destination);
+                                    if (corridorMi !== 50) params.set('corridor', String(corridorMi));
+                                    const url = `${window.location.origin}/hub/poker-near-me-lobby?${params.toString()}`;
+                                    navigator.clipboard.writeText(url);
+                                    alert('Trip link copied to clipboard!');
+                                } catch { alert('Failed to copy link.'); }
+                            }}
+                            style={{ flex: 1, padding: '8px 12px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 8, color: '#3b82f6', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                            Share Trip
+                        </button>
+                    </div>
+
                     {/* Map — collapsible on mobile */}
                     <div className="rtp-map-wrapper">
                         <button className="rtp-map-toggle" onClick={() => setMapExpanded(e => !e)}>

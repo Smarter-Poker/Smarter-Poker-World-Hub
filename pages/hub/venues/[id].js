@@ -1021,7 +1021,33 @@ export default function VenueDetailPage() {
             {/* Header Section */}
             <header className="venue-header">
               <div className="venue-header-top">
-                <div className="venue-name-group">
+                <div className="venue-name-group" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  {/* Venue Logo */}
+                  {(() => {
+                    var logoUrl = venue.profile_photo_url || venue.cover_photo_url || (venue.website ? (function() { try { var d = venue.website; if (!d.startsWith('http')) d = 'https://' + d; return 'https://www.google.com/s2/favicons?domain=' + new URL(d).hostname + '&sz=64'; } catch(e) { return null; } })() : null);
+                    var initials = (venue.name || '?').split(/[\s\-]+/).filter(function(w) { return w.length > 0; }).map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+                    var colorIdx = (venue.id || 0) % 12;
+                    var palette = [
+                      { bg: 'rgba(212,168,83,0.25)', border: 'rgba(212,168,83,0.5)', text: '#d4a853' },
+                      { bg: 'rgba(0,212,255,0.2)', border: 'rgba(0,212,255,0.5)', text: '#00d4ff' },
+                      { bg: 'rgba(239,68,68,0.2)', border: 'rgba(239,68,68,0.5)', text: '#ef4444' },
+                      { bg: 'rgba(34,197,94,0.2)', border: 'rgba(34,197,94,0.5)', text: '#22c55e' },
+                      { bg: 'rgba(139,92,246,0.2)', border: 'rgba(139,92,246,0.5)', text: '#8b5cf6' },
+                      { bg: 'rgba(59,130,246,0.2)', border: 'rgba(59,130,246,0.5)', text: '#3b82f6' },
+                      { bg: 'rgba(236,72,153,0.2)', border: 'rgba(236,72,153,0.5)', text: '#ec4899' },
+                      { bg: 'rgba(245,158,11,0.2)', border: 'rgba(245,158,11,0.5)', text: '#f59e0b' },
+                      { bg: 'rgba(20,184,166,0.2)', border: 'rgba(20,184,166,0.5)', text: '#14b8a6' },
+                      { bg: 'rgba(249,115,22,0.2)', border: 'rgba(249,115,22,0.5)', text: '#f97316' },
+                      { bg: 'rgba(168,85,247,0.2)', border: 'rgba(168,85,247,0.5)', text: '#a855f7' },
+                      { bg: 'rgba(6,182,212,0.2)', border: 'rgba(6,182,212,0.5)', text: '#06b6d4' },
+                    ];
+                    var colors = palette[colorIdx];
+                    if (logoUrl) {
+                      return <img src={logoUrl} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover', flexShrink: 0, border: '2px solid rgba(110,231,239,0.15)', background: '#0a1628' }} onError={function(e) { e.target.style.display = 'none'; }} />;
+                    }
+                    return <div style={{ width: 56, height: 56, borderRadius: 12, background: colors.bg, border: '2px solid ' + colors.border, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: colors.text, flexShrink: 0 }}>{initials}</div>;
+                  })()}
+                  <div>
                   <h1 className="venue-name">{venue.name}</h1>
                   <div className="venue-meta">
                     <VenueTypeBadge type={venue.venue_type} />
@@ -1036,6 +1062,7 @@ export default function VenueDetailPage() {
                         Verified
                       </span>
                     )}
+                  </div>
                   </div>
                 </div>
               </div>
