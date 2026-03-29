@@ -28,6 +28,7 @@ import uuid
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+from dateutil.parser import parse as dparse
 
 from scrapling.fetchers import Fetcher
 
@@ -246,7 +247,6 @@ def parse_series_page(html, slug, provenance):
     if date_range_m:
         year = date_range_m.group(3)
         try:
-            from dateutil.parser import parse as dparse
             start_date = dparse(f"{date_range_m.group(1)} {year}").strftime('%Y-%m-%d')
             end_date = dparse(f"{date_range_m.group(2)} {year}").strftime('%Y-%m-%d')
         except Exception:
@@ -363,7 +363,6 @@ def _parse_events_table(html, series_uid, series_name, venue_name, city, state, 
                 day_str = day_m.group(1)
                 # Determine year from series dates or use current year
                 try:
-                    from dateutil.parser import parse as dparse
                     start_date = dparse(f'{month_str} {day_str} 2026').strftime('%Y-%m-%d')
                 except Exception:
                     pass
