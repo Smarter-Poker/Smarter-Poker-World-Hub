@@ -57,17 +57,20 @@ PA_BASE = 'https://www.pokeratlas.com'
 # ============================================================
 # SUPABASE HELPERS
 # ============================================================
-def sb_upsert(table, records):
+def sb_upsert(table, records, on_conflict=None):
     """Upsert via REST API in chunks — triggers fire."""
     CHUNK = 50
     total = 0
+    headers = dict(SB_HEADERS)
+    if on_conflict:
+        headers['Prefer'] = f'resolution=merge-duplicates,return=minimal'
     for i in range(0, len(records), CHUNK):
         chunk = records[i:i + CHUNK]
         body = json.dumps(chunk, default=str).encode()
-        req = urllib.request.Request(
-            f'{SUPABASE_URL}/rest/v1/{table}',
-            data=body, method='POST', headers=SB_HEADERS
-        )
+        url = f'{SUPABASE_URL}/rest/v1/{table}'
+        if on_conflict:
+            url += f'?on_conflict={on_conflict}'
+        req = urllib.request.Request(url, data=body, method='POST', headers=headers)
         for attempt in range(3):
             try:
                 urllib.request.urlopen(req, timeout=30)
@@ -77,7 +80,8 @@ def sb_upsert(table, records):
                 if attempt < 2:
                     time.sleep(2 ** attempt)
                 else:
-                    print(f'    [UPSERT FAIL] {table}: {str(e)[:150]}')
+                    err_body = e.read().decode()[:200] if hasattr(e, 'read') else str(e)[:200]
+                    print(f'    [UPSERT FAIL] {table}: {err_body}')
     return total
 
 def save_evidence(prefix, data):
@@ -727,15 +731,15 @@ def main():
     print('[STEP 3] Inserting to database...')
     
     if all_series:
-        n = sb_upsert('poker_series', all_series)
+        n = sb_upsert('poker_series', all_series, on_conflict='series_uid')
         print(f'  poker_series:      {n}/{len(all_series)} inserted')
     
     if all_events:
-        n = sb_upsert('poker_events', all_events)
+        n = sb_upsert('poker_events', all_events, on_conflict='event_uid')
         print(f'  poker_events:      {n}/{len(all_events)} inserted')
     
     if all_tournament_series:
-        n = sb_upsert('tournament_series', all_tournament_series)
+        n = sb_upsert('tournament_series', all_tournament_series, on_conflict='series_uid')
         print(f'  tournament_series: {n}/{len(all_tournament_series)} inserted')
     
     print()
