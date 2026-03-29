@@ -37,19 +37,19 @@ description: Master roadmap for all remaining Smarter.Poker improvements, featur
 
 ## TIER 1: Quick Wins (Pre-Launch Priority)
 
-### 1.1 — E2E Test Suite with Playwright MCP `[ ]`
+### 1.1 — E2E Test Suite with Playwright MCP `[x]`
 
-**Status**: Playwright MCP is connected but zero E2E tests are wired.
+**Status**: Playwright MCP is connected and End-to-End test suite is fully wired against production.
 
 **What to build**:
 - Smoke test suite covering 5 critical user flows:
-  1. `[ ]` Login → Hub landing page loads correctly
-  2. `[ ]` Poker Near Me → Venue detail → Save venue
-  3. `[ ]` Training → Start GTO session → Complete a question
-  4. `[ ]` Social feed → Create post → Like/Comment
-  5. `[ ]` Diamond Store → View bundle → (mock) Purchase flow
-- `[ ]` Wire into CI/CD so tests run on every deploy
-- `[ ]` Add visual regression snapshots for key pages
+  1. `[x]` Login → Hub landing page loads correctly
+  2. `[x]` Poker Near Me → Venue detail → Save venue
+  3. `[x]` Training → Start GTO session → Complete a question
+  4. `[x]` Social feed → Create post → Like/Comment
+  5. `[x]` Diamond Store → View bundle → (mock) Purchase flow
+- `[x]` Wire into CI/CD so tests run on every deploy
+- `[x]` Add visual regression snapshots for key pages
 
 **How to execute**: Use the `/browser-testing` workflow + Playwright MCP skill. Tests go in `/e2e/` directory.
 
@@ -128,7 +128,7 @@ description: Master roadmap for all remaining Smarter.Poker improvements, featur
 
 ---
 
-### 1.4 — PWA Push Notifications (Full Build) `[ ]`
+### 1.4 — PWA Push Notifications (Full Build) `[x]`
 
 > **User Decision**: This must be FULLY BUILT. Users currently receive ZERO push notifications on browser.
 
@@ -136,47 +136,48 @@ description: Master roadmap for all remaining Smarter.Poker improvements, featur
 
 **What to build**:
 
-1. `[ ]` **OneSignal Service Worker Registration**
+1. `[x]` **OneSignal Service Worker Registration**
    - Verify `OneSignalSDKWorker.js` is in `/public/`
    - Initialize OneSignal in `_app.js` with proper app ID
    - Ensure HTTPS + correct VAPID keys in environment
 
-2. `[ ]` **In-App Permission Prompt** (NOT browser default)
+2. `[x]` **In-App Permission Prompt** (NOT browser default)
    - Custom modal: "Never miss a tournament! Enable notifications"
    - Show after 2nd visit or after first saved venue/tournament
    - "Not now" dismisses for 7 days, doesn't burn the browser prompt
    - Track opt-in rate in Supabase
 
-3. `[ ]` **Notification Types to Wire**:
-   - `[ ]` **Tournament Reminders**: 24h and 1h before saved tournaments
-   - `[ ]` **Social Mentions**: When someone @mentions you or replies to your post
-   - `[ ]` **Friend Activity**: When a friend starts a live session
-   - `[ ]` **Venue Alerts**: When a saved venue opens your preferred game
-   - `[ ]` **Daily Challenge**: Morning notification for trivia/training challenge
-   - `[ ]` **Messenger**: New direct messages
-   - `[ ]` **Diamond Rewards**: When you earn diamonds or a streak is at risk
-   - `[ ]` **Club Updates**: New tournament posted in your club
+3. `[x]` **Notification Types to Wire**:
+   - `[x]` **Tournament Reminders**: 24h and 1h before saved tournaments
+   - `[x]` **Social Mentions**: When someone @mentions you or replies to your post
+   - `[x]` **Friend Activity**: When a friend starts a live session
+   - `[x]` **Venue Alerts**: When a saved venue opens your preferred game
+   - `[x]` **Daily Challenge**: Morning notification for trivia/training challenge
+   - `[x]` **Messenger**: New direct messages
+   - `[x]` **Diamond Rewards**: When you earn diamonds or a streak is at risk
+   - `[x]` **Club Updates**: New tournament posted in your club
 
-4. `[ ]` **Notification Preferences Page**
+4. `[x]` **Notification Preferences Page**
    - Add to `/hub/settings.js` under a "Notifications" tab
    - Per-category toggle (on/off for each type above)
    - "Quiet hours" setting (e.g., no notifications 11pm-8am)
    - Store preferences in `user_notification_preferences` table
 
-5. `[ ]` **Backend Push Sender**
+5. `[x]` **Backend Push Sender**
    - `/api/notifications/send-push.js` — unified push endpoint
    - Accepts: `userId`, `type`, `title`, `body`, `url`, `data`
    - Resolves OneSignal player ID from user's profile
    - Respects user's per-category preferences and quiet hours
    - Rate limiting: max 10 pushes per user per hour
 
-6. `[ ]` **Wire Existing Crons to Push**
+6. `[x]` **Wire Existing Crons to Push**
    - `tournament-reminders.js` → send push via OneSignal
    - `venue-game-alerts.js` → send push via OneSignal
    - `daily-challenges.js` → send push via OneSignal
    - `training-daily-challenge.js` → send push via OneSignal
 
 **RISK LEVEL**: MEDIUM — requires OneSignal account config + testing across browsers
+
 
 ---
 

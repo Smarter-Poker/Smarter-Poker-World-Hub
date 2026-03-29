@@ -1,8 +1,29 @@
 {
-  "id": "swarm-1774759630694-s57ugj",
-  "topology": "mesh",
-  "maxAgents": 5,
-  "strategy": "development",
-  "initializedAt": "2026-03-29T04:47:10.694Z",
-  "status": "ready"
+  "swarmId": "swarm-mnc562c7",
+  "objective": "Audit training module (src/components/training, pages/api/training, src/config/gameConfigs.js, src/data/TRAINING_LIBRARY.js) for bugs, gaps or improvements using PIO, CHART, and SCENARIO systems.",
+  "strategy": "analysis",
+  "status": "initialized",
+  "agents": 4,
+  "agentPlan": [
+    {
+      "role": "Analyst Lead",
+      "type": "analyst",
+      "count": 1,
+      "purpose": "Analysis coordination"
+    },
+    {
+      "role": "Code Analyst",
+      "type": "analyst",
+      "count": 2,
+      "purpose": "Code analysis"
+    },
+    {
+      "role": "Security Analyst",
+      "type": "reviewer",
+      "count": 1,
+      "purpose": "Security review"
+    }
+  ],
+  "startedAt": "2026-03-29T19:17:58.999Z",
+  "parallel": true
 }
