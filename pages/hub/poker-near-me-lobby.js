@@ -2322,7 +2322,9 @@ export default function PokerNearMeLobby() {
     alertCount: dailyTournaments.length + tours.length,
     savedCount: Object.keys(favorites).filter(k => favorites[k]).length,
     friendsNearby: 0,
-  }), [venues.length, tours.length, series.length, dailyTournaments.length, favorites]);
+    homeGameCount: venues.filter(v => v.venue_type === 'home_game').length,
+    mappableCount: venues.filter(v => v.latitude && v.longitude).length,
+  }), [venues, tours.length, series.length, dailyTournaments.length, favorites]);
 
   return (
     <>

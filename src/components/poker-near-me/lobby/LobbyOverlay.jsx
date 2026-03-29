@@ -427,14 +427,21 @@ export default function LobbyOverlay({
             gap: 0,
           }}>
             {GRID_HOTSPOTS.map((hotspot) => {
-              // Compute live badge for this hotspot
+              // Compute live badge for this hotspot — dynamic counts for every pod
               let badge = null;
-              if (hotspot.id === 'livegames' && liveData.liveGameCount > 0) badge = liveData.liveGameCount;
-              else if (hotspot.id === 'favorites' && savedCount > 0) badge = savedCount;
-              else if (hotspot.id === 'alerts' && alertCount > 0) badge = alertCount;
-              else if (hotspot.id === 'social' && friendsNearby > 0) badge = friendsNearby;
-              else if (hotspot.id === 'daily' && liveData.dailyCount > 0) badge = liveData.dailyCount;
+              let badgeBg = 'linear-gradient(135deg, #d4a853, #c49a3c)';
+              if (hotspot.id === 'nearme' && liveData.venueCount > 0) { badge = liveData.venueCount; badgeBg = 'linear-gradient(135deg, #3fb950, #238636)'; }
+              else if (hotspot.id === 'search' && liveData.venueCount > 0) { badge = liveData.venueCount; badgeBg = 'linear-gradient(135deg, #58a6ff, #1f6feb)'; }
+              else if (hotspot.id === 'homegames') { const hgCount = (liveData.homeGameCount || 0); if (hgCount > 0) badge = hgCount; }
+              else if (hotspot.id === 'livegames' && liveData.liveGameCount > 0) { badge = liveData.liveGameCount; badgeBg = 'linear-gradient(135deg, #ef4444, #dc2626)'; }
+              else if (hotspot.id === 'mapview' && liveData.mappableCount > 0) { badge = liveData.mappableCount; badgeBg = 'linear-gradient(135deg, #58a6ff, #1f6feb)'; }
               else if (hotspot.id === 'tours' && liveData.tourCount > 0) badge = liveData.tourCount;
+              else if (hotspot.id === 'calendar' && liveData.dailyCount > 0) { badge = liveData.dailyCount; badgeBg = 'linear-gradient(135deg, #a78bfa, #8b5cf6)'; }
+              else if (hotspot.id === 'series' && liveData.seriesCount > 0) badge = liveData.seriesCount;
+              else if (hotspot.id === 'daily' && liveData.dailyCount > 0) badge = liveData.dailyCount;
+              else if (hotspot.id === 'favorites' && savedCount > 0) { badge = savedCount; badgeBg = 'linear-gradient(135deg, #f87171, #ef4444)'; }
+              else if (hotspot.id === 'social' && friendsNearby > 0) badge = friendsNearby;
+              else if (hotspot.id === 'alerts' && alertCount > 0) { badge = alertCount; badgeBg = 'linear-gradient(135deg, #ef4444, #dc2626)'; }
 
               return (
               <button
@@ -455,19 +462,19 @@ export default function LobbyOverlay({
                   outline: 'none',
                 }}
               >
-                {badge && (
+                {badge != null && badge > 0 && (
                   <span style={{
                     position: 'absolute', top: '6%', right: '8%', zIndex: 5,
                     minWidth: 20, height: 20, padding: '0 6px',
                     borderRadius: 10, fontSize: 10, fontWeight: 800,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: hotspot.id === 'alerts' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #d4a853, #c49a3c)',
+                    background: badgeBg,
                     color: '#fff', fontFamily: 'Inter, system-ui, sans-serif',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.4), 0 0 12px rgba(212,168,83,0.3)',
                     animation: 'lobby-badgePulse 2s ease-in-out infinite',
                     lineHeight: 1,
                   }}>
-                    {badge > 99 ? '99+' : badge}
+                    {badge > 999 ? `${(badge/1000).toFixed(1)}k` : badge > 99 ? '99+' : badge}
                   </span>
                 )}
               </button>

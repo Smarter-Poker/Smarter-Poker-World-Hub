@@ -116,8 +116,14 @@ export function getVenueLogoUrl(venue) {
 export function getOpenStatus(venue) {
     if (!venue) return null;
     
-    // 24/7 venues
-    if (venue.is_24_hours || venue.hours === '24/7' || venue.hours_weekday === '24/7') {
+    // Venue types that NEVER operate 24/7:
+    // - Charity rooms always have cut-off times (legal requirement)
+    // - Home games run on a schedule set by the host
+    const NEVER_24_7_TYPES = ['charity', 'home_game'];
+    const isNever24 = NEVER_24_7_TYPES.includes(venue.venue_type);
+    
+    // 24/7 venues — only for casinos, card rooms, poker clubs
+    if (!isNever24 && (venue.is_24_hours || venue.hours === '24/7' || venue.hours_weekday === '24/7')) {
         return { open: true, label: 'Open 24/7', always: true, nextChange: null };
     }
     
@@ -136,7 +142,9 @@ export function getOpenStatus(venue) {
     }
     
     if (!hoursStr || hoursStr === '24/7') {
-        // Most poker venues without listed hours are 24/7 operations
+        // For charity/home_game: no hours data = show nothing (never assume 24/7)
+        if (isNever24) return null;
+        // For casinos/card_rooms/poker_clubs: safe to assume 24/7
         return { open: true, label: 'Open 24/7', always: true, nextChange: null };
     }
     

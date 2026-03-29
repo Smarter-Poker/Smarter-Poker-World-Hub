@@ -1869,7 +1869,7 @@ export default function PokerNearMePage() {
             filteredVenues = filteredVenues.filter(v => v.has_tournaments);
         }
         if (mapFilters.is24Hours) {
-            filteredVenues = filteredVenues.filter(v => v.is_24_hours || (v.hours_of_operation && v.hours_of_operation.includes('24')));
+            filteredVenues = filteredVenues.filter(v => !['charity', 'home_game'].includes(v.venue_type) && (v.is_24_hours || (v.hours_of_operation && v.hours_of_operation.includes('24'))));
         }
         if (mapFilters.lowStakes) {
             filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => {

@@ -258,7 +258,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     </span>
                 )}
                 {venue.has_tournaments && <span className="vc3-badge vc3-badge-tourney">Tournaments</span>}
-                {(venue.hours === '24/7' || venue.hours_weekday === '24/7') && <span className="vc3-badge" style={{ background: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.3)', color: '#22c55e' }}>24/7</span>}
+                {(venue.hours === '24/7' || venue.hours_weekday === '24/7') && !['charity', 'home_game'].includes(venue.venue_type) && <span className="vc3-badge" style={{ background: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.3)', color: '#22c55e' }}>24/7</span>}
                 {Array.isArray(venue.games_offered) && venue.games_offered.some(g => /plo|omaha/i.test(g)) && <span className="vc3-badge" style={{ background: 'rgba(139,92,246,0.12)', borderColor: 'rgba(139,92,246,0.3)', color: '#a78bfa' }}>PLO Room</span>}
                 {venue.total_tables > 20 && <span className="vc3-badge" style={{ background: 'rgba(212,168,83,0.12)', borderColor: 'rgba(212,168,83,0.3)', color: '#d4a853' }}>Large Room</span>}
                 {checkinCount > 0 && (
@@ -325,7 +325,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
                             <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                         </svg>
-                        {(venue.hours === '24/7' || venue.hours_weekday === '24/7') ? 'Open 24/7' : (venue.hours_weekday || venue.hours)}
+                        {(venue.hours === '24/7' || venue.hours_weekday === '24/7') && !['charity', 'home_game'].includes(venue.venue_type) ? 'Open 24/7' : (venue.hours_weekday || venue.hours)}
                         {openStatus && openStatus.nextChange && !openStatus.always && (
                             <span className="vc3-hours-next"> ({openStatus.nextChange})</span>
                         )}
