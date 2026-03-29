@@ -640,7 +640,7 @@ export default function LobbyOverlay({
               }
               else if (hotspot.id === 'mapview' && liveData.mappableCount > 0) { badge = liveData.mappableCount; badgeBg = 'linear-gradient(135deg, #58a6ff, #1f6feb)'; }
               else if (hotspot.id === 'tours' && liveData.tourCount > 0) badge = liveData.tourCount;
-              else if (hotspot.id === 'calendar' && liveData.dailyCount > 0) { badge = liveData.dailyCount; badgeBg = 'linear-gradient(135deg, #a78bfa, #8b5cf6)'; }
+              else if (hotspot.id === 'calendar' && liveData.calendarCount > 0) { badge = liveData.calendarCount; badgeBg = 'linear-gradient(135deg, #a78bfa, #8b5cf6)'; }
               else if (hotspot.id === 'series' && liveData.seriesCount > 0) badge = liveData.seriesCount;
               else if (hotspot.id === 'daily' && liveData.dailyCount > 0) badge = liveData.dailyCount;
               else if (hotspot.id === 'favorites' && savedCount > 0) { badge = savedCount; badgeBg = 'linear-gradient(135deg, #f87171, #ef4444)'; }

@@ -2136,16 +2136,23 @@ export default function PokerNearMeLobby() {
       : [];
 
     return {
-      venueCount: userLocation ? nearbyVenues.length : Math.min(venues.length, 50),
+      // Venue count: only show badge when GPS is active (nearby venues within range)
+      // Without GPS, "Poker Near Me" badge is suppressed — no location = no "near me" context
+      venueCount: userLocation ? nearbyVenues.length : 0,
       liveGameCount: liveGameCount,
       tourCount: upcomingTours.length,
       seriesCount: activeSeries.length,
+      // Daily Grind: today's tournaments only
       dailyCount: todaysTournaments.length,
+      // Calendar: total upcoming events across all days (distinct from dailyCount)
+      calendarCount: dailyTournaments.length > 0 ? Math.min(dailyTournaments.length, 50) : 0,
       alertCount: upcomingTours.length, // alerts = upcoming tour events only
       savedCount: Object.keys(favorites).filter(k => favorites[k]).length,
       friendsNearby: -1, // sentinel: -1 = "Coming Soon" in LobbyOverlay
       homeGameCount: venues.filter(v => v.venue_type === 'home_game').length,
-      mappableCount: venues.filter(v => v.latitude && v.longitude).length,
+      // Map badge: only show when GPS is active (contextual: "X venues on your map")
+      // Without GPS, map is still usable but badge count is misleading
+      mappableCount: userLocation ? nearbyVenues.filter(v => v.latitude && v.longitude).length : 0,
       lastFetchTime: lastFetchTime,
     };
   }, [venues, tours, series, dailyTournaments, favorites, liveGameCount, userLocation, lastFetchTime]);

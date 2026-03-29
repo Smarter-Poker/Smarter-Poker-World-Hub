@@ -4220,31 +4220,39 @@ export default function PokerNearMePage() {
                         transition: all 0.25s;
                         position: relative;
                         min-width: 0;
+                        color: rgba(148,163,184,0.55);
                     }
                     .mtab:hover {
-                        background: rgba(148,163,184,0.06);
+                        background: rgba(148,163,184,0.08);
+                        color: rgba(200,214,229,0.7);
                     }
                     .mtab.active {
-                        background: linear-gradient(180deg, rgba(212,168,83,0.12) 0%, rgba(184,134,11,0.06) 100%);
-                        border-color: rgba(212,168,83,0.25);
+                        background: linear-gradient(180deg, rgba(212,168,83,0.14) 0%, rgba(184,134,11,0.06) 100%);
+                        border-color: rgba(212,168,83,0.3);
+                        color: #d4a853;
                         box-shadow:
                             inset 0 -2px 0 #d4a853,
-                            inset 0 0 8px rgba(212,168,83,0.08),
-                            0 0 8px rgba(212,168,83,0.1);
+                            inset 0 0 8px rgba(212,168,83,0.1),
+                            0 0 10px rgba(212,168,83,0.12);
                     }
                     .mtab-icon {
                         font-size: 16px;
                         line-height: 1;
+                        transition: filter 0.25s;
                     }
                     .mtab.active .mtab-icon {
-                        filter: drop-shadow(0 0 4px rgba(212,168,83,0.3));
+                        filter: drop-shadow(0 0 6px rgba(212,168,83,0.4));
                     }
                     .mtab-label {
                         font-size: 9px;
                         font-weight: 600;
-                        color: rgba(148,163,184,0.5);
+                        color: rgba(148,163,184,0.55);
                         text-transform: uppercase;
                         letter-spacing: 0.3px;
+                        transition: color 0.25s;
+                    }
+                    .mtab:hover .mtab-label {
+                        color: rgba(200,214,229,0.65);
                     }
                     .mtab.active .mtab-label {
                         color: #d4a853;
