@@ -33,6 +33,9 @@ import TRAINING_CONFIG from '../../config/trainingConfig';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
 import { enqueueMutation } from '../../engine/OfflineSyncQueue';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
+// Extracted utilities
+import { saveSession } from './utils/saveSession';
+import { checkSpeedBonus } from './utils/achievementChecker';
 
 // ALL GAMES use full-screen immersive UI with GameUIRouter
 const FULL_SCREEN_UI_GAMES = [
@@ -862,10 +865,10 @@ function GodModeArenaInner({
 
     // ═══ Phase 2: Wrap submitAnswer to capture speed data ═══
     const handleSubmitAnswer = useCallback((answerId, meta) => {
-        // Track speed bonus diamonds from UDT
-        if (meta?.answerTimeSeconds !== undefined && meta?.isCorrect) {
-            if (meta.answerTimeSeconds < 5) setSpeedBonusDiamonds(prev => prev + 5);
-            else if (meta.answerTimeSeconds < 10) setSpeedBonusDiamonds(prev => prev + 2);
+        // Track speed bonus diamonds using utility
+        const bonus = checkSpeedBonus(meta);
+        if (bonus > 0) {
+            setSpeedBonusDiamonds(prev => prev + bonus);
         }
         return submitAnswer(answerId);
     }, [submitAnswer]);
@@ -940,79 +943,25 @@ function GodModeArenaInner({
         if (!gameComplete || sessionSavedRef.current) return;
         sessionSavedRef.current = true;
 
-        const saveSession = async () => {
-            // BUG-01 FIX: Build payload OUTSIDE try/catch so catch block can reference it
-            const { getAuthUser } = await import('../../lib/authUtils');
-            const user = getAuthUser();
-            if (!user?.session?.access_token) return;
-
-            // Build position stats from hand history
-            const posStats = {};
-            const classCounts = {};
-            handHistory.forEach(h => {
-                const pos = h.handData?.heroPosition || 'UNK';
-                if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0, evLoss: 0 };
-                posStats[pos].total++;
-                if (h.classification === 'best' || h.classification === 'correct') posStats[pos].correct++;
-                posStats[pos].evLoss += (h.evLoss || 0);
-                if (h.classification) classCounts[h.classification] = (classCounts[h.classification] || 0) + 1;
-            });
-
-            const payload = {
-                gameId,
-                gameName,
-                gtowScore,
-                totalEVLoss,
-                handsPlayed: totalQuestions,
-                mistakeCount: sessionMistakes,
-                avgEVLossPerHand,
-                avgEVLossPerMistake,
-                avgFrequencyDiff,
-                accuracy: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
-                correctCount,
-                bestStreak,
-                levelPassed,
-                level: currentLevel,
-                handHistory: handHistory.slice(0, 100),
-                positionStats: posStats,
-                classificationCounts: classCounts,
-                trainerConfig,
-                speedBonusDiamonds, // BUG-05 FIX: Include speed bonus so backend can award them
-            };
-
-            try {
-                const res = await fetch('/api/training/save-session', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${user.session.access_token}`,
-                    },
-                    body: JSON.stringify(payload),
-                });
-
-                if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-                console.log('[GodModeArena] Session saved directly to database');
-
-                // H7: Hardened busEmit — bus failures must never crash the save flow
-                try {
-                    busEmit.sessionEnd('Training Arena');
-                    busEmit.dataMutated('training_sessions');
-                    if (speedBonusDiamonds > 0) {
-                        busEmit.diamondsEarned(speedBonusDiamonds, 'Training Speed Bonus');
-                    }
-                } catch (busErr) {
-                    console.warn('[GodModeArena] busEmit failed (non-critical):', busErr.message);
-                }
-
-            } catch (e) {
-                console.warn('[GodModeArena] Network save failed, queueing to OfflineSyncQueue:', e.message);
-                // payload is now accessible here — no more ReferenceError
-                await enqueueMutation('/api/training/save-session', payload, {
-                    'Authorization': `Bearer ${user.session.access_token}`
-                });
-            }
-        };
-        saveSession();
+        // Use extracted saveSession utility
+        saveSession({
+            gameId,
+            gameName,
+            gtowScore,
+            totalEVLoss,
+            totalQuestions,
+            sessionMistakes,
+            correctCount,
+            bestStreak,
+            levelPassed,
+            currentLevel,
+            handHistory,
+            avgEVLossPerHand,
+            avgEVLossPerMistake,
+            avgFrequencyDiff,
+            trainerConfig,
+            speedBonusDiamonds,
+        });
     }, [gameComplete, gameId, gameName, gtowScore, totalEVLoss, totalQuestions, sessionMistakes, correctCount, bestStreak, levelPassed, currentLevel, handHistory, avgEVLossPerHand, avgEVLossPerMistake, avgFrequencyDiff, trainerConfig, speedBonusDiamonds]);
 
     // Wrapped nextQuestion with transition guard

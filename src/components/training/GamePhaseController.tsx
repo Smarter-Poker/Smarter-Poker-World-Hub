@@ -134,33 +134,53 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
     // ─────────────────────────────────────────────────────────────────────
 
     const startShotClock = useCallback(() => {
-        if (shotClockRef.current) clearInterval(shotClockRef.current);
+        try {
+            if (shotClockRef.current) {
+                clearInterval(shotClockRef.current);
+            }
 
-        handStartTimeRef.current = Date.now();
-        setState(prev => ({
-            ...prev,
-            shotClockActive: true,
-            shotClockRemaining: fullConfig.shotClockDuration
-        }));
+            handStartTimeRef.current = Date.now();
+            setState(prev => ({
+                ...prev,
+                shotClockActive: true,
+                shotClockRemaining: fullConfig?.shotClockDuration ?? 30
+            }));
 
-        shotClockRef.current = setInterval(() => {
-            setState(prev => {
-                if (prev.shotClockRemaining <= 1) {
-                    // Time's up - auto-fold
-                    clearInterval(shotClockRef.current!);
-                    return { ...prev, shotClockRemaining: 0, shotClockActive: false };
+            shotClockRef.current = setInterval(() => {
+                try {
+                    setState(prev => {
+                        const remaining = prev?.shotClockRemaining ?? 0;
+                        if (remaining <= 1) {
+                            // Time's up - auto-fold
+                            if (shotClockRef.current) {
+                                clearInterval(shotClockRef.current);
+                            }
+                            return { ...prev, shotClockRemaining: 0, shotClockActive: false };
+                        }
+                        return { ...prev, shotClockRemaining: remaining - 1 };
+                    });
+                } catch (tickError) {
+                    console.error('[PhaseController] Error in shot clock tick:', tickError);
+                    if (shotClockRef.current) {
+                        clearInterval(shotClockRef.current);
+                    }
                 }
-                return { ...prev, shotClockRemaining: prev.shotClockRemaining - 1 };
-            });
-        }, 1000);
-    }, [fullConfig.shotClockDuration]);
+            }, 1000);
+        } catch (error) {
+            console.error('[PhaseController] Error starting shot clock:', error);
+        }
+    }, [fullConfig?.shotClockDuration]);
 
     const stopShotClock = useCallback(() => {
-        if (shotClockRef.current) {
-            clearInterval(shotClockRef.current);
-            shotClockRef.current = null;
+        try {
+            if (shotClockRef.current) {
+                clearInterval(shotClockRef.current);
+                shotClockRef.current = null;
+            }
+            setState(prev => ({ ...prev, shotClockActive: false }));
+        } catch (error) {
+            console.error('[PhaseController] Error stopping shot clock:', error);
         }
-        setState(prev => ({ ...prev, shotClockActive: false }));
     }, []);
 
     // ─────────────────────────────────────────────────────────────────────
@@ -168,22 +188,34 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
     // ─────────────────────────────────────────────────────────────────────
 
     const startGame = useCallback(() => {
-        setState(prev => ({
-            ...prev,
-            phase: 'DEALING',
-            handIndex: 1,
-            sessionStats: { ...DEFAULT_SESSION_STATS }
-        }));
+        try {
+            setState(prev => ({
+                ...prev,
+                phase: 'DEALING',
+                handIndex: 1,
+                sessionStats: { ...DEFAULT_SESSION_STATS }
+            }));
 
-        fullConfig.onPhaseChange?.('DEALING');
-        fullConfig.playSound?.('deal_cards');
+            try {
+                fullConfig?.onPhaseChange?.('DEALING');
+                fullConfig?.playSound?.('deal_cards');
+            } catch (callbackError) {
+                console.warn('[PhaseController] Start game callbacks error (non-critical):', callbackError);
+            }
 
-        // After deal animation, switch to awaiting action
-        setTimeout(() => {
-            setState(prev => ({ ...prev, phase: 'AWAITING_ACTION' }));
-            startShotClock();
-            fullConfig.onPhaseChange?.('AWAITING_ACTION');
-        }, 1500); // Match cinematic deal duration
+            // After deal animation, switch to awaiting action
+            setTimeout(() => {
+                try {
+                    setState(prev => ({ ...prev, phase: 'AWAITING_ACTION' }));
+                    startShotClock();
+                    fullConfig?.onPhaseChange?.('AWAITING_ACTION');
+                } catch (transitionError) {
+                    console.error('[PhaseController] Error transitioning to awaiting action:', transitionError);
+                }
+            }, 1500);
+        } catch (error) {
+            console.error('[PhaseController] Critical error in startGame:', error);
+        }
     }, [fullConfig, startShotClock]);
 
     // ─────────────────────────────────────────────────────────────────────
@@ -194,81 +226,115 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
         userAction: string,
         solverResult: SolverResult
     ) => {
-        // Immediately lock buttons to prevent double-clicks
-        setState(prev => ({
-            ...prev,
-            isButtonsLocked: true,
-            phase: 'PROCESSING'
-        }));
+        try {
+            // Null safety checks
+            if (!userAction || !solverResult) {
+                console.error('[PhaseController] Invalid action or solver result');
+                return;
+            }
 
-        stopShotClock();
+            // Immediately lock buttons to prevent double-clicks
+            setState(prev => ({
+                ...prev,
+                isButtonsLocked: true,
+                phase: 'PROCESSING'
+            }));
 
-        const timeToDecide = (Date.now() - handStartTimeRef.current) / 1000;
+            try {
+                stopShotClock();
+            } catch (clockError) {
+                console.warn('[PhaseController] Error stopping shot clock:', clockError);
+            }
 
-        // Process result
-        const handResult: HandResult = {
-            handIndex: state.handIndex,
-            isCorrect: solverResult.isCorrect,
-            userAction,
-            gtoAction: solverResult.gtoLine.action,
-            evDiff: solverResult.evDiff,
-            solverResult,
-            timeToDecide
-        };
+            const timeToDecide = (Date.now() - handStartTimeRef.current) / 1000;
 
-        // Calculate XP/Diamonds
-        const baseXP = fullConfig.baseXPPerHand;
-        const xpEarned = solverResult.isCorrect
-            ? Math.floor(baseXP * fullConfig.xpMultiplier)
-            : Math.floor(baseXP * 0.25); // 25% XP for mistakes
-
-        const diamondsEarned = solverResult.isCorrect
-            ? Math.floor(5 * fullConfig.diamondMultiplier)
-            : 0;
-
-        // Play appropriate sound
-        if (solverResult.isCorrect) {
-            fullConfig.playSound?.('correct_ding');
-        } else if (Math.abs(solverResult.evDiff) > 1.0) {
-            fullConfig.playSound?.('critical_error');
-        } else {
-            fullConfig.playSound?.('soft_error');
-        }
-
-        // Update state with feedback
-        setState(prev => {
-            const isCritical = Math.abs(solverResult.evDiff) > 1.0;
-
-            const newStats: SessionStats = {
-                ...prev.sessionStats,
-                totalHands: prev.sessionStats.totalHands + 1,
-                correctCount: prev.sessionStats.correctCount + (solverResult.isCorrect ? 1 : 0),
-                mistakeCount: prev.sessionStats.mistakeCount + (solverResult.isCorrect ? 0 : 1),
-                criticalMistakes: prev.sessionStats.criticalMistakes + (isCritical ? 1 : 0),
-                totalEVLost: prev.sessionStats.totalEVLost + Math.max(0, -solverResult.evDiff),
-                xpEarned: prev.sessionStats.xpEarned + xpEarned,
-                diamondsEarned: prev.sessionStats.diamondsEarned + diamondsEarned,
-                handResults: [...prev.sessionStats.handResults, handResult]
+            // Process result with null-safe access
+            const handResult: HandResult = {
+                handIndex: state.handIndex,
+                isCorrect: solverResult?.isCorrect ?? false,
+                userAction,
+                gtoAction: solverResult?.gtoLine?.action || 'unknown',
+                evDiff: solverResult?.evDiff ?? 0,
+                solverResult,
+                timeToDecide
             };
 
-            newStats.accuracy = newStats.totalHands > 0
-                ? (newStats.correctCount / newStats.totalHands) * 100
+            // Calculate XP/Diamonds with fallbacks
+            const baseXP = fullConfig?.baseXPPerHand ?? 10;
+            const xpMultiplier = fullConfig?.xpMultiplier ?? 1.0;
+            const diamondMultiplier = fullConfig?.diamondMultiplier ?? 1.0;
+
+            const xpEarned = solverResult?.isCorrect
+                ? Math.floor(baseXP * xpMultiplier)
+                : Math.floor(baseXP * 0.25);
+
+            const diamondsEarned = solverResult?.isCorrect
+                ? Math.floor(5 * diamondMultiplier)
                 : 0;
 
-            newStats.averageTime = newStats.handResults.reduce((sum, r) => sum + r.timeToDecide, 0)
-                / newStats.handResults.length;
+            // Play appropriate sound with error boundary
+            try {
+                if (solverResult?.isCorrect) {
+                    fullConfig?.playSound?.('correct_ding');
+                } else if (Math.abs(solverResult?.evDiff ?? 0) > 1.0) {
+                    fullConfig?.playSound?.('critical_error');
+                } else {
+                    fullConfig?.playSound?.('soft_error');
+                }
+            } catch (soundError) {
+                console.warn('[PhaseController] Sound playback error (non-critical):', soundError);
+            }
 
-            return {
-                ...prev,
-                phase: 'SHOWING_FEEDBACK',
-                showFeedbackCard: true,
-                currentFeedback: solverResult,
-                sessionStats: newStats
-            };
-        });
+            // Update state with feedback
+            setState(prev => {
+                try {
+                    const isCritical = Math.abs(solverResult?.evDiff ?? 0) > 1.0;
 
-        fullConfig.onHandComplete?.(handResult);
-        fullConfig.onPhaseChange?.('SHOWING_FEEDBACK');
+                    const newStats: SessionStats = {
+                        ...prev.sessionStats,
+                        totalHands: (prev.sessionStats?.totalHands ?? 0) + 1,
+                        correctCount: (prev.sessionStats?.correctCount ?? 0) + (solverResult?.isCorrect ? 1 : 0),
+                        mistakeCount: (prev.sessionStats?.mistakeCount ?? 0) + (solverResult?.isCorrect ? 0 : 1),
+                        criticalMistakes: (prev.sessionStats?.criticalMistakes ?? 0) + (isCritical ? 1 : 0),
+                        totalEVLost: (prev.sessionStats?.totalEVLost ?? 0) + Math.max(0, -(solverResult?.evDiff ?? 0)),
+                        xpEarned: (prev.sessionStats?.xpEarned ?? 0) + xpEarned,
+                        diamondsEarned: (prev.sessionStats?.diamondsEarned ?? 0) + diamondsEarned,
+                        handResults: [...(prev.sessionStats?.handResults ?? []), handResult]
+                    };
+
+                    newStats.accuracy = newStats.totalHands > 0
+                        ? (newStats.correctCount / newStats.totalHands) * 100
+                        : 0;
+
+                    const handResults = newStats?.handResults ?? [];
+                    newStats.averageTime = handResults.length > 0
+                        ? handResults.reduce((sum, r) => sum + (r?.timeToDecide ?? 0), 0) / handResults.length
+                        : 0;
+
+                    return {
+                        ...prev,
+                        phase: 'SHOWING_FEEDBACK',
+                        showFeedbackCard: true,
+                        currentFeedback: solverResult,
+                        sessionStats: newStats
+                    };
+                } catch (stateError) {
+                    console.error('[PhaseController] Error updating state:', stateError);
+                    return prev;
+                }
+            });
+
+            try {
+                fullConfig?.onHandComplete?.(handResult);
+                fullConfig?.onPhaseChange?.('SHOWING_FEEDBACK');
+            } catch (callbackError) {
+                console.warn('[PhaseController] Error calling callbacks (non-critical):', callbackError);
+            }
+        } catch (error) {
+            console.error('[PhaseController] Critical error in handleUserAction:', error);
+            // Unlock buttons on critical error
+            setState(prev => ({ ...prev, isButtonsLocked: false }));
+        }
     }, [state.handIndex, fullConfig, stopShotClock]);
 
     // ─────────────────────────────────────────────────────────────────────
@@ -276,22 +342,30 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
     // ─────────────────────────────────────────────────────────────────────
 
     const toggleHeatmap = useCallback(() => {
-        setState(prev => {
-            const nowShowing = !prev.showHeatmap;
-            return {
-                ...prev,
-                phase: nowShowing ? 'VIEWING_RANGE' : 'SHOWING_FEEDBACK',
-                showHeatmap: nowShowing
-            };
-        });
+        try {
+            setState(prev => {
+                const nowShowing = !(prev?.showHeatmap ?? false);
+                return {
+                    ...prev,
+                    phase: nowShowing ? 'VIEWING_RANGE' : 'SHOWING_FEEDBACK',
+                    showHeatmap: nowShowing
+                };
+            });
+        } catch (error) {
+            console.error('[PhaseController] Error toggling heatmap:', error);
+        }
     }, []);
 
     const closeHeatmap = useCallback(() => {
-        setState(prev => ({
-            ...prev,
-            phase: 'SHOWING_FEEDBACK',
-            showHeatmap: false
-        }));
+        try {
+            setState(prev => ({
+                ...prev,
+                phase: 'SHOWING_FEEDBACK',
+                showHeatmap: false
+            }));
+        } catch (error) {
+            console.error('[PhaseController] Error closing heatmap:', error);
+        }
     }, []);
 
     // ─────────────────────────────────────────────────────────────────────
@@ -299,53 +373,87 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
     // ─────────────────────────────────────────────────────────────────────
 
     const nextHand = useCallback(() => {
-        const nextIndex = state.handIndex + 1;
+        try {
+            const nextIndex = state.handIndex + 1;
 
-        // Close feedback/heatmap
-        setState(prev => ({
-            ...prev,
-            showFeedbackCard: false,
-            showHeatmap: false,
-            currentFeedback: null,
-            isButtonsLocked: false,
-            phase: 'TRANSITIONING'
-        }));
-
-        fullConfig.onPhaseChange?.('TRANSITIONING');
-
-        // Check if session complete (Phase C)
-        if (nextIndex > fullConfig.totalHands) {
-            setTimeout(() => {
+            // Close feedback/heatmap with error boundary
+            try {
                 setState(prev => ({
                     ...prev,
-                    phase: 'DEBRIEF',
-                    showSessionReport: true
+                    showFeedbackCard: false,
+                    showHeatmap: false,
+                    currentFeedback: null,
+                    isButtonsLocked: false,
+                    phase: 'TRANSITIONING'
                 }));
-                fullConfig.playSound?.('level_complete');
-                fullConfig.onPhaseChange?.('DEBRIEF');
-                fullConfig.onSessionComplete?.(state.sessionStats);
-            }, 500);
-            return;
-        }
+            } catch (stateError) {
+                console.error('[PhaseController] Error closing feedback:', stateError);
+                return;
+            }
 
-        // Start next hand
-        setTimeout(() => {
-            setState(prev => ({
-                ...prev,
-                phase: 'DEALING',
-                handIndex: nextIndex
-            }));
+            try {
+                fullConfig?.onPhaseChange?.('TRANSITIONING');
+            } catch (callbackError) {
+                console.warn('[PhaseController] Phase change callback error (non-critical):', callbackError);
+            }
 
-            fullConfig.playSound?.('deal_cards');
-            fullConfig.onPhaseChange?.('DEALING');
+            // Check if session complete (Phase C)
+            if (nextIndex > (fullConfig?.totalHands ?? 20)) {
+                setTimeout(() => {
+                    try {
+                        setState(prev => ({
+                            ...prev,
+                            phase: 'DEBRIEF',
+                            showSessionReport: true
+                        }));
 
-            // After deal animation
+                        try {
+                            fullConfig?.playSound?.('level_complete');
+                            fullConfig?.onPhaseChange?.('DEBRIEF');
+                            fullConfig?.onSessionComplete?.(state.sessionStats);
+                        } catch (callbackError) {
+                            console.warn('[PhaseController] Debrief callbacks error (non-critical):', callbackError);
+                        }
+                    } catch (debriefError) {
+                        console.error('[PhaseController] Error transitioning to debrief:', debriefError);
+                    }
+                }, 500);
+                return;
+            }
+
+            // Start next hand with error boundaries
             setTimeout(() => {
-                setState(prev => ({ ...prev, phase: 'AWAITING_ACTION' }));
-                startShotClock();
-                fullConfig.onPhaseChange?.('AWAITING_ACTION');
-            }, 1500);
-        }, 300);
+                try {
+                    setState(prev => ({
+                        ...prev,
+                        phase: 'DEALING',
+                        handIndex: nextIndex
+                    }));
+
+                    try {
+                        fullConfig?.playSound?.('deal_cards');
+                        fullConfig?.onPhaseChange?.('DEALING');
+                    } catch (soundError) {
+                        console.warn('[PhaseController] Deal sound/callback error (non-critical):', soundError);
+                    }
+
+                    // After deal animation
+                    setTimeout(() => {
+                        try {
+                            setState(prev => ({ ...prev, phase: 'AWAITING_ACTION' }));
+                            startShotClock();
+                            fullConfig?.onPhaseChange?.('AWAITING_ACTION');
+                        } catch (awaitError) {
+                            console.error('[PhaseController] Error starting awaiting phase:', awaitError);
+                        }
+                    }, 1500);
+                } catch (dealError) {
+                    console.error('[PhaseController] Error starting deal phase:', dealError);
+                }
+            }, 300);
+        } catch (error) {
+            console.error('[PhaseController] Critical error in nextHand:', error);
+        }
     }, [state.handIndex, state.sessionStats, fullConfig, startShotClock]);
 
     // ─────────────────────────────────────────────────────────────────────
@@ -353,33 +461,59 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
     // ─────────────────────────────────────────────────────────────────────
 
     const enterReviewMode = useCallback((handIndex: number) => {
-        const handResult = state.sessionStats.handResults.find(r => r.handIndex === handIndex);
-        if (!handResult) return;
+        try {
+            const handResults = state?.sessionStats?.handResults;
+            if (!Array.isArray(handResults)) {
+                console.error('[PhaseController] No hand results available for review');
+                return;
+            }
 
-        setState(prev => ({
-            ...prev,
-            phase: 'REVIEW_MODE',
-            showSessionReport: false,
-            showFeedbackCard: true,
-            showHeatmap: true,
-            currentFeedback: handResult.solverResult,
-            reviewingHandIndex: handIndex,
-            isButtonsLocked: true // Read-only mode
-        }));
+            const handResult = handResults.find(r => r?.handIndex === handIndex);
+            if (!handResult) {
+                console.warn('[PhaseController] Hand result not found for index:', handIndex);
+                return;
+            }
 
-        fullConfig.onPhaseChange?.('REVIEW_MODE');
-    }, [state.sessionStats.handResults, fullConfig]);
+            setState(prev => ({
+                ...prev,
+                phase: 'REVIEW_MODE',
+                showSessionReport: false,
+                showFeedbackCard: true,
+                showHeatmap: true,
+                currentFeedback: handResult?.solverResult || null,
+                reviewingHandIndex: handIndex,
+                isButtonsLocked: true
+            }));
+
+            try {
+                fullConfig?.onPhaseChange?.('REVIEW_MODE');
+            } catch (callbackError) {
+                console.warn('[PhaseController] Review mode callback error (non-critical):', callbackError);
+            }
+        } catch (error) {
+            console.error('[PhaseController] Error entering review mode:', error);
+        }
+    }, [state?.sessionStats?.handResults, fullConfig]);
 
     const exitReviewMode = useCallback(() => {
-        setState(prev => ({
-            ...prev,
-            phase: 'DEBRIEF',
-            showSessionReport: true,
-            showFeedbackCard: false,
-            showHeatmap: false,
-            reviewingHandIndex: null
-        }));
-        fullConfig.onPhaseChange?.('DEBRIEF');
+        try {
+            setState(prev => ({
+                ...prev,
+                phase: 'DEBRIEF',
+                showSessionReport: true,
+                showFeedbackCard: false,
+                showHeatmap: false,
+                reviewingHandIndex: null
+            }));
+
+            try {
+                fullConfig?.onPhaseChange?.('DEBRIEF');
+            } catch (callbackError) {
+                console.warn('[PhaseController] Exit review callback error (non-critical):', callbackError);
+            }
+        } catch (error) {
+            console.error('[PhaseController] Error exiting review mode:', error);
+        }
     }, [fullConfig]);
 
     // ─────────────────────────────────────────────────────────────────────

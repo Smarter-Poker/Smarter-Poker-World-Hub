@@ -553,7 +553,7 @@ const GameSession: React.FC<GameSessionProps> = ({
     // API CALLS
     // ========================================================================
 
-    const fetchNextHand = useCallback(async () => {
+    const fetchNextHand = useCallback(async (retryCount = 0, maxRetries = 3) => {
         setPhase('LOADING');
 
         try {
@@ -567,63 +567,114 @@ const GameSession: React.FC<GameSessionProps> = ({
                 }),
             });
 
+            if (!response.ok) {
+                throw new Error(`API responded with status ${response.status}`);
+            }
+
             const data = await response.json();
 
-            if (data.error) {
+            if (data?.error) {
                 console.error('Error fetching hand:', data.error);
+
+                // Retry with exponential backoff
+                if (retryCount < maxRetries) {
+                    const backoffMs = Math.pow(2, retryCount) * 1000;
+                    console.log(`[GameSession] Retrying fetch in ${backoffMs}ms (attempt ${retryCount + 1}/${maxRetries})`);
+                    setTimeout(() => fetchNextHand(retryCount + 1, maxRetries), backoffMs);
+                    return;
+                }
+
+                // All retries failed - show error state
+                console.error('[GameSession] All retries exhausted, cannot fetch hand');
                 return;
             }
 
-            setEngineType(data.engineType);
+            try {
+                const engineType = data?.engineType || 'PIO';
+                setEngineType(engineType);
 
-            if (data.engineType === 'PIO') {
-                // Transform to frontend format
-                const hand: HandData = {
-                    heroCards: data.hand.hero_hand || '',
-                    villainCards: data.hand.villain_hand || '??',
-                    board: data.hand.board || '',
-                    potSize: data.hand.pot || 6,
-                    heroStack: data.hand.hero_stack || 100,
-                    villainStack: data.hand.villain_stack || 100,
-                    heroPosition: data.hand.hero_position || 'BTN',
-                    villainPosition: data.hand.villain_position || 'BB',
-                    actionHistory: data.hand.action_history || [],
-                    solverNode: data.hand.solver_node || { actions: {} },
-                };
+                if (engineType === 'PIO') {
+                    // Transform to frontend format with null-safe access
+                    const hand: HandData = {
+                        heroCards: data?.hand?.hero_hand || '',
+                        villainCards: data?.hand?.villain_hand || '??',
+                        board: data?.hand?.board || '',
+                        potSize: data?.hand?.pot ?? 6,
+                        heroStack: data?.hand?.hero_stack ?? 100,
+                        villainStack: data?.hand?.villain_stack ?? 100,
+                        heroPosition: data?.hand?.hero_position || 'BTN',
+                        villainPosition: data?.hand?.villain_position || 'BB',
+                        actionHistory: Array.isArray(data?.hand?.action_history) ? data.hand.action_history : [],
+                        solverNode: data?.hand?.solver_node || { actions: {} },
+                    };
 
-                setCurrentHand(hand);
-                setHandNumber(prev => prev + 1);
+                    setCurrentHand(hand);
+                    setHandNumber(prev => prev + 1);
 
-                // Build director lines from action history
-                const lines = buildDirectorLines(hand);
-                setDirectorLines(lines);
-                setCurrentLineIndex(0);
-                setPhase('DIRECTOR_INTRO');
+                    // Build director lines from action history
+                    try {
+                        const lines = buildDirectorLines(hand);
+                        setDirectorLines(lines);
+                        setCurrentLineIndex(0);
+                        setPhase('DIRECTOR_INTRO');
+                    } catch (lineError) {
+                        console.error('[GameSession] Error building director lines:', lineError);
+                        // Skip director intro on error
+                        setDirectorLines([]);
+                        setPhase('USER_TURN');
+                        setIsControlsLocked(false);
+                    }
 
-            } else {
-                // CHART or SCENARIO - direct to user turn
-                setCurrentHand(data);
-                setHandNumber(prev => prev + 1);
-                setPhase('USER_TURN');
+                } else {
+                    // CHART or SCENARIO - direct to user turn
+                    setCurrentHand(data);
+                    setHandNumber(prev => prev + 1);
+                    setPhase('USER_TURN');
 
-                // Reset engine-specific states
-                if (data.engineType === 'CHART') {
-                    setChartPhase('SELECT_HAND');
-                    setChartFeedback(null);
+                    // Reset engine-specific states with error boundaries
+                    try {
+                        if (engineType === 'CHART') {
+                            setChartPhase('SELECT_HAND');
+                            setChartFeedback(null);
+                        }
+                        if (engineType === 'SCENARIO') {
+                            setScenarioPhase('DECIDING');
+                            setScenarioFeedback(null);
+                        }
+                    } catch (stateError) {
+                        console.error('[GameSession] Error resetting engine state:', stateError);
+                    }
                 }
-                if (data.engineType === 'SCENARIO') {
-                    setScenarioPhase('DECIDING');
-                    setScenarioFeedback(null);
+            } catch (transformError) {
+                console.error('[GameSession] Error transforming hand data:', transformError);
+
+                // Retry on transform error
+                if (retryCount < maxRetries) {
+                    const backoffMs = Math.pow(2, retryCount) * 1000;
+                    console.log(`[GameSession] Retrying after transform error in ${backoffMs}ms`);
+                    setTimeout(() => fetchNextHand(retryCount + 1, maxRetries), backoffMs);
                 }
             }
 
         } catch (error) {
-            console.error('Failed to fetch hand:', error);
+            console.error('[GameSession] Failed to fetch hand:', error);
+
+            // Retry with exponential backoff
+            if (retryCount < maxRetries) {
+                const backoffMs = Math.pow(2, retryCount) * 1000;
+                console.log(`[GameSession] Retrying fetch in ${backoffMs}ms (attempt ${retryCount + 1}/${maxRetries})`);
+                setTimeout(() => fetchNextHand(retryCount + 1, maxRetries), backoffMs);
+            } else {
+                console.error('[GameSession] All retries exhausted, giving up');
+            }
         }
     }, [userId, gameId, currentLevel]);
 
-    const submitAction = useCallback(async (action: string, sizingOrHand?: number | string) => {
-        if (!currentHand) return;
+    const submitAction = useCallback(async (action: string, sizingOrHand?: number | string, retryCount = 0, maxRetries = 3) => {
+        if (!currentHand) {
+            console.warn('[GameSession] submitAction called with no current hand');
+            return;
+        }
 
         setIsControlsLocked(true);
 
@@ -646,105 +697,156 @@ const GameSession: React.FC<GameSessionProps> = ({
                 }),
             });
 
+            if (!response.ok) {
+                throw new Error(`API responded with status ${response.status}`);
+            }
+
             const result = await response.json();
 
-            // Store result for display
-            setLastResult({
-                isCorrect: result.isCorrect,
-                damage: result.hpDamage,
-                feedback: result.feedback,
-                evLoss: result.evLoss,
-            });
-
-            // Engine-specific feedback
-            if (engineType === 'CHART' && selectedHand) {
-                setChartFeedback({
-                    hand: selectedHand,
-                    isCorrect: result.isCorrect,
-                    correctAction: result.correctAction || action,
-                });
+            if (result?.error) {
+                throw new Error(result.error);
             }
 
-            if (engineType === 'SCENARIO') {
-                setScenarioFeedback({
-                    choiceId: action,
-                    isCorrect: result.isCorrect,
-                    explanation: result.explanation || result.feedback,
-                    emotionalLesson: result.emotionalLesson,
-                });
-            }
-
-            // Apply damage
-            if (result.hpDamage > 0) {
-                setHealth(prev => Math.max(0, prev - result.hpDamage));
-                setShowDamage(result.hpDamage);
-
-                // Screen shake for damage
-                await screenControls.start({
-                    x: [0, -10, 10, -10, 10, 0],
-                    transition: { duration: 0.4 },
+            try {
+                // Store result for display with fallbacks
+                setLastResult({
+                    isCorrect: result?.isCorrect ?? false,
+                    damage: result?.hpDamage ?? 0,
+                    feedback: result?.feedback || 'No feedback available',
+                    evLoss: result?.evLoss ?? 0,
                 });
 
-                setTimeout(() => setShowDamage(0), 1000);
-            }
+                // Engine-specific feedback with error boundaries
+                try {
+                    if (engineType === 'CHART' && selectedHand) {
+                        setChartFeedback({
+                            hand: selectedHand,
+                            isCorrect: result?.isCorrect ?? false,
+                            correctAction: result?.correctAction || action,
+                        });
+                    }
 
-            if (result.isCorrect) {
-                setCorrectCount(prev => prev + 1);
-            }
+                    if (engineType === 'SCENARIO') {
+                        setScenarioFeedback({
+                            choiceId: action,
+                            isCorrect: result?.isCorrect ?? false,
+                            explanation: result?.explanation || result?.feedback || 'No explanation available',
+                            emotionalLesson: result?.emotionalLesson,
+                        });
+                    }
+                } catch (feedbackError) {
+                    console.error('[GameSession] Error setting engine feedback:', feedbackError);
+                }
 
-            // 📊 Track answer for Jarvis analysis
-            setSessionAnswers(prev => [...prev, {
-                questionId: `hand_${handNumber}`,
-                userAnswer: action,
-                correctAnswer: result.correctAction || 'unknown',
-                wasCorrect: result.isCorrect,
-                scenario: currentHand
-            }]);
+                // Apply damage with error boundary
+                try {
+                    const hpDamage = result?.hpDamage ?? 0;
+                    if (hpDamage > 0) {
+                        setHealth(prev => Math.max(0, prev - hpDamage));
+                        setShowDamage(hpDamage);
 
-            // Show result overlay
-            setPhase('SHOWING_RESULT');
-            setShowResult(true);
+                        // Screen shake for damage
+                        await screenControls.start({
+                            x: [0, -10, 10, -10, 10, 0],
+                            transition: { duration: 0.4 },
+                        }).catch(animError => {
+                            console.warn('[GameSession] Animation error (non-critical):', animError);
+                        });
 
-            // Check if hand continues (villain's turn)
-            if (result.continuation) {
-                setTimeout(async () => {
-                    setShowResult(false);
-                    setPhase('VILLAIN_THINKING');
+                        setTimeout(() => setShowDamage(0), 1000);
+                    }
+                } catch (damageError) {
+                    console.error('[GameSession] Error applying damage:', damageError);
+                }
 
-                    // Simulate villain thinking
-                    setTimeout(() => {
-                        // Update board with new card if applicable
-                        if (result.newCard) {
-                            setCurrentHand(prev => prev ? {
-                                ...prev,
-                                board: prev.board + result.newCard,
-                            } : null);
+                if (result?.isCorrect) {
+                    setCorrectCount(prev => prev + 1);
+                }
+
+                // Track answer for Jarvis analysis with error boundary
+                try {
+                    setSessionAnswers(prev => [...prev, {
+                        questionId: `hand_${handNumber}`,
+                        userAnswer: action,
+                        correctAnswer: result?.correctAction || 'unknown',
+                        wasCorrect: result?.isCorrect ?? false,
+                        scenario: currentHand
+                    }]);
+                } catch (trackingError) {
+                    console.error('[GameSession] Error tracking answer (non-critical):', trackingError);
+                }
+
+                // Show result overlay
+                setPhase('SHOWING_RESULT');
+                setShowResult(true);
+
+                // Check if hand continues (villain's turn)
+                if (result?.continuation) {
+                    setTimeout(async () => {
+                        try {
+                            setShowResult(false);
+                            setPhase('VILLAIN_THINKING');
+
+                            // Simulate villain thinking
+                            setTimeout(() => {
+                                try {
+                                    // Update board with new card if applicable
+                                    if (result?.newCard) {
+                                        setCurrentHand(prev => prev ? {
+                                            ...prev,
+                                            board: (prev.board || '') + result.newCard,
+                                        } : null);
+                                    }
+
+                                    setPhase('USER_TURN');
+                                    setIsControlsLocked(false);
+                                } catch (continueError) {
+                                    console.error('[GameSession] Error continuing hand:', continueError);
+                                    setIsControlsLocked(false);
+                                }
+                            }, VILLAIN_THINK_MS);
+                        } catch (transitionError) {
+                            console.error('[GameSession] Error transitioning to villain thinking:', transitionError);
+                            setIsControlsLocked(false);
                         }
 
-                        setPhase('USER_TURN');
-                        setIsControlsLocked(false);
-                    }, VILLAIN_THINK_MS);
+                    }, RESULT_DISPLAY_MS);
+                } else {
+                    // Hand complete, move to next
+                    setTimeout(() => {
+                        try {
+                            setShowResult(false);
 
-                }, RESULT_DISPLAY_MS);
-            } else {
-                // Hand complete, move to next
-                setTimeout(() => {
-                    setShowResult(false);
-
-                    // Check if session complete
-                    if (handNumber >= totalHands || health <= 0) {
-                        completeSession();
-                    } else {
-                        fetchNextHand();
-                    }
-                }, RESULT_DISPLAY_MS);
+                            // Check if session complete
+                            if (handNumber >= totalHands || health <= 0) {
+                                completeSession();
+                            } else {
+                                fetchNextHand();
+                            }
+                        } catch (nextHandError) {
+                            console.error('[GameSession] Error moving to next hand:', nextHandError);
+                        }
+                    }, RESULT_DISPLAY_MS);
+                }
+            } catch (resultError) {
+                console.error('[GameSession] Error processing result:', resultError);
+                setIsControlsLocked(false);
             }
 
         } catch (error) {
-            console.error('Failed to submit action:', error);
-            setIsControlsLocked(false);
+            console.error('[GameSession] Failed to submit action:', error);
+
+            // Retry with exponential backoff
+            if (retryCount < maxRetries) {
+                const backoffMs = Math.pow(2, retryCount) * 1000;
+                console.log(`[GameSession] Retrying submit in ${backoffMs}ms (attempt ${retryCount + 1}/${maxRetries})`);
+                setTimeout(() => submitAction(action, sizingOrHand, retryCount + 1, maxRetries), backoffMs);
+            } else {
+                console.error('[GameSession] All retries exhausted for submit action');
+                setIsControlsLocked(false);
+            }
         }
-    }, [currentHand, userId, gameId, handNumber, totalHands, health, screenControls, fetchNextHand]);
+    }, [currentHand, userId, gameId, handNumber, totalHands, health, engineType, screenControls, fetchNextHand, completeSession]);
 
     // ========================================================================
     // HELPERS
@@ -753,134 +855,206 @@ const GameSession: React.FC<GameSessionProps> = ({
     const buildDirectorLines = (hand: HandData): string[] => {
         const lines: string[] = [];
 
-        // Add action history as director lines
-        for (const action of hand.actionHistory) {
-            const player = action.player === 'hero' ? 'Hero' : 'Villain';
-            const pos = action.player === 'hero' ? hand.heroPosition : hand.villainPosition;
+        try {
+            // Add action history as director lines with null-safe access
+            const actionHistory = hand?.actionHistory;
+            if (Array.isArray(actionHistory)) {
+                for (const action of actionHistory) {
+                    if (!action) continue;
 
-            let line = `${player} (${pos}) `;
+                    const player = action?.player === 'hero' ? 'Hero' : 'Villain';
+                    const pos = action?.player === 'hero' ? (hand?.heroPosition || 'Unknown') : (hand?.villainPosition || 'Unknown');
 
-            if (action.action === 'raises') {
-                line += `Raises to ${action.amount} BB...`;
-            } else if (action.action === 'calls') {
-                line += 'Calls...';
-            } else if (action.action === 'checks') {
-                line += 'Checks...';
-            } else if (action.action === 'bets') {
-                line += `Bets ${action.amount} BB...`;
-            } else {
-                line += `${action.action}...`;
+                    let line = `${player} (${pos}) `;
+
+                    const actionType = action?.action || '';
+                    const amount = action?.amount;
+
+                    if (actionType === 'raises') {
+                        line += `Raises to ${amount ?? 0} BB...`;
+                    } else if (actionType === 'calls') {
+                        line += 'Calls...';
+                    } else if (actionType === 'checks') {
+                        line += 'Checks...';
+                    } else if (actionType === 'bets') {
+                        line += `Bets ${amount ?? 0} BB...`;
+                    } else {
+                        line += `${actionType || 'Acts'}...`;
+                    }
+
+                    lines.push(line);
+                }
             }
 
-            lines.push(line);
-        }
-
-        // Add flop reveal if board exists
-        if (hand.board && hand.board.length >= 6) {
-            lines.push(`Flop: ${formatCards(hand.board.slice(0, 6))} 🃏`);
+            // Add flop reveal if board exists with null-safe access
+            const board = hand?.board;
+            if (board && typeof board === 'string' && board.length >= 6) {
+                try {
+                    lines.push(`Flop: ${formatCards(board.slice(0, 6))}`);
+                } catch (formatError) {
+                    console.warn('[GameSession] Error formatting flop cards:', formatError);
+                }
+            }
+        } catch (error) {
+            console.error('[GameSession] Error building director lines:', error);
         }
 
         return lines;
     };
 
     const completeSession = useCallback(async () => {
-        setPhase('SESSION_COMPLETE');
-
-        const accuracy = handNumber > 0 ? (correctCount / handNumber) * 100 : 0;
-        const thresholds = [85, 87, 89, 91, 93, 95, 97, 98, 99, 100];
-        const passed = accuracy >= (thresholds[currentLevel - 1] || 85);
-        const timeSpent = Math.round((Date.now() - sessionStartTime) / 1000);
-
-        const stats: SessionStats = {
-            handsPlayed: handNumber,
-            correctAnswers: correctCount,
-            accuracy,
-            passed,
-            finalHealth: health,
-            xpEarned: correctCount * 10 + (passed ? 100 : 0),
-        };
-
-        // 📊 Push training data to Jarvis for analysis
         try {
-            await fetch('/api/jarvis/training-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId,
-                    sessionId: `session_${Date.now()}`,
-                    gameId,
-                    gameName,
-                    category: engineType,
-                    level: currentLevel,
-                    questionsAnswered: handNumber,
-                    questionsCorrect: correctCount,
-                    accuracy,
-                    streak: 0, // Could track best streak
-                    timeSpentSeconds: timeSpent,
-                    answers: sessionAnswers,
-                    timestamp: new Date().toISOString()
-                })
-            });
-            console.log('[GameSession] ✅ Training data pushed to Jarvis');
-        } catch (error) {
-            console.error('[GameSession] Failed to push to Jarvis:', error);
-        }
+            setPhase('SESSION_COMPLETE');
 
-        // 🔥 Update training streak
-        try {
-            await fetch('/api/training/streak', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId })
-            });
-            console.log('[GameSession] 🔥 Streak updated');
-        } catch (error) {
-            console.error('[GameSession] Failed to update streak:', error);
-        }
+            const accuracy = handNumber > 0 ? (correctCount / handNumber) * 100 : 0;
+            const thresholds = [85, 87, 89, 91, 93, 95, 97, 98, 99, 100];
+            const passed = accuracy >= (thresholds[currentLevel - 1] || 85);
+            const timeSpent = Math.round((Date.now() - sessionStartTime) / 1000);
 
-        // 🏅 Check for new achievements
-        try {
-            await fetch('/api/training/achievements', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId,
-                    stats: {
-                        accuracy,
-                        perfectRounds: accuracy === 100 ? 1 : 0,
-                        currentStreak: 1, // Will be updated by streak API
-                        totalSessions: 1,
-                        totalCorrect: correctCount
+            const stats: SessionStats = {
+                handsPlayed: handNumber,
+                correctAnswers: correctCount,
+                accuracy,
+                passed,
+                finalHealth: health,
+                xpEarned: correctCount * 10 + (passed ? 100 : 0),
+            };
+
+            // Push training data to Jarvis with retry logic
+            const pushJarvis = async (retryCount = 0, maxRetries = 2) => {
+                try {
+                    const response = await fetch('/api/jarvis/training-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId,
+                            sessionId: `session_${Date.now()}`,
+                            gameId,
+                            gameName,
+                            category: engineType,
+                            level: currentLevel,
+                            questionsAnswered: handNumber,
+                            questionsCorrect: correctCount,
+                            accuracy,
+                            streak: 0,
+                            timeSpentSeconds: timeSpent,
+                            answers: sessionAnswers,
+                            timestamp: new Date().toISOString()
+                        })
+                    });
+
+                    if (!response.ok && retryCount < maxRetries) {
+                        throw new Error(`Jarvis API failed with status ${response.status}`);
                     }
-                })
-            });
-            console.log('[GameSession] 🏅 Achievements checked');
-        } catch (error) {
-            console.error('[GameSession] Failed to check achievements:', error);
-        }
 
-        // 🏆 Update leaderboard
-        try {
-            const today = new Date().toISOString().split('T')[0];
-            await fetch('/api/training/update-leaderboard', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId,
-                    periodType: 'daily',
-                    periodKey: today,
-                    questionsAnswered: handNumber,
-                    questionsCorrect: correctCount,
-                    accuracy,
-                    xpEarned: correctCount * 10 + (passed ? 100 : 0)
-                })
-            });
-            console.log('[GameSession] 🏆 Leaderboard updated');
-        } catch (error) {
-            console.error('[GameSession] Failed to update leaderboard:', error);
-        }
+                    console.log('[GameSession] Training data pushed to Jarvis');
+                } catch (error) {
+                    console.error('[GameSession] Failed to push to Jarvis:', error);
+                    if (retryCount < maxRetries) {
+                        const backoffMs = Math.pow(2, retryCount) * 500;
+                        console.log(`[GameSession] Retrying Jarvis push in ${backoffMs}ms`);
+                        setTimeout(() => pushJarvis(retryCount + 1, maxRetries), backoffMs);
+                    }
+                }
+            };
 
-        onSessionComplete?.(stats);
+            // Update training streak with retry logic
+            const updateStreak = async (retryCount = 0, maxRetries = 2) => {
+                try {
+                    const response = await fetch('/api/training/streak', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId })
+                    });
+
+                    if (!response.ok && retryCount < maxRetries) {
+                        throw new Error(`Streak API failed with status ${response.status}`);
+                    }
+
+                    console.log('[GameSession] Streak updated');
+                } catch (error) {
+                    console.error('[GameSession] Failed to update streak:', error);
+                    if (retryCount < maxRetries) {
+                        const backoffMs = Math.pow(2, retryCount) * 500;
+                        setTimeout(() => updateStreak(retryCount + 1, maxRetries), backoffMs);
+                    }
+                }
+            };
+
+            // Check achievements with retry logic
+            const checkAchievements = async (retryCount = 0, maxRetries = 2) => {
+                try {
+                    const response = await fetch('/api/training/achievements', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId,
+                            stats: {
+                                accuracy,
+                                perfectRounds: accuracy === 100 ? 1 : 0,
+                                currentStreak: 1,
+                                totalSessions: 1,
+                                totalCorrect: correctCount
+                            }
+                        })
+                    });
+
+                    if (!response.ok && retryCount < maxRetries) {
+                        throw new Error(`Achievements API failed with status ${response.status}`);
+                    }
+
+                    console.log('[GameSession] Achievements checked');
+                } catch (error) {
+                    console.error('[GameSession] Failed to check achievements:', error);
+                    if (retryCount < maxRetries) {
+                        const backoffMs = Math.pow(2, retryCount) * 500;
+                        setTimeout(() => checkAchievements(retryCount + 1, maxRetries), backoffMs);
+                    }
+                }
+            };
+
+            // Update leaderboard with retry logic
+            const updateLeaderboard = async (retryCount = 0, maxRetries = 2) => {
+                try {
+                    const today = new Date().toISOString().split('T')[0];
+                    const response = await fetch('/api/training/update-leaderboard', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId,
+                            periodType: 'daily',
+                            periodKey: today,
+                            questionsAnswered: handNumber,
+                            questionsCorrect: correctCount,
+                            accuracy,
+                            xpEarned: correctCount * 10 + (passed ? 100 : 0)
+                        })
+                    });
+
+                    if (!response.ok && retryCount < maxRetries) {
+                        throw new Error(`Leaderboard API failed with status ${response.status}`);
+                    }
+
+                    console.log('[GameSession] Leaderboard updated');
+                } catch (error) {
+                    console.error('[GameSession] Failed to update leaderboard:', error);
+                    if (retryCount < maxRetries) {
+                        const backoffMs = Math.pow(2, retryCount) * 500;
+                        setTimeout(() => updateLeaderboard(retryCount + 1, maxRetries), backoffMs);
+                    }
+                }
+            };
+
+            // Fire all API calls in parallel (non-blocking)
+            pushJarvis().catch(e => console.error('[GameSession] Jarvis push failed:', e));
+            updateStreak().catch(e => console.error('[GameSession] Streak update failed:', e));
+            checkAchievements().catch(e => console.error('[GameSession] Achievements check failed:', e));
+            updateLeaderboard().catch(e => console.error('[GameSession] Leaderboard update failed:', e));
+
+            onSessionComplete?.(stats);
+        } catch (error) {
+            console.error('[GameSession] Critical error in completeSession:', error);
+        }
     }, [handNumber, correctCount, currentLevel, health, userId, gameId, gameName, engineType, sessionAnswers, sessionStartTime, onSessionComplete]);
 
     // ========================================================================

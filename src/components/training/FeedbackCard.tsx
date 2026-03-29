@@ -13,7 +13,7 @@
  * - CRITICAL MISTAKE badge for >1.0 BB punt
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -181,6 +181,7 @@ export function FeedbackCard({
 
     return (
         <motion.div
+            className="feedback-card-root"
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -542,7 +543,9 @@ export function FeedbackCard({
                 background: 'rgba(0,0,0,0.2)'
             }}>
                 {onStudyMore && severity !== 'correct' && (
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.05, boxShadow: '0 4px 16px rgba(255,255,255,0.2)' }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={onStudyMore}
                         style={{
                             flex: 1,
@@ -557,11 +560,12 @@ export function FeedbackCard({
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '8px'
+                            gap: '8px',
+                            transition: 'all 0.2s ease'
                         }}
                     >
                         📚 Study This Spot
-                    </button>
+                    </motion.button>
                 )}
                 <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -593,6 +597,99 @@ export function FeedbackCard({
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.7; }
                 }
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                @media (max-width: 640px) {
+                    .feedback-card-root {
+                        max-width: 95vw !important;
+                        padding: 20px !important;
+                    }
+                }
+            `}</style>
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOADING SKELETON
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function FeedbackCardSkeleton() {
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{
+                background: 'linear-gradient(135deg, rgba(20, 20, 40, 0.95), rgba(10, 10, 30, 0.95))',
+                borderRadius: '20px',
+                border: '2px solid rgba(255,255,255,0.1)',
+                overflow: 'hidden',
+                maxWidth: '500px',
+                width: '100%',
+                padding: '24px'
+            }}
+        >
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px'
+            }}>
+                <div className="skeleton-pulse" style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.1)'
+                }} />
+                <div style={{ flex: 1 }}>
+                    <div className="skeleton-pulse" style={{
+                        width: '120px',
+                        height: '18px',
+                        borderRadius: '4px',
+                        background: 'rgba(255,255,255,0.1)',
+                        marginBottom: '8px'
+                    }} />
+                    <div className="skeleton-pulse" style={{
+                        width: '80px',
+                        height: '12px',
+                        borderRadius: '4px',
+                        background: 'rgba(255,255,255,0.05)'
+                    }} />
+                </div>
+            </div>
+            <div className="skeleton-pulse" style={{
+                width: '100%',
+                height: '60px',
+                borderRadius: '8px',
+                background: 'rgba(255,255,255,0.05)',
+                marginBottom: '16px'
+            }} />
+            <div className="skeleton-pulse" style={{
+                width: '100%',
+                height: '80px',
+                borderRadius: '8px',
+                background: 'rgba(255,215,0,0.05)'
+            }} />
+            <style>{`
+                @keyframes skeleton-pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                }
+                .skeleton-pulse {
+                    animation: skeleton-pulse 2s ease-in-out infinite;
+                }
             `}</style>
         </motion.div>
     );
@@ -610,6 +707,7 @@ interface ActionLineRowProps {
 }
 
 function ActionLineRow({ line, isGTO, isUserAction, evDiffFromGTO }: ActionLineRowProps) {
+    const [isHovered, setIsHovered] = React.useState(false);
     const actionColors: Record<string, string> = {
         'Fold': '#ef4444',
         'Check': '#6b7280',
@@ -621,19 +719,31 @@ function ActionLineRow({ line, isGTO, isUserAction, evDiffFromGTO }: ActionLineR
     const actionColor = actionColors[line.action] || '#888';
 
     return (
-        <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 16px',
-            background: isGTO
-                ? 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05))'
-                : 'rgba(255,255,255,0.03)',
-            border: isGTO
-                ? `2px solid ${COLORS.gtoGold}`
-                : `1px solid ${COLORS.altBorder}`,
-            borderRadius: '10px'
-        }}>
+        <motion.div
+            onHoverStart={() => setIsHovered(true)}
+            onHoverEnd={() => setIsHovered(false)}
+            whileHover={{ scale: 1.02, x: 4 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                background: isGTO
+                    ? 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05))'
+                    : 'rgba(255,255,255,0.03)',
+                border: isGTO
+                    ? `2px solid ${COLORS.gtoGold}`
+                    : `1px solid ${COLORS.altBorder}`,
+                borderRadius: '10px',
+                cursor: 'pointer',
+                boxShadow: isHovered
+                    ? isGTO
+                        ? '0 8px 24px rgba(255, 215, 0, 0.3)'
+                        : '0 4px 12px rgba(255, 255, 255, 0.1)'
+                    : 'none',
+                transition: 'box-shadow 0.3s ease'
+            }}>
             {/* Action */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
@@ -685,13 +795,18 @@ function ActionLineRow({ line, isGTO, isUserAction, evDiffFromGTO }: ActionLineR
 
             {/* EV */}
             <div style={{ textAlign: 'right' }}>
-                <div style={{
-                    fontSize: '16px',
-                    fontWeight: 700,
-                    color: line.ev >= 0 ? '#22c55e' : '#ef4444'
-                }}>
+                <motion.div
+                    initial={{ scale: 1 }}
+                    animate={{ scale: isHovered ? 1.1 : 1 }}
+                    transition={{ duration: 0.2 }}
+                    style={{
+                        fontSize: '16px',
+                        fontWeight: 700,
+                        color: line.ev >= 0 ? '#22c55e' : '#ef4444'
+                    }}
+                >
                     {line.ev >= 0 ? '+' : ''}{line.ev.toFixed(2)} BB
-                </div>
+                </motion.div>
                 {evDiffFromGTO !== undefined && (
                     <div style={{
                         fontSize: '11px',

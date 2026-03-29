@@ -3,17 +3,109 @@
  * ═══════════════════════════════════════════════════════════════════════════
  * Pure CSS bar chart showing EV delta per street (Preflop → Flop → Turn → River).
  * Green = EV gain, Red = EV loss. No external charting library needed.
+ * Enhanced with tooltips, trend indicators, comparative data, and sparklines.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 
 const STREETS = ['preflop', 'flop', 'turn', 'river'];
 const STREET_LABELS = { preflop: 'PREFLOP', flop: 'FLOP', turn: 'TURN', river: 'RIVER' };
-const STREET_EMOJIS = { preflop: '🃏', flop: '🟢', turn: '🔵', river: '🔴' };
 
-export default function EVGraph({ handHistory = [], title = 'EV by Street' }) {
+// Tooltip component
+function Tooltip({ children, content, visible }) {
+    if (!visible || !content) return children;
+    return (
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+            {children}
+            <div style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginBottom: 8,
+                padding: '8px 12px',
+                background: 'rgba(0,0,0,0.95)',
+                color: '#fff',
+                fontSize: 10,
+                borderRadius: 6,
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none',
+                zIndex: 1000,
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                lineHeight: 1.4
+            }}>
+                {content}
+                <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 0,
+                    height: 0,
+                    borderLeft: '4px solid transparent',
+                    borderRight: '4px solid transparent',
+                    borderTop: '4px solid rgba(0,0,0,0.95)'
+                }} />
+            </div>
+        </div>
+    );
+}
+
+// Trend indicator arrow
+function TrendArrow({ current, previous }) {
+    if (previous === undefined || previous === null) return null;
+
+    const change = current - previous;
+    const isPositive = change > 0;
+    const isNeutral = Math.abs(change) < 0.01;
+
+    if (isNeutral) return null;
+
+    return (
+        <span style={{
+            fontSize: 11,
+            fontWeight: 'bold',
+            color: isPositive ? '#22c55e' : '#ef4444',
+            marginLeft: 4
+        }}>
+            {isPositive ? '↑' : '↓'}
+        </span>
+    );
+}
+
+// Sparkline mini-chart
+function Sparkline({ data = [], color = '#3b82f6', height = 16, width = 40 }) {
+    if (!data || data.length < 2) return null;
+
+    const max = Math.max(...data.map(Math.abs), 0.1);
+    const points = data.map((value, index) => {
+        const x = (index / (data.length - 1)) * width;
+        const y = height / 2 - (value / max) * (height / 2);
+        return `${x},${y}`;
+    }).join(' ');
+
+    return (
+        <svg width={width} height={height} style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: 6 }}>
+            <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+            <polyline
+                points={points}
+                fill="none"
+                stroke={color}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.8"
+            />
+        </svg>
+    );
+}
+
+export default function EVGraph({ handHistory = [], title = 'EV by Street', previousData = null, historicalData = [] }) {
+    const [hoveredStreet, setHoveredStreet] = useState(null);
+
     // Aggregate EV deltas per street from hand history
     const streetData = useMemo(() => {
         const agg = {
@@ -49,20 +141,27 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street' }) {
         return STREETS.map(street => ({
             street,
             label: STREET_LABELS[street],
-            emoji: STREET_EMOJIS[street],
             decisions: agg[street].decisions,
             avgEV: agg[street].decisions > 0
                 ? (agg[street].totalEV / agg[street].decisions)
                 : 0,
             totalEV: agg[street].totalEV,
+            previousAvgEV: previousData?.[street]?.avgEV,
         }));
-    }, [handHistory]);
+    }, [handHistory, previousData]);
 
     const maxEV = useMemo(() => {
         return Math.max(...streetData.map(s => Math.abs(s.avgEV)), 0.5);
     }, [streetData]);
 
     const hasData = streetData.some(s => s.decisions > 0);
+
+    // Calculate session average for comparison
+    const sessionAvgEV = useMemo(() => {
+        const validStreets = streetData.filter(s => s.decisions > 0);
+        if (validStreets.length === 0) return 0;
+        return validStreets.reduce((sum, s) => sum + s.avgEV, 0) / validStreets.length;
+    }, [streetData]);
 
     if (!hasData) {
         return (
@@ -77,7 +176,12 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street' }) {
 
     return (
         <div style={styles.container}>
-            <div style={styles.header}>{title}</div>
+            <div style={{ ...styles.header, justifyContent: 'space-between' }}>
+                <span>{title}</span>
+                <span style={{ fontSize: 10, color: '#64748b', fontWeight: 'normal', textTransform: 'none', letterSpacing: 0 }}>
+                    Session avg: {sessionAvgEV >= 0 ? '+' : ''}{sessionAvgEV.toFixed(2)} EV
+                </span>
+            </div>
 
             <div style={styles.chartArea}>
                 {/* Zero line */}
@@ -90,12 +194,47 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street' }) {
                         const color = isPositive ? '#22c55e' : '#ef4444';
                         const hasDecisions = data.decisions > 0;
 
+                        // Get historical data for this street
+                        const streetHistory = historicalData
+                            .filter(item => item.street === data.street)
+                            .map(item => item.avgEV);
+
+                        const tooltipContent = hasDecisions ? (
+                            <div>
+                                <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{data.label}</div>
+                                <div>Avg EV: {data.avgEV >= 0 ? '+' : ''}{data.avgEV.toFixed(2)}</div>
+                                <div>Total EV: {data.totalEV >= 0 ? '+' : ''}{data.totalEV.toFixed(2)}</div>
+                                <div>Decisions: {data.decisions}</div>
+                                {data.previousAvgEV !== undefined && (
+                                    <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                                        Previous: {data.previousAvgEV >= 0 ? '+' : ''}{data.previousAvgEV.toFixed(2)}
+                                    </div>
+                                )}
+                            </div>
+                        ) : null;
+
                         return (
-                            <div key={data.street} style={styles.barColumn}>
-                                {/* Value label */}
-                                <div style={{ ...styles.valueLabel, color: hasDecisions ? color : '#475569' }}>
-                                    {hasDecisions ? `${data.avgEV >= 0 ? '+' : ''}${data.avgEV.toFixed(2)}` : '—'}
-                                </div>
+                            <div
+                                key={data.street}
+                                style={{
+                                    ...styles.barColumn,
+                                    opacity: hoveredStreet === null || hoveredStreet === data.street ? 1 : 0.4,
+                                    transition: 'opacity 0.2s'
+                                }}
+                                onMouseEnter={() => setHoveredStreet(data.street)}
+                                onMouseLeave={() => setHoveredStreet(null)}
+                            >
+                                {/* Value label with trend */}
+                                <Tooltip content={tooltipContent} visible={hoveredStreet === data.street}>
+                                    <div style={{ ...styles.valueLabel, color: hasDecisions ? color : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        {hasDecisions ? (
+                                            <>
+                                                <span>{data.avgEV >= 0 ? '+' : ''}{data.avgEV.toFixed(2)}</span>
+                                                <TrendArrow current={data.avgEV} previous={data.previousAvgEV} />
+                                            </>
+                                        ) : '—'}
+                                    </div>
+                                </Tooltip>
 
                                 {/* Upper area (positive) */}
                                 <div style={styles.barUpperArea}>
@@ -108,6 +247,7 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street' }) {
                                                 ...styles.bar,
                                                 background: `linear-gradient(180deg, ${color}, ${color}66)`,
                                                 alignSelf: 'flex-end',
+                                                cursor: 'pointer',
                                             }}
                                         />
                                     )}
@@ -124,6 +264,7 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street' }) {
                                                 ...styles.bar,
                                                 background: `linear-gradient(0deg, ${color}, ${color}66)`,
                                                 alignSelf: 'flex-start',
+                                                cursor: 'pointer',
                                             }}
                                         />
                                     )}
@@ -131,12 +272,18 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street' }) {
 
                                 {/* Street label */}
                                 <div style={styles.streetLabel}>
-                                    <span>{data.emoji}</span>
                                     <span style={styles.streetText}>{data.label}</span>
                                 </div>
                                 <div style={styles.decisionCount}>
                                     {data.decisions > 0 ? `${data.decisions} decisions` : '—'}
                                 </div>
+
+                                {/* Sparkline for historical trend */}
+                                {streetHistory.length > 1 && (
+                                    <div style={{ marginTop: 4 }}>
+                                        <Sparkline data={streetHistory} color={color} height={14} width={40} />
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
@@ -229,7 +376,6 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         marginTop: 6,
-        fontSize: 14,
     },
     streetText: {
         fontSize: 8,

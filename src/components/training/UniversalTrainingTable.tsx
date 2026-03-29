@@ -14,7 +14,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { TRAINING_CLINICS } from '../../data/TRAINING_CLINICS';
 import { useTrainingAccountant } from '../../hooks/useTrainingAccountant';
 import { getLaw } from '../../data/POKER_LAWS';
@@ -84,7 +84,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
-        // 🛡️ BULLETPROOF: Use authUtils instead of supabase.auth.getUser() to avoid AbortError
+        // 🛡️ BULLETPROOF: Use authUtils (safe getter) to avoid AbortError
         import('../../lib/authUtils').then(({ getAuthUser }) => {
             const user = getAuthUser();
             setUserId(user?.id || null);
@@ -94,8 +94,8 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     // Initialize the Accountant (Engine 4)
     const { logCorrectAnswer, logMistake, storeLeakForIntercept } = useTrainingAccountant(userId);
 
-    // PHASE 1: DATA LOCK - Find the clinic
-    const clinic = TRAINING_CLINICS.find(c => c.id === gameId) as Clinic | undefined;
+    // PHASE 1: DATA LOCK - Find the clinic (memoized to prevent re-lookups)
+    const clinic = useMemo(() => TRAINING_CLINICS.find(c => c.id === gameId) as Clinic | undefined, [gameId]);
 
     // PHASE 2: STATE ENGINE
     const [gamePhase, setGamePhase] = useState<GamePhase>(GamePhase.IDLE);
@@ -154,10 +154,10 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         }
     });
 
-    // Get questions from current level or legacy questions array
-    const totalLevels = clinic?.levels?.length || 1;
-    const currentLevel = clinic?.levels?.[levelIndex] || null;
-    const questions = currentLevel?.questions || clinic?.questions || [];
+    // Get questions from current level or legacy questions array (memoized)
+    const totalLevels = useMemo(() => clinic?.levels?.length || 1, [clinic]);
+    const currentLevel = useMemo(() => clinic?.levels?.[levelIndex] || null, [clinic, levelIndex]);
+    const questions = useMemo(() => currentLevel?.questions || clinic?.questions || [], [currentLevel, clinic]);
 
     // PHASE 3: CINEMATIC DEAL SEQUENCE
     useEffect(() => {
@@ -334,10 +334,17 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         }
     }, [levelIndex, totalLevels]);
 
-    // Determine if buttons should be active
-    const buttonsActive = gamePhase === GamePhase.PLAYER_TURN;
+    // Determine if buttons should be active (memoized)
+    const buttonsActive = useMemo(() => gamePhase === GamePhase.PLAYER_TURN, [gamePhase]);
 
     // RENDER
+
+    // Loading skeleton while clinic loads
+    const [isInitializing, setIsInitializing] = useState(true);
+    useEffect(() => {
+        const timer = setTimeout(() => setIsInitializing(false), 100);
+        return () => clearTimeout(timer);
+    }, []);
 
     // EARLY RETURN FLAG: Fail fast if clinic not found (must occur AFTER all hooks)
     if (!clinic) {
@@ -366,6 +373,29 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         const passed = accuracy >= 85;
         const hasNextLevel = levelIndex < totalLevels - 1;
         const levelName = currentLevel?.name || `Level ${levelIndex + 1}`;
+
+        // Show loading skeleton during initial render
+        if (isInitializing) {
+            return (
+                <div style={{
+                    width: '100%',
+                    height: '100vh',
+                    background: 'linear-gradient(to bottom, #0f172a, #1e293b)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <div style={{
+                        width: 520,
+                        height: 400,
+                        background: 'linear-gradient(135deg, #1a2744, #0a1628)',
+                        borderRadius: 24,
+                        padding: 40,
+                        animation: 'pulse 1.5s ease-in-out infinite'
+                    }} />
+                </div>
+            );
+        }
 
         return (
             <div style={{
@@ -541,6 +571,29 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                         </div>
                     </div>
                 </div>
+            </div>
+        );
+    }
+
+    // Show loading skeleton during initial render
+    if (isInitializing) {
+        return (
+            <div style={{
+                width: '100%',
+                height: '100vh',
+                background: 'linear-gradient(to bottom, #0f172a, #1e293b)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}>
+                <div style={{
+                    width: 700,
+                    height: 400,
+                    background: 'linear-gradient(135deg, #166534, #14532d)',
+                    borderRadius: '50%',
+                    border: '8px solid #78350f',
+                    animation: 'pulse 1.5s ease-in-out infinite'
+                }} />
             </div>
         );
     }
@@ -823,8 +876,8 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     );
 }
 
-// Action Button Component
-function ActionButton({
+// Action Button Component - Memoized to prevent re-renders when props don't change
+const ActionButton = memo(({
     label,
     color,
     onClick,
@@ -834,7 +887,7 @@ function ActionButton({
     color: string;
     onClick: () => void;
     disabled: boolean;
-}) {
+}) => {
     return (
         <button
             onClick={onClick}
@@ -857,15 +910,15 @@ function ActionButton({
             {label}
         </button>
     );
-}
+});
 
-// Card Component - Pure CSS, no images
-function Card({ card, size = 'medium' }: { card: string; size?: 'small' | 'medium' }) {
+// Card Component - Pure CSS, no images - Memoized to prevent re-renders
+const Card = memo(({ card, size = 'medium' }: { card: string; size?: 'small' | 'medium' }) => {
     const isBack = card === '??' || !card;
 
-    const dimensions = size === 'small'
+    const dimensions = useMemo(() => size === 'small'
         ? { width: 48, height: 64 }
-        : { width: 64, height: 96 };
+        : { width: 64, height: 96 }, [size]);
 
     if (isBack) {
         return (
@@ -884,9 +937,9 @@ function Card({ card, size = 'medium' }: { card: string; size?: 'small' | 'mediu
         );
     }
 
-    // Parse card (e.g., "Ah" = Ace of hearts)
-    const rank = card.slice(0, -1);
-    const suit = card.slice(-1);
+    // Parse card (e.g., "Ah" = Ace of hearts) - memoized
+    const rank = useMemo(() => card.slice(0, -1), [card]);
+    const suit = useMemo(() => card.slice(-1), [card]);
 
     const suitSymbols: Record<string, string> = {
         'h': '♥',
@@ -924,4 +977,4 @@ function Card({ card, size = 'medium' }: { card: string; size?: 'small' | 'mediu
             </span>
         </div>
     );
-}
+});

@@ -1,0 +1,119 @@
+/**
+ * SAVE SESSION UTILITY
+ * Handles auto-saving training session data to the backend
+ */
+
+import { enqueueMutation } from '../../../engine/OfflineSyncQueue';
+import { busEmit } from '../../../engine/EventBus';
+
+/**
+ * Save training session data to backend
+ * @param {Object} sessionData - All session data to save
+ * @param {string} sessionData.gameId - Game identifier
+ * @param {string} sessionData.gameName - Display name of game
+ * @param {number} sessionData.gtowScore - GTOW score (0-100)
+ * @param {number} sessionData.totalEVLoss - Total EV loss in BB
+ * @param {number} sessionData.totalQuestions - Number of questions answered
+ * @param {number} sessionData.sessionMistakes - Number of mistakes made
+ * @param {number} sessionData.correctCount - Number of correct answers
+ * @param {number} sessionData.bestStreak - Best streak achieved
+ * @param {boolean} sessionData.levelPassed - Whether level was passed
+ * @param {number} sessionData.currentLevel - Current level number
+ * @param {Array} sessionData.handHistory - Array of hand history entries
+ * @param {number} sessionData.avgEVLossPerHand - Average EV loss per hand
+ * @param {number} sessionData.avgEVLossPerMistake - Average EV loss per mistake
+ * @param {number} sessionData.avgFrequencyDiff - Average frequency difference
+ * @param {Object} sessionData.trainerConfig - Trainer configuration object
+ * @param {number} sessionData.speedBonusDiamonds - Speed bonus diamonds earned
+ * @returns {Promise<void>}
+ */
+export async function saveSession(sessionData) {
+    const {
+        gameId,
+        gameName,
+        gtowScore,
+        totalEVLoss,
+        totalQuestions,
+        sessionMistakes,
+        correctCount,
+        bestStreak,
+        levelPassed,
+        currentLevel,
+        handHistory,
+        avgEVLossPerHand,
+        avgEVLossPerMistake,
+        avgFrequencyDiff,
+        trainerConfig,
+        speedBonusDiamonds,
+    } = sessionData;
+
+    // Get auth user
+    const { getAuthUser } = await import('../../../lib/authUtils');
+    const user = getAuthUser();
+    if (!user?.session?.access_token) return;
+
+    // Build position stats from hand history
+    const posStats = {};
+    const classCounts = {};
+    handHistory.forEach(h => {
+        const pos = h.handData?.heroPosition || 'UNK';
+        if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0, evLoss: 0 };
+        posStats[pos].total++;
+        if (h.classification === 'best' || h.classification === 'correct') posStats[pos].correct++;
+        posStats[pos].evLoss += (h.evLoss || 0);
+        if (h.classification) classCounts[h.classification] = (classCounts[h.classification] || 0) + 1;
+    });
+
+    const payload = {
+        gameId,
+        gameName,
+        gtowScore,
+        totalEVLoss,
+        handsPlayed: totalQuestions,
+        mistakeCount: sessionMistakes,
+        avgEVLossPerHand,
+        avgEVLossPerMistake,
+        avgFrequencyDiff,
+        accuracy: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
+        correctCount,
+        bestStreak,
+        levelPassed,
+        level: currentLevel,
+        handHistory: handHistory.slice(0, 100),
+        positionStats: posStats,
+        classificationCounts: classCounts,
+        trainerConfig,
+        speedBonusDiamonds,
+    };
+
+    try {
+        const res = await fetch('/api/training/save-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.session.access_token}`,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        console.log('[saveSession] Session saved directly to database');
+
+        // H7: Hardened busEmit — bus failures must never crash the save flow
+        try {
+            busEmit.sessionEnd('Training Arena');
+            busEmit.dataMutated('training_sessions');
+            if (speedBonusDiamonds > 0) {
+                busEmit.diamondsEarned(speedBonusDiamonds, 'Training Speed Bonus');
+            }
+        } catch (busErr) {
+            console.warn('[saveSession] busEmit failed (non-critical):', busErr.message);
+        }
+
+    } catch (e) {
+        console.warn('[saveSession] Network save failed, queueing to OfflineSyncQueue:', e.message);
+        await enqueueMutation('/api/training/save-session', payload, {
+            'Authorization': `Bearer ${user.session.access_token}`
+        });
+    }
+}

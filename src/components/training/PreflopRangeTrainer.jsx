@@ -14,8 +14,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { classifyMove, CLASSIFICATION_CONFIG } from '../../hooks/useGTOWScore';
 import { getCardImagePath } from './Card';
 
-// Convert abstract hand notation ("K5o", "AKs", "TT") to two specific card objects with suits
-function handToCards(hand) {
+// Convert abstract hand notation ("K5o", "AKs", "TT") to two specific card objects with suits (memoized)
+const handToCards = React.memo((hand) => {
     if (!hand) return [{ rank: 'A', suit: 'h' }, { rank: 'K', suit: 's' }];
     if (hand.length === 2) {
         // Pair: "AA", "KK" → same rank, different suits
@@ -31,7 +31,7 @@ function handToCards(hand) {
         return [{ rank: r1, suit: 'h' }, { rank: r2, suit: 'd' }];
     }
     return [{ rank: hand[0] || 'A', suit: 'h' }, { rank: hand[1] || 'K', suit: 's' }];
-}
+});
 
 // ═══ STANDARD GTO PREFLOP RANGES (RFI — Raise First In) ═══
 // These are simplified solver-derived open-raising ranges by position (6-max, 100BB)
@@ -130,6 +130,94 @@ function getHandNotation(r, c) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// MEMOIZED SUB-COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Memoized matrix cell for quiz mode
+const QuizMatrixCell = React.memo(({ cell, isHighlighted }) => {
+    const cellColor = cell.freq >= 0.9 ? '#22c55e'
+        : cell.freq >= 0.7 ? '#4ade80'
+            : cell.freq >= 0.5 ? '#86efac'
+                : cell.freq >= 0.3 ? '#fbbf24'
+                    : cell.freq >= 0.1 ? '#f97316'
+                        : cell.freq > 0 ? '#ef4444'
+                            : 'rgba(255,255,255,0.04)';
+
+    return (
+        <div
+            style={{
+                aspectRatio: '1',
+                background: cellColor,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 6.5,
+                fontWeight: 'bold',
+                color: cell.freq > 0.3 ? '#000' : cell.freq > 0 ? '#fff' : '#444',
+                border: isHighlighted ? '2px solid #00d4ff' : '1px solid rgba(0,0,0,0.2)',
+                boxShadow: isHighlighted ? '0 0 8px rgba(0,212,255,0.6)' : 'none',
+                position: 'relative',
+            }}
+            title={`${cell.hand}: ${Math.round(cell.freq * 100)}%`}
+        >
+            {cell.hand}
+        </div>
+    );
+});
+
+// Memoized matrix cell for build mode
+const BuildMatrixCell = React.memo(({ cell, isSelected, solverInRange, rangeChecked, onClick }) => {
+    let cellBg = 'rgba(255,255,255,0.04)';
+    let cellTextColor = '#555';
+    let cellBorder = '1px solid rgba(255,255,255,0.05)';
+
+    if (rangeChecked) {
+        if (isSelected && solverInRange) {
+            cellBg = 'rgba(34, 197, 94, 0.35)';
+            cellTextColor = '#22c55e';
+            cellBorder = '1px solid rgba(34,197,94,0.5)';
+        } else if (!isSelected && solverInRange) {
+            cellBg = 'rgba(251, 146, 60, 0.3)';
+            cellTextColor = '#fb923c';
+            cellBorder = '1px solid rgba(251,146,60,0.5)';
+        } else if (isSelected && !solverInRange) {
+            cellBg = 'rgba(239, 68, 68, 0.3)';
+            cellTextColor = '#ef4444';
+            cellBorder = '1px solid rgba(239,68,68,0.5)';
+        }
+    } else if (isSelected) {
+        cellBg = 'rgba(0, 212, 255, 0.2)';
+        cellTextColor = '#00d4ff';
+        cellBorder = '1px solid rgba(0,212,255,0.5)';
+    }
+
+    return (
+        <div
+            onClick={onClick}
+            style={{
+                aspectRatio: '1',
+                background: cellBg,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 6.5,
+                fontWeight: 'bold',
+                color: cellTextColor,
+                border: cellBorder,
+                cursor: rangeChecked ? 'default' : 'pointer',
+                transition: 'all 0.1s ease',
+                userSelect: 'none',
+            }}
+            title={`${cell.hand}: ${Math.round(cell.freq * 100)}%`}
+        >
+            {cell.hand}
+        </div>
+    );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -141,6 +229,7 @@ export default function PreflopRangeTrainer({ onExit }) {
     const [score, setScore] = useState({ correct: 0, total: 0 });
     const [streak, setStreak] = useState(0);
     const [showMatrix, setShowMatrix] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const allHands = useMemo(() => getAllHands(), []);
 
     // Phase 8: Interactive range-building mode
@@ -149,7 +238,7 @@ export default function PreflopRangeTrainer({ onExit }) {
     const [rangeChecked, setRangeChecked] = useState(false);
     const [rangeScore, setRangeScore] = useState(null);
 
-    const range = GTO_RANGES[position] || {};
+    const range = useMemo(() => GTO_RANGES[position] || {}, [position]);
 
     // Deal a new hand
     const dealHand = useCallback(() => {
@@ -161,7 +250,14 @@ export default function PreflopRangeTrainer({ onExit }) {
     }, [allHands]);
 
     // Start on mount and position change
-    useEffect(() => { dealHand(); }, [position, dealHand]);
+    useEffect(() => {
+        setIsLoading(true);
+        const timer = setTimeout(() => {
+            dealHand();
+            setIsLoading(false);
+        }, 150);
+        return () => clearTimeout(timer);
+    }, [position, dealHand]);
 
     // Get correct action for current hand
     const correctAction = useMemo(() => {
@@ -234,8 +330,8 @@ export default function PreflopRangeTrainer({ onExit }) {
         return grid;
     }, [range, currentHand]);
 
-    const accuracy = score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
-    const accColor = accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#fbbf24' : '#ef4444';
+    const accuracy = useMemo(() => score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0, [score]);
+    const accColor = useMemo(() => accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#fbbf24' : '#ef4444', [accuracy]);
 
     // Phase 8: Toggle a cell in user range (build mode)
     const toggleUserRangeCell = useCallback((hand) => {
@@ -274,6 +370,53 @@ export default function PreflopRangeTrainer({ onExit }) {
         setRangeScore(null);
     }, [position]);
 
+    // Memoized handlers
+    const handlePositionChange = useCallback((pos) => {
+        setPosition(pos);
+        setScore({ correct: 0, total: 0 });
+        setStreak(0);
+    }, []);
+
+    const handleModeChange = useCallback((mode) => {
+        setTrainerMode(mode);
+        setUserRange(new Set());
+        setRangeChecked(false);
+        setRangeScore(null);
+    }, []);
+
+    const handleRangeClear = useCallback(() => {
+        setUserRange(new Set());
+    }, []);
+
+    const handleRangeReset = useCallback(() => {
+        setUserRange(new Set());
+        setRangeChecked(false);
+        setRangeScore(null);
+    }, []);
+
+    // Loading skeleton state
+    if (isLoading) {
+        return (
+            <div style={S.container}>
+                <div style={S.header}>
+                    <button onClick={onExit} style={S.backBtn}>← Back</button>
+                    <div style={S.headerTitle}>Preflop Range Trainer</div>
+                    <div style={S.headerScore}>
+                        <span style={{ color: '#64748b', fontWeight: 'bold', fontFamily: "'Orbitron', monospace" }}>
+                            ---%
+                        </span>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: 40 }}>
+                    <div style={{
+                        width: 200, height: 280, background: 'rgba(255,255,255,0.03)',
+                        borderRadius: 12, animation: 'pulse 1.5s ease-in-out infinite'
+                    }} />
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div style={S.container}>
             {/* HEADER */}
@@ -293,7 +436,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                 {Object.keys(GTO_RANGES).map(pos => (
                     <button
                         key={pos}
-                        onClick={() => { setPosition(pos); setScore({ correct: 0, total: 0 }); setStreak(0); }}
+                        onClick={() => handlePositionChange(pos)}
                         style={{
                             ...S.posBtn,
                             background: position === pos ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
@@ -311,12 +454,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                 {[{ id: 'quiz', label: 'Quiz Mode' }, { id: 'build', label: 'Range Builder' }].map(m => (
                     <button
                         key={m.id}
-                        onClick={() => {
-                            setTrainerMode(m.id);
-                            setUserRange(new Set());
-                            setRangeChecked(false);
-                            setRangeScore(null);
-                        }}
+                        onClick={() => handleModeChange(m.id)}
                         style={{
                             flex: 1, padding: '9px 0', border: 'none', cursor: 'pointer',
                             fontSize: 12, fontWeight: 700, letterSpacing: 0.5,
@@ -485,35 +623,12 @@ export default function PreflopRangeTrainer({ onExit }) {
                     <div style={S.matrix}>
                         {matrix.flat().map((cell, i) => {
                             const isHighlighted = showFeedback && cell.isCurrentHand;
-                            const cellColor = cell.freq >= 0.9 ? '#22c55e'
-                                : cell.freq >= 0.7 ? '#4ade80'
-                                    : cell.freq >= 0.5 ? '#86efac'
-                                        : cell.freq >= 0.3 ? '#fbbf24'
-                                            : cell.freq >= 0.1 ? '#f97316'
-                                                : cell.freq > 0 ? '#ef4444'
-                                                    : 'rgba(255,255,255,0.04)';
-
                             return (
-                                <div
+                                <QuizMatrixCell
                                     key={i}
-                                    style={{
-                                        aspectRatio: '1',
-                                        background: cellColor,
-                                        borderRadius: 2,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: 6.5,
-                                        fontWeight: 'bold',
-                                        color: cell.freq > 0.3 ? '#000' : cell.freq > 0 ? '#fff' : '#444',
-                                        border: isHighlighted ? '2px solid #00d4ff' : '1px solid rgba(0,0,0,0.2)',
-                                        boxShadow: isHighlighted ? '0 0 8px rgba(0,212,255,0.6)' : 'none',
-                                        position: 'relative',
-                                    }}
-                                    title={`${cell.hand}: ${Math.round(cell.freq * 100)}%`}
-                                >
-                                    {cell.hand}
-                                </div>
+                                    cell={cell}
+                                    isHighlighted={isHighlighted}
+                                />
                             );
                         })}
                     </div>
@@ -541,54 +656,15 @@ export default function PreflopRangeTrainer({ onExit }) {
                             const isSelected = userRange.has(cell.hand);
                             const solverInRange = cell.freq >= 0.5;
 
-                            let cellBg = 'rgba(255,255,255,0.04)';
-                            let cellTextColor = '#555';
-                            let cellBorder = '1px solid rgba(255,255,255,0.05)';
-
-                            if (rangeChecked) {
-                                // Show comparison overlay
-                                if (isSelected && solverInRange) {
-                                    cellBg = 'rgba(34, 197, 94, 0.35)'; // Correct: green
-                                    cellTextColor = '#22c55e';
-                                    cellBorder = '1px solid rgba(34,197,94,0.5)';
-                                } else if (!isSelected && solverInRange) {
-                                    cellBg = 'rgba(251, 146, 60, 0.3)'; // Missed: orange
-                                    cellTextColor = '#fb923c';
-                                    cellBorder = '1px solid rgba(251,146,60,0.5)';
-                                } else if (isSelected && !solverInRange) {
-                                    cellBg = 'rgba(239, 68, 68, 0.3)'; // Extra: red
-                                    cellTextColor = '#ef4444';
-                                    cellBorder = '1px solid rgba(239,68,68,0.5)';
-                                }
-                            } else if (isSelected) {
-                                cellBg = 'rgba(0, 212, 255, 0.2)';
-                                cellTextColor = '#00d4ff';
-                                cellBorder = '1px solid rgba(0,212,255,0.5)';
-                            }
-
                             return (
-                                <div
+                                <BuildMatrixCell
                                     key={i}
+                                    cell={cell}
+                                    isSelected={isSelected}
+                                    solverInRange={solverInRange}
+                                    rangeChecked={rangeChecked}
                                     onClick={() => toggleUserRangeCell(cell.hand)}
-                                    style={{
-                                        aspectRatio: '1',
-                                        background: cellBg,
-                                        borderRadius: 2,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: 6.5,
-                                        fontWeight: 'bold',
-                                        color: cellTextColor,
-                                        border: cellBorder,
-                                        cursor: rangeChecked ? 'default' : 'pointer',
-                                        transition: 'all 0.1s ease',
-                                        userSelect: 'none',
-                                    }}
-                                    title={`${cell.hand}: ${Math.round(cell.freq * 100)}%`}
-                                >
-                                    {cell.hand}
-                                </div>
+                                />
                             );
                         })}
                     </div>
@@ -653,7 +729,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                                 <motion.button
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
-                                    onClick={() => setUserRange(new Set())}
+                                    onClick={handleRangeClear}
                                     style={{
                                         padding: '10px 16px', borderRadius: 8,
                                         background: 'rgba(255,255,255,0.05)',
@@ -668,7 +744,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                             <motion.button
                                 whileHover={{ scale: 1.03 }}
                                 whileTap={{ scale: 0.97 }}
-                                onClick={() => { setUserRange(new Set()); setRangeChecked(false); setRangeScore(null); }}
+                                onClick={handleRangeReset}
                                 style={{
                                     padding: '10px 24px', borderRadius: 8,
                                     background: 'linear-gradient(180deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',

@@ -128,6 +128,7 @@ const AnimatedCounter: React.FC<{ target: number; duration?: number; suffix?: st
     suffix = '',
 }) => {
     const [count, setCount] = useState(0);
+    const [prevCount, setPrevCount] = useState(0);
 
     useEffect(() => {
         let start = 0;
@@ -135,16 +136,27 @@ const AnimatedCounter: React.FC<{ target: number; duration?: number; suffix?: st
         const timer = setInterval(() => {
             start += increment;
             if (start >= target) {
+                setPrevCount(count);
                 setCount(target);
                 clearInterval(timer);
             } else {
+                setPrevCount(count);
                 setCount(Math.floor(start));
             }
         }, 16);
         return () => clearInterval(timer);
     }, [target, duration]);
 
-    return <span>{count}{suffix}</span>;
+    return (
+        <motion.span
+            key={count}
+            initial={{ scale: 1.2, color: '#00d4ff' }}
+            animate={{ scale: 1, color: '#ffffff' }}
+            transition={{ duration: 0.3 }}
+        >
+            {count}{suffix}
+        </motion.span>
+    );
 };
 
 // ============================================================================
@@ -257,6 +269,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                 {showConfetti && passed && <Confetti count={80} />}
 
                 <motion.div
+                    className="round-summary-card"
                     initial={{ scale: 0.8, y: 30 }}
                     animate={{ scale: 1, y: 0 }}
                     transition={{ type: 'spring', stiffness: 200 }}
@@ -296,15 +309,24 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                         transition={{ delay: 0.4, type: 'spring' }}
                         style={styles.scoreContainer}
                     >
-                        <div style={{
-                            ...styles.scoreRing,
-                            borderColor: passed ? '#ffd700' : '#ff4444',
-                        }}>
+                        <motion.div
+                            animate={{
+                                borderColor: passed ? '#ffd700' : '#ff4444',
+                                boxShadow: passed
+                                    ? '0 0 30px rgba(255, 215, 0, 0.5), inset 0 0 20px rgba(255, 215, 0, 0.2)'
+                                    : '0 0 20px rgba(255, 68, 68, 0.4), inset 0 0 15px rgba(255, 68, 68, 0.1)'
+                            }}
+                            transition={{ duration: 0.5 }}
+                            style={{
+                                ...styles.scoreRing,
+                                borderColor: passed ? '#ffd700' : '#ff4444',
+                            }}
+                        >
                             <div style={styles.scoreValue}>
                                 <AnimatedCounter target={Math.round(stats.accuracy)} suffix="%" />
                             </div>
                             <div style={styles.scoreLabel}>ACCURACY</div>
-                        </div>
+                        </motion.div>
                         <div style={styles.passingInfo}>
                             Passing: {passingGrade}%
                         </div>
@@ -317,17 +339,26 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                             animate={{ opacity: 1, y: 0 }}
                             style={styles.statsRow}
                         >
-                            <div style={styles.statBox}>
+                            <motion.div
+                                whileHover={{ scale: 1.1, background: 'rgba(255, 255, 255, 0.08)' }}
+                                style={styles.statBox}
+                            >
                                 <span style={styles.statIcon}>✓</span>
                                 <span style={styles.statValue}>{stats.correctAnswers}/{stats.handsPlayed}</span>
                                 <span style={styles.statLabel}>Correct</span>
-                            </div>
-                            <div style={styles.statBox}>
+                            </motion.div>
+                            <motion.div
+                                whileHover={{ scale: 1.1, background: 'rgba(255, 255, 255, 0.08)' }}
+                                style={styles.statBox}
+                            >
                                 <span style={styles.statIcon}>❤️</span>
                                 <span style={styles.statValue}>{stats.finalHealth}</span>
                                 <span style={styles.statLabel}>HP Left</span>
-                            </div>
-                            <div style={styles.statBox}>
+                            </motion.div>
+                            <motion.div
+                                whileHover={{ scale: 1.1, background: 'rgba(255, 215, 0, 0.15)' }}
+                                style={styles.statBox}
+                            >
                                 <span style={styles.statIcon}>⭐</span>
                                 <motion.span
                                     style={styles.statValue}
@@ -337,13 +368,16 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                     +{stats.xpEarned}
                                 </motion.span>
                                 <span style={styles.statLabel}>XP Earned</span>
-                            </div>
+                            </motion.div>
                             {stats.bestStreak && stats.bestStreak > 3 && (
-                                <div style={styles.statBox}>
+                                <motion.div
+                                    whileHover={{ scale: 1.1, background: 'rgba(255, 100, 50, 0.15)' }}
+                                    style={styles.statBox}
+                                >
                                     <span style={styles.statIcon}>🔥</span>
                                     <span style={styles.statValue}>{stats.bestStreak}</span>
                                     <span style={styles.statLabel}>Best Streak</span>
-                                </div>
+                                </motion.div>
                             )}
                         </motion.div>
                     )}
@@ -496,7 +530,16 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                         initial={{ opacity: 0, x: -20 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: idx * 0.1 }}
-                                        style={styles.blunderCard}
+                                        whileHover={{
+                                            scale: 1.03,
+                                            x: 8,
+                                            boxShadow: '0 8px 24px rgba(255, 68, 68, 0.3)'
+                                        }}
+                                        whileTap={{ scale: 0.98 }}
+                                        style={{
+                                            ...styles.blunderCard,
+                                            transition: 'all 0.2s ease'
+                                        }}
                                         onClick={() => onReviewHand?.(blunder)}
                                     >
                                         <div style={styles.blunderHand}>
@@ -597,6 +640,8 @@ const styles: Record<string, React.CSSProperties> = {
         boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
         position: 'relative',
         zIndex: 202,
+        overflowY: 'auto',
+        maxHeight: '90vh',
     },
     header: {
         textAlign: 'center',
@@ -651,6 +696,7 @@ const styles: Record<string, React.CSSProperties> = {
         gap: 20,
         marginBottom: 24,
         flexWrap: 'wrap',
+        padding: '0 10px',
     },
     statBox: {
         display: 'flex',
@@ -660,6 +706,8 @@ const styles: Record<string, React.CSSProperties> = {
         background: 'rgba(255, 255, 255, 0.05)',
         borderRadius: 12,
         minWidth: 70,
+        transition: 'all 0.3s ease',
+        cursor: 'default',
     },
     statIcon: {
         fontSize: 20,
@@ -699,6 +747,7 @@ const styles: Record<string, React.CSSProperties> = {
         borderRadius: 8,
         border: '1px solid rgba(255, 68, 68, 0.2)',
         cursor: 'pointer',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
     },
     blunderHand: {
         fontSize: 16,
@@ -724,6 +773,7 @@ const styles: Record<string, React.CSSProperties> = {
         display: 'flex',
         gap: 12,
         justifyContent: 'center',
+        flexWrap: 'wrap',
     },
     nextLevelBtn: {
         padding: '14px 32px',
@@ -734,6 +784,9 @@ const styles: Record<string, React.CSSProperties> = {
         fontSize: 16,
         fontWeight: 700,
         cursor: 'pointer',
+        boxShadow: '0 4px 16px rgba(255, 215, 0, 0.4)',
+        transition: 'all 0.3s ease',
+        minWidth: 120,
     },
     retryBtn: {
         padding: '14px 32px',
@@ -744,6 +797,9 @@ const styles: Record<string, React.CSSProperties> = {
         fontSize: 16,
         fontWeight: 600,
         cursor: 'pointer',
+        boxShadow: '0 4px 16px rgba(0, 212, 255, 0.3)',
+        transition: 'all 0.3s ease',
+        minWidth: 120,
     },
     exitBtn: {
         padding: '14px 32px',
@@ -754,7 +810,118 @@ const styles: Record<string, React.CSSProperties> = {
         fontSize: 16,
         fontWeight: 600,
         cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        minWidth: 100,
     },
+};
+
+// ============================================================================
+// LOADING SKELETON
+// ============================================================================
+
+export const RoundSummarySkeleton: React.FC = () => {
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={styles.overlay}
+        >
+            <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                style={{
+                    ...styles.card,
+                    borderColor: 'rgba(255,255,255,0.2)'
+                }}
+            >
+                <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                    <div className="skeleton-pulse" style={{
+                        width: 72,
+                        height: 72,
+                        margin: '0 auto 12px',
+                        borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.1)'
+                    }} />
+                    <div className="skeleton-pulse" style={{
+                        width: 200,
+                        height: 28,
+                        margin: '0 auto 8px',
+                        borderRadius: 8,
+                        background: 'rgba(255,255,255,0.1)'
+                    }} />
+                    <div className="skeleton-pulse" style={{
+                        width: 120,
+                        height: 14,
+                        margin: '0 auto',
+                        borderRadius: 4,
+                        background: 'rgba(255,255,255,0.05)'
+                    }} />
+                </div>
+
+                <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                    <div className="skeleton-pulse" style={{
+                        width: 140,
+                        height: 140,
+                        margin: '0 auto',
+                        borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.1)'
+                    }} />
+                </div>
+
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: 20,
+                    marginBottom: 24,
+                    flexWrap: 'wrap'
+                }}>
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="skeleton-pulse" style={{
+                            width: 70,
+                            height: 80,
+                            borderRadius: 12,
+                            background: 'rgba(255,255,255,0.05)'
+                        }} />
+                    ))}
+                </div>
+
+                <div style={{
+                    display: 'flex',
+                    gap: 12,
+                    justifyContent: 'center'
+                }}>
+                    <div className="skeleton-pulse" style={{
+                        width: 120,
+                        height: 48,
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.1)'
+                    }} />
+                    <div className="skeleton-pulse" style={{
+                        width: 80,
+                        height: 48,
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.05)'
+                    }} />
+                </div>
+
+                <style>{`
+                    @keyframes skeleton-pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.4; }
+                    }
+                    .skeleton-pulse {
+                        animation: skeleton-pulse 2s ease-in-out infinite;
+                    }
+                    @media (max-width: 640px) {
+                        .round-summary-card {
+                            padding: 20px !important;
+                            width: 95% !important;
+                        }
+                    }
+                `}</style>
+            </motion.div>
+        </motion.div>
+    );
 };
 
 export default RoundSummary;
