@@ -1,11 +1,7 @@
 {
   "metadata": {
-    "description": "Bravo Poker Live venue slugs for live data scraping",
-    "generated": "2026-03-26T15:26:06.557136+00:00",
-    "total_venues": 156,
-    "scrape_interval": "15 minutes",
-    "source": "bravopokerlive.com",
-    "auth_method": "StealthySession(solve_cloudflare=True) + context.new_page() + login form"
+    "generated": "2026-03-29T02:56:26.111339+00:00",
+    "total_venues": 156
   },
   "venues": [
     {
@@ -421,12 +417,12 @@
       "url": "https://www.bravopokerlive.com/venues/maryland-live/"
     },
     {
-      "slug": "mgm-grand-detroit",
-      "url": "https://www.bravopokerlive.com/venues/mgm-grand-detroit/"
-    },
-    {
       "slug": "mgm-grand",
       "url": "https://www.bravopokerlive.com/venues/mgm-grand/"
+    },
+    {
+      "slug": "mgm-grand-detroit",
+      "url": "https://www.bravopokerlive.com/venues/mgm-grand-detroit/"
     },
     {
       "slug": "mgm-national-harbor-casino-resort",
@@ -489,12 +485,12 @@
       "url": "https://www.bravopokerlive.com/venues/pearl-river-resort/"
     },
     {
-      "slug": "peppermill-casino-wendover",
-      "url": "https://www.bravopokerlive.com/venues/peppermill-casino-wendover/"
-    },
-    {
       "slug": "peppermill-casino",
       "url": "https://www.bravopokerlive.com/venues/peppermill-casino/"
+    },
+    {
+      "slug": "peppermill-casino-wendover",
+      "url": "https://www.bravopokerlive.com/venues/peppermill-casino-wendover/"
     },
     {
       "slug": "potawatomi-casino-resort",
@@ -521,6 +517,10 @@
       "url": "https://www.bravopokerlive.com/venues/river-spirit-casino/"
     },
     {
+      "slug": "rivers-casino",
+      "url": "https://www.bravopokerlive.com/venues/rivers-casino/"
+    },
+    {
       "slug": "rivers-casino-des-plaines",
       "url": "https://www.bravopokerlive.com/venues/rivers-casino-des-plaines/"
     },
@@ -535,10 +535,6 @@
     {
       "slug": "rivers-casino-portsmouth",
       "url": "https://www.bravopokerlive.com/venues/rivers-casino-portsmouth/"
-    },
-    {
-      "slug": "rivers-casino",
-      "url": "https://www.bravopokerlive.com/venues/rivers-casino/"
     },
     {
       "slug": "running-aces",

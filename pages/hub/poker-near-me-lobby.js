@@ -116,6 +116,7 @@ const FilterPanel = dynamic(() => import('../../src/components/poker-near-me/Fil
 const VoiceSearch = dynamic(() => import('../../src/components/poker-near-me/VoiceSearch'), { ssr: false });
 const VenueReviews = dynamic(() => import('../../src/components/poker-near-me/VenueReviews'), { ssr: false });
 const VenueMapPanel = dynamic(() => import('../../src/components/poker-near-me/VenueMapPanel'), { ssr: false });
+const ScraperHealthDashboard = dynamic(() => import('../../src/components/poker-near-me/ScraperHealthDashboard'), { ssr: false });
 
 // ─── Constants ───
 const SEARCH_DEBOUNCE_MS = 400;
@@ -198,6 +199,7 @@ const POD_FEATURES = {
   favorites: { title: 'Saved', tab: 'favorites' },
   social: { title: 'Friends', tab: 'social' },
   alerts: { title: 'Alerts', tab: 'alerts' },
+  scraperhealth: { title: 'Scraper Health', tab: 'scraperhealth' },
 };
 
 // ─── Daily Tournaments Panel with day-of-week tabs ───
@@ -2028,6 +2030,10 @@ export default function PokerNearMeLobby() {
 
       case 'alerts':
         component = <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} userLocation={userLocation} />;
+        break;
+
+      case 'scraperhealth':
+        component = <ScraperHealthDashboard />;
         break;
 
       default:

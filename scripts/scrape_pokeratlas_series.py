@@ -727,7 +727,55 @@ def main():
         print(f'  tournament_series:  {len(all_tournament_series)} records')
         return
 
-    # Step 3: Insert to database
+    # Step 2.5: Normalize data before insert
+    print('[STEP 2.5] Normalizing data...')
+    
+    # Deduplicate events by event_uid
+    seen_uids = set()
+    deduped_events = []
+    for e in all_events:
+        uid = e.get('event_uid', '')
+        if uid and uid not in seen_uids:
+            seen_uids.add(uid)
+            deduped_events.append(e)
+    print(f'  Events: {len(all_events)} -> {len(deduped_events)} (deduped)')
+    all_events = deduped_events
+    
+    # Normalize poker_series keys — PostgREST requires all objects in a batch to have same keys
+    SERIES_KEYS = [
+        'series_uid', 'series_name', 'tour', 'tier', 'venue_name', 'city', 'state',
+        'start_date', 'end_date', 'event_count', 'buy_in_min', 'buy_in_max',
+        'source', 'source_url', 'scrape_url', 'scrape_status',
+        'data_quality', 'scrape_html_hash', 'scrape_timestamp', 'scrape_confidence', 'scrape_batch_id',
+    ]
+    normalized_series = []
+    for s in all_series:
+        norm = {k: s.get(k) for k in SERIES_KEYS}
+        # Ensure non-null for required fields
+        norm['series_name'] = norm.get('series_name') or 'Unknown'
+        norm['source'] = norm.get('source') or 'pokeratlas'
+        normalized_series.append(norm)
+    all_series = normalized_series
+    
+    # Normalize event keys
+    EVENT_KEYS = [
+        'event_uid', 'series_uid', 'event_name', 'event_number', 'buy_in',
+        'guarantee', 'starting_stack', 'blind_levels',
+        'start_date', 'start_time', 'game_type',
+        're_entry', 'unlimited_re_entry',
+        'venue_name', 'city', 'state', 'source',
+        'data_quality', 'scrape_html_hash', 'scrape_timestamp', 'scrape_confidence', 'scrape_batch_id',
+    ]
+    normalized_events = []
+    for e in all_events:
+        norm = {k: e.get(k) for k in EVENT_KEYS}
+        norm['source'] = norm.get('source') or 'pokeratlas'
+        normalized_events.append(norm)
+    all_events = normalized_events
+    print(f'  Keys normalized')
+    print()
+
+    # Step 3: Insert to database (poker_series FIRST — events have FK)
     print('[STEP 3] Inserting to database...')
     
     if all_series:
