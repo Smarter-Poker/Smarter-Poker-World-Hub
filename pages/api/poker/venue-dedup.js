@@ -19,7 +19,7 @@ function getSupabase() {
 const VENUE_ALIASES = {
   // Format: canonical_name: [alias1, alias2, ...]
   'Bellagio': ['Bellagio Hotel & Casino', 'Bellagio Poker Room', 'Bellagio Casino'],
-  'ARIA Resort & Casino': ['Aria', 'ARIA', 'Aria Resort'],
+  'ARIA Resort & Casino': ['Aria', 'ARIA', 'Aria Resort', 'Aria Casino'],
   'Wynn Las Vegas': ['Wynn', 'Wynn Poker Room'],
   'The Venetian Resort': ['Venetian', 'The Venetian', 'Venetian Poker Room'],
   'MGM Grand': ['MGM Grand Hotel & Casino', 'MGM Grand Poker Room'],
