@@ -54,6 +54,20 @@ function isSameDay(dateStr1, dateStr2) {
   return dateStr1 === dateStr2;
 }
 
+function formatTime(timeStr) {
+  if (!timeStr) return '';
+  // Convert HH:MM:SS or HH:MM to 12h format
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  let h = parseInt(parts[0], 10);
+  const m = parts[1];
+  if (isNaN(h)) return timeStr;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  if (h === 0) h = 12;
+  else if (h > 12) h -= 12;
+  return `${h}:${m} ${ampm}`;
+}
+
 function getDateKey(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -219,13 +233,13 @@ function EventCard({ event, isToday }) {
             {(event.start_time) && (
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: C.textSec }}>
                 <ClockIcon />
-                {event.start_time}
+                {formatTime(event.start_time)}
               </span>
             )}
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '6px' }}>
-            {event.venue_name && event.venue_id && (
+            {event.venue_name && event.venue_name !== 'Unknown' && event.venue_id && (
               <Link href={`/hub/venues/${event.venue_id}`} style={{
                 display: 'flex', alignItems: 'center', gap: '4px',
                 fontSize: '13px', color: C.blue, textDecoration: 'none', fontWeight: 500,
@@ -234,7 +248,7 @@ function EventCard({ event, isToday }) {
                 {event.venue_name}
               </Link>
             )}
-            {event.venue_name && !event.venue_id && (
+            {event.venue_name && event.venue_name !== 'Unknown' && !event.venue_id && (
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: C.textSec }}>
                 <VenueIcon />
                 {event.venue_name}

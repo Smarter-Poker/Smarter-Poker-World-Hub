@@ -403,8 +403,15 @@ export default async function handler(req, res) {
             }
             for (const s of limited) {
               if (s.series_uid && eventsBySeries[s.series_uid]) {
-                s.events = eventsBySeries[s.series_uid];
-                s.events_count = eventsBySeries[s.series_uid].length;
+                const seriesVenue = s.venue || s.venue_name || '';
+                const seriesVenueId = s.venue_id || null;
+                // Propagate series venue to events missing venue_name
+                s.events = eventsBySeries[s.series_uid].map(evt => ({
+                  ...evt,
+                  venue_name: (evt.venue_name && evt.venue_name !== 'Unknown') ? evt.venue_name : seriesVenue,
+                  venue_id: evt.venue_id || seriesVenueId,
+                }));
+                s.events_count = s.events.length;
               }
             }
           }
