@@ -1057,7 +1057,14 @@ export default function PokerNearMeLobby() {
         setSortBy('distance'); // BUG-02 fix: auto-distance sort on manual set
         setShowManualLocation(false);
         showLocationSuccessToast({ city: manualCity.trim(), state: manualState || '' });
-        // Persist
+        // ── ONE-AND-DONE: Persist to localStorage so user is never re-prompted ──
+        setLocationPromptDismissed(true);
+        try { localStorage.setItem('pnm_location_prompt_dismissed', '1'); } catch { /* */ }
+        try { localStorage.setItem('pnm_location_enabled', '1'); } catch { /* */ }
+        try { localStorage.setItem('pnm_last_location', JSON.stringify(loc)); } catch { /* */ }
+        try { localStorage.setItem('pnm_last_city', manualCity.trim()); } catch { /* */ }
+        try { localStorage.setItem('pnm_last_state', manualState || ''); } catch { /* */ }
+        // Persist to Supabase (cross-device)
         if (userId) {
           updatePokerNearMePreferences(userId, {
             locationEnabled: true,
@@ -1066,6 +1073,7 @@ export default function PokerNearMeLobby() {
             lastLocationState: manualState || '',
             locationEnabledAt: new Date().toISOString(),
             manualLocation: true,
+            locationPromptDismissed: true,
           }).catch(() => {});
         }
         // Fetch venues near this location
