@@ -340,7 +340,7 @@ export default function VenueDetailPage() {
     fetchLiveGames();
   }, [id]);
 
-  // Fetch waitlist data for Bravo-style board
+  // Fetch waitlist data for board display
   var fetchWaitlist = async function () {
     try {
       var wlRes = await fetch('/api/commander/waitlist/venue/' + id);
@@ -1407,7 +1407,7 @@ export default function VenueDetailPage() {
             )}
 
             {/* ============================================ */}
-            {/* WAITLIST BOARD SECTION (Bravo column layout) */}
+            {/* WAITLIST BOARD SECTION (column layout)       */}
             {/* ============================================ */}
             {waitlistData.length > 0 && (
               <section className="waitlist-board-section">
@@ -3081,7 +3081,7 @@ export default function VenueDetailPage() {
         }
 
         /* ========================================= */
-        /* WAITLIST BOARD SECTION (Bravo columns)    */
+        /* WAITLIST BOARD SECTION (columns)          */
         /* ========================================= */
         .waitlist-board-section {
           max-width: 900px;

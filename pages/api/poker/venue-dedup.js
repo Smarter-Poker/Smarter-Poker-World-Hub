@@ -1,6 +1,6 @@
 /**
  * API: /api/poker/venue-dedup
- * Provides merged venue data by resolving aliases between Bravo and PokerAtlas.
+ * Provides merged venue data by resolving aliases across multiple data sources.
  * Used by the live-tables API to combine data from both sources for matching venues.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -15,7 +15,7 @@ function getSupabase() {
   return _supabase;
 }
 
-// Known venue name aliases (Bravo ↔ PokerAtlas naming differences)
+// Known venue name aliases (cross-source naming differences)
 const VENUE_ALIASES = {
   // Format: canonical_name: [alias1, alias2, ...]
   'Bellagio': ['Bellagio Hotel & Casino', 'Bellagio Poker Room'],

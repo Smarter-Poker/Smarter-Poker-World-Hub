@@ -1423,7 +1423,7 @@ export default function PokerNearMePage() {
         }
     };
 
-    // Fetch the full Bravo venue list for search suggestions
+    // Fetch the full venue list for search suggestions
     const fetchLiveVenueList = async () => {
         try {
             const res = await fetch('/api/poker/live-tables?list=true');

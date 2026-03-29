@@ -1,6 +1,6 @@
 /**
  * API: /api/poker/scraper-health
- * Health check endpoint for Bravo + PokerAtlas scraper daemons.
+ * Health check endpoint for venue data scraper daemons.
  * 
  * Returns:
  *   - Status of each scraper (healthy/stale/dead)

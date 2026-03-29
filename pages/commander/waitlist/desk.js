@@ -1,7 +1,7 @@
 /**
  * Waitlist Desk View — The Board
  * /commander/waitlist/desk
- * Professional Bravo Poker-style grid: black background, uniform colored headers,
+ * Professional grid display: black background, uniform colored headers,
  * table numbers sub-row, venue branding, scrolling ticker.
  * 4 games per page, auto-rotates every 10s if more games exist.
  * Click a player name → action buttons. Real-time via Supabase + 15s polling.

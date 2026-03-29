@@ -64,14 +64,14 @@ export default async function handler(req, res) {
     allGames.forEach(game => {
       const current = currentCounts[game] || 0;
       const previous = historicalCounts[game] || 0;
-      const change = previous > 0 ? Math.round(((current - previous) / previous) * 100) : (current > 0 ? 100 : 0);
+      const change = previous > 0 ? Math.round(((current - previous) / previous) * 100) : 0;
       
       trends.push({
         game,
         current_tables: current,
         previous_tables: previous,
         change_pct: change,
-        trend: change > 5 ? 'up' : change < -5 ? 'down' : 'stable',
+        trend: previous === 0 ? 'stable' : (change > 5 ? 'up' : (change < -5 ? 'down' : 'stable')),
       });
     });
 

@@ -12,9 +12,10 @@ Architecture mirrors bravo-live-daemon.py with source='pokeratlas'.
 """
 
 import hashlib
+import os
+from datetime import datetime, timezone
 import json
 import logging
-import os
 import re
 import signal
 import sys
@@ -22,17 +23,29 @@ import time
 import traceback
 import urllib.request
 import uuid
-from datetime import datetime, timezone
+from typing import Dict, List, Optional
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Resolve the absolute path to the project root and load the correct .env file
+project_root = Path(__file__).resolve().parent.parent
+env_candidates = ['.env.local', '.env.production.local', '.env.prod', '.env']
+for env_file in env_candidates:
+    env_path = project_root / env_file
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path)
+        print(f"Loaded environment from {env_file}")
+        break
+
+# Optional: Fallback to regular load_dotenv if none of the above are found
+load_dotenv()
 
 # ============================================================
 # CONFIG
 # ============================================================
 BASE_DIR = Path(__file__).resolve().parent.parent
-SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.bbDqj-me78PID99npWCZ5qUuINSC1-eCBb1BVhgiSRs'
-)
+SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', 'https://kuklfnapbkmacvwxktbh.supabase.co')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY') or os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 
 # Timing
 SCRAPE_INTERVAL = 900  # 15 minutes (offset 7min from Bravo via launchd start)
@@ -843,7 +856,7 @@ def run_scrape_cycle(mgr):
             record = {
                 'venue_name': venue_name,
                 'game_name': game['game'],
-                'tables_running': game['tables_estimate'],
+                'tables_running': 0,
                 'players_waiting': 0,
                 'scrape_timestamp': venue_data['scrape_timestamp'],
                 'scrape_html_hash': venue_data['scrape_html_hash'],

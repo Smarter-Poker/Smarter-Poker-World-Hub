@@ -201,8 +201,8 @@ export default function ScraperHealthDashboard() {
       {/* SOURCE PANELS */}
       {health && (
         <>
-          <SourcePanel name="Bravo Poker Live" data={health.scrapers?.bravo} />
-          <SourcePanel name="PokerAtlas" data={health.scrapers?.pokeratlas} />
+          <SourcePanel name="Real-Time Engine" data={health.scrapers?.bravo} />
+          <SourcePanel name="Catalog Engine" data={health.scrapers?.pokeratlas} />
 
           {/* ISSUES */}
           {health.issues && health.issues.length > 0 && (

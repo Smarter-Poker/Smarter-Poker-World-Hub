@@ -2,7 +2,7 @@
  * Daily Tournaments API
  *
  * Source of Truth: data/tournament-venues.json (163 venues with confirmed tournaments)
- * Data Source: PokerAtlas scraping via venue_daily_tournaments table
+ * Data Source: Venue scraping via venue_daily_tournaments table
  *
  * Endpoints:
  *   GET /api/poker/daily-tournaments - Get daily tournament schedules

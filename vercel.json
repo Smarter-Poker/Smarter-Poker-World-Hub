@@ -288,6 +288,10 @@
     {
       "path": "/api/cron/venue-game-alerts",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/clawbot/orchestrator",
+      "schedule": "0 7 * * *"
     }
   ]
 }

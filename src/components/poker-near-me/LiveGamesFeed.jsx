@@ -664,6 +664,28 @@ export default function LiveGamesFeed({
                 </button>
             </div>
 
+            {/* ─── STALE DATA BANNER ─── */}
+            {isDataStale && !selectedVenue && (
+                <div style={{
+                    marginBottom: 16, padding: '12px 16px', borderRadius: 10,
+                    background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    boxShadow: '0 4px 12px rgba(245,158,11,0.1)'
+                }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>Live Data may be outdated</div>
+                        <div style={{ fontSize: 11, color: 'rgba(245,158,11,0.8)', marginTop: 2 }}>
+                            Last network sync: {globalStats.lastScrape ? timeAgo(globalStats.lastScrape) : 'Unknown'}. Intelligence engines may be experiencing delays.
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ─── GLOBAL STATS DASHBOARD ─── */}
             {!selectedVenue && globalStats.venues > 0 && (
                 <div style={{ 

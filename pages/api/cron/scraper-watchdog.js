@@ -2,7 +2,7 @@
  * Cron: /api/cron/scraper-watchdog
  * Runs every 5 minutes via Vercel Cron.
  * 
- * Checks both Bravo and PokerAtlas scraper data freshness.
+ * Checks venue data scraper freshness across all sources.
  * If data is stale (>45 min) or dead (>90 min), sends:
  *   1. SMS to admin via Twilio
  *   2. Push notification via OneSignal

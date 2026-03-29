@@ -80,36 +80,36 @@ description: Master roadmap for all remaining Smarter.Poker improvements, featur
 
 ---
 
-### 1.3 — Automated Sentry Error Monitoring Pipeline (OpenClaw-Powered) `[ ]`
+### 1.3 — Automated Sentry Error Monitoring Pipeline (OpenClaw-Powered) `[x]`
 
 > **OpenClaw** is a full autonomous AI agent — not just a scraper. It supports shell execution, API interaction, scheduled tasks, proactive alerts, and multi-step workflow chains. This pipeline leverages OpenClaw for **zero-human-involvement daily error triage**.
 
 **What to build**:
 
-1. `[ ]` **OpenClaw Scheduled Triage Task** (runs daily, fully autonomous)
+1. `[x]` **OpenClaw Scheduled Triage Task** (runs daily, fully autonomous)
    - Connects to Sentry API → pulls top 20 unresolved errors by user impact
    - Categorizes by: page, severity, user count, first/last seen
    - Stores results in `sentry_error_log` Supabase table (via API)
    - Compares against previous day's snapshot to detect **new** vs **recurring** errors
 
-2. `[ ]` **Auto-Create GitHub Issues** (via OpenClaw → GitHub API)
+2. `[x]` **Auto-Create GitHub Issues** (via OpenClaw → GitHub API)
    - New errors affecting 5+ users → auto-creates GitHub issue
    - Labels with `bug`, `sentry-auto`, and affected page name
    - Includes: stack trace, affected URL, user count, Sentry permalink
    - Deduplicates: checks if issue already exists before creating
 
-3. `[ ]` **Proactive Alert Delivery** (via OpenClaw alerting)
+3. `[x]` **Proactive Alert Delivery** (via OpenClaw alerting)
    - Daily summary notification: "3 new errors, 2 trending, 1 resolved"
    - Critical alert (immediate): any error with 50+ user impact or 500-level spike
    - Delivered via: push notification (1.4), Slack/Discord, or email
 
-4. `[ ]` **Error Dashboard in Horses Admin**
+4. `[x]` **Error Dashboard in Horses Admin**
    - New tab in `/horses` showing real-time error stats
    - Trending errors, resolved vs unresolved, affected pages
    - One-click link to Sentry for deep investigation
    - Historical trend graph: errors over time
 
-5. `[ ]` **Weekly Auto-Report** (OpenClaw generates and delivers)
+5. `[x]` **Weekly Auto-Report** (OpenClaw generates and delivers)
    - "This week: 12 new errors, 8 resolved, top offender: /hub/poker-near-me"
    - Includes severity breakdown and page-level error heat map
    - Stored as artifact in Supabase for historical tracking

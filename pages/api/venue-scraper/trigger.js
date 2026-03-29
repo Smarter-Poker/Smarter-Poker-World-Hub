@@ -2,12 +2,12 @@
  * Venue Scraper — Trigger Endpoint
  * 
  * Orchestrates Manus AI to scrape venue websites (Tier 1)
- * and PokerAtlas (Tier 2 fallback) for daily tournaments, news, and updates.
+ * and aggregator sites (Tier 2 fallback) for daily tournaments, news, and updates.
  * 
  * PRIORITY ORDER:
  *   1. Venue direct website (most current — venue controls it)
- *   2. PokerAtlas URL (fallback — aggregator, often outdated)
- *   3. Bravo Poker Live (future — live wait list data)
+ *   2. Aggregator URL (fallback — often outdated)
+ *   3. Live data feeds (future — live wait list data)
  *
  * Called by GitHub Actions every 3 days (Mon/Thu midnight EST)
  * 
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
         // ── Tier 1: Venues with direct websites (PRIMARY) ──
         const tier1 = allVenues.filter(v => v.website && v.website.trim().length > 3);
         
-        // ── Tier 2: Venues with PokerAtlas URL but NO direct website (FALLBACK) ──
+        // ── Tier 2: Venues with aggregator URL but NO direct website (FALLBACK) ──
         const tier2 = allVenues.filter(v => 
             (!v.website || v.website.trim().length <= 3) && 
             v.poker_atlas_url && v.poker_atlas_url.trim().length > 5
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
             (!v.poker_atlas_url || v.poker_atlas_url.trim().length <= 5)
         );
 
-        console.log(`[Venue Scraper] Tier 1 (website): ${tier1.length}, Tier 2 (PokerAtlas): ${tier2.length}, Tier 3 (no source): ${tier3.length}`);
+        console.log(`[Venue Scraper] Tier 1 (website): ${tier1.length}, Tier 2 (aggregator): ${tier2.length}, Tier 3 (no source): ${tier3.length}`);
 
         // ── Build Manus tasks in batches ──
         const receiveUrl = `https://smarter.poker/api/venue-scraper/receive`;
@@ -131,7 +131,7 @@ POST body format:
             tasks.push({ prompt, batch, tier: 'website', index: taskIndex });
         }
 
-        // Batch Tier 2 venues (PokerAtlas fallback)
+        // Batch Tier 2 venues (aggregator fallback)
         for (let i = 0; i < tier2.length; i += BATCH_SIZE) {
             const batch = tier2.slice(i, i + BATCH_SIZE);
             taskIndex++;
@@ -140,9 +140,9 @@ POST body format:
                 `  - Venue ID: ${v.id}, Name: "${v.name}", City: ${v.city}, State: ${v.state}, URL: ${v.poker_atlas_url}`
             ).join('\n');
 
-            const prompt = `You are a poker venue data extractor. Visit each PokerAtlas page below and extract the DAILY TOURNAMENT SCHEDULE.
+            const prompt = `You are a poker venue data extractor. Visit each aggregator page below and extract the DAILY TOURNAMENT SCHEDULE.
 
-VENUES TO SCRAPE (Tier 2 — PokerAtlas Fallback):
+VENUES TO SCRAPE (Tier 2 — Aggregator Fallback):
 ${venueList}
 
 For EACH venue, extract:

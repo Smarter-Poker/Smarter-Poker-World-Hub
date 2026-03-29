@@ -9,7 +9,12 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { getVenueLogoUrl, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor } from './pnm-utils';
+import { getVenueLogoUrl, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor, isStaleData } from './pnm-utils';
+
+const formatMoney = (amount) => {
+    if (!amount) return '$0';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+};
 
 const VENUE_TYPE_LABELS = {
     casino: 'Casino',
@@ -258,6 +263,11 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     </span>
                 )}
                 {venue.has_tournaments && <span className="vc3-badge vc3-badge-tourney">Tournaments</span>}
+                {venue.max_gtd > 0 && (
+                    <span className="vc3-badge vc3-badge-gtd" style={{ background: 'rgba(212,168,83,0.12)', borderColor: 'rgba(212,168,83,0.3)', color: '#d4a853' }}>
+                        {formatMoney(venue.max_gtd)}+ GTD
+                    </span>
+                )}
                 {(venue.hours === '24/7' || venue.hours_weekday === '24/7') && !['charity', 'home_game'].includes(venue.venue_type) && <span className="vc3-badge" style={{ background: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.3)', color: '#22c55e' }}>24/7</span>}
                 {Array.isArray(venue.games_offered) && venue.games_offered.some(g => /plo|omaha/i.test(g)) && <span className="vc3-badge" style={{ background: 'rgba(139,92,246,0.12)', borderColor: 'rgba(139,92,246,0.3)', color: '#a78bfa' }}>PLO Room</span>}
                 {venue.total_tables > 20 && <span className="vc3-badge" style={{ background: 'rgba(212,168,83,0.12)', borderColor: 'rgba(212,168,83,0.3)', color: '#d4a853' }}>Large Room</span>}
@@ -299,23 +309,36 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             <div className="vc3-data-zone">
                 {/* Live Info Row — tables and waitlist */}
                 {hasLiveData && (
-                    <div className="vc3-live-info">
-                        <div className="vc3-live-stat">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2">
-                                <rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
-                            </svg>
-                            <span className="vc3-live-stat-val">{venue.live_data.tables_running}</span>
-                            <span className="vc3-live-stat-label">Tables</span>
-                        </div>
-                        {venue.live_data.players_waiting > 0 && (
+                    <div className="vc3-live-info-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div className="vc3-live-info">
                             <div className="vc3-live-stat">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2">
+                                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
                                 </svg>
-                                <span className="vc3-live-stat-val">{venue.live_data.players_waiting}</span>
-                                <span className="vc3-live-stat-label">Waiting</span>
+                                <span className="vc3-live-stat-val">{venue.live_data.tables_running}</span>
+                                <span className="vc3-live-stat-label">Tables</span>
                             </div>
-                        )}
+                            {venue.live_data.players_waiting > 0 && (
+                                <div className="vc3-live-stat">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                                    </svg>
+                                    <span className="vc3-live-stat-val">{venue.live_data.players_waiting}</span>
+                                    <span className="vc3-live-stat-label">Waiting</span>
+                                </div>
+                            )}
+                        </div>
+                        {venue.live_data.last_updated && (() => {
+                            const staleInfo = isStaleData(venue.live_data.last_updated);
+                            return (
+                                <div style={{ fontSize: 10, color: staleInfo.stale ? 'rgba(245,158,11,0.8)' : 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                    {staleInfo.stale ? `Stale Data (${staleInfo.age})` : `Updated ${staleInfo.age}`}
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
 

@@ -52,14 +52,29 @@ import traceback
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+from dotenv import load_dotenv
+from typing import Dict, List, Optional
+
+# Resolve the absolute path to the project root and load the correct .env file
+project_root = Path(__file__).resolve().parent.parent
+env_candidates = ['.env.local', '.env.production.local', '.env.prod', '.env']
+for env_file in env_candidates:
+    env_path = project_root / env_file
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path)
+        print(f"Loaded environment from {env_file}")
+        break
+
+# Optional: Fallback to regular load_dotenv if none of the above are found
+load_dotenv()
 
 # ============================================================
 # CONFIG — LOCKED IN
 # ============================================================
-SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
-SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.bbDqj-me78PID99npWCZ5qUuINSC1-eCBb1BVhgiSRs'
-BRAVO_EMAIL = 'admin@smarter.poker'
-BRAVO_PASS = '215SlalomCt!'
+SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', 'https://kuklfnapbkmacvwxktbh.supabase.co')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY') or os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+BRAVO_EMAIL = os.environ.get('BRAVO_EMAIL', 'admin@smarter.poker')
+BRAVO_PASS = os.environ.get('BRAVO_PASS')
 BRAVO_LOGIN_URL = 'https://www.bravopokerlive.com/login/'
 BRAVO_VENUE_URL = 'https://www.bravopokerlive.com/venues/{slug}/'
 SCRAPE_INTERVAL = 900          # 15 minutes
@@ -71,7 +86,7 @@ HEALTH_CHECK_INTERVAL = 3      # Health-check every N cycles
 VENUE_RETRY_COUNT = 1          # Retry failed venues once before giving up
 CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive venues fail (was 10)
 SESSION_REFRESH_MINUTES = 90   # Proactive session refresh to prevent zombie browsers
-BASE_DIR = Path('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub')
+BASE_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = BASE_DIR / 'data' / 'bravo-logs'
 EVIDENCE_DIR = BASE_DIR / 'data' / 'scrape-evidence'
 HEARTBEAT_FILE = LOG_DIR / 'heartbeat.json'

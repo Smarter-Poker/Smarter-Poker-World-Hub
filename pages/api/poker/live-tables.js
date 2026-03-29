@@ -1,6 +1,6 @@
 /**
  * API: /api/poker/live-tables
- * Returns live table data from Bravo Poker Live + PokerAtlas.
+ * Returns live table data from Smarter.Poker Intelligence.
  * Data is refreshed every 15 minutes by autonomous daemons.
  *
  * Query params:
