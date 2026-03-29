@@ -282,3 +282,51 @@ export function loadFilters(key, defaults) {
     } catch { /* parse error */ }
     return defaults;
 }
+
+// ─── CURATED INITIALS COLOR PALETTE ───
+const INITIALS_PALETTE = [
+    { bg: 'rgba(212,168,83,0.25)', border: 'rgba(212,168,83,0.5)', text: '#d4a853' },   // Gold
+    { bg: 'rgba(0,212,255,0.2)', border: 'rgba(0,212,255,0.5)', text: '#00d4ff' },       // Cyan
+    { bg: 'rgba(239,68,68,0.2)', border: 'rgba(239,68,68,0.5)', text: '#ef4444' },       // Red
+    { bg: 'rgba(34,197,94,0.2)', border: 'rgba(34,197,94,0.5)', text: '#22c55e' },       // Green
+    { bg: 'rgba(139,92,246,0.2)', border: 'rgba(139,92,246,0.5)', text: '#8b5cf6' },     // Purple
+    { bg: 'rgba(59,130,246,0.2)', border: 'rgba(59,130,246,0.5)', text: '#3b82f6' },     // Blue
+    { bg: 'rgba(236,72,153,0.2)', border: 'rgba(236,72,153,0.5)', text: '#ec4899' },     // Pink
+    { bg: 'rgba(245,158,11,0.2)', border: 'rgba(245,158,11,0.5)', text: '#f59e0b' },     // Amber
+    { bg: 'rgba(20,184,166,0.2)', border: 'rgba(20,184,166,0.5)', text: '#14b8a6' },     // Teal
+    { bg: 'rgba(249,115,22,0.2)', border: 'rgba(249,115,22,0.5)', text: '#f97316' },     // Orange
+    { bg: 'rgba(168,85,247,0.2)', border: 'rgba(168,85,247,0.5)', text: '#a855f7' },     // Violet
+    { bg: 'rgba(6,182,212,0.2)', border: 'rgba(6,182,212,0.5)', text: '#06b6d4' },       // Sky
+];
+
+/**
+ * Get a curated color for venue initials based on venue ID.
+ * Provides better visual diversity than random hash-based colors.
+ * 
+ * @param {number|string} venueId - Venue ID for consistent color mapping
+ * @returns {{ bg: string, border: string, text: string }}
+ */
+export function getInitialsColor(venueId) {
+    const idx = (typeof venueId === 'number' ? venueId : Math.abs(String(venueId).split('').reduce((a, c) => a + c.charCodeAt(0), 0))) % INITIALS_PALETTE.length;
+    return INITIALS_PALETTE[idx];
+}
+
+/**
+ * Check if venue data is stale (exceeds 30-minute threshold).
+ * 
+ * @param {string} lastUpdated - ISO timestamp of last data update
+ * @returns {{ stale: boolean, age: string, minutes: number }}
+ */
+export function isStaleData(lastUpdated) {
+    if (!lastUpdated) return { stale: false, age: '', minutes: 0 };
+    const ts = new Date(lastUpdated).getTime();
+    if (isNaN(ts)) return { stale: false, age: '', minutes: 0 };
+    const minutes = Math.floor((Date.now() - ts) / 60000);
+    const stale = minutes > 30;
+    let age = '';
+    if (minutes < 1) age = 'just now';
+    else if (minutes < 60) age = `${minutes}m ago`;
+    else age = `${Math.floor(minutes / 60)}h ${minutes % 60}m ago`;
+    return { stale, age, minutes };
+}
+

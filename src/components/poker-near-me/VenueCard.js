@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { getVenueLogoUrl, getOpenStatus, getCrowdLevel, estimateWaitTime } from './pnm-utils';
+import { getVenueLogoUrl, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor } from './pnm-utils';
 
 const VENUE_TYPE_LABELS = {
     casino: 'Casino',
@@ -106,13 +106,9 @@ function getVenueInitials(name) {
     return name.split(/[\s\-]+/).filter(w => w.length > 0).map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-// Deterministic color from venue name
-function venueNameToColor(name) {
-    let hash = 0;
-    for (let i = 0; i < (name || '').length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return `hsl(${Math.abs(hash) % 360}, 45%, 35%)`;
+// Deterministic color from venue ID using curated palette
+function getVenueColor(venue) {
+    return getInitialsColor(venue?.id || 0);
 }
 
 // Get the correct detail URL for a venue or social page
@@ -169,7 +165,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 {/* Left: Logo + Type badge */}
                 <div className="vc3-header-left">
                     {/* Venue Logo */}
-                    <div className="vc3-logo" style={!logoUrl || logoError ? { background: venueNameToColor(venue.name) } : {}}>
+                    <div className="vc3-logo" style={!logoUrl || logoError ? { background: getVenueColor(venue).bg, border: `1px solid ${getVenueColor(venue).border}` } : {}}>
                         {logoUrl && !logoError ? (
                             <img
                                 src={logoUrl}
@@ -179,7 +175,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 loading="lazy"
                             />
                         ) : (
-                            <span className="vc3-logo-initials">{getVenueInitials(venue.name)}</span>
+                            <span className="vc3-logo-initials" style={{ color: getVenueColor(venue).text }}>{getVenueInitials(venue.name)}</span>
                         )}
                     </div>
                     <div className="vc3-type-badge" style={{

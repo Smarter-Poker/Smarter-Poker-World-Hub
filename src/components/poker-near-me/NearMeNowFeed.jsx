@@ -81,7 +81,7 @@ function FeedSkeleton({ count = 3 }) {
     );
 }
 
-export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS, onSwitchTab }) {
+export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS, onSwitchTab, onNavigateVenue }) {
     const [feedItems, setFeedItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [radius, setRadius] = useState(50);
@@ -273,7 +273,15 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
                     {filteredItems.map((item, i) => {
                         const typeStyle = TYPE_COLORS[item.type] || TYPE_COLORS.live_game;
                         return (
-                            <div key={item.id || i} className="nmf-item" style={{ borderLeftColor: typeStyle.border }}>
+                            <div key={item.id || i} className="nmf-item" onClick={() => {
+                                if (item.venue?.id && onNavigateVenue) {
+                                    onNavigateVenue(item.venue.id);
+                                } else if (item.type === 'tournament' && onSwitchTab) {
+                                    onSwitchTab('daily');
+                                } else if (onSwitchTab) {
+                                    onSwitchTab('live');
+                                }
+                            }} style={{ borderLeftColor: typeStyle.border, cursor: 'pointer' }}>
                                 <div className="nmf-item-icon">{FEED_ICONS[item.type]}</div>
                                 <div className="nmf-item-content">
                                     <div className="nmf-item-top">
@@ -314,8 +322,9 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
         .nmf-chip { padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; font-family: inherit; }
         .nmf-chip.active { background: rgba(212,168,83,0.15); border-color: rgba(212,168,83,0.4); color: #d4a853; }
         .nmf-feed-list { display: flex; flex-direction: column; gap: 6px; }
-        .nmf-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.06); border-left: 3px solid #d4a853; border-radius: 10px; transition: all 0.2s; }
-        .nmf-item:hover { background: rgba(15,23,42,0.7); border-color: rgba(255,255,255,0.1); }
+        .nmf-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.06); border-left: 3px solid #d4a853; border-radius: 10px; transition: all 0.2s; cursor: pointer; }
+        .nmf-item:hover { background: rgba(15,23,42,0.7); border-color: rgba(255,255,255,0.1); transform: translateX(2px); }
+        .nmf-item:active { transform: scale(0.98); }
         .nmf-item-icon { flex-shrink: 0; margin-top: 2px; }
         .nmf-item-content { flex: 1; min-width: 0; }
         .nmf-item-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

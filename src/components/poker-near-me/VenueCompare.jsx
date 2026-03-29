@@ -1,0 +1,200 @@
+/**
+ * VenueCompare.jsx — Side-by-side venue comparison panel
+ * Allows users to compare 2-3 venues across key metrics.
+ */
+import React, { useState, useMemo } from 'react';
+import { haversineMiles } from './pnm-utils';
+
+const COMPARE_FIELDS = [
+  { key: 'name', label: 'Venue' },
+  { key: 'city_state', label: 'Location' },
+  { key: 'distance', label: 'Distance' },
+  { key: 'trust_score', label: 'Trust Score' },
+  { key: 'tables_count', label: 'Tables' },
+  { key: 'venue_type', label: 'Type' },
+  { key: 'games_offered', label: 'Games' },
+  { key: 'hours', label: 'Hours' },
+  { key: 'phone', label: 'Phone' },
+];
+
+function getFieldValue(venue, field, userLocation) {
+  switch (field) {
+    case 'name': return venue.name || 'Unknown';
+    case 'city_state': return `${venue.city || ''}${venue.state ? `, ${venue.state}` : ''}`;
+    case 'distance':
+      if (!userLocation || !venue.latitude || !venue.longitude) return '—';
+      const d = haversineMiles(userLocation.lat, userLocation.lng, parseFloat(venue.latitude), parseFloat(venue.longitude));
+      return d < 1 ? `${(d * 5280).toFixed(0)} ft` : `${d.toFixed(1)} mi`;
+    case 'trust_score': return venue.trust_score ? `${venue.trust_score}/100` : '—';
+    case 'tables_count': return venue.tables_count || venue.total_tables || '—';
+    case 'venue_type': return (venue.venue_type || 'casino').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    case 'games_offered':
+      return (venue.games_offered || []).join(', ') || '—';
+    case 'hours': return venue.hours_of_operation || '—';
+    case 'phone': return venue.phone || '—';
+    default: return '—';
+  }
+}
+
+export default function VenueCompare({ venues = [], userLocation, onClose }) {
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const selectedVenues = useMemo(() =>
+    selectedIds.map(id => venues.find(v => String(v.id) === String(id))).filter(Boolean),
+    [selectedIds, venues]
+  );
+
+  const filteredVenues = useMemo(() => {
+    if (!searchTerm) return venues.slice(0, 20);
+    const lower = searchTerm.toLowerCase();
+    return venues.filter(v =>
+      (v.name || '').toLowerCase().includes(lower) ||
+      (v.city || '').toLowerCase().includes(lower) ||
+      (v.state || '').toLowerCase().includes(lower)
+    ).slice(0, 20);
+  }, [venues, searchTerm]);
+
+  const toggleVenue = (id) => {
+    setSelectedIds(prev => {
+      if (prev.includes(String(id))) return prev.filter(x => x !== String(id));
+      if (prev.length >= 3) return prev; // Max 3
+      return [...prev, String(id)];
+    });
+  };
+
+  return (
+    <div>
+      {/* Selection area */}
+      {selectedVenues.length < 2 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.6)', marginBottom: 8, fontWeight: 600 }}>
+            Select {selectedVenues.length === 0 ? '2-3' : `${2 - selectedVenues.length} more`} venues to compare
+          </div>
+          <input
+            type="text"
+            placeholder="Search venues..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%', padding: '8px 14px', borderRadius: 8,
+              border: '1px solid rgba(88,166,255,0.2)', background: 'rgba(13,17,23,0.7)',
+              color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none',
+              marginBottom: 8, boxSizing: 'border-box',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
+            }}
+          />
+          <div style={{ display: 'grid', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
+            {filteredVenues.map(v => {
+              const isSelected = selectedIds.includes(String(v.id));
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => toggleVenue(v.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '8px 12px', borderRadius: 8,
+                    border: isSelected ? '1px solid rgba(212,168,83,0.5)' : '1px solid rgba(88,166,255,0.15)',
+                    background: isSelected ? 'rgba(212,168,83,0.1)' : 'rgba(13,17,23,0.5)',
+                    color: isSelected ? '#d4a853' : '#e0e8f0',
+                    fontSize: 12, fontWeight: isSelected ? 700 : 400,
+                    cursor: selectedIds.length >= 3 && !isSelected ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit', textAlign: 'left', width: '100%',
+                    transition: 'all 0.2s',
+                    opacity: selectedIds.length >= 3 && !isSelected ? 0.4 : 1,
+                  }}
+                >
+                  <div style={{
+                    width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                    border: isSelected ? '2px solid #d4a853' : '2px solid rgba(88,166,255,0.3)',
+                    background: isSelected ? 'rgba(212,168,83,0.2)' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {isSelected && (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="3">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </div>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {v.name}
+                  </span>
+                  <span style={{ fontSize: 10, color: 'rgba(200,214,229,0.35)', flexShrink: 0 }}>
+                    {v.city}{v.state ? `, ${v.state}` : ''}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Selected chips */}
+      {selectedVenues.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+          {selectedVenues.map(v => (
+            <span key={v.id} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '4px 10px', borderRadius: 8,
+              background: 'rgba(212,168,83,0.12)', border: '1px solid rgba(212,168,83,0.3)',
+              color: '#d4a853', fontSize: 11, fontWeight: 600,
+            }}>
+              {v.name}
+              <button onClick={() => toggleVenue(v.id)} style={{
+                background: 'none', border: 'none', color: '#d4a853', cursor: 'pointer',
+                padding: 0, fontSize: 14, lineHeight: 1, fontFamily: 'inherit',
+              }}>×</button>
+            </span>
+          ))}
+          {selectedVenues.length < 3 && (
+            <button onClick={() => setSelectedIds(prev => prev)} style={{
+              padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+              border: '1px dashed rgba(88,166,255,0.3)', background: 'transparent',
+              color: 'rgba(200,214,229,0.4)', cursor: 'pointer', fontFamily: 'inherit',
+            }}>+ Add Venue</button>
+          )}
+        </div>
+      )}
+
+      {/* Comparison table */}
+      {selectedVenues.length >= 2 && (
+        <div style={{ overflowX: 'auto', borderRadius: 12, border: '1px solid rgba(88,166,255,0.15)', background: 'rgba(13,17,23,0.5)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr>
+                <th style={{ padding: '10px 14px', textAlign: 'left', color: 'rgba(200,214,229,0.5)', fontWeight: 600, borderBottom: '1px solid rgba(88,166,255,0.1)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Metric</th>
+                {selectedVenues.map(v => (
+                  <th key={v.id} style={{ padding: '10px 14px', textAlign: 'center', color: '#d4a853', fontWeight: 700, borderBottom: '1px solid rgba(88,166,255,0.1)', fontSize: 13, minWidth: 120 }}>
+                    {v.name?.length > 18 ? v.name.slice(0, 18) + '…' : v.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARE_FIELDS.slice(1).map((field, i) => (
+                <tr key={field.key} style={{ background: i % 2 === 0 ? 'rgba(13,17,23,0.3)' : 'transparent' }}>
+                  <td style={{ padding: '8px 14px', color: 'rgba(200,214,229,0.6)', fontWeight: 600, borderBottom: '1px solid rgba(88,166,255,0.05)', whiteSpace: 'nowrap' }}>
+                    {field.label}
+                  </td>
+                  {selectedVenues.map(v => (
+                    <td key={v.id} style={{ padding: '8px 14px', textAlign: 'center', color: '#e0e8f0', borderBottom: '1px solid rgba(88,166,255,0.05)' }}>
+                      {getFieldValue(v, field.key, userLocation)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {selectedVenues.length === 0 && filteredVenues.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 30, color: 'rgba(200,214,229,0.4)' }}>
+          <p style={{ fontSize: 14, fontWeight: 600 }}>No venues found</p>
+          <p style={{ fontSize: 12 }}>Try a different search term.</p>
+        </div>
+      )}
+    </div>
+  );
+}

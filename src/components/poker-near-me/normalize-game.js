@@ -68,6 +68,18 @@ export function normalizeGameName(rawName) {
     }
   }
 
+  // INFERENCE: If type is still "Unknown" but we have stakes, infer game type
+  // "Unknown 30/60" or bare "6/12" → Limit Hold'em (most common unlabeled format)
+  // "Unknown" game names with stakes in scraper data are typically LHE
+  if (type === 'Unknown' && stakes) {
+    // If the raw name is just stakes or "Unknown X/Y", infer Limit Hold'em
+    const stripped = raw.replace(/unknown/i, '').replace(/\$?\d+\s*[\/\-]\s*\$?\d+/, '').trim();
+    if (!stripped || stripped.length < 3) {
+      type = 'LHE';
+      label = 'Limit Hold\'em';
+    }
+  }
+
   // Build canonical name
   const canonical = stakes ? `${label} ${stakes}` : label;
 

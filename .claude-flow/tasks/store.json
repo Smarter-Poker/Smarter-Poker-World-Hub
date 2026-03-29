@@ -1,0 +1,70 @@
+{
+  "tasks": {
+    "task-1774757730151-y5640k": {
+      "taskId": "task-1774757730151-y5640k",
+      "type": "bug-fix",
+      "description": "BUG-FIX: Fix oversized training files (>1000 lines) by extracting shared logic into reusable hooks. Files: play-mode.js (1798 loc), solutions.js (1704 loc), hand-history-upload.js (1610 loc), villain-range.js (1448 loc), custom-solve.js (1382 loc)",
+      "priority": "normal",
+      "status": "pending",
+      "progress": 0,
+      "assignedTo": [],
+      "tags": [],
+      "createdAt": "2026-03-29T04:15:30.151Z",
+      "startedAt": null,
+      "completedAt": null
+    },
+    "task-1774757731270-7azfq7": {
+      "taskId": "task-1774757731270-7azfq7",
+      "type": "bug-fix",
+      "description": "BUG-FIX: Standardize time format display in Events Calendar — start_time shows raw HH:MM:SS format (e.g., 11:10:00) instead of human-friendly format (11:10 AM). Fix the time formatter in events-calendar.js to display AM/PM format.",
+      "priority": "normal",
+      "status": "pending",
+      "progress": 0,
+      "assignedTo": [],
+      "tags": [],
+      "createdAt": "2026-03-29T04:15:31.270Z",
+      "startedAt": null,
+      "completedAt": null
+    },
+    "task-1774757731341-6bzejw": {
+      "taskId": "task-1774757731341-6bzejw",
+      "type": "testing",
+      "description": "TESTING: Validate all 5 bug fixes by running npm run build and browser-testing the Events Calendar page on smarter.poker to verify time formatting, venue names, and overall data integrity.",
+      "priority": "normal",
+      "status": "pending",
+      "progress": 0,
+      "assignedTo": [],
+      "tags": [],
+      "createdAt": "2026-03-29T04:15:31.341Z",
+      "startedAt": null,
+      "completedAt": null
+    },
+    "task-1774757748637-3ofwmx": {
+      "taskId": "task-1774757748637-3ofwmx",
+      "type": "research",
+      "description": "AUDIT: Scan all 93 training pages for missing UniversalHeader — 77 pages currently lack the standard header",
+      "priority": "normal",
+      "status": "pending",
+      "progress": 0,
+      "assignedTo": [],
+      "tags": [],
+      "createdAt": "2026-03-29T04:15:48.637Z",
+      "startedAt": null,
+      "completedAt": null
+    },
+    "task-1774757751720-b7p47g": {
+      "taskId": "task-1774757751720-b7p47g",
+      "type": "bug-fix",
+      "description": "BUG-FIX: Events Calendar shows Unknown for venue names because poker_events.venue_name is empty for some series. Fix by deriving from series header parse.",
+      "priority": "normal",
+      "status": "pending",
+      "progress": 0,
+      "assignedTo": [],
+      "tags": [],
+      "createdAt": "2026-03-29T04:15:51.720Z",
+      "startedAt": null,
+      "completedAt": null
+    }
+  },
+  "version": "3.0.0"
+}

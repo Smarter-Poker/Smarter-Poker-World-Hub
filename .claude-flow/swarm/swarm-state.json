@@ -17,6 +17,78 @@
       },
       "createdAt": "2026-03-29T04:10:49.423Z",
       "updatedAt": "2026-03-29T04:10:49.423Z"
+    },
+    "swarm-1774759134867-uh8thz": {
+      "swarmId": "swarm-1774759134867-uh8thz",
+      "topology": "mesh",
+      "maxAgents": 5,
+      "status": "running",
+      "agents": [],
+      "tasks": [],
+      "config": {
+        "topology": "mesh",
+        "maxAgents": 5,
+        "strategy": "specialized",
+        "communicationProtocol": "message-bus",
+        "autoScaling": true,
+        "consensusMechanism": "majority"
+      },
+      "createdAt": "2026-03-29T04:38:54.867Z",
+      "updatedAt": "2026-03-29T04:38:54.867Z"
+    },
+    "swarm-1774759252387-yy1z92": {
+      "swarmId": "swarm-1774759252387-yy1z92",
+      "topology": "hierarchical",
+      "maxAgents": 8,
+      "status": "running",
+      "agents": [],
+      "tasks": [],
+      "config": {
+        "topology": "hierarchical",
+        "maxAgents": 8,
+        "strategy": "specialized",
+        "communicationProtocol": "message-bus",
+        "autoScaling": true,
+        "consensusMechanism": "majority"
+      },
+      "createdAt": "2026-03-29T04:40:52.387Z",
+      "updatedAt": "2026-03-29T04:40:52.387Z"
+    },
+    "swarm-1774759279837-n03oco": {
+      "swarmId": "swarm-1774759279837-n03oco",
+      "topology": "hierarchical-mesh",
+      "maxAgents": 5,
+      "status": "running",
+      "agents": [],
+      "tasks": [],
+      "config": {
+        "topology": "hierarchical-mesh",
+        "maxAgents": 5,
+        "strategy": "specialized",
+        "communicationProtocol": "message-bus",
+        "autoScaling": true,
+        "consensusMechanism": "majority"
+      },
+      "createdAt": "2026-03-29T04:41:19.837Z",
+      "updatedAt": "2026-03-29T04:41:19.837Z"
+    },
+    "swarm-1774759630694-s57ugj": {
+      "swarmId": "swarm-1774759630694-s57ugj",
+      "topology": "mesh",
+      "maxAgents": 5,
+      "status": "running",
+      "agents": [],
+      "tasks": [],
+      "config": {
+        "topology": "mesh",
+        "maxAgents": 5,
+        "strategy": "specialized",
+        "communicationProtocol": "message-bus",
+        "autoScaling": true,
+        "consensusMechanism": "majority"
+      },
+      "createdAt": "2026-03-29T04:47:10.694Z",
+      "updatedAt": "2026-03-29T04:47:10.694Z"
     }
   },
   "version": "3.0.0"

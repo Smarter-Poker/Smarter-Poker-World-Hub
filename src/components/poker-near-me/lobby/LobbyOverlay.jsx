@@ -426,7 +426,17 @@ export default function LobbyOverlay({
             gridTemplateRows: 'repeat(3, 1fr)',
             gap: 0,
           }}>
-            {GRID_HOTSPOTS.map((hotspot) => (
+            {GRID_HOTSPOTS.map((hotspot) => {
+              // Compute live badge for this hotspot
+              let badge = null;
+              if (hotspot.id === 'livegames' && liveData.liveGameCount > 0) badge = liveData.liveGameCount;
+              else if (hotspot.id === 'favorites' && savedCount > 0) badge = savedCount;
+              else if (hotspot.id === 'alerts' && alertCount > 0) badge = alertCount;
+              else if (hotspot.id === 'social' && friendsNearby > 0) badge = friendsNearby;
+              else if (hotspot.id === 'daily' && liveData.dailyCount > 0) badge = liveData.dailyCount;
+              else if (hotspot.id === 'tours' && liveData.tourCount > 0) badge = liveData.tourCount;
+
+              return (
               <button
                 key={hotspot.id}
                 onClick={() => {
@@ -440,14 +450,30 @@ export default function LobbyOverlay({
                   cursor: 'pointer',
                   padding: 0,
                   margin: 0,
+                  position: 'relative',
                   WebkitTapHighlightColor: 'transparent',
                   outline: 'none',
                 }}
-              />
-            ))}
+              >
+                {badge && (
+                  <span style={{
+                    position: 'absolute', top: '6%', right: '8%', zIndex: 5,
+                    minWidth: 20, height: 20, padding: '0 6px',
+                    borderRadius: 10, fontSize: 10, fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: hotspot.id === 'alerts' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #d4a853, #c49a3c)',
+                    color: '#fff', fontFamily: 'Inter, system-ui, sans-serif',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.4), 0 0 12px rgba(212,168,83,0.3)',
+                    animation: 'lobby-badgePulse 2s ease-in-out infinite',
+                    lineHeight: 1,
+                  }}>
+                    {badge > 99 ? '99+' : badge}
+                  </span>
+                )}
+              </button>
+              );
+            })}
           </div>
-
-          {/* Badge overlays removed — alert subscriptions route to global header */}
         </div>
       </div>
     </div>

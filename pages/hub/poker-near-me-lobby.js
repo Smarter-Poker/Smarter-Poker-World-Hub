@@ -108,6 +108,7 @@ const TourCard = dynamic(() => import('../../src/components/poker-near-me/TourCa
 const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/SeriesCard'), { ssr: false });
 const LiveGamesFeed = dynamic(() => import('../../src/components/poker-near-me/LiveGamesFeed'), { ssr: false });
 const NearMeNowFeed = dynamic(() => import('../../src/components/poker-near-me/NearMeNowFeed'), { ssr: false });
+const VenueCompare = dynamic(() => import('../../src/components/poker-near-me/VenueCompare'), { ssr: false });
 const RoadTripPlanner = dynamic(() => import('../../src/components/poker-near-me/RoadTripPlanner'), { ssr: false });
 const SocialLayer = dynamic(() => import('../../src/components/poker-near-me/SocialLayer'), { ssr: false });
 const TournamentAlerts = dynamic(() => import('../../src/components/poker-near-me/TournamentAlerts'), { ssr: false });
@@ -201,6 +202,7 @@ const POD_FEATURES = {
   social: { title: 'Friends', tab: 'social' },
   alerts: { title: 'Alerts', tab: 'alerts' },
   tripcost: { title: 'Trip Cost Calculator', tab: 'tripcost' },
+  compare: { title: 'Compare Venues', tab: 'compare' },
   scraperhealth: { title: 'Scraper Health', tab: 'scraperhealth' },
 };
 
@@ -289,7 +291,7 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11, color: 'rgba(200,214,229,0.45)' }}>
         {t.start_time && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{t.start_time}</span>}
         {t.game_type && <span style={{ color: '#58a6ff', background: 'rgba(88,166,255,0.08)', padding: '1px 6px', borderRadius: 4 }}>{t.game_type}</span>}
-        {t.guaranteed && <span style={{ color: '#f59e0b' }}>GTD: ${typeof t.guaranteed === 'number' ? t.guaranteed.toLocaleString() : t.guaranteed}</span>}
+        {t.guaranteed && <span style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', padding: '2px 8px', borderRadius: 6, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5"><path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7"/><path d="M4 22h16"/><path d="M10 22V2h4v20"/></svg>${typeof t.guaranteed === 'number' ? t.guaranteed.toLocaleString() : t.guaranteed} GTD</span>}
         {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString?.() || t.starting_stack}</span>}
         {t.blind_levels && <span>Blinds: {t.blind_levels}</span>}
         {t.rebuy_addon && <span>{t.rebuy_addon}</span>}
@@ -521,6 +523,20 @@ export default function PokerNearMeLobby() {
     }
 
     if (pod && POD_FEATURES[pod]) {
+      // Read filter params from URL for deep-link restoration
+      const state = params.get('state');
+      const game = params.get('game');
+      const sort = params.get('sort');
+      const radius = params.get('radius');
+      if (state || game || sort || radius) {
+        setFilters(prev => ({
+          ...prev,
+          ...(state ? { selectedState: state, nmState: state } : {}),
+          ...(game ? { gameType: game, nmGameType: game } : {}),
+          ...(radius ? { radius, nmRadius: radius } : {}),
+        }));
+        if (sort) setSortBy(sort);
+      }
       // Double requestAnimationFrame ensures React has fully committed hydration
       // before we trigger a state update that adds new DOM nodes (the panel).
       // Single rAF isn't enough because React may still be reconciling.
@@ -547,13 +563,18 @@ export default function PokerNearMeLobby() {
     const params = new URLSearchParams();
     if (activePod) params.set('pod', activePod);
     if (searchQuery) params.set('q', searchQuery);
+    // Persist filter state for shareable URLs
+    if (filters.selectedState && filters.selectedState !== 'all') params.set('state', filters.selectedState);
+    if (filters.gameType) params.set('game', filters.gameType);
+    if (sortBy && sortBy !== 'trust') params.set('sort', sortBy);
+    if (filters.radius && filters.radius !== '100') params.set('radius', filters.radius);
     const qs = params.toString();
     const newUrl = qs ? `/hub/poker-near-me-lobby?${qs}` : '/hub/poker-near-me-lobby';
     const currentUrl = window.location.pathname + window.location.search;
     if (currentUrl !== newUrl) {
       window.history.replaceState(null, '', newUrl);
     }
-  }, [activePod, searchQuery]);
+  }, [activePod, searchQuery, filters.selectedState, filters.gameType, sortBy, filters.radius]);
 
   // ─── Fetch venues ───
   const fetchVenues = useCallback(async (query = '', pageNum = 0, append = false) => {
@@ -1615,9 +1636,8 @@ export default function PokerNearMeLobby() {
                   <button onClick={() => setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false }))}
                     style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
                 </div>
-                {loading && <div style={{ textAlign: 'center', padding: 20, color: '#8b949e' }}>
-                  <div style={{ width: 32, height: 32, border: '3px solid rgba(48,54,61,0.6)', borderTopColor: '#58a6ff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
-                  Loading home games...
+                {loading && <div style={{ display: 'grid', gap: 12 }}>
+                  {[1,2,3].map(n => <div key={n} style={{ height: 80, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(88,166,255,0.1)' }} />)}
                 </div>}
                 <div style={{ display: 'grid', gap: 12 }}>
                   {homeGames.map(v => (
@@ -1941,9 +1961,8 @@ export default function PokerNearMeLobby() {
               {filteredTours.map((t, i) => <TourCard key={t.tour_code || t.id || `tour-${i}`} tour={t} />)}
             </div>
             {!toursLoaded && tours.length === 0 && (
-              <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
-                <div style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#00D4FF', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-                Loading tours...
+              <div style={{ display: 'grid', gap: 12 }}>
+                {[1,2,3,4].map(n => <div key={n} style={{ height: 90, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(88,166,255,0.1)' }} />)}
               </div>
             )}
             {toursLoaded && filteredTours.length === 0 && (
@@ -1990,9 +2009,8 @@ export default function PokerNearMeLobby() {
               {filteredSeries.map((s, i) => <SeriesCard key={s.series_code || s.id || `series-${i}`} series={s} />)}
             </div>
             {!seriesLoaded && series.length === 0 && (
-              <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
-                <div style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#00D4FF', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-                Loading series...
+              <div style={{ display: 'grid', gap: 12 }}>
+                {[1,2,3,4].map(n => <div key={n} style={{ height: 90, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(88,166,255,0.1)' }} />)}
               </div>
             )}
             {seriesLoaded && filteredSeries.length === 0 && (
@@ -2075,6 +2093,25 @@ export default function PokerNearMeLobby() {
                 <p style={{ fontSize: 13 }}>Tap the heart on any venue to save it here.</p>
               </div>
             )}
+            {favVenues.length >= 2 && (
+              <button
+                onClick={() => { setActivePod('compare'); }}
+                style={{
+                  width: '100%', padding: '10px 16px', borderRadius: 10, marginTop: 12,
+                  border: '1px solid rgba(212,168,83,0.25)',
+                  background: 'linear-gradient(135deg, rgba(212,168,83,0.06), rgba(212,168,83,0.02))',
+                  color: '#d4a853', fontSize: 13, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  transition: 'all 0.2s',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                Compare Venues
+              </button>
+            )}
           </div>
         );
         break;
@@ -2107,6 +2144,10 @@ export default function PokerNearMeLobby() {
             </div>
           </div>
         );
+        break;
+
+      case 'compare':
+        component = <VenueCompare venues={venues} userLocation={userLocation} />;
         break;
 
       case 'scraperhealth':
@@ -2735,6 +2776,14 @@ export default function PokerNearMeLobby() {
       @keyframes lobby-gpsPulse {
         0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.3); }
         50% { box-shadow: 0 0 0 10px rgba(34,197,94,0); }
+      }
+      @keyframes lobby-badgePulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
+      @keyframes pnm-shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
       }
 
       /* ═══ ENTITY CARD BASE — v2.1 ═══ */

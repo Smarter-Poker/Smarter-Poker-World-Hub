@@ -64,6 +64,141 @@
       "createdAt": "2026-03-29T04:12:08.437Z",
       "model": "sonnet",
       "modelRoutedBy": "default"
+    },
+    "agent-1774759159359-4usarq": {
+      "agentId": "agent-1774759159359-4usarq",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "provider": "anthropic",
+        "task": "Refactor GodModeArena.jsx (src/components/training/GodModeArena.jsx) - extract utility functions into separate modules, reduce the 2155-line monolith, extract saveSession logic, extract achievement checking, extract question generation into standalone utilities. Do NOT change the component API or props interface."
+      },
+      "createdAt": "2026-03-29T04:39:19.362Z",
+      "model": "sonnet",
+      "modelRoutedBy": "router"
+    },
+    "agent-1774759169857-dxfg25": {
+      "agentId": "agent-1774759169857-dxfg25",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "provider": "anthropic",
+        "task": "Harden GameSession.tsx and GamePhaseController.tsx (src/components/training/) - add error boundaries around phase transitions, add null-safe guards on scenario data access, add graceful fallbacks for missing solver data, add retry logic for failed API calls. Files: GameSession.tsx, GamePhaseController.tsx, TrainingErrorBoundary.js"
+      },
+      "createdAt": "2026-03-29T04:39:29.860Z",
+      "model": "sonnet",
+      "modelRoutedBy": "router"
+    },
+    "agent-1774759181822-2jf8pz": {
+      "agentId": "agent-1774759181822-2jf8pz",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "provider": "anthropic",
+        "task": "Polish training UI components (src/components/training/) - improve FeedbackCard.tsx animations, enhance RoundSummary.tsx stat displays, modernize LevelSelector.tsx grid layout, add smooth transitions to GameIntroSplash.jsx. Focus on CSS micro-animations, visual polish, and responsive mobile layout. Files: FeedbackCard.tsx, RoundSummary.tsx, LevelSelector.tsx, GameIntroSplash.jsx"
+      },
+      "createdAt": "2026-03-29T04:39:41.824Z",
+      "model": "sonnet",
+      "modelRoutedBy": "router"
+    },
+    "agent-1774759192498-028qol": {
+      "agentId": "agent-1774759192498-028qol",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "provider": "anthropic",
+        "task": "Improve training analytics and metrics pipeline (src/components/training/) - enhance DashboardMetrics.jsx with historical trend charts, add position-based win rate calculations to PositionStatsPanel.jsx, improve EVGraph.jsx data visualization with tooltips, add session comparison to SessionHistoryList.jsx. Files: DashboardMetrics.jsx, PositionStatsPanel.jsx, EVGraph.jsx, SessionHistoryList.jsx"
+      },
+      "createdAt": "2026-03-29T04:39:52.501Z",
+      "model": "sonnet",
+      "modelRoutedBy": "router"
+    },
+    "agent-1774759203025-8f7p78": {
+      "agentId": "agent-1774759203025-8f7p78",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "provider": "anthropic",
+        "task": "Optimize the training table and scenario engine (src/components/training/) - improve UniversalTrainingTable.tsx render performance with React.memo and useMemo, optimize PreflopRangeTrainer.jsx grid rendering, add loading skeletons to TrainingHandScenarioPlayer.jsx, optimize ChartGrid.tsx with virtualized rendering for large range displays. Files: UniversalTrainingTable.tsx, PreflopRangeTrainer.jsx, TrainingHandScenarioPlayer.jsx, ChartGrid.tsx"
+      },
+      "createdAt": "2026-03-29T04:40:03.028Z",
+      "model": "opus",
+      "modelRoutedBy": "router"
+    },
+    "agent-1774759640676-4zmaxa": {
+      "agentId": "agent-1774759640676-4zmaxa",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "provider": "anthropic"
+      },
+      "createdAt": "2026-03-29T04:47:20.676Z",
+      "model": "sonnet",
+      "modelRoutedBy": "default"
+    },
+    "agent-1774759641551-qudnz1": {
+      "agentId": "agent-1774759641551-qudnz1",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "provider": "anthropic"
+      },
+      "createdAt": "2026-03-29T04:47:21.551Z",
+      "model": "sonnet",
+      "modelRoutedBy": "default"
+    },
+    "agent-1774759642473-2nltw6": {
+      "agentId": "agent-1774759642473-2nltw6",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "provider": "anthropic"
+      },
+      "createdAt": "2026-03-29T04:47:22.473Z",
+      "model": "sonnet",
+      "modelRoutedBy": "default"
+    },
+    "agent-1774759644852-k3ldov": {
+      "agentId": "agent-1774759644852-k3ldov",
+      "agentType": "tester",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "provider": "anthropic"
+      },
+      "createdAt": "2026-03-29T04:47:24.852Z",
+      "model": "sonnet",
+      "modelRoutedBy": "default"
+    },
+    "agent-1774759645705-mr2al4": {
+      "agentId": "agent-1774759645705-mr2al4",
+      "agentType": "reviewer",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "provider": "anthropic"
+      },
+      "createdAt": "2026-03-29T04:47:25.705Z",
+      "model": "sonnet",
+      "modelRoutedBy": "default"
     }
   },
   "version": "3.0.0"
