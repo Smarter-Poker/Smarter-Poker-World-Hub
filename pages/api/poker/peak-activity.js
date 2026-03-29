@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     
     let query = supabase
       .from('venue_live_history')
-      .select('venue_name, tables_count, snapshot_time')
+      .select('venue_name, total_tables, snapshot_time')
       .gte('snapshot_time', twoWeeksAgo)
       .order('snapshot_time', { ascending: true });
     
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       const dt = new Date(row.snapshot_time);
       const hour = dt.getUTCHours();
       const day = dt.getUTCDay();
-      const tables = row.tables_count || 0;
+      const tables = row.total_tables || 0;
       
       // Hour buckets
       if (!hourBuckets[hour]) hourBuckets[hour] = { totalTables: 0, count: 0 };

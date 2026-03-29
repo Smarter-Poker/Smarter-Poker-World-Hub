@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     try {
       const { data: hd, error: histErr } = await supabase
         .from('venue_live_history')
-        .select('snapshot_data')
+        .select('venue_name, total_tables, game_count, snapshot_time')
         .gte('snapshot_time', weekAgo)
         .order('snapshot_time', { ascending: true })
         .limit(1);
@@ -50,19 +50,12 @@ export default async function handler(req, res) {
       currentCounts[game] = (currentCounts[game] || 0) + 1;
     });
 
-    // Parse historical data if available
+    // Historical comparison — venue_live_history stores aggregate counts 
+    // (total_tables per venue), not game-level detail. We can compare total 
+    // network size but not per-game trends from history alone.
     const historicalCounts = {};
-    if (histData && histData.length > 0 && histData[0].snapshot_data) {
-      const snap = typeof histData[0].snapshot_data === 'string' 
-        ? JSON.parse(histData[0].snapshot_data) 
-        : histData[0].snapshot_data;
-      if (Array.isArray(snap)) {
-        snap.forEach(row => {
-          const game = normalizeGameType(row.game || row.game_type);
-          historicalCounts[game] = (historicalCounts[game] || 0) + 1;
-        });
-      }
-    }
+    // Historical game-level data is not available in venue_live_history schema,
+    // so trend analysis only reflects current snapshot distribution.
 
     // Build trend analysis
     const allGames = new Set([...Object.keys(currentCounts), ...Object.keys(historicalCounts)]);
