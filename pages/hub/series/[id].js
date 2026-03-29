@@ -13,6 +13,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import { formatGameType } from '../../../src/utils/pokerFormatters';
 
 // Tour badge color mapping
 const TOUR_COLORS = {
@@ -542,7 +543,7 @@ export default function SeriesDetailPage() {
                           </td>
                           <td className="event-date">{formatEventDate(evt.start_date)}</td>
                           <td className="event-buyin">{evt.buy_in ? formatMoney(evt.buy_in) : 'TBD'}</td>
-                          <td className="event-game">{evt.game_type || '--'}</td>
+                          <td className="event-game">{evt.game_type ? formatGameType(evt.game_type) : '--'}</td>
                           <td className="event-format">{evt.format || '--'}</td>
                         </tr>
                         {isExpanded && (
@@ -577,7 +578,7 @@ export default function SeriesDetailPage() {
                                   {evt.game_type && (
                                     <div className="detail-field">
                                       <span className="detail-label">Game</span>
-                                      <span className="detail-value">{evt.game_type}</span>
+                                      <span className="detail-value">{formatGameType(evt.game_type)}</span>
                                     </div>
                                   )}
                                   {evt.format && (

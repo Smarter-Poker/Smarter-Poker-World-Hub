@@ -13,6 +13,18 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
+import { formatGameType } from '../../src/utils/pokerFormatters';
+
+// Decode HTML entities from scraped data (e.g., &#39; → ')
+function decodeHtml(str) {
+    if (!str) return str;
+    return str
+        .replace(/&#39;/g, "'")
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"');
+}
 
 const C = { bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B', border: '#DADDE1', blue: '#1877F2', green: '#42B72A' };
 
@@ -222,7 +234,7 @@ function EventCard({ event, isToday }) {
             color: C.text,
             lineHeight: 1.3,
           }}>
-            {event.event_name || 'Unnamed Event'}
+            {decodeHtml(event.event_name) || 'Unnamed Event'}
           </h3>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '8px' }}>
@@ -260,13 +272,13 @@ function EventCard({ event, isToday }) {
                 fontSize: '13px', color: C.blue, textDecoration: 'none', fontWeight: 500,
               }}>
                 <TrophyIcon />
-                {event.series_name}
+                {decodeHtml(event.series_name)}
               </Link>
             )}
             {event.series_name && !event.series_id && (
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: C.textSec }}>
                 <TrophyIcon />
-                {event.series_name}
+                {decodeHtml(event.series_name)}
               </span>
             )}
           </div>

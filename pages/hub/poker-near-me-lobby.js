@@ -288,6 +288,7 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
     if (!t.day_of_week) return false;
     if (t.day_of_week.toLowerCase() !== selectedDay.toLowerCase() && t.day_of_week !== 'Daily') return false;
     if (gameType !== 'all' && t.game_type && !t.game_type.toLowerCase().includes(gameType.toLowerCase())) return false;
+    if (selectedState && selectedState !== 'all' && (t.venue_state || t.state) !== selectedState) return false;
     if (minBuyin && t.buy_in < parseInt(minBuyin, 10)) return false;
     if (maxBuyin && t.buy_in > parseInt(maxBuyin, 10)) return false;
     if (minGuaranteed && (t.guaranteed || 0) < parseInt(minGuaranteed, 10)) return false;

@@ -17,6 +17,7 @@ import { supabase } from '../../../src/lib/supabase';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import { formatGameType } from '../../../src/utils/pokerFormatters';
 
 const VENUE_TYPE_LABELS = {
   casino: 'Casino',
@@ -1309,7 +1310,7 @@ export default function VenueDetailPage() {
                                 </div>
                                 <div className="schedule-details">
                                   {s.game_type && (
-                                    <span className="detail-chip game-type">{s.game_type}</span>
+                                    <span className="detail-chip game-type">{formatGameType(s.game_type)}</span>
                                   )}
                                   {s.format && (
                                     <span className="detail-chip format">{s.format}</span>
@@ -1425,7 +1426,7 @@ export default function VenueDetailPage() {
                   {waitlistData.map(function (wl, colIdx) {
                     var tabColors = ['#FFD700', '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
                     var tabColor = tabColors[colIdx % tabColors.length];
-                    var gameLabel = (wl.stakes || '') + ' ' + (wl.game_type || 'NLH').toUpperCase();
+                    var gameLabel = (wl.stakes || '') + ' ' + formatGameType(wl.game_type);
 
                     return (
                       <div key={gameLabel + '-' + colIdx} className="waitlist-column">
@@ -1569,7 +1570,7 @@ export default function VenueDetailPage() {
                     return (
                       <div key={game.id || idx} className="live-game-card">
                         <div className="live-game-header">
-                          <span className="live-game-type">{game.game_type || 'Cash Game'}</span>
+                          <span className="live-game-type">{formatGameType(game.game_type)}</span>
                           <span className="live-game-stakes">{game.stakes}</span>
                         </div>
                         <div className="live-game-details">
