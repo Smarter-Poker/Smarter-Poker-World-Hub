@@ -203,11 +203,13 @@ export default function PokerNearMeLobby() {
   const [preferences, setPreferences] = useState({ geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true });
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   // ─── Location Prompt Dismissal (ONE-TIME-AND-DONE) ───
-  // Once the user dismisses the Enable Location prompt, we never auto-show it again.
+  // Once the user enables location OR dismisses the prompt, we never auto-show it again.
   // Persisted via localStorage (instant, no-auth) + Supabase prefs (cross-device).
+  // Also restored from pnm_location_enabled flag (set on GPS success).
   const [locationPromptDismissed, setLocationPromptDismissed] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('pnm_location_prompt_dismissed') === '1';
+      return localStorage.getItem('pnm_location_prompt_dismissed') === '1'
+        || localStorage.getItem('pnm_location_enabled') === '1';
     }
     return false;
   });
@@ -727,9 +729,18 @@ export default function PokerNearMeLobby() {
     setUserLocation(loc);
     setGpsActive(true);
     setSortBy('distance'); // Auto-switch to distance sort when GPS enables
+    // ── ONE-AND-DONE: Mark prompt dismissed permanently on GPS success ──
+    // User enabled location — never ask again unless they explicitly turn it off.
+    setLocationPromptDismissed(true);
+    setShowEnablePopup(false);
+    try { localStorage.setItem('pnm_location_prompt_dismissed', '1'); } catch { /* private browsing */ }
+    try { localStorage.setItem('pnm_location_enabled', '1'); } catch { /* */ }
+    try { localStorage.setItem('pnm_last_location', JSON.stringify(loc)); } catch { /* */ }
     const geo = await reverseGeocode(loc.lat, loc.lng);
     if (geo?.city) {
       showLocationSuccessToast(geo);
+      try { localStorage.setItem('pnm_last_city', geo.city); } catch { /* */ }
+      try { localStorage.setItem('pnm_last_state', geo.state || ''); } catch { /* */ }
     }
     // Persist enabled state + coordinates to Supabase
     if (userId) {
@@ -739,6 +750,7 @@ export default function PokerNearMeLobby() {
         lastLocationCity: geo?.city || '',
         lastLocationState: geo?.state || '',
         locationEnabledAt: new Date().toISOString(),
+        locationPromptDismissed: true,
       }).catch(() => {});
     }
     // Fetch ALL venues with GPS coordinates for distance sorting
@@ -770,6 +782,12 @@ export default function PokerNearMeLobby() {
       setLocationCity('');
       setLocationState('');
       setSortBy('trust'); // Revert to trust sort when GPS disabled
+      // Clear persistence — user explicitly turned it off
+      try { localStorage.removeItem('pnm_location_enabled'); } catch { /* */ }
+      try { localStorage.removeItem('pnm_last_location'); } catch { /* */ }
+      try { localStorage.removeItem('pnm_last_city'); } catch { /* */ }
+      try { localStorage.removeItem('pnm_last_state'); } catch { /* */ }
+      // Keep pnm_location_prompt_dismissed so we don't re-prompt
       if (userId) {
         updatePokerNearMePreferences(userId, { locationEnabled: false }).catch(() => {});
       }
@@ -874,22 +892,45 @@ export default function PokerNearMeLobby() {
     const locationPref = preferences?.locationEnabled;
     const savedLoc = preferences?.lastLocation;
 
+    // ── FAST PATH: Restore from localStorage if Supabase hasn't loaded yet ──
+    // This provides instant location on page load without waiting for DB.
+    let fastLoc = null;
+    let fastCity = '';
+    let fastState = '';
+    if (!savedLoc?.lat && typeof window !== 'undefined') {
+      try {
+        const lsLoc = localStorage.getItem('pnm_last_location');
+        if (lsLoc) {
+          fastLoc = JSON.parse(lsLoc);
+          fastCity = localStorage.getItem('pnm_last_city') || '';
+          fastState = localStorage.getItem('pnm_last_state') || '';
+        }
+      } catch { /* */ }
+    }
+
     // CASE 1: User PREVIOUSLY DECLINED → do NOT auto-prompt (respect their choice)
-    if (locationPref === false) return;
+    if (locationPref === false && !fastLoc) return;
 
     // CASE 2: User PREVIOUSLY ACCEPTED → silently re-enable GPS
-    // If we have saved coordinates, use them immediately (instant, no permission prompt)
-    // Then silently try to refresh GPS in background for accuracy
-    if (locationPref === true && savedLoc?.lat && savedLoc?.lng) {
-      setUserLocation(savedLoc);
+    // If we have saved coordinates (Supabase or localStorage), use them immediately
+    // (instant, no permission prompt). Then silently refresh in background.
+    const restoreLoc = (savedLoc?.lat && savedLoc?.lng) ? savedLoc : (fastLoc?.lat && fastLoc?.lng) ? fastLoc : null;
+    const restoreCity = (savedLoc?.lat ? preferences?.lastLocationCity : fastCity) || '';
+    const restoreState = (savedLoc?.lat ? preferences?.lastLocationState : fastState) || '';
+
+    if ((locationPref === true || fastLoc) && restoreLoc) {
+      setUserLocation(restoreLoc);
       setGpsActive(true);
       setSortBy('distance'); // BUG-05 fix: auto-distance sort for returning users
+      // ── ONE-AND-DONE: mark prompt dismissed since user previously enabled location ──
+      setLocationPromptDismissed(true);
+      try { localStorage.setItem('pnm_location_prompt_dismissed', '1'); } catch { /* */ }
       showLocationSuccessToast({
-        city: preferences?.lastLocationCity || '',
-        state: preferences?.lastLocationState || '',
+        city: restoreCity,
+        state: restoreState,
       });
       // Fetch venues with saved location immediately
-      const gpsUrl = `/api/poker/venues?limit=10000&offset=0&lat=${savedLoc.lat}&lng=${savedLoc.lng}&radius=250&sort=distance`;
+      const gpsUrl = `/api/poker/venues?limit=10000&offset=0&lat=${restoreLoc.lat}&lng=${restoreLoc.lng}&radius=250&sort=distance`;
       cachedFetch(gpsUrl).then(data => {
         const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
         setVenues(newVenues);
@@ -902,7 +943,7 @@ export default function PokerNearMeLobby() {
           (pos) => {
             const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             setUserLocation(loc);
-            const movedSignificantly = Math.abs(loc.lat - savedLoc.lat) > 0.01 || Math.abs(loc.lng - savedLoc.lng) > 0.01;
+            const movedSignificantly = Math.abs(loc.lat - restoreLoc.lat) > 0.01 || Math.abs(loc.lng - restoreLoc.lng) > 0.01;
             if (movedSignificantly) {
               const freshUrl = `/api/poker/venues?limit=10000&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
               cachedFetch(freshUrl).then(data => {
@@ -932,7 +973,7 @@ export default function PokerNearMeLobby() {
               (pos) => {
                 const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                 setUserLocation(loc);
-                const movedSignificantly = Math.abs(loc.lat - savedLoc.lat) > 0.01 || Math.abs(loc.lng - savedLoc.lng) > 0.01;
+                const movedSignificantly = Math.abs(loc.lat - restoreLoc.lat) > 0.01 || Math.abs(loc.lng - restoreLoc.lng) > 0.01;
                 if (movedSignificantly) {
                   const freshUrl = `/api/poker/venues?limit=10000&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=250&sort=distance`;
                   cachedFetch(freshUrl).then(data => {

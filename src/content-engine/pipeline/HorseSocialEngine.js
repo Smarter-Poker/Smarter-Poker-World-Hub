@@ -565,8 +565,8 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
                 }
             });
             
-            // Simulate human typing delay (3s - 8s based on comment length)
-            const typingMs = Math.max(3000, Math.min(8000, comment.length * 100));
+            // Simulate human typing delay (1s - 3s based on comment length, reduced for cron efficiency)
+            const typingMs = Math.max(1000, Math.min(3000, comment.length * 50));
             console.log(`   [Live] ${horse.name} is typing on post ${post.id.substring(0,6)}... (${Math.round(typingMs/1000)}s)`);
             await new Promise(r => setTimeout(r, typingMs));
             
@@ -637,8 +637,8 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
             if (commented >= maxComments) break;
         }
 
-        // Random delay between horses (3-10 seconds)
-        await new Promise(r => setTimeout(r, 3000 + Math.random() * 7000));
+        // Reduced delay between horses (0.5-2 seconds) for cron efficiency
+        await new Promise(r => setTimeout(r, 500 + Math.random() * 1500));
     }
 
     console.log(`   Posted: ${commented} comments from ${activeHorses.length} active horses`);
@@ -761,8 +761,8 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
             }
         }
 
-        // Random delay between horses (2-8 seconds)
-        await new Promise(r => setTimeout(r, 2000 + Math.random() * 6000));
+        // Reduced delay between horses (0.5-2 seconds) for cron efficiency
+        await new Promise(r => setTimeout(r, 500 + Math.random() * 1500));
     }
 
     console.log(`   Liked: ${liked} posts from ${activeHorses.length} active horses`);
@@ -895,8 +895,8 @@ async function replyToComments(maxReplies = 15) {
             if (replied >= maxReplies) break;
         }
 
-        // Random delay between horses (3-8 seconds)
-        await new Promise(r => setTimeout(r, 3000 + Math.random() * 5000));
+        // Reduced delay between horses (0.5-2 seconds) for cron efficiency
+        await new Promise(r => setTimeout(r, 500 + Math.random() * 1500));
     }
 
     console.log(`   Replied: ${replied} times from ${activeHorses.length} active horses`);

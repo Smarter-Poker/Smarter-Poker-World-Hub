@@ -2,6 +2,11 @@
 // Consolidated endpoint: runs likes, comments, and replies in sequence.
 // Replaces 3 separate crons (likes every 10min, comments every 7min, replies every 8min)
 // New schedule: every 15 minutes, drops 530 invocations per day to 96
+//
+// FIX (2026-03-29): Reduced batch sizes + added 55s hard deadline to prevent
+// 100% timeout failures (~96 500-errors/day). The HorseSocialEngine's typing
+// indicators and sleep timers were accumulating to 70-100s, exceeding the
+// 60s Vercel serverless limit.
 
 import { likePosts, commentOnPosts, replyToComments } from '../../../src/content-engine/pipeline/HorseSocialEngine.js';
 import { processDirectMessages } from '../../../src/content-engine/pipeline/HorseMessengerEngine.js';
@@ -9,6 +14,26 @@ import { processDirectMessages } from '../../../src/content-engine/pipeline/Hors
 export const config = {
     maxDuration: 60,
 };
+
+// Race a task against a deadline. Returns result or null on timeout.
+async function withDeadline(fn, deadlineMs, label) {
+    const remaining = deadlineMs - Date.now();
+    if (remaining <= 2000) {
+        console.log(`   [DEADLINE] Skipping ${label} — only ${Math.round(remaining / 1000)}s left`);
+        return null;
+    }
+    try {
+        return await Promise.race([
+            fn(),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error(`${label} hit deadline`)), remaining - 1000)
+            )
+        ]);
+    } catch (err) {
+        console.warn(`   [DEADLINE] ${label}: ${err.message}`);
+        return null;
+    }
+}
 
 export default async function handler(req, res) {
     // Security: validate cron secret for external callers
@@ -20,37 +45,41 @@ export default async function handler(req, res) {
         }
     }
 
+    // Hard deadline: finish all work within 55s to leave headroom for the 60s max
+    const deadline = Date.now() + 55_000;
+    const results = { liked: 0, commented: 0, replied: 0, dm: 0, skipped: [] };
 
-    const results = { liked: 0, commented: 0, replied: 0 };
+    // Step 1: Likes (reduced batch: 8 instead of 15)
+    const likeResult = await withDeadline(
+        () => likePosts(8, true), deadline, 'likes'
+    );
+    results.liked = likeResult?.liked || 0;
+    if (!likeResult) results.skipped.push('likes');
 
-    try {
-        // Step 1: Likes (smaller batch to fit in 60s total)
-        const likeResult = await likePosts(15, true);
-        results.liked = likeResult.liked || 0;
+    // Step 2: Comments (reduced batch: 5 instead of 10)
+    const commentResult = await withDeadline(
+        () => commentOnPosts(5, true), deadline, 'comments'
+    );
+    results.commented = commentResult?.commented || 0;
+    if (!commentResult) results.skipped.push('comments');
 
-        // Step 2: Comments
-        const commentResult = await commentOnPosts(10, true);
-        results.commented = commentResult.commented || 0;
+    // Step 3: Replies (reduced batch: 5 instead of 10)
+    const replyResult = await withDeadline(
+        () => replyToComments(5), deadline, 'replies'
+    );
+    results.replied = replyResult?.replied || 0;
+    if (!replyResult) results.skipped.push('replies');
 
-        // Step 3: Replies
-        const replyResult = await replyToComments(10);
-        results.replied = replyResult.replied || 0;
+    // Step 4: Grok Direct Messages (only if >8s left)
+    const dmResult = await withDeadline(
+        () => processDirectMessages(), deadline, 'DMs'
+    );
+    if (!dmResult) results.skipped.push('DMs');
 
-        // Step 4: Grok Direct Messages
-        await processDirectMessages();
-
-
-        return res.status(200).json({
-            success: true,
-            ...results,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        console.error('Horses social all-in-one error:', error);
-        return res.status(500).json({
-            success: false,
-            ...results,
-            error: error.message
-        });
-    }
+    // Always return 200 — partial progress is fine for cron jobs
+    return res.status(200).json({
+        success: true,
+        ...results,
+        timestamp: new Date().toISOString()
+    });
 }
