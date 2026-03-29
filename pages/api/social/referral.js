@@ -6,8 +6,19 @@
  * Referrals award diamonds to both referrer and referee.
  */
 
-import { supabaseServerClient } from '../../_shared/supabaseServer';
-import { apiRateLimit } from '../../_shared/rateLimiter';
+import { createClient } from '@supabase/supabase-js';
+
+// Lazy-init Supabase client (RAT-AUTH-NUCLEAR compliant)
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!key) throw new Error('[referral] No Supabase key');
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 const REFERRAL_BONUS_REFERRER = 100;  // Diamonds awarded to the person who referred
 const REFERRAL_BONUS_REFEREE = 50;    // Diamonds awarded to the new user who signed up
@@ -19,12 +30,10 @@ function generateCode(username) {
 }
 
 export default async function handler(req, res) {
-    // Rate limiting
-    const rateLimitResult = await apiRateLimit(req, { maxRequests: 30, windowMs: 60000 });
-    if (rateLimitResult) return res.status(429).json({ error: 'Too many requests' });
-
-    const supabase = supabaseServerClient(req);
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Auth
+    const token = (req.headers.authorization || '').replace('Bearer ', '');
+    const supabase = getSupabase();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }

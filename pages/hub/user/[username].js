@@ -8,6 +8,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
@@ -32,6 +33,8 @@ import SharePostModal from '../../../src/components/social/SharePostModal';
 import ReactionPicker from '../../../src/components/social/ReactionPicker';
 import PostImageLightbox from '../../../src/components/social/PostImageLightbox';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+
+const PlayerNotes = dynamic(() => import('../../../src/components/poker/PlayerNotes'), { ssr: false });
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -2042,6 +2045,13 @@ export default function UserProfilePage() {
                                 isOwnProfile={isOwnProfile}
                                 onOpenResume={(url) => setArticleReader({ open: true, url, title: 'HendonMob Poker Resume' })}
                             />
+
+                            {/* Player Notes Component */}
+                            {!isOwnProfile && currentUser && profile && (
+                                <div style={{ marginBottom: 16 }}>
+                                    <PlayerNotes targetPlayerId={profile.id} targetPlayerName={profile.username} />
+                                </div>
+                            )}
 
                             {/* Bio — below Poker Resume */}
                             {profile.bio && (

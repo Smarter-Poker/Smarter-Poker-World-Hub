@@ -25,6 +25,16 @@ const BestTimeToGoWidget = dynamic(
   { ssr: false }
 );
 
+const PeakHoursHeatmap = dynamic(
+  () => import('../../../src/components/poker/PeakHoursHeatmap'),
+  { ssr: false }
+);
+
+const VenueReviews = dynamic(
+  () => import('../../../src/components/poker/VenueReviews'),
+  { ssr: false }
+);
+
 const VENUE_TYPE_LABELS = {
   casino: 'Casino',
   card_room: 'Card Room',
@@ -1870,176 +1880,21 @@ export default function VenueDetailPage() {
             )}
 
             {/* ============================================ */}
-            {/* POPULAR HOURS                               */}
+            {/* POPULAR HOURS (REPLACED WITH PeakHoursHeatmap) */}
             {/* ============================================ */}
-            {popularHours.hours.length > 0 && popularHours.hours.some(function(h) { return h.count > 0; }) && (
-              <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16 }}>
-                <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  Popular Times
-                </h3>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>Busiest hour: {popularHours.peakHour}</div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 1, height: 50, overflow: 'hidden' }}>
-                  {popularHours.hours.filter(function(h) { return h.hour >= 8 && h.hour <= 23; }).map(function (h) {
-                    var pct = popularHours.maxCount > 0 ? (h.count / popularHours.maxCount) * 100 : 0;
-                    return (
-                      <div key={h.hour} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                        <div style={{
-                          width: '100%', minHeight: 2, height: Math.max(2, pct * 0.45) + 'px',
-                          borderRadius: 2, background: pct > 70 ? '#a78bfa' : pct > 30 ? 'rgba(167,139,250,0.5)' : 'rgba(255,255,255,0.08)',
-                          transition: 'height 0.3s ease'
-                        }} />
-                        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>{h.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
+            <section style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 16, marginBottom: 16 }}>
+              <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Popular Times Heatmap
+              </h3>
+              <PeakHoursHeatmap venueId={id} />
+            </section>
 
             {/* ============================================ */}
-            {/* REVIEWS & RATINGS SECTION                    */}
+            {/* REVIEWS & RATINGS SECTION (REPLACED WITH VenueReviews) */}
             {/* ============================================ */}
             <section id="reviews-section" className="reviews-section">
-              <div className="section-header-row">
-                <h2 className="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                  Reviews &amp; Ratings
-                </h2>
-                <button
-                  className="section-action-btn"
-                  onClick={function () { setShowReviewForm(!showReviewForm); }}
-                >
-                  {showReviewForm ? 'Cancel' : 'Write a Review'}
-                </button>
-              </div>
-
-              {/* Rating Summary */}
-              {totalReviews > 0 && (
-                <div className="rating-summary">
-                  <div className="rating-overview">
-                    <div className="rating-big-number">{avgRating.toFixed(1)}</div>
-                    <StarRating rating={Math.round(avgRating)} size={20} />
-                    <div className="rating-total">{totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}</div>
-                  </div>
-                  {ratingDistribution && (
-                    <div className="rating-bars">
-                      {[5, 4, 3, 2, 1].map(function (star) {
-                        var count = ratingDistribution[star] || 0;
-                        var pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
-                        return (
-                          <div key={star} className="rating-bar-row">
-                            <span className="rating-bar-label">{star}</span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#00D4FF" stroke="none">
-                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                            </svg>
-                            <div className="rating-bar-track">
-                              <div
-                                className="rating-bar-fill"
-                                style={{ width: pct + '%' }}
-                              />
-                            </div>
-                            <span className="rating-bar-count">{count}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Review Form */}
-              {showReviewForm && (
-                <form className="inline-form" onSubmit={handleSubmitReview}>
-                  <div className="form-group">
-                    <label className="form-label">Your Rating *</label>
-                    <div className="star-selector">
-                      <StarRating
-                        rating={reviewForm.rating}
-                        size={28}
-                        interactive={true}
-                        onRate={function (val) { setReviewForm(Object.assign({}, reviewForm, { rating: val })); }}
-                      />
-                      {reviewForm.rating > 0 && (
-                        <span className="star-selector-label">
-                          {['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'][reviewForm.rating]}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Your Name</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Display Name..."
-                      value={reviewForm.reviewer_name}
-                      onChange={function (e) { setReviewForm(Object.assign({}, reviewForm, { reviewer_name: e.target.value })); }}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Review *</label>
-                    <textarea
-                      className="form-textarea"
-                      rows="4"
-                      placeholder="Share Your Experience At This Venue..."
-                      value={reviewForm.review_text}
-                      onChange={function (e) { setReviewForm(Object.assign({}, reviewForm, { review_text: e.target.value })); }}
-                      required
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="form-submit-btn"
-                    disabled={reviewSubmitting || !reviewForm.rating || !reviewForm.review_text.trim()}
-                  >
-                    {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
-                  </button>
-                </form>
-              )}
-
-              {/* Reviews List */}
-              {reviews.length > 0 ? (
-                <div className="reviews-list">
-                  {reviews.map(function (review, idx) {
-                    return (
-                      <div key={review.id || idx} className="review-card">
-                        <div className="review-header">
-                          <div className="review-author">
-                            <div className="review-avatar">
-                              {(review.reviewer_name || 'A').charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <span className="review-name">{review.reviewer_name || 'Anonymous'}</span>
-                              <span className="review-date">{timeAgo(review.created_at)}</span>
-                            </div>
-                          </div>
-                          <StarRating rating={review.rating || 0} size={14} />
-                        </div>
-                        <p className="review-text">{review.review_text}</p>
-                        {review.helpful_count > 0 && (
-                          <span className="review-helpful">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" />
-                              <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
-                            </svg>
-                            {review.helpful_count} found helpful
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : !showReviewForm && (
-                <div className="empty-section-card">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                  <p>No Reviews Yet. Be The First To Review This Venue!</p>
-                </div>
-              )}
+              <VenueReviews venueId={id} venueName={venue?.name} />
             </section>
 
             {/* ============================================ */}

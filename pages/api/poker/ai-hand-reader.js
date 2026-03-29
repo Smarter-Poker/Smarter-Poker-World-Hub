@@ -6,8 +6,19 @@
  * extract structured hand history data.
  */
 
-import { supabaseServerClient } from '../../_shared/supabaseServer';
-import { apiRateLimit } from '../../_shared/rateLimiter';
+import { createClient } from '@supabase/supabase-js';
+
+// Lazy-init Supabase client (RAT-AUTH-NUCLEAR compliant)
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!key) throw new Error('[ai-hand-reader] No Supabase key');
+        _supabase = createClient(url, key);
+    }
+    return _supabase;
+}
 
 export const config = {
     api: {
@@ -54,13 +65,10 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Rate limiting
-    const rateLimitResult = await apiRateLimit(req, { maxRequests: 10, windowMs: 60000 });
-    if (rateLimitResult) return res.status(429).json({ error: 'Too many requests' });
-
     // Auth
-    const supabase = supabaseServerClient(req);
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const token = (req.headers.authorization || '').replace('Bearer ', '');
+    const supabase = getSupabase();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }

@@ -4,14 +4,16 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import FavoriteHandPicker from '../../src/components/profile/FavoriteHandPicker';
-import CoverPhotoEditor from '../../src/components/profile/CoverPhotoEditor';
+import dynamic from 'next/dynamic';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { claimReward } from '../../src/lib/claimReward';
 import { useRouter } from 'next/router';
-import { MediaLibrary } from '../../src/components/social/MediaLibrary';
-import { ProfilePictureHistory } from '../../src/components/social/ProfilePictureHistory';
+
+const FavoriteHandPicker = dynamic(() => import('../../src/components/profile/FavoriteHandPicker'), { ssr: false });
+const CoverPhotoEditor = dynamic(() => import('../../src/components/profile/CoverPhotoEditor'), { ssr: false });
+const MediaLibrary = dynamic(() => import('../../src/components/social/MediaLibrary').then(mod => mod.MediaLibrary), { ssr: false });
+const ProfilePictureHistory = dynamic(() => import('../../src/components/social/ProfilePictureHistory').then(mod => mod.ProfilePictureHistory), { ssr: false });
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';

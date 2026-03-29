@@ -10,18 +10,21 @@ import { useState, useEffect } from 'react';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
 // useTheme removed — unused (DarkModeToggle handles theme internally)
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
+import dynamic from 'next/dynamic';
 import { supabase } from '../../src/lib/supabase';
-import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
+// CustomAvatarBuilder statically imported is a heavy bundle hit. Lazy load it.
+const CustomAvatarBuilder = dynamic(() => import('../../src/components/avatars/CustomAvatarBuilder'), { ssr: false });
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getCustomAvatarGallery } from '../../src/services/avatar-service';
 
 // God-Mode Stack
-// useSettingsStore removed — unused (settings are managed via local state)
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
-import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
+// InviteFriendsModal is loaded dynamically
+const InviteFriendsModal = dynamic(() => import('../../src/components/ui/InviteFriendsModal'), { ssr: false });
+const ReferralCrewCard = dynamic(() => import('../../src/components/social/ReferralCrewCard'), { ssr: false });
 import { getAccessToken } from '../../src/lib/authUtils';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../../src/lib/broadcastSync';
@@ -1256,91 +1259,8 @@ export default function SettingsPage() {
 
                                 {/* Refer a Friend Card */}
                                 {userProfile?.player_number && (
-                                    <div style={{
-                                        ...styles.card,
-                                        background: 'linear-gradient(135deg, rgba(24, 119, 242, 0.15), rgba(66, 183, 42, 0.1))',
-                                        border: '1px solid rgba(24, 119, 242, 0.3)',
-                                    }}>
-                                        <h3 style={{ ...styles.cardTitle, color: '#1877F2', marginBottom: 8 }}>
-                                            Refer a Friend
-                                        </h3>
-                                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 16 }}>
-                                            Share Your Referral Code And Earn <strong style={{ color: '#42B72A' }}>500 Diamonds</strong> For Every Friend Who Signs Up!
-                                        </p>
-
-                                        {/* Player Number Display */}
-                                        <div style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 12,
-                                            marginBottom: 16,
-                                            padding: '12px 16px',
-                                            background: 'rgba(0, 0, 0, 0.3)',
-                                            borderRadius: 10,
-                                            border: '1px solid rgba(24, 119, 242, 0.3)',
-                                        }}>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Your Referral Code</div>
-                                                <div style={{
-                                                    fontFamily: 'Orbitron, monospace',
-                                                    fontSize: 28,
-                                                    fontWeight: 700,
-                                                    color: '#1877F2',
-                                                    letterSpacing: '3px',
-                                                }}>
-                                                    #{userProfile.player_number}
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    try { navigator.clipboard.writeText(String(userProfile.player_number)); } catch (_) { /* clipboard denied */ }
-                                                    setReferralCopied(true);
-                                                    setTimeout(() => setReferralCopied(false), 2000);
-                                                }}
-                                                style={{
-                                                    padding: '10px 16px',
-                                                    background: referralCopied ? 'rgba(49, 162, 76, 0.3)' : 'rgba(24, 119, 242, 0.2)',
-                                                    border: `1px solid ${referralCopied ? 'rgba(49, 162, 76, 0.5)' : 'rgba(24, 119, 242, 0.4)'}`,
-                                                    borderRadius: 8,
-                                                    color: referralCopied ? '#31A24C' : '#1877F2',
-                                                    fontSize: 13,
-                                                    fontWeight: 600,
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s ease',
-                                                }}
-                                            >
-                                                {referralCopied ? 'Copied!' : 'Copy Code'}
-                                            </button>
-                                        </div>
-
-                                        {/* Copy Referral Link Button */}
-                                        <button
-                                            onClick={() => {
-                                                const link = `https://smarter.poker/auth/signup?ref=${userProfile.player_number}`;
-                                                try { navigator.clipboard.writeText(link); } catch (_) { /* clipboard denied */ }
-                                                setLinkCopied(true);
-                                                setTimeout(() => setLinkCopied(false), 2000);
-                                            }}
-                                            style={{
-                                                width: '100%',
-                                                padding: '14px 20px',
-                                                background: linkCopied ? 'linear-gradient(135deg, #31A24C, #2A8E42)' : 'linear-gradient(135deg, #1877F2, #166FE5)',
-                                                border: 'none',
-                                                borderRadius: 10,
-                                                color: '#fff',
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: 8,
-                                                boxShadow: '0 4px 20px rgba(24, 119, 242, 0.3)',
-                                                transition: 'all 0.3s ease',
-                                            }}
-                                        >
-                                            {linkCopied ? 'Link Copied!' : 'Copy Referral Link'}
-                                        </button>
+                                    <div style={{ marginBottom: 16 }}>
+                                        <ReferralCrewCard />
                                         {/* Invite Friends Button */}
                                         <button
                                             onClick={() => setShowInviteModal(true)}

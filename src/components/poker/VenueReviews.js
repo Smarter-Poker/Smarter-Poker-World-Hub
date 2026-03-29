@@ -8,6 +8,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
+import useVIPGate from '../../hooks/useVIPGate';
+import VIPGateModal from './VIPGateModal';
 
 const T = {
     bg: '#0a0a0a',
@@ -82,6 +84,8 @@ export default function VenueReviews({ venueId, venueName }) {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const formRef = useRef(null);
+
+    const { allowed, loading: gateLoading, featureConfig, showUpgradeModal, upgradeModalVisible, hideUpgradeModal } = useVIPGate('poker-near-me');
 
     const fetchReviews = useCallback(async () => {
         if (!venueId) return;
@@ -177,61 +181,115 @@ export default function VenueReviews({ venueId, venueName }) {
                 )}
             </div>
 
-            {/* Review Form */}
-            {showForm && (
-                <form
-                    ref={formRef}
-                    onSubmit={submitReview}
-                    style={{
-                        background: 'rgba(255,255,255,0.03)', borderRadius: 12,
-                        border: `1px solid ${T.border}`, padding: 16, marginBottom: 16,
-                    }}
-                >
-                    <div style={{ marginBottom: 12 }}>
-                        <div style={{ fontSize: 12, color: T.textSec, marginBottom: 6, fontWeight: 600 }}>Rating</div>
-                        <StarRating rating={newRating} onRate={setNewRating} interactive size={28} />
+            {/* Gated Review list and form */}
+            {!allowed ? (
+                <div style={{ position: 'relative', marginTop: 16, borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ filter: 'blur(8px)', opacity: 0.5, pointerEvents: 'none' }}>
+                        {/* Fake Skeleton Data */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: `1px solid ${T.border}`, padding: 14 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #4facfe, #00f2fe)' }} />
+                                    <div style={{ width: 100, height: 12, background: 'rgba(255,255,255,0.1)', borderRadius: 4 }} />
+                                </div>
+                                <div style={{ width: '80%', height: 14, background: 'rgba(255,255,255,0.1)', borderRadius: 4, marginBottom: 8 }} />
+                                <div style={{ width: '90%', height: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 4, marginBottom: 4 }} />
+                                <div style={{ width: '60%', height: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 4 }} />
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: `1px solid ${T.border}`, padding: 14 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #4facfe, #00f2fe)' }} />
+                                    <div style={{ width: 120, height: 12, background: 'rgba(255,255,255,0.1)', borderRadius: 4 }} />
+                                </div>
+                                <div style={{ width: '70%', height: 14, background: 'rgba(255,255,255,0.1)', borderRadius: 4, marginBottom: 8 }} />
+                                <div style={{ width: '85%', height: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 4 }} />
+                            </div>
+                        </div>
                     </div>
-                    <input
-                        type="text"
-                        placeholder="Review Title"
-                        value={newTitle}
-                        onChange={e => setNewTitle(e.target.value)}
-                        maxLength={100}
-                        style={{
-                            width: '100%', padding: '10px 12px', borderRadius: 8,
-                            background: 'rgba(0,0,0,0.3)', border: `1px solid ${T.border}`,
-                            color: T.text, fontSize: 14, marginBottom: 8, outline: 'none',
-                            boxSizing: 'border-box',
-                        }}
-                    />
-                    <textarea
-                        placeholder="Tell other players about your experience (optional)"
-                        value={newBody}
-                        onChange={e => setNewBody(e.target.value)}
-                        maxLength={1000}
-                        rows={4}
-                        style={{
-                            width: '100%', padding: '10px 12px', borderRadius: 8,
-                            background: 'rgba(0,0,0,0.3)', border: `1px solid ${T.border}`,
-                            color: T.text, fontSize: 13, resize: 'vertical', outline: 'none',
-                            boxSizing: 'border-box',
-                        }}
-                    />
-                    {error && <div style={{ color: '#E74C3C', fontSize: 12, marginTop: 4 }}>{error}</div>}
-                    <button
-                        type="submit"
-                        disabled={submitting}
-                        style={{
-                            marginTop: 10, padding: '10px 24px', borderRadius: 10,
-                            background: submitting ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #4facfe, #00f2fe)',
-                            border: 'none', color: '#000', fontWeight: 800, fontSize: 14,
-                            cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.5 : 1,
-                        }}
-                    >
-                        {submitting ? 'Submitting...' : 'Submit Review'}
-                    </button>
-                </form>
-            )}
+                    
+                    {/* Lock Overlay */}
+                    <div style={{
+                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        background: 'rgba(0,0,0,0.4)', borderRadius: 10, zIndex: 10, padding: 16, textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: 24, marginBottom: 8 }}>🔒</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 4 }}>Player Reviews</div>
+                        <div style={{ fontSize: 12, color: T.textSec, marginBottom: 12 }}>Unlock to read and write venue reviews</div>
+                        <button
+                            onClick={showUpgradeModal}
+                            style={{
+                                padding: '6px 14px', borderRadius: 8, background: 'rgba(255,215,0,0.1)',
+                                border: `1px solid ${T.star}44`, color: T.star, fontSize: 12, fontWeight: 700, cursor: 'pointer'
+                            }}
+                        >
+                            Unlock Feature
+                        </button>
+                        <VIPGateModal 
+                            visible={upgradeModalVisible} 
+                            onClose={hideUpgradeModal} 
+                            featureName="Player Reviews"
+                            featureConfig={featureConfig}
+                        />
+                    </div>
+                </div>
+            ) : (
+                <>
+                    {/* Review Form */}
+                    {showForm && (
+                        <form
+                            ref={formRef}
+                            onSubmit={submitReview}
+                            style={{
+                                background: 'rgba(255,255,255,0.03)', borderRadius: 12,
+                                border: `1px solid ${T.border}`, padding: 16, marginBottom: 16,
+                            }}
+                        >
+                            <div style={{ marginBottom: 12 }}>
+                                <div style={{ fontSize: 12, color: T.textSec, marginBottom: 6, fontWeight: 600 }}>Rating</div>
+                                <StarRating rating={newRating} onRate={setNewRating} interactive size={28} />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Review Title"
+                                value={newTitle}
+                                onChange={e => setNewTitle(e.target.value)}
+                                maxLength={100}
+                                style={{
+                                    width: '100%', padding: '10px 12px', borderRadius: 8,
+                                    background: 'rgba(0,0,0,0.3)', border: `1px solid ${T.border}`,
+                                    color: T.text, fontSize: 14, marginBottom: 8, outline: 'none',
+                                    boxSizing: 'border-box',
+                                }}
+                            />
+                            <textarea
+                                placeholder="Tell other players about your experience (optional)"
+                                value={newBody}
+                                onChange={e => setNewBody(e.target.value)}
+                                maxLength={1000}
+                                rows={4}
+                                style={{
+                                    width: '100%', padding: '10px 12px', borderRadius: 8,
+                                    background: 'rgba(0,0,0,0.3)', border: `1px solid ${T.border}`,
+                                    color: T.text, fontSize: 13, resize: 'vertical', outline: 'none',
+                                    boxSizing: 'border-box',
+                                }}
+                            />
+                            {error && <div style={{ color: '#E74C3C', fontSize: 12, marginTop: 4 }}>{error}</div>}
+                            <button
+                                type="submit"
+                                disabled={submitting}
+                                style={{
+                                    marginTop: 10, padding: '10px 24px', borderRadius: 10,
+                                    background: submitting ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #4facfe, #00f2fe)',
+                                    border: 'none', color: '#000', fontWeight: 800, fontSize: 14,
+                                    cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.5 : 1,
+                                }}
+                            >
+                                {submitting ? 'Submitting...' : 'Submit Review'}
+                            </button>
+                        </form>
+                    )}
 
             {/* Review List */}
             {reviews.length === 0 ? (
@@ -294,6 +352,8 @@ export default function VenueReviews({ venueId, venueName }) {
                         </div>
                     ))}
                 </div>
+            )}
+                </>
             )}
         </div>
     );

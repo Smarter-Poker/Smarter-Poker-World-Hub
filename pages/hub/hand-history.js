@@ -4,6 +4,9 @@ import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { eventBus } from '../../src/engine/EventBus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
+import dynamic from 'next/dynamic';
+
+const ShareableHandCard = dynamic(() => import('../../src/components/poker/ShareableHandCard'), { ssr: false });
 
 const getSupabase = () => typeof window !== 'undefined' ? supabase : null;
 
@@ -26,7 +29,33 @@ export default function HandHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [filterTable, setFilterTable] = useState('all');
+  const [sharingHand, setSharingHand] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const userIdRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const handleAiUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      // Optional: Add session token if required by endpoint
+      const res = await fetch('/api/poker/parse-image', { method: 'POST', body: formData });
+      if (res.ok) {
+        alert("Hand parsed and saved to history!");
+        fetchHands();
+      } else {
+        alert("Failed to parse image check logs.");
+      }
+    } catch(err) {
+      console.error("Upload error", err);
+      alert("Error analyzing hand image.");
+    }
+    setUploadingImage(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   // Fetch hand histories — query via player_ids contains
   const fetchHands = useCallback(async () => {
@@ -98,15 +127,32 @@ export default function HandHistoryPage() {
     <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: T.bg, padding: '20px 16px', fontFamily: "'Segoe UI', sans-serif" }}>
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h1 style={{ color: T.text, fontSize: 22, fontWeight: 900, margin: 0 }}>
-            🃏 Hand History
-          </h1>
-          {stats && (
-            <span style={{ color: T.textSec, fontSize: 11, fontWeight: 600 }}>
-              {stats.totalHands} hands • {stats.winPct}% win • Avg pot {stats.avgPot.toLocaleString()}
-            </span>
-          )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+          <div>
+            <h1 style={{ color: T.text, fontSize: 22, fontWeight: 900, margin: 0 }}>
+              🃏 Hand History
+            </h1>
+            {stats && (
+              <span style={{ color: T.textSec, fontSize: 11, fontWeight: 600, display: 'block', marginTop: 4 }}>
+                {stats.totalHands} hands • {stats.winPct}% win • Avg pot {stats.avgPot.toLocaleString()}
+              </span>
+            )}
+          </div>
+          <div>
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImage}
+              style={{
+                background: 'linear-gradient(135deg, #a78bfa, #8b5cf6)', border: 'none',
+                padding: '8px 14px', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 700,
+                cursor: 'pointer', opacity: uploadingImage ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 6
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              {uploadingImage ? 'Scanning...' : 'AI Scan'}
+            </button>
+            <input type="file" ref={fileInputRef} onChange={handleAiUpload} accept="image/*" style={{ display: 'none' }} />
+          </div>
         </div>
 
         {/* Table Filter */}
@@ -310,6 +356,32 @@ export default function HandHistoryPage() {
                           </div>
                         </div>
                       )}
+
+                      {/* Share Button Placeholder */}
+                      <div style={{ marginTop: 12, textAlign: 'right' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSharingHand({
+                              heroCards: heroCards.map(c => cardStr(c)),
+                              board: board.map(c => cardStr(c)),
+                              result: heroWon ? 'Won' : 'Lost',
+                              amount: (heroNet >= 0 ? '+' : '') + heroNet.toLocaleString(),
+                              stakes: h.small_blind + '/' + h.big_blind,
+                              venue: h.table_id || 'Cash Game',
+                              pot: (h.pot_total || 0).toLocaleString(),
+                              playerName: 'Smarter.Poker User'
+                            });
+                          }}
+                          style={{
+                            background: 'rgba(79,172,254,0.1)', border: '1px solid rgba(79,172,254,0.3)',
+                            color: T.accent, fontSize: 11, fontWeight: 700, padding: '6px 14px',
+                            borderRadius: 6, cursor: 'pointer'
+                          }}
+                        >
+                          🔗 Share Hand Card
+                        </button>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -318,6 +390,9 @@ export default function HandHistoryPage() {
           })}
         </AnimatePresence>
       </div>
+      
+      {sharingHand && <ShareableHandCard hand={sharingHand} onClose={() => setSharingHand(null)} />}
+      
       <BottomNavBar />
     </div>
   );
