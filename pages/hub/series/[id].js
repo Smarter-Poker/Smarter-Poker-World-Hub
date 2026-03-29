@@ -1,6 +1,6 @@
 /**
  * TOURNAMENT SERIES DETAIL PAGE
- * PokerAtlas-style series detail view with event schedule,
+ * Series detail view with event schedule,
  * venue info, follow/share functionality, results & leaderboard,
  * and activity feed.
  */

@@ -1,5 +1,5 @@
 /**
- * TOUR DETAIL PAGE - PokerAtlas-style tour information
+ * TOUR DETAIL PAGE - Tour information and series overview
  * Displays tour details, about info, upcoming series,
  * activity feed, tournament results, and notification opt-in
  */

@@ -112,7 +112,7 @@ export default async function handler(req, res) {
         venues_with_live_data: venues.length,
         total_tables_running: totalTables,
         total_players_waiting: totalWaiting,
-        data_source: 'Bravo Poker Live + PokerAtlas',
+        data_source: 'Smarter.Poker Intelligence',
         refresh_interval: '15 minutes',
         last_scrape: data?.[0]?.scrape_timestamp || null,
       },
