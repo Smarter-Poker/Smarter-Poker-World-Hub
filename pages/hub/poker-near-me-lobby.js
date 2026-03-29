@@ -237,6 +237,37 @@ const POD_FEATURES = {
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TODAY_INDEX = new Date().getDay();
 
+// ─── Game type normalization (same as daily-tournaments.js) ───
+function formatGameType(raw) {
+    if (!raw) return 'NLH';
+    const lower = raw.toLowerCase();
+    if (lower === 'holdem' || lower === 'hold\'em' || lower === 'texas hold\'em') return 'Hold\'em';
+    if (lower === 'nlh' || lower === 'no limit holdem' || lower === 'no limit hold\'em') return 'NLH';
+    if (lower === 'plo' || lower === 'omaha') return 'PLO';
+    if (lower === 'horse') return 'HORSE';
+    if (lower === 'mixed') return 'Mixed';
+    if (lower === 'stud') return 'Stud';
+    if (lower === 'deepstack' || lower === 'deep stack') return 'Deep Stack';
+    return raw.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ─── Time formatting — uppercase AM/PM ───
+function formatTime(timeStr) {
+    if (!timeStr) return '';
+    const colonParts = timeStr.split(':');
+    if (colonParts.length >= 2 && !timeStr.match(/[AP]M/i)) {
+        let h = parseInt(colonParts[0], 10);
+        const m = colonParts[1];
+        if (!isNaN(h)) {
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            if (h === 0) h = 12;
+            else if (h > 12) h -= 12;
+            return `${h}:${m} ${ampm}`;
+        }
+    }
+    return timeStr.replace(/(\d+:\d+)\s*([ap]m)/i, (_, time, p) => `${time} ${p.toUpperCase()}`);
+}
+
 function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange }) {
   const [selectedDay, setSelectedDay] = useState(DAYS[TODAY_INDEX]);
   const [gameType, setGameType] = useState('all');
@@ -301,7 +332,7 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', marginBottom: 2 }}>
-            {t.tournament_name || t.name || `${t.game_type || 'NLH'} Tournament`}
+            {t.tournament_name || t.name || `${formatGameType(t.game_type)} Tournament`}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'rgba(200,214,229,0.55)' }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
@@ -316,8 +347,8 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11, color: 'rgba(200,214,229,0.45)' }}>
-        {t.start_time && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{t.start_time}</span>}
-        {t.game_type && <span style={{ color: '#58a6ff', background: 'rgba(88,166,255,0.08)', padding: '1px 6px', borderRadius: 4 }}>{t.game_type}</span>}
+        {t.start_time && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{formatTime(t.start_time)}</span>}
+        {t.game_type && <span style={{ color: '#58a6ff', background: 'rgba(88,166,255,0.08)', padding: '1px 6px', borderRadius: 4 }}>{formatGameType(t.game_type)}</span>}
         {t.guaranteed && <span style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', padding: '2px 8px', borderRadius: 6, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5"><path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7"/><path d="M4 22h16"/><path d="M10 22V2h4v20"/></svg>${typeof t.guaranteed === 'number' ? t.guaranteed.toLocaleString() : t.guaranteed} GTD</span>}
         {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString?.() || t.starting_stack}</span>}
         {t.blind_levels && <span>Blinds: {t.blind_levels}</span>}
