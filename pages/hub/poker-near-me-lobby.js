@@ -276,6 +276,7 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
   const [maxBuyin, setMaxBuyin] = useState('');
   const [minGuaranteed, setMinGuaranteed] = useState('');
   const [groupByState, setGroupByState] = useState(false);
+  const [selectedState, setSelectedState] = useState('all');
 
   const handleDayChange = (day) => {
     setSelectedDay(day);
@@ -327,8 +328,38 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
     <div key={t.id || i} onClick={() => t.venue_id ? window.location.href = `/hub/venues/${t.venue_id}` : null} style={{
       background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(88,166,255,0.2)',
       borderRadius: 12, padding: '12px 16px', transition: 'all 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
-      cursor: t.venue_id ? 'pointer' : 'default',
+      cursor: t.venue_id ? 'pointer' : 'default', position: 'relative',
     }}>
+      {/* ─── Countdown Timer ─── */}
+      {(() => {
+        if (!t.start_time) return null;
+        const now = new Date();
+        const [timePart, ampm] = (t.start_time || '').match(/(\d{1,2}:\d{2})\s*(AM|PM)?/i)?.slice(1) || [];
+        if (!timePart) return null;
+        const [h, m] = timePart.split(':').map(Number);
+        let hour24 = h;
+        if (ampm) { if (ampm.toUpperCase() === 'PM' && h !== 12) hour24 += 12; if (ampm.toUpperCase() === 'AM' && h === 12) hour24 = 0; }
+        const target = new Date(now); target.setHours(hour24, m, 0, 0);
+        if (target <= now) target.setDate(target.getDate() + 1);
+        const diffMin = Math.round((target - now) / 60000);
+        if (diffMin <= 0 || diffMin > 1440) return null;
+        const hrs = Math.floor(diffMin / 60);
+        const mins = diffMin % 60;
+        const isImminent = diffMin <= 60;
+        return (
+          <span style={{
+            position: 'absolute', top: 8, right: 8,
+            fontSize: 9, fontWeight: 700, letterSpacing: '0.03em',
+            padding: '2px 6px', borderRadius: 4,
+            background: isImminent ? 'rgba(239,68,68,0.15)' : 'rgba(110,231,239,0.08)',
+            border: isImminent ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(110,231,239,0.2)',
+            color: isImminent ? '#f87171' : '#6ee7ef',
+            animation: isImminent ? 'lobby-badgePulse 1.5s ease-in-out infinite' : 'none',
+          }}>
+            {hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`}
+          </span>
+        );
+      })()}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', marginBottom: 2 }}>
@@ -421,7 +452,39 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange, onFiltersChange 
       <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', marginBottom: 10 }}>
         <span style={{ color: '#d4a853', fontWeight: 700 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}
         {gameType !== 'all' && <span> ({gameType})</span>}
+        {selectedState && selectedState !== 'all' && <span> in <span style={{ color: '#d4a853' }}>{selectedState}</span></span>}
       </div>
+
+      {/* Top States quick filter */}
+      {(() => {
+        const stateCounts = {};
+        tournaments.filter(t => t.day_of_week === selectedDay || selectedDay === 'all').forEach(t => {
+          const st = t.venue_state || t.state;
+          if (st) stateCounts[st] = (stateCounts[st] || 0) + 1;
+        });
+        const topStates = Object.entries(stateCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+        if (topStates.length < 2) return null;
+        return (
+          <div style={{ display: 'flex', gap: 4, marginBottom: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+            <button onClick={() => setSelectedState('all')}
+              style={{
+                flexShrink: 0, padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                border: (!selectedState || selectedState === 'all') ? '1px solid rgba(212,168,83,0.5)' : '1px solid rgba(88,166,255,0.15)',
+                background: (!selectedState || selectedState === 'all') ? 'rgba(212,168,83,0.12)' : 'transparent',
+                color: (!selectedState || selectedState === 'all') ? '#d4a853' : 'rgba(200,214,229,0.4)',
+              }}>All</button>
+            {topStates.map(([st, count]) => (
+              <button key={st} onClick={() => setSelectedState(st)}
+                style={{
+                  flexShrink: 0, padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  border: selectedState === st ? '1px solid rgba(212,168,83,0.5)' : '1px solid rgba(88,166,255,0.15)',
+                  background: selectedState === st ? 'rgba(212,168,83,0.12)' : 'transparent',
+                  color: selectedState === st ? '#d4a853' : 'rgba(200,214,229,0.4)',
+                }}>{st} <span style={{ fontSize: 8, opacity: 0.6 }}>({count})</span></button>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Tournament cards — grouped or flat */}
       {groupByState && groupedByState ? (
@@ -1574,10 +1637,16 @@ export default function PokerNearMeLobby() {
             {svHasSearched ? (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.6)' }}>
-                  <span style={{ fontSize: 13, color: '#c9d1d9' }}>
-                    <span style={{ color: '#58a6ff', fontWeight: 800 }}>{svResults.length}</span> venue{svResults.length !== 1 ? 's' : ''}
-                    {userLocation && svRadius !== 'any' && <span> within <span style={{ color: '#3fb950' }}>{svRadius} mi</span></span>}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13, color: '#c9d1d9' }}>
+                      <span style={{ color: '#58a6ff', fontWeight: 800 }}>{svResults.length}</span> venue{svResults.length !== 1 ? 's' : ''}
+                      {userLocation && svRadius !== 'any' && <span> within <span style={{ color: '#3fb950' }}>{svRadius} mi</span></span>}
+                    </span>
+                    {/* Active filter chips */}
+                    {svState !== 'all' && <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(212,168,83,0.12)', border: '1px solid rgba(212,168,83,0.25)', color: '#d4a853', fontWeight: 700 }}>{svState}</span>}
+                    {svVenueType !== 'all' && <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(88,166,255,0.1)', border: '1px solid rgba(88,166,255,0.2)', color: '#58a6ff', fontWeight: 700 }}>{svVenueType.replace(/_/g, ' ')}</span>}
+                    {svGameType !== 'all' && <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(63,185,80,0.1)', border: '1px solid rgba(63,185,80,0.2)', color: '#3fb950', fontWeight: 700 }}>{svGameType.toUpperCase()}</span>}
+                  </div>
                   <button onClick={() => setFilters(prev => ({ ...prev, svState: 'all', svVenueType: 'all', svGameType: 'all', svRadius: '100', svHasSearched: false }))}
                     style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
                 </div>
@@ -2368,21 +2437,74 @@ export default function PokerNearMeLobby() {
                   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
                 }}>{panelContent.title}</h2>
-                <button
-                  onClick={handlePanelClose}
-                  aria-label="Close panel"
-                  style={{
-                    background: 'none', border: 'none',
-                    color: 'rgba(200, 214, 229, 0.5)',
-                    cursor: 'pointer', padding: 6, borderRadius: 8,
-                  }}
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {/* Share deep link button */}
+                  <button
+                    onClick={() => {
+                      const shareUrl = window.location.href;
+                      if (navigator.share) {
+                        navigator.share({ title: `Smarter.Poker — ${panelContent.title}`, url: shareUrl }).catch(() => {});
+                      } else {
+                        navigator.clipboard?.writeText(shareUrl);
+                        const btn = document.getElementById('pnm-share-btn');
+                        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = ''; }, 1500); }
+                      }
+                    }}
+                    id="pnm-share-btn"
+                    aria-label="Share link"
+                    title="Copy shareable link"
+                    style={{
+                      background: 'none', border: 'none',
+                      color: 'rgba(200, 214, 229, 0.4)',
+                      cursor: 'pointer', padding: 6, borderRadius: 8,
+                      transition: 'color 0.2s', fontSize: 10,
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handlePanelClose}
+                    aria-label="Close panel"
+                    style={{
+                      background: 'none', border: 'none',
+                      color: 'rgba(200, 214, 229, 0.5)',
+                      cursor: 'pointer', padding: 6, borderRadius: 8,
+                    }}
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
               </div>
+              {/* GPS Intel Banner — contextual stats when GPS active */}
+              {userLocation && (activePod === 'nearme' || activePod === 'search' || activePod === 'livegames' || activePod === 'daily') && (
+                <div style={{
+                  display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'center',
+                  padding: '8px 20px', flexShrink: 0,
+                  background: 'linear-gradient(90deg, rgba(63,185,80,0.06), rgba(63,185,80,0.02), rgba(63,185,80,0.06))',
+                  borderBottom: '1px solid rgba(63,185,80,0.1)',
+                  fontSize: 11, color: 'rgba(200,214,229,0.55)', fontWeight: 600,
+                }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span style={{ color: '#3fb950' }}>{venues.filter(v => v.distance_miles && v.distance_miles <= 50).length || venues.length}</span> venues nearby
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2"><path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7"/></svg>
+                    <span style={{ color: '#d4a853' }}>{dailyTournaments.length.toLocaleString()}</span> tournaments
+                  </span>
+                  {locationCity && (
+                    <span style={{ color: 'rgba(200,214,229,0.35)', fontSize: 10 }}>
+                      {locationCity}{locationState ? `, ${locationState}` : ''}
+                    </span>
+                  )}
+                </div>
+              )}
               {/* Content — full remaining height with error recovery */}
               <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 90px', WebkitOverflowScrolling: 'touch' }}>
                 <PodErrorBoundary podName={panelContent?.title || activePod} onReset={() => setActivePod(null)}>
