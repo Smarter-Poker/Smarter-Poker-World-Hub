@@ -18,7 +18,7 @@ function getSupabase() {
 // Known venue name aliases (cross-source naming differences)
 const VENUE_ALIASES = {
   // Format: canonical_name: [alias1, alias2, ...]
-  'Bellagio': ['Bellagio Hotel & Casino', 'Bellagio Poker Room'],
+  'Bellagio': ['Bellagio Hotel & Casino', 'Bellagio Poker Room', 'Bellagio Casino'],
   'ARIA Resort & Casino': ['Aria', 'ARIA', 'Aria Resort'],
   'Wynn Las Vegas': ['Wynn', 'Wynn Poker Room'],
   'The Venetian Resort': ['Venetian', 'The Venetian', 'Venetian Poker Room'],
