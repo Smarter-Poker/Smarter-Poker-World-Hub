@@ -573,6 +573,7 @@ export default function PokerNearMeLobby() {
   const [selectedVenueForReview, setSelectedVenueForReview] = useState(null);
   const [gpsError, setGpsError] = useState(null);
   const [fetchError, setFetchError] = useState(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
   const [preferences, setPreferences] = useState({ geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true });
   const [prefsLoaded, setPrefsLoaded] = useState(false);
@@ -1500,6 +1501,20 @@ export default function PokerNearMeLobby() {
       }
     }
   }, [userId, favorites]);
+
+  // ─── Auth-gated venue navigation ───
+  const handleVenueNavigate = useCallback((url, venue) => {
+    const needsAuth = url.includes('action=checkin') || url.includes('action=review');
+    if (needsAuth && !userId) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    if (url.includes('action=review') && venue) {
+      setSelectedVenueForReview({ id: venue.id, name: venue.name });
+    } else {
+      router.push(url);
+    }
+  }, [userId, router]);
 
   // ─── Build panel content based on active pod ───
   const panelContent = useMemo(() => {
