@@ -18,6 +18,12 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { formatGameType } from '../../../src/utils/pokerFormatters';
+import dynamic from 'next/dynamic';
+
+const BestTimeToGoWidget = dynamic(
+  () => import('../../../src/components/poker-near-me/BestTimeToGoWidget'),
+  { ssr: false }
+);
 
 const VENUE_TYPE_LABELS = {
   casino: 'Casino',
@@ -1276,6 +1282,11 @@ export default function VenueDetailPage() {
                 </div>
               </section>
             )}
+
+            {/* ============================================ */}
+            {/* BEST TIME TO GO WIDGET                      */}
+            {/* ============================================ */}
+            <BestTimeToGoWidget venueId={id} venueName={venue.name} />
 
             {/* Daily Tournaments Section */}
             {groupedSchedules && Object.keys(groupedSchedules).length > 0 && (

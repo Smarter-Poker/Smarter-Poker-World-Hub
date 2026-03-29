@@ -18,7 +18,10 @@ function getSupabase() {
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default async function handler(req, res) {
-  const { venue } = req.query;
+  const { venue, venue_id, game_type } = req.query;
+  
+  // CDN cache: fresh for 5min, serve stale up to 10min
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
   
   try {
     const supabase = getSupabase();
@@ -28,12 +31,18 @@ export default async function handler(req, res) {
     
     let query = supabase
       .from('venue_live_history')
-      .select('venue_name, total_tables, snapshot_time')
+      .select('venue_name, total_tables, snapshot_time, game_type')
       .gte('snapshot_time', twoWeeksAgo)
       .order('snapshot_time', { ascending: true });
     
-    if (venue) {
+    if (venue_id) {
+      query = query.eq('venue_id', parseInt(venue_id, 10));
+    } else if (venue) {
       query = query.ilike('venue_name', `%${venue}%`);
+    }
+    
+    if (game_type) {
+      query = query.ilike('game_type', `%${game_type}%`);
     }
     
     const { data, error } = await query.limit(10000);

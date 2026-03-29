@@ -488,7 +488,7 @@ async function commentOnPosts(maxComments = 20, includeRealUsers = true) {
     const horseIds = allHorses.map(h => h.profile_id);
 
     // Get recent posts
-    let postsQuery = supabase
+    let postsQuery = getSupabase()
         .from('social_posts')
         .select('id, author_id, content_type, content')
         .order('created_at', { ascending: false })
@@ -682,7 +682,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
     const horseIds = allHorses.map(h => h.profile_id);
 
     // Get recent posts
-    let postsQuery = supabase
+    let postsQuery = getSupabase()
         .from('social_posts')
         .select('id, author_id')
         .order('created_at', { ascending: false })
