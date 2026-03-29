@@ -3001,6 +3001,347 @@ export default function PokerNearMeLobby() {
       .venue-action-row { display: none; }
       .venue-quick-actions { display: none; }
 
+      /* ═══════════════════════════════════════════════
+         VC3 DESIGN SYSTEM — VenueCard v4.0
+         Complete CSS for the vc3-* component library
+         ═══════════════════════════════════════════════ */
+
+      /* Card Container */
+      .vc3-card {
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.75), rgba(10, 18, 32, 0.9));
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 16px;
+        padding: 16px 18px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 2px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04);
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      .vc3-card:hover {
+        border-color: rgba(212,168,83,0.3);
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(10, 18, 32, 0.96));
+        box-shadow: 0 6px 28px rgba(212,168,83,0.1), 0 2px 12px rgba(0,0,0,0.35);
+        transform: translateY(-2px);
+      }
+
+      /* Accent Line */
+      .vc3-accent {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        border-radius: 16px 16px 0 0;
+        opacity: 0.7;
+        transition: opacity 0.3s;
+      }
+      .vc3-card:hover .vc3-accent { opacity: 1; }
+
+      /* Header Zone */
+      .vc3-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      /* Status Group (right side) */
+      .vc3-status-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Open/Closed Pill */
+      .vc3-open-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        background: rgba(34,197,94,0.12);
+        border: 1px solid rgba(34,197,94,0.3);
+        color: #4ade80;
+      }
+      .vc3-open-dot {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: #4ade80;
+        box-shadow: 0 0 6px rgba(74,222,128,0.5);
+        animation: vc3-pulse 2s ease-in-out infinite;
+      }
+      @keyframes vc3-pulse {
+        0%, 100% { box-shadow: 0 0 3px rgba(74,222,128,0.3); }
+        50% { box-shadow: 0 0 8px rgba(74,222,128,0.6); }
+      }
+
+      /* Distance pill */
+      .vc3-distance {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        background: rgba(34,197,94,0.1);
+        border: 1px solid rgba(34,197,94,0.25);
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #4ade80;
+      }
+
+      /* Type Badge */
+      .vc3-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        border: 1px solid;
+      }
+
+      /* Favorite Button */
+      .vc3-fav {
+        position: absolute;
+        top: 10px; right: 10px;
+        background: rgba(0,0,0,0.5);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 50%;
+        width: 34px; height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 2;
+        transition: all 0.2s;
+      }
+      .vc3-fav:hover { background: rgba(239,68,68,0.35); transform: scale(1.12); border-color: rgba(239,68,68,0.3); }
+      .vc3-fav.active { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4); }
+
+      /* Name */
+      .vc3-name {
+        font-size: 18px;
+        font-weight: 800;
+        margin: 0 0 6px;
+        color: #f0f4f8;
+        padding-right: 80px;
+        line-height: 1.3;
+        letter-spacing: -0.2px;
+      }
+
+      /* Address */
+      .vc3-address {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 13px;
+        color: rgba(255,255,255,0.58);
+        margin: 0 0 10px;
+        line-height: 1.4;
+      }
+
+      /* Host for Home Games */
+      .vc3-host {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 0 6px;
+      }
+      .vc3-host-name { font-size: 13px; color: #58a6ff; font-weight: 600; }
+      .vc3-host-link { font-size: 11px; color: #d4a853; text-decoration: none; margin-left: auto; padding: 2px 8px; border: 1px solid rgba(212,168,83,0.3); border-radius: 4px; }
+      .vc3-host-link:hover { background: rgba(212,168,83,0.15); }
+      .vc3-description { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0 0 8px; font-style: italic; }
+
+      /* Badge Row */
+      .vc3-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .vc3-badge {
+        padding: 3px 9px;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .vc3-badge-featured { background: rgba(212,168,83,0.2); color: #d4a853; border: 1px solid rgba(212,168,83,0.35); }
+      .vc3-badge-newcomer { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+      .vc3-badge-promo { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+      .vc3-badge-tourney { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+      .vc3-badge-live {
+        background: rgba(239,68,68,0.18); color: #ef4444; border: 1px solid rgba(239,68,68,0.4);
+        box-shadow: 0 0 8px rgba(239,68,68,0.2); animation: livePulse 2s ease-in-out infinite;
+        display: inline-flex; align-items: center; gap: 5px;
+      }
+      .vc3-live-dot {
+        width: 6px; height: 6px; border-radius: 50%; background: #ef4444;
+        box-shadow: 0 0 6px rgba(239,68,68,0.5); animation: livePulse 2s ease-in-out infinite;
+      }
+      .vc3-badge-checkin { background: rgba(230,81,0,0.15); color: #E65100; border: 1px solid rgba(230,81,0,0.3); cursor: pointer; }
+      .vc3-badge-checkin:hover { background: rgba(230,81,0,0.25); }
+
+      /* Data Zone */
+      .vc3-data-zone { margin-top: 4px; }
+
+      /* Live Info Row */
+      .vc3-live-info {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 8px;
+        padding: 8px 10px;
+        background: rgba(0,0,0,0.15);
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.04);
+      }
+      .vc3-live-stat { display: flex; align-items: center; gap: 6px; }
+      .vc3-live-stat-val { font-size: 16px; font-weight: 800; color: #fff; }
+      .vc3-live-stat-label { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.3px; }
+
+      /* Hours */
+      .vc3-hours {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12.5px;
+        color: rgba(255,255,255,0.55);
+        margin: 0 0 6px;
+        font-style: italic;
+      }
+
+      /* Game Chips */
+      .vc3-games {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .vc3-game-chip {
+        padding: 4px 10px;
+        border-radius: 5px;
+        font-size: 11.5px;
+        font-weight: 600;
+        border: 1px solid;
+      }
+
+      /* Stakes */
+      .vc3-stakes {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 13px;
+        color: rgba(212,168,83,0.9);
+        margin: 0 0 8px;
+        font-weight: 600;
+      }
+
+      /* Trust Score */
+      .vc3-trust {
+        padding: 10px 0 8px;
+        border-top: 1px solid rgba(255,255,255,0.07);
+        margin-top: 4px;
+      }
+      .vc3-trust-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+      .vc3-trust-label { font-size: 11.5px; font-weight: 700; }
+      .vc3-trust-val { font-size: 11.5px; font-weight: 800; }
+      .vc3-trust-track {
+        height: 6px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .vc3-trust-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Action Bar */
+      .vc3-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,0.07);
+        margin-top: 6px;
+      }
+      .vc3-actions-secondary { display: flex; gap: 6px; }
+      .vc3-icon-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px; height: 36px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.05);
+        color: rgba(255,255,255,0.6);
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .vc3-icon-btn:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.25);
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      }
+      .vc3-actions-primary {
+        display: flex;
+        gap: 6px;
+        flex: 1;
+        justify-content: flex-end;
+      }
+      .vc3-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 7px 12px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        font-family: inherit;
+        white-space: nowrap;
+        background: none;
+      }
+      .vc3-pill span { font-size: 11.5px; }
+      .vc3-pill-checkin { background: rgba(34,197,94,0.12); color: #4ade80; border-color: rgba(34,197,94,0.25); }
+      .vc3-pill-checkin:hover { background: rgba(34,197,94,0.22); box-shadow: 0 0 12px rgba(34,197,94,0.15); }
+      .vc3-pill-review { background: rgba(59,130,246,0.12); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
+      .vc3-pill-review:hover { background: rgba(59,130,246,0.22); box-shadow: 0 0 12px rgba(59,130,246,0.15); }
+      .vc3-pill-details { background: rgba(212,168,83,0.12); color: #d4a853; border-color: rgba(212,168,83,0.25); }
+      .vc3-pill-details:hover { background: rgba(212,168,83,0.22); box-shadow: 0 0 12px rgba(212,168,83,0.15); }
+
+      /* ═══ VC3 MOBILE RESPONSIVE ═══ */
+      @media (max-width: 480px) {
+        .vc3-actions { flex-direction: column; gap: 8px; }
+        .vc3-actions-secondary { width: 100%; justify-content: flex-start; }
+        .vc3-actions-primary { width: 100%; justify-content: stretch; }
+        .vc3-pill { flex: 1; justify-content: center; }
+        .vc3-name { font-size: 16px; padding-right: 70px; }
+        .vc3-header { flex-wrap: wrap; gap: 8px; }
+        .vc3-status-group { flex-wrap: wrap; gap: 4px; }
+      }
+
       /* Badge Row — improved sizing */
       .badge-row {
         display: flex;
