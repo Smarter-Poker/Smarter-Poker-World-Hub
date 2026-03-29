@@ -47,12 +47,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', 'https://kuklfnapbkmacvwxktbh.supabase.co')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY') or os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 
+# ── STARTUP CREDENTIAL VALIDATION ──
+if not SUPABASE_KEY:
+    print('FATAL: SUPABASE_SERVICE_ROLE_KEY not set. Cannot write data.')
+    sys.exit(1)
+
 # Timing
 SCRAPE_INTERVAL = 900  # 15 minutes (offset 7min from Bravo via launchd start)
 RATE_LIMIT_DELAY = 1.0  # seconds between region page fetches
 MAX_RETRIES = 3
 CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive regions fail (was 10)
 SESSION_REFRESH_MINUTES = 90   # Proactive session refresh
+WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this many minutes (launchd restarts)
 
 # Directories
 LOG_DIR = BASE_DIR / 'data' / 'pokeratlas-logs'
@@ -963,21 +969,39 @@ def _maybe_rotate_log():
 
 def main():
     log.info('=' * 60)
-    log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v2.0')
+    log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v2.1')
     log.info(f'Interval: {SCRAPE_INTERVAL}s ({SCRAPE_INTERVAL // 60}min)')
     log.info(f'Strategy: session.fetch() per region (no login needed)')
     log.info(f'Data: game catalog + buy-in + run schedule')
+    log.info(f'Watchdog: exit after {WATCHDOG_MAX_STALE_MINUTES}min with no data')
     log.info(f'Log dir: {LOG_DIR}')
     log.info('=' * 60)
 
     mgr = PokerAtlasSessionManager()
+    last_successful_save = time.time()  # Assume fresh at boot
 
     while running:
         try:
             count = run_scrape_cycle(mgr)
             if count > 0:
+                last_successful_save = time.time()
                 log.info(f'⏰ Next scrape in {SCRAPE_INTERVAL // 60} minutes...')
             else:
+                # ── WATCHDOG: Exit if stuck too long ──
+                stale_minutes = (time.time() - last_successful_save) / 60
+                if stale_minutes >= WATCHDOG_MAX_STALE_MINUTES:
+                    log.error(
+                        f'🚨 WATCHDOG: No successful data save in {stale_minutes:.0f} minutes '
+                        f'(threshold: {WATCHDOG_MAX_STALE_MINUTES}min). '
+                        f'Exiting so launchd can restart with a clean process.'
+                    )
+                    write_heartbeat('watchdog_exit', {
+                        'stale_minutes': round(stale_minutes),
+                        'consecutive_failures': mgr.consecutive_failures,
+                    })
+                    mgr.disconnect()
+                    sys.exit(1)
+
                 backoff = min(60 * (mgr.consecutive_failures + 1), 300)
                 log.warning(f'⏰ Retrying in {backoff}s (failure #{mgr.consecutive_failures})...')
                 for _ in range(backoff):

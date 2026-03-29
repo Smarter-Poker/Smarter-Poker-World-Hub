@@ -76,6 +76,19 @@ SUPABASE_KEY = os.environ.get('SUPABASE_KEY') or os.environ.get('SUPABASE_SERVIC
 BRAVO_EMAIL = os.environ.get('BRAVO_EMAIL', 'admin@smarter.poker')
 BRAVO_PASS = os.environ.get('BRAVO_PASS')
 BRAVO_LOGIN_URL = 'https://www.bravopokerlive.com/login/'
+
+# ── STARTUP CREDENTIAL VALIDATION ──
+# Fail fast instead of silently looping with None password
+if not BRAVO_PASS:
+    print('\n' + '=' * 60)
+    print('FATAL: BRAVO_PASS environment variable is not set.')
+    print('The daemon cannot log in to Bravo without credentials.')
+    print('Set BRAVO_PASS in .env.local or launchd plist.')
+    print('=' * 60 + '\n')
+    sys.exit(1)
+if not SUPABASE_KEY:
+    print('FATAL: SUPABASE_SERVICE_ROLE_KEY not set. Cannot write data.')
+    sys.exit(1)
 BRAVO_VENUE_URL = 'https://www.bravopokerlive.com/venues/{slug}/'
 SCRAPE_INTERVAL = 900          # 15 minutes
 MAX_RETRIES = 3                # Max login retries before full restart
@@ -86,6 +99,7 @@ HEALTH_CHECK_INTERVAL = 3      # Health-check every N cycles
 VENUE_RETRY_COUNT = 1          # Retry failed venues once before giving up
 CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive venues fail (was 10)
 SESSION_REFRESH_MINUTES = 90   # Proactive session refresh to prevent zombie browsers
+WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this many minutes (launchd restarts)
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = BASE_DIR / 'data' / 'bravo-logs'
 EVIDENCE_DIR = BASE_DIR / 'data' / 'scrape-evidence'
@@ -963,22 +977,40 @@ def _maybe_rotate_log():
 
 def main():
     log.info('=' * 60)
-    log.info('BRAVO POKER LIVE — AUTONOMOUS DAEMON v2.0')
+    log.info('BRAVO POKER LIVE — AUTONOMOUS DAEMON v2.1')
     log.info(f'Interval: {SCRAPE_INTERVAL}s ({SCRAPE_INTERVAL // 60}min)')
     log.info(f'Persistent session: YES (stays logged in between cycles)')
     log.info(f'Retry policy: {MAX_RETRIES}x with exponential backoff')
     log.info(f'Health check: every {HEALTH_CHECK_INTERVAL} cycles')
+    log.info(f'Watchdog: exit after {WATCHDOG_MAX_STALE_MINUTES}min with no data')
     log.info(f'Log dir: {LOG_DIR}')
     log.info('=' * 60)
 
     mgr = BravoSessionManager()
+    last_successful_save = time.time()  # Assume fresh at boot
 
     while running:
         try:
             count = run_scrape_cycle(mgr)
             if count > 0:
+                last_successful_save = time.time()
                 log.info(f'⏰ Next scrape in {SCRAPE_INTERVAL // 60} minutes...')
             else:
+                # ── WATCHDOG: Exit if stuck too long ──
+                stale_minutes = (time.time() - last_successful_save) / 60
+                if stale_minutes >= WATCHDOG_MAX_STALE_MINUTES:
+                    log.error(
+                        f'🚨 WATCHDOG: No successful data save in {stale_minutes:.0f} minutes '
+                        f'(threshold: {WATCHDOG_MAX_STALE_MINUTES}min). '
+                        f'Exiting so launchd can restart with a clean process.'
+                    )
+                    write_heartbeat('watchdog_exit', {
+                        'stale_minutes': round(stale_minutes),
+                        'consecutive_failures': mgr.consecutive_failures,
+                    })
+                    mgr.disconnect()
+                    sys.exit(1)
+
                 # Shorter backoff on failure
                 backoff = min(60 * (mgr.consecutive_failures + 1), 300)
                 log.warning(f'⏰ Retrying in {backoff}s (failure #{mgr.consecutive_failures})...')
