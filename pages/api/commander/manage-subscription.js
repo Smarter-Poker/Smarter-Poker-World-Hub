@@ -1,6 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
-import { verifyCommanderStaff } from '../../../src/lib/commander/authGuard';
+import { verifyCommanderStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 let _supabase = null;
