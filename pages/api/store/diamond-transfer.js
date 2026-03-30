@@ -6,16 +6,16 @@
  *  ANTI-ABUSE SAFEGUARDS:
  *  1. Friendship verification (must be accepted friends)
  *  2. Balance check (sender must have enough diamonds)
- *  3. Daily transfer limit (tiered: 500💎 standard, 2000💎 for 60-day friends)
- *  4. Per-transfer limit (tiered: 10-100💎 standard, 10-500💎 for 60-day friends)
+ *  3. Daily transfer limit (tiered: 500diamonds standard, 2000diamonds for 60-day friends)
+ *  4. Per-transfer limit (tiered: 10-100diamonds standard, 10-500diamonds for 60-day friends)
  *  5. Account age gate (both users must be >7 days old)
  *  6. Cooldown (60s global between transfers)
  *  7. Self-transfer block
  *  8. Rate limiting (20 req/min)
  *  9. Friendship age tier (60+ day friends get VIP transfer limits)
- *  10. Per-recipient daily limit (200💎/day to same friend)
+ *  10. Per-recipient daily limit (200diamonds/day to same friend)
  *  11. Per-recipient cooldown (5min between transfers to same friend)
- *  12. Recipient daily receive cap (1000💎/day inbound)
+ *  12. Recipient daily receive cap (1000diamonds/day inbound)
  *  13. Admin audit trail (structured console logging)
  *  14. Velocity detection (flags accounts hitting limits repeatedly)
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -44,9 +44,9 @@ const DAILY_LIMIT_VIP = 2000;
 const COOLDOWN_SECONDS = 60;
 const MIN_ACCOUNT_AGE_DAYS = 7;
 const VIP_FRIENDSHIP_DAYS = 60;
-const PER_RECIPIENT_DAILY_LIMIT = 200;  // #10: Max 200💎/day to same friend
+const PER_RECIPIENT_DAILY_LIMIT = 200;  // #10: Max 200diamonds/day to same friend
 const PER_RECIPIENT_COOLDOWN_SECONDS = 300; // #11: 5min between transfers to same friend
-const RECIPIENT_DAILY_RECEIVE_LIMIT = 1000; // #12: Max 1000💎/day inbound per account
+const RECIPIENT_DAILY_RECEIVE_LIMIT = 1000; // #12: Max 1000diamonds/day inbound per account
 
 export default async function handler(req, res) {
     try {
@@ -182,11 +182,11 @@ export default async function handler(req, res) {
             console.warn(`[VELOCITY] User ${userId} hit daily limit: ${dailyTotal}/${dailyLimit}`);
             return res.status(429).json({
                 success: false,
-                error: `Daily transfer limit reached (${dailyLimit}💎/day${isVipTier ? ' VIP tier' : ''}). You've sent ${dailyTotal}💎 today.`
+                error: `Daily transfer limit reached (${dailyLimit}diamonds/day${isVipTier ? ' VIP tier' : ''}). You've sent ${dailyTotal}diamonds today.`
             });
         }
 
-        // ── Guard 10: Per-recipient daily limit (200💎/day to same friend) ──
+        // ── Guard 10: Per-recipient daily limit (200diamonds/day to same friend) ──
         const { data: recipientDailyTransfers } = await getSupabase()
             .from('diamond_transactions')
             .select('amount, description')
@@ -200,7 +200,7 @@ export default async function handler(req, res) {
             console.warn(`[VELOCITY] User ${userId} hit per-recipient limit for ${recipientId}: ${recipientDailyTotal}/${PER_RECIPIENT_DAILY_LIMIT}`);
             return res.status(429).json({
                 success: false,
-                error: `You can only send ${PER_RECIPIENT_DAILY_LIMIT}💎 per day to the same friend. Sent ${recipientDailyTotal}💎 to them today.`
+                error: `You can only send ${PER_RECIPIENT_DAILY_LIMIT}diamonds per day to the same friend. Sent ${recipientDailyTotal}diamonds to them today.`
             });
         }
 
@@ -223,7 +223,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // ── Guard 12: Recipient daily receive limit (1000💎/day inbound) ──
+        // ── Guard 12: Recipient daily receive limit (1000diamonds/day inbound) ──
         const { data: recipientInbound } = await getSupabase()
             .from('diamond_transactions')
             .select('amount')
@@ -235,7 +235,7 @@ export default async function handler(req, res) {
         if (recipientReceiveTotal + amount > RECIPIENT_DAILY_RECEIVE_LIMIT) {
             return res.status(429).json({
                 success: false,
-                error: `This friend has reached their daily receive limit (${RECIPIENT_DAILY_RECEIVE_LIMIT}💎/day)`
+                error: `This friend has reached their daily receive limit (${RECIPIENT_DAILY_RECEIVE_LIMIT}diamonds/day)`
             });
         }
 

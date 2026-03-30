@@ -108,7 +108,7 @@ async function refundPlayer(playerId, amount) {
         p_user_id: playerId,
         p_amount: amount,
         p_type: 'pvp_refund',
-        p_description: `PvP match abandoned — ${amount}💎 refund`,
+        p_description: `PvP match abandoned — ${amount}diamonds refund`,
         p_reference_id: null
     });
 }
@@ -124,7 +124,7 @@ async function awardForfeitWin(winnerId, loserId, stakeAmount, matchId) {
         p_user_id: winnerId,
         p_amount: winnerPayout,
         p_type: 'pvp_win',
-        p_description: `PvP forfeit win — ${winnerPayout}💎 payout`,
+        p_description: `PvP forfeit win — ${winnerPayout}diamonds payout`,
         p_reference_id: matchId
     });
 

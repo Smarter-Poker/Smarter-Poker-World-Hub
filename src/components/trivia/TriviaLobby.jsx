@@ -208,7 +208,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 p_user_id: user.id,
                 p_amount: -GAME_COST,
                 p_type: 'game_cost',
-                p_description: `Trivia game entry — ${GAME_COST}💎`,
+                p_description: `Trivia game entry — ${GAME_COST}diamonds`,
                 p_reference_id: null
             });
             onDiamondsChange?.(-GAME_COST);
@@ -1021,7 +1021,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                             {/* Dynamic Diamond Balance */}
                             <div className="dm-balance">
-                                {userDiamonds} 💎
+                                {userDiamonds} diamonds
                             </div>
 
                             {isDeducting && (
@@ -1042,11 +1042,11 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                             <div className="gate-icon">⚠️</div>
                             <div className="gate-title">Not Enough Diamonds</div>
                             <div className="gate-desc">
-                                You need at least <strong>{GAME_COST} 💎</strong> to play this mode.
+                                You need at least <strong>{GAME_COST} diamonds</strong> to play this mode.
                                 Visit the Diamond Store to top up your balance.
                             </div>
                             <div className="gate-cost" style={{ color: '#f02849', borderColor: 'rgba(240,40,73,0.25)', background: 'rgba(240,40,73,0.1)' }}>
-                                <Gem size={22} /> Balance: {userDiamonds} 💎
+                                <Gem size={22} /> Balance: {userDiamonds} diamonds
                             </div>
                             <div className="gate-buttons">
                                 <button
@@ -1059,7 +1059,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                     className="gate-btn gate-btn--store"
                                     onClick={() => router.push('/hub/diamond-store')}
                                 >
-                                    💎 Get Diamonds
+                                    diamonds Get Diamonds
                                 </button>
                             </div>
                         </div>

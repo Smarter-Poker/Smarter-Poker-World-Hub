@@ -189,7 +189,7 @@ export default async function handler(req, res) {
                                   p_user_id: userId,
                                   p_amount: def.diamond_reward,
                                   p_type: 'achievement',
-                                  p_description: `${def.name} achievement — ${def.diamond_reward}💎`,
+                                  p_description: `${def.name} achievement — ${def.diamond_reward}diamonds`,
                                   p_reference_id: def.id
                               });
                           } catch (rpcErr) {

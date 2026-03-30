@@ -1,14 +1,14 @@
 /**
  * ⭐ VIDEO FAVORITE REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 2💎 for favoriting a video (max 3 per day)
+ * Awards 2diamonds for favoriting a video (max 3 per day)
  *
  * ANTI-FARMING SAFEGUARDS:
  * - 3 rewards per day max
  * - 1-minute cooldown
  * - Same video can only earn once (lifetime)
  * - Favorite must exist in video_favorites table
- * - 500💎 daily cap
+ * - 500diamonds daily cap
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -146,7 +146,7 @@ export default async function handler(req, res) {
               p_user_id: userId,
               p_amount: FAV_REWARD,
               p_type: 'video_favorite',
-              p_description: `Video favorite reward — ${FAV_REWARD}💎`,
+              p_description: `Video favorite reward — ${FAV_REWARD}diamonds`,
               p_reference_id: videoId
           });
 

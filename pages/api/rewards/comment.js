@@ -1,12 +1,12 @@
 /**
  * 💬 STRATEGY COMMENT REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 5💎 for strategy comments (max 3 per day)
- * Subject to 500💎 daily cap
+ * Awards 5diamonds for strategy comments (max 3 per day)
+ * Subject to 500diamonds daily cap
  *
  * ANTI-FARMING SAFEGUARDS:
  * - 3 rewards per calendar day (CST)
- * - 500💎 daily cap across all non-referral rewards
+ * - 500diamonds daily cap across all non-referral rewards
  * - 2-minute cooldown between reward-eligible comments
  * - Minimum 10-char content required (rejects "nice" / emoji spam)
  * - Account must be 24+ hours old
@@ -155,7 +155,7 @@ export default async function handler(req, res) {
               return res.status(200).json({
                   success: false,
                   dailyCapReached: true,
-                  message: `Daily diamond cap (${DAILY_CAP}💎) reached`
+                  message: `Daily diamond cap (${DAILY_CAP}diamonds) reached`
               });
           }
 
@@ -180,7 +180,7 @@ export default async function handler(req, res) {
               p_user_id: userId,
               p_amount: COMMENT_REWARD,
               p_type: 'strategy_comment',
-              p_description: `Strategy comment reward — ${COMMENT_REWARD}💎`,
+              p_description: `Strategy comment reward — ${COMMENT_REWARD}diamonds`,
               p_reference_id: commentId || null
           });
 
@@ -190,7 +190,7 @@ export default async function handler(req, res) {
               diamondsAwarded: COMMENT_REWARD,
               claimsToday: (count || 0) + 1,
               maxPerDay: MAX_PER_DAY,
-              message: `+${COMMENT_REWARD}💎 Comment Reward!`
+              message: `+${COMMENT_REWARD}diamonds Comment Reward!`
           });
 
       } catch (error) {

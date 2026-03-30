@@ -72,7 +72,7 @@ export default async function handler(req, res) {
                   p_user_id: user.id,
                   p_amount: -entryFee,
                   p_type: 'arcade_entry',
-                  p_description: `${gameType} entry fee (${entryFee}💎)`,
+                  p_description: `${gameType} entry fee (${entryFee}diamonds)`,
                   p_reference_id: null,
               });
               if (deductErr) throw new Error(deductErr.message);

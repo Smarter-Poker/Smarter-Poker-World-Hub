@@ -131,7 +131,7 @@ export default async function handler(req, res) {
                       p_user_id: userId,
                       p_amount: safeSpeedBonus,
                       p_type: 'speed_bonus',
-                      p_description: `Speed bonus: ${parsedGameId} — ${safeSpeedBonus}💎`,
+                      p_description: `Speed bonus: ${parsedGameId} — ${safeSpeedBonus}diamonds`,
                       p_reference_id: `speed_${userId}_${parsedGameId}_${Date.now()}`
                   });
 

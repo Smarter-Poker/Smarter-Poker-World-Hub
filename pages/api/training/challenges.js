@@ -442,7 +442,7 @@ export default async function handler(req, res) {
                           p_user_id: userId,
                           p_amount: reward,
                           p_type: 'challenge',
-                          p_description: `${progress.training_challenge_definitions?.name || 'Challenge'} completed — ${reward}💎`,
+                          p_description: `${progress.training_challenge_definitions?.name || 'Challenge'} completed — ${reward}diamonds`,
                           p_reference_id: `challenge_${challengeId}_${periodKey}`
                       });
                   } catch (rpcErr) {

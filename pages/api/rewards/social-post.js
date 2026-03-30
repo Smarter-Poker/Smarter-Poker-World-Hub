@@ -1,12 +1,12 @@
 /**
  * 📝 SOCIAL POST REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 10💎 for creating a social post (max 1 per day)
- * Subject to 500💎 daily cap
+ * Awards 10diamonds for creating a social post (max 1 per day)
+ * Subject to 500diamonds daily cap
  * 
  * ANTI-FARMING SAFEGUARDS:
  * - 1 reward per calendar day (CST)
- * - 500💎 daily cap across all non-referral rewards
+ * - 500diamonds daily cap across all non-referral rewards
  * - 10-minute cooldown between reward-eligible posts
  * - Minimum 20-char content required (rejects empty/spam posts)
  * - Account must be 24+ hours old
@@ -154,7 +154,7 @@ export default async function handler(req, res) {
               return res.status(200).json({
                   success: false,
                   dailyCapReached: true,
-                  message: `Daily diamond cap (${DAILY_CAP}💎) reached`
+                  message: `Daily diamond cap (${DAILY_CAP}diamonds) reached`
               });
           }
 
@@ -179,7 +179,7 @@ export default async function handler(req, res) {
               p_user_id: userId,
               p_amount: POST_REWARD,
               p_type: 'social_post',
-              p_description: `Social post reward — ${POST_REWARD}💎`,
+              p_description: `Social post reward — ${POST_REWARD}diamonds`,
               p_reference_id: postId || null
           });
 
@@ -187,7 +187,7 @@ export default async function handler(req, res) {
               success: true,
               claimed: true,
               diamondsAwarded: POST_REWARD,
-              message: `+${POST_REWARD}💎 Post Reward!`
+              message: `+${POST_REWARD}diamonds Post Reward!`
           });
 
       } catch (error) {

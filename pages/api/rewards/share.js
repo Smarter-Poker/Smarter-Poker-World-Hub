@@ -1,12 +1,12 @@
 /**
  * 📤 SHARE REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 10💎 for sharing content/scores (max 1 per day)
+ * Awards 10diamonds for sharing content/scores (max 1 per day)
  *
  * ANTI-FARMING SAFEGUARDS:
  * - 1 reward per day max
  * - 24h account age
- * - 500💎 daily cap
+ * - 500diamonds daily cap
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
               p_user_id: userId,
               p_amount: SHARE_REWARD,
               p_type: 'share',
-              p_description: `Share reward — ${SHARE_REWARD}💎`,
+              p_description: `Share reward — ${SHARE_REWARD}diamonds`,
               p_reference_id: contentId || null
           });
 

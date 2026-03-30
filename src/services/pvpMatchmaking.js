@@ -296,7 +296,7 @@ export async function processMatchReward(winnerId, loserId, stakeAmount) {
             p_user_id: winnerId,
             p_amount: winnerPayout,
             p_type: 'pvp_match_win',
-            p_description: `PvP Match Win vs ${loserId} — Pot: ${totalPot}💎, Rake: ${rakeAmount}💎`
+            p_description: `PvP Match Win vs ${loserId} — Pot: ${totalPot}diamonds, Rake: ${rakeAmount}diamonds`
         });
 
         if (rpcError) {
@@ -313,7 +313,7 @@ export async function processMatchReward(winnerId, loserId, stakeAmount) {
                 p_user_id: winnerId,
                 p_amount: winnerPayout,
                 p_type: 'pvp_win',
-                p_description: `PvP Match Win vs ${loserId} — Pot: ${totalPot}💎, Rake: ${rakeAmount}💎 (fallback)`,
+                p_description: `PvP Match Win vs ${loserId} — Pot: ${totalPot}diamonds, Rake: ${rakeAmount}diamonds (fallback)`,
                 p_reference_id: null
             });
         }

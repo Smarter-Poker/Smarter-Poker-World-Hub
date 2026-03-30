@@ -193,7 +193,7 @@ export default async function handler(req, res) {
                               p_user_id: userId,
                               p_amount: -tournament.entry_fee_diamonds,
                               p_type: 'arcade_entry',
-                              p_description: `Tournament entry fee — ${tournament.entry_fee_diamonds}💎`,
+                              p_description: `Tournament entry fee — ${tournament.entry_fee_diamonds}diamonds`,
                               p_reference_id: `tourney_entry_${tournamentId}_${userId}`
                           });
                       } catch (rpcErr) {

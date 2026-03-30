@@ -120,7 +120,7 @@ export default async function handler(req, res) {
                   p_user_id: user_id,
                   p_amount: -cost,
                   p_type: 'arcade_entry',
-                  p_description: `Duel entry fee — ${duel_type} (${cost}💎)`,
+                  p_description: `Duel entry fee — ${duel_type} (${cost}diamonds)`,
                   p_reference_id: match?.id || null
               });
 
@@ -160,7 +160,7 @@ export default async function handler(req, res) {
               p_user_id: user_id,
               p_amount: -cost,
               p_type: 'arcade_entry',
-              p_description: `Duel queue entry — ${duel_type} (${cost}💎)`,
+              p_description: `Duel queue entry — ${duel_type} (${cost}diamonds)`,
               p_reference_id: queueEntry?.id || null
           });
 

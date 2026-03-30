@@ -1,7 +1,7 @@
 /**
  * 👥 FOLLOW REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 5💎 for following a user (max 3 per day)
+ * Awards 5diamonds for following a user (max 3 per day)
  *
  * ANTI-FARMING SAFEGUARDS:
  * - 3 rewards per day max
@@ -9,7 +9,7 @@
  * - Connection must exist in social_connections table
  * - Can't re-follow same user in same day
  * - 24h account age
- * - 500💎 daily cap
+ * - 500diamonds daily cap
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -164,7 +164,7 @@ export default async function handler(req, res) {
               p_user_id: userId,
               p_amount: FOLLOW_REWARD,
               p_type: 'follow',
-              p_description: `Follow reward — ${FOLLOW_REWARD}💎`,
+              p_description: `Follow reward — ${FOLLOW_REWARD}diamonds`,
               p_reference_id: followingId
           });
 

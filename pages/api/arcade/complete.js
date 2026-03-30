@@ -87,7 +87,7 @@ export default async function handler(req, res) {
                   p_user_id: user.id,
                   p_amount: prize,
                   p_type: 'arcade_prize',
-                  p_description: `${gameType} win — ${correctCount}/${totalQuestions} correct (${prize}💎)`,
+                  p_description: `${gameType} win — ${correctCount}/${totalQuestions} correct (${prize}diamonds)`,
                   p_reference_id: null,
               });
               if (awardErr) throw new Error(awardErr.message);

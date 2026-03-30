@@ -207,7 +207,7 @@ export default async function handler(req, res) {
                           p_user_id: userId,
                           p_amount: diamondsEarned,
                           p_type: 'training_reward',
-                          p_description: `Training: ${gameId} L${level} — ${diamondsEarned}💎`,
+                          p_description: `Training: ${gameId} L${level} — ${diamondsEarned}diamonds`,
                           p_reference_id: `progress_${userId}_${gameId}_${level}_${Date.now()}`
                       });
                   } catch (e) {
@@ -264,7 +264,7 @@ export default async function handler(req, res) {
                           p_user_id: userId,
                           p_amount: diamondsEarned,
                           p_type: 'training_reward',
-                          p_description: `Training: ${gameId} L${level} — ${diamondsEarned}💎`,
+                          p_description: `Training: ${gameId} L${level} — ${diamondsEarned}diamonds`,
                           p_reference_id: `progress_${userId}_${gameId}_${level}_${Date.now()}`
                       });
                   } catch (e) {

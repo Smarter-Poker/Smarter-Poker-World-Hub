@@ -635,7 +635,7 @@ export default function StrategyTrivia({ mode }) {
                         p_user_id: userId,
                         p_amount: diamondsEarned,
                         p_type: 'trivia_reward',
-                        p_description: `${config.title} reward — ${diamondsEarned}💎`,
+                        p_description: `${config.title} reward — ${diamondsEarned}diamonds`,
                         p_reference_id: null
                     });
                     const { data: freshProfile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
@@ -704,7 +704,7 @@ export default function StrategyTrivia({ mode }) {
                     p_user_id: userId,
                     p_amount: -LIFELINE_COST,
                     p_type: 'strategy_lifeline',
-                    p_description: `${config.title} 50/50 lifeline — ${LIFELINE_COST}💎`,
+                    p_description: `${config.title} 50/50 lifeline — ${LIFELINE_COST}diamonds`,
                     p_reference_id: null
                 });
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
@@ -743,7 +743,7 @@ export default function StrategyTrivia({ mode }) {
                     p_user_id: userId,
                     p_amount: -LIFELINE_COST,
                     p_type: 'strategy_lifeline',
-                    p_description: `${config.title} skip question — ${LIFELINE_COST}💎`,
+                    p_description: `${config.title} skip question — ${LIFELINE_COST}diamonds`,
                     p_reference_id: null
                 });
                 const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
@@ -799,9 +799,9 @@ export default function StrategyTrivia({ mode }) {
                 {showOutOfDiamonds && (
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <div style={{ background: '#1a1a2e', borderRadius: 16, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(0,212,255,0.3)' }}>
-                            <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
+                            <div style={{ fontSize: 48, marginBottom: 16 }}>diamonds</div>
                             <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You need {GAME_DIAMOND_COST}💎 to play. Visit the Diamond Store to get more!</p>
+                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You need {GAME_DIAMOND_COST}diamonds to play. Visit the Diamond Store to get more!</p>
                             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                                 <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
                                 <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>

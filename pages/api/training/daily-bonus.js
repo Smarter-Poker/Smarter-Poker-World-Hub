@@ -181,8 +181,8 @@ export default async function handler(req, res) {
                       p_amount: totalBonus,
                       p_type: 'daily_bonus',
                       p_description: streakBonus > 0
-                          ? `Daily bonus (${BASE_DAILY_BONUS}💎) + ${currentStreak}-day streak bonus (${streakBonus}💎)`
-                          : `Daily training bonus — ${totalBonus}💎`,
+                          ? `Daily bonus (${BASE_DAILY_BONUS}diamonds) + ${currentStreak}-day streak bonus (${streakBonus}diamonds)`
+                          : `Daily training bonus — ${totalBonus}diamonds`,
                       p_reference_id: null
                   });
               } catch (rpcErr) {
@@ -202,7 +202,7 @@ export default async function handler(req, res) {
                   streakBonus,
                   streakDays: currentStreak,
                   totalAwarded: totalBonus,
-                  message: `+${totalBonus}💎 Daily Bonus claimed!`
+                  message: `+${totalBonus}diamonds Daily Bonus claimed!`
               });
 
           } catch (error) {

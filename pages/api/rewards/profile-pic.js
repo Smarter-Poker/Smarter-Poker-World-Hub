@@ -1,7 +1,7 @@
 /**
  * 📸 PROFILE PIC UPDATE REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 10💎 ONE TIME for uploading/updating a profile picture
+ * Awards 10diamonds ONE TIME for uploading/updating a profile picture
  *
  * ANTI-FARMING SAFEGUARDS:
  * - One-time claim only (lifetime)
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
           if (!profile || !profile.avatar_url || profile.avatar_url.trim().length === 0) {
               return res.status(200).json({
                   success: false,
-                  message: `Upload a profile picture to earn ${PROFILE_PIC_REWARD}💎!`
+                  message: `Upload a profile picture to earn ${PROFILE_PIC_REWARD}diamonds!`
               });
           }
 
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
               p_user_id: userId,
               p_amount: PROFILE_PIC_REWARD,
               p_type: 'profile_pic',
-              p_description: `Profile picture reward — ${PROFILE_PIC_REWARD}💎`,
+              p_description: `Profile picture reward — ${PROFILE_PIC_REWARD}diamonds`,
               p_reference_id: null
           });
 
@@ -111,7 +111,7 @@ export default async function handler(req, res) {
               success: true,
               claimed: true,
               diamondsAwarded: PROFILE_PIC_REWARD,
-              message: `+${PROFILE_PIC_REWARD}💎 Profile Pic Uploaded!`
+              message: `+${PROFILE_PIC_REWARD}diamonds Profile Pic Uploaded!`
           });
 
       } catch (error) {

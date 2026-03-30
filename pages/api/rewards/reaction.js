@@ -1,7 +1,7 @@
 /**
  * ❤️ REACTION REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 2💎 for liking/reacting to a post (max 10 per day)
+ * Awards 2diamonds for liking/reacting to a post (max 10 per day)
  *
  * ANTI-FARMING SAFEGUARDS:
  * - 10 rewards per day max
@@ -9,7 +9,7 @@
  * - Cannot like own posts
  * - Interaction must exist in social_interactions table
  * - 24h account age
- * - 500💎 daily cap
+ * - 500diamonds daily cap
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
               p_user_id: userId,
               p_amount: REACTION_REWARD,
               p_type: 'reaction',
-              p_description: `Reaction reward — ${REACTION_REWARD}💎`,
+              p_description: `Reaction reward — ${REACTION_REWARD}diamonds`,
               p_reference_id: postId
           });
 

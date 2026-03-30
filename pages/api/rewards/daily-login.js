@@ -1,7 +1,7 @@
 /**
  * 📅 DAILY LOGIN REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 5-50💎 for daily site login (scales with streak)
+ * Awards 5-50diamonds for daily site login (scales with streak)
  * Uses diamond_reward_claims table for dedup
  *
  * ANTI-FARMING SAFEGUARDS:
@@ -176,8 +176,8 @@ export default async function handler(req, res) {
               p_amount: diamondsAwarded,
               p_type: 'daily_login',
               p_description: streak > 1
-                  ? `Daily login reward (${streak}-day streak) — ${diamondsAwarded}💎`
-                  : `Daily login reward — ${diamondsAwarded}💎`,
+                  ? `Daily login reward (${streak}-day streak) — ${diamondsAwarded}diamonds`
+                  : `Daily login reward — ${diamondsAwarded}diamonds`,
               p_reference_id: null
           });
 
@@ -191,7 +191,7 @@ export default async function handler(req, res) {
               claimed: true,
               diamondsAwarded,
               streak,
-              message: `+${diamondsAwarded}💎 Daily Login Reward!`
+              message: `+${diamondsAwarded}diamonds Daily Login Reward!`
           });
 
       } catch (error) {

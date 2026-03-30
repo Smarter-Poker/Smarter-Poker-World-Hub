@@ -1,13 +1,13 @@
 /**
  * 🧠 DAILY TRIVIA CHALLENGE REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 15💎 for completing the daily trivia challenge (any score!)
+ * Awards 15diamonds for completing the daily trivia challenge (any score!)
  * Uses diamond_reward_claims table for dedup
  *
  * ANTI-FARMING SAFEGUARDS:
  * - 1 reward per calendar day (CST) enforced by unique index
  * - Account must be 24+ hours old
- * - Global 500💎 daily cap check
+ * - Global 500diamonds daily cap check
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -123,7 +123,7 @@ export default async function handler(req, res) {
               p_user_id: userId,
               p_amount: diamonds,
               p_type: 'daily_trivia',
-              p_description: `Daily Trivia Challenge reward — ${diamonds}💎`,
+              p_description: `Daily Trivia Challenge reward — ${diamonds}diamonds`,
               p_reference_id: null
           });
 

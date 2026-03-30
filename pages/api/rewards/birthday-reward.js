@@ -122,7 +122,7 @@ export default async function handler(req, res) {
             p_user_id: userId,
             p_amount: BIRTHDAY_DIAMONDS,
             p_type: 'birthday_reward',
-            p_description: `Happy Birthday! 🎂 ${BIRTHDAY_DIAMONDS}💎 awarded`,
+            p_description: `Happy Birthday! 🎂 ${BIRTHDAY_DIAMONDS}diamonds awarded`,
             p_reference_id: null
         });
 

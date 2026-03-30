@@ -330,7 +330,7 @@ async function completeTournament(tournament, winnerId, finalRound) {
             p_user_id: entry.user_id,
             p_amount: prizeAmount,
             p_type: 'tournament_prize',
-            p_description: `#${i + 1} place — ${tournament.name} (${prizeAmount}💎)`,
+            p_description: `#${i + 1} place — ${tournament.name} (${prizeAmount}diamonds)`,
             p_reference_id: tournament.id
         });
 
@@ -354,7 +354,7 @@ async function completeTournament(tournament, winnerId, finalRound) {
                 user_id: entry.user_id,
                 tournament_id: tournament.id,
                 notification_type: 'winner',
-                message: `🏆 You placed #${i + 1} in ${tournament.name}! You won ${prizeAmount}💎!`
+                message: `🏆 You placed #${i + 1} in ${tournament.name}! You won ${prizeAmount}diamonds!`
             });
     }
 

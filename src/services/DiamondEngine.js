@@ -1,5 +1,5 @@
 /**
- * 💎 DIAMOND ENGINE - Supabase Production Edition
+ * diamonds DIAMOND ENGINE - Supabase Production Edition
  * Uses profiles.diamonds as the authoritative balance source
  * Uses add_diamonds_to_balance / deduct_diamonds RPCs for atomic operations
  */
@@ -194,7 +194,7 @@ class DiamondEngineSupabase {
                     p_user_id: this.userId,
                     p_amount: amount,
                     p_type: source,
-                    p_description: metadata.description || `${source} — ${amount}💎`,
+                    p_description: metadata.description || `${source} — ${amount}diamonds`,
                     p_reference_id: metadata.reference_id || null
                 });
 

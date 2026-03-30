@@ -1,7 +1,7 @@
 /**
  * 📍 GEO-FENCED VENUE REVIEW REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 25💎 for reviewing a venue ONLY if GPS proves user is within 200m
+ * Awards 25diamonds for reviewing a venue ONLY if GPS proves user is within 200m
  * Uses diamond_reward_claims table for dedup
  *
  * ANTI-FARMING SAFEGUARDS:
@@ -9,7 +9,7 @@
  * - 1 reward per venue lifetime (once per venue)
  * - 2 venue review rewards per day max
  * - Account must be 24+ hours old
- * - Global 500💎 daily cap check
+ * - Global 500diamonds daily cap check
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -207,7 +207,7 @@ export default async function handler(req, res) {
               p_user_id: userId,
               p_amount: diamonds,
               p_type: 'venue_review',
-              p_description: `Venue review reward at ${venue.name || 'venue'} — ${diamonds}💎 (${Math.round(distance)}m away)`,
+              p_description: `Venue review reward at ${venue.name || 'venue'} — ${diamonds}diamonds (${Math.round(distance)}m away)`,
               p_reference_id: String(venueId)
           });
 

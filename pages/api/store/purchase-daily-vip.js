@@ -69,7 +69,7 @@ export default async function handler(req, res) {
               p_user_id: user.id,
               p_amount: -COST,
               p_type: 'vip_daily',
-              p_description: `1-Day VIP Access (${COST}💎)`,
+              p_description: `1-Day VIP Access (${COST}diamonds)`,
               p_reference_id: null
           });
 

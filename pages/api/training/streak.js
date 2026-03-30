@@ -282,7 +282,7 @@ export default async function handler(req, res) {
                   p_user_id: userId,
                   p_amount: milestone.diamonds,
                   p_type: 'streak_reward',
-                  p_description: `${milestone.name} — ${milestone.diamonds}💎 reward`,
+                  p_description: `${milestone.name} — ${milestone.diamonds}diamonds reward`,
                   p_reference_id: `streak_${userId}_${milestoneDays}`
               });
 

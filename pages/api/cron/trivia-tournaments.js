@@ -232,7 +232,7 @@ async function cancelAndRefund(tournament, entries) {
             p_user_id: entry.user_id,
             p_amount: tournament.entry_fee,
             p_type: 'tournament_refund',
-            p_description: `Tournament cancelled — ${tournament.name} (${tournament.entry_fee}💎 refund)`,
+            p_description: `Tournament cancelled — ${tournament.name} (${tournament.entry_fee}diamonds refund)`,
             p_reference_id: tournament.id
         });
 
@@ -243,7 +243,7 @@ async function cancelAndRefund(tournament, entries) {
                 user_id: entry.user_id,
                 tournament_id: tournament.id,
                 notification_type: 'eliminated',
-                message: `${tournament.name} was cancelled — not enough players. Your ${tournament.entry_fee}💎 has been refunded.`
+                message: `${tournament.name} was cancelled — not enough players. Your ${tournament.entry_fee}diamonds has been refunded.`
             });
     }
 

@@ -1,7 +1,7 @@
 /**
  * 👤 PROFILE COMPLETION REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 50💎 ONE TIME for completing profile (avatar + bio + username)
+ * Awards 50diamonds ONE TIME for completing profile (avatar + bio + username)
  *
  * ANTI-FARMING SAFEGUARDS:
  * - One-time claim only (lifetime)
@@ -86,7 +86,7 @@ export default async function handler(req, res) {
               if (!hasBio) missing.push('bio (10+ chars)');
               return res.status(200).json({
                   success: false,
-                  message: `Complete your profile to earn ${COMPLETION_REWARD}💎! Missing: ${missing.join(', ')}`
+                  message: `Complete your profile to earn ${COMPLETION_REWARD}diamonds! Missing: ${missing.join(', ')}`
               });
           }
 
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
               p_user_id: userId,
               p_amount: COMPLETION_REWARD,
               p_type: 'profile_complete',
-              p_description: `Profile completion reward — ${COMPLETION_REWARD}💎`,
+              p_description: `Profile completion reward — ${COMPLETION_REWARD}diamonds`,
               p_reference_id: null
           });
 
@@ -126,7 +126,7 @@ export default async function handler(req, res) {
               success: true,
               claimed: true,
               diamondsAwarded: COMPLETION_REWARD,
-              message: `+${COMPLETION_REWARD}💎 Profile Complete!`
+              message: `+${COMPLETION_REWARD}diamonds Profile Complete!`
           });
 
       } catch (error) {

@@ -1,7 +1,7 @@
 /**
  * 🏆 HENDONMOB LINK REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 25💎 ONE TIME for linking HendonMob profile
+ * Awards 25diamonds ONE TIME for linking HendonMob profile
  *
  * ANTI-FARMING SAFEGUARDS:
  * - One-time claim only (lifetime)
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
           if (!hendonmobValue || String(hendonmobValue).trim().length < 5) {
               return res.status(200).json({
                   success: false,
-                  message: `Link your HendonMob profile to earn ${HENDONMOB_REWARD}💎!`
+                  message: `Link your HendonMob profile to earn ${HENDONMOB_REWARD}diamonds!`
               });
           }
 
@@ -114,7 +114,7 @@ export default async function handler(req, res) {
               p_user_id: userId,
               p_amount: HENDONMOB_REWARD,
               p_type: 'hendonmob_link',
-              p_description: `HendonMob link reward — ${HENDONMOB_REWARD}💎`,
+              p_description: `HendonMob link reward — ${HENDONMOB_REWARD}diamonds`,
               p_reference_id: null
           });
 
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
               success: true,
               claimed: true,
               diamondsAwarded: HENDONMOB_REWARD,
-              message: `+${HENDONMOB_REWARD}💎 HendonMob Linked!`
+              message: `+${HENDONMOB_REWARD}diamonds HendonMob Linked!`
           });
 
       } catch (error) {

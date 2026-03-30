@@ -1,13 +1,13 @@
 /**
  * 📺 VIDEO WATCH REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 3💎 for watching 5+ minutes of a video (max 5 per day)
+ * Awards 3diamonds for watching 5+ minutes of a video (max 5 per day)
  *
  * ANTI-FARMING SAFEGUARDS:
  * - Must watch 5+ minutes (300s), verified via video_watch_history
  * - 5 unique videos per day max
  * - Same video can only earn once
- * - 500💎 daily cap
+ * - 500diamonds daily cap
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -133,7 +133,7 @@ export default async function handler(req, res) {
               p_user_id: userId,
               p_amount: WATCH_REWARD,
               p_type: 'video_watch',
-              p_description: `Video watch reward — ${WATCH_REWARD}💎`,
+              p_description: `Video watch reward — ${WATCH_REWARD}diamonds`,
               p_reference_id: videoId
           });
 

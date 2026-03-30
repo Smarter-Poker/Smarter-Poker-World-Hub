@@ -1,7 +1,7 @@
 /**
  * 👥 REFERRAL REWARD API
  * ═══════════════════════════════════════════════════════════════════════════
- * Awards 500💎 for verified referrals — BYPASSES daily cap
+ * Awards 500diamonds for verified referrals — BYPASSES daily cap
  * One-time per referred user pair
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -100,7 +100,7 @@ export default async function handler(req, res) {
               p_user_id: referrerId,
               p_amount: REFERRAL_REWARD,
               p_type: 'referral',
-              p_description: `Referral reward — ${REFERRAL_REWARD}💎 (bypasses daily cap)`,
+              p_description: `Referral reward — ${REFERRAL_REWARD}diamonds (bypasses daily cap)`,
               p_reference_id: referredUserId
           });
 
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
               success: true,
               claimed: true,
               diamondsAwarded: REFERRAL_REWARD,
-              message: `+${REFERRAL_REWARD}💎 Referral Reward!`
+              message: `+${REFERRAL_REWARD}diamonds Referral Reward!`
           });
 
       } catch (error) {
