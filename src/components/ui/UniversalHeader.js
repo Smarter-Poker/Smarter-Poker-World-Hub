@@ -16,6 +16,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -24,7 +25,12 @@ import { supabase } from '../../lib/supabase';
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 
 import FullScreenPageOverlay from './FullScreenPageOverlay';
-import DiamondWalletModal from '../store/DiamondWalletModal';
+
+// ── PERF: Lazy-load DiamondWalletModal only when opened (saves ~95KB from initial bundle) ──
+const DiamondWalletModal = dynamic(() => import('../store/DiamondWalletModal'), {
+    ssr: false,
+    loading: () => null, // No visible flash — modal has its own skeleton
+});
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { useDiamondBalance } from '../../hooks/useDiamondBalance';

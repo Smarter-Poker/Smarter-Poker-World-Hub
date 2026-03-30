@@ -17,6 +17,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { listenBroadcast } from '../lib/broadcastSync';
+import { eventBus, EventType } from '../engine/EventBus';
 
 // ── Helper: read access token from localStorage ──
 function getAccessToken() {
@@ -83,7 +84,16 @@ export function useDiamondBalance(userId) {
     // ── Event listener: diamond-balance-refresh custom event ──
     useEffect(() => {
         window.addEventListener('diamond-balance-refresh', refreshBalance);
-        return () => window.removeEventListener('diamond-balance-refresh', refreshBalance);
+        
+        // Listen to global EventBus for robust real-time synchronization
+        const unsubscribeEarned = eventBus.on(EventType.DIAMONDS_EARNED, refreshBalance);
+        const unsubscribeSpent = eventBus.on(EventType.DIAMONDS_SPENT, refreshBalance);
+        
+        return () => {
+            window.removeEventListener('diamond-balance-refresh', refreshBalance);
+            unsubscribeEarned();
+            unsubscribeSpent();
+        };
     }, [refreshBalance]);
 
     // ── Supabase realtime: profile.diamonds changes + cross-tab sync ──

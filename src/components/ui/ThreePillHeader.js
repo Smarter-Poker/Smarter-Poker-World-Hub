@@ -13,12 +13,18 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
-import DiamondWalletModal from '../store/DiamondWalletModal';
+
+// ── PERF: Lazy-load DiamondWalletModal only when opened (saves ~95KB from initial bundle) ──
+const DiamondWalletModal = dynamic(() => import('../store/DiamondWalletModal'), {
+    ssr: false,
+    loading: () => null,
+});
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { useDiamondBalance } from '../../hooks/useDiamondBalance';

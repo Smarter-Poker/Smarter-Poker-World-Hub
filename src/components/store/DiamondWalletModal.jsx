@@ -35,6 +35,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getAuthUser } from '../../lib/authUtils';
 import { showStoreToast } from './StoreToast';
+import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Transaction type config — icons, labels, colors
@@ -431,7 +432,37 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             }
         };
         window.addEventListener('diamond-balance-refresh', handleBalanceRefresh);
-        return () => window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
+
+        // ── EVENTBUS SYNC: Listen for DIAMONDS_EARNED / DIAMONDS_SPENT from global EventBus ──
+        // This ensures the wallet modal refreshes when ANY part of the app
+        // (Training Engine, Trivia, Store, etc.) mutates diamond balance.
+        const handleBusEvent = (event) => {
+            const amount = event?.payload?.amount;
+            if (amount !== undefined && amount !== null) {
+                // Optimistic balance update from bus event
+                setBalance(prev => {
+                    const current = prev ?? 0;
+                    return event.type === EventType.DIAMONDS_EARNED
+                        ? current + amount
+                        : current - amount;
+                });
+            } else {
+                // No amount in payload — re-read from cache
+                setBalance(getCachedBalance());
+            }
+            // Re-fetch transactions for fresh list
+            if (!fetchInFlightRef.current) {
+                fetchTransactions();
+            }
+        };
+        const unsubEarned = eventBus.on(EventType.DIAMONDS_EARNED, handleBusEvent);
+        const unsubSpent = eventBus.on(EventType.DIAMONDS_SPENT, handleBusEvent);
+
+        return () => {
+            window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
+            unsubEarned();
+            unsubSpent();
+        };
     }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Helper: get auth session for API calls ──
@@ -611,7 +642,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 setTransferRecipient(null);
                 // Update balance optimistically
                 setBalance(prev => (prev ?? 0) - amount);
-                // Dispatch refresh event
+                // ── EVENTBUS: Emit diamond-spent through global bus (replaces legacy window event) ──
+                busEmit.diamondsSpent(amount, 'diamond-transfer');
+                // Legacy fallback for any remaining window-event listeners
                 window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { source: 'diamond-transfer' } }));
                 // #7: Recipient notification event (other components can listen)
                 window.dispatchEvent(new CustomEvent('diamond-gift-sent', {
