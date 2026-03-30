@@ -439,6 +439,7 @@ export default function LobbyOverlay({
             gridTemplateRows: 'repeat(3, 1fr)',
             gap: 0,
             overflow: 'visible',
+            pointerEvents: showTutorial ? 'none' : 'auto',
           }}>
             {GRID_HOTSPOTS.map((hotspot) => (
               <button

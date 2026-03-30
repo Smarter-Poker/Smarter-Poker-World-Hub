@@ -10,10 +10,14 @@ description: How to log in and test features in the browser using the test accou
 >
 > **`https://smarter.poker`**
 >
-> **NEVER** test on `localhost`, `127.0.0.1`, or any local dev server URL.
-> The dev server exists for build verification ONLY — not for browser testing.
+> **NEVER** test on:
+> - `localhost`, `localhost:3000`, `localhost:5173`, `127.0.0.1`, or any local dev server URL
+> - `*.vercel.app` URLs (e.g., `club-arena.vercel.app`, `smarter-poker-*.vercel.app`)
+> - Any Vercel preview deployment URL
 >
-> Any agent that opens a browser to `localhost:3000` for testing is in VIOLATION of this standard.
+> The dev server and Vercel preview apps exist for build verification ONLY — not for browser testing.
+>
+> Any agent that opens a browser to localhost or a Vercel app URL for testing is in VIOLATION of this standard.
 
 ## Test Account Credentials
 
