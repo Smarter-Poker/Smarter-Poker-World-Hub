@@ -18,6 +18,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { CheckCircle, XCircle, Info, AlertTriangle } from 'lucide-react';
 
 // ── Helper function (usable from any module) ──
 export function showStoreToast(type, message) {
@@ -33,25 +34,25 @@ const TOAST_STYLES = {
     success: {
         bg: 'linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95))',
         border: 'rgba(52, 211, 153, 0.6)',
-        icon: '✓',
+        IconCol: CheckCircle,
         glow: 'rgba(16, 185, 129, 0.4)',
     },
     error: {
         bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(185, 28, 28, 0.95))',
         border: 'rgba(248, 113, 113, 0.6)',
-        icon: '✕',
+        IconCol: XCircle,
         glow: 'rgba(239, 68, 68, 0.4)',
     },
     info: {
         bg: 'linear-gradient(135deg, rgba(0, 180, 220, 0.95), rgba(0, 130, 180, 0.95))',
         border: 'rgba(0, 212, 255, 0.6)',
-        icon: 'ℹ',
+        IconCol: Info,
         glow: 'rgba(0, 212, 255, 0.4)',
     },
     warning: {
         bg: 'linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(217, 119, 6, 0.95))',
         border: 'rgba(251, 191, 36, 0.6)',
-        icon: '⚠',
+        IconCol: AlertTriangle,
         glow: 'rgba(245, 158, 11, 0.4)',
     },
 };
@@ -135,7 +136,7 @@ export default function StoreToast() {
                                 background: 'rgba(255,255,255,0.15)',
                                 flexShrink: 0,
                             }}>
-                                {s.icon}
+                                {s.IconCol && <s.IconCol size={16} strokeWidth={3} color="#fff" />}
                             </span>
                             <span style={{
                                 flex: 1,

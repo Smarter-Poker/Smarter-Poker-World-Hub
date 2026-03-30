@@ -1167,7 +1167,9 @@ export default function DiamondStorePage() {
                                             <div style={styles.rewardList}>
                                                 {STANDARD_REWARDS.map((reward, idx) => (
                                                     <div key={idx} style={reward.bypassesCap ? { ...styles.rewardItem, ...styles.referralHighlight } : styles.rewardItem}>
-                                                        <span style={styles.rewardIcon}>{reward.icon}</span>
+                                                        <span style={styles.rewardIcon}>
+                                                            {reward.icon && <reward.icon size={24} />}
+                                                        </span>
                                                         <div style={styles.rewardDetails}>
                                                             <span style={styles.rewardName}>{reward.name}</span>
                                                             <span style={styles.rewardNote}>{reward.note}</span>
@@ -1194,7 +1196,9 @@ export default function DiamondStorePage() {
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.performance.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
-                                                        <div style={styles.eggIcon}>{egg.icon}</div>
+                                                        <div style={styles.eggIcon}>
+                                                            {egg.icon && <egg.icon size={32} />}
+                                                        </div>
                                                         <h4 style={styles.eggName}>{egg.name}</h4>
                                                         <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
                                                             {egg.rarity.toUpperCase()}
@@ -1212,7 +1216,9 @@ export default function DiamondStorePage() {
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.timing_loyalty.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
-                                                        <div style={styles.eggIcon}>{egg.icon}</div>
+                                                        <div style={styles.eggIcon}>
+                                                            {egg.icon && <egg.icon size={32} />}
+                                                        </div>
                                                         <h4 style={styles.eggName}>{egg.name}</h4>
                                                         <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
                                                             {egg.rarity.toUpperCase()}
@@ -1230,7 +1236,9 @@ export default function DiamondStorePage() {
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.strategy_mastery.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
-                                                        <div style={styles.eggIcon}>{egg.icon}</div>
+                                                        <div style={styles.eggIcon}>
+                                                            {egg.icon && <egg.icon size={32} />}
+                                                        </div>
                                                         <h4 style={styles.eggName}>{egg.name}</h4>
                                                         <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
                                                             {egg.rarity.toUpperCase()}
@@ -1248,7 +1256,9 @@ export default function DiamondStorePage() {
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.social_viral.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
-                                                        <div style={styles.eggIcon}>{egg.icon}</div>
+                                                        <div style={styles.eggIcon}>
+                                                            {egg.icon && <egg.icon size={32} />}
+                                                        </div>
                                                         <h4 style={styles.eggName}>{egg.name}</h4>
                                                         <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
                                                             {egg.rarity.toUpperCase()}
@@ -1266,7 +1276,9 @@ export default function DiamondStorePage() {
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.meta_interface.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
-                                                        <div style={styles.eggIcon}>{egg.icon}</div>
+                                                        <div style={styles.eggIcon}>
+                                                            {egg.icon && <egg.icon size={32} />}
+                                                        </div>
                                                         <h4 style={styles.eggName}>{egg.name}</h4>
                                                         <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
                                                             {egg.rarity.toUpperCase()}
@@ -1284,7 +1296,9 @@ export default function DiamondStorePage() {
                                             <div style={styles.eggGrid}>
                                                 {EASTER_EGGS.legacy_milestones.map((egg) => (
                                                     <div key={egg.id} style={styles.eggCard}>
-                                                        <div style={styles.eggIcon}>{egg.icon}</div>
+                                                        <div style={styles.eggIcon}>
+                                                            {egg.icon && <egg.icon size={32} />}
+                                                        </div>
                                                         <h4 style={styles.eggName}>{egg.name}</h4>
                                                         <div style={{ ...styles.rarityBadge, ...styles[`rarity${egg.rarity.charAt(0).toUpperCase() + egg.rarity.slice(1)}`] }}>
                                                             {egg.rarity.toUpperCase()}
