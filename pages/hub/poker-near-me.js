@@ -17,7 +17,7 @@ import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import FeatureGate from '../../src/components/gates/FeatureGate';
+import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import { supabase } from '../../src/lib/supabase';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
@@ -200,6 +200,9 @@ export default function PokerNearMePage() {
     const { user } = useAvatar();
     const bus = useTrainingBus();
     const userId = user?.id;
+
+    // ═══ VIP ACTION GATE ═══
+    const { guardAction, UpgradePopup } = useFeatureGate('poker_near_me');
 
     // Active tab state — persisted with sortBy and seriesViewMode
     const { filters: uiFilters, setFilter: setUiFilter } = usePersistedFilters('poker-near-me', {
@@ -1431,11 +1434,25 @@ export default function PokerNearMePage() {
             case 'more':
                 return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '20px 0' }}>
-                        <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />
+                        <div onClickCapture={(e) => {
+                            if (!guardAction(() => {})) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                            }
+                        }}>
+                            <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />
+                        </div>
                         <SocialLayer userId={userId} userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} authToken={user?.access_token} />
                         <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={user?.access_token} />
                         <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} />
-                        <TripCostCalculator venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} />
+                        <div onClickCapture={(e) => {
+                            if (!guardAction(() => {})) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                            }
+                        }}>
+                            <TripCostCalculator venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} />
+                        </div>
                     </div>
                 );
             default:
@@ -2332,17 +2349,8 @@ export default function PokerNearMePage() {
                     bottomLinks={menuConfig.bottomLinks}
                 />
 
-                {/* 25💎 day-pass gate for non-VIP users */}
-                <FeatureGate
-                    featureKey="poker_near_me"
-                    userId={userId}
-                    cost={25}
-                    duration={24}
-                    title="Poker Near Me"
-                    description={`Access ${dbStats.total || '500+'} Live Poker Venues, Tournament Schedules, And Daily Events Worldwide.`}
-                >
-
-                    {/* ═══ NATIVE CSS SEARCH & FILTER ROW ═══ */}
+                {/* ═══ VIP ACTION GATE REPLACED OLD PAGE WRAPPER ═══ */}
+                {/* ═══ NATIVE CSS SEARCH & FILTER ROW ═══ */}
                     <div className="native-search-row">
                         <form className="native-search-form" onSubmit={handleSearch}>
                             <input
@@ -5131,7 +5139,7 @@ export default function PokerNearMePage() {
                     }
                 `}</style>
                       <BottomNavBar />
-    </FeatureGate>
+                      {UpgradePopup}
             </div>
         </>
     );

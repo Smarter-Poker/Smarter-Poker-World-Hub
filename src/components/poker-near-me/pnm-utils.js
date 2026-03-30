@@ -78,50 +78,23 @@ export function parseMinStake(gameName) {
 
 // ─── NEW UTILITIES ───
 
-/**
- * Get venue logo URL with intelligent fallback chain:
- * 1. profile_photo_url (from social page / Commander)
- * 2. cover_photo_url (uploaded venue cover)
- * 3. Google Favicon API at 128px (reliable, works for all domains)
- * 4. null (component should render gradient placeholder)
- * 
- * @param {object} venue - Venue object
- * @returns {string|null} Logo URL or null
- */
 export function getVenueLogoUrl(venue) {
     if (!venue) return null;
-    // Priority 1: Profile photo from social page
+    // Priority 1: Profile photo from social page (authenticated/scraped logo)
     if (venue.profile_photo_url) return venue.profile_photo_url;
     // Priority 2: Cover photo
     if (venue.cover_photo_url) return venue.cover_photo_url;
-    // Priority 3: Google Favicon at 128px — reliable for virtually all domains
-    if (venue.website) {
-        try {
-            let domain = venue.website;
-            if (!domain.startsWith('http')) domain = 'https://' + domain;
-            const hostname = new URL(domain).hostname;
-            return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
-        } catch { /* invalid URL */ }
-    }
+    
+    // We intentionally removed the dynamic s2/favicons fallback here because it generates 
+    // generic blue globes without byte-size validation. The backend daemon already tests 
+    // Favicon API strictly, and injects verified ones into profile_photo_url.
     return null;
 }
 
-/**
- * Fallback logo URL when the primary Google Favicon fails to load.
- * Uses icon.horse as alternate favicon service.
- * Called from onError handlers in venue card components.
- * 
- * @param {object} venue - Venue object with website
- * @returns {string|null} Fallback logo URL or null
- */
 export function getVenueLogoFallback(venue) {
-    if (!venue?.website) return null;
-    try {
-        let domain = venue.website;
-        if (!domain.startsWith('http')) domain = 'https://' + domain;
-        const hostname = new URL(domain).hostname;
-        return `https://icon.horse/icon/${hostname}`;
-    } catch { return null; }
+    // Intentionally removed dynamic fallbacks like icon.horse
+    // to force the monogram UI 
+    return null;
 }
 
 /**

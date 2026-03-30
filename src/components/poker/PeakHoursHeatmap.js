@@ -6,8 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import useVIPGate from '../../hooks/useVIPGate';
-import VIPGateModal from '../ui/VIPGateModal';
+import { useFeatureGate } from '../gates/FeatureGatePopup';
 
 const T = {
     text: '#E4E6EB',
@@ -25,7 +24,7 @@ function intensityColor(intensity) {
 }
 
 export default function PeakHoursHeatmap({ venueId }) {
-    const { allowed, loading: gateLoading, featureConfig, showUpgradeModal, upgradeModalVisible, hideUpgradeModal } = useVIPGate('poker-near-me');
+    const { hasAccess: allowed, guardAction, UpgradePopup } = useFeatureGate('poker_near_me');
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -42,7 +41,7 @@ export default function PeakHoursHeatmap({ venueId }) {
             .catch(e => { setError(e.message); setLoading(false); });
     }, [venueId, allowed]);
 
-    if (gateLoading || loading) return <div style={{ color: T.textSec, fontSize: 13, padding: 12 }}>Loading activity data...</div>;
+    if (loading) return <div style={{ color: T.textSec, fontSize: 13, padding: 12 }}>Loading activity data...</div>;
     
     // Gated View
     if (!allowed) {
@@ -72,7 +71,7 @@ export default function PeakHoursHeatmap({ venueId }) {
                     <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 4 }}>Peak Hours Intelligence</div>
                     <div style={{ fontSize: 12, color: T.textSec, marginBottom: 12 }}>Unlock to see when games are best</div>
                     <button
-                        onClick={showUpgradeModal}
+                        onClick={() => guardAction(() => {})}
                         style={{
                             padding: '6px 14px', borderRadius: 8, background: 'rgba(255,215,0,0.1)',
                             border: `1px solid ${T.gold}44`, color: T.gold, fontSize: 12, fontWeight: 700, cursor: 'pointer'
@@ -80,12 +79,7 @@ export default function PeakHoursHeatmap({ venueId }) {
                     >
                         Unlock Feature
                     </button>
-                    <VIPGateModal 
-                        visible={upgradeModalVisible} 
-                        onClose={hideUpgradeModal} 
-                        featureName="Venue Intelligence"
-                        featureConfig={featureConfig}
-                    />
+                    {UpgradePopup}
                 </div>
             </div>
         );

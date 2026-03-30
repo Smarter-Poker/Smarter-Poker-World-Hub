@@ -834,14 +834,16 @@ def run_scrape_cycle(mgr):
     if not mgr.ensure_connected():
         mgr.consecutive_failures += 1
         write_heartbeat('connect_failed', {'consecutive_failures': mgr.consecutive_failures})
-        if mgr.consecutive_failures >= 5:
-            import random
-            base_delays = [5, 15, 45, 120, 300]
-            idx = min(mgr.consecutive_failures, len(base_delays) - 1)
-            backoff = int(base_delays[idx] * random.uniform(0.9, 1.1))
-            log.error(f'🚨 {mgr.consecutive_failures} consecutive failures — applying stealth backoff ({backoff}s)')
-            time.sleep(backoff)
-            mgr.consecutive_failures = 0
+        
+        # Exponential Backoff natively applied on EVERY failure
+        import random
+        base_delays = [5, 15, 45, 120, 300]
+        # Map failure 1 to index 0 (5s), clamp at index 4 (300s)
+        idx = min(max(0, mgr.consecutive_failures - 1), len(base_delays) - 1)
+        backoff = int(base_delays[idx] * random.uniform(0.9, 1.1))
+        
+        log.error(f'🚨 {mgr.consecutive_failures} consecutive failures — applying stealth backoff ({backoff}s)')
+        time.sleep(backoff)
         return 0
 
     # Load validated region slugs (fast — only ~11 regions)

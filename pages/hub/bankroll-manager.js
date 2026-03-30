@@ -1649,6 +1649,7 @@ export default function BankrollManagerPage() {
                     {/* PDF Export */}
                     <button
                       onClick={async () => {
+                        if (!guardAction()) return;
                         try {
                           const token = getAccessToken();
                           const res = await fetch('/api/bankroll/export-pdf', {

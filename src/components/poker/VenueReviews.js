@@ -8,8 +8,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
-import useVIPGate from '../../hooks/useVIPGate';
-import VIPGateModal from '../ui/VIPGateModal';
+import { useFeatureGate } from '../gates/FeatureGatePopup';
 
 const T = {
     bg: '#0a0a0a',
@@ -85,7 +84,7 @@ export default function VenueReviews({ venueId, venueName }) {
     const [error, setError] = useState('');
     const formRef = useRef(null);
 
-    const { allowed, loading: gateLoading, featureConfig, showUpgradeModal, upgradeModalVisible, hideUpgradeModal } = useVIPGate('poker-near-me');
+    const { hasAccess: allowed, guardAction, UpgradePopup } = useFeatureGate('poker_near_me');
 
     const fetchReviews = useCallback(async () => {
         if (!venueId) return;
@@ -217,7 +216,7 @@ export default function VenueReviews({ venueId, venueName }) {
                         <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 4 }}>Player Reviews</div>
                         <div style={{ fontSize: 12, color: T.textSec, marginBottom: 12 }}>Unlock to read and write venue reviews</div>
                         <button
-                            onClick={showUpgradeModal}
+                            onClick={() => guardAction(() => {})}
                             style={{
                                 padding: '6px 14px', borderRadius: 8, background: 'rgba(255,215,0,0.1)',
                                 border: `1px solid ${T.star}44`, color: T.star, fontSize: 12, fontWeight: 700, cursor: 'pointer'
@@ -225,12 +224,7 @@ export default function VenueReviews({ venueId, venueName }) {
                         >
                             Unlock Feature
                         </button>
-                        <VIPGateModal 
-                            visible={upgradeModalVisible} 
-                            onClose={hideUpgradeModal} 
-                            featureName="Player Reviews"
-                            featureConfig={featureConfig}
-                        />
+                        {UpgradePopup}
                     </div>
                 </div>
             ) : (

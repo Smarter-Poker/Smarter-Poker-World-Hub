@@ -159,16 +159,18 @@ export default async function handler(req, res) {
         .order('scrape_timestamp', { ascending: false })
         .limit(1);
 
-      if (error || !data || data.length === 0) {
-        results.sources[source] = { status: 'NO_DATA', minutes_ago: null };
-        await sendSmartAlert(supabase, source, 'NO DATA — scraper may be completely dead', 'dead', now, results);
+      if (error) {
+        results.sources[source] = { status: 'ERROR', minutes_ago: null };
+        await sendSmartAlert(supabase, source, `DATABASE ERROR — ${error.message}`, 'dead', now, results);
         continue;
       }
 
-      const lastScrape = new Date(data[0].scrape_timestamp);
-      const minutesAgo = Math.round((now - lastScrape) / 60000);
-
-      results.sources[source] = { status: 'ok', minutes_ago: minutesAgo, count: count };
+      // Safeguard date parsing if table is completely empty
+      const lastScrape = data && data.length > 0 ? new Date(data[0].scrape_timestamp) : new Date(0);
+      const minutesAgo = data && data.length > 0 ? Math.round((now - lastScrape) / 60000) : 999;
+      
+      const safeCount = count || 0;
+      results.sources[source] = { status: 'ok', minutes_ago: minutesAgo, count: safeCount };
 
       const currentHour = now.getHours().toString();
       const baseKey = `baseline_${source}`;
@@ -179,7 +181,7 @@ export default async function handler(req, res) {
       } catch (e) { console.error('Baseline parse error', e); }
 
       const previousBaseline = baselines[currentHour] || null;
-      baselines[currentHour] = previousBaseline ? Math.round((count * 0.1) + (previousBaseline * 0.9)) : count;
+      baselines[currentHour] = previousBaseline ? Math.round((safeCount * 0.1) + (previousBaseline * 0.9)) : safeCount;
 
       await supabase.from('scraper_watchdog_state').upsert({
         key: baseKey,
@@ -187,9 +189,16 @@ export default async function handler(req, res) {
         updated_at: now.toISOString(),
       }, { onConflict: 'key' });
 
-      const relativeDrop = previousBaseline && previousBaseline > 50 && (count === 0 || count < (previousBaseline * 0.25));
+      const relativeDrop = previousBaseline && previousBaseline > 50 && (safeCount === 0 || safeCount < (previousBaseline * 0.25));
 
-      if (minutesAgo >= DEAD_THRESHOLD_MIN) {
+      if (safeCount < 10 || safeCount > 5000 || relativeDrop) {
+        // TIER 4: Anomaly — Data mathematically drops dead natively without NO_DATA short-circuit
+        results.sources[source].status = 'ANOMALY';
+        const msg = relativeDrop 
+          ? `ANOMALY — 75%+ volumetric drop compared to ${currentHour}:00 baseline (${safeCount} vs ${previousBaseline})`
+          : `ANOMALY — Table count breached safety limits: ${safeCount} total tables returned`;
+        await sendSmartAlert(supabase, source, msg, 'dead', now, results);
+      } else if (minutesAgo >= DEAD_THRESHOLD_MIN) {
         // TIER 3: Dead — escalated alerts, shorter cooldown
         results.sources[source].status = 'DEAD';
         await sendSmartAlert(supabase, source, `DEAD — no data for ${minutesAgo} minutes`, 'dead', now, results);
@@ -197,13 +206,6 @@ export default async function handler(req, res) {
         // TIER 2: Stale — standard alerts
         results.sources[source].status = 'STALE';
         await sendSmartAlert(supabase, source, `STALE — data is ${minutesAgo} minutes old`, 'stale', now, results);
-      } else if (count < 10 || count > 5000 || relativeDrop) {
-        // TIER 4: Anomaly — Data exists and is fresh, but structurally compromised via wipe or loop
-        results.sources[source].status = 'ANOMALY';
-        const msg = relativeDrop 
-          ? `ANOMALY — 75%+ volumetric drop compared to ${currentHour}:00 baseline (${count} vs ${previousBaseline})`
-          : `ANOMALY — Table count breached safety limits: ${count} total tables returned`;
-        await sendSmartAlert(supabase, source, msg, 'dead', now, results);
       } else {
         // HEALTHY — check if we need to send "all clear"
         const alertState = await getAlertState(supabase, source);

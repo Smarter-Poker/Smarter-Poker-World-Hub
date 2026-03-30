@@ -132,6 +132,8 @@ export default function ScraperHealthDashboard() {
 
   useEffect(() => {
     let interval = null;
+    let debounceTimer = null;
+
     if (autoRefresh) {
       interval = setInterval(() => {
         fetchHealth();
@@ -145,17 +147,21 @@ export default function ScraperHealthDashboard() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'scraper_watchdog_state' },
         () => {
-          // Immediately fetch new data upon Postgres DB mutation
-          fetchHealth();
-          fetchMetrics();
-          // Push event out so other pages on the frontend become instantly aware
-          busEmit(EventType.DATA_MUTATED, { entity: 'scraper_health' });
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            // Flatten burst Postgres mutations into 1 reliable fetch
+            fetchHealth();
+            fetchMetrics();
+            // Push event out so other pages on the frontend become instantly aware
+            busEmit(EventType.DATA_MUTATED, { entity: 'scraper_health' });
+          }, 800);
         }
       )
       .subscribe();
 
     return () => {
       if (interval) clearInterval(interval);
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [autoRefresh, fetchHealth, fetchMetrics]);

@@ -394,7 +394,7 @@ export default function VirtualSandbox() {
   const router = useRouter();
   const { analyze, isAnalyzing, results, error, clearResults } = useSandboxAnalysis();
   const { archetypes } = useArchetypes();
-  const { isGated, GateComponent } = useFeatureGate('personal_assistant');
+  const { hasAccess: allowed, guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
   const { studySessions } = useStudyDeck(20);
   const { entries: leaderboardEntries } = useQuizLeaderboard(10);
   const [studyIndex, setStudyIndex] = useState(0);
@@ -1134,6 +1134,7 @@ export default function VirtualSandbox() {
   // Run analysis — with optional Socratic coach intercept
   // pickedAction: if provided, the coach mode user action (bypasses state timing issue)
   const runAnalysis = async (skipCoach = false, pickedAction = null) => {
+    if (!guardAction(() => {})) return;
     if (!heroHand.card1 || !heroHand.card2) return;
     // Coach mode: show action picker first if mode is on and no pick yet
     if (coachMode && !skipCoach && !coachUserPick && !pickedAction) {
@@ -1366,8 +1367,6 @@ export default function VirtualSandbox() {
     // (sessionLog intentionally preserved across resets so the study journal persists)
   };
 
-  if (isGated) return GateComponent;
-
   // Source badge
   const sourceBadge = results ? (
     results.matchTier <= 2 ? { bg: 'rgba(34,197,94,0.15)', border: '#22c55e', text: '#4ade80', label: 'PIO Verified' }
@@ -1377,6 +1376,7 @@ export default function VirtualSandbox() {
 
   return (
     <div className="sandbox-page" style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter',-apple-system,sans-serif" }}>
+      {UpgradePopup}
       {/* Onboarding Tour */}
       <OnboardingTour isVisible={showTour} step={tourStep}
         onClose={dismissTour} onNext={() => setTourStep(s => s + 1)} />
