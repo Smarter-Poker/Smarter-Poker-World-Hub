@@ -38,7 +38,7 @@ import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
 import DiamondEngine from '../../src/services/DiamondEngine';
-import GameCostPopup from '../../src/components/gates/GameCostPopup';
+import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import GameIntroSplash from '../../src/components/training/GameIntroSplash';
 import LeakFixerIntercept from '../../src/components/training/LeakFixerIntercept';
 import SmartPracticeCard from '../../src/components/training/SmartPracticeCard';
@@ -636,6 +636,7 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
 export default function TrainingPage() {
     const router = useRouter();
     useTrainingBus('training-hub');
+    const { guardAction, UpgradePopup } = useFeatureGate('gto_training');
 
     // Zustand Global State (replaces local useState)
     const activeFilter = useTrainingStore((s) => s.activeFilter);
@@ -833,36 +834,8 @@ export default function TrainingPage() {
         isStartingRef.current = true;
         try {
 
-        if (game.vipOnly && !isVIP) {
-            toast.error("This Advanced Tool Is Restricted To VIP Members. Please Upgrade.");
-            router.push('/hub/diamond-store?tab=vip');
-            return;
-        }
-
-        // Check diamond access - VIP plays free, others pay 10 diamonds
-        if (!isVIP) {
-            // Fresh balance check from DB via DiamondEngine singleton (no throwaway client)
-            try {
-                const freshBalance = await DiamondEngine.getBalance();
-                if (freshBalance !== null && freshBalance !== undefined) {
-                    setDiamondBalance(freshBalance);
-                    if (freshBalance < GAME_COST) {
-                        setShowOutOfDiamondsModal(true);
-                        return;
-                    }
-                }
-            } catch (e) {
-                console.error('[Training] Balance check failed:', e);
-            }
-
-            const result = await DiamondEngine.deduct(GAME_COST);
-            if (!result.success) {
-                setShowOutOfDiamondsModal(true);
-                return;
-            }
-            if (result.balance !== undefined) setDiamondBalance(result.balance);
-            // DiamondEngine.deduct auto-emits busEmit.diamondsSpent — no manual emit needed
-        }
+        // Use Action-Level gating
+        if (!guardAction()) return;
 
         // SPECIAL ROUTING FOR STANDALONE PAGES
         if (game.id === 'adv-003') {
@@ -987,13 +960,8 @@ export default function TrainingPage() {
 
     return (
         <PageTransition>
-            {/* One-time diamond cost popup for non-VIP users */}
-            <GameCostPopup
-                userId={userId}
-                pageKey="training"
-                isVip={isVIP}
-                cost={10}
-            />
+            {/* Action-level Upgrade Gating Popup */}
+            {UpgradePopup}
             {/*  INTRO VIDEO OVERLAY - Plays while page loads behind it */}
             {showPageIntro && (
                 <div style={{

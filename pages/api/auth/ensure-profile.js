@@ -163,8 +163,8 @@ export default async function handler(req, res) {
                   skill_tier: 'Newcomer',
                   access_tier: 'Full_Access',
                   is_vip: true,         // Welcome VIP bonus
-                  vip_tier: 'quarterly', // 3-month VIP card
-                  vip_expires_at: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString(),
+                  vip_tier: 'monthly',  // 30-day VIP card
+                  vip_expires_at: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
                   created_at: new Date().toISOString(),
                   last_login: new Date().toISOString(),
                   last_active: new Date().toISOString(),

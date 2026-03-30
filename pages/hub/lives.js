@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { supabase } from '../../src/lib/supabase';
-import FeatureGate from '../../src/components/gates/FeatureGate';
+
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
@@ -246,7 +246,6 @@ export default function LivesPage() {
                 canonical="/hub/lives"
             />
 
-            <FeatureGate featureKey="lives" userId={userId} cost={25} duration={24} featureName="Lives" description="Watch Live Poker Streams And Replays For 24 Hours.">
                 <div
                     ref={containerRef}
                     onTouchStart={handleTouchStart}
@@ -625,7 +624,7 @@ export default function LivesPage() {
         }
       `}</style>
                   <BottomNavBar />
-    </FeatureGate>
+
             {UpgradePopup}
         </>
     );

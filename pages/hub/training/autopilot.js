@@ -19,6 +19,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 
 const GodModeArena = dynamic(() => import('../../../src/components/training/GodModeArena'), {
   ssr: false,
@@ -189,6 +190,7 @@ function analyzeWeakSpots(sessions) {
 export default function AutopilotPage() {
   const router = useRouter();
   useTrainingBus('autopilot');
+  const { guardAction, UpgradePopup } = useFeatureGate('gto_training');
   const [loading, setLoading] = useState(true);
   const [weakSpots, setWeakSpots] = useState([]);
   const [activeSpot, setActiveSpot] = useState(null);
@@ -231,6 +233,7 @@ export default function AutopilotPage() {
   }, [fetchAndAnalyze]);
 
   const startAutopilot = () => {
+    if (!guardAction()) return;
     if (weakSpots.length === 0) return;
     setCurrentSpotIdx(0);
     setActiveSpot(weakSpots[0]);
@@ -672,6 +675,7 @@ export default function AutopilotPage() {
           )}
         </div>
       </div>
+      {UpgradePopup}
       <ConnectionToast />
     </>
   );

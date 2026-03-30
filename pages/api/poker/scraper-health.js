@@ -39,7 +39,8 @@ export default async function handler(req, res) {
     // Single query to get all live tables data instead of 6 separate queries
     const { data: allData, error } = await supabase
       .from('venue_live_tables')
-      .select('source, bravo_slug, tables_running, players_waiting, scrape_timestamp, scrape_batch_id');
+      .select('source, bravo_slug, tables_running, players_waiting, scrape_timestamp, scrape_batch_id')
+      .limit(10000); // Override Supabase 1000-row default truncation
 
     if (error) {
       throw new Error(`Failed to fetch live tables: ${error.message}`);
@@ -79,7 +80,7 @@ export default async function handler(req, res) {
       // Find the most recent scrape timestamp from the grouped data
       let latestRecord = sourceData[0];
       for (const row of sourceData) {
-        if (new Date(row.scrape_timestamp) > new Date(latestRecord.scrape_timestamp)) {
+        if (row.scrape_timestamp > latestRecord.scrape_timestamp) {
           latestRecord = row;
         }
       }
@@ -126,7 +127,7 @@ export default async function handler(req, res) {
         .eq('key', 'alert_history')
         .maybeSingle();
       if (ahData && ahData.value) {
-        alertHistory = JSON.parse(ahData.value);
+        alertHistory = typeof ahData.value === 'string' ? JSON.parse(ahData.value) : ahData.value;
       }
     } catch (_) {}
 

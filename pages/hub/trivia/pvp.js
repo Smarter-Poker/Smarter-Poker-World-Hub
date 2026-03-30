@@ -25,6 +25,7 @@ import { shuffleOptions } from '../../../src/lib/trivia/shuffleOptions';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -38,6 +39,7 @@ const STAKE_OPTIONS = [10, 25, 50, 100];
 export default function PvPPage() {
     useTrainingBus('trivia-pvp');
     const router = useRouter();
+    const { guardAction, UpgradePopup } = useFeatureGate('trivia_pvp');
     const { user: avatarUser, loading: authLoading } = useAvatar();
     const [gameState, setGameState] = useState('lobby'); // lobby, searching, battle, waiting, result
     const [userId, setUserId] = useState(null);
@@ -241,6 +243,7 @@ export default function PvPPage() {
         if (isStartingRef.current) return;
         isStartingRef.current = true;
         try {
+            if (!guardAction()) return;
         // Clear any TriviaLobby payment flag (pvp handles its own variable-stake billing)
         try {
             sessionStorage.removeItem('trivia_paid');
@@ -787,6 +790,7 @@ export default function PvPPage() {
 
     return (
         <TriviaErrorBoundary pageName="PvP Battle">
+            {UpgradePopup}
             <SEOHead
                 title="PvP Trivia — Player vs Player"
                 description="Challenge Other Players To Head-to-head Poker Trivia Battles. Prove Who Knows Poker Best."
