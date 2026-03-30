@@ -1286,7 +1286,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'; e.currentTarget.style.color = 'white'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'; }}
                     >
-                        ✕
+                        <X size={16} />
                     </button>
                 </div>
 
@@ -1433,7 +1433,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     flexShrink: 0,
                                 }}
                             >
-                                ✕
+                                <X size={10} />
                             </button>
                         )}
                     </div>

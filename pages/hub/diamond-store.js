@@ -1583,7 +1583,7 @@ export default function DiamondStorePage() {
                                                                                         border: owned ? '1px solid rgba(0,255,136,0.3)' : 'none',
                                                                                         color: owned ? '#00ff88' : '#fff',
                                                                                     }}>
-                                                                                    {owned ? '✓ Owned' : 'Buy'}
+                                                                                    {owned ? <><CheckCircle size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} /> Owned</> : 'Buy'}
                                                                                 </button>
                                                                             </div>
                                                                         </div>
@@ -1772,7 +1772,7 @@ export default function DiamondStorePage() {
                                                                         border: item.is_active ? '1px solid rgba(0,255,136,0.3)' : '1px solid rgba(255,255,255,0.1)',
                                                                         color: item.is_active ? '#00ff88' : 'rgba(255,255,255,0.4)',
                                                                     }}>
-                                                                        {item.is_active ? '✓ Active' : 'Hidden'}
+                                                                        {item.is_active ? <><CheckCircle size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} /> Active</> : 'Hidden'}
                                                                     </button>
                                                                     <button onClick={async () => {
                                                                         if (!confirm(`Delete "${item.name}"?`)) return;
