@@ -1,6 +1,6 @@
 /**
  * Cron: /api/cron/scraper-watchdog
- * Runs every 10 minutes via Vercel Cron.
+ * Runs every 30 minutes via Vercel Cron.
  * 
  * Checks venue data scraper freshness across all sources.
  * If data is stale (>30 min) or dead (>60 min), sends:

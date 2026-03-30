@@ -43,21 +43,29 @@ export default async function handler(req, res) {
     const supabase = getSupabase();
     const fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Query live game history
+    // Query per-game history from game_live_history (the additive table)
     let query = supabase
-      .from('venue_live_history')
-      .select('venue_name, game_type, stakes, total_tables, snapshot_time')
+      .from('game_live_history')
+      .select('venue_name, game_type, stakes, tables, waiting, snapshot_time')
       .gte('snapshot_time', fourWeeksAgo)
       .order('snapshot_time', { ascending: true });
 
     if (venue_id) {
-      query = query.eq('venue_id', parseInt(venue_id, 10));
+      // Match by bravo_slug pattern for venue_id
+      query = query.or(`bravo_slug.eq.${venue_id},bravo_slug.ilike.%${venue_id}%`);
     } else if (venue) {
       query = query.ilike('venue_name', `%${venue}%`);
     }
 
     const { data, error } = await query.limit(10000);
-    if (error) throw error;
+    if (error) {
+      if (error.code === '42P01' || error.code === '42703') {
+        // Table or column doesn't exist yet — graceful empty state
+        console.warn('game-predictions: game_live_history not ready yet. Returning empty state.');
+        return res.status(200).json({ success: true, predictions: [], message: 'Game history data populating. Check back soon.' });
+      }
+      throw error;
+    }
 
     if (!data || data.length === 0) {
       return res.status(200).json({
@@ -76,7 +84,7 @@ export default async function handler(req, res) {
       const hour = dt.getUTCHours();
       const day = dt.getUTCDay();
       const gameType = normalizeGameType(row.game_type || 'Unknown');
-      const tables = row.total_tables || 1;
+      const tables = row.tables || 1;
 
       if (!gameTypeBuckets[gameType]) {
         gameTypeBuckets[gameType] = {

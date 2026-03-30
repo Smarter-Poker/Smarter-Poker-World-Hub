@@ -287,7 +287,7 @@
     },
     {
       "path": "/api/cron/scraper-watchdog",
-      "schedule": "*/10 * * * *"
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron/venue-game-alerts",

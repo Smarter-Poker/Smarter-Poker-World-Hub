@@ -251,7 +251,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {venue.venue_type === 'home_game' && venue.host_display_name && (
                 <div className="vc3-host">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    <span className="vc3-host-name">Hosted by {venue.host_display_name}</span>
+                    <span className="vc3-host-name">Hosted By {venue.host_display_name}</span>
                     {venue.host_username && (
                         <a href={'/hub/user/' + venue.host_username} onClick={e => e.stopPropagation()} className="vc3-host-link">Contact Host</a>
                     )}
@@ -276,7 +276,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         ))}
                     </div>
                     <span className="vc3-rating-score">{reviewStats.avg_rating.toFixed(1)}</span>
-                    <span className="vc3-rating-count">({reviewStats.total_reviews} review{reviewStats.total_reviews !== 1 ? 's' : ''})</span>
+                    <span className="vc3-rating-count">({reviewStats.total_reviews} Review{reviewStats.total_reviews !== 1 ? 's' : ''})</span>
                 </div>
             )}
 
@@ -288,7 +288,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 {hasLiveData && (
                     <span className="vc3-badge vc3-badge-live">
                         <span className="vc3-live-dot" />
-                        LIVE: {venue.live_data.tables_running} Table{venue.live_data.tables_running !== 1 ? 's' : ''}
+                        LIVE NOW: {venue.live_data.tables_running} Table{venue.live_data.tables_running !== 1 ? 's' : ''}
                     </span>
                 )}
                 {venue.has_tournaments && <span className="vc3-badge vc3-badge-tourney">Tournaments</span>}
@@ -302,7 +302,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 {venue.total_tables > 20 && <span className="vc3-badge" style={{ background: 'rgba(212,168,83,0.12)', borderColor: 'rgba(212,168,83,0.3)', color: '#d4a853' }}>Large Room</span>}
                 {checkinCount > 0 && (
                     <span className="vc3-badge vc3-badge-checkin" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '#checkins'); }}>
-                        {checkinCount} here today
+                        {checkinCount} Here Today
                     </span>
                 )}
             </div>
@@ -320,7 +320,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2.5">
                                     <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                                 </svg>
-                                Est. wait: {waitEstimate.label}
+                                Est. Wait: {waitEstimate.label}
                             </span>
                         )}
                     </div>
@@ -497,6 +497,70 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-rating-stars { display: flex; gap: 1px; }
                 .vc3-rating-score { font-size: 13px; font-weight: 700; color: #d4a853; }
                 .vc3-rating-count { font-size: 11px; color: rgba(255,255,255,0.4); }
+
+                @keyframes livePulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
+                
+                .vc3-host-name { font-size: 13px; color: #d4a853; font-weight: 600; }
+                .vc3-host-link { font-size: 11px; color: #d4a853; text-decoration: none; margin-left: auto; padding: 2px 8px; border: 1px solid rgba(212,168,83,0.3); border-radius: 4px; }
+                .vc3-host-link:hover { background: rgba(212,168,83,0.15); }
+                .vc3-description { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0 0 8px; font-style: italic; }
+                .vc3-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+                .vc3-badge { padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+                .vc3-badge-featured { background: rgba(212,168,83,0.2); color: #d4a853; border: 1px solid rgba(212,168,83,0.35); }
+                .vc3-badge-newcomer { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+                .vc3-badge-promo { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+                .vc3-badge-tourney { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+                .vc3-badge-live {
+                    background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.35);
+                    box-shadow: 0 0 12px rgba(34,197,94,0.2);
+                    display: inline-flex; align-items: center; gap: 5px; cursor: pointer; transition: all 0.2s;
+                }
+                .vc3-badge-live:hover { background: rgba(34,197,94,0.25); box-shadow: 0 0 16px rgba(34,197,94,0.4); }
+                .vc3-live-dot {
+                    width: 6px; height: 6px; border-radius: 50%; background: #4ade80;
+                    box-shadow: 0 0 8px #4ade80; animation: livePulse 1.5s ease-in-out infinite;
+                }
+                .vc3-badge-checkin { background: rgba(230,81,0,0.15); color: #E65100; border: 1px solid rgba(230,81,0,0.3); cursor: pointer; }
+                .vc3-badge-checkin:hover { background: rgba(230,81,0,0.25); }
+                .vc3-data-zone { margin-top: 4px; }
+                .vc3-live-info {
+                    display: flex; gap: 16px; margin-bottom: 8px; padding: 8px 10px;
+                    background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04);
+                }
+                .vc3-live-stat { display: flex; align-items: center; gap: 6px; }
+                .vc3-live-stat-val { font-size: 16px; font-weight: 800; color: #fff; }
+                .vc3-live-stat-label { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.3px; }
+                .vc3-hours { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: rgba(255,255,255,0.55); margin: 0 0 6px; font-style: italic; }
+                .vc3-games { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+                .vc3-game-chip { padding: 4px 10px; border-radius: 5px; font-size: 11.5px; font-weight: 600; border: 1px solid; }
+                .vc3-stakes { display: flex; align-items: center; gap: 5px; font-size: 13px; color: rgba(212,168,83,0.9); margin: 0 0 8px; font-weight: 600; }
+                .vc3-trust { padding: 10px 0 8px; border-top: 1px solid rgba(255,255,255,0.07); margin-top: 4px; }
+                .vc3-trust-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+                .vc3-trust-label { font-size: 11.5px; font-weight: 700; }
+                .vc3-trust-val { font-size: 11.5px; font-weight: 800; }
+                .vc3-trust-track { height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+                .vc3-trust-fill { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+                .vc3-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.07); margin-top: 6px; }
+                .vc3-actions-secondary { display: flex; gap: 6px; }
+                .vc3-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.2s; }
+                .vc3-icon-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+                .vc3-actions-primary { display: flex; gap: 6px; flex: 1; justify-content: flex-end; }
+                .vc3-pill { display: inline-flex; align-items: center; gap: 4px; padding: 7px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; background: none; }
+                .vc3-pill-checkin { background: rgba(34,197,94,0.12); color: #4ade80; border-color: rgba(34,197,94,0.25); }
+                .vc3-pill-checkin:hover { background: rgba(34,197,94,0.22); box-shadow: 0 0 12px rgba(34,197,94,0.15); }
+                .vc3-pill-review { background: rgba(59,130,246,0.12); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
+                .vc3-pill-review:hover { background: rgba(59,130,246,0.22); box-shadow: 0 0 12px rgba(59,130,246,0.15); }
+                .vc3-pill-details { background: rgba(212,168,83,0.12); color: #d4a853; border-color: rgba(212,168,83,0.25); }
+                .vc3-pill-details:hover { background: rgba(212,168,83,0.22); box-shadow: 0 0 12px rgba(212,168,83,0.15); }
+                @media (max-width: 480px) {
+                    .vc3-actions { flex-direction: column; gap: 8px; }
+                    .vc3-actions-secondary { width: 100%; justify-content: flex-start; }
+                    .vc3-actions-primary { width: 100%; justify-content: stretch; }
+                    .vc3-pill { flex: 1; justify-content: center; }
+                    .vc3-name { font-size: 16px; padding-right: 70px; }
+                    .vc3-header { flex-wrap: wrap; gap: 8px; }
+                    .vc3-status-group { flex-wrap: wrap; gap: 4px; }
+                }
             `}</style>
         </div>
     );
