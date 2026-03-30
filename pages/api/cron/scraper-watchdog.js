@@ -19,7 +19,7 @@ import { sendSMS, isTwilioConfigured } from '../../../src/lib/commander/twilio';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const ADMIN_PHONE = '+17086775221';
-const STALE_THRESHOLD_MIN = 30;    // Tier 2: SMS alert
+const STALE_THRESHOLD_MIN = 45;    // Tier 2: SMS alert
 const DEAD_THRESHOLD_MIN = 60;     // Tier 3: Escalated alert
 const TIER2_COOLDOWN_MS = 60 * 60 * 1000;  // 1 hour between Tier 2 alerts
 const TIER3_COOLDOWN_MS = 30 * 60 * 1000;  // 30 min between Tier 3 alerts
