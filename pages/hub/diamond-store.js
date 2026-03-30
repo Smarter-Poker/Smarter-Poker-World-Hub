@@ -718,12 +718,12 @@ export default function DiamondStorePage() {
                                 loading="lazy" />
                             {/* ── Diamond package clickable zones (6 boxes, 2×3 grid) ── */}
                             {[
-                                { pkgIndex: 2, left: '3%', top: '25%', width: '46%', height: '21%' }, // 1,000 💎 — Micro $10
-                                { pkgIndex: 3, left: '51%', top: '25%', width: '46%', height: '21%' }, // 2,500 💎 — Standard $25
-                                { pkgIndex: 4, left: '3%', top: '49%', width: '46%', height: '23%' }, // 5,000 💎 — Large $50
-                                { pkgIndex: 5, left: '51%', top: '49%', width: '46%', height: '23%' }, // 10,500 💎 — Value $100
-                                { pkgIndex: 6, left: '3%', top: '74%', width: '46%', height: '25%' }, // 26,250 💎 — Premium $250
-                                { pkgIndex: 7, left: '51%', top: '74%', width: '46%', height: '25%' }, // 52,500 💎 — Whale $500
+                                { pkgIndex: 2, left: '3%', top: '25%', width: '46%', height: '21%' }, // 1,000 Diamonds — Micro $10
+                                { pkgIndex: 3, left: '51%', top: '25%', width: '46%', height: '21%' }, // 2,500 Diamonds — Standard $25
+                                { pkgIndex: 4, left: '3%', top: '49%', width: '46%', height: '23%' }, // 5,000 Diamonds — Large $50
+                                { pkgIndex: 5, left: '51%', top: '49%', width: '46%', height: '23%' }, // 10,500 Diamonds — Value $100
+                                { pkgIndex: 6, left: '3%', top: '74%', width: '46%', height: '25%' }, // 26,250 Diamonds — Premium $250
+                                { pkgIndex: 7, left: '51%', top: '74%', width: '46%', height: '25%' }, // 52,500 Diamonds — Whale $500
                             ].map(({ pkgIndex, left, top, width, height }) => {
                                 const pkg = DIAMOND_PACKAGES[pkgIndex];
                                 if (!pkg) return null;
