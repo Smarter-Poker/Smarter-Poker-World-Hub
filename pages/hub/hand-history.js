@@ -6,6 +6,8 @@ import { eventBus } from '../../src/engine/EventBus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import useVIP from '../../src/hooks/useVIP';
 import dynamic from 'next/dynamic';
+import ImageCropModal from '../../src/components/poker/ImageCropModal';
+import ReviewHandModal from '../../src/components/poker/ReviewHandModal';
 
 const ShareableHandCard = dynamic(() => import('../../src/components/poker/ShareableHandCard'), { ssr: false });
 
@@ -23,6 +25,18 @@ function isRed(card) {
   const s = typeof card === 'string' ? card : cardStr(card);
   return s.endsWith('h') || s.endsWith('d');
 }
+function cardToIdx(s) {
+  if (!s || s.length !== 2) return null;
+  const rank = RANKS.indexOf(s[0].toUpperCase());
+  const suit = SUITS.indexOf(s[1].toLowerCase());
+  if (rank === -1 || suit === -1) return null;
+  return suit * 13 + rank;
+}
+function parseCards(str) {
+  if (!str) return [];
+  const tokens = str.replace(/[^A-Za-z0-9]/g, ' ').split(/\s+/).filter(Boolean);
+  return tokens.map(cardToIdx).filter(n => n !== null);
+}
 
 export default function HandHistoryPage() {
   useTrainingBus('hand-history');
@@ -32,32 +46,48 @@ export default function HandHistoryPage() {
   const [filterTable, setFilterTable] = useState('all');
   const [sharingHand, setSharingHand] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [cropFile, setCropFile] = useState(null);
+  const [reviewData, setReviewData] = useState(null);
   const userIdRef = useRef(null);
   const fileInputRef = useRef(null);
   const { isVip } = useVIP();
 
-  const handleAiUpload = async (e) => {
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+      if (!items) return;
+      for (let index in items) {
+        const item = items[index];
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          const blob = item.getAsFile();
+          setCropFile(blob);
+          break;
+        }
+      }
+    };
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, []);
+
+  const handleFileInput = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setCropFile(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const processCroppedImage = async (base64Str) => {
+    setCropFile(null); // Close crop modal
 
     // Suppress cost messaging for VIP members
     if (!isVip) {
       if (!window.confirm("Using the AI Hand Scanner costs 5 Diamonds per scan. Do you want to proceed?")) {
-        if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
     }
 
     setUploadingImage(true);
     try {
-      // Read file as base64
-      const base64Str = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = error => reject(error);
-      });
-      
       const sessionStr = localStorage.getItem('smarter-poker-auth');
       const token = sessionStr ? JSON.parse(sessionStr).access_token : null;
       
@@ -70,8 +100,8 @@ export default function HandHistoryPage() {
           body: JSON.stringify({ imageBase64: base64Str })
       });
       if (res.ok) {
-        alert("Hand parsed and saved to history!");
-        fetchHands();
+        const { handData } = await res.json();
+        setReviewData(handData);
         window.dispatchEvent(new CustomEvent('vip-status-changed')); // Force refresh to show deducted diamonds
       } else {
         const errData = await res.json().catch(() => ({}));
@@ -82,7 +112,56 @@ export default function HandHistoryPage() {
       alert("Error analyzing hand image.");
     }
     setUploadingImage(false);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleReviewSave = async (formData) => {
+    try {
+      const heroCards = parseCards(formData.hero_cards);
+      const boardCards = parseCards(formData.board);
+      const sbStr = formData.stakes?.split('/')[0]?.replace(/[^0-9]/g, '');
+      const bbStr = formData.stakes?.split('/')[1]?.replace(/[^0-9]/g, '');
+      const sb = sbStr ? parseInt(sbStr, 10) : 0;
+      const bb = bbStr ? parseInt(bbStr, 10) : 0;
+      const pot = parseInt((formData.pot_size || '0').replace(/[^0-9]/g, ''), 10);
+      let heroNet = parseInt((formData.amount || '0').replace(/[^0-9-]/g, ''), 10);
+      if (isNaN(heroNet)) heroNet = 0;
+      if (formData.result === 'Lost' && heroNet > 0) heroNet = -heroNet; // fix sign
+
+      const hand_data = {
+        players: [
+          { id: userIdRef.current, seatIndex: 1, holeCards: heroCards, netResult: heroNet, showedCards: heroCards.length > 0 }
+        ],
+        winners: formData.result === 'Won' ? [{ hand: 'Winning Hand', amount: pot }] : [],
+        communityCards: boardCards,
+        streets: {
+          flop: { cards: boardCards.slice(0, 3), actions: [] },
+          turn: { cards: boardCards.slice(3, 4), actions: [] },
+          river: { cards: boardCards.slice(4, 5), actions: [] }
+        }
+      };
+
+      const sbClient = getSupabase();
+      await sbClient.from('hand_histories').insert({
+        user_id: userIdRef.current,
+        player_ids: [userIdRef.current],
+        table_id: 'AI-Scan',
+        club_id: null,
+        variant: formData.game_type || 'NLH',
+        small_blind: sb,
+        big_blind: bb,
+        pot_total: pot,
+        winner_ids: formData.result === 'Won' ? [userIdRef.current] : null,
+        hand_data,
+        completed_at: new Date().toISOString()
+      });
+
+      alert('Hand saved successfully!');
+      setReviewData(null);
+      fetchHands();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save hand');
+    }
   };
 
   // Fetch hand histories — query via player_ids contains
@@ -179,7 +258,7 @@ export default function HandHistoryPage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               {uploadingImage ? 'Scanning...' : 'AI Scan'}
             </button>
-            <input type="file" ref={fileInputRef} onChange={handleAiUpload} accept="image/*" style={{ display: 'none' }} />
+            <input type="file" ref={fileInputRef} onChange={handleFileInput} accept="image/*" style={{ display: 'none' }} />
           </div>
         </div>
 
@@ -419,6 +498,8 @@ export default function HandHistoryPage() {
         </AnimatePresence>
       </div>
       
+      {cropFile && <ImageCropModal file={cropFile} onCropComplete={processCroppedImage} onCancel={() => setCropFile(null)} />}
+      {reviewData && <ReviewHandModal initialData={reviewData} onSave={handleReviewSave} onCancel={() => setReviewData(null)} />}
       {sharingHand && <ShareableHandCard hand={sharingHand} onClose={() => setSharingHand(null)} />}
       
       <BottomNavBar />
