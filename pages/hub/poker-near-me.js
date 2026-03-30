@@ -18,7 +18,7 @@ import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearch
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
-import { supabase } from '../../src/lib/supabase';
+
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import InteractiveTutorial, { PNM_TAB_TUTORIALS } from '../../src/components/poker-near-me/InteractiveTutorial';
 const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
@@ -1364,15 +1364,9 @@ export default function PokerNearMePage() {
             setPushPermission(Notification.permission);
         }
     }, []);
-    // Realtime subscription — live updates
-    useEffect(() => {
-        if (!user?.id) return;
-        const _ch = supabase
-            .channel(`pnm:${user?.id}`)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tables' }, () => { fetchAllData({ includeVenues: true, silent: true }); })
-            .subscribe();
-        return () => { supabase.removeChannel(_ch); };
-    }, [user?.id]);
+    // NOTE: Realtime subscription on 'tables' was removed — it fired fetchAllData
+    // on every single postgres UPDATE, causing constant page glitching/flickering.
+    // Users can pull-to-refresh or search to get fresh data instead.
 
     const requestPushPermission = useCallback(async () => {
         const controller = new AbortController();
@@ -1620,7 +1614,7 @@ export default function PokerNearMePage() {
                     {/* Map Container - wrapped in Error Boundary */}
                     <MapErrorBoundary>
                         <VenueMap
-                            key={filteredVenues.length + '-' + (filteredVenues[0]?.id || 'none') + '-' + (filteredVenues[filteredVenues.length - 1]?.id || 'none')}
+                            key="map-tab-main"
                             venues={filteredVenues}
                             userLocation={userLocation}
                         />
@@ -1782,7 +1776,7 @@ export default function PokerNearMePage() {
                     </div>
                     <MapErrorBoundary>
                         <VenueMap
-                            key={'preview-' + sorted.length + '-' + (sorted[0]?.id || 'none')}
+                            key="venues-preview"
                             venues={sorted}
                             userLocation={userLocation}
                         />
@@ -1818,7 +1812,7 @@ export default function PokerNearMePage() {
                                 <div className="map-fullscreen-map">
                                     <MapErrorBoundary>
                                         <VenueMap
-                                            key={'fullscreen-' + sorted.length}
+                                            key="fullscreen-map"
                                             venues={sorted}
                                             userLocation={userLocation}
                                         />
