@@ -6,6 +6,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Gem, Percent, SkipForward, Clock } from 'lucide-react';
+import useVIP from '../../hooks/useVIP';
 
 const HINTS = [
     {
@@ -41,9 +42,11 @@ function HintButtons({
     compact = false,
     hasTimeLimit = true
 }) {
+    const { isVip } = useVIP();
+
     const handleUseHint = (hint) => {
         if (!hasTimeLimit) return;
-        if (userDiamonds < hint.cost) return;
+        if (!isVip && userDiamonds < hint.cost) return;
         if (disabledHints.includes(hint.id)) return;
         onUseHint?.(hint);
     };
@@ -52,7 +55,7 @@ function HintButtons({
         <div className={`hint-buttons ${compact ? 'compact' : ''}`}>
             {HINTS.map((hint) => {
                 const Icon = hint.icon;
-                const canAfford = userDiamonds >= hint.cost;
+                const canAfford = isVip || userDiamonds >= hint.cost;
                 const isDisabled = disabledHints.includes(hint.id) || !canAfford || !hasTimeLimit;
 
                 return (
@@ -75,10 +78,16 @@ function HintButtons({
                                 <span className="hint-name">{hint.name}</span>
                             </div>
                         )}
-                        <div className="hint-cost">
-                            <Gem size={compact ? 10 : 12} />
-                            <span>{hint.cost}</span>
-                        </div>
+                        {!isVip ? (
+                            <div className="hint-cost">
+                                <Gem size={compact ? 10 : 12} />
+                                <span>{hint.cost}</span>
+                            </div>
+                        ) : (
+                            <div className="hint-cost" style={{ background: 'rgba(255, 215, 0, 0.15)', color: '#FFD700' }}>
+                                <span>FREE</span>
+                            </div>
+                        )}
                     </motion.button>
                 );
             })}

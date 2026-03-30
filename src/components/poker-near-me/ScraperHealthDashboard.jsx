@@ -100,6 +100,7 @@ export default function ScraperHealthDashboard() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [metrics, setMetrics] = useState(null);
   const [showMetrics, setShowMetrics] = useState(false);
+  const [showAlertHistory, setShowAlertHistory] = useState(false);
 
   const fetchHealth = useCallback(async () => {
     try {
@@ -258,6 +259,45 @@ export default function ScraperHealthDashboard() {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* WATCHDOG ALERT TIMELINE TOGGLE */}
+          <button onClick={() => setShowAlertHistory(!showAlertHistory)} style={{
+            marginTop: 12, width: '100%', padding: '10px 16px', borderRadius: 10,
+            background: 'linear-gradient(160deg, rgba(18,28,45,0.6), rgba(10,16,28,0.75))',
+            border: '1.5px solid rgba(212,168,83,0.15)', cursor: 'pointer',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit',
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#e0e8f0' }}>Watchdog Alert History</span>
+            <span style={{ color: '#d4a853', fontSize: 12 }}>{showAlertHistory ? 'Hide' : 'Show'}</span>
+          </button>
+
+          {showAlertHistory && (
+            <div style={{ marginTop: 8, padding: '16px 20px', borderRadius: 12, background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(212,168,83,0.1)' }}>
+              {(!health.alert_history || health.alert_history.length === 0) ? (
+                <div style={{ color: 'rgba(200,214,229,0.4)', fontSize: 12, textAlign: 'center', padding: 10 }}>No recent alerts found.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {health.alert_history.map(ev => {
+                    const isRecovery = ev.type === 'recovery';
+                    const color = isRecovery ? '#3fb950' : '#ef4444';
+                    return (
+                      <div key={ev.id} style={{ display: 'flex', gap: 12, borderLeft: `2px solid ${color}`, paddingLeft: 12 }}>
+                        <div style={{ minWidth: 90, color: 'rgba(200,214,229,0.5)', fontSize: 11, paddingTop: 2 }}>
+                          {new Date(ev.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                        </div>
+                        <div>
+                          <div style={{ color: '#e0e8f0', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>
+                            {ev.source} <span style={{ color: color, fontSize: 10, padding: '2px 6px', background: isRecovery ? 'rgba(63,185,80,0.1)' : 'rgba(239,68,68,0.1)', borderRadius: 4, marginLeft: 6 }}>{ev.type}</span>
+                          </div>
+                          <div style={{ color: 'rgba(200,214,229,0.8)', fontSize: 12, lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>{ev.message}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

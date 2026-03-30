@@ -5,6 +5,7 @@
  * stored in scraper_watchdog_state to show real trend arrows.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { gameShortLabel } from '../../../src/components/poker-near-me/normalize-game';
 
 let _supabase = null;
 function getSupabase() {
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
     // Aggregate current games by type
     const currentCounts = {};
     (currentData || []).forEach(row => {
-      const game = normalizeGameType(row.game_name);
+      const game = gameShortLabel(row.game_name || 'Unknown');
       currentCounts[game] = (currentCounts[game] || 0) + 1;
     });
 
@@ -120,35 +121,4 @@ export default async function handler(req, res) {
     console.error('Game trends error:', err);
     res.status(500).json({ error: err.message });
   }
-}
-
-function normalizeGameType(raw) {
-  if (!raw) return 'Unknown';
-  let g = raw.trim().toUpperCase();
-  
-  // Remove dollar signs for cleaner strings
-  g = g.replace(/\$(\d+)/g, '$1'); 
-  // Normalize stakes formats across Bravo (1/2) and PokerAtlas (1-2)
-  // e.g., "1-3 NL" -> "1/3 NL"
-  g = g.replace(/(\d+)\s*-\s*(\d+)/g, '$1/$2');
-
-  // Normalize common patterns for cleaner grouping
-  g = g.replace(/NO LIMIT HOLD'?EM/i, 'NLH')
-       .replace(/LIMIT HOLD'?EM/i, 'LHE')
-       .replace(/POT LIMIT OMAHA/i, 'PLO')
-       .replace(/NO LIMIT/i, 'NL')
-       .replace(/POT LIMIT/i, 'PL')
-       .replace(/HOLD'?EM/i, 'Holdem')
-       .replace(/OMAHA/i, 'Omaha');
-       
-  // Title case the remainder (e.g., "1/3 NLH" instead of "1/3 NLH" -> actually we uppercase everything above)
-  // Since acronyms like NLH / PLO are best upper, and "Limit" is better Title, let's keep acronyms upper
-  g = g.replace(/HOLDEM/i, 'Holdem')
-       .replace(/LIMIT/i, 'Limit')
-       .replace(/MIXED/i, 'Mixed');
-
-  // Specific fix for the duplicate issue
-  g = g.replace(/NL HOLDEM/gi, 'NLH');
-
-  return g;
 }

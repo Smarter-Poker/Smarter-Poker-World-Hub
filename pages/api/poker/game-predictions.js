@@ -8,6 +8,7 @@
  *   venue     - venue name filter (alternative to venue_id)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { gameShortLabel } from '../../../src/components/poker-near-me/normalize-game';
 
 let _supabase = null;
 function getSupabase() {
@@ -83,7 +84,7 @@ export default async function handler(req, res) {
       const dt = new Date(row.snapshot_time);
       const hour = dt.getUTCHours();
       const day = dt.getUTCDay();
-      const gameType = normalizeGameType(row.game_type || 'Unknown');
+      const gameType = gameShortLabel(row.game_type || 'Unknown');
       const tables = row.tables || 1;
 
       if (!gameTypeBuckets[gameType]) {
@@ -185,16 +186,4 @@ export default async function handler(req, res) {
     console.error('Game predictions error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
-}
-
-function normalizeGameType(raw) {
-  if (!raw) return 'Unknown';
-  const upper = raw.toUpperCase().trim();
-  if (upper.includes('NLH') || upper.includes('NO LIMIT') || upper.includes('HOLDEM') || upper.includes("HOLD'EM")) return 'NLH';
-  if (upper.includes('PLO') || upper.includes('OMAHA')) return 'PLO';
-  if (upper.includes('LIMIT') && !upper.includes('NO LIMIT') && !upper.includes('POT LIMIT')) return 'Limit';
-  if (upper.includes('MIXED') || upper.includes('HORSE') || upper.includes('8-GAME')) return 'Mixed';
-  if (upper.includes('STUD')) return 'Stud';
-  if (upper.includes('BIG O')) return 'Big O';
-  return raw;
 }

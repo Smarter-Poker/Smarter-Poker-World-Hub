@@ -36,47 +36,62 @@ export default async function handler(req, res) {
     const now = new Date();
     const issues = [];
 
-    // Check each source independently
+    // Single query to get all live tables data instead of 6 separate queries
+    const { data: allData, error } = await supabase
+      .from('venue_live_tables')
+      .select('source, bravo_slug, tables_running, players_waiting, scrape_timestamp, scrape_batch_id');
+
+    if (error) {
+      throw new Error(`Failed to fetch live tables: ${error.message}`);
+    }
+
+    // Group the data by source
+    const buckets = { bravo: [], pokeratlas: [] };
+    if (allData) {
+      allData.forEach(row => {
+        if (buckets[row.source]) {
+          buckets[row.source].push(row);
+        }
+      });
+    }
+
     const sources = ['bravo', 'pokeratlas'];
     const health = {};
 
     for (const source of sources) {
-      const { data, error } = await supabase
-        .from('venue_live_tables')
-        .select('scrape_timestamp, venue_name, scrape_batch_id')
-        .eq('source', source)
-        .order('scrape_timestamp', { ascending: false })
-        .limit(1);
+      const sourceData = buckets[source];
 
-      if (error || !data || data.length === 0) {
+      if (!sourceData || sourceData.length === 0) {
         health[source] = {
           status: 'dead',
           last_scrape: null,
           minutes_ago: null,
           records: 0,
           venues: 0,
+          tables_running: 0,
+          players_waiting: 0,
+          batch_id: null,
         };
         issues.push(`${source}: NO DATA FOUND`);
         continue;
       }
 
-      const lastScrape = new Date(data[0].scrape_timestamp);
-      const minutesAgo = Math.round((now - lastScrape) / 60000);
+      // Find the most recent scrape timestamp from the grouped data
+      let latestRecord = sourceData[0];
+      for (const row of sourceData) {
+        if (new Date(row.scrape_timestamp) > new Date(latestRecord.scrape_timestamp)) {
+          latestRecord = row;
+        }
+      }
 
-      // Count records efficiently (single query instead of fetching all rows)
-      const { count: records } = await supabase
-        .from('venue_live_tables')
-        .select('id', { count: 'exact', head: true })
-        .eq('source', source);
+      const lastScrape = new Date(latestRecord.scrape_timestamp);
+      const minutesAgo = Math.round((now - lastScrape) / 60000);
+      const records = sourceData.length;
 
       // Count unique venues + aggregate stats
-      const { data: venueRows } = await supabase
-        .from('venue_live_tables')
-        .select('bravo_slug, tables_running, players_waiting')
-        .eq('source', source);
-      const venues = venueRows ? new Set(venueRows.map(r => r.bravo_slug)).size : 0;
-      const tablesRunning = (venueRows || []).reduce((s, r) => s + (r.tables_running || 0), 0);
-      const playersWaiting = (venueRows || []).reduce((s, r) => s + (r.players_waiting || 0), 0);
+      const venues = new Set(sourceData.map(r => r.bravo_slug)).size;
+      const tablesRunning = sourceData.reduce((sum, r) => sum + (r.tables_running || 0), 0);
+      const playersWaiting = sourceData.reduce((sum, r) => sum + (r.players_waiting || 0), 0);
 
       let status = 'healthy';
       if (minutesAgo > 60) {
@@ -89,15 +104,28 @@ export default async function handler(req, res) {
 
       health[source] = {
         status,
-        last_scrape: data[0].scrape_timestamp,
+        last_scrape: latestRecord.scrape_timestamp,
         minutes_ago: minutesAgo,
         records,
         venues,
         tables_running: tablesRunning,
         players_waiting: playersWaiting,
-        batch_id: data[0].scrape_batch_id,
+        batch_id: latestRecord.scrape_batch_id,
       };
     }
+
+    // Fetch alert history timeline
+    let alertHistory = [];
+    try {
+      const { data: ahData } = await supabase
+        .from('scraper_watchdog_state')
+        .select('value')
+        .eq('key', 'alert_history')
+        .maybeSingle();
+      if (ahData && ahData.value) {
+        alertHistory = JSON.parse(ahData.value);
+      }
+    } catch (_) {}
 
     const overallStatus = issues.length === 0 ? 'healthy' : 
       issues.some(i => i.includes('DEAD')) ? 'critical' : 'warning';
@@ -111,6 +139,7 @@ export default async function handler(req, res) {
       checked_at: now.toISOString(),
       scrapers: health,
       issues,
+      alert_history: alertHistory,
       thresholds: {
         healthy: '< 30 minutes',
         stale: '30-60 minutes',

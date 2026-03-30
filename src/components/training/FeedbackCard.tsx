@@ -816,7 +816,7 @@ function ActionLineRow({ line, isGTO, isUserAction, evDiffFromGTO }: ActionLineR
                     </div>
                 )}
             </div>
-        </div>
+        </motion.div>
     );
 }
 

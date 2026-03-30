@@ -19,6 +19,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { useAvatar } from '../../contexts/AvatarContext';
+import useVIP from '../../hooks/useVIP';
 import toast from '../../stores/toastStore';
 import {
     checkFeatureAccess,
@@ -214,11 +215,15 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
     const config = FEATURE_CONFIG[featureKey] || { cost: 25, label: featureKey, durationHours: 24 };
     const cost = config.cost;
 
+    const { isVip } = useVIP();
+
     const [diamonds, setDiamonds] = useState(initialDiamonds || 0);
     const [isUnlocking, setIsUnlocking] = useState(false);
     const [isUnlockingAll, setIsUnlockingAll] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
+
+    if (isVip) return null;
 
     // Re-fetch balance on mount to be current (with 1 retry for resilience)
     useEffect(() => {

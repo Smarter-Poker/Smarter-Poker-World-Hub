@@ -80,6 +80,38 @@ async function setAlertState(supabase, source, state) {
   }
 }
 
+async function appendAlertHistory(supabase, source, type, message) {
+  const key = 'alert_history';
+  try {
+    let history = [];
+    const { data } = await supabase.from('scraper_watchdog_state').select('value').eq('key', key).maybeSingle();
+    if (data && data.value) {
+      history = JSON.parse(data.value);
+    }
+    
+    // Append new event
+    history.unshift({
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      source,
+      type, // 'alert' or 'recovery'
+      message,
+    });
+    
+    // Keep last 50 events
+    history = history.slice(0, 50);
+    
+    await supabase.from('scraper_watchdog_state').upsert({
+      key,
+      value: JSON.stringify(history),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'key' });
+  } catch (e) {
+    console.error('Failed to append alert history:', e.message);
+  }
+}
+
+
 async function sendOneSignalAlert(title, message) {
   const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
   const apiKey = process.env.ONESIGNAL_REST_API_KEY;
@@ -94,7 +126,7 @@ async function sendOneSignalAlert(title, message) {
       },
       body: JSON.stringify({
         app_id: appId,
-        included_segments: ['Test Users'], // Or a specific admin segment, avoiding 'Subscribed Users' (all users)
+        include_aliases: { external_id: ["admin@smarter.poker"] },
         headings: { en: title },
         contents: { en: message },
         priority: 10,
@@ -202,6 +234,9 @@ async function sendSmartAlert(supabase, source, message, severity, now, results)
     last_severity: severity,
     last_message: message,
   });
+
+  // Log to history timeline
+  await appendAlertHistory(supabase, source, 'alert', fullMessage);
 }
 
 async function sendRecoveryAlert(supabase, source, minutesAgo, results) {
@@ -223,4 +258,7 @@ async function sendRecoveryAlert(supabase, source, minutesAgo, results) {
     last_severity: null,
     last_message: null,
   });
+
+  // Log to history timeline
+  await appendAlertHistory(supabase, source, 'recovery', message);
 }

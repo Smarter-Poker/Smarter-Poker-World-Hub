@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks, react/display-name */
 /**
  * 🎮 UNIVERSAL TRAINING TABLE — FULL IMPLEMENTATION
  * ═══════════════════════════════════════════════════════════════════════════

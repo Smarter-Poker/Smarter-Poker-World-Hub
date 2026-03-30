@@ -63,6 +63,18 @@ export default async function handler(req, res) {
     results.tables.game_live_history = { deleted: 0, error: err.message };
   }
 
+  // Clean stale venue_live_tables (>2 hours old) — protects against dead daemons leaving ghost data
+  try {
+    const cutoff2Hours = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const { count, error } = await supabase
+      .from('venue_live_tables')
+      .delete({ count: 'exact' })
+      .lt('scrape_timestamp', cutoff2Hours);
+    results.tables.venue_live_tables = { deleted: count || 0, error: error?.message || null };
+  } catch (err) {
+    results.tables.venue_live_tables = { deleted: 0, error: err.message };
+  }
+
   // Clean stale game_trends_snapshot entries from watchdog state (>7 days old unused keys)
   try {
     const staleKeys = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
