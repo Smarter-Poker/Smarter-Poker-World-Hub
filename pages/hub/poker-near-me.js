@@ -921,18 +921,18 @@ export default function PokerNearMePage() {
         replayTutorial,
     });
 
-    const fetchAllData = async ({ includeVenues = false } = {}) => {
-        setLoading(true);
+    const fetchAllData = async ({ includeVenues = false, silent = false } = {}) => {
+        if (!silent) setLoading(true);
         const fetches = [fetchTours(), fetchSeries(), fetchDailyTournaments()];
         if (includeVenues) {
-            fetches.push(fetchVenues());
+            fetches.push(fetchVenues({ silent }));
         }
         await Promise.all(fetches);
-        setLoading(false);
+        if (!silent) setLoading(false);
     };
 
-    const fetchVenues = async () => {
-        setVenueLoading(true);
+    const fetchVenues = async ({ silent = false } = {}) => {
+        if (!silent) setVenueLoading(true);
         setFetchError(null);
         try {
             const params = new URLSearchParams({ limit: '500' });
@@ -978,12 +978,12 @@ export default function PokerNearMePage() {
                 setNearestDistance(filteredData[0].distance_mi);
             }
         } catch (e) {
-            setLoading(false);
+            if (!silent) setLoading(false);
             console.error('Fetch venues error:', e);
             setFetchError('Failed to load venues. Tap to retry.');
             setVenues([]);
         }
-        setVenueLoading(false);
+        if (!silent) setVenueLoading(false);
     };
 
     const fetchTours = async () => {
@@ -1369,7 +1369,7 @@ export default function PokerNearMePage() {
         if (!user?.id) return;
         const _ch = supabase
             .channel(`pnm:${user?.id}`)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tables' }, () => { fetchAllData({ includeVenues: true }); })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tables' }, () => { fetchAllData({ includeVenues: true, silent: true }); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id]);
@@ -2420,7 +2420,7 @@ export default function PokerNearMePage() {
                 <div className="space-bg"></div>
                 <div className="space-overlay"></div>
 
-                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} onSettingsClick={() => setMenuOpen(true)} />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu

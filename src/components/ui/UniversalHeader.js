@@ -52,7 +52,8 @@ export default function UniversalHeader({
     pageDepth = 1,  // 1 = major page (show Hub button), 2+ = nested (show Back)
     showSearch = false,
     onSearchClick = null,
-    onMenuClick = null  // Callback for hamburger menu click
+    onMenuClick = null,  // Callback for hamburger menu click
+    onSettingsClick = null  // Override for settings gear — opens page-specific settings instead of global
 }) {
     const router = useRouter();
 
@@ -973,7 +974,7 @@ export default function UniversalHeader({
                     </button>
 
                     {/* Settings - Custom Metallic Gear icon */}
-                    <button onClick={() => openOverlay('settings')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Settings">
+                    <button onClick={() => onSettingsClick ? onSettingsClick() : openOverlay('settings')} className="orb-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Settings">
                             <img src="/images/header-settings.png" alt="Settings" style={{ width: '200%', height: '200%', maxWidth: 'none', objectFit: 'contain', position: 'absolute', top: '55%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                     </button>
 

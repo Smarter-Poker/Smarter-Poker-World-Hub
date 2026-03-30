@@ -454,7 +454,6 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Compare Venues', '/hub/poker-near-me-lobby?pod=compare'),
             createMenuItem.navigation('Trip Cost Calculator', '/hub/poker-near-me-lobby?pod=tripcost'),
             createMenuItem.navigation('Game Alerts', '/hub/poker-near-me-lobby?pod=gamealerts'),
-            createMenuItem.navigation('Scraper Health', '/hub/poker-near-me-lobby?pod=scraperhealth'),
             createMenuItem.divider(),
             createMenuItem.section('Help'),
             createMenuItem.action('Replay Tutorial', () => handlers?.replayTutorial?.(), null, false, true),
