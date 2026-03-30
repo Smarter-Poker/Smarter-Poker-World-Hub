@@ -21,6 +21,7 @@ import { useRouter } from 'next/router';
 import { useAvatar } from '../../contexts/AvatarContext';
 import useVIP from '../../hooks/useVIP';
 import toast from '../../stores/toastStore';
+import { eventBus, EventType } from '../../engine/EventBus';
 import {
     checkFeatureAccess,
     purchaseFeatureAccess,
@@ -247,17 +248,23 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
     // If diamonds change on another page/component, this updates immediately
     useEffect(() => {
         if (typeof window === 'undefined' || !userId) return;
-        const refreshBalance = (e) => {
-            if (e?.detail?.newBalance !== undefined) {
-                setDiamonds(e.detail.newBalance);
+        const refreshBalance = (event) => {
+            // Try to extract newBalance from EventBus payload
+            const newBal = event?.payload?.newBalance;
+            if (newBal !== undefined) {
+                setDiamonds(newBal);
             } else {
                 checkFeatureAccess(userId, featureKey).then(result => {
                     setDiamonds(result.diamonds || 0);
                 }).catch(() => { });
             }
         };
-        window.addEventListener('diamond-balance-refresh', refreshBalance);
-        return () => window.removeEventListener('diamond-balance-refresh', refreshBalance);
+        const unsubEarned = eventBus.on(EventType.DIAMONDS_EARNED, refreshBalance);
+        const unsubSpent = eventBus.on(EventType.DIAMONDS_SPENT, refreshBalance);
+        return () => {
+            unsubEarned();
+            unsubSpent();
+        };
     }, [userId, featureKey]);
 
     // Purchase single feature access (25💎)

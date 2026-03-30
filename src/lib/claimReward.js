@@ -13,6 +13,7 @@
  */
 
 import { showDiamondToast } from '../components/diamonds/DiamondToast';
+import { busEmit } from '../engine/EventBus';
 
 /**
  * Extract the Supabase access token from localStorage.
@@ -59,12 +60,8 @@ export function claimReward(endpoint, body, reasonLabel) {
         .then(data => {
             if (data?.claimed && data?.diamondsAwarded > 0) {
                 showDiamondToast(data.diamondsAwarded, reasonLabel);
-                // Refresh header diamond balance after toast auto-dismisses (3s)
-                setTimeout(() => {
-                    if (typeof window !== 'undefined') {
-                        window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
-                    }
-                }, 3000);
+                // 🚌 BUS EVENT: Notify all listeners of diamond earnings
+                busEmit.diamondsEarned(data.diamondsAwarded, reasonLabel);
             }
         })
         .catch(() => { }); // Non-blocking, silent fail

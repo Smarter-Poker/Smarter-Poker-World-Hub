@@ -297,7 +297,6 @@ export async function purchaseFeatureAccess(userId, featureKey, cost, durationHo
     // 🚌 BUS EVENT: Notify the EventBus of diamond spend + feature access change
     busEmit.diamondsSpent(cost, `${featureKey} Day Pass`);
     if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { newBalance } }));
         window.dispatchEvent(new CustomEvent('feature-access-changed', { detail: { featureKey } }));
     }
 
@@ -446,7 +445,6 @@ export async function purchaseVipWithDiamonds(userId) {
     // Update localStorage for instant UI feedback
     if (typeof window !== 'undefined') {
         localStorage.setItem('sp-vip-tier', 'monthly');
-        window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { newBalance } }));
         window.dispatchEvent(new CustomEvent('vip-status-changed', { detail: { vipGranted: true } }));
     }
 

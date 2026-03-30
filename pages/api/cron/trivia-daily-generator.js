@@ -164,7 +164,7 @@ export default async function handler(req, res) {
 
       try {
           // Check if questions are already tagged for this date
-          const { count: existingCount } = await supabase
+          const { count: existingCount } = await getSupabase()
               .from('trivia_questions')
               .select('*', { count: 'exact', head: true })
               .eq('daily_date', targetDate)

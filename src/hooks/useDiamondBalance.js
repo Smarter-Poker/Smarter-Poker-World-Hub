@@ -7,7 +7,8 @@
  * - Read cached balance from localStorage instantly
  * - Fetch fresh balance from /api/user/get-header-stats
  * - Subscribe to Supabase realtime profile.diamonds changes
- * - Listen for diamond-balance-refresh CustomEvents
+ * - Listen for EventBus DIAMONDS_EARNED/SPENT events (primary channel)
+ * - Listen for legacy diamond-balance-refresh CustomEvents (backward compat)
  * - Sync across tabs via BroadcastChannel
  *
  * Usage:
@@ -122,10 +123,10 @@ export function useDiamondBalance(userId) {
             refreshBalance();
         });
 
-        // Club Arena chip sync → triggers diamond refresh
+        // Club Arena chip sync → triggers diamond refresh directly
         const cleanupChipSync = listenBroadcast('smarter_poker_chips_sync', (msg) => {
             if (msg === 'refresh') {
-                window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
+                refreshBalance();
             }
         });
 

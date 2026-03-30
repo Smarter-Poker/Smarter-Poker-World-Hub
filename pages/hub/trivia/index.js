@@ -6,6 +6,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -111,11 +112,12 @@ export default function TriviaHubPage() {
         loadUserData();
     }, [loadUserData]);
 
-    // Keep diamond balance in sync with other pages via EventBus
+    // 🚌 BUS LISTENER: Keep diamond balance in sync with other pages via EventBus
     useEffect(() => {
         const handleBalanceRefresh = () => { loadUserData(); };
-        window.addEventListener('diamond-balance-refresh', handleBalanceRefresh);
-        return () => window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
+        const unsubEarned = eventBus.on(EventType.DIAMONDS_EARNED, handleBalanceRefresh);
+        const unsubSpent = eventBus.on(EventType.DIAMONDS_SPENT, handleBalanceRefresh);
+        return () => { unsubEarned(); unsubSpent(); };
     }, [loadUserData]);
 
     // Realtime subscription — live updates

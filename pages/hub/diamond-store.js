@@ -25,6 +25,7 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import { showStoreToast } from '../../src/components/store/StoreToast';
+import { busEmit } from '../../src/engine/EventBus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 import { PackageCard, VIPCard, MerchCard } from '../../src/components/store/StoreCards';
@@ -519,8 +520,8 @@ export default function DiamondStorePage() {
             const { clearCart } = useCartStore.getState();
             clearCart();
 
-            // Notify listeners (UniversalHeader, etc.) to refresh diamond balance immediately
-            window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { source: 'diamond-store-purchase' } }));
+            // 🚌 BUS EVENT: Notify all listeners of diamond spend
+            busEmit.diamondsSpent(totalDiamondCost, 'Diamond Store Purchase');
 
             // Broadcast across tabs — diamond balance + chips changed
             broadcastSync('smarter_poker_diamond_sync', 'refresh');

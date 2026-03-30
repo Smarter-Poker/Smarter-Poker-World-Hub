@@ -42,18 +42,18 @@ import fs from 'fs';
 import path from 'path';
 
 // ---------------------------------------------------------------------------
-// Supabase client (may be unavailable in some environments)
+// Supabase client (lazy-initialized to avoid SSG/SSR crashes)
 // ---------------------------------------------------------------------------
-let supabase = null;
-try {
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase) {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (url && key) {
+            _supabase = createClient(url, key);
+        }
     }
-} catch (_) {
-    // Supabase not available
+    return _supabase;
 }
 
 // ---------------------------------------------------------------------------

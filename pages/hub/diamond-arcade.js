@@ -41,7 +41,7 @@ import {
     rollMysteryMultiplier,
     getTimeUntilReset,
 } from '../../src/lib/arcade/arcadeEngine';
-import { busEmit } from '../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../src/engine/EventBus';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -231,13 +231,12 @@ export default function DiamondArcade() {
         const interval = setInterval(() => {
             setResetTime(getTimeUntilReset());
         }, 1000);
-        // Listen for balance changes from other pages (trivia wins, training rewards, etc.)
+        // 🚌 BUS LISTENER: Listen for balance changes from other pages (trivia wins, training rewards, etc.)
         const handleBalanceRefresh = () => {
             if (user?.id) loadUserStats(user.id);
         };
-        if (typeof window !== 'undefined') {
-            window.addEventListener('diamond-balance-refresh', handleBalanceRefresh);
-        }
+        const unsubEarned = eventBus.on(EventType.DIAMONDS_EARNED, handleBalanceRefresh);
+        const unsubSpent = eventBus.on(EventType.DIAMONDS_SPENT, handleBalanceRefresh);
         return () => {
             _ctrl.abort();
             clearInterval(interval);
@@ -247,9 +246,8 @@ export default function DiamondArcade() {
                 supabase.removeChannel(duelChannelRef.current);
                 duelChannelRef.current = null;
             }
-            if (typeof window !== 'undefined') {
-                window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
-            }
+            unsubEarned();
+            unsubSpent();
         };
     }, [user?.id]);
 
@@ -532,10 +530,7 @@ export default function DiamondArcade() {
                         timeSpentMs: activeGame?.durationSeconds ? (activeGame.durationSeconds - timeLeft) * 1000 : 0,
                     }),
                 });
-                // Refresh balance on header/navbar
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
-                }
+                // Balance refresh handled by busEmit.diamondsEarned above (line 509)
             }
         } catch (e) {
             console.warn('[DiamondArcade] complete API error:', e.message);

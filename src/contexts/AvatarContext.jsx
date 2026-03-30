@@ -9,6 +9,7 @@ import supabase from '../lib/supabase.ts';
 import { getUserAvatar, setPresetAvatar, generateCustomAvatar } from '../services/avatar-service';
 import { getAuthUser } from '../lib/authUtils';
 import { listenBroadcast, broadcastSync } from '../lib/broadcastSync';
+import { busEmit } from '../engine/EventBus';
 
 const AvatarContext = createContext();
 
@@ -153,8 +154,8 @@ export function AvatarProvider({ children }) {
                         setShowWelcomeModal(true);
                         // Dispatch VIP bus event so header updates immediately
                         window.dispatchEvent(new CustomEvent('vip-status-changed', { detail: { vipGranted: true } }));
-                        // Hydrate diamond balance across the UI immediately
-                        window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
+                        // 🚌 BUS EVENT: Hydrate diamond balance across the UI immediately
+                        busEmit.diamondsEarned(0, 'Welcome Package Hydration');
                     }
                 }
             } catch (err) {
