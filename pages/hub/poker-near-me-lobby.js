@@ -71,6 +71,7 @@ const GameTrendsDashboard = dynamic(() => import('../../src/components/poker-nea
 const DailyTournamentsPanel = dynamic(() => import('../../src/components/poker-near-me/DailyTournamentsPanel'), { ssr: false });
 const VenueGameAlerts = dynamic(() => import('../../src/components/poker-near-me/VenueGameAlerts'), { ssr: false });
 const CreateHomeGame = dynamic(() => import('../../src/components/poker-near-me/CreateHomeGame'), { ssr: false });
+const GeofenceAlertBanner = dynamic(() => import('../../src/components/poker-near-me/GeofenceAlertBanner'), { ssr: false });
 
 // ─── Error Boundary for Pod Content ───
 class PodErrorBoundary extends React.Component {
@@ -85,7 +86,7 @@ class PodErrorBoundary extends React.Component {
         React.createElement('p', { style: { fontSize: 12, marginBottom: 16, color: 'rgba(200,214,229,0.35)' } }, String(this.state.error?.message || 'Unknown error')),
         React.createElement('button', {
           onClick: () => { this.setState({ hasError: false, error: null }); if (this.props.onReset) this.props.onReset(); },
-          style: { padding: '8px 20px', borderRadius: 8, border: '1px solid rgba(110,231,239,0.25)', background: 'rgba(110,231,239,0.08)', color: '#6ee7ef', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
+          style: { padding: '8px 20px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(212,168,83,0.08)', color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
         }, 'Reset Pod')
       );
     }
@@ -203,6 +204,9 @@ export default function PokerNearMeLobby() {
   const [searchHistory, setSearchHistory] = useState([]);
   const [preferences, setPreferences] = useState({ geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true });
   const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const [geofenceAlert, setGeofenceAlert] = useState(null);
+  const [geofenceStatus, setGeofenceStatus] = useState(null); // 'active' | 'denied' | 'error'
+  const geofenceRef = useRef(null);
   // ─── Location Prompt Dismissal (ONE-TIME-AND-DONE) ───
   // Once the user enables location OR dismisses the prompt, we never auto-show it again.
   // Persisted via localStorage (instant, no-auth) + Supabase prefs (cross-device).
@@ -740,6 +744,49 @@ export default function PokerNearMeLobby() {
       });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Geofence Proximity Alerts ───
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!userLocation || !preferences.geofenceAlerts) return;
+    if (!venues || venues.length === 0) return;
+
+    let gfService = null;
+
+    import('../../src/lib/geofence').then(function (mod) {
+      const GeofenceService = mod.default;
+      gfService = new GeofenceService();
+
+      import('../../src/lib/pushAlerts').then(function (pushMod) {
+        pushMod.requestPermission().then(function (permission) {
+          if (permission === 'denied') setGeofenceStatus('denied');
+        }).catch(function () {});
+
+        gfService.start(venues, function (venue) {
+          pushMod.showVenueAlert(venue, 'checkin');
+          setGeofenceAlert(venue);
+        });
+
+        setGeofenceStatus('active');
+      }).catch(function () {
+        gfService.start(venues, function (venue) {
+          setGeofenceAlert(venue);
+        });
+        setGeofenceStatus('active');
+      });
+
+      geofenceRef.current = gfService;
+    }).catch(function () {
+      setGeofenceStatus('error');
+    });
+
+    return function () {
+      if (geofenceRef.current) {
+        geofenceRef.current.stop();
+        geofenceRef.current = null;
+      }
+    };
+  }, [userLocation, venues, preferences.geofenceAlerts]);
 
   // ─── Reverse Geocode: lat/lng → city, state ───
   const reverseGeocode = useCallback(async (lat, lng) => {
@@ -1322,7 +1369,7 @@ export default function PokerNearMeLobby() {
               {/* GPS + Distance */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
                 <button onClick={handleGpsClick} disabled={gpsLoading}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : gpsLoading ? '1px solid rgba(255,213,0,0.4)' : '1px solid rgba(88,166,255,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : gpsLoading ? 'rgba(255,213,0,0.1)' : 'rgba(88,166,255,0.08)', color: userLocation ? '#3fb950' : gpsLoading ? '#ffd500' : '#58a6ff', fontSize: 13, fontWeight: 700, cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : gpsLoading ? '1px solid rgba(255,213,0,0.4)' : '1.5px solid rgba(212,168,83,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : gpsLoading ? 'rgba(255,213,0,0.1)' : 'rgba(212,168,83,0.08)', color: userLocation ? '#3fb950' : gpsLoading ? '#ffd500' : '#d4a853', fontSize: 13, fontWeight: 700, cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                   {gpsLoading ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" /></svg>
                   ) : (
@@ -1341,7 +1388,7 @@ export default function PokerNearMeLobby() {
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                   {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'card_room',l:'Card Room'},{k:'poker_club',l:'Poker Club'},{k:'home_game',l:'Home Game'},{k:'charity',l:'Charity'},{k:'series',l:'Series'},{k:'tour',l:'Tour'}].map(t => (
                     <button key={t.k} onClick={() => setFilters(prev => ({ ...prev, svVenueType: t.k }))}
-                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: svVenueType === t.k ? '1px solid #58a6ff' : '1px solid rgba(48,54,61,0.6)', background: svVenueType === t.k ? 'rgba(88,166,255,0.15)' : 'rgba(22,27,34,0.6)', color: svVenueType === t.k ? '#58a6ff' : '#8b949e' }}>{t.l}</button>
+                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: svVenueType === t.k ? '1.5px solid #d4a853' : '1px solid rgba(48,54,61,0.6)', background: svVenueType === t.k ? 'rgba(212,168,83,0.12)' : 'rgba(22,27,34,0.6)', color: svVenueType === t.k ? '#d4a853' : '#8b949e' }}>{t.l}</button>
                   ))}
                 </div>
               </div>
@@ -1384,12 +1431,12 @@ export default function PokerNearMeLobby() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.6)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13, color: '#c9d1d9' }}>
-                      <span style={{ color: '#58a6ff', fontWeight: 800 }}>{svResults.length}</span> venue{svResults.length !== 1 ? 's' : ''}
+                      <span style={{ color: '#d4a853', fontWeight: 800 }}>{svResults.length}</span> venue{svResults.length !== 1 ? 's' : ''}
                       {userLocation && svRadius !== 'any' && <span> within <span style={{ color: '#3fb950' }}>{svRadius} mi</span></span>}
                     </span>
                     {/* Active filter chips */}
                     {svState !== 'all' && <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(212,168,83,0.12)', border: '1px solid rgba(212,168,83,0.25)', color: '#d4a853', fontWeight: 700 }}>{svState}</span>}
-                    {svVenueType !== 'all' && <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(88,166,255,0.1)', border: '1px solid rgba(88,166,255,0.2)', color: '#58a6ff', fontWeight: 700 }}>{svVenueType.replace(/_/g, ' ')}</span>}
+                    {svVenueType !== 'all' && <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(212,168,83,0.1)', border: '1.5px solid rgba(148,163,184,0.15)', color: '#d4a853', fontWeight: 700 }}>{svVenueType.replace(/_/g, ' ')}</span>}
                     {svGameType !== 'all' && <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(63,185,80,0.1)', border: '1px solid rgba(63,185,80,0.2)', color: '#3fb950', fontWeight: 700 }}>{svGameType.toUpperCase()}</span>}
                   </div>
                   <button onClick={() => setFilters(prev => ({ ...prev, svState: 'all', svVenueType: 'all', svGameType: 'all', svRadius: '100', svHasSearched: false }))}
@@ -1417,7 +1464,7 @@ export default function PokerNearMeLobby() {
                     </div>
                     {svResults.length > 50 && (
                       <button onClick={loadMore} disabled={loading}
-                        style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(88,166,255,0.08)', border: '1px solid rgba(88,166,255,0.2)', borderRadius: 12, color: '#58a6ff', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                        style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(212,168,83,0.08)', border: '1.5px solid rgba(148,163,184,0.15)', borderRadius: 12, color: '#d4a853', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
                         {loading ? 'Loading...' : `Load More (${svResults.length - 50} remaining)`}
                       </button>
                     )}
@@ -1432,13 +1479,13 @@ export default function PokerNearMeLobby() {
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '30px 16px' }}>
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(88,166,255,0.25)" strokeWidth="1" style={{ marginBottom: 16 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.2)" strokeWidth="1" style={{ marginBottom: 16 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <p style={{ fontSize: 16, fontWeight: 700, color: '#c9d1d9', marginBottom: 8 }}>Search All Venues</p>
                 <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5, maxWidth: 320, margin: '0 auto' }}>
                   Set Your Filters Above And Tap Search. Enable GPS For Distance-Based Results.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20 }}>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#58a6ff' }}>{venues.length || '500+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues.length || '500+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
                   <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{new Set(venues.map(v => v.state).filter(Boolean)).size || '41'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
                 </div>
               </div>
@@ -1503,13 +1550,13 @@ export default function PokerNearMeLobby() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, padding: '6px 10px', background: 'rgba(22,27,34,0.8)', borderRadius: 8, border: '1px solid rgba(48,54,61,0.6)' }}>
                   <span style={{ fontSize: 12, color: '#c9d1d9' }}>
-                    <span style={{ color: '#58a6ff', fontWeight: 800 }}>{homeGames.length}</span> home game{homeGames.length !== 1 ? 's' : ''}
+                    <span style={{ color: '#d4a853', fontWeight: 800 }}>{homeGames.length}</span> home game{homeGames.length !== 1 ? 's' : ''}
                   </span>
                   <button onClick={() => setFilters(prev => ({ ...prev, hgSearch: '', hgState: 'all', hgHasSearched: false }))}
                     style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Clear</button>
                 </div>
                 {loading && <div style={{ display: 'grid', gap: 12 }}>
-                  {[1,2,3].map(n => <div key={n} style={{ height: 80, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(88,166,255,0.1)' }} />)}
+                  {[1,2,3].map(n => <div key={n} style={{ height: 80, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(148,163,184,0.08)' }} />)}
                 </div>}
                 <div style={{ display: 'grid', gap: 12 }}>
                   {homeGames.map(v => (
@@ -1533,7 +1580,7 @@ export default function PokerNearMeLobby() {
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '30px 16px' }}>
-                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(88,166,255,0.25)" strokeWidth="1" style={{ marginBottom: 14 }}>
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.2)" strokeWidth="1" style={{ marginBottom: 14 }}>
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
                 <p style={{ fontSize: 15, fontWeight: 700, color: '#c9d1d9', marginBottom: 6 }}>Find Or List Home Games</p>
@@ -1548,8 +1595,8 @@ export default function PokerNearMeLobby() {
                 style={{
                   width: '100%', padding: '12px 0',
                   borderRadius: 12,
-                  border: filters.showCreateHomeGame ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(110,231,239,0.15)',
-                  background: filters.showCreateHomeGame ? 'rgba(34,197,94,0.08)' : 'rgba(110,231,239,0.04)',
+                  border: filters.showCreateHomeGame ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(148,163,184,0.12)',
+                  background: filters.showCreateHomeGame ? 'rgba(34,197,94,0.08)' : 'rgba(212,168,83,0.04)',
                   color: filters.showCreateHomeGame ? '#22c55e' : 'rgba(200,214,229,0.6)',
                   fontSize: 14, fontWeight: 700,
                   cursor: 'pointer', fontFamily: 'Inter, system-ui, sans-serif',
@@ -1664,7 +1711,7 @@ export default function PokerNearMeLobby() {
               {/* Row 1: GPS + Distance */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
                 <button onClick={handleGpsClick} disabled={gpsLoading}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : gpsLoading ? '1px solid rgba(255,213,0,0.4)' : '1px solid rgba(88,166,255,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : gpsLoading ? 'rgba(255,213,0,0.1)' : 'rgba(88,166,255,0.08)', color: userLocation ? '#3fb950' : gpsLoading ? '#ffd500' : '#58a6ff', fontSize: 13, fontWeight: 700, cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : gpsLoading ? '1px solid rgba(255,213,0,0.4)' : '1.5px solid rgba(212,168,83,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : gpsLoading ? 'rgba(255,213,0,0.1)' : 'rgba(212,168,83,0.08)', color: userLocation ? '#3fb950' : gpsLoading ? '#ffd500' : '#d4a853', fontSize: 13, fontWeight: 700, cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                   {gpsLoading ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" /></svg>
                   ) : (
@@ -1685,7 +1732,7 @@ export default function PokerNearMeLobby() {
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                   {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'card_room',l:'Card Room'},{k:'poker_club',l:'Poker Club'},{k:'home_game',l:'Home Game'},{k:'charity',l:'Charity'},{k:'series',l:'Series'},{k:'tour',l:'Tour'}].map(t => (
                     <button key={t.k} onClick={() => setFilters(prev => ({ ...prev, nmVenueType: t.k }))}
-                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: nmVenueType === t.k ? '1px solid #58a6ff' : '1px solid rgba(48,54,61,0.6)', background: nmVenueType === t.k ? 'rgba(88,166,255,0.15)' : 'rgba(22,27,34,0.6)', color: nmVenueType === t.k ? '#58a6ff' : '#8b949e', transition: 'all 0.15s' }}>{t.l}</button>
+                      style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: nmVenueType === t.k ? '1.5px solid #d4a853' : '1px solid rgba(48,54,61,0.6)', background: nmVenueType === t.k ? 'rgba(212,168,83,0.12)' : 'rgba(22,27,34,0.6)', color: nmVenueType === t.k ? '#d4a853' : '#8b949e', transition: 'all 0.15s' }}>{t.l}</button>
                   ))}
                 </div>
               </div>
@@ -1736,7 +1783,7 @@ export default function PokerNearMeLobby() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.6)' }}>
                   <span style={{ fontSize: 13, color: '#c9d1d9' }}>
-                    <span style={{ color: '#58a6ff', fontWeight: 800 }}>{nmResults.length}</span> venue{nmResults.length !== 1 ? 's' : ''}
+                    <span style={{ color: '#d4a853', fontWeight: 800 }}>{nmResults.length}</span> venue{nmResults.length !== 1 ? 's' : ''}
                     {userLocation && nmRadius !== 'any' && <span> within <span style={{ color: '#3fb950' }}>{nmRadius} mi</span></span>}
                     {nmTournaments.length > 0 && <span> · <span style={{ color: '#d2a8ff', fontWeight: 700 }}>{nmTournaments.length}</span> tournaments</span>}
                   </span>
@@ -1765,7 +1812,7 @@ export default function PokerNearMeLobby() {
                     </div>
                     {nmResults.length > 50 && (
                       <button onClick={loadMore} disabled={loading}
-                        style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(88,166,255,0.08)', border: '1px solid rgba(88,166,255,0.2)', borderRadius: 12, color: '#58a6ff', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                        style={{ display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px', background: 'rgba(212,168,83,0.08)', border: '1.5px solid rgba(148,163,184,0.15)', borderRadius: 12, color: '#d4a853', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
                         {loading ? 'Loading...' : `Load More (${nmResults.length - 50} remaining)`}
                       </button>
                     )}
@@ -1781,7 +1828,7 @@ export default function PokerNearMeLobby() {
             ) : (
               /* ═══ LANDING STATE — before search ═══ */
               <div style={{ textAlign: 'center', padding: '30px 16px' }}>
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(88,166,255,0.25)" strokeWidth="1" style={{ marginBottom: 16 }}>
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.2)" strokeWidth="1" style={{ marginBottom: 16 }}>
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
                 <p style={{ fontSize: 16, fontWeight: 700, color: '#c9d1d9', marginBottom: 8 }}>Find Poker Anywhere</p>
@@ -1789,7 +1836,7 @@ export default function PokerNearMeLobby() {
                   Enable GPS To Find Games Near You, Or Set Your Search Parameters Above And Tap Search. Filter By Venue Type, Game Type, Distance, And Buy-In Range.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#58a6ff' }}>{venues.length || '500+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues.length || '500+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
                   <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d2a8ff' }}>{dailyTournaments.length > 0 ? dailyTournaments.length.toLocaleString() : '3,270'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Tournaments</div></div>
                   <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{new Set(venues.map(v => v.state).filter(Boolean)).size || '41'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
                 </div>
@@ -1824,7 +1871,7 @@ export default function PokerNearMeLobby() {
               <select
                 value={mapStateFilter}
                 onChange={(e) => setFilters(prev => ({ ...prev, mapState: e.target.value }))}
-                style={{ background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 100 }}>
+                style={{ background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(148,163,184,0.15)', borderRadius: 8, padding: '6px 12px', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 100 }}>
                 <option value="all" style={{ background: '#0d1a2a' }}>All States</option>
                 {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
                   <option key={st} value={st} style={{ background: '#0d1a2a' }}>{st}</option>
@@ -1856,10 +1903,10 @@ export default function PokerNearMeLobby() {
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
               <input type="text" placeholder="Search Tours..." value={tourSearch}
                 onChange={(e) => setFilters(prev => ({ ...prev, tourSearch: e.target.value }))}
-                style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(88,166,255,0.2)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
+                style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1.5px solid rgba(148,163,184,0.15)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
               <select value={tourState}
                 onChange={(e) => setFilters(prev => ({ ...prev, tourState: e.target.value }))}
-                style={{ background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(88,166,255,0.2)', borderRadius: 8, padding: '8px 14px', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 110, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
+                style={{ background: 'rgba(13,17,23,0.7)', border: '1.5px solid rgba(148,163,184,0.15)', borderRadius: 8, padding: '8px 14px', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 110, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
                 <option value="all" style={{ background: '#0d1117' }}>All States</option>
                 {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
                   <option key={st} value={st} style={{ background: '#0d1117' }}>{st}</option>
@@ -1874,7 +1921,7 @@ export default function PokerNearMeLobby() {
             </div>
             {!toursLoaded && tours.length === 0 && (
               <div style={{ display: 'grid', gap: 12 }}>
-                {[1,2,3,4].map(n => <div key={n} style={{ height: 90, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(88,166,255,0.1)' }} />)}
+                {[1,2,3,4].map(n => <div key={n} style={{ height: 90, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(148,163,184,0.08)' }} />)}
               </div>
             )}
             {toursLoaded && filteredTours.length === 0 && (
@@ -1904,10 +1951,10 @@ export default function PokerNearMeLobby() {
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
               <input type="text" placeholder="Search Series..." value={seriesSearch}
                 onChange={(e) => setFilters(prev => ({ ...prev, seriesSearch: e.target.value }))}
-                style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(88,166,255,0.2)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
+                style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1.5px solid rgba(148,163,184,0.15)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
               <select value={seriesState}
                 onChange={(e) => setFilters(prev => ({ ...prev, seriesState: e.target.value }))}
-                style={{ background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(88,166,255,0.2)', borderRadius: 8, padding: '8px 14px', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 110, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
+                style={{ background: 'rgba(13,17,23,0.7)', border: '1.5px solid rgba(148,163,184,0.15)', borderRadius: 8, padding: '8px 14px', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none', minWidth: 110, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}>
                 <option value="all" style={{ background: '#0d1117' }}>All States</option>
                 {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
                   <option key={st} value={st} style={{ background: '#0d1117' }}>{st}</option>
@@ -1922,7 +1969,7 @@ export default function PokerNearMeLobby() {
             </div>
             {!seriesLoaded && series.length === 0 && (
               <div style={{ display: 'grid', gap: 12 }}>
-                {[1,2,3,4].map(n => <div key={n} style={{ height: 90, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(88,166,255,0.1)' }} />)}
+                {[1,2,3,4].map(n => <div key={n} style={{ height: 90, borderRadius: 12, background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)', backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite', border: '1px solid rgba(148,163,184,0.08)' }} />)}
               </div>
             )}
             {seriesLoaded && filteredSeries.length === 0 && (
@@ -1945,7 +1992,7 @@ export default function PokerNearMeLobby() {
                   height: 80, borderRadius: 12,
                   background: 'linear-gradient(90deg, rgba(30,40,55,0.5) 25%, rgba(50,60,80,0.5) 50%, rgba(30,40,55,0.5) 75%)',
                   backgroundSize: '200% 100%', animation: 'pnm-shimmer 1.5s ease-in-out infinite',
-                  border: '1px solid rgba(88,166,255,0.1)',
+                  border: '1px solid rgba(148,163,184,0.08)',
                 }} />
               ))}
               <div style={{ textAlign: 'center', padding: 12, color: 'rgba(200,214,229,0.4)', fontSize: 13 }}>
@@ -1967,7 +2014,7 @@ export default function PokerNearMeLobby() {
           <div>
             <RoadTripPlanner venues={venues} userLocation={userLocation} locationCity={locationCity} locationState={locationState} />
             {/* Trip Cost Calculator — accessible from Trip Planner */}
-            <div style={{ marginTop: 20, padding: '16px 0', borderTop: '1px solid rgba(110,231,239,0.1)' }}>
+            <div style={{ marginTop: 20, padding: '16px 0', borderTop: '1px solid rgba(212,168,83,0.1)' }}>
               <button
                 onClick={() => { setActivePod('tripcost'); playPanelOpenSound(); }}
                 style={{
@@ -2057,8 +2104,8 @@ export default function PokerNearMeLobby() {
               <button
                 onClick={() => { setActivePod('roadtrip'); }}
                 style={{
-                  background: 'none', border: '1px solid rgba(110,231,239,0.2)',
-                  borderRadius: 8, padding: '8px 20px', color: '#6ee7ef',
+                  background: 'none', border: '1px solid rgba(148,163,184,0.15)',
+                  borderRadius: 8, padding: '8px 20px', color: '#d4a853',
                   fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                   transition: 'all 0.2s',
                 }}
@@ -2262,7 +2309,7 @@ export default function PokerNearMeLobby() {
                   aria-label="Back to grid"
                   style={{
                     background: 'rgba(110, 231, 239, 0.08)', border: '1px solid rgba(110, 231, 239, 0.15)',
-                    color: '#6ee7ef',
+                    color: '#d4a853',
                     cursor: 'pointer', padding: '6px 14px', borderRadius: 8,
                     fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
                     display: 'flex', alignItems: 'center', gap: 6,
@@ -2276,7 +2323,7 @@ export default function PokerNearMeLobby() {
                 <h2 style={{
                   fontFamily: 'var(--font-premium-display)',
                   fontSize: 20, fontWeight: 700, margin: 0,
-                  background: 'linear-gradient(90deg, #e0e8f0, #6ee7ef)',
+                  background: 'linear-gradient(90deg, #e0e8f0, #d4a853)',
                   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
                 }}>{panelContent.title}</h2>
@@ -2328,7 +2375,7 @@ export default function PokerNearMeLobby() {
               <div style={{
                 display: 'flex', gap: 2, padding: '6px 12px', flexShrink: 0,
                 overflowX: 'auto', scrollbarWidth: 'none',
-                borderBottom: '1px solid rgba(110,231,239,0.06)',
+                borderBottom: '1px solid rgba(148,163,184,0.06)',
                 background: 'rgba(6,15,28,0.6)',
               }}>
                 {[
@@ -2348,9 +2395,9 @@ export default function PokerNearMeLobby() {
                     style={{
                       flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
                       padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
-                      border: activePod === p.id ? '1px solid rgba(110,231,239,0.4)' : '1px solid transparent',
-                      background: activePod === p.id ? 'rgba(110,231,239,0.1)' : 'transparent',
-                      color: activePod === p.id ? '#6ee7ef' : 'rgba(200,214,229,0.35)',
+                      border: activePod === p.id ? '1px solid rgba(212,168,83,0.4)' : '1px solid transparent',
+                      background: activePod === p.id ? 'rgba(212,168,83,0.1)' : 'transparent',
+                      color: activePod === p.id ? '#d4a853' : 'rgba(200,214,229,0.35)',
                       cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
                       letterSpacing: '0.02em',
                     }}>
@@ -2395,9 +2442,9 @@ export default function PokerNearMeLobby() {
                   style={{
                     position: 'sticky', bottom: 20, left: '50%', transform: 'translateX(-50%)',
                     width: 40, height: 40, borderRadius: '50%', cursor: 'pointer',
-                    background: 'linear-gradient(135deg, rgba(110,231,239,0.15), rgba(110,231,239,0.05))',
-                    border: '1px solid rgba(110,231,239,0.3)',
-                    color: '#6ee7ef', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'linear-gradient(135deg, rgba(148,163,184,0.12), rgba(212,168,83,0.05))',
+                    border: '1px solid rgba(212,168,83,0.3)',
+                    color: '#d4a853', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                     transition: 'all 0.2s', zIndex: 5,
                   }}
@@ -2422,11 +2469,11 @@ export default function PokerNearMeLobby() {
             <div style={{
               width: 'min(500px, 90vw)', maxHeight: '80vh', overflow: 'auto',
               background: 'rgba(18,24,40,0.97)', borderRadius: 20,
-              border: '1px solid rgba(110,231,239,0.15)',
+              border: '1px solid rgba(148,163,184,0.12)',
               boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(110,231,239,0.08)' }}>
-                <span style={{ color: '#6ee7ef', fontSize: 16, fontWeight: 600 }}>Voice Search</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(212,168,83,0.08)' }}>
+                <span style={{ color: '#d4a853', fontSize: 16, fontWeight: 600 }}>Voice Search</span>
                 <button onClick={() => setShowVoiceSearch(false)} style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.5)', cursor: 'pointer', fontSize: 20 }}>&times;</button>
               </div>
               <div style={{ padding: 20 }}>
@@ -2445,7 +2492,7 @@ export default function PokerNearMeLobby() {
             <div onClick={e => e.stopPropagation()} style={{
               width: 'min(380px, 85vw)', padding: '32px 28px', textAlign: 'center',
               background: 'rgba(18,24,40,0.97)', borderRadius: 20,
-              border: '1px solid rgba(110,231,239,0.15)',
+              border: '1px solid rgba(148,163,184,0.12)',
               boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
             }}>
               <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.6 }}>🔒</div>
@@ -2455,13 +2502,13 @@ export default function PokerNearMeLobby() {
               </p>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                 <button onClick={() => setShowLoginPrompt(false)} style={{
-                  padding: '10px 24px', borderRadius: 10, border: '1px solid rgba(110,231,239,0.15)',
+                  padding: '10px 24px', borderRadius: 10, border: '1px solid rgba(148,163,184,0.12)',
                   background: 'transparent', color: 'rgba(200,214,229,0.6)', fontSize: 14, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}>Cancel</button>
                 <button onClick={() => { setShowLoginPrompt(false); router.push('/auth/login?redirect=' + encodeURIComponent('/hub/poker-near-me-lobby')); }} style={{
                   padding: '10px 28px', borderRadius: 10, border: 'none',
-                  background: 'linear-gradient(135deg, #00D4FF, #6ee7ef)', color: '#0a1628', fontSize: 14, fontWeight: 700,
+                  background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#0a1628', fontSize: 14, fontWeight: 700,
                   cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(0,212,255,0.25)',
                 }}>Sign In</button>
               </div>
@@ -2479,11 +2526,11 @@ export default function PokerNearMeLobby() {
             <div style={{
               width: 'min(600px, 95vw)', maxHeight: '85vh', overflow: 'auto',
               background: 'rgba(18,24,40,0.97)', borderRadius: 20,
-              border: '1px solid rgba(110,231,239,0.15)',
+              border: '1px solid rgba(148,163,184,0.12)',
               boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(110,231,239,0.08)' }}>
-                <span style={{ color: '#6ee7ef', fontSize: 16, fontWeight: 600 }}>Reviews — {selectedVenueForReview.name}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(212,168,83,0.08)' }}>
+                <span style={{ color: '#d4a853', fontSize: 16, fontWeight: 600 }}>Reviews — {selectedVenueForReview.name}</span>
                 <button onClick={() => setSelectedVenueForReview(null)} style={{ background: 'none', border: 'none', color: 'rgba(200,214,229,0.5)', cursor: 'pointer', fontSize: 20 }}>&times;</button>
               </div>
               <div style={{ padding: 20 }}>
@@ -2540,8 +2587,8 @@ export default function PokerNearMeLobby() {
               width: 'min(460px, 94vw)',
               background: 'linear-gradient(160deg, rgba(18,24,40,0.98), rgba(10,16,28,0.98))',
               borderRadius: 22,
-              border: '1px solid rgba(88,166,255,0.25)',
-              boxShadow: '0 24px 72px rgba(0,0,0,0.65), 0 0 40px rgba(88,166,255,0.06)',
+              border: '1.5px solid rgba(148,163,184,0.18)',
+              boxShadow: '0 24px 72px rgba(0,0,0,0.65), 0 0 40px rgba(212,168,83,0.08)',
               overflow: 'hidden',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
@@ -2549,8 +2596,8 @@ export default function PokerNearMeLobby() {
               {/* Header */}
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '20px 24px', borderBottom: '1px solid rgba(88,166,255,0.12)',
-                background: 'linear-gradient(180deg, rgba(88,166,255,0.06), transparent)',
+                padding: '20px 24px', borderBottom: '1px solid rgba(148,163,184,0.1)',
+                background: 'linear-gradient(180deg, rgba(212,168,83,0.06), transparent)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{
@@ -2623,13 +2670,13 @@ export default function PokerNearMeLobby() {
                 {/* Device-specific instructions panel */}
                 {permissionState === 'denied' && (
                   <div style={{
-                    background: 'rgba(88,166,255,0.05)',
-                    border: '1px solid rgba(88,166,255,0.15)',
+                    background: 'rgba(212,168,83,0.05)',
+                    border: '1.5px solid rgba(148,163,184,0.12)',
                     borderRadius: 14, padding: '16px 18px',
                     marginBottom: 20,
                   }}>
                     <div style={{
-                      fontSize: 12, fontWeight: 700, color: '#58a6ff', textTransform: 'uppercase',
+                      fontSize: 12, fontWeight: 700, color: '#d4a853', textTransform: 'uppercase',
                       letterSpacing: '0.8px', marginBottom: 12,
                     }}>
                       {deviceType === 'ios' ? 'iPhone / iPad' : deviceType === 'android' ? 'Android' : 'Browser'} — How to Enable
@@ -2646,10 +2693,10 @@ export default function PokerNearMeLobby() {
                           <div key={s.step} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                             <div style={{
                               minWidth: 26, height: 26, borderRadius: '50%',
-                              background: 'linear-gradient(135deg, rgba(88,166,255,0.2), rgba(88,166,255,0.08))',
-                              border: '1px solid rgba(88,166,255,0.3)',
+                              background: 'linear-gradient(135deg, rgba(212,168,83,0.2), rgba(212,168,83,0.08))',
+                              border: '1.5px solid rgba(212,168,83,0.3)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: 12, fontWeight: 800, color: '#58a6ff',
+                              fontSize: 12, fontWeight: 800, color: '#d4a853',
                             }}>{s.step}</div>
                             <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.75)', lineHeight: 1.5, paddingTop: 3 }}>
                               {s.text}
@@ -2670,10 +2717,10 @@ export default function PokerNearMeLobby() {
                           <div key={s.step} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                             <div style={{
                               minWidth: 26, height: 26, borderRadius: '50%',
-                              background: 'linear-gradient(135deg, rgba(88,166,255,0.2), rgba(88,166,255,0.08))',
-                              border: '1px solid rgba(88,166,255,0.3)',
+                              background: 'linear-gradient(135deg, rgba(212,168,83,0.2), rgba(212,168,83,0.08))',
+                              border: '1.5px solid rgba(212,168,83,0.3)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: 12, fontWeight: 800, color: '#58a6ff',
+                              fontSize: 12, fontWeight: 800, color: '#d4a853',
                             }}>{s.step}</div>
                             <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.75)', lineHeight: 1.5, paddingTop: 3 }}>
                               {s.text}
@@ -2693,10 +2740,10 @@ export default function PokerNearMeLobby() {
                           <div key={s.step} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                             <div style={{
                               minWidth: 26, height: 26, borderRadius: '50%',
-                              background: 'linear-gradient(135deg, rgba(88,166,255,0.2), rgba(88,166,255,0.08))',
-                              border: '1px solid rgba(88,166,255,0.3)',
+                              background: 'linear-gradient(135deg, rgba(212,168,83,0.2), rgba(212,168,83,0.08))',
+                              border: '1.5px solid rgba(212,168,83,0.3)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: 12, fontWeight: 800, color: '#58a6ff',
+                              fontSize: 12, fontWeight: 800, color: '#d4a853',
                             }}>{s.step}</div>
                             <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.75)', lineHeight: 1.5, paddingTop: 3 }}>
                               {s.text}
@@ -2717,9 +2764,9 @@ export default function PokerNearMeLobby() {
                         }}
                         style={{
                           width: '100%', padding: '10px 0', borderRadius: 10, marginTop: 14,
-                          border: '1px solid rgba(88,166,255,0.25)',
-                          background: 'rgba(88,166,255,0.08)',
-                          color: '#58a6ff', fontSize: 13, fontWeight: 700,
+                          border: '1.5px solid rgba(148,163,184,0.18)',
+                          background: 'rgba(212,168,83,0.08)',
+                          color: '#d4a853', fontSize: 13, fontWeight: 700,
                           cursor: 'pointer', fontFamily: 'inherit',
                           transition: 'all 0.2s',
                         }}
@@ -2749,8 +2796,8 @@ export default function PokerNearMeLobby() {
                   }}
                   style={{
                     width: '100%', padding: '12px 0', borderRadius: 12,
-                    border: '1px solid rgba(88,166,255,0.2)',
-                    background: 'rgba(88,166,255,0.06)',
+                    border: '1.5px solid rgba(148,163,184,0.15)',
+                    background: 'rgba(212,168,83,0.06)',
                     color: 'rgba(200,214,229,0.7)', fontSize: 14, fontWeight: 600,
                     cursor: 'pointer', fontFamily: 'inherit',
                     transition: 'all 0.2s',
@@ -2778,12 +2825,12 @@ export default function PokerNearMeLobby() {
               width: 'min(440px, 92vw)',
               background: 'linear-gradient(160deg, rgba(18,24,40,0.98), rgba(10,16,28,0.98))',
               borderRadius: 20,
-              border: '1px solid rgba(88,166,255,0.2)',
+              border: '1.5px solid rgba(148,163,184,0.15)',
               boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
               overflow: 'hidden',
             }}>
               {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1px solid rgba(88,166,255,0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1px solid rgba(148,163,184,0.08)' }}>
                 <div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: '#e0e8f0' }}>Set Your Location</div>
                   <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)', marginTop: 2 }}>Enter your city to find poker near you</div>
@@ -2797,8 +2844,8 @@ export default function PokerNearMeLobby() {
                   disabled={gpsLoading}
                   style={{
                     width: '100%', padding: '12px 0', borderRadius: 12,
-                    border: gpsLoading ? '1px solid rgba(88,166,255,0.4)' : '1px solid rgba(63,185,80,0.4)',
-                    background: gpsLoading ? 'rgba(88,166,255,0.12)' : 'linear-gradient(135deg, #238636, #196c2e)',
+                    border: gpsLoading ? '1.5px solid rgba(212,168,83,0.4)' : '1px solid rgba(63,185,80,0.4)',
+                    background: gpsLoading ? 'rgba(212,168,83,0.12)' : 'linear-gradient(135deg, #238636, #196c2e)',
                     color: '#ffffff', fontSize: 14, fontWeight: 700,
                     cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit',
                     boxShadow: gpsLoading ? 'none' : '0 4px 16px rgba(35,134,54,0.3)', marginBottom: 16,
@@ -2868,8 +2915,8 @@ export default function PokerNearMeLobby() {
                   disabled={!manualCity.trim()}
                   style={{
                     width: '100%', padding: '13px 0', borderRadius: 12,
-                    border: '1px solid rgba(88,166,255,0.4)',
-                    background: manualCity.trim() ? 'linear-gradient(135deg, #1f6feb, #1a5cc7)' : 'rgba(88,166,255,0.08)',
+                    border: '1.5px solid rgba(212,168,83,0.4)',
+                    background: manualCity.trim() ? 'linear-gradient(135deg, #1f6feb, #1a5cc7)' : 'rgba(212,168,83,0.08)',
                     color: manualCity.trim() ? '#ffffff' : 'rgba(200,214,229,0.4)',
                     fontSize: 15, fontWeight: 800, cursor: manualCity.trim() ? 'pointer' : 'not-allowed',
                     fontFamily: 'inherit', boxShadow: manualCity.trim() ? '0 4px 16px rgba(31,111,235,0.3)' : 'none',
@@ -2881,6 +2928,28 @@ export default function PokerNearMeLobby() {
             </div>
           </div>
         )}
+
+      {/* Geofence Alert Banner */}
+      {geofenceAlert && (
+          <GeofenceAlertBanner
+              venue={geofenceAlert}
+              onCheckin={() => {
+                  const gfUrl = geofenceAlert.is_social_page
+                      ? '/club/' + geofenceAlert.social_page_id
+                      : '/hub/venues/' + geofenceAlert.id;
+                  router.push(gfUrl + '?action=checkin');
+                  setGeofenceAlert(null);
+              }}
+              onReview={() => {
+                  const gfUrl = geofenceAlert.is_social_page
+                      ? '/club/' + geofenceAlert.social_page_id
+                      : '/hub/venues/' + geofenceAlert.id;
+                  router.push(gfUrl + '?action=review');
+                  setGeofenceAlert(null);
+              }}
+              onDismiss={() => setGeofenceAlert(null)}
+          />
+      )}
 
       {/* Global keyframes + VenueCard CSS (required for VenueCard component styling) */}
       <style jsx global>{`
@@ -3328,7 +3397,7 @@ export default function PokerNearMeLobby() {
         gap: 6px;
         margin: 4px 0 6px;
       }
-      .vc3-host-name { font-size: 13px; color: #58a6ff; font-weight: 600; }
+      .vc3-host-name { font-size: 13px; color: #d4a853; font-weight: 600; }
       .vc3-host-link { font-size: 11px; color: #d4a853; text-decoration: none; margin-left: auto; padding: 2px 8px; border: 1px solid rgba(212,168,83,0.3); border-radius: 4px; }
       .vc3-host-link:hover { background: rgba(212,168,83,0.15); }
       .vc3-description { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0 0 8px; font-style: italic; }
@@ -3583,13 +3652,13 @@ export default function PokerNearMeLobby() {
         border-radius: 5px;
         font-size: 11.5px;
         font-weight: 500;
-        background: rgba(88,166,255,0.08);
+        background: rgba(212,168,83,0.08);
         color: rgba(255,255,255,0.75);
-        border: 1px solid rgba(88,166,255,0.12);
+        border: 1.5px solid rgba(148,163,184,0.1);
       }
       .tag.game {
-        background: rgba(88,166,255,0.08);
-        border: 1px solid rgba(88,166,255,0.12);
+        background: rgba(212,168,83,0.08);
+        border: 1.5px solid rgba(148,163,184,0.1);
       }
       .tag.distance { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
 
