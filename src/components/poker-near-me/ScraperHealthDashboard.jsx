@@ -20,6 +20,7 @@ const STATUS_COLORS = {
   dead:    { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)', label: 'DEAD' },
   warning: { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', label: 'WARNING' },
   critical:{ color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.3)', label: 'CRITICAL' },
+  anomaly: { color: '#b366ff', bg: 'rgba(179,102,255,0.08)', border: 'rgba(179,102,255,0.3)', label: 'ANOMALY' },
   unknown: { color: '#8b949e', bg: 'rgba(139,148,158,0.08)', border: 'rgba(139,148,158,0.3)', label: 'UNKNOWN' },
 };
 
@@ -34,7 +35,7 @@ function StatusBadge({ status }) {
     }}>
       <span style={{
         width: 7, height: 7, borderRadius: '50%', background: cfg.color,
-        boxShadow: `0 0 6px ${cfg.color}`, animation: status === 'healthy' ? 'shd-pulse 2s infinite' : undefined,
+        boxShadow: `0 0 6px ${cfg.color}`, animation: (status === 'healthy' || status === 'anomaly') ? 'shd-pulse 2s infinite' : undefined,
       }} />
       {cfg.label}
     </span>

@@ -1,0 +1,415 @@
+[
+  {
+    "id": 2621,
+    "name": "Poker Night in America (PNIA)",
+    "profile_photo_url": null,
+    "website": "https://www.pokernight.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2609,
+    "name": "Heartland Poker Tour (HPT)",
+    "profile_photo_url": null,
+    "website": "https://hptpoker.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2660,
+    "name": "Ameristar Black Hawk Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.ameristar.com/black-hawk",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2633,
+    "name": "Lodge Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.thelodgeaustin.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2710,
+    "name": "Wind Creek Bethlehem Poker Series",
+    "profile_photo_url": "https://windcreek.com/sites/default/files/2025-05/202311_SSTK_WCB_hesh_0640.jpg",
+    "website": "https://www.windcreekbethlehem.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2715,
+    "name": "Poker House Dallas Tournament Series",
+    "profile_photo_url": null,
+    "website": "https://www.pokerhousedallas.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2734,
+    "name": "Trailblazer Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.trailblazerpoker.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2696,
+    "name": "Jack Casino Cincinnati Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.jackcincinnaticasino.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2737,
+    "name": "Macau Poker Open",
+    "profile_photo_url": null,
+    "website": "https://www.mgmcotai.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2679,
+    "name": "Hawaiian Gardens Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.thegardenscasino.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2618,
+    "name": "Seminole Hard Rock Poker Open",
+    "profile_photo_url": null,
+    "website": "https://www.seminolehardrockpoker.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2685,
+    "name": "bestbet Orange Park Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.bestbetop.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2699,
+    "name": "Palms Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.palms.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2750,
+    "name": "Prime Social Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.primesocialhouston.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2722,
+    "name": "Mid-America Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.midamericapoker.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2674,
+    "name": "Red Rock Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.redrockcasino.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2714,
+    "name": "Livermore Poker Room Series",
+    "profile_photo_url": null,
+    "website": "https://www.livermorepoker.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2645,
+    "name": "Beau Rivage Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.beaurivage.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2656,
+    "name": "River Spirit Poker Series",
+    "profile_photo_url": "https://www.riverspirittulsa.com/wp-content/themes/riverspirittulsa/assets/images/share-default-image.png",
+    "website": "https://www.riverspirittulsa.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2662,
+    "name": "Running Aces Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.runningacesharness.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2687,
+    "name": "Isle Casino Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.theislepompano.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2695,
+    "name": "Jack Casino Cleveland Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.jackcleveland.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2711,
+    "name": "Live Casino Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.livecasino.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2650,
+    "name": "Parx Big Stax Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.parxcasino.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2693,
+    "name": "Cherokee Poker Classic",
+    "profile_photo_url": null,
+    "website": "https://www.caesars.com/harrahs-cherokee",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2760,
+    "name": "Wisconsin State Poker Championship",
+    "profile_photo_url": null,
+    "website": "https://www.ho-chunk.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2669,
+    "name": "Horseshoe Council Bluffs Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.caesars.com/horseshoe-council-bluffs",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2753,
+    "name": "Seminole Brighton Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.seminolebrighton.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 1996,
+    "name": "Club JAQK",
+    "profile_photo_url": null,
+    "website": null,
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2613,
+    "name": "PokerStars LIVE",
+    "profile_photo_url": null,
+    "website": "https://www.pokerstars.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2242,
+    "name": "Melbourne Greyhound Park",
+    "profile_photo_url": null,
+    "website": "https://melbourneracing.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2702,
+    "name": "Gulf Coast Poker Championship",
+    "profile_photo_url": null,
+    "website": "https://www.beaurivage.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2616,
+    "name": "Borgata Poker Open",
+    "profile_photo_url": null,
+    "website": "https://www.theborgata.com/casino/poker",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2498,
+    "name": "Harrington Raceway",
+    "profile_photo_url": null,
+    "website": "https://www.harringtonraceway.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2625,
+    "name": "Lucky Hearts Poker Open",
+    "profile_photo_url": null,
+    "website": "https://www.seminolehardrockpoker.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2701,
+    "name": "Great Lakes Poker Tour",
+    "profile_photo_url": null,
+    "website": "https://greatlakespokertour.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2027,
+    "name": "Harrah's Pompano Beach",
+    "profile_photo_url": null,
+    "website": "https://www.caesars.com/harrahs-pompano-beach",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2632,
+    "name": "Harrahs Cherokee Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.caesars.com/harrahs-cherokee",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2189,
+    "name": "Crystal Park Casino",
+    "profile_photo_url": null,
+    "website": "https://www.crystalparkcasino.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2716,
+    "name": "Texas Poker Champions",
+    "profile_photo_url": null,
+    "website": "https://www.texaspokerchampion.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2692,
+    "name": "Ocean Casino Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.theocean.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2764,
+    "name": "River Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.windstarcasinos.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2706,
+    "name": "Hard Rock Cherokee Poker Classic",
+    "profile_photo_url": null,
+    "website": "https://www.hardrockcherokee.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2730,
+    "name": "Live Poker Classic",
+    "profile_photo_url": null,
+    "website": "https://www.marylandlivecasino.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2636,
+    "name": "Rough N Rowdy Poker Tour",
+    "profile_photo_url": null,
+    "website": "https://www.roughnrowdypoker.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2639,
+    "name": "Lone Star Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.lonestarpoker.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2646,
+    "name": "Beau Rivage Million Dollar Heater",
+    "profile_photo_url": null,
+    "website": "https://www.beaurivage.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2809,
+    "name": "River Room Players Club",
+    "profile_photo_url": null,
+    "website": "https://riverroompoker.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2647,
+    "name": "Horseshoe Tunica Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.caesars.com/horseshoe-tunica",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2827,
+    "name": "Monroe Boat Club (MBC-A Charity Poker)",
+    "profile_photo_url": null,
+    "website": "https://monroeboatclub.org",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2653,
+    "name": "Maryland Live Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.marylandlivecasino.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2721,
+    "name": "No Limit Gaming Tour",
+    "profile_photo_url": null,
+    "website": "https://www.nolimitgaming.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2652,
+    "name": "Seneca Niagara Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.senecaniagararesort.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2654,
+    "name": "Horseshoe Baltimore Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.caesars.com/horseshoe-baltimore",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2729,
+    "name": "Milly in Philly",
+    "profile_photo_url": null,
+    "website": "https://www.parxcasino.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2759,
+    "name": "All In For Charity Poker Tour",
+    "profile_photo_url": null,
+    "website": "https://www.allinforcharity.org",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2805,
+    "name": "Central Illinois Charitable Games (CICG Poker)",
+    "profile_photo_url": null,
+    "website": "https://centralillinoischaritablegames.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2709,
+    "name": "Sarasota Kennel Club Poker Series",
+    "profile_photo_url": null,
+    "website": "https://www.sarasotakennel.com",
+    "pokeratlas_url": null
+  },
+  {
+    "id": 2641,
+    "name": "Motor City Poker Championship",
+    "profile_photo_url": null,
+    "website": "https://www.motorcitycasino.com",
+    "pokeratlas_url": null
+  }
+]

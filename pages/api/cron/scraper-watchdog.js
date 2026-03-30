@@ -152,9 +152,9 @@ export default async function handler(req, res) {
 
   for (const source of ['bravo', 'pokeratlas']) {
     try {
-      const { data, error } = await supabase
+      const { data, count, error } = await supabase
         .from('venue_live_tables')
-        .select('scrape_timestamp')
+        .select('scrape_timestamp', { count: 'exact' })
         .eq('source', source)
         .order('scrape_timestamp', { ascending: false })
         .limit(1);
@@ -168,7 +168,7 @@ export default async function handler(req, res) {
       const lastScrape = new Date(data[0].scrape_timestamp);
       const minutesAgo = Math.round((now - lastScrape) / 60000);
 
-      results.sources[source] = { status: 'ok', minutes_ago: minutesAgo };
+      results.sources[source] = { status: 'ok', minutes_ago: minutesAgo, count: count };
 
       if (minutesAgo >= DEAD_THRESHOLD_MIN) {
         // TIER 3: Dead — escalated alerts, shorter cooldown
@@ -178,6 +178,10 @@ export default async function handler(req, res) {
         // TIER 2: Stale — standard alerts
         results.sources[source].status = 'STALE';
         await sendSmartAlert(supabase, source, `STALE — data is ${minutesAgo} minutes old`, 'stale', now, results);
+      } else if (count < 10 || count > 5000) {
+        // TIER 4: Anomaly — Data exists and is fresh, but structurally compromised via wipe or loop
+        results.sources[source].status = 'ANOMALY';
+        await sendSmartAlert(supabase, source, `ANOMALY — Table count breached safety limits: ${count} total tables returned`, 'dead', now, results);
       } else {
         // HEALTHY — check if we need to send "all clear"
         const alertState = await getAlertState(supabase, source);

@@ -32,7 +32,7 @@ except ImportError:
     print("ERROR: beautifulsoup4 not installed. Run: .venv/bin/pip install beautifulsoup4")
     sys.exit(1)
 
-from scrapling.fetchers import Fetcher
+from scrapling.fetchers import Fetcher, AsyncStealthySession
 from dotenv import load_dotenv
 
 # Load agent credentials first, then .env.local as fallback
@@ -211,10 +211,29 @@ def _resolve_url(href, base_url):
     return href
 
 
+async def async_scrape_cloudflare(url, base_domain):
+    try:
+        async with AsyncStealthySession(headless=True) as session:
+            page = await session.fetch(url)
+            if page.status != 200:
+                return None, 0, None
+            
+            body = page.body if hasattr(page, 'body') and page.body else (page.text.encode('utf-8', errors='ignore') if hasattr(page, 'text') else b'')
+            if not body or len(body) < 100:
+                return None, 0, None
+
+            html_str = body.decode('utf-8', errors='ignore') if isinstance(body, bytes) else str(body)
+            hash_val = hashlib.sha256(body if isinstance(body, bytes) else body.encode()).hexdigest()
+
+            logo = extract_logo_from_html(html_str, base_domain)
+            return logo, len(body), hash_val
+    except Exception as e:
+        print(f"      [Cloudflare Bypass Failed] {e}")
+        return None, 0, None
+
 def scrape_venue_logo(venue):
     """
-    Scrape a single venue's logo using Fetcher.get() (non-browser, fast).
-    Returns (venue_id, success, result_msg).
+    Scrape a single venue's logo. Tries Fetcher.get() first. If it fails, falls back to AsyncStealthySession.
     """
     vid = venue['id']
     name = venue['name']
@@ -225,10 +244,8 @@ def scrape_venue_logo(venue):
         website = 'https://' + website
 
     urls_to_try = []
-    if website:
-        urls_to_try.append(website)
-    if pa_url:
-        urls_to_try.append(pa_url)
+    if website: urls_to_try.append(website)
+    if pa_url: urls_to_try.append(pa_url)
 
     if not urls_to_try:
         return vid, False, "No URL"
@@ -238,29 +255,29 @@ def scrape_venue_logo(venue):
             parsed = urlparse(try_url)
             base_domain = f"{parsed.scheme}://{parsed.netloc}"
 
-            # Use Scrapling Fetcher (non-browser, stealthy headers)
+            # Fast fetch
             page = Fetcher.get(try_url, stealthy_headers=True, follow_redirects=True, timeout=15)
             
-            if page.status != 200:
-                continue
-
-            body = page.body if hasattr(page, 'body') and page.body else (page.text.encode('utf-8', errors='ignore') if hasattr(page, 'text') else b'')
-            if not body or len(body) < 100:
-                continue
-
-            html_str = body.decode('utf-8', errors='ignore') if isinstance(body, bytes) else str(body)
-            hash_val = hashlib.sha256(body if isinstance(body, bytes) else body.encode()).hexdigest()
-
-            logo = extract_logo_from_html(html_str, base_domain)
+            if page.status == 200:
+                body = page.body if hasattr(page, 'body') and page.body else (page.text.encode('utf-8', errors='ignore') if hasattr(page, 'text') else b'')
+                if body and len(body) >= 100:
+                    html_str = body.decode('utf-8', errors='ignore') if isinstance(body, bytes) else str(body)
+                    hash_val = hashlib.sha256(body if isinstance(body, bytes) else body.encode()).hexdigest()
+                    logo = extract_logo_from_html(html_str, base_domain)
+                    if logo and is_valid_logo(logo):
+                        save_evidence(name, try_url, page.status, hash_val, len(body), logo)
+                        ok = update_venue_logo(vid, logo, hash_val, len(body))
+                        if ok: return vid, True, logo
+            
+            # If fast fetch failed (403 Cloudflare, etc) or didn't find logo, try stealthy session
+            print(f"    Fallback to AsyncStealthySession for {try_url}...")
+            logo, body_len, hash_val = asyncio.run(async_scrape_cloudflare(try_url, base_domain))
             if logo and is_valid_logo(logo):
-                # Save evidence
-                save_evidence(name, try_url, page.status, hash_val, len(body), logo)
-                # Update DB
-                ok = update_venue_logo(vid, logo, hash_val, len(body))
-                if ok:
-                    return vid, True, logo
+                save_evidence(name, try_url, 200, hash_val, body_len, logo)
+                ok = update_venue_logo(vid, logo, hash_val, body_len)
+                if ok: return vid, True, logo
+
         except Exception as e:
-            # Non-fatal — try next URL
             pass
 
     return vid, False, "No logo found"

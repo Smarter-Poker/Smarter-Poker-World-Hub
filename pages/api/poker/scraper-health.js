@@ -100,6 +100,9 @@ export default async function handler(req, res) {
       } else if (minutesAgo > 30) {
         status = 'stale';
         issues.push(`${source}: data is ${minutesAgo} min old (>30 min = STALE)`);
+      } else if (records < 10 || records > 5000) {
+        status = 'anomaly';
+        issues.push(`${source}: anomaly detected structurally compromised table counts (${records} tables)`);
       }
 
       health[source] = {
@@ -128,7 +131,7 @@ export default async function handler(req, res) {
     } catch (_) {}
 
     const overallStatus = issues.length === 0 ? 'healthy' : 
-      issues.some(i => i.includes('DEAD')) ? 'critical' : 'warning';
+      issues.some(i => i.includes('DEAD') || i.includes('anomaly')) ? 'critical' : 'warning';
 
     // Return 200 for healthy/stale (operational), 503 only for dead/critical
     // This prevents external monitors from flagging normal staleness as outages
