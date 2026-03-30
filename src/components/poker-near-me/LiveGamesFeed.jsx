@@ -892,7 +892,7 @@ export default function LiveGamesFeed({
                                 disabled={isRefreshing}
                                 style={{ 
                                     background: 'rgba(212,168,83,0.08)', border: '1.5px solid rgba(212,168,83,0.2)', 
-                                    borderRadius: 6, padding: '4px 10px', color: '#58a6ff', fontSize: 11, 
+                                    borderRadius: 6, padding: '4px 10px', color: '#d4a853', fontSize: 11, 
                                     fontWeight: 600, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit',
                                     display: 'flex', alignItems: 'center', gap: 4,
                                 }}

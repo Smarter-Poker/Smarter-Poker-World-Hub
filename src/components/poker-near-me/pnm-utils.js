@@ -60,7 +60,7 @@ export function getHeatLevel(totalTables) {
     if (totalTables >= 20) return { color: '#ef4444', label: 'HOT', border: 'rgba(239,68,68,0.5)', bg: 'rgba(239,68,68,0.08)' };
     if (totalTables >= 8) return { color: '#f59e0b', label: 'WARM', border: 'rgba(245,158,11,0.4)', bg: 'rgba(245,158,11,0.06)' };
     if (totalTables >= 3) return { color: '#3fb950', label: 'ACTIVE', border: 'rgba(63,185,80,0.4)', bg: 'rgba(63,185,80,0.06)' };
-    return { color: '#58a6ff', label: 'OPEN', border: 'rgba(88,166,255,0.3)', bg: 'rgba(88,166,255,0.05)' };
+    return { color: '#d4a853', label: 'OPEN', border: 'rgba(212,168,83,0.3)', bg: 'rgba(212,168,83,0.05)' };
 }
 
 /**
@@ -254,7 +254,7 @@ export function getCrowdLevel(venue, checkinCount = 0) {
     if (score >= 80) return { score, label: 'Packed', color: '#ef4444' };
     if (score >= 60) return { score, label: 'Busy', color: '#f59e0b' };
     if (score >= 35) return { score, label: 'Active', color: '#3fb950' };
-    if (score >= 10) return { score, label: 'Quiet', color: '#58a6ff' };
+    if (score >= 10) return { score, label: 'Quiet', color: '#d4a853' };
     return { score, label: 'Empty', color: '#6b7280' };
 }
 
