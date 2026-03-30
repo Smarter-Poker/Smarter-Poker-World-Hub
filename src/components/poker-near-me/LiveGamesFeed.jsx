@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '../../lib/supabase';
-import { haversineMiles, timeAgo, getHeatLevel, parseMinStake, getVenueLogoUrl, estimateWaitTime, saveFilters, loadFilters, isStaleData, getInitialsColor } from './pnm-utils';
+import { haversineMiles, timeAgo, getHeatLevel, parseMinStake, getVenueLogoUrl, getVenueLogoFallback, estimateWaitTime, saveFilters, loadFilters, isStaleData, getInitialsColor } from './pnm-utils';
 import { normalizeGameName } from './normalize-game';
 import ReportGameModal from './ReportGameModal';
 

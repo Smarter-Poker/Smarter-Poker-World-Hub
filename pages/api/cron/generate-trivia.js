@@ -165,6 +165,7 @@ Remember: correct_index is 0-based (0, 1, 2, or 3).`;
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function generateDailyQuestions() {
+    const supabase = getSupabase();
     const today = getTodayCST();
 
     // Check if we already have questions for today

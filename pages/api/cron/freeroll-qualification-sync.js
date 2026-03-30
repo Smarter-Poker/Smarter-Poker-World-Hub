@@ -100,6 +100,7 @@ async function getCashHoursPerPlayer(venueId, dateRange, gameTypes, minStakes) {
 
 /* ── Gather tournament points per player ── */
 async function getTournamentPointsPerPlayer(venueId, dateRange) {
+    const supabase = getSupabase();
     // First get tournaments in the date range for this venue
     const { data: tournaments, error: tError } = await supabase
         .from('commander_tournaments')
@@ -152,6 +153,7 @@ async function getTournamentPointsPerPlayer(venueId, dateRange) {
 
 /* ── Sync a single freeroll ── */
 async function syncFreeroll(freeroll) {
+    const supabase = getSupabase();
     const dateRange = getQualificationDateRange(freeroll.qualification_period, freeroll);
     const threshold = parseFloat(freeroll.qualification_threshold) || 0;
     let playerData = {};

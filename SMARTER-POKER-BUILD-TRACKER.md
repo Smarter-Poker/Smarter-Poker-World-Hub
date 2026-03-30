@@ -191,6 +191,35 @@
 
 ---
 
+## PHASE 4b — Completed (2026-03-29)
+
+### Second Wave: Bare `supabase` Reference Fix
+**Discovery:** Runtime log scan at 22:08 UTC found 500 errors returning on cron endpoints. Investigation revealed 15 cron files with undefined `supabase` variable — they had `getSupabase()` function defined but never called it.
+
+| File | Bare Refs Fixed | Schedule |
+|---|---|---|
+| trivia-tournaments.js | 11 | Daily 01:00 UTC |
+| tournament-reminders.js | 7 | (helper functions) |
+| poker-news.js | 7 | Every 4 hours |
+| freeroll-qualification-sync.js | 4 | Every 6 hours |
+| geofence-session-reminder.js | 4 | (not scheduled) |
+| trivia-daily-generator.js | 4 | Daily 05:59 UTC |
+| generate-trivia.js | 3 | (not scheduled) |
+| youtube-shorts.js | 3 | (not scheduled) |
+| memory-matrix-daily-challenge.js | 2 | Daily 06:00 UTC |
+| training-daily-challenge.js | 2 | Daily 06:05 UTC |
+| training-daily-report.js | 2 | Daily 08:00 UTC |
+| update-charity-locations.js | 2 | Daily 06:00 UTC |
+| vip-diamond-stipend.js | 2 | Monthly 1st |
+| cleanup-expired-passes.js | 1 | (not scheduled) |
+| hendon-scraper.js | 1 | (not scheduled) |
+
+**Fix:** Added `const supabase = getSupabase();` at handler/function scope in each file.
+**Total:** 55 bare references fixed across 15 files.
+**Impact:** Prevents additional daily failures when these crons fire (especially trivia-tournaments at 01:00, trivia-daily-generator at 05:59, training-daily-challenge at 06:05, memory-matrix at 06:00).
+
+---
+
 ## PHASE 5 — SKIPPED (HIGH RISK)
 
 **Commander SSR Auth** — Move PIN validation from client-side overlay to getServerSideProps.

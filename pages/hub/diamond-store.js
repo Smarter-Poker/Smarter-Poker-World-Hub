@@ -27,8 +27,7 @@ import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import { showStoreToast } from '../../src/components/store/StoreToast';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
-
-
+import { PackageCard, VIPCard, MerchCard } from '../../src/components/store/StoreCards';
 
 import {
     STANDARD_REWARDS,
@@ -39,290 +38,7 @@ import {
     MERCHANDISE
 } from '../../src/data/diamondStoreData';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// PACKAGE CARD COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
-    const totalDiamonds = pkg.diamonds + pkg.bonus;
-
-    return (
-        <div
-            onClick={() => onSelect(pkg.id)}
-            style={{
-                position: 'relative',
-                background: isSelected
-                    ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(138, 43, 226, 0.2))'
-                    : 'rgba(255, 255, 255, 0.05)',
-                border: isSelected
-                    ? '2px solid #00D4FF'
-                    : pkg.popular
-                        ? '2px solid rgba(255, 215, 0, 0.5)'
-                        : pkg.hasDiscount
-                            ? '2px solid rgba(0, 255, 136, 0.4)'
-                            : '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: 16,
-                padding: 20,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                transform: isSelected ? 'scale(1.02)' : 'scale(1)',
-            }}
-        >
-            {/* Popular Badge */}
-            {pkg.popular && (
-                <div style={{
-                    position: 'absolute',
-                    top: -10,
-                    right: 16,
-                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                    color: '#0a1628',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '4px 10px',
-                    borderRadius: 10,
-                    textTransform: 'uppercase',
-                }}>
-                    Popular
-                </div>
-            )}
-
-            {/* 5% Discount Badge */}
-            {pkg.hasDiscount && (
-                <div style={{
-                    position: 'absolute',
-                    top: -10,
-                    right: 16,
-                    background: 'linear-gradient(135deg, #00ff88, #00cc66)',
-                    color: '#0a1628',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '4px 10px',
-                    borderRadius: 10,
-                    textTransform: 'uppercase',
-                }}>
-                    +5% Bonus
-                </div>
-            )}
-
-            {/* Diamond Count */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                marginBottom: 12,
-            }}>
-                <span style={{ fontSize: 32 }}>💎</span>
-                <div>
-                    <div style={{
-                        fontFamily: 'Orbitron, sans-serif',
-                        fontSize: 24,
-                        fontWeight: 700,
-                        color: '#00D4FF',
-                    }}>
-                        {totalDiamonds.toLocaleString()}
-                    </div>
-                    {pkg.bonus > 0 && (
-                        <div style={{
-                            fontSize: 11,
-                            color: '#00ff88',
-                            fontWeight: 600,
-                        }}>
-                            ({pkg.diamonds.toLocaleString()} + {pkg.bonus.toLocaleString()} bonus)
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Package Name */}
-            <div style={{
-                fontSize: 16,
-                fontWeight: 600,
-                color: '#fff',
-                marginBottom: 6,
-            }}>
-                {pkg.name}
-            </div>
-
-            {/* Price - 1 diamond = 1 cent */}
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-            }}>
-                <span style={{
-                    fontSize: 22,
-                    fontWeight: 700,
-                    color: '#fff',
-                }}>
-                    ${pkg.price.toFixed(2)}
-                </span>
-                <span style={{
-                    fontSize: 10,
-                    color: 'rgba(255, 255, 255, 0.5)',
-                }}>
-                    1💎 = $0.01
-                </span>
-            </div>
-
-            {/* Add to Cart Button */}
-            <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onAddToCart && onAddToCart(pkg);
-                }}
-                style={{
-                    width: '100%',
-                    marginTop: 12,
-                    padding: '10px 16px',
-                    background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-                    border: 'none',
-                    borderRadius: 8,
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-                Add To Cart
-            </button>
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// VIP MEMBERSHIP CARD COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-function VIPCard({ plan, isSelected, onSelect }) {
-    return (
-        <div
-            onClick={() => onSelect(plan.id)}
-            style={{
-                position: 'relative',
-                borderRadius: 16,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                transform: isSelected ? 'scale(1.03)' : 'scale(1)',
-                flex: 1,
-                overflow: 'hidden',
-                background: '#000',
-                border: isSelected
-                    ? '3px solid #00D4FF'
-                    : '2px solid rgba(255,255,255,0.15)',
-                boxShadow: isSelected
-                    ? '0 0 30px rgba(0,212,255,0.4)'
-                    : '0 4px 20px rgba(0,0,0,0.3)',
-            }}
-        >
-            {/* VIP Card Image As Full Background */}
-            <img
-                src="/images/vip-card.png"
-                alt={plan.name}
-                style={{
-                    width: '100%',
-                    display: 'block',
-                    borderRadius: 14,
-                }}
-                draggable={false}
-                loading="lazy" />
-
-            {/* Price Overlay At Bottom */}
-            <div style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)',
-                padding: '40px 16px 14px',
-                borderRadius: '0 0 14px 14px',
-            }}>
-                <div style={{
-                    fontFamily: 'Orbitron, sans-serif',
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: '#FFFFFF',
-                    marginBottom: 4,
-                }}>
-                    {plan.name}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    {plan.isDiamondCost ? (
-                        <span style={{ fontSize: 24, fontWeight: 700, color: '#00D4FF' }}>
-                            {plan.price} 💎
-                        </span>
-                    ) : (
-                        <span style={{ fontSize: 28, fontWeight: 700, color: '#FFFFFF' }}>
-                            ${plan.price.toFixed(2)}
-                        </span>
-                    )}
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
-                        /{plan.interval}
-                    </span>
-                </div>
-            </div>
-
-
-        </div>
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MERCHANDISE CARD COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-function MerchCard({ item, onSelect }) {
-    return (
-        <div
-            onClick={() => onSelect(item.id)}
-            style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: 12,
-                overflow: 'hidden',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-            }}
-        >
-            {/* Product Image Placeholder */}
-            <div style={{
-                height: 120,
-                background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(138, 43, 226, 0.1))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 40,
-            }}>
-                {item.category === 'apparel' ? '👕' : '🎴'}
-            </div>
-
-            <div style={{ padding: 14 }}>
-                <div style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: '#fff',
-                    marginBottom: 4,
-                }}>
-                    {item.name}
-                </div>
-                <div style={{
-                    fontSize: 11,
-                    color: 'rgba(255, 255, 255, 0.5)',
-                    marginBottom: 8,
-                    lineHeight: 1.4,
-                }}>
-                    {item.description}
-                </div>
-                <div style={{
-                    fontSize: 18,
-                    fontWeight: 700,
-                    color: '#00D4FF',
-                }}>
-                    ${item.price.toFixed(2)}
-                </div>
-            </div>
-        </div>
-    );
-}
+// PackageCard, VIPCard, MerchCard — extracted to src/components/store/StoreCards.js
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN DIAMOND STORE PAGE
@@ -991,10 +707,6 @@ export default function DiamondStorePage() {
                                 style={{ width: '100%', height: 'auto', display: 'block' }}
                                 draggable={false}
                                 loading="lazy" />
-
-
-
-
                             {/* ── Diamond package clickable zones (6 boxes, 2×3 grid) ── */}
                             {[
                                 { pkgIndex: 2, left: '3%', top: '25%', width: '46%', height: '21%' }, // 1,000 💎 — Micro $10
@@ -1115,8 +827,6 @@ export default function DiamondStorePage() {
                                             </div>
                                         ))}
                                     </div>
-
-
                                     {/* Club & Diamond Arena Features */}
                                     <div style={styles.benefitsCategoryHeader}>
                                         <span style={styles.benefitsCategoryLabel}>Club & Diamond Arena Features</span>
@@ -1132,8 +842,6 @@ export default function DiamondStorePage() {
                                             </div>
                                         ))}
                                     </div>
-
-
                                 </div>
 
                                 {/* View in Marketplace Link */}
@@ -1269,8 +977,6 @@ export default function DiamondStorePage() {
                                 </div>
                             </>
                         )}
-
-
                         {/* ═══════════════════════════════════════════════════════════════════ */}
                         {/* SMARTER REWARDS TAB - Comprehensive Rewards Information Center */}
                         {/* ═══════════════════════════════════════════════════════════════════ */}
@@ -1464,8 +1170,6 @@ export default function DiamondStorePage() {
                                         </div>
                                     </div>
                                 )}
-
-
 
                                 {/* EASTER EGGS SUB-TAB */}
                                 {rewardsSubTab === 'eggs' && (

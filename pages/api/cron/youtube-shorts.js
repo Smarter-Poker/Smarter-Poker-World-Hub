@@ -137,6 +137,7 @@ async function fetchChannelVideos(channel) {
 }
 
 async function saveVideos(videos) {
+    const supabase = getSupabase();
     let saved = 0;
     let skipped = 0;
 
@@ -197,6 +198,7 @@ export default async function handler(req, res) {
 
 
       try {
+          const supabase = getSupabase();
           // Verify system account exists
           const { data: systemAccount, error: accountError } = await supabase
               .from('profiles')

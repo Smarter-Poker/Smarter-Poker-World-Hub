@@ -98,6 +98,7 @@ export default async function handler(req, res) {
       let totalSent = 0;
 
       try {
+          const supabase = getSupabase();
           // ═══ 1. UPCOMING TOURNAMENTS (commander_tournaments) ═══
           const { data: tournaments } = await supabase
               .from('commander_tournaments')

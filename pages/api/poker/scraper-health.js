@@ -82,9 +82,9 @@ export default async function handler(req, res) {
       if (minutesAgo > 60) {
         status = 'dead';
         issues.push(`${source}: data is ${minutesAgo} min old (>60 min = DEAD)`);
-      } else if (minutesAgo > 40) {
+      } else if (minutesAgo > 30) {
         status = 'stale';
-        issues.push(`${source}: data is ${minutesAgo} min old (>40 min = STALE)`);
+        issues.push(`${source}: data is ${minutesAgo} min old (>30 min = STALE)`);
       }
 
       health[source] = {
@@ -102,15 +102,18 @@ export default async function handler(req, res) {
     const overallStatus = issues.length === 0 ? 'healthy' : 
       issues.some(i => i.includes('DEAD')) ? 'critical' : 'warning';
 
+    // Return 200 for healthy/stale (operational), 503 only for dead/critical
+    // This prevents external monitors from flagging normal staleness as outages
+    const httpStatus = overallStatus === 'critical' ? 503 : 200;
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(overallStatus === 'healthy' ? 200 : 503).json({
+    return res.status(httpStatus).json({
       status: overallStatus,
       checked_at: now.toISOString(),
       scrapers: health,
       issues,
       thresholds: {
-        healthy: '< 40 minutes',
-        stale: '40-60 minutes',
+        healthy: '< 30 minutes',
+        stale: '30-60 minutes',
         dead: '> 60 minutes',
       },
     });
