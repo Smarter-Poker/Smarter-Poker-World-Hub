@@ -34,7 +34,8 @@ export default async function handler(req, res) {
       const { data, error } = await supabase
         .from('venue_live_tables')
         .select('bravo_slug, venue_name')
-        .order('venue_name');
+        .order('venue_name')
+        .limit(10000);
 
       if (error) {
         console.error('Live tables list error:', error);

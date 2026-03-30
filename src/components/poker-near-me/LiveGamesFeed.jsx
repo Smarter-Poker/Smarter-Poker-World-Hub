@@ -138,7 +138,6 @@ export default function LiveGamesFeed({
     // Collapsible breakdowns
     const [expandedBreakdowns, setExpandedBreakdowns] = useState({});
     
-    const refreshRef = useRef(null);
     const debounceTimerRef = useRef(null);
     const countdownRef = useRef(null);
 
@@ -195,13 +194,20 @@ export default function LiveGamesFeed({
         setIsRefreshing(false);
     }, []);
 
-    // Countdown timer for next auto-refresh
+    // Countdown timer acting as visual indicator AND unified polling mechanic
     useEffect(() => {
         countdownRef.current = setInterval(() => {
-            setRefreshCountdown(prev => (prev > 0 ? prev - 1 : LIVE_REFRESH_MS / 1000));
+            setRefreshCountdown(prev => {
+                if (prev <= 1) {
+                    // Fire underlying data fetch, which will synchronously reset this counter upon success
+                    fetchGlobalLiveData(true);
+                    return LIVE_REFRESH_MS / 1000;
+                }
+                return prev - 1;
+            });
         }, 1000);
         return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
-    }, []);
+    }, [fetchGlobalLiveData]);
 
     useEffect(() => {
         fetchGlobalLiveData();
@@ -216,11 +222,7 @@ export default function LiveGamesFeed({
             })
             .subscribe();
 
-        // Fallback polling
-        refreshRef.current = setInterval(() => fetchGlobalLiveData(true), LIVE_REFRESH_MS);
-        
         return () => { 
-            if (refreshRef.current) clearInterval(refreshRef.current); 
             if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
             if (liveChannel) supabase.removeChannel(liveChannel);
         };
