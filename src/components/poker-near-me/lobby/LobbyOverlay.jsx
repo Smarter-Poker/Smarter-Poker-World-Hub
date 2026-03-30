@@ -43,7 +43,7 @@ const MORE_TOOLS = [
   { id: 'gametrends', label: 'Game Trends', icon: 'M3 3v18h18M7 16l4-8 4 4 4-8', color: '#a78bfa' },
   { id: 'peakheatmap', label: 'Peak Activity', icon: 'M12 2v10l4.7 2.4M12 12l-4.7 2.4M3 17h18', color: '#f59e0b' },
   { id: 'compare', label: 'Compare Venues', icon: 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9m-12 12H5a2 2 0 01-2-2V9', color: '#3fb950' },
-  { id: 'tripcost', label: 'Trip Cost Calculator', icon: 'M12 2a10 10 0 100 20 10 10 0 000-20zM12 6v6l4 2', color: '#58a6ff' },
+  { id: 'tripcost', label: 'Trip Cost Calculator', icon: 'M12 2a10 10 0 100 20 10 10 0 000-20zM12 6v6l4 2', color: '#d4a853' },
   { id: 'gamealerts', label: 'Game Alerts', icon: 'M15 17h5l-1.4-1.4A6.8 6.8 0 0019 11a7 7 0 10-14 0 6.8 6.8 0 00.4 4.6L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9', color: '#ef4444' },
   { id: 'scraperhealth', label: 'Scraper Health', icon: 'M9 19V6l12-3v13M9 19c0 1.1-1.3 2-3 2s-3-.9-3-2 1.3-2 3-2 3 .9 3 2zm12-3c0 1.1-1.3 2-3 2s-3-.9-3-2 1.3-2 3-2 3 .9 3 2z', color: '#6ee7ef' },
 ];
@@ -131,15 +131,19 @@ function FirstTimeTutorial({ step, totalSteps, onNext, onSkip }) {
   const gridCol = step % 4;
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 200,
-      background: 'rgba(0,0,0,0.75)',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      backdropFilter: 'blur(4px)',
-      fontFamily: 'Inter, system-ui, sans-serif',
-      pointerEvents: 'auto', // CRITICAL: Override parent's pointerEvents: 'none'
-    }}>
+    <div
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.75)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        backdropFilter: 'blur(4px)',
+        fontFamily: 'Inter, system-ui, sans-serif',
+        pointerEvents: 'auto',
+      }}>
       {/* Spotlight hint */}
       <div style={{ textAlign: 'center', maxWidth: 340, padding: '0 20px' }}>
         <div style={{
@@ -188,7 +192,8 @@ function FirstTimeTutorial({ step, totalSteps, onNext, onSkip }) {
         {/* Buttons */}
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
           <button
-            onClick={onSkip}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onSkip(); }}
+            onPointerDown={(e) => e.stopPropagation()}
             style={{
               padding: '10px 24px', borderRadius: 10,
               border: '1px solid rgba(200,214,229,0.15)',
@@ -201,7 +206,8 @@ function FirstTimeTutorial({ step, totalSteps, onNext, onSkip }) {
             Skip
           </button>
           <button
-            onClick={onNext}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNext(); }}
+            onPointerDown={(e) => e.stopPropagation()}
             style={{
               padding: '10px 32px', borderRadius: 10,
               border: 'none',
@@ -275,12 +281,8 @@ export default function LobbyOverlay({
   const friendsNearby = liveData.friendsNearby; // -1 = Coming Soon
 
   return (
-    <div className="lobby-overlay" style={{
-      position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none',
-      display: 'flex', flexDirection: 'column',
-    }}>
-
-      {/* Tutorial Overlay */}
+    <>
+      {/* Tutorial Overlay — MUST be outside lobby-overlay div to escape pointerEvents: 'none' */}
       {showTutorial && (
         <FirstTimeTutorial
           step={tutorialStep}
@@ -295,6 +297,11 @@ export default function LobbyOverlay({
           onSkip={() => onTutorialDismiss?.()}
         />
       )}
+
+      <div className="lobby-overlay" style={{
+        position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none',
+        display: 'flex', flexDirection: 'column',
+      }}>
 
       {/* TOP BAR — Title + Search */}
       <header className="lobby-topbar" style={{ pointerEvents: 'none' }}>
@@ -404,33 +411,33 @@ export default function LobbyOverlay({
                     display: 'flex', alignItems: 'center', gap: 10,
                     cursor: 'pointer', pointerEvents: 'auto',
                     padding: '10px 16px',
-                    background: 'linear-gradient(135deg, rgba(88,166,255,0.08), rgba(88,166,255,0.02))',
-                    border: '1px solid rgba(88,166,255,0.2)',
+                    background: 'linear-gradient(135deg, rgba(212,168,83,0.08), rgba(212,168,83,0.02))',
+                    border: '1.5px solid rgba(212,168,83,0.2)',
                     borderRadius: 14,
                     transition: 'all 0.3s',
                   }}
                 >
                   <div style={{
                     width: 32, height: 32, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, rgba(88,166,255,0.2), rgba(88,166,255,0.08))',
-                    border: '1px solid rgba(88,166,255,0.35)',
+                    background: 'linear-gradient(135deg, rgba(212,168,83,0.2), rgba(212,168,83,0.08))',
+                    border: '1px solid rgba(212,168,83,0.35)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                       <path d="M3 3v5h5"/>
                     </svg>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#58a6ff', letterSpacing: '-0.2px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#d4a853', letterSpacing: '-0.2px' }}>
                       Use Saved Location
                     </div>
                     <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
                       {savedLocationCity}{savedLocationState ? `, ${savedLocationState}` : ''}
                     </div>
                   </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(88,166,255,0.5)" strokeWidth="2" style={{ flexShrink: 0 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.5)" strokeWidth="2" style={{ flexShrink: 0 }}>
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                 </div>
@@ -634,12 +641,12 @@ export default function LobbyOverlay({
               let badgeLabel = null; // optional text label instead of number
 
               if (hotspot.id === 'nearme' && liveData.venueCount > 0) { badge = liveData.venueCount; badgeBg = 'linear-gradient(135deg, #3fb950, #238636)'; }
-              else if (hotspot.id === 'search' && liveData.venueCount > 0) { badge = liveData.venueCount; badgeBg = 'linear-gradient(135deg, #58a6ff, #1f6feb)'; }
+              else if (hotspot.id === 'search' && liveData.venueCount > 0) { badge = liveData.venueCount; badgeBg = 'linear-gradient(135deg, #d4a853, #c49a3c)'; }
               else if (hotspot.id === 'homegames') { const hgCount = (liveData.homeGameCount || 0); if (hgCount > 0) badge = hgCount; }
               else if (hotspot.id === 'livegames') {
                 if (liveData.liveGameCount > 0) { badge = liveData.liveGameCount; badgeBg = 'linear-gradient(135deg, #ef4444, #dc2626)'; }
               }
-              else if (hotspot.id === 'mapview' && liveData.mappableCount > 0) { badge = liveData.mappableCount; badgeBg = 'linear-gradient(135deg, #58a6ff, #1f6feb)'; }
+              else if (hotspot.id === 'mapview' && liveData.mappableCount > 0) { badge = liveData.mappableCount; badgeBg = 'linear-gradient(135deg, #d4a853, #c49a3c)'; }
               else if (hotspot.id === 'tours' && liveData.tourCount > 0) badge = liveData.tourCount;
               else if (hotspot.id === 'calendar' && liveData.calendarCount > 0) { badge = liveData.calendarCount; badgeBg = 'linear-gradient(135deg, #a78bfa, #8b5cf6)'; }
               else if (hotspot.id === 'series' && liveData.seriesCount > 0) badge = liveData.seriesCount;
@@ -790,5 +797,6 @@ export default function LobbyOverlay({
         </div>
       </div>
     </div>
+    </>
   );
 }
