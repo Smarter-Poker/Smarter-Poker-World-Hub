@@ -294,6 +294,7 @@ export default function PokerNearMePage() {
         return false;
     });
     const introVideoRef = useRef(null);
+    const cityDebounceRef = useRef(null);
 
     const handleIntroEnd = useCallback(() => {
         sessionStorage.setItem('poker-near-me-intro-seen', 'true');
@@ -372,7 +373,20 @@ export default function PokerNearMePage() {
     const [displayCount, setDisplayCount] = useState({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
     const [searchHistory, setSearchHistory] = useState(() => {
         if (typeof window !== 'undefined') {
-            try { return JSON.parse(localStorage.getItem('sp-search-history') || '[]'); } catch { return []; }
+            try {
+                const raw = JSON.parse(localStorage.getItem('sp-search-history') || '[]');
+                // Prune entries older than 30 days (if stored with timestamps)
+                const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+                const now = Date.now();
+                const pruned = raw.filter(entry => {
+                    if (typeof entry === 'object' && entry.ts) return (now - entry.ts) < MAX_AGE_MS;
+                    return true; // Legacy string entries are kept
+                });
+                if (pruned.length !== raw.length) {
+                    localStorage.setItem('sp-search-history', JSON.stringify(pruned));
+                }
+                return pruned;
+            } catch { return []; }
         }
         return [];
     });
@@ -1125,14 +1139,17 @@ export default function PokerNearMePage() {
         setSearchQuery(value);
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
 
-        // City autocomplete
+        // City autocomplete — debounced to prevent jank during fast typing
+        if (cityDebounceRef.current) clearTimeout(cityDebounceRef.current);
         if (value.trim().length >= 2) {
-            const q = value.trim().toLowerCase();
-            const matches = POPULAR_CITIES.filter(c =>
-                c.name.toLowerCase().includes(q) || c.state.toLowerCase().includes(q)
-            ).slice(0, 6);
-            setCitySuggestions(matches);
-            setShowCitySuggestions(matches.length > 0);
+            cityDebounceRef.current = setTimeout(() => {
+                const q = value.trim().toLowerCase();
+                const matches = POPULAR_CITIES.filter(c =>
+                    c.name.toLowerCase().includes(q) || c.state.toLowerCase().includes(q)
+                ).slice(0, 6);
+                setCitySuggestions(matches);
+                setShowCitySuggestions(matches.length > 0);
+            }, 200);
         } else {
             setShowCitySuggestions(false);
         }
@@ -1345,7 +1362,7 @@ export default function PokerNearMePage() {
                 </div>
                 <div className="card-grid">
                     {favVenues.map((venue, i) => {
-                        const maxGtd = (dailyTournaments || []).filter(t => String(t.venue_id) === String(venue.id) && t.guaranteed).reduce((m, t) => Math.max(m, Number(t.guaranteed)), 0);
+                        const maxGtd = venueMaxGtd[String(venue.id)] || 0;
                         return (
                             <VenueCard
                                 key={venue.id || i}
@@ -1427,9 +1444,9 @@ export default function PokerNearMePage() {
         // For venues tab: show search landing if no search yet, skip skeleton
         if (activeTab === 'venues' && !hasSearched) return renderVenues();
 
-        // Show loading
+        // Show loading — skeletons for all data-driven tabs
         if ((activeTab === 'venues' && venueLoading) || loading) {
-            return renderSkeletons(8);
+            return renderSkeletons(activeTab === 'events' ? 6 : 8);
         }
 
         switch (activeTab) {
@@ -2306,6 +2323,8 @@ export default function PokerNearMePage() {
                         autoPlay
                         muted
                         playsInline
+                        preload="none"
+                        poster="/images/pnm-poster.jpg"
                         onPlay={handleIntroPlay}
                         onEnded={handleIntroEnd}
                         onError={handleIntroEnd}
@@ -2422,7 +2441,7 @@ export default function PokerNearMePage() {
                     )}
 
                     {/* ═══ MOBILE TAB BAR (6 Primary Tabs) ═══ */}
-                    <div className="mobile-tab-bar">
+                    <div className="mobile-tab-bar" role="tablist" aria-label="Poker Near Me navigation">
                         {[
                             { key: 'venues', label: 'Venues', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg> },
                             { key: 'events', label: 'Events', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
@@ -2435,6 +2454,9 @@ export default function PokerNearMePage() {
                                 key={tab.key}
                                 className={'mtab' + (activeTab === tab.key ? ' active' : '')}
                                 onClick={() => setActiveTab(tab.key)}
+                                role="tab"
+                                aria-selected={activeTab === tab.key}
+                                aria-label={tab.label + ' tab'}
                             >
                                 <span className="mtab-icon">{tab.icon}</span>
                                 <span className="mtab-label">{tab.label}</span>
