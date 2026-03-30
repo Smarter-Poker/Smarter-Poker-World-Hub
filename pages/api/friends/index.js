@@ -134,17 +134,17 @@ export default async function handler(req, res) {
           });
         }
 
-        // Default: simple friends list
+        // Default: simple friends list (includes is_vip for R8-I8 VIP badge in wallet transfer)
         const { data: friendshipsAsUser } = await getSupabase()
           .from('friendships')
-          .select('friend_id, friend:profiles!friendships_friend_id_fkey(id, display_name, username, avatar_url)')
+          .select('friend_id, friend:profiles!friendships_friend_id_fkey(id, display_name, username, avatar_url, is_vip)')
           .eq('user_id', userId)
           .eq('status', 'accepted')
           .limit(100);
 
         const { data: friendshipsAsFriend } = await getSupabase()
           .from('friendships')
-          .select('user_id, requester:profiles!friendships_user_id_fkey(id, display_name, username, avatar_url)')
+          .select('user_id, requester:profiles!friendships_user_id_fkey(id, display_name, username, avatar_url, is_vip)')
           .eq('friend_id', userId)
           .eq('status', 'accepted')
           .limit(100);
