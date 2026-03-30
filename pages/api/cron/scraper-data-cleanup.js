@@ -65,5 +65,18 @@ export default async function handler(req, res) {
     results.tables.scraper_watchdog_state = { deleted: 0, error: err.message };
   }
 
+  // Log execution results to watchdog state for audit trailing
+  try {
+    await supabase
+      .from('scraper_watchdog_state')
+      .upsert({
+        key: 'last_cleanup_execution',
+        value: JSON.stringify(results),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'key' });
+  } catch (err) {
+    console.error('Failed to log cleanup execution:', err.message);
+  }
+
   return res.status(200).json(results);
 }

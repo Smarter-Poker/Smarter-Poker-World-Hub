@@ -514,7 +514,7 @@ export default function SignUpPage() {
                         .from('user_diamond_balance')
                         .upsert({
                             user_id: authData.user.id,
-                            balance: 300, // Starting diamonds bonus
+                            balance: 500, // Welcome diamond bonus (matches profile)
                             created_at: new Date().toISOString(),
                             updated_at: new Date().toISOString(),
                         }, {
@@ -538,6 +538,10 @@ export default function SignUpPage() {
                     // UPDATE the profile created by the database trigger
                     // The trigger creates the profile with correct id = auth.user.id
                     // We just need to add/update the additional fields
+                    // ── FIRST MONTH FREE VIP: All new users get 30-day VIP card ──
+                    const vipExpiresAt = new Date();
+                    vipExpiresAt.setDate(vipExpiresAt.getDate() + 30);
+
                     const { error: updateError } = await supabase
                         .from('profiles')
                         .update({
@@ -550,11 +554,14 @@ export default function SignUpPage() {
                             username: formData.pokerAlias,
                             player_number: nextPlayerNumber,
                             xp_total: 100, // Starting XP bonus
-                            diamonds: 300, // Starting diamonds bonus
+                            diamonds: 500, // Welcome diamond bonus
                             diamond_multiplier: 1.0,
                             streak_count: 0,
                             skill_tier: 'Newcomer',
                             access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
+                            is_vip: true,
+                            vip_tier: 'monthly',
+                            vip_expires_at: vipExpiresAt.toISOString(),
                             last_login: new Date().toISOString(),
                         })
                         .eq('id', authData.user.id);
@@ -562,6 +569,9 @@ export default function SignUpPage() {
                     if (updateError) {
                         console.error('Profile update error:', updateError);
                         // If update fails (profile doesn't exist yet), try insert as fallback
+                        const vipExpiresAtFallback = new Date();
+                        vipExpiresAtFallback.setDate(vipExpiresAtFallback.getDate() + 30);
+
                         const { error: insertError } = await supabase
                             .from('profiles')
                             .insert({
@@ -576,11 +586,14 @@ export default function SignUpPage() {
                                 username: formData.pokerAlias,
                                 player_number: nextPlayerNumber,
                                 xp_total: 100,
-                                diamonds: 300,
+                                diamonds: 500,
                                 diamond_multiplier: 1.0,
                                 streak_count: 0,
                                 skill_tier: 'Newcomer',
                                 access_tier: isRestrictedState ? 'Restricted_Tier' : 'Full_Access',
+                                is_vip: true,
+                                vip_tier: 'monthly',
+                                vip_expires_at: vipExpiresAtFallback.toISOString(),
                                 created_at: new Date().toISOString(),
                                 last_login: new Date().toISOString(),
                             });

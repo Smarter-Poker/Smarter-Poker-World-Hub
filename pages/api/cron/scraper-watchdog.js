@@ -1,9 +1,9 @@
 /**
  * Cron: /api/cron/scraper-watchdog
- * Runs every 30 minutes via Vercel Cron.
+ * Runs every 10 minutes via Vercel Cron.
  * 
  * Checks venue data scraper freshness across all sources.
- * If data is stale (>45 min) or dead (>90 min), sends:
+ * If data is stale (>30 min) or dead (>60 min), sends:
  *   1. SMS to admin via Twilio
  *   2. Push notification via OneSignal
  * 
@@ -11,16 +11,16 @@
  *   - Uses Supabase table for persistent cooldown tracking
  *     (survives Vercel cold starts, unlike in-memory tracking)
  *   - Tier 1 (>30 min): Log only, no alert
- *   - Tier 2 (>45 min): SMS alert, max 1 per hour per source
- *   - Tier 3 (>90 min): SMS + push every 30 min until resolved
+ *   - Tier 2 (>30 min): SMS alert, max 1 per hour per source
+ *   - Tier 3 (>60 min): SMS + push every 30 min until resolved
  *   - Auto-resolves: Sends "all clear" when data becomes fresh again
  */
 import { sendSMS, isTwilioConfigured } from '../../../src/lib/commander/twilio';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const ADMIN_PHONE = '+17086775221';
-const STALE_THRESHOLD_MIN = 45;    // Tier 2: SMS alert
-const DEAD_THRESHOLD_MIN = 90;     // Tier 3: Escalated alert
+const STALE_THRESHOLD_MIN = 30;    // Tier 2: SMS alert
+const DEAD_THRESHOLD_MIN = 60;     // Tier 3: Escalated alert
 const TIER2_COOLDOWN_MS = 60 * 60 * 1000;  // 1 hour between Tier 2 alerts
 const TIER3_COOLDOWN_MS = 30 * 60 * 1000;  // 30 min between Tier 3 alerts
 
@@ -94,7 +94,7 @@ async function sendOneSignalAlert(title, message) {
       },
       body: JSON.stringify({
         app_id: appId,
-        included_segments: ['Subscribed Users'],
+        included_segments: ['Test Users'], // Or a specific admin segment, avoiding 'Subscribed Users' (all users)
         headings: { en: title },
         contents: { en: message },
         priority: 10,

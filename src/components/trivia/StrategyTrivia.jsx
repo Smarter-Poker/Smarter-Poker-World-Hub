@@ -692,26 +692,28 @@ export default function StrategyTrivia({ mode }) {
     // Lifeline: 50/50
     async function useFiftyFifty() {
         if (fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES) return;
-        if (userDiamonds < LIFELINE_COST) {
+        if (!isVip && userDiamonds < LIFELINE_COST) {
             setShowOutOfDiamonds(true);
             return;
         }
 
-        // Deduct diamonds via audit-safe RPC
-        try {
-            await supabase.rpc('add_diamonds_to_balance', {
-                p_user_id: userId,
-                p_amount: -LIFELINE_COST,
-                p_type: 'strategy_lifeline',
-                p_description: `${config.title} 50/50 lifeline — ${LIFELINE_COST}💎`,
-                p_reference_id: null
-            });
-            const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
-            if (profile) setUserDiamonds(profile.diamonds || 0);
-            busEmit.diamondsSpent(LIFELINE_COST, '50/50 Lifeline');
-        } catch (e) {
-            console.error('[StrategyTrivia] 50/50 deduct failed:', e);
-            return;
+        // Deduct diamonds via audit-safe RPC for non-VIP users
+        if (!isVip) {
+            try {
+                await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: -LIFELINE_COST,
+                    p_type: 'strategy_lifeline',
+                    p_description: `${config.title} 50/50 lifeline — ${LIFELINE_COST}💎`,
+                    p_reference_id: null
+                });
+                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                if (profile) setUserDiamonds(profile.diamonds || 0);
+                busEmit.diamondsSpent(LIFELINE_COST, '50/50 Lifeline');
+            } catch (e) {
+                console.error('[StrategyTrivia] 50/50 deduct failed:', e);
+                return;
+            }
         }
 
         // Eliminate 2 wrong answers
@@ -729,26 +731,28 @@ export default function StrategyTrivia({ mode }) {
     // Lifeline: Skip Question
     async function useSkip() {
         if (skipUsed || lifelinesUsedCount >= MAX_LIFELINES) return;
-        if (userDiamonds < LIFELINE_COST) {
+        if (!isVip && userDiamonds < LIFELINE_COST) {
             setShowOutOfDiamonds(true);
             return;
         }
 
-        // Deduct diamonds via audit-safe RPC
-        try {
-            await supabase.rpc('add_diamonds_to_balance', {
-                p_user_id: userId,
-                p_amount: -LIFELINE_COST,
-                p_type: 'strategy_lifeline',
-                p_description: `${config.title} skip question — ${LIFELINE_COST}💎`,
-                p_reference_id: null
-            });
-            const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
-            if (profile) setUserDiamonds(profile.diamonds || 0);
-            busEmit.diamondsSpent(LIFELINE_COST, 'Skip Question');
-        } catch (e) {
-            console.error('[StrategyTrivia] Skip deduct failed:', e);
-            return;
+        // Deduct diamonds via audit-safe RPC for non-VIP users
+        if (!isVip) {
+            try {
+                await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: -LIFELINE_COST,
+                    p_type: 'strategy_lifeline',
+                    p_description: `${config.title} skip question — ${LIFELINE_COST}💎`,
+                    p_reference_id: null
+                });
+                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                if (profile) setUserDiamonds(profile.diamonds || 0);
+                busEmit.diamondsSpent(LIFELINE_COST, 'Skip Question');
+            } catch (e) {
+                console.error('[StrategyTrivia] Skip deduct failed:', e);
+                return;
+            }
         }
 
         // Mark as skipped (correct to not penalize)

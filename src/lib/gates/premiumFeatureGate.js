@@ -317,7 +317,7 @@ export const FEATURE_CONFIG = {
     personal_assistant: { cost: 100, label: 'Personal Assistant', durationHours: 24 },
     lives: { cost: 25, label: 'Lives', durationHours: 24 },
     custom_avatar: { cost: 25, label: 'Custom Avatar Builder', durationHours: 24 },
-    daily_unlock_all: { cost: 150, label: 'Daily All-Access Pass', durationHours: 24 },
+    daily_unlock_all: { cost: 150, label: 'Daily All-Access Pass', durationHours: 24 }
 };
 
 /** Diamond cost for a 30-day VIP membership */

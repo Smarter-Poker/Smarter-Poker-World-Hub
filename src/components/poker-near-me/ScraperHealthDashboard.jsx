@@ -129,9 +129,12 @@ export default function ScraperHealthDashboard() {
 
   useEffect(() => {
     if (!autoRefresh) return;
-    const interval = setInterval(fetchHealth, AUTO_REFRESH_MS);
+    const interval = setInterval(() => {
+      fetchHealth();
+      fetchMetrics();
+    }, AUTO_REFRESH_MS);
     return () => clearInterval(interval);
-  }, [autoRefresh, fetchHealth]);
+  }, [autoRefresh, fetchHealth, fetchMetrics]);
 
   const overallStatus = health?.status || 'unknown';
   const overallCfg = STATUS_COLORS[overallStatus] || STATUS_COLORS.unknown;

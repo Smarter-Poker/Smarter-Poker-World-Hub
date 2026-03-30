@@ -135,6 +135,8 @@ function FirstTimeTutorial({ step, totalSteps, onNext, onSkip }) {
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); }}
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
         background: 'rgba(0,0,0,0.75)',
@@ -143,6 +145,8 @@ function FirstTimeTutorial({ step, totalSteps, onNext, onSkip }) {
         backdropFilter: 'blur(4px)',
         fontFamily: 'Inter, system-ui, sans-serif',
         pointerEvents: 'auto',
+        touchAction: 'none',
+        cursor: 'default',
       }}>
       {/* Spotlight hint */}
       <div style={{ textAlign: 'center', maxWidth: 340, padding: '0 20px' }}>
@@ -194,6 +198,7 @@ function FirstTimeTutorial({ step, totalSteps, onNext, onSkip }) {
           <button
             onClick={(e) => { e.stopPropagation(); e.preventDefault(); onSkip(); }}
             onPointerDown={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onSkip(); }}
             style={{
               padding: '10px 24px', borderRadius: 10,
               border: '1px solid rgba(200,214,229,0.15)',
@@ -208,6 +213,7 @@ function FirstTimeTutorial({ step, totalSteps, onNext, onSkip }) {
           <button
             onClick={(e) => { e.stopPropagation(); e.preventDefault(); onNext(); }}
             onPointerDown={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onNext(); }}
             style={{
               padding: '10px 32px', borderRadius: 10,
               border: 'none',

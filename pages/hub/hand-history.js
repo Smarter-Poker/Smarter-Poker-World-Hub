@@ -4,6 +4,7 @@ import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { eventBus } from '../../src/engine/EventBus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
+import useVIP from '../../src/hooks/useVIP';
 import dynamic from 'next/dynamic';
 
 const ShareableHandCard = dynamic(() => import('../../src/components/poker/ShareableHandCard'), { ssr: false });
@@ -33,14 +34,18 @@ export default function HandHistoryPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const userIdRef = useRef(null);
   const fileInputRef = useRef(null);
+  const { isVip } = useVIP();
 
   const handleAiUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!window.confirm("Using the AI Hand Scanner costs 5 Diamonds per scan (Free for VIP). Do you want to proceed?")) {
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
+    // Suppress cost messaging for VIP members
+    if (!isVip) {
+      if (!window.confirm("Using the AI Hand Scanner costs 5 Diamonds per scan. Do you want to proceed?")) {
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
     }
 
     setUploadingImage(true);

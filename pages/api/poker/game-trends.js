@@ -42,6 +42,7 @@ export default async function handler(req, res) {
     // --- HISTORICAL COMPARISON ---
     // Load previous snapshot from scraper_watchdog_state
     let previousCounts = {};
+    let prevSnapshotData = null;
     let hasHistoricalData = false;
     try {
       const { data: prevSnap } = await supabase
@@ -50,8 +51,12 @@ export default async function handler(req, res) {
         .eq('key', 'game_trends_snapshot')
         .maybeSingle();
       if (prevSnap?.value) {
-        const parsed = JSON.parse(prevSnap.value);
-        previousCounts = parsed.counts || {};
+        prevSnapshotData = JSON.parse(prevSnap.value);
+        previousCounts = prevSnapshotData.counts || {};
+        
+        // We consider it "historical" if we have prior counts AND they aren't from just right now.
+        // Even if we just saved it, this GET request should show historical data if it previously existed.
+        // The simplest check is if previousCounts has keys.
         hasHistoricalData = Object.keys(previousCounts).length > 0;
       }
     } catch (_) {
@@ -92,7 +97,7 @@ export default async function handler(req, res) {
     // Sort by current table count descending
     trends.sort((a, b) => b.current_tables - a.current_tables);
 
-    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     res.status(200).json({
       trends: trends.slice(0, 20),
       total_games_now: currentData?.length || 0,
@@ -107,12 +112,30 @@ export default async function handler(req, res) {
 
 function normalizeGameType(raw) {
   if (!raw) return 'Unknown';
-  let g = raw.trim();
+  let g = raw.trim().toUpperCase();
+  
+  // Normalize stakes formats across Bravo (1/2) and PokerAtlas (1-2)
+  // e.g., "1-3 NL" -> "1/3 NL"
+  g = g.replace(/(\d+)\s*-\s*(\d+)/, '$1/$2');
+  g = g.replace(/\$(\d+)/g, '$1'); // Remove dollar signs for cleaner strings
+
   // Normalize common patterns for cleaner grouping
-  g = g.replace(/No Limit Hold'?em/i, 'NLH')
-       .replace(/Pot Limit Omaha/i, 'PLO')
-       .replace(/Limit Hold'?em/i, 'LHE')
-       .replace(/No Limit/i, 'NL')
-       .replace(/Pot Limit/i, 'PL');
+  g = g.replace(/NO LIMIT HOLD'?EM/i, 'NLH')
+       .replace(/LIMIT HOLD'?EM/i, 'LHE')
+       .replace(/POT LIMIT OMAHA/i, 'PLO')
+       .replace(/NO LIMIT/i, 'NL')
+       .replace(/POT LIMIT/i, 'PL')
+       .replace(/HOLD'?EM/i, 'Holdem')
+       .replace(/OMAHA/i, 'Omaha');
+       
+  // Title case the remainder (e.g., "1/3 NLH" instead of "1/3 NLH" -> actually we uppercase everything above)
+  // Since acronyms like NLH / PLO are best upper, and "Limit" is better Title, let's keep acronyms upper
+  g = g.replace(/HOLDEM/i, 'Holdem')
+       .replace(/LIMIT/i, 'Limit')
+       .replace(/MIXED/i, 'Mixed');
+
+  // Specific fix for the duplicate issue
+  g = g.replace(/NL HOLDEM/gi, 'NLH');
+
   return g;
 }
