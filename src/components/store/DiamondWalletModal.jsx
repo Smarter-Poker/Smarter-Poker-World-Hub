@@ -60,6 +60,7 @@ import {
     Clock, Filter as FilterIcon, ArrowUpRight, ArrowDownRight,
     ChevronsUpDown, Sparkles, Eye,
 } from 'lucide-react';
+import supabase from '../../lib/supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Transaction type config — Lucide icons, labels, colors (R8-I10)
@@ -735,10 +736,37 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         const unsubEarned = eventBus.on(EventType.DIAMONDS_EARNED, handleBusEvent);
         const unsubSpent = eventBus.on(EventType.DIAMONDS_SPENT, handleBusEvent);
 
+        // ── REALTIME DB SYNC: Listen for raw database inserts on diamond_transactions ──
+        // This captures backend/admin grants directly from the database
+        let realtimeChannel = null;
+        const user = getAuthUser();
+        if (user && user.id) {
+            realtimeChannel = supabase.channel(`diamond-wallet-${user.id}`)
+                .on('postgres_changes', { 
+                    event: 'INSERT', 
+                    schema: 'public', 
+                    table: 'diamond_transactions',
+                    filter: `user_id=eq.${user.id}`
+                }, (payload) => {
+                    // Update balance if the transaction has a balance_after
+                    if (payload.new && payload.new.balance_after != null) {
+                        setBalance(payload.new.balance_after);
+                    }
+                    // Refetch the transaction list to show the new item
+                    if (!fetchInFlightRef.current) {
+                        fetchTransactions();
+                    }
+                })
+                .subscribe();
+        }
+
         return () => {
             window.removeEventListener('diamond-balance-refresh', handleBalanceRefresh);
             unsubEarned();
             unsubSpent();
+            if (realtimeChannel) {
+                supabase.removeChannel(realtimeChannel);
+            }
         };
     }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
