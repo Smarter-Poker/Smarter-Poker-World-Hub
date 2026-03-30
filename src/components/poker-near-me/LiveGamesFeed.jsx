@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import { supabase } from '../../lib/supabase';
 import { haversineMiles, timeAgo, getHeatLevel, parseMinStake, getVenueLogoUrl, getVenueLogoFallback, estimateWaitTime, saveFilters, loadFilters, isStaleData, getInitialsColor } from './pnm-utils';
 import { normalizeGameName } from './normalize-game';
+import { busEmit } from '../../engine/EventBus';
 import ReportGameModal from './ReportGameModal';
 
 // Dynamically import map to avoid SSR issues
@@ -183,6 +184,9 @@ export default function LiveGamesFeed({
                     const age = Date.now() - new Date(json.metadata.last_scrape).getTime();
                     setIsDataStale(age > STALE_THRESHOLD_MS);
                 }
+                
+                // Emitting DATA_MUTATED to notify the rest of the platform (like Game Trends & Heatmaps)
+                busEmit.dataMutated('live_tables');
             }
         } catch (e) {
             console.error('Fetch global live data error:', e);

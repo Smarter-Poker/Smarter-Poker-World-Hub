@@ -835,8 +835,12 @@ def run_scrape_cycle(mgr):
         mgr.consecutive_failures += 1
         write_heartbeat('connect_failed', {'consecutive_failures': mgr.consecutive_failures})
         if mgr.consecutive_failures >= 5:
-            log.error(f'🚨 {mgr.consecutive_failures} consecutive failures — sleeping 5min')
-            time.sleep(300)
+            import random
+            base_delays = [5, 15, 45, 120, 300]
+            idx = min(mgr.consecutive_failures, len(base_delays) - 1)
+            backoff = int(base_delays[idx] * random.uniform(0.9, 1.1))
+            log.error(f'🚨 {mgr.consecutive_failures} consecutive failures — applying stealth backoff ({backoff}s)')
+            time.sleep(backoff)
             mgr.consecutive_failures = 0
         return 0
 

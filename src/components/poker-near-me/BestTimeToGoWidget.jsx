@@ -3,6 +3,7 @@
  * Shows peak hours, quiet hours, game-specific predictions, and a mini heatmap.
  */
 import { useState, useEffect, useMemo } from 'react';
+import { eventBus, EventType } from '../../engine/EventBus';
 
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -24,19 +25,34 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
 
   useEffect(() => {
     if (!venueId) return;
-    setLoading(true);
 
-    const venuePart = venueName ? `&venue=${encodeURIComponent(venueName)}` : '';
-    const gameTypePart = selectedGame ? `&game_type=${encodeURIComponent(selectedGame)}` : '';
+    const fetchAllData = () => {
+      setLoading(true);
+      const venuePart = venueName ? `&venue=${encodeURIComponent(venueName)}` : '';
+      const gameTypePart = selectedGame ? `&game_type=${encodeURIComponent(selectedGame)}` : '';
 
-    Promise.all([
-      fetch(`/api/poker/game-predictions?venue_id=${venueId}`).then(r => r.json()).catch(() => null),
-      fetch(`/api/poker/peak-activity?venue=${encodeURIComponent(venueName || '')}${gameTypePart}`).then(r => r.json()).catch(() => null),
-    ]).then(([predData, heatData]) => {
-      if (predData?.success) setPredictions(predData);
-      if (heatData?.heatmap) setHeatmapData(heatData);
-      setLoading(false);
+      Promise.all([
+        fetch(`/api/poker/game-predictions?venue_id=${venueId}`).then(r => r.json()).catch(() => null),
+        fetch(`/api/poker/peak-activity?venue=${encodeURIComponent(venueName || '')}${gameTypePart}`).then(r => r.json()).catch(() => null),
+      ]).then(([predData, heatData]) => {
+        if (predData?.success) setPredictions(predData);
+        if (heatData?.heatmap) setHeatmapData(heatData);
+        setLoading(false);
+      });
+    };
+
+    fetchAllData();
+
+    // Listen for live data mutations via global bus
+    const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+      if (e?.payload?.entity === 'live_tables') {
+        fetchAllData();
+      }
     });
+
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
   }, [venueId, venueName, selectedGame]);
 
   const heatmapGrid = useMemo(() => {

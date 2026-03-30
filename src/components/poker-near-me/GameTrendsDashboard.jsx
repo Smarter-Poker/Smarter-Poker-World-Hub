@@ -3,6 +3,7 @@
  * Displays trend arrows, percentages, and mini-bars for game types.
  */
 import { useState, useEffect } from 'react';
+import { eventBus, EventType } from '../../engine/EventBus';
 
 function TrendIcon({ trend, changePct }) {
   if (trend === 'up') return <span style={{ color: '#4ade80', fontWeight: 'bold' }}>▲ +{changePct}%</span>;
@@ -15,10 +16,24 @@ export default function GameTrendsDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/poker/game-trends')
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+    const fetchTrends = () => {
+      fetch('/api/poker/game-trends')
+        .then(r => r.json())
+        .then(d => { setData(d); setLoading(false); })
+        .catch(() => setLoading(false));
+    };
+
+    fetchTrends();
+
+    const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+      if (e?.payload?.entity === 'live_tables') {
+        fetchTrends();
+      }
+    });
+
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
   }, []);
 
   if (loading) {

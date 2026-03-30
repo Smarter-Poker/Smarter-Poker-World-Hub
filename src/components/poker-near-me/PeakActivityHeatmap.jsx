@@ -3,6 +3,7 @@
  * Uses venue_live_history to build a 7-day × 24-hour heatmap
  */
 import { useState, useEffect, useMemo } from 'react';
+import { eventBus, EventType } from '../../engine/EventBus';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOUR_LABELS = ['12a','1a','2a','3a','4a','5a','6a','7a','8a','9a','10a','11a',
@@ -24,17 +25,32 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
   const [hoveredCell, setHoveredCell] = useState(null);
 
   useEffect(() => {
-    setLoading(true);
-    let url = '/api/poker/peak-activity';
-    const params = [];
-    if (venueFilter) params.push(`venue=${encodeURIComponent(venueFilter)}`);
-    if (gameType) params.push(`game_type=${encodeURIComponent(gameType)}`);
-    if (params.length) url += '?' + params.join('&');
-    
-    fetch(url)
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
+    const fetchHeatmap = () => {
+      setLoading(true);
+      let url = '/api/poker/peak-activity';
+      const params = [];
+      if (venueFilter) params.push(`venue=${encodeURIComponent(venueFilter)}`);
+      if (gameType) params.push(`game_type=${encodeURIComponent(gameType)}`);
+      if (params.length) url += '?' + params.join('&');
+      
+      fetch(url)
+        .then(r => r.json())
+        .then(d => { setData(d); setLoading(false); })
+        .catch(e => { setError(e.message); setLoading(false); });
+    };
+
+    fetchHeatmap();
+
+    // Listen for live data mutations via global bus
+    const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
+      if (e?.payload?.entity === 'live_tables') {
+        fetchHeatmap();
+      }
+    });
+
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
   }, [venueFilter, gameType]);
 
   const heatmapGrid = useMemo(() => {
@@ -55,10 +71,12 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
   if (loading) {
     return (
       <div style={{
-        background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))',
-        borderRadius: 16, padding: 24, border: '1px solid rgba(0,212,255,0.15)',
+        background: 'linear-gradient(135deg, #0d1117 0%, #1a2332 100%)',
+        borderRadius: 16, padding: 24, border: '2px solid #3d4f5f',
+        position: 'relative', overflow: 'hidden',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6)',
       }}>
-        <div style={{ color: '#64748b', textAlign: 'center', padding: 40 }}>
+        <div style={{ color: '#64748b', textAlign: 'center', padding: 40, fontFamily: 'Rajdhani, Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
           Loading activity data...
         </div>
       </div>
@@ -68,10 +86,13 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
   if (error || !data?.heatmap?.length) {
     return (
       <div style={{
-        background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))',
-        borderRadius: 16, padding: 24, border: '1px solid rgba(0,212,255,0.15)',
+        background: 'linear-gradient(135deg, #0d1117 0%, #1a2332 100%)',
+        borderRadius: 16, padding: 24, border: '2px solid #3d4f5f',
+        position: 'relative', overflow: 'hidden',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6)',
+        fontFamily: 'Inter, system-ui, sans-serif',
       }}>
-        <h3 style={{ color: '#fff', marginBottom: 8, fontSize: 16 }}>Peak Activity Heatmap</h3>
+        <h3 style={{ color: '#fff', marginBottom: 8, fontSize: 16, fontFamily: 'Orbitron, Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Peak Activity Heatmap</h3>
         <div style={{ color: '#64748b', textAlign: 'center', padding: 24 }}>
           {data?.message || 'Not enough data yet. Heatmap populates within 24-48 hours.'}
         </div>
@@ -81,11 +102,23 @@ export default function PeakActivityHeatmap({ venueFilter, gameType }) {
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9))',
-      borderRadius: 16, padding: 20, border: '1px solid rgba(0,212,255,0.15)',
+      background: 'linear-gradient(135deg, #0d1117 0%, #1a2332 100%)',
+      borderRadius: 16, padding: 20, border: '2px solid #3d4f5f',
+      position: 'relative', overflow: 'hidden',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6)',
+      fontFamily: 'Inter, system-ui, sans-serif',
     }}>
+      {/* Decorative metal corner bolts */}
+      <div style={{ position: 'absolute', top: 8, left: 8, width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%)', border: '1px solid #1a2a3a', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)' }} />
+      <div style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%)', border: '1px solid #1a2a3a', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)' }} />
+      <div style={{ position: 'absolute', bottom: 8, left: 8, width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%)', border: '1px solid #1a2a3a', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)' }} />
+      <div style={{ position: 'absolute', bottom: 8, right: 8, width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, #5a6a7a 30%, #3a4a5a 70%)', border: '1px solid #1a2a3a', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.2)' }} />
+      
+      {/* Neon line accent */}
+      <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 2, background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.8), transparent)', boxShadow: '0 2px 10px rgba(0,212,255,0.4)' }} />
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ color: '#fff', margin: 0, fontSize: 16 }}>Peak Activity Heatmap</h3>
+        <h3 style={{ color: '#fff', margin: 0, fontSize: 16, fontFamily: 'Orbitron, Rajdhani, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Peak Activity Heatmap</h3>
         {data.best_time && (
           <div style={{
             background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)',
