@@ -15,7 +15,7 @@
  *  ENHANCEMENTS (R6):
  *  A. Animated balance counter (count up/down)
  *  B. Expandable transaction rows (click for details)
- *  C. Empty state diamond illustration
+ *  C. Empty state diamond illustration (inline SVG)
  *  D. Keyboard accessibility (Escape, aria-labels)
  *  E. Pull-to-refresh on mobile
  *  F. Filter persistence (localStorage)
@@ -29,6 +29,19 @@
  *  H5. Stats skeleton loading
  *  H6. Confetti on first purchase
  *  H7. Diamond transfer to friends (with anti-abuse)
+ *
+ *  ENHANCEMENTS (R8):
+ *  I1. Inline SVG empty-state diamond (replaces broken PNG)
+ *  I2. Persistent recent recipients (localStorage)
+ *  I3. Rate-limit countdown UX for transfers
+ *  I4. Date range filter (7d, 30d, 90d, All)
+ *  I5. Monthly spending/earning summary with trends
+ *  I6. Transaction category donut chart (SVG)
+ *  I7. Quick-amount buttons for transfers (10, 25, 50, 100)
+ *  I8. VIP badge on transfer recipients
+ *  I9. PDF receipt export (jsPDF branded statement)
+ *  I10. Lucide React icons (replaces emoji icons)
+ *  I11. Swipe-to-copy receipt gesture (mobile)
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
@@ -36,56 +49,68 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getAuthUser } from '../../lib/authUtils';
 import { showStoreToast } from './StoreToast';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
+import {
+    ShoppingCart, Unlock, Gamepad2, Joystick,
+    Gift, PartyPopper, Calendar, Puzzle, Flame, Crown,
+    Trophy, Zap, Medal, Swords, Target, Brain,
+    PenLine, UserPlus, Heart, MessageCircle, Link2, Users,
+    CheckCircle, Camera, Video, Star, MapPin, Ticket,
+    Send, Download as DownloadIcon, RotateCcw, Settings,
+    Search, X, BarChart3, ChevronDown, Copy, FileText,
+    Clock, Filter as FilterIcon, ArrowUpRight, ArrowDownRight,
+    ChevronsUpDown, Sparkles, Eye,
+} from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Transaction type config — icons, labels, colors
+// Transaction type config — Lucide icons, labels, colors (R8-I10)
 // ─────────────────────────────────────────────────────────────────────────────
+const ICON_SIZE = 16;
 const TX_TYPES = {
     // Purchases & Spending
-    purchase: { icon: '🛒', label: 'Purchase', color: '#ef4444' },
-    feature_unlock: { icon: '🔓', label: 'Feature Unlock', color: '#f97316' },
-    game_cost: { icon: '🎮', label: 'Game Entry', color: '#ef4444' },
-    arcade_entry: { icon: '🕹️', label: 'Arcade Entry', color: '#ef4444' },
+    purchase: { Icon: ShoppingCart, label: 'Purchase', color: '#ef4444' },
+    feature_unlock: { Icon: Unlock, label: 'Feature Unlock', color: '#f97316' },
+    game_cost: { Icon: Gamepad2, label: 'Game Entry', color: '#ef4444' },
+    arcade_entry: { Icon: Joystick, label: 'Arcade Entry', color: '#ef4444' },
     // Bonuses & Rewards
-    bonus: { icon: '🎁', label: 'Bonus', color: '#a855f7' },
-    signup_bonus: { icon: '🎉', label: 'Welcome Bonus', color: '#a855f7' },
-    daily_bonus: { icon: '📅', label: 'Daily Bonus', color: '#3b82f6' },
-    daily_login: { icon: '📅', label: 'Daily Login', color: '#3b82f6' },
-    daily_trivia: { icon: '🧩', label: 'Daily Trivia', color: '#8b5cf6' },
-    streak_reward: { icon: '🔥', label: 'Streak Reward', color: '#ff6600' },
-    vip_reward: { icon: '👑', label: 'VIP Reward', color: '#eab308' },
-    vip_stipend: { icon: '👑', label: 'VIP Stipend', color: '#eab308' },
+    bonus: { Icon: Gift, label: 'Bonus', color: '#a855f7' },
+    signup_bonus: { Icon: PartyPopper, label: 'Welcome Bonus', color: '#a855f7' },
+    daily_bonus: { Icon: Calendar, label: 'Daily Bonus', color: '#3b82f6' },
+    daily_login: { Icon: Calendar, label: 'Daily Login', color: '#3b82f6' },
+    daily_trivia: { Icon: Puzzle, label: 'Daily Trivia', color: '#8b5cf6' },
+    streak_reward: { Icon: Flame, label: 'Streak Reward', color: '#ff6600' },
+    vip_reward: { Icon: Crown, label: 'VIP Reward', color: '#eab308' },
+    vip_stipend: { Icon: Crown, label: 'VIP Stipend', color: '#eab308' },
     // Achievements & Challenges
-    achievement: { icon: '🏆', label: 'Achievement', color: '#f59e0b' },
-    challenge: { icon: '⚡', label: 'Challenge', color: '#06b6d4' },
+    achievement: { Icon: Trophy, label: 'Achievement', color: '#f59e0b' },
+    challenge: { Icon: Zap, label: 'Challenge', color: '#06b6d4' },
     // Competition
-    tournament_prize: { icon: '🥇', label: 'Tournament Prize', color: '#eab308' },
-    tournament_refund: { icon: '🔄', label: 'Tournament Refund', color: '#94a3b8' },
-    pvp_win: { icon: '⚔️', label: 'PvP Win', color: '#22c55e' },
-    pvp_refund: { icon: '🔄', label: 'PvP Refund', color: '#94a3b8' },
-    game_reward: { icon: '🎯', label: 'Game Reward', color: '#22c55e' },
-    trivia_reward: { icon: '🧠', label: 'Trivia Reward', color: '#8b5cf6' },
+    tournament_prize: { Icon: Medal, label: 'Tournament Prize', color: '#eab308' },
+    tournament_refund: { Icon: RotateCcw, label: 'Tournament Refund', color: '#94a3b8' },
+    pvp_win: { Icon: Swords, label: 'PvP Win', color: '#22c55e' },
+    pvp_refund: { Icon: RotateCcw, label: 'PvP Refund', color: '#94a3b8' },
+    game_reward: { Icon: Target, label: 'Game Reward', color: '#22c55e' },
+    trivia_reward: { Icon: Brain, label: 'Trivia Reward', color: '#8b5cf6' },
     // Social & Community
-    social_post: { icon: '📝', label: 'Social Post', color: '#ec4899' },
-    follow: { icon: '👤', label: 'Follow Reward', color: '#06b6d4' },
-    reaction: { icon: '❤️', label: 'Reaction Reward', color: '#f43f5e' },
-    comment: { icon: '💬', label: 'Comment Reward', color: '#06b6d4' },
-    share: { icon: '🔗', label: 'Share Reward', color: '#3b82f6' },
-    referral: { icon: '🤝', label: 'Referral Bonus', color: '#10b981' },
+    social_post: { Icon: PenLine, label: 'Social Post', color: '#ec4899' },
+    follow: { Icon: UserPlus, label: 'Follow Reward', color: '#06b6d4' },
+    reaction: { Icon: Heart, label: 'Reaction Reward', color: '#f43f5e' },
+    comment: { Icon: MessageCircle, label: 'Comment Reward', color: '#06b6d4' },
+    share: { Icon: Link2, label: 'Share Reward', color: '#3b82f6' },
+    referral: { Icon: Users, label: 'Referral Bonus', color: '#10b981' },
     // Profile & Content
-    profile_complete: { icon: '✅', label: 'Profile Bonus', color: '#22c55e' },
-    profile_pic: { icon: '📸', label: 'Profile Pic Bonus', color: '#06b6d4' },
-    video_watch: { icon: '🎬', label: 'Video Watch', color: '#8b5cf6' },
-    video_favorite: { icon: '⭐', label: 'Video Favorite', color: '#eab308' },
-    hendonmob_link: { icon: '🔗', label: 'HendonMob Link', color: '#10b981' },
-    venue_review: { icon: '📍', label: 'Venue Review', color: '#f59e0b' },
-    promo_code: { icon: '🎟️', label: 'Promo Code', color: '#a855f7' },
+    profile_complete: { Icon: CheckCircle, label: 'Profile Bonus', color: '#22c55e' },
+    profile_pic: { Icon: Camera, label: 'Profile Pic Bonus', color: '#06b6d4' },
+    video_watch: { Icon: Video, label: 'Video Watch', color: '#8b5cf6' },
+    video_favorite: { Icon: Star, label: 'Video Favorite', color: '#eab308' },
+    hendonmob_link: { Icon: Link2, label: 'HendonMob Link', color: '#10b981' },
+    venue_review: { Icon: MapPin, label: 'Venue Review', color: '#f59e0b' },
+    promo_code: { Icon: Ticket, label: 'Promo Code', color: '#a855f7' },
     // Gifts / Transfers
-    diamond_gift_sent: { icon: '🎁', label: 'Gift Sent', color: '#f97316' },
-    diamond_gift_received: { icon: '🎁', label: 'Gift Received', color: '#22c55e' },
+    diamond_gift_sent: { Icon: Send, label: 'Gift Sent', color: '#f97316' },
+    diamond_gift_received: { Icon: Gift, label: 'Gift Received', color: '#22c55e' },
     // Other
-    refund: { icon: '🔄', label: 'Refund', color: '#94a3b8' },
-    adjustment: { icon: '⚙️', label: 'Adjustment', color: '#94a3b8' },
+    refund: { Icon: RotateCcw, label: 'Refund', color: '#94a3b8' },
+    adjustment: { Icon: Settings, label: 'Adjustment', color: '#94a3b8' },
 };
 
 const FILTER_OPTIONS = [
@@ -110,12 +135,50 @@ const EARNED_TYPES = [
 
 const SPENT_TYPES_EXCLUDE = ['refund', 'tournament_refund', 'pvp_refund'];
 
+// ── R8-I4: Date range filter options ──
+const DATE_RANGE_OPTIONS = [
+    { value: 'all', label: 'All Time' },
+    { value: '7d', label: 'Last 7 Days' },
+    { value: '30d', label: 'Last 30 Days' },
+    { value: '90d', label: 'Last 90 Days' },
+];
+
+// ── R8-I7: Quick-amount preset buttons for transfers ──
+const QUICK_AMOUNTS = [10, 25, 50, 100];
+
+// ── R8-I2: Recent recipients localStorage ──
+const RECENT_RECIPIENTS_KEY = 'sp-wallet-recent-recipients';
+function getPersistedRecipients() {
+    try {
+        const raw = localStorage.getItem(RECENT_RECIPIENTS_KEY);
+        if (!raw) return [];
+        return JSON.parse(raw).slice(0, 5);
+    } catch (_) { return []; }
+}
+function persistRecipients(recipients) {
+    try {
+        localStorage.setItem(RECENT_RECIPIENTS_KEY, JSON.stringify(recipients.slice(0, 5)));
+    } catch (_) { /* quota exceeded */ }
+}
+
+// ── R8-I3: Rate-limit error parser ──
+function parseRateLimitError(errorText) {
+    // Parse "cooldown: X seconds remaining" type messages
+    const cooldownMatch = errorText?.match(/(\d+)\s*seconds?\s*(remaining|cooldown|left)/i);
+    if (cooldownMatch) return { type: 'cooldown', seconds: parseInt(cooldownMatch[1]) };
+    // Parse "daily limit reached" type messages
+    if (/daily\s*limit/i.test(errorText)) return { type: 'daily_limit' };
+    // Parse "per-friend limit" messages
+    if (/per[- ]?friend/i.test(errorText)) return { type: 'friend_limit' };
+    return null;
+}
+
 // ── H1: Copy receipt to clipboard ──
 function copyReceiptToClipboard(tx) {
     const txType = tx.transaction_type || tx.type;
     const config = TX_TYPES[txType] || TX_TYPES.adjustment;
     const dt = new Date(tx.created_at);
-    const receipt = `Smarter.Poker Diamond Receipt\nRef: ${tx.id || 'N/A'}\nType: ${config.label}\nAmount: ${tx.amount >= 0 ? '+' : ''}${tx.amount}💎\nBalance After: ${tx.balance_after ?? 'N/A'}💎\nDate: ${dt.toLocaleString()}`;
+    const receipt = `Smarter.Poker Diamond Receipt\nRef: ${tx.id || 'N/A'}\nType: ${config.label}\nAmount: ${tx.amount >= 0 ? '+' : ''}${tx.amount} Diamonds\nBalance After: ${tx.balance_after ?? 'N/A'} Diamonds\nDate: ${dt.toLocaleString()}`;
     try {
         navigator.clipboard.writeText(receipt);
         return true;
@@ -140,11 +203,200 @@ function showConfettiAnimation() {
     setTimeout(() => { container.remove(); }, 4000);
 }
 
+// ── R8-I1: Inline SVG empty-state diamond (replaces broken PNG) ──
+const EmptyStateDiamond = () => (
+    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" style={{ opacity: 0.6, filter: 'drop-shadow(0 0 12px rgba(0, 212, 255, 0.4))' }}>
+        <defs>
+            <linearGradient id="diamondGrad" x1="20" y1="0" x2="60" y2="80" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#00d4ff" />
+                <stop offset="50%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#3b82f6" />
+            </linearGradient>
+            <linearGradient id="diamondHighlight" x1="30" y1="10" x2="50" y2="40" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+            </linearGradient>
+        </defs>
+        {/* Diamond shape */}
+        <polygon points="40,8 68,30 40,72 12,30" fill="url(#diamondGrad)" stroke="rgba(0,212,255,0.4)" strokeWidth="1" />
+        {/* Top facets */}
+        <polygon points="40,8 28,30 40,30" fill="rgba(255,255,255,0.15)" />
+        <polygon points="40,8 52,30 40,30" fill="rgba(255,255,255,0.08)" />
+        <polygon points="40,8 12,30 28,30" fill="rgba(0,0,0,0.1)" />
+        <polygon points="40,8 68,30 52,30" fill="rgba(0,0,0,0.05)" />
+        {/* Bottom facets */}
+        <polygon points="28,30 40,72 40,30" fill="rgba(0,0,0,0.15)" />
+        <polygon points="52,30 40,72 40,30" fill="rgba(0,0,0,0.08)" />
+        <polygon points="12,30 40,72 28,30" fill="rgba(0,0,0,0.25)" />
+        <polygon points="68,30 40,72 52,30" fill="rgba(0,0,0,0.2)" />
+        {/* Highlight shimmer */}
+        <polygon points="40,8 28,30 40,30" fill="url(#diamondHighlight)" />
+        {/* Sparkles */}
+        <circle cx="22" cy="18" r="1.5" fill="rgba(255,255,255,0.6)">
+            <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="62" cy="22" r="1" fill="rgba(255,255,255,0.5)">
+            <animate attributeName="opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="50" cy="12" r="1.2" fill="rgba(255,255,255,0.4)">
+            <animate attributeName="opacity" values="0.2;0.8;0.2" dur="2.5s" repeatCount="indefinite" />
+        </circle>
+    </svg>
+);
+
+// ── R8-I6: Transaction category donut chart (SVG) ──
+const DonutChart = ({ data }) => {
+    if (!data || data.length === 0) return null;
+    const total = data.reduce((sum, d) => sum + d.value, 0);
+    if (total === 0) return null;
+    const size = 100;
+    const cx = size / 2, cy = size / 2, r = 36;
+    const donutWidth = 8;
+
+    let cumAngle = -90; // Start at top
+    const slices = data.map((d, i) => {
+        const angle = (d.value / total) * 360;
+        const startAngle = cumAngle;
+        const endAngle = cumAngle + angle;
+        cumAngle = endAngle;
+
+        const startRad = (startAngle * Math.PI) / 180;
+        const endRad = (endAngle * Math.PI) / 180;
+        const x1 = cx + r * Math.cos(startRad);
+        const y1 = cy + r * Math.sin(startRad);
+        const x2 = cx + r * Math.cos(endRad);
+        const y2 = cy + r * Math.sin(endRad);
+        const largeArc = angle > 180 ? 1 : 0;
+
+        return (
+            <path
+                key={i}
+                d={`M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`}
+                fill="none"
+                stroke={d.color}
+                strokeWidth={donutWidth}
+                strokeLinecap="round"
+                opacity="0.85"
+            />
+        );
+    });
+
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
+                {/* Background ring */}
+                <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={donutWidth} />
+                {slices}
+                {/* Center text */}
+                <text x={cx} y={cy - 4} textAnchor="middle" fill="rgba(255,255,255,0.6)" fontSize="10" fontWeight="700" fontFamily="Orbitron, monospace">
+                    {total.toLocaleString()}
+                </text>
+                <text x={cx} y={cy + 8} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="7">
+                    total
+                </text>
+            </svg>
+            <div style={{ flex: 1 }}>
+                {data.slice(0, 5).map((d, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {d.label}
+                        </span>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'Orbitron, monospace', fontWeight: 600 }}>
+                            {d.value.toLocaleString()}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// ── R8-I9: PDF receipt export ──
+async function exportTransactionsPDF(filteredTx, balance, stats) {
+    try {
+        const { default: jsPDF } = await import('jspdf');
+        const { default: autoTable } = await import('jspdf-autotable');
+        const doc = new jsPDF();
+
+        // Header
+        doc.setFillColor(8, 20, 40);
+        doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(0, 212, 255);
+        doc.setFontSize(20);
+        doc.text('Smarter.Poker', 14, 18);
+        doc.setFontSize(12);
+        doc.setTextColor(255, 255, 255);
+        doc.text('Diamond Wallet Statement', 14, 28);
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 35);
+        doc.text(`Current Balance: ${(balance ?? 0).toLocaleString()} Diamonds`, 120, 35);
+
+        // Summary
+        if (stats) {
+            doc.setFontSize(10);
+            doc.setTextColor(74, 222, 128);
+            doc.text(`Total Earned: +${stats.totalEarned.toLocaleString()}`, 14, 48);
+            doc.setTextColor(248, 113, 113);
+            doc.text(`Total Spent: -${stats.totalSpent.toLocaleString()}`, 100, 48);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Net: ${(stats.totalEarned - stats.totalSpent) >= 0 ? '+' : ''}${(stats.totalEarned - stats.totalSpent).toLocaleString()}`, 14, 55);
+        }
+
+        // Transactions table
+        const rows = filteredTx.map(tx => {
+            const txType = tx.transaction_type || tx.type;
+            const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+            const dt = new Date(tx.created_at);
+            return [
+                dt.toLocaleDateString(),
+                dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                config.label,
+                tx.description || config.label,
+                `${tx.amount >= 0 ? '+' : ''}${tx.amount}`,
+                tx.balance_after != null ? tx.balance_after.toString() : '',
+            ];
+        });
+
+        autoTable(doc, {
+            startY: stats ? 62 : 48,
+            head: [['Date', 'Time', 'Type', 'Description', 'Amount', 'Balance']],
+            body: rows,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [0, 40, 80], textColor: [0, 212, 255] },
+            alternateRowStyles: { fillColor: [245, 248, 252] },
+            columnStyles: {
+                4: { halign: 'right', fontStyle: 'bold' },
+                5: { halign: 'right' },
+            },
+        });
+
+        // Footer
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(7);
+            doc.setTextColor(150);
+            doc.text(`Smarter.Poker Diamond Statement — Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+        }
+
+        doc.save(`diamond-wallet-${new Date().toISOString().slice(0, 10)}.pdf`);
+        showStoreToast('success', 'PDF statement exported successfully');
+        return true;
+    } catch (err) {
+        console.error('PDF export failed:', err);
+        showStoreToast('error', 'PDF export failed. Try CSV instead.');
+        return false;
+    }
+}
+
 // ── PERF-2: localStorage cache key for instant modal re-opens ──
 const CACHE_KEY = 'sp-cached-wallet-txns';
 const CACHE_TTL_MS = 60_000; // 60 seconds
 const PAGE_SIZE = 50;
 const FILTER_CACHE_KEY = 'sp-wallet-last-filter';
+const DATE_RANGE_CACHE_KEY = 'sp-wallet-date-range';
 
 function getCachedTransactions() {
     try {
@@ -392,8 +644,25 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const [friendsLoading, setFriendsLoading] = useState(false);
     const [friendSearch, setFriendSearch] = useState('');       // #8: Friend search
     const [confirmTransfer, setConfirmTransfer] = useState(null); // #5: Confirmation dialog
-    const [recentRecipients, setRecentRecipients] = useState([]); // P2-3: Recent recipients
+    // ── R8-I2: Persistent recent recipients ──
+    const [recentRecipients, setRecentRecipients] = useState(() => getPersistedRecipients());
     const [dailyLimitInfo, setDailyLimitInfo] = useState(null);   // P2-4: Daily limit display
+
+    // ── R8-I4: Date range filter ──
+    const [dateRange, setDateRange] = useState(() => {
+        try { return localStorage.getItem(DATE_RANGE_CACHE_KEY) || 'all'; } catch (_) { return 'all'; }
+    });
+
+    // ── R8-I3: Transfer cooldown countdown ──
+    const [cooldownSeconds, setCooldownSeconds] = useState(0);
+    const cooldownTimerRef = useRef(null);
+
+    // ── R8-I9: PDF export loading ──
+    const [pdfExporting, setPdfExporting] = useState(false);
+
+    // ── R8-I11: Swipe-to-copy gesture refs ──
+    const swipeStartX = useRef(0);
+    const swipeTxId = useRef(null);
 
     // ── ENH-A: Animated balance counter ──
     const animatedBalance = useAnimatedCounter(balance ?? 0);
@@ -637,15 +906,17 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             const data = await res.json();
             if (data.success) {
                 const tierLabel = data.tier === 'vip' ? ' (VIP Friend)' : '';
-                const successMsg = `Sent ${amount}💎 to ${transferRecipient.display_name || transferRecipient.username}${tierLabel}!`;
+                const successMsg = `Sent ${amount} diamonds to ${transferRecipient.display_name || transferRecipient.username}${tierLabel}!`;
                 setTransferSuccess(successMsg);
                 // P2-1: StoreToast for premium notification
-                showStoreToast('success', successMsg + (data.dailyRemaining != null ? ` ${data.dailyRemaining}💎 remaining today.` : ''));
+                showStoreToast('success', successMsg + (data.dailyRemaining != null ? ` ${data.dailyRemaining} diamonds remaining today.` : ''));
                 setTransferAmount('');
-                // P2-3: Save to recent recipients
+                // P2-3 + R8-I2: Save and persist recent recipients
                 setRecentRecipients(prev => {
                     const filtered = prev.filter(r => r.id !== transferRecipient.id);
-                    return [{ ...transferRecipient, lastAmount: amount, lastSent: Date.now() }, ...filtered].slice(0, 3);
+                    const updated = [{ ...transferRecipient, lastAmount: amount, lastSent: Date.now() }, ...filtered].slice(0, 5);
+                    persistRecipients(updated);
+                    return updated;
                 });
                 // P2-4: Update daily limit info
                 if (data.dailySent != null && data.dailyLimit != null) {
@@ -678,9 +949,31 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 if (!fetchInFlightRef.current) fetchTransactions();
                 setTimeout(() => setTransferSuccess(''), 4000);
             } else {
-                setTransferError(data.error || 'Transfer failed');
-                // P2-1: StoreToast for error
-                showStoreToast('error', data.error || 'Transfer failed');
+                const errMsg = data.error || 'Transfer failed';
+                // R8-I3: Parse rate-limit error and start countdown
+                const rateLimit = parseRateLimitError(errMsg);
+                if (rateLimit?.type === 'cooldown' && rateLimit.seconds > 0) {
+                    setCooldownSeconds(rateLimit.seconds);
+                    if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+                    cooldownTimerRef.current = setInterval(() => {
+                        setCooldownSeconds(prev => {
+                            if (prev <= 1) {
+                                clearInterval(cooldownTimerRef.current);
+                                cooldownTimerRef.current = null;
+                                return 0;
+                            }
+                            return prev - 1;
+                        });
+                    }, 1000);
+                    setTransferError(`Cooldown: ${rateLimit.seconds}s remaining`);
+                } else if (rateLimit?.type === 'daily_limit') {
+                    setTransferError('Daily transfer limit reached. Try again tomorrow.');
+                } else if (rateLimit?.type === 'friend_limit') {
+                    setTransferError('Per-friend transfer limit reached. Wait 5 minutes.');
+                } else {
+                    setTransferError(errMsg);
+                }
+                showStoreToast('error', errMsg);
             }
         } catch (err) {
             setTransferError(err.message || 'Transfer failed');
@@ -702,6 +995,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             setFriendSearch('');
             setConfirmTransfer(null);
             setDailyLimitInfo(null);
+            // R8-I3: Clear cooldown timer
+            setCooldownSeconds(0);
+            if (cooldownTimerRef.current) {
+                clearInterval(cooldownTimerRef.current);
+                cooldownTimerRef.current = null;
+            }
             return;
         }
 
@@ -721,9 +1020,21 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         }
     }, [isOpen, fetchTransactions]);
 
-    // ── BUG-1 FIX: Client-side filter + ENH-2: search ──
+    // ── BUG-1 FIX: Client-side filter + ENH-2: search + R8-I4: date range ──
     const filteredTx = useMemo(() => {
         let result = transactions;
+
+        // R8-I4: Apply date range filter
+        if (dateRange !== 'all') {
+            const now = new Date();
+            const daysMap = { '7d': 7, '30d': 30, '90d': 90 };
+            const days = daysMap[dateRange] || 0;
+            if (days > 0) {
+                const cutoff = new Date(now);
+                cutoff.setDate(cutoff.getDate() - days);
+                result = result.filter(tx => new Date(tx.created_at) >= cutoff);
+            }
+        }
 
         // Apply type filter
         if (filter !== 'all') {
@@ -753,7 +1064,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         }
 
         return result;
-    }, [transactions, filter, searchQuery]);
+    }, [transactions, filter, searchQuery, dateRange]);
 
     // ── H2: Filter badge counts ──
     const filterCounts = useMemo(() => {
@@ -835,7 +1146,41 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         });
         const topRecipients = Object.entries(recipientMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-        return { totalEarned, totalSpent, weekEarned, weekSpent, topSources, giftsSent, giftsReceived, giftCount, topRecipients };
+        // R8-I5: Monthly summary with month-over-month comparison
+        const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        let thisMonthEarned = 0, thisMonthSpent = 0, lastMonthEarned = 0, lastMonthSpent = 0;
+        transactions.forEach(tx => {
+            const txDate = new Date(tx.created_at);
+            const amt = tx.amount ?? 0;
+            if (txDate >= thisMonth) {
+                if (amt >= 0) thisMonthEarned += amt;
+                else thisMonthSpent += Math.abs(amt);
+            } else if (txDate >= lastMonth && txDate < thisMonth) {
+                if (amt >= 0) lastMonthEarned += amt;
+                else lastMonthSpent += Math.abs(amt);
+            }
+        });
+        const monthlyTrend = {
+            thisMonthEarned, thisMonthSpent,
+            lastMonthEarned, lastMonthSpent,
+            earnedChange: lastMonthEarned > 0 ? ((thisMonthEarned - lastMonthEarned) / lastMonthEarned * 100) : 0,
+            spentChange: lastMonthSpent > 0 ? ((thisMonthSpent - lastMonthSpent) / lastMonthSpent * 100) : 0,
+        };
+
+        // R8-I6: Donut chart data — category breakdown with colors
+        const categoryColors = ['#00d4ff', '#4ade80', '#f59e0b', '#a855f7', '#ef4444', '#ec4899', '#3b82f6', '#06b6d4'];
+        const donutData = topSources.map(([name, amount], i) => ({
+            label: name,
+            value: amount,
+            color: categoryColors[i % categoryColors.length],
+        }));
+
+        return {
+            totalEarned, totalSpent, weekEarned, weekSpent, topSources,
+            giftsSent, giftsReceived, giftCount, topRecipients,
+            monthlyTrend, donutData,
+        };
     }, [transactions]);
 
     if (!isOpen) return null;
@@ -871,29 +1216,57 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             >
                 {/* Close button + Export button */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px 0' }}>
-                    {/* ENH-7: Export CSV button */}
-                    <button
-                        onClick={() => exportTransactionsCSV(filteredTx)}
-                        disabled={filteredTx.length === 0}
-                        style={{
-                            background: 'rgba(255, 255, 255, 0.06)',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
-                            borderRadius: 8,
-                            color: filteredTx.length > 0 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)',
-                            fontSize: 11,
-                            fontWeight: 600,
-                            padding: '6px 12px',
-                            cursor: filteredTx.length > 0 ? 'pointer' : 'default',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={e => { if (filteredTx.length > 0) { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'; e.currentTarget.style.color = 'white'; } }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.color = filteredTx.length > 0 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)'; }}
-                    >
-                        Export CSV
-                    </button>
+                    {/* R8-I9 + ENH-7: Export buttons (CSV + PDF) */}
+                    <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                            onClick={() => exportTransactionsCSV(filteredTx)}
+                            disabled={filteredTx.length === 0}
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.06)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                borderRadius: 8,
+                                color: filteredTx.length > 0 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)',
+                                fontSize: 11,
+                                fontWeight: 600,
+                                padding: '6px 10px',
+                                cursor: filteredTx.length > 0 ? 'pointer' : 'default',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={e => { if (filteredTx.length > 0) { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'; e.currentTarget.style.color = 'white'; } }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.color = filteredTx.length > 0 ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)'; }}
+                        >
+                            <DownloadIcon size={12} /> CSV
+                        </button>
+                        <button
+                            onClick={async () => {
+                                setPdfExporting(true);
+                                await exportTransactionsPDF(filteredTx, balance, stats);
+                                setPdfExporting(false);
+                            }}
+                            disabled={filteredTx.length === 0 || pdfExporting}
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.06)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                borderRadius: 8,
+                                color: filteredTx.length > 0 && !pdfExporting ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)',
+                                fontSize: 11,
+                                fontWeight: 600,
+                                padding: '6px 10px',
+                                cursor: filteredTx.length > 0 && !pdfExporting ? 'pointer' : 'default',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={e => { if (filteredTx.length > 0 && !pdfExporting) { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'; e.currentTarget.style.color = 'white'; } }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.color = filteredTx.length > 0 && !pdfExporting ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)'; }}
+                        >
+                            <FileText size={12} /> {pdfExporting ? 'Exporting...' : 'PDF'}
+                        </button>
+                    </div>
                     {/* Close button */}
                     <button
                         onClick={onClose}
@@ -1027,7 +1400,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         borderRadius: 10,
                         padding: '6px 12px',
                     }}>
-                        <span style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.3)' }}>&#x1F50D;</span>
+                        <Search size={14} style={{ color: 'rgba(255, 255, 255, 0.3)', flexShrink: 0 }} />
                         <input
                             type="text"
                             value={searchQuery}
@@ -1066,7 +1439,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     </div>
                 </div>
 
-                {/* Filter Bar + Stats Toggle */}
+                {/* R8-I4: Date Range Dropdown + Filter Bar + Stats Toggle */}
                 <div style={{
                     display: 'flex',
                     gap: 6,
@@ -1075,6 +1448,39 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                     alignItems: 'center',
                 }}>
+                    {/* Date Range Selector */}
+                    <select
+                        value={dateRange}
+                        onChange={e => {
+                            const v = e.target.value;
+                            setDateRange(v);
+                            try { localStorage.setItem(DATE_RANGE_CACHE_KEY, v); } catch (_) {}
+                        }}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.06)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: 8,
+                            color: dateRange !== 'all' ? '#00d4ff' : 'rgba(255, 255, 255, 0.5)',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: '5px 8px',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                            appearance: 'none',
+                            WebkitAppearance: 'none',
+                            backgroundImage: 'none',
+                            paddingRight: 22,
+                            backgroundPosition: 'right 6px center',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundSize: '10px',
+                        }}
+                    >
+                        {DATE_RANGE_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value} style={{ background: '#0a1628', color: '#fff' }}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
                     {FILTER_OPTIONS.map(opt => (
                         <button
                             key={opt.value}
@@ -1257,6 +1663,10 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                 <img src={f.avatar_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' }} />
                                             )}
                                             {f.display_name || f.username || 'User'}
+                                            {/* R8-I8: VIP badge on friends */}
+                                            {f.is_vip && (
+                                                <Crown size={10} color="#eab308" style={{ marginLeft: -2 }} />
+                                            )}
                                         </button>
                                     ))}
                                     </div>
@@ -1265,47 +1675,78 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         </div>
                         {/* Amount + Send */}
                         {transferRecipient && (
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                <div style={{
-                                    flex: 1, display: 'flex', alignItems: 'center', gap: 6,
-                                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                                    borderRadius: 10, padding: '6px 12px',
-                                }}>
-                                    <span style={{ fontSize: 14 }}>💎</span>
-                                    <input
-                                        type="number"
-                                        min="10" max="500"
-                                        value={transferAmount}
-                                        onChange={e => setTransferAmount(e.target.value)}
-                                        placeholder="Amount"
-                                        style={{
-                                            flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                                            color: '#e2e8f0', fontSize: 14, fontWeight: 600,
-                                            fontFamily: "'Inter', sans-serif", width: 60,
-                                        }}
-                                    />
+                            <>
+                                {/* R8-I7: Quick-amount preset buttons */}
+                                <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                                    {QUICK_AMOUNTS.map(qa => (
+                                        <button
+                                            key={qa}
+                                            onClick={() => setTransferAmount(String(qa))}
+                                            style={{
+                                                flex: 1,
+                                                padding: '5px 0',
+                                                borderRadius: 8,
+                                                border: transferAmount === String(qa)
+                                                    ? '1px solid rgba(0, 212, 255, 0.5)'
+                                                    : '1px solid rgba(255,255,255,0.08)',
+                                                background: transferAmount === String(qa)
+                                                    ? 'rgba(0, 212, 255, 0.12)'
+                                                    : 'rgba(255, 255, 255, 0.03)',
+                                                color: transferAmount === String(qa) ? '#00d4ff' : 'rgba(255,255,255,0.5)',
+                                                fontSize: 12,
+                                                fontWeight: 700,
+                                                fontFamily: 'Orbitron, monospace',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.15s',
+                                            }}
+                                        >
+                                            {qa}
+                                        </button>
+                                    ))}
                                 </div>
-                                <button
-                                    onClick={handleTransfer}
-                                    disabled={transferLoading || !transferAmount}
-                                    style={{
-                                        padding: '8px 16px',
-                                        background: transferLoading ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.3))',
-                                        border: '1px solid rgba(249, 115, 22, 0.5)',
-                                        borderRadius: 10, color: '#f97316', fontSize: 12, fontWeight: 700,
-                                        cursor: transferLoading ? 'default' : 'pointer',
-                                        opacity: transferLoading || !transferAmount ? 0.5 : 1,
-                                        transition: 'all 0.15s', whiteSpace: 'nowrap',
-                                    }}
-                                >
-                                    {transferLoading ? 'Sending...' : `Send to ${transferRecipient.display_name || transferRecipient.username}`}
-                                </button>
-                            </div>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    <div style={{
+                                        flex: 1, display: 'flex', alignItems: 'center', gap: 6,
+                                        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                                        borderRadius: 10, padding: '6px 12px',
+                                    }}>
+                                        <Sparkles size={14} color="#00d4ff" />
+                                        <input
+                                            type="number"
+                                            min="10" max="500"
+                                            value={transferAmount}
+                                            onChange={e => setTransferAmount(e.target.value)}
+                                            placeholder="Amount"
+                                            style={{
+                                                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                                                color: '#e2e8f0', fontSize: 14, fontWeight: 600,
+                                                fontFamily: "'Inter', sans-serif", width: 60,
+                                            }}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handleTransfer}
+                                        disabled={transferLoading || !transferAmount || cooldownSeconds > 0}
+                                        style={{
+                                            padding: '8px 16px',
+                                            background: transferLoading ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.3))',
+                                            border: '1px solid rgba(249, 115, 22, 0.5)',
+                                            borderRadius: 10, color: '#f97316', fontSize: 12, fontWeight: 700,
+                                            cursor: transferLoading || cooldownSeconds > 0 ? 'default' : 'pointer',
+                                            opacity: transferLoading || !transferAmount || cooldownSeconds > 0 ? 0.5 : 1,
+                                            transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {transferLoading ? 'Sending...' : cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : `Send to ${transferRecipient.display_name || transferRecipient.username}`}
+                                    </button>
+                                </div>
+                            </>
                         )}
                         {/* Error / Success feedback */}
                         {transferError && (
-                            <div style={{ marginTop: 6, fontSize: 11, color: '#f87171', padding: '4px 8px', background: 'rgba(248,113,113,0.08)', borderRadius: 6 }}>
-                                {transferError}
+                            <div style={{ marginTop: 6, fontSize: 11, color: '#f87171', padding: '4px 8px', background: 'rgba(248,113,113,0.08)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                {cooldownSeconds > 0 && <Clock size={12} color="#f87171" />}
+                                {cooldownSeconds > 0 ? `Cooldown: ${cooldownSeconds}s remaining` : transferError}
                             </div>
                         )}
                         {transferSuccess && (
@@ -1326,7 +1767,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                     Confirm Transfer
                                 </div>
                                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginBottom: 10, lineHeight: 1.4 }}>
-                                    Send <strong style={{ color: '#00d4ff' }}>{confirmTransfer.amount}💎</strong> to{' '}
+                                    Send <strong style={{ color: '#00d4ff' }}>{confirmTransfer.amount} diamonds</strong> to{' '}
                                     <strong style={{ color: '#f97316' }}>{confirmTransfer.recipient?.display_name || confirmTransfer.recipient?.username}</strong>?
                                     This cannot be undone.
                                 </div>
@@ -1410,6 +1851,64 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 </span>
                             </div>
                         ))}
+                        {/* R8-I6: Donut Chart — Category Breakdown */}
+                        {stats.donutData?.length > 0 && (
+                            <div style={{ marginTop: 12, padding: '8px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category Breakdown</div>
+                                <DonutChart data={stats.donutData} />
+                            </div>
+                        )}
+
+                        {/* R8-I5: Monthly Trends */}
+                        {stats.monthlyTrend && (
+                            <div style={{ marginTop: 12, padding: '8px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Comparison</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                    <div style={{ background: 'rgba(0,212,255,0.06)', borderRadius: 8, padding: '6px 10px' }}>
+                                        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>This Month Earned</div>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#4ade80', fontFamily: 'Orbitron, monospace' }}>
+                                            +{stats.monthlyTrend.thisMonthEarned.toLocaleString()}
+                                        </div>
+                                        {stats.monthlyTrend.earnedChange !== 0 && (
+                                            <div style={{
+                                                fontSize: 9,
+                                                color: stats.monthlyTrend.earnedChange >= 0 ? '#4ade80' : '#f87171',
+                                                marginTop: 2,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 2,
+                                            }}>
+                                                {stats.monthlyTrend.earnedChange >= 0
+                                                    ? <ArrowUpRight size={10} />
+                                                    : <ArrowDownRight size={10} />}
+                                                {Math.abs(stats.monthlyTrend.earnedChange).toFixed(0)}% vs last month
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div style={{ background: 'rgba(0,212,255,0.06)', borderRadius: 8, padding: '6px 10px' }}>
+                                        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>This Month Spent</div>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#f87171', fontFamily: 'Orbitron, monospace' }}>
+                                            -{stats.monthlyTrend.thisMonthSpent.toLocaleString()}
+                                        </div>
+                                        {stats.monthlyTrend.spentChange !== 0 && (
+                                            <div style={{
+                                                fontSize: 9,
+                                                color: stats.monthlyTrend.spentChange <= 0 ? '#4ade80' : '#f87171',
+                                                marginTop: 2,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 2,
+                                            }}>
+                                                {stats.monthlyTrend.spentChange >= 0
+                                                    ? <ArrowUpRight size={10} />
+                                                    : <ArrowDownRight size={10} />}
+                                                {Math.abs(stats.monthlyTrend.spentChange).toFixed(0)}% vs last month
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
                 {/* P2-2: Gift Analytics (shown when stats are open and gifts exist) */}
@@ -1521,17 +2020,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             padding: '30px 40px',
                             color: 'rgba(255, 255, 255, 0.3)',
                         }}>
-                            {/* ENH-C: Premium diamond illustration for empty state */}
-                            <img
-                                src="/images/diamond-empty-state.png"
-                                alt="No transactions"
-                                style={{
-                                    width: 80, height: 80,
-                                    marginBottom: 12,
-                                    opacity: 0.6,
-                                    filter: 'drop-shadow(0 0 12px rgba(0, 212, 255, 0.3))',
-                                }}
-                            />
+                            {/* R8-I1: Inline SVG diamond (replaces broken PNG) */}
+                            <EmptyStateDiamond />
                             <div style={{ fontSize: 13, fontWeight: 500 }}>
                                 {searchQuery
                                     ? `No results for "${searchQuery}"`
@@ -1607,6 +2097,27 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                         role="listitem"
                                         aria-label={`${config.label}: ${isPositive ? '+' : ''}${tx.amount ?? 0} diamonds`}
                                         onClick={() => setExpandedTxId(isExpanded ? null : tx.id)}
+                                        /* R8-I11: Swipe-to-copy gesture (mobile) */
+                                        onTouchStart={e => {
+                                            swipeStartX.current = e.touches[0].clientX;
+                                            swipeTxId.current = tx.id;
+                                        }}
+                                        onTouchEnd={e => {
+                                            if (swipeTxId.current === tx.id) {
+                                                const deltaX = (e.changedTouches[0]?.clientX ?? 0) - swipeStartX.current;
+                                                if (deltaX > 60) {
+                                                    // Swipe right: copy receipt
+                                                    const ok = copyReceiptToClipboard(tx);
+                                                    if (ok) {
+                                                        setCopiedTxId(tx.id);
+                                                        showStoreToast('success', 'Receipt copied');
+                                                        setTimeout(() => setCopiedTxId(null), 2000);
+                                                    }
+                                                }
+                                            }
+                                            swipeStartX.current = 0;
+                                            swipeTxId.current = null;
+                                        }}
                                         style={{
                                             cursor: 'pointer',
                                             borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
@@ -1622,7 +2133,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                             gap: 12,
                                             padding: '12px 16px',
                                         }}>
-                                            {/* Icon */}
+                                            {/* Icon — R8-I10: Lucide React */}
                                             <div style={{
                                                 width: 36, height: 36,
                                                 display: 'flex',
@@ -1630,10 +2141,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                                 justifyContent: 'center',
                                                 borderRadius: 10,
                                                 background: `${config.color}15`,
-                                                fontSize: 18,
                                                 flexShrink: 0,
                                             }}>
-                                                {config.icon}
+                                                {config.Icon ? <config.Icon size={ICON_SIZE} color={config.color} /> : <Sparkles size={ICON_SIZE} color={config.color} />}
                                             </div>
 
                                             {/* Details */}
