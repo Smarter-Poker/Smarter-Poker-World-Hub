@@ -1794,7 +1794,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                             fontSize: 11, fontWeight: 700, cursor: 'pointer',
                                         }}
                                     >
-                                        Confirm Send {confirmTransfer.amount}💎
+                                        Confirm Send {confirmTransfer.amount} Diamonds
                                     </button>
                                 </div>
                             </div>
