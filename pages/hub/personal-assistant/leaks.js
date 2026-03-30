@@ -14,7 +14,7 @@ import { useState, useEffect } from 'react';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useLeaks, useAssistantStats } from '../../../src/hooks/useAssistant';
-import FeatureGate from '../../../src/components/gates/FeatureGate';
+
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import SessionAnalytics from '../../../src/components/sandbox/SessionAnalytics';
@@ -672,7 +672,6 @@ export default function LeakFinderPage() {
         <div style={styles.bgGrid} />
         <UniversalHeader pageDepth={2} />
 
-        <FeatureGate featureKey="personal_assistant" userId={userId} cost={100} duration={24} featureName="Leak Finder" description="Access Virtual Sandbox, Leak Finder, And Jarvis Coaching Tools For 24 Hours.">
           {/* Top Bar */}
           <div style={styles.topBar}>
             <div style={styles.topBarLeft}>
@@ -821,7 +820,7 @@ export default function LeakFinderPage() {
               onTrainDrills={handleTrainDrills}
             />
           </div>
-        </FeatureGate>
+
       </div>
       {UpgradePopup}
           <BottomNavBar />
