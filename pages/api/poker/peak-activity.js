@@ -29,25 +29,66 @@ export default async function handler(req, res) {
     // Get last 14 days of history
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
     
-    let query = supabase
-      .from('venue_live_history')
-      .select('venue_name, total_tables, snapshot_time')
-      .gte('snapshot_time', twoWeeksAgo)
-      .order('snapshot_time', { ascending: true });
+    let data, error;
     
-    if (venue_id) {
-      query = query.eq('venue_id', parseInt(venue_id, 10));
-    } else if (venue) {
-      query = query.ilike('venue_name', `%${venue}%`);
+    // If game_type is specified, use game_live_history for per-game heatmaps
+    if (game_type) {
+      let query = supabase
+        .from('game_live_history')
+        .select('venue_name, game_type, tables, snapshot_time')
+        .gte('snapshot_time', twoWeeksAgo)
+        .ilike('game_type', `%${game_type}%`)
+        .order('snapshot_time', { ascending: true });
+      
+      if (venue_id) {
+        query = query.or(`bravo_slug.eq.${venue_id},bravo_slug.ilike.%${venue_id}%`);
+      } else if (venue) {
+        query = query.ilike('venue_name', `%${venue}%`);
+      }
+      
+      const result = await query.limit(10000);
+      data = result.data;
+      error = result.error;
+      
+      // Map game_live_history columns to match expected shape
+      if (data) {
+        data = data.map(row => ({
+          venue_name: row.venue_name,
+          total_tables: row.tables || 0,
+          snapshot_time: row.snapshot_time,
+        }));
+      }
+    } else {
+      // Default: use venue_live_history (aggregate venue-level data)
+      let query = supabase
+        .from('venue_live_history')
+        .select('venue_name, total_tables, snapshot_time')
+        .gte('snapshot_time', twoWeeksAgo)
+        .order('snapshot_time', { ascending: true });
+      
+      if (venue_id) {
+        query = query.eq('venue_id', parseInt(venue_id, 10));
+      } else if (venue) {
+        query = query.ilike('venue_name', `%${venue}%`);
+      }
+      
+      const result = await query.limit(10000);
+      data = result.data;
+      error = result.error;
     }
     
-    // Note: game_type filtering not supported by venue_live_history schema
-    // Filter is applied client-side if needed
-    
-    const { data, error } = await query.limit(10000);
-    
     if (error) {
-      console.warn('Peak activity query failed (table may not exist):', error.message);
+      // Handle missing table gracefully
+      if (error.code === '42P01' || error.code === '42703') {
+        console.warn('Peak activity: table not ready yet:', error.message);
+        return res.status(200).json({ 
+          message: 'Historical data not available yet.',
+          heatmap: [],
+          peak_hours: [],
+          peak_days: [],
+        });
+      }
+      console.warn('Peak activity query failed:', error.message);
       return res.status(200).json({ 
         message: 'Historical data not available yet.',
         heatmap: [],

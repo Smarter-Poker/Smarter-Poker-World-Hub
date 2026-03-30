@@ -722,6 +722,48 @@ def save_history_snapshot(batch_id, all_venues):
 
 
 # ============================================================
+# GAME-LEVEL HISTORICAL SNAPSHOT: Per-game rows for heatmaps/predictions
+# ============================================================
+def save_game_history_snapshot(batch_id, all_venues):
+    """Insert per-game rows into game_live_history for game-type heatmaps.
+    
+    This is ADDITIVE — writes to a separate table (game_live_history)
+    and never touches venue_live_history. Safe to fail silently.
+    """
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        rows = []
+        for vdata in all_venues:
+            venue_slug = re.sub(r'[^a-z0-9]+', '-', vdata['venue_name'].lower()).strip('-')
+            for game in vdata['games']:
+                rows.append({
+                    'bravo_slug': f'pa-{venue_slug}',
+                    'venue_name': vdata['venue_name'],
+                    'game_type': game['game'],
+                    'stakes': game.get('buyin', ''),
+                    'tables': game.get('tables_estimate', 1),
+                    'waiting': 0,
+                    'source': 'pokeratlas',
+                    'snapshot_time': now,
+                    'batch_id': batch_id,
+                })
+        if rows:
+            body = json.dumps(rows).encode()
+            req = urllib.request.Request(
+                f'{SUPABASE_URL}/rest/v1/game_live_history',
+                data=body, method='POST',
+                headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
+            )
+            try:
+                urllib.request.urlopen(req, timeout=15)
+                log.info(f'  📊 Saved {len(rows)} game history rows')
+            except Exception as e:
+                log.debug(f'  Game history insert skipped: {e}')
+    except Exception as e:
+        log.debug(f'  Game history snapshot error: {e}')
+
+
+# ============================================================
 # REGION SLUG AUTO-DISCOVERY
 # ============================================================
 def discover_regions(mgr):
@@ -916,6 +958,8 @@ def run_scrape_cycle(mgr):
             sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.pokeratlas')
             # Save historical snapshot for trend analysis (#5)
             save_history_snapshot(batch_id, all_venues)
+            # Save per-game history for game-type heatmaps (#10)
+            save_game_history_snapshot(batch_id, all_venues)
 
     # Save evidence
     evidence = {

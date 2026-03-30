@@ -55,25 +55,37 @@ export default async function handler(req, res) {
         previousCounts = prevSnapshotData.counts || {};
         
         // We consider it "historical" if we have prior counts AND they aren't from just right now.
-        // Even if we just saved it, this GET request should show historical data if it previously existed.
-        // The simplest check is if previousCounts has keys.
-        hasHistoricalData = Object.keys(previousCounts).length > 0;
+        // To avoid locking in 'stable' if the system just started, we require a minimum data payload.
+        const currentTotal = Object.keys(currentCounts).length;
+        const prevTotal = Object.keys(previousCounts).length;
+        hasHistoricalData = prevTotal > 0 && currentTotal > 0 && prevTotal >= Math.min(5, currentTotal / 2);
       }
     } catch (_) {
       // Table may not exist — just skip
     }
 
-    // Save current snapshot for next comparison (runs ~every page load, but state is persisted)
-    try {
-      await supabase
-        .from('scraper_watchdog_state')
-        .upsert({
-          key: 'game_trends_snapshot',
-          value: JSON.stringify({ counts: currentCounts, saved_at: new Date().toISOString() }),
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'key' });
-    } catch (_) {
-      // Silent — non-critical
+    // Determine age of previous snapshot to avoid saving too frequently (e.g., only update every 30m)
+    let shouldSaveSnapshot = true;
+    if (prevSnapshotData && prevSnapshotData.saved_at) {
+      const ageMinutes = (new Date() - new Date(prevSnapshotData.saved_at)) / 60000;
+      if (ageMinutes < 30) {
+        shouldSaveSnapshot = false;
+      }
+    }
+
+    // Save current snapshot for next comparison (debounced to 30m interval)
+    if (shouldSaveSnapshot) {
+      try {
+        await supabase
+          .from('scraper_watchdog_state')
+          .upsert({
+            key: 'game_trends_snapshot',
+            value: JSON.stringify({ counts: currentCounts, saved_at: new Date().toISOString() }),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'key' });
+      } catch (_) {
+        // Silent — non-critical
+      }
     }
 
     // Build trend analysis
@@ -114,10 +126,11 @@ function normalizeGameType(raw) {
   if (!raw) return 'Unknown';
   let g = raw.trim().toUpperCase();
   
+  // Remove dollar signs for cleaner strings
+  g = g.replace(/\$(\d+)/g, '$1'); 
   // Normalize stakes formats across Bravo (1/2) and PokerAtlas (1-2)
   // e.g., "1-3 NL" -> "1/3 NL"
-  g = g.replace(/(\d+)\s*-\s*(\d+)/, '$1/$2');
-  g = g.replace(/\$(\d+)/g, '$1'); // Remove dollar signs for cleaner strings
+  g = g.replace(/(\d+)\s*-\s*(\d+)/g, '$1/$2');
 
   // Normalize common patterns for cleaner grouping
   g = g.replace(/NO LIMIT HOLD'?EM/i, 'NLH')

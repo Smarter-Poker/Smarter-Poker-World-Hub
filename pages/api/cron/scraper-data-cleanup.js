@@ -52,6 +52,17 @@ export default async function handler(req, res) {
     results.tables.scraper_metrics = { deleted: 0, error: err.message };
   }
 
+  // Clean game_live_history (>90 days)
+  try {
+    const { count, error } = await supabase
+      .from('game_live_history')
+      .delete({ count: 'exact' })
+      .lt('snapshot_time', cutoff90);
+    results.tables.game_live_history = { deleted: count || 0, error: error?.message || null };
+  } catch (err) {
+    results.tables.game_live_history = { deleted: 0, error: err.message };
+  }
+
   // Clean stale game_trends_snapshot entries from watchdog state (>7 days old unused keys)
   try {
     const staleKeys = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();

@@ -799,6 +799,63 @@ def save_history_snapshot(batch_id, results):
 
 
 # ============================================================
+# GAME-LEVEL HISTORICAL SNAPSHOT: Per-game rows for heatmaps/predictions
+# ============================================================
+def save_game_history_snapshot(batch_id, results):
+    """Insert per-game rows into game_live_history for game-type heatmaps.
+    
+    This is ADDITIVE — it writes to a separate table (game_live_history)
+    and never touches venue_live_history. Safe to fail silently.
+    """
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        rows = []
+        for data in results:
+            for game in data['live_games']:
+                rows.append({
+                    'bravo_slug': data['venue_slug'],
+                    'venue_name': data['venue_name'],
+                    'game_type': game['game'],
+                    'stakes': '',
+                    'tables': game['tables'],
+                    'waiting': 0,
+                    'source': 'bravo',
+                    'snapshot_time': now,
+                    'batch_id': batch_id,
+                })
+            for w in data['waitlist']:
+                # Check if already covered by live_games
+                live_names = [g['game'].lower() for g in data['live_games']]
+                if w['game'].lower() not in live_names:
+                    rows.append({
+                        'bravo_slug': data['venue_slug'],
+                        'venue_name': data['venue_name'],
+                        'game_type': w['game'],
+                        'stakes': '',
+                        'tables': 0,
+                        'waiting': w['players_waiting'],
+                        'source': 'bravo',
+                        'snapshot_time': now,
+                        'batch_id': batch_id,
+                    })
+        if rows:
+            body = json.dumps(rows).encode()
+            req = urllib.request.Request(
+                f'{SUPABASE_URL}/rest/v1/game_live_history',
+                data=body, method='POST',
+                headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
+            )
+            try:
+                urllib.request.urlopen(req, timeout=15)
+                log.info(f'  📊 Saved {len(rows)} game history rows')
+            except Exception as e:
+                # Table may not exist yet — that's OK, don't crash
+                log.debug(f'  Game history insert skipped: {e}')
+    except Exception as e:
+        log.debug(f'  Game history snapshot error: {e}')
+
+
+# ============================================================
 # MAIN SCRAPE CYCLE
 # ============================================================
 def run_scrape_cycle(mgr):
@@ -931,6 +988,8 @@ def run_scrape_cycle(mgr):
             sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.bravo')
             # Save historical snapshot for trend analysis (#5)
             save_history_snapshot(batch_id, results)
+            # Save per-game history for game-type heatmaps (#10)
+            save_game_history_snapshot(batch_id, results)
 
     # Save evidence
     duration = (datetime.now(timezone.utc) - cycle_start).total_seconds()

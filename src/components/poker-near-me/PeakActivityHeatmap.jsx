@@ -17,7 +17,7 @@ function intensityColor(intensity) {
   return 'rgba(34, 197, 94, 0.8)';
 }
 
-export default function PeakActivityHeatmap({ venueFilter }) {
+export default function PeakActivityHeatmap({ venueFilter, gameType }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,15 +25,17 @@ export default function PeakActivityHeatmap({ venueFilter }) {
 
   useEffect(() => {
     setLoading(true);
-    const url = venueFilter 
-      ? `/api/poker/peak-activity?venue=${encodeURIComponent(venueFilter)}`
-      : '/api/poker/peak-activity';
+    let url = '/api/poker/peak-activity';
+    const params = [];
+    if (venueFilter) params.push(`venue=${encodeURIComponent(venueFilter)}`);
+    if (gameType) params.push(`game_type=${encodeURIComponent(gameType)}`);
+    if (params.length) url += '?' + params.join('&');
     
     fetch(url)
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
-  }, [venueFilter]);
+  }, [venueFilter, gameType]);
 
   const heatmapGrid = useMemo(() => {
     if (!data?.heatmap) return [];

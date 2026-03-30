@@ -26,15 +26,18 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
     if (!venueId) return;
     setLoading(true);
 
+    const venuePart = venueName ? `&venue=${encodeURIComponent(venueName)}` : '';
+    const gameTypePart = selectedGame ? `&game_type=${encodeURIComponent(selectedGame)}` : '';
+
     Promise.all([
       fetch(`/api/poker/game-predictions?venue_id=${venueId}`).then(r => r.json()).catch(() => null),
-      fetch(`/api/poker/peak-activity?venue=${encodeURIComponent(venueName || '')}`).then(r => r.json()).catch(() => null),
+      fetch(`/api/poker/peak-activity?venue=${encodeURIComponent(venueName || '')}${gameTypePart}`).then(r => r.json()).catch(() => null),
     ]).then(([predData, heatData]) => {
       if (predData?.success) setPredictions(predData);
       if (heatData?.heatmap) setHeatmapData(heatData);
       setLoading(false);
     });
-  }, [venueId, venueName]);
+  }, [venueId, venueName, selectedGame]);
 
   const heatmapGrid = useMemo(() => {
     if (!heatmapData?.heatmap) return [];
