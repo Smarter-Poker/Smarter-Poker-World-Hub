@@ -1134,7 +1134,11 @@ def main():
                 last_successful_save = time.time()
                 log.info(f'⏰ Next scrape in {SCRAPE_INTERVAL // 60} minutes...')
             else:
-                backoff = min(60 * (mgr.consecutive_failures + 1), 300)
+                # Shorter backoff with exponential multiplier & ±10% Jitter
+                import random
+                base_delays = [5, 15, 45, 120, 300]
+                idx = min(mgr.consecutive_failures, len(base_delays) - 1)
+                backoff = int(base_delays[idx] * random.uniform(0.9, 1.1))
                 log.warning(f'⏰ Retrying in {backoff}s (failure #{mgr.consecutive_failures})...')
                 for _ in range(backoff):
                     if not running:

@@ -4,6 +4,7 @@
  * Shows busiest hours, busiest days, and optimal visit times.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { gameShortLabel } from '../../../src/components/poker-near-me/normalize-game';
 
 let _supabase = null;
 function getSupabase() {
@@ -37,7 +38,6 @@ export default async function handler(req, res) {
         .from('game_live_history')
         .select('venue_name, game_type, tables, snapshot_time')
         .gte('snapshot_time', twoWeeksAgo)
-        .ilike('game_type', `%${game_type}%`)
         .order('snapshot_time', { ascending: true });
       
       if (venue_id) {
@@ -50,13 +50,15 @@ export default async function handler(req, res) {
       data = result.data;
       error = result.error;
       
-      // Map game_live_history columns to match expected shape
+      // Filter by the canonical game type and map columns to match expected shape
       if (data) {
-        data = data.map(row => ({
-          venue_name: row.venue_name,
-          total_tables: row.tables || 0,
-          snapshot_time: row.snapshot_time,
-        }));
+        data = data
+          .filter(row => gameShortLabel(row.game_type || '') === game_type)
+          .map(row => ({
+            venue_name: row.venue_name,
+            total_tables: row.tables || 0,
+            snapshot_time: row.snapshot_time,
+          }));
       }
     } else {
       // Default: use venue_live_history (aggregate venue-level data)
