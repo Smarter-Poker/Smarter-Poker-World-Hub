@@ -41,52 +41,68 @@ export default async function handler(req, res) {
       const { action = 'list' } = req.query;
 
       try {
-        if (action === 'full') {
-          // ═══ FULL DATA for friends page ═══
+        // ═══════════════════════════════════════════════════════════════════
+        // HELPER: Resolve friend IDs → profile objects (two-query approach)
+        // The friendships table has NO FK constraints to profiles, so
+        // PostgREST FK joins (profiles!friendships_friend_id_fkey) silently
+        // return null. We use a reliable two-step approach instead.
+        // ═══════════════════════════════════════════════════════════════════
+        async function resolveFriendIds(friendIds, fields) {
+          if (!friendIds.length) return [];
+          const { data } = await getSupabase()
+            .from('profiles')
+            .select(fields)
+            .in('id', friendIds);
+          return data || [];
+        }
 
-          // 1. Friends where I am user_id (I sent the request)
-          const { data: friendshipsAsUser } = await getSupabase()
+        // Step 1: Get all accepted friendship rows (both directions)
+        const [{ data: sentRows }, { data: receivedRows }] = await Promise.all([
+          getSupabase()
             .from('friendships')
-            .select('friend_id, friend:profiles!friendships_friend_id_fkey(id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active)')
+            .select('friend_id, created_at')
             .eq('user_id', userId)
             .eq('status', 'accepted')
-            .limit(200);
-
-          // 2. Friends where I am friend_id (they sent the request)
-          const { data: friendshipsAsFriend } = await getSupabase()
+            .limit(200),
+          getSupabase()
             .from('friendships')
-            .select('user_id, requester:profiles!friendships_user_id_fkey(id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active)')
+            .select('user_id, created_at')
             .eq('friend_id', userId)
             .eq('status', 'accepted')
-            .limit(200);
+            .limit(200),
+        ]);
 
-          const friends = [];
-          const friendIds = [];
+        // Deduplicate friend IDs
+        const friendIdSet = new Set();
+        if (sentRows) sentRows.forEach(r => friendIdSet.add(r.friend_id));
+        if (receivedRows) receivedRows.forEach(r => friendIdSet.add(r.user_id));
+        const allFriendIds = [...friendIdSet];
 
-          if (friendshipsAsUser) {
-            friendshipsAsUser.forEach(f => {
-              if (f.friend) {
-                friends.push(f.friend);
-                friendIds.push(f.friend_id);
-              }
-            });
-          }
-          if (friendshipsAsFriend) {
-            friendshipsAsFriend.forEach(f => {
-              if (f.requester && !friendIds.includes(f.user_id)) {
-                friends.push(f.requester);
-                friendIds.push(f.user_id);
-              }
-            });
-          }
+        if (action === 'full') {
+          // ═══ FULL DATA for friends page ═══
+          const fullFields = 'id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active, is_vip';
+          const friends = await resolveFriendIds(allFriendIds, fullFields);
 
-          // 3. Pending incoming requests
-          const { data: incomingRequests } = await getSupabase()
+          // 3. Pending incoming requests (with requester profiles)
+          const { data: incomingRaw } = await getSupabase()
             .from('friendships')
-            .select('id, user_id, requester:profiles!friendships_user_id_fkey(id, username, full_name, display_name, avatar_url)')
+            .select('id, user_id')
             .eq('friend_id', userId)
             .eq('status', 'pending')
             .limit(100);
+
+          let incomingRequests = [];
+          if (incomingRaw?.length) {
+            const requesterIds = incomingRaw.map(r => r.user_id);
+            const requesterProfiles = await resolveFriendIds(requesterIds, 'id, username, full_name, display_name, avatar_url');
+            const profileMap = {};
+            requesterProfiles.forEach(p => { profileMap[p.id] = p; });
+            incomingRequests = incomingRaw.map(r => ({
+              id: r.id,
+              user_id: r.user_id,
+              requester: profileMap[r.user_id] || null,
+            }));
+          }
 
           // 4. Pending outgoing requests
           const { data: outgoingRequests } = await getSupabase()
@@ -96,19 +112,23 @@ export default async function handler(req, res) {
             .eq('status', 'pending')
             .limit(100);
 
-          // 5. Following
-          const { data: myFollowing } = await getSupabase()
+          // 5. Following — also use two-query approach
+          const { data: followingRaw } = await getSupabase()
             .from('follows')
-            .select('following_id, following:profiles!follows_following_id_fkey(id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active)')
+            .select('following_id')
             .eq('follower_id', userId)
             .limit(200);
+          const followingIds = followingRaw ? followingRaw.map(f => f.following_id) : [];
+          const following = await resolveFriendIds(followingIds, fullFields);
 
           // 6. Followers
-          const { data: myFollowers } = await getSupabase()
+          const { data: followerRaw } = await getSupabase()
             .from('follows')
-            .select('follower_id, follower:profiles!follows_follower_id_fkey(id, username, full_name, display_name, avatar_url, city, state, favorite_game, last_active)')
+            .select('follower_id')
             .eq('following_id', userId)
             .limit(200);
+          const followerIds = followerRaw ? followerRaw.map(f => f.follower_id) : [];
+          const followers = await resolveFriendIds(followerIds, fullFields);
 
           // 7. Suggestions (all other users, minus friends)
           const { data: allUsers } = await getSupabase()
@@ -122,37 +142,20 @@ export default async function handler(req, res) {
             success: true,
             data: {
               friends,
-              friendIds,
-              friendRequests: incomingRequests || [],
+              friendIds: allFriendIds,
+              friendRequests: incomingRequests,
               pendingOutgoing: outgoingRequests || [],
-              following: myFollowing ? myFollowing.map(f => f.following).filter(Boolean) : [],
-              followingIds: myFollowing ? myFollowing.map(f => f.following_id) : [],
-              followers: myFollowers ? myFollowers.map(f => f.follower).filter(Boolean) : [],
-              followerIds: myFollowers ? myFollowers.map(f => f.follower_id) : [],
+              following,
+              followingIds,
+              followers,
+              followerIds,
               suggestions: allUsers || [],
             }
           });
         }
 
         // Default: simple friends list (includes is_vip for R8-I8 VIP badge in wallet transfer)
-        const { data: friendshipsAsUser } = await getSupabase()
-          .from('friendships')
-          .select('friend_id, friend:profiles!friendships_friend_id_fkey(id, display_name, username, avatar_url, is_vip)')
-          .eq('user_id', userId)
-          .eq('status', 'accepted')
-          .limit(100);
-
-        const { data: friendshipsAsFriend } = await getSupabase()
-          .from('friendships')
-          .select('user_id, requester:profiles!friendships_user_id_fkey(id, display_name, username, avatar_url, is_vip)')
-          .eq('friend_id', userId)
-          .eq('status', 'accepted')
-          .limit(100);
-
-        const friends = [];
-        if (friendshipsAsUser) friendshipsAsUser.forEach(f => { if (f.friend) friends.push(f.friend); });
-        if (friendshipsAsFriend) friendshipsAsFriend.forEach(f => { if (f.requester) friends.push(f.requester); });
-
+        const friends = await resolveFriendIds(allFriendIds, 'id, display_name, username, avatar_url, is_vip');
         return res.status(200).json({ success: true, data: { friends } });
 
       } catch (error) {
