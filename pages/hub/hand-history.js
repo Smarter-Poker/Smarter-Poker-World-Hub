@@ -156,6 +156,7 @@ export default function HandHistoryPage() {
       });
 
       alert('Hand saved successfully!');
+      eventBus.emit('DATA_MUTATED', 'hand_history_updated'); // Trigger real-time sync across connected tabs
       setReviewData(null);
       fetchHands();
     } catch (err) {
