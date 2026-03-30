@@ -27,6 +27,12 @@ import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import { showStoreToast } from '../../src/components/store/StoreToast';
 import { busEmit } from '../../src/engine/EventBus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
+import {
+    Gem, Crown, ShoppingBag, Trophy, Gamepad2,
+    Coins, Home, Package, Wrench, Search,
+    Gift, ShoppingCart as CartIcon, AlertTriangle,
+    CheckCircle, Trash2,
+} from 'lucide-react';
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 import { PackageCard, VIPCard, MerchCard } from '../../src/components/store/StoreCards';
 
@@ -665,7 +671,8 @@ export default function DiamondStorePage() {
                         borderBottom: '1px solid rgba(255,255,255,0.08)',
                     }}>
                         {['diamonds', 'vip', 'merch', 'rewards', 'club-shop'].map(tabId => {
-                            const labels = { diamonds: '💎 Diamonds', vip: '👑 VIP', merch: '🛍️ Merch', rewards: '🏆 Rewards', 'club-shop': '🎮 Club Shop' };
+                            const LABEL_ICONS = { diamonds: Gem, vip: Crown, merch: ShoppingBag, rewards: Trophy, 'club-shop': Gamepad2 };
+                            const LABEL_TEXT = { diamonds: 'Diamonds', vip: 'VIP', merch: 'Merch', rewards: 'Rewards', 'club-shop': 'Club Shop' };
                             const isActive = activeTab === tabId;
                             return (
                                 <button
@@ -688,7 +695,8 @@ export default function DiamondStorePage() {
                                         whiteSpace: 'nowrap',
                                     }}
                                 >
-                                    {labels[tabId]}
+                                    {(() => { const LI = LABEL_ICONS[tabId]; return LI ? <LI size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> : null; })()}
+                                    {LABEL_TEXT[tabId]}
                                 </button>
                             );
                         })}
@@ -723,7 +731,7 @@ export default function DiamondStorePage() {
                                     <div
                                         key={pkg.id}
                                         onClick={() => handleAddToCart(pkg)}
-                                        title={`${pkg.name} — ${(pkg.diamonds + (pkg.bonus || 0)).toLocaleString()} 💎 — $${pkg.price.toFixed(2)} — Click to add to cart`}
+                                        title={`${pkg.name} — ${(pkg.diamonds + (pkg.bonus || 0)).toLocaleString()} Diamonds — $${pkg.price.toFixed(2)} — Click to add to cart`}
                                         style={{
                                             position: 'absolute',
                                             left,
@@ -952,7 +960,7 @@ export default function DiamondStorePage() {
                                             boxShadow: '0 2px 8px rgba(255,215,0,0.4)',
                                             letterSpacing: '0.5px',
                                         }}>
-                                            👑 VIP — 10% OFF ALL PHYSICAL MERCH
+                                            <Crown size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> VIP — 10% OFF ALL PHYSICAL MERCH
                                         </div>
                                     )}
                                 </div>
@@ -1305,7 +1313,7 @@ export default function DiamondStorePage() {
                                         padding: '12px 28px', borderRadius: 12, fontWeight: 700, fontSize: 15,
                                         zIndex: 9999, boxShadow: '0 4px 20px rgba(0,255,136,0.4)', animation: 'fadeIn 0.3s ease',
                                     }}>
-                                        ✅ {clubShopSuccess}
+                                        <CheckCircle size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {clubShopSuccess}
                                     </div>
                                 )}
 
@@ -1333,7 +1341,7 @@ export default function DiamondStorePage() {
                                                 }}>
                                                     {clubShopBuyTarget.image_url
                                                         ? <img src={clubShopBuyTarget.image_url} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
-                                                        : '🛒'}
+                                                        : <CartIcon size={28} color="#8b8d91" />}
                                                 </div>
                                                 <div>
                                                     <div style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB' }}>{clubShopBuyTarget.name}</div>
@@ -1358,7 +1366,7 @@ export default function DiamondStorePage() {
                                             </div>
                                             {clubChipBalance < clubShopBuyTarget.price && (
                                                 <div style={{ color: '#ff6b6b', fontSize: 13, fontWeight: 600, marginBottom: 12, textAlign: 'center' }}>
-                                                    ⚠️ Insufficient chips. You need {(clubShopBuyTarget.price - clubChipBalance).toLocaleString()} more.
+                                                    <AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Insufficient chips. You need {(clubShopBuyTarget.price - clubChipBalance).toLocaleString()} more.
                                                 </div>
                                             )}
                                             <div style={{ display: 'flex', gap: 12 }}>
@@ -1386,13 +1394,13 @@ export default function DiamondStorePage() {
 
                                 <div style={styles.intro}>
                                     <h2 style={{ ...styles.merchTitle, display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        🎮 Club Shop
+                                        <Gamepad2 size={20} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} /> Club Shop
                                         <span style={{
                                             fontSize: 14, fontWeight: 600,
                                             background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                                             color: '#000', padding: '4px 14px', borderRadius: 20,
                                         }}>
-                                            💰 {clubChipBalance.toLocaleString()} Chips
+                                            <Coins size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> {clubChipBalance.toLocaleString()} Chips
                                         </span>
                                     </h2>
                                     <p style={styles.introText}>
@@ -1406,7 +1414,7 @@ export default function DiamondStorePage() {
                                     </div>
                                 ) : !clubShopClubId ? (
                                     <div style={{ textAlign: 'center', padding: 40 }}>
-                                        <div style={{ fontSize: 48, marginBottom: 12 }}>🏠</div>
+                                        <div style={{ marginBottom: 12 }}><Home size={48} color="rgba(255,255,255,0.3)" /></div>
                                         <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>No Club Found</div>
                                         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>Join a club to access the Club Shop.</p>
                                     </div>
@@ -1414,9 +1422,9 @@ export default function DiamondStorePage() {
                                     <>
                                         {/* Sub-tabs: Store / My Purchases / Manage (admin) */}
                                         <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-                                            {[{ key: 'store', label: `🛍️ Store (${clubShopItems.length})` },
-                                              { key: 'my-purchases', label: `📦 My Purchases (${clubShopPurchases.length})` },
-                                              ...(clubShopIsAdmin ? [{ key: 'manage', label: '🛠️ Manage' }] : []),
+                                            {[{ key: 'store', label: `Store (${clubShopItems.length})`, LIcon: ShoppingBag },
+                                              { key: 'my-purchases', label: `My Purchases (${clubShopPurchases.length})`, LIcon: Package },
+                                              ...(clubShopIsAdmin ? [{ key: 'manage', label: 'Manage', LIcon: Wrench }] : []),
                                             ].map(st => (
                                                 <button key={st.key} onClick={() => { setClubShopSubTab(st.key); if (st.key === 'manage' && !clubShopAdminLoaded) loadClubShopAdmin(); }}
                                                     style={{
@@ -1426,6 +1434,7 @@ export default function DiamondStorePage() {
                                                         borderRadius: 10, color: clubShopSubTab === st.key ? '#00D4FF' : 'rgba(255,255,255,0.5)',
                                                         fontSize: 13, fontWeight: 600, cursor: 'pointer',
                                                     }}>
+                                                    {st.LIcon && <st.LIcon size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />}
                                                     {st.label}
                                                 </button>
                                             ))}
@@ -1452,7 +1461,7 @@ export default function DiamondStorePage() {
                                                 {/* Search + Sort */}
                                                 <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
                                                     <input
-                                                        type="text" placeholder="🔍 Search items..."
+                                                        type="text" placeholder="Search items..."
                                                         value={clubShopSearch}
                                                         onChange={e => setClubShopSearch(e.target.value)}
                                                         style={{
@@ -1498,7 +1507,7 @@ export default function DiamondStorePage() {
                                                     if (filtered.length === 0) {
                                                         return (
                                                             <div style={{ textAlign: 'center', padding: 40 }}>
-                                                                <div style={{ fontSize: 48, marginBottom: 12 }}>🛍️</div>
+                                                                <div style={{ marginBottom: 12 }}><ShoppingBag size={48} color="rgba(255,255,255,0.3)" /></div>
                                                                 <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
                                                                     {clubShopItems.length === 0 ? 'The shop is currently empty.' : 'No items match your filter.'}
                                                                 </div>
@@ -1531,7 +1540,7 @@ export default function DiamondStorePage() {
                                                                         }}>
                                                                             {item.image_url
                                                                                 ? <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                                                : <span style={{ fontSize: 40 }}>🎁</span>}
+                                                                                : <Gift size={40} color="#8b8d91" />}
                                                                             <span style={{
                                                                                 position: 'absolute', top: 8, right: 8,
                                                                                 background: 'rgba(0,0,0,0.7)', color: '#E4E6EB',
@@ -1546,7 +1555,7 @@ export default function DiamondStorePage() {
                                                                             </div>
                                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                                                 <div>
-                                                                                    <span style={{ fontSize: 16, fontWeight: 700, color: '#FFD700' }}>💰 {item.price.toLocaleString()}</span>
+                                                                                    <span style={{ fontSize: 16, fontWeight: 700, color: '#FFD700', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Coins size={14} /> {item.price.toLocaleString()}</span>
                                                                                     {(item.purchase_count || 0) > 0 && (
                                                                                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{item.purchase_count} sold</div>
                                                                                     )}
@@ -1578,7 +1587,7 @@ export default function DiamondStorePage() {
                                             <>
                                                 {clubShopPurchases.length === 0 ? (
                                                     <div style={{ textAlign: 'center', padding: 40 }}>
-                                                        <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
+                                                        <div style={{ marginBottom: 12 }}><Package size={48} color="rgba(255,255,255,0.3)" /></div>
                                                         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>No purchases yet.</div>
                                                         <button onClick={() => setClubShopSubTab('store')}
                                                             style={{
@@ -1717,7 +1726,7 @@ export default function DiamondStorePage() {
                                                 {/* Admin Item List */}
                                                 {clubShopAdminItems.length === 0 ? (
                                                     <div style={{ textAlign: 'center', padding: 40 }}>
-                                                        <div style={{ fontSize: 48, marginBottom: 12 }}>🛠️</div>
+                                                        <div style={{ marginBottom: 12 }}><Wrench size={48} color="rgba(255,255,255,0.3)" /></div>
                                                         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>No shop items yet. Create one above.</div>
                                                     </div>
                                                 ) : (
@@ -1764,7 +1773,7 @@ export default function DiamondStorePage() {
                                                                         padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer',
                                                                         background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.3)', color: '#ff6b6b',
                                                                     }}>
-                                                                        🗑️ Delete
+                                                                        <Trash2 size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> Delete
                                                                     </button>
                                                                 </div>
                                                             </div>
