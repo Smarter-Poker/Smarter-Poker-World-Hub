@@ -195,6 +195,9 @@ async function handleCheckoutCompleted(session) {
 async function handleSubscriptionUpdate(subscription) {
     const { id, customer, status, metadata, current_period_start, current_period_end, cancel_at_period_end } = subscription;
 
+    if (metadata?.venue_id) {
+        return handleCommanderSubscriptionUpdate(subscription);
+    }
 
     // Get user ID from customer
     const { data: profile } = await getSupabase()
@@ -229,8 +232,11 @@ async function handleSubscriptionUpdate(subscription) {
 }
 
 async function handleSubscriptionCanceled(subscription) {
-    const { id, customer, canceled_at } = subscription;
+    const { id, customer, canceled_at, metadata } = subscription;
 
+    if (metadata?.venue_id) {
+        return handleCommanderSubscriptionCanceled(subscription);
+    }
 
     await getSupabase()
         .from('vip_subscriptions')
@@ -269,6 +275,23 @@ async function handleInvoicePaymentFailed(invoice) {
 
 
     if (subscription) {
+        const { data: cmdrSub } = await getSupabase()
+            .from('commander_subscriptions')
+            .select('id')
+            .eq('stripe_subscription_id', subscription)
+            .maybeSingle();
+
+        if (cmdrSub) {
+            await getSupabase()
+                .from('commander_subscriptions')
+                .update({
+                    status: 'past_due',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('stripe_subscription_id', subscription);
+            return;
+        }
+
         await getSupabase()
             .from('vip_subscriptions')
             .update({
@@ -309,6 +332,56 @@ async function handleRefund(charge) {
             p_reference_id: `refund_${purchase.id}`
         });
 
+    }
+}
+
+async function handleCommanderSubscriptionUpdate(subscription) {
+    const { id, status, metadata, current_period_start, current_period_end, cancel_at_period_end } = subscription;
+    const venueId = metadata?.venue_id;
+
+    if (!venueId) return;
+
+    await getSupabase()
+        .from('commander_subscriptions')
+        .update({
+            status: status,
+            tier: metadata.tier || 'home_game',
+            current_period_start: new Date(current_period_start * 1000).toISOString(),
+            current_period_end: new Date(current_period_end * 1000).toISOString(),
+            cancel_at_period_end: cancel_at_period_end,
+            updated_at: new Date().toISOString()
+        })
+        .eq('stripe_subscription_id', id);
+
+    if (status === 'active' || status === 'trialing') {
+        await getSupabase()
+            .from('poker_venues')
+            .update({
+                commander_enabled: true,
+                commander_tier: metadata.tier || 'home_game'
+            })
+            .eq('id', venueId);
+    }
+}
+
+async function handleCommanderSubscriptionCanceled(subscription) {
+    const { id, canceled_at, metadata } = subscription;
+    const venueId = metadata?.venue_id;
+
+    await getSupabase()
+        .from('commander_subscriptions')
+        .update({
+            status: 'canceled',
+            canceled_at: new Date(canceled_at * 1000).toISOString(),
+            updated_at: new Date().toISOString()
+        })
+        .eq('stripe_subscription_id', id);
+
+    if (venueId) {
+        await getSupabase()
+            .from('poker_venues')
+            .update({ commander_enabled: false })
+            .eq('id', venueId);
     }
 }
 

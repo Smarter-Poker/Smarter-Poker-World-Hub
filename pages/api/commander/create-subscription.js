@@ -317,20 +317,32 @@ export default async function handler(req, res) {
         venueId = newVenue.id;
       }
 
+      // ─── Free Trial Eligibility Check (Anti-Fraud) ───────────────────
+      const { data: pastSubs } = await getSupabase()
+        .from('commander_subscriptions')
+        .select('id')
+        .eq('owner_id', userId)
+        .limit(1);
+
+      const hasUsedFreeTrial = pastSubs && pastSubs.length > 0;
+
       // ─── 3. Stripe (if paying) ───────────────────────────────────────
       let stripeCustomerId = null;
       let stripeSubscriptionId = null;
 
-      // SECURITY: Payment is required when Stripe is configured with real price IDs.
-      // skipPayment from client is NEVER honored — only server config determines this.
+      // SECURITY: Payment is required ONLY IF they have already used their free trial.
+      // Or if they explicitly passed skipPayment=false (though No-CC is the default now)
       const hasRealStripeConfig = process.env.STRIPE_SECRET_KEY &&
         TIER_PRICES[tier].priceId &&
         !['price_home_game', 'price_charity', 'price_club'].includes(TIER_PRICES[tier].priceId);
 
-      if (hasRealStripeConfig) {
+      const requiresPaymentNow = hasUsedFreeTrial;
+
+      if (requiresPaymentNow && hasRealStripeConfig) {
         if (!paymentMethodId) {
-          return res.status(400).json({ error: 'Payment method is required' });
+           return res.status(400).json({ error: 'Free trial already used. A valid payment method is required to activate an additional venue.' });
         }
+        
         const customer = await stripe.customers.create({
           email,
           name: ownerInfo.name,
@@ -345,7 +357,6 @@ export default async function handler(req, res) {
         const subscription = await stripe.subscriptions.create({
           customer: customer.id,
           items: [{ price: TIER_PRICES[tier].priceId }],
-          trial_period_days: 14,
           payment_settings: {
             payment_method_types: ['card'],
             save_default_payment_method: 'on_subscription',
@@ -354,6 +365,31 @@ export default async function handler(req, res) {
         });
 
         stripeSubscriptionId = subscription.id;
+      } else if (hasRealStripeConfig && paymentMethodId) {
+          // They opted to provide a card upfront anyway
+          const customer = await stripe.customers.create({
+            email,
+            name: ownerInfo.name,
+            phone: ownerInfo.phone,
+            payment_method: paymentMethodId,
+            invoice_settings: { default_payment_method: paymentMethodId },
+            metadata: { venue_id: venueId.toString(), user_id: userId },
+          });
+  
+          stripeCustomerId = customer.id;
+  
+          const subscription = await stripe.subscriptions.create({
+            customer: customer.id,
+            items: [{ price: TIER_PRICES[tier].priceId }],
+            trial_period_days: 30, // 30 day trial if they provide card upfront
+            payment_settings: {
+              payment_method_types: ['card'],
+              save_default_payment_method: 'on_subscription',
+            },
+            metadata: { venue_id: venueId.toString(), tier },
+          });
+  
+          stripeSubscriptionId = subscription.id;
       }
 
       // ─── 4. Commander subscription record ────────────────────────────
@@ -377,7 +413,7 @@ export default async function handler(req, res) {
             monthly_price: TIER_PRICES[tier].price,
             billing_email: email,
             billing_name: ownerInfo.name,
-            trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           })
           .eq('id', existingSub.id)
           .select()
@@ -390,14 +426,14 @@ export default async function handler(req, res) {
             venue_id: venueId,
             owner_id: userId,
             tier,
-            status: 'trialing',
+            status: stripeSubscriptionId ? 'trialing' : (requiresPaymentNow ? 'active' : 'trialing'),
             stripe_customer_id: stripeCustomerId,
             stripe_subscription_id: stripeSubscriptionId,
             monthly_price: TIER_PRICES[tier].price,
             billing_email: email,
             billing_name: ownerInfo.name,
             billing_address: { city: venueCity || '', state: venueState || '', country: 'US' },
-            trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            trial_ends_at: (stripeSubscriptionId || !requiresPaymentNow) ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null,
           })
           .select()
           .maybeSingle();
@@ -506,7 +542,7 @@ export default async function handler(req, res) {
         subscriptionId: subscriptionData?.id,
         stripeCustomerId,
         stripeSubscriptionId,
-        trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+        trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       });
 
     } catch (error) {

@@ -24,6 +24,7 @@ import { supabase } from '../../lib/supabase';
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 
 import FullScreenPageOverlay from './FullScreenPageOverlay';
+import DiamondWalletModal from '../store/DiamondWalletModal';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { useDiamondBalance } from '../../hooks/useDiamondBalance';
@@ -69,6 +70,7 @@ export default function UniversalHeader({
         if (typeof window === 'undefined') return 0;
         try { return parseInt(localStorage.getItem('sp-notif-count') || '0', 10); } catch (_) { return 0; }
     });
+    const [isWalletOpen, setIsWalletOpen] = useState(false);
 
     // ── FULL-SCREEN OVERLAY STATES ──
     const [overlayPage, setOverlayPage] = useState(null); // null | 'profile' | 'messenger' | 'notifications' | 'settings' | 'diamond-store'
@@ -893,7 +895,7 @@ export default function UniversalHeader({
                 <div className="header-right">
                     {/* Diamond Wallet Icon */}
                     <button
-                        onClick={() => openOverlay('diamond-store')}
+                        onClick={() => setIsWalletOpen(true)}
                         className="orb-btn"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                         title="Diamond Wallet"
@@ -1002,6 +1004,13 @@ export default function UniversalHeader({
 
             {/* Live Help Panel */}
             <LiveHelpPanel {...liveHelp} />
+
+            <DiamondWalletModal
+                isOpen={isWalletOpen}
+                onClose={() => setIsWalletOpen(false)}
+                onBuyClick={() => openOverlay('diamond-store')}
+                initialBalance={diamondBalance}
+            />
 
             {/* Full-Screen Page Overlay — opens pages as popup instead of redirect */}
             {overlayPage && (

@@ -189,7 +189,7 @@ description: Master roadmap for all remaining Smarter.Poker improvements, featur
 
 ---
 
-### 2.2 — VIP Paywall Audit & Extension `[ ]`
+### 2.2 — VIP Paywall Audit & Extension `[x]`
 
 > **User Decision**: Extend VIP gating audit across ALL features, not just the ones listed.
 

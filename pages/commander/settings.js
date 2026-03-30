@@ -703,8 +703,45 @@ export default function CommanderSettingsPage() {
             </section>
 
             <section className="cmd-panel divide-y divide-[#3A3B3C]">
+              {staff?.role === 'owner' && (
+                <button 
+                  onClick={async (e) => {
+                    const btn = e.currentTarget;
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    try {
+                      const staffSession = getStaffSession() || '';
+                      const res = await commanderFetch('/api/commander/manage-subscription', {
+                        method: 'POST',
+                        body: JSON.stringify({ returnUrl: window.location.href })
+                      });
+                      const json = await res.json();
+                      if (json.url) {
+                        window.location.href = json.url;
+                      } else {
+                        setError(json.error || 'Failed to open billing portal');
+                        setTimeout(() => setError(null), 3000);
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                      }
+                    } catch (err) {
+                      setError('Network error opening billing portal');
+                      setTimeout(() => setError(null), 3000);
+                      btn.disabled = false;
+                      btn.style.opacity = '1';
+                    }
+                  }}
+                  className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors relative overflow-hidden group text-left">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#1877F2]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="relative">
+                    <span className="font-bold text-[#1877F2]">Manage Subscription & Billing</span>
+                    <p className="text-xs text-[#B0B3B8]">View invoices, update card, cancel, or manage Commander tier</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-[#1877F2] relative" />
+                </button>
+              )}
               <button onClick={() => router.push('/commander/membership-plans')}
-                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors text-left">
                 <div>
                   <span className="font-medium text-white">Membership Plans</span>
                   <p className="text-xs text-[#B0B3B8]">Set Daily/Weekly/Monthly/Yearly Pricing Per Tier</p>
@@ -712,7 +749,7 @@ export default function CommanderSettingsPage() {
                 <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
               </button>
               <button onClick={() => router.push('/commander/game-types')}
-                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors text-left">
                 <div>
                   <span className="font-medium text-white">Game Types</span>
                   <p className="text-xs text-[#B0B3B8]">Configure Games, Stakes, Buy-Ins, Rake</p>
@@ -720,7 +757,7 @@ export default function CommanderSettingsPage() {
                 <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
               </button>
               <button onClick={() => router.push('/commander/room-presets')}
-                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors text-left">
                 <div>
                   <span className="font-medium text-white">Room Presets</span>
                   <p className="text-xs text-[#B0B3B8]">Saved Room Configurations For Quick Setup</p>
@@ -728,47 +765,47 @@ export default function CommanderSettingsPage() {
                 <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
               </button>
               <button onClick={() => router.push('/commander/tables')}
-                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors text-left">
                 <span className="font-medium text-white">Manage Tables</span>
                 <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
               </button>
               <button onClick={() => router.push('/commander/staff')}
-                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors text-left">
                 <span className="font-medium text-white">Manage Staff</span>
                 <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
               </button>
               <button onClick={() => router.push('/commander/dealers')}
-                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors text-left">
                 <span className="font-medium text-white">Manage Dealers</span>
                 <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
               </button>
               <button onClick={() => router.push('/commander/members')}
-                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors text-left">
                 <span className="font-medium text-white">Members</span>
                 <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
               </button>
               <button onClick={() => router.push('/commander/promotions')}
-                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors text-left">
                 <span className="font-medium text-white">Promotions</span>
                 <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
               </button>
               <button onClick={() => router.push('/commander/displays')}
-                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors text-left">
                 <span className="font-medium text-white">TV Displays</span>
                 <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
               </button>
               <button onClick={() => router.push('/commander/reports')}
-                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors text-left">
                 <span className="font-medium text-white">Reports</span>
                 <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
               </button>
               <button onClick={() => router.push('/commander/time-billing')}
-                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors text-left">
                 <span className="font-medium text-white">Time Billing</span>
                 <ChevronRight className="w-5 h-5 text-[#3A3B3C]" />
               </button>
               <button onClick={() => router.push('/commander/system-info')}
-                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors">
+                className="w-full p-4 flex items-center justify-between hover:bg-[#18191A] transition-colors text-left">
                 <div>
                   <span className="font-medium text-white">System Information</span>
                   <p className="text-xs text-[#B0B3B8]">Version, Diagnostics, Health Checks</p>
