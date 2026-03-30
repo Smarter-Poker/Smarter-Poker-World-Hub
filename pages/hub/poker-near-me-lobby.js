@@ -1473,7 +1473,7 @@ export default function PokerNearMeLobby() {
                   <div style={{ textAlign: 'center', padding: 40, color: '#8b949e' }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.3 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: '#c9d1d9' }}>No Results Found</p>
-                    <p style={{ fontSize: 13 }}>Try Expanding Distance, Changing Venue Type, Or Selecting A Different State.</p>
+                    <p style={{ fontSize: 13 }}>Try Expanding Distance, Changing Venue Type, or Selecting a Different State.</p>
                   </div>
                 )}
               </div>
@@ -1482,7 +1482,7 @@ export default function PokerNearMeLobby() {
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.2)" strokeWidth="1" style={{ marginBottom: 16 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <p style={{ fontSize: 16, fontWeight: 700, color: '#c9d1d9', marginBottom: 8 }}>Search All Venues</p>
                 <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5, maxWidth: 320, margin: '0 auto' }}>
-                  Set Your Filters Above And Tap Search. Enable GPS For Distance-Based Results.
+                  Set Your Filters Above and Tap Search. Enable GPS for Distance-Based Results.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20 }}>
                   <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues.length || '500+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
@@ -1574,7 +1574,7 @@ export default function PokerNearMeLobby() {
                 {homeGames.length === 0 && !loading && (
                   <div style={{ textAlign: 'center', padding: 40, color: '#8b949e' }}>
                     <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: '#c9d1d9' }}>No Home Games Found</p>
-                    <p style={{ fontSize: 13 }}>Try A Different Search Or State Filter.</p>
+                    <p style={{ fontSize: 13 }}>Try a Different Search or State Filter.</p>
                   </div>
                 )}
               </div>
@@ -1583,8 +1583,8 @@ export default function PokerNearMeLobby() {
                 <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.2)" strokeWidth="1" style={{ marginBottom: 14 }}>
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
-                <p style={{ fontSize: 15, fontWeight: 700, color: '#c9d1d9', marginBottom: 6 }}>Find Or List Home Games</p>
-                <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5 }}>Search For Home Games Near You Or Filter By State. Use The Search Bar Above To Get Started.</p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: '#c9d1d9', marginBottom: 6 }}>Find or List Home Games</p>
+                <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5 }}>Search for Home Games Near You or Filter by State. Use the Search Bar Above to Get Started.</p>
               </div>
             )}
 
@@ -1821,7 +1821,7 @@ export default function PokerNearMeLobby() {
                   <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.3 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>No Results Found</p>
-                    <p style={{ fontSize: 13 }}>Try Expanding Distance, Changing Venue Type, Or Selecting A Different State.</p>
+                    <p style={{ fontSize: 13 }}>Try Expanding Distance, Changing Venue Type, or Selecting a Different State.</p>
                   </div>
                 )}
               </div>
@@ -1833,7 +1833,7 @@ export default function PokerNearMeLobby() {
                 </svg>
                 <p style={{ fontSize: 16, fontWeight: 700, color: '#c9d1d9', marginBottom: 8 }}>Find Poker Anywhere</p>
                 <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5, maxWidth: 320, margin: '0 auto' }}>
-                  Enable GPS To Find Games Near You, Or Set Your Search Parameters Above And Tap Search. Filter By Venue Type, Game Type, Distance, And Buy-In Range.
+                  Enable GPS to Find Games Near You, or Set Your Search Parameters Above and Tap Search. Filter by Venue Type, Game Type, Distance, and Buy-In Range.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
                   <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues.length || '500+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
@@ -2061,7 +2061,7 @@ export default function PokerNearMeLobby() {
             {favVenues.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
                 <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Saved Venues Yet</p>
-                <p style={{ fontSize: 13 }}>Tap The Heart On Any Venue To Save It Here.</p>
+                <p style={{ fontSize: 13 }}>Tap the Heart on Any Venue to Save It Here.</p>
               </div>
             )}
             {favVenues.length >= 2 && (
@@ -2208,7 +2208,7 @@ export default function PokerNearMeLobby() {
     <>
       <SEOHead
         title="Poker Near Me — Find Live Poker Rooms & Casinos"
-        description="Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-time Game Info, Tournament Schedules, And Interactive Maps."
+        description="Discover Live Poker Rooms, Casinos, and Card Rooms Near You. Real-time Game Info, Tournament Schedules, and Interactive Maps."
         canonical="/hub/poker-near-me-lobby"
       />
 
