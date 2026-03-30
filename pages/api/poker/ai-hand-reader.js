@@ -50,7 +50,8 @@ const EXTRACTION_PROMPT = `You are a poker hand history reader. Analyze this scr
     { "street": "preflop", "position": "UTG", "action": "raise", "amount": "$15" },
     { "street": "preflop", "position": "HERO", "action": "call", "amount": "$15" }
   ],
-  "notes": "Any additional context from the screenshot"
+  "notes": "Any additional context from the screenshot",
+  "confidence_score": 95
 }
 
 RULES:
@@ -58,6 +59,7 @@ RULES:
 - If you can't determine a value, use null
 - For stakes, use the format "$X/$Y"
 - For positions, use standard abbreviations
+- Output a confidence_score between 0 and 100 representing how confident you are in your OCR transcription of this poker hand.
 - Return ONLY valid JSON, no markdown formatting`;
 
 export default async function handler(req, res) {
@@ -180,33 +182,6 @@ export default async function handler(req, res) {
             return res.status(422).json({
                 error: 'Could not parse hand data from image',
                 rawResponse: rawContent.substring(0, 500),
-            });
-        }
-
-        // Optional: Save to hand_history table
-        if (handData.hero_cards?.length > 0) {
-            const boardCards = [];
-            if (handData.board?.flop) boardCards.push(...handData.board.flop);
-            if (handData.board?.turn) boardCards.push(handData.board.turn);
-            if (handData.board?.river) boardCards.push(handData.board.river);
-
-            await supabase.from('hand_history').insert({
-                user_id: user.id,
-                game_type: handData.game_type || 'NLH',
-                stakes: handData.stakes || null,
-                hero_position: handData.hero_position || null,
-                hero_cards: handData.hero_cards,
-                board_cards: boardCards.length > 0 ? boardCards : null,
-                pot_size: parseFloat((handData.pot_size || '0').replace(/[^0-9.]/g, '')) || null,
-                result: handData.result || null,
-                amount: parseFloat((handData.amount_won_lost || '0').replace(/[^0-9.-]/g, '')) || 0,
-                hand_name: handData.hand_name || null,
-                actions: handData.actions || null,
-                notes: handData.notes || 'AI-imported from screenshot',
-                source: 'ai_reader',
-                created_at: new Date().toISOString(),
-            }).catch(err => {
-                console.warn('[AI-Hand-Reader] Failed to save hand (non-critical):', err.message);
             });
         }
 
