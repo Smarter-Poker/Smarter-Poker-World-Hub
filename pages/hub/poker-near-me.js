@@ -37,6 +37,7 @@ const TripCostCalculator = dynamic(() => import('../../src/components/poker-near
 const SeasonalCalendar = dynamic(() => import('../../src/components/poker-near-me/SeasonalCalendar'), { ssr: false });
 
 import { cachedFetch, fetchWithRetry } from '../../src/components/poker-near-me/lobby/PnmApiCache';
+import { MapErrorBoundary } from '../../src/components/poker-near-me/VenueMap';
 
 // Page configuration constants
 const PAGE_SIZE = 50;
