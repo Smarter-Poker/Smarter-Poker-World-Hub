@@ -223,8 +223,6 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
 
-    if (isVip) return null;
-
     // Re-fetch balance on mount to be current (with 1 retry for resilience)
     useEffect(() => {
         if (!userId) return;
@@ -336,6 +334,8 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
         onClose?.();
         router.push('/hub/diamond-store');
     };
+
+    if (isVip) return null;
 
     return (
         <>
