@@ -373,6 +373,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     const [isRefreshing, setIsRefreshing] = useState(false); // ENH-E
     const fetchedRef = useRef(false);
     const fetchInFlightRef = useRef(false);
+    // ── BUS-FIX: Guard against self-feedback when modal emits its own busEvent ──
+    const skipNextBusRef = useRef(false);
     const skeletonCount = useRef(getSkeletonCount());
     const touchStartY = useRef(0); // ENH-E
     const scrollContainerRef = useRef(null); // ENH-E
@@ -436,10 +438,16 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         // ── EVENTBUS SYNC: Listen for DIAMONDS_EARNED / DIAMONDS_SPENT from global EventBus ──
         // This ensures the wallet modal refreshes when ANY part of the app
         // (Training Engine, Trivia, Store, etc.) mutates diamond balance.
+        // NOTE: skipNextBusRef prevents double-deduction when the modal ITSELF emits an event.
         const handleBusEvent = (event) => {
+            // ── BUS-FIX: Skip self-originated events to prevent double-deduction ──
+            if (skipNextBusRef.current) {
+                skipNextBusRef.current = false;
+                return;
+            }
             const amount = event?.payload?.amount;
             if (amount !== undefined && amount !== null) {
-                // Optimistic balance update from bus event
+                // Optimistic balance update from EXTERNAL bus event
                 setBalance(prev => {
                     const current = prev ?? 0;
                     return event.type === EventType.DIAMONDS_EARNED
@@ -584,8 +592,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 const data = await res.json();
                 setTransferFriends(data.data?.friends || []);
             }
-        } catch (_) {}
-        setFriendsLoading(false);
+        } catch (_) {
+            // Network/parse errors — silently fail
+        } finally {
+            // ── BUG-FIX: Always clear loading state, even on early returns ──
+            setFriendsLoading(false);
+        }
     }, [getSession]);
 
     // ── H7: Send diamonds to friend ──
@@ -640,19 +652,24 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     setDailyLimitInfo({ sent: data.dailySent, limit: data.dailyLimit, tier: data.tier });
                 }
                 setTransferRecipient(null);
-                // Update balance optimistically
-                setBalance(prev => (prev ?? 0) - amount);
-                // ── EVENTBUS: Emit diamond-spent through global bus (replaces legacy window event) ──
+                // Update balance from server's authoritative newBalance (not client arithmetic)
+                const serverBalance = data.newBalance ?? ((balance ?? 0) - amount);
+                setBalance(serverBalance);
+                // ── BUS-FIX: Set skip flag BEFORE emitting to prevent self-feedback double-deduction ──
+                skipNextBusRef.current = true;
+                // ── EVENTBUS: Emit diamond-spent through global bus ──
                 busEmit.diamondsSpent(amount, 'diamond-transfer');
-                // Legacy fallback for any remaining window-event listeners
-                window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { source: 'diamond-transfer' } }));
+                // Legacy fallback — include newBalance so listeners don't fall back to stale cache
+                window.dispatchEvent(new CustomEvent('diamond-balance-refresh', {
+                    detail: { source: 'diamond-transfer', newBalance: serverBalance }
+                }));
                 // #7: Recipient notification event (other components can listen)
                 window.dispatchEvent(new CustomEvent('diamond-gift-sent', {
                     detail: {
                         recipientId: transferRecipient.id,
                         recipientName: data.recipientName || transferRecipient.display_name,
                         amount,
-                        senderBalance: data.newBalance,
+                        senderBalance: serverBalance,
                     }
                 }));
                 // P2-5: Sparkle animation on success
