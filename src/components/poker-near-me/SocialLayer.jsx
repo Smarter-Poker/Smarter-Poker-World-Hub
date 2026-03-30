@@ -293,48 +293,48 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             <style jsx>{`
         .social-layer { padding: 0 0 20px; }
         .sl-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-        .sl-header h2 { font-size: 22px; font-weight: 700; color: #fff; margin: 0; flex: 1; }
-        .sl-badge { padding: 4px 12px; border-radius: 20px; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; font-size: 12px; font-weight: 600; }
+        .sl-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; flex: 1; letter-spacing: -0.3px; }
+        .sl-badge { padding: 4px 12px; border-radius: 20px; background: rgba(34,197,94,0.15); border: 1.5px solid rgba(34,197,94,0.3); color: #22c55e; font-size: 12px; font-weight: 600; box-shadow: inset 0 1px 0 rgba(34,197,94,0.1); }
         .sl-login-prompt, .sl-empty { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; text-align: center; }
-        .sl-login-prompt p, .sl-empty p { color: rgba(200,214,229,0.5); font-size: 14px; margin: 12px 0 0; }
+        .sl-login-prompt p, .sl-empty p { color: rgba(148,163,184,0.5); font-size: 14px; margin: 12px 0 0; }
         .sl-loading { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 12px; }
-        .sl-spinner { width: 32px; height: 32px; border: 3px solid rgba(88,166,255,0.1); border-top-color: #58a6ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        .sl-loading span { color: rgba(200,214,229,0.4); font-size: 13px; }
+        .sl-spinner { width: 32px; height: 32px; border: 3px solid rgba(148,163,184,0.1); border-top-color: #d4a853; border-radius: 50%; animation: spin 0.8s linear infinite; box-shadow: 0 0 12px rgba(212,168,83,0.15); }
+        .sl-loading span { color: rgba(148,163,184,0.5); font-size: 13px; }
         .sl-venue-list { display: flex; flex-direction: column; gap: 16px; }
-        .sl-venue-group { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 14px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        .sl-venue-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(88,166,255,0.1); }
+        .sl-venue-group { background: linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 14px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35); }
+        .sl-venue-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(148,163,184,0.08); }
         .sl-venue-info { flex: 1; }
-        .sl-venue-name { font-size: 16px; font-weight: 600; color: #e0e8f0; }
-        .sl-venue-loc { font-size: 12px; color: rgba(200,214,229,0.4); margin-top: 2px; }
-        .sl-venue-count { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; background: rgba(88,166,255,0.15); color: #58a6ff; font-size: 13px; font-weight: 600; }
+        .sl-venue-name { font-size: 16px; font-weight: 600; color: #e2e8f0; }
+        .sl-venue-loc { font-size: 12px; color: rgba(148,163,184,0.5); margin-top: 2px; }
+        .sl-venue-count { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; background: linear-gradient(180deg, rgba(212,168,83,0.12), rgba(184,134,11,0.08)); border: 1px solid rgba(212,168,83,0.25); color: #d4a853; font-size: 13px; font-weight: 600; }
         .sl-friend-list { padding: 8px; }
         .sl-friend-card { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 10px; transition: background 0.2s; }
-        .sl-friend-card:hover { background: rgba(88,166,255,0.05); }
+        .sl-friend-card:hover { background: rgba(148,163,184,0.04); }
         .sl-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
         .sl-friend-info { flex: 1; min-width: 0; }
-        .sl-friend-name { font-size: 14px; font-weight: 600; color: #e0e8f0; }
-        .sl-friend-time { font-size: 12px; color: rgba(200,214,229,0.5); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+        .sl-friend-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
+        .sl-friend-time { font-size: 12px; color: rgba(148,163,184,0.5); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
         .sl-online-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
-        .sl-friend-msg { color: rgba(200,214,229,0.3); font-style: italic; }
-        .sl-invite-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 8px; background: rgba(88,166,255,0.15); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; font-size: 12px; font-weight: 500; cursor: pointer; flex-shrink: 0; transition: all 0.2s; }
-        .sl-invite-btn:hover { background: rgba(88,166,255,0.25); }
+        .sl-friend-msg { color: rgba(148,163,184,0.35); font-style: italic; }
+        .sl-invite-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 8px; background: linear-gradient(180deg, rgba(212,168,83,0.12), rgba(184,134,11,0.08)); border: 1.5px solid rgba(212,168,83,0.35); color: #d4a853; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(212,168,83,0.1); }
+        .sl-invite-btn:hover { border-color: rgba(212,168,83,0.5); box-shadow: 0 0 10px rgba(212,168,83,0.12); }
         .sl-modal-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .sl-modal { background: #0d1117; border: 1px solid rgba(88,166,255,0.3); border-radius: 16px; padding: 24px; max-width: 420px; width: 100%; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        .sl-modal { background: linear-gradient(160deg, rgba(18,28,45,0.98), rgba(10,16,28,1)); border: 2px solid rgba(148,163,184,0.16); border-radius: 16px; padding: 24px; max-width: 420px; width: 100%; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 16px 64px rgba(0,0,0,0.6); }
         .sl-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .sl-modal-header h3 { font-size: 18px; font-weight: 600; color: #fff; margin: 0; }
-        .sl-modal-close { background: none; border: none; color: rgba(200,214,229,0.4); font-size: 24px; cursor: pointer; transition: color 0.2s; }
-        .sl-modal-close:hover { color: #fff; }
-        .sl-modal-text { font-size: 14px; color: rgba(200,214,229,0.6); margin: 0 0 16px; }
+        .sl-modal-header h3 { font-size: 18px; font-weight: 600; color: #e2e8f0; margin: 0; }
+        .sl-modal-close { background: none; border: none; color: rgba(148,163,184,0.5); font-size: 24px; cursor: pointer; transition: color 0.2s; }
+        .sl-modal-close:hover { color: #d4a853; }
+        .sl-modal-text { font-size: 14px; color: rgba(148,163,184,0.6); margin: 0 0 16px; }
         .sl-invite-link-box { display: flex; gap: 8px; }
-        .sl-invite-link-input { flex: 1; padding: 10px 12px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 8px; color: #e0e8f0; font-size: 12px; font-family: monospace; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .sl-invite-link-input { flex: 1; padding: 10px 12px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 8px; color: #e2e8f0; font-size: 12px; font-family: monospace; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4); }
         .sl-copy-btn { padding: 10px 16px; background: linear-gradient(135deg, #d4a853, #b8860b); border: none; border-radius: 8px; color: #000; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
         .sl-empty-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(212,168,83,0.06); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
         .sl-empty-ctas { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-        .sl-cta-btn { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: 1px solid; font-family: inherit; }
+        .sl-cta-btn { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s; border: 1.5px solid; font-family: inherit; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 6px rgba(0,0,0,0.3); }
         .sl-cta-checkin { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); color: #22c55e; }
         .sl-cta-checkin:hover { background: rgba(34,197,94,0.2); }
-        .sl-cta-invite { background: rgba(88,166,255,0.1); border-color: rgba(88,166,255,0.3); color: #58a6ff; }
-        .sl-cta-invite:hover { background: rgba(88,166,255,0.2); }
+        .sl-cta-invite { background: linear-gradient(180deg, rgba(212,168,83,0.12), rgba(184,134,11,0.08)); border-color: rgba(212,168,83,0.35); color: #d4a853; }
+        .sl-cta-invite:hover { border-color: rgba(212,168,83,0.5); }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
         </div>

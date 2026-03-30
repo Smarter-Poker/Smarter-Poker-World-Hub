@@ -70,8 +70,12 @@ export default async function handler(req, res) {
     // 3. Check each alert against live tables
     for (const alert of alerts) {
       const matchingTables = (liveTables || []).filter(t => {
-        const venueMatch = t.venue_name?.toLowerCase().includes(alert.venue_name?.toLowerCase());
-        const gameMatch = t.game_name?.toLowerCase().includes(alert.game_type?.toLowerCase());
+        // Exact venue match (case-insensitive) to prevent cross-venue false positives
+        const venueMatch = t.venue_name?.toLowerCase().trim() === alert.venue_name?.toLowerCase().trim();
+        // Game type prefix match: alert for "NLH" matches "NLH 1/2", but alert for "NLH 1/2" doesn't match "NLH 2/5"
+        const alertGame = alert.game_type?.toLowerCase().trim();
+        const tableGame = t.game_name?.toLowerCase().trim();
+        const gameMatch = tableGame?.startsWith(alertGame) || tableGame?.includes(alertGame);
         return venueMatch && gameMatch;
       });
 

@@ -290,6 +290,10 @@
       "schedule": "*/15 * * * *"
     },
     {
+      "path": "/api/cron/scraper-data-cleanup",
+      "schedule": "0 3 * * *"
+    },
+    {
       "path": "/api/clawbot/orchestrator",
       "schedule": "0 7 * * *"
     }

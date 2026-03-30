@@ -239,51 +239,52 @@ export default function SeasonalCalendar({ series = [], tours = [], dailyTournam
             <style jsx>{`
         .seasonal-cal { padding: 0 0 20px; }
         .sc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-        .sc-header h2 { font-size: 22px; font-weight: 700; color: #fff; margin: 0; flex: 1; }
-        .sc-event-count { padding: 4px 12px; border-radius: 20px; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; font-size: 12px; font-weight: 600; }
+        .sc-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; flex: 1; letter-spacing: -0.3px; }
+        .sc-event-count { padding: 4px 12px; border-radius: 20px; background: linear-gradient(180deg, rgba(212,168,83,0.12) 0%, rgba(184,134,11,0.08) 100%); border: 1.5px solid rgba(212,168,83,0.35); color: #d4a853; font-size: 12px; font-weight: 600; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 6px rgba(0,0,0,0.25); }
         .sc-filters { margin-bottom: 12px; }
         .sc-filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-        .sc-filter-label { font-size: 12px; color: rgba(200,214,229,0.5); font-weight: 500; }
-        .sc-filter-chip { padding: 6px 12px; border-radius: 8px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); color: rgba(200,214,229,0.6); font-size: 12px; cursor: pointer; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        .sc-filter-chip.active { background: rgba(88,166,255,0.15); border-color: rgba(88,166,255,0.4); color: #58a6ff; }
-        .sc-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; padding: 10px 14px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 10px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        .sc-legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: rgba(200,214,229,0.5); }
-        .sc-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .sc-filter-label { font-size: 12px; color: rgba(148,163,184,0.6); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+        .sc-filter-chip { padding: 6px 12px; border-radius: 8px; background: linear-gradient(180deg, rgba(25,35,55,0.9) 0%, rgba(15,23,42,0.95) 100%); border: 1.5px solid rgba(148,163,184,0.15); color: rgba(148,163,184,0.7); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3); }
+        .sc-filter-chip:hover { border-color: rgba(148,163,184,0.3); color: #e2e8f0; }
+        .sc-filter-chip.active { background: linear-gradient(180deg, rgba(212,168,83,0.15) 0%, rgba(184,134,11,0.08) 100%); border-color: rgba(212,168,83,0.45); color: #d4a853; box-shadow: inset 0 1px 0 rgba(212,168,83,0.15), 0 0 10px rgba(212,168,83,0.1), 0 2px 4px rgba(0,0,0,0.3); }
+        .sc-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; padding: 10px 14px; background: linear-gradient(160deg, rgba(18,28,45,0.7) 0%, rgba(10,16,28,0.8) 100%); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
+        .sc-legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: rgba(148,163,184,0.6); }
+        .sc-legend-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 4px currentColor; }
         .sc-months { display: flex; flex-direction: column; gap: 8px; }
-        .sc-month { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 12px; overflow: hidden; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        .sc-month.expanded { border-color: rgba(88,166,255,0.5); }
-        .sc-month-header { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: none; border: none; color: #fff; cursor: pointer; }
-        .sc-month-header:hover { background: rgba(88,166,255,0.05); }
+        .sc-month { background: linear-gradient(160deg, rgba(18,28,45,0.85) 0%, rgba(10,16,28,0.92) 100%); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 12px; overflow: hidden; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35); }
+        .sc-month.expanded { border-color: rgba(212,168,83,0.35); box-shadow: inset 0 1px 0 rgba(212,168,83,0.08), 0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px rgba(212,168,83,0.06); }
+        .sc-month-header { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: none; border: none; color: #e2e8f0; cursor: pointer; transition: background 0.2s; }
+        .sc-month-header:hover { background: rgba(148,163,184,0.04); }
         .sc-month-title { display: flex; align-items: center; gap: 10px; }
-        .sc-month-title span:first-child { font-size: 16px; font-weight: 600; color: #e0e8f0; }
-        .sc-month-badge { padding: 2px 8px; border-radius: 10px; background: rgba(88,166,255,0.15); color: #58a6ff; font-size: 11px; font-weight: 600; }
+        .sc-month-title span:first-child { font-size: 16px; font-weight: 600; color: #e2e8f0; }
+        .sc-month-badge { padding: 2px 8px; border-radius: 10px; background: rgba(212,168,83,0.12); border: 1px solid rgba(212,168,83,0.25); color: #d4a853; font-size: 11px; font-weight: 600; }
         .sc-month-body { padding: 0 16px 16px; }
         .sc-day-headers { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
-        .sc-dh { text-align: center; font-size: 11px; color: rgba(200,214,229,0.4); font-weight: 500; padding: 4px 0; }
+        .sc-dh { text-align: center; font-size: 11px; color: rgba(148,163,184,0.5); font-weight: 600; padding: 4px 0; text-transform: uppercase; letter-spacing: 0.3px; }
         .sc-day-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .sc-day { position: relative; min-height: 38px; padding: 4px; border-radius: 6px; background: rgba(88,166,255,0.03); display: flex; flex-direction: column; align-items: center; gap: 2px; transition: all 0.15s; }
+        .sc-day { position: relative; min-height: 38px; padding: 4px; border-radius: 6px; background: rgba(148,163,184,0.03); display: flex; flex-direction: column; align-items: center; gap: 2px; transition: all 0.2s; border: 1px solid transparent; }
         .sc-day.empty { background: transparent; }
-        .sc-day.has-events { cursor: pointer; background: rgba(88,166,255,0.06); }
-        .sc-day.has-events:hover { background: rgba(88,166,255,0.15); }
-        .sc-day.today { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); }
-        .sc-day.selected { background: rgba(88,166,255,0.2); border: 1px solid rgba(88,166,255,0.5); }
-        .sc-day-num { font-size: 12px; color: rgba(200,214,229,0.6); font-weight: 500; }
-        .sc-day.today .sc-day-num { color: #58a6ff; font-weight: 700; }
+        .sc-day.has-events { cursor: pointer; background: rgba(212,168,83,0.04); border-color: rgba(212,168,83,0.08); }
+        .sc-day.has-events:hover { background: rgba(212,168,83,0.12); border-color: rgba(212,168,83,0.25); }
+        .sc-day.today { background: rgba(212,168,83,0.08); border: 1.5px solid rgba(212,168,83,0.3); }
+        .sc-day.selected { background: rgba(212,168,83,0.18); border: 1.5px solid rgba(212,168,83,0.5); box-shadow: 0 0 8px rgba(212,168,83,0.1); }
+        .sc-day-num { font-size: 12px; color: rgba(148,163,184,0.6); font-weight: 500; }
+        .sc-day.today .sc-day-num { color: #d4a853; font-weight: 700; }
         .sc-day-dots { display: flex; gap: 2px; justify-content: center; flex-wrap: wrap; }
         .sc-dot { width: 5px; height: 5px; border-radius: 50%; }
-        .sc-dot-more { font-size: 8px; color: rgba(200,214,229,0.5); }
-        .sc-day-panel { margin-top: 16px; background: rgba(13,17,23,0.85); border: 1px solid rgba(88,166,255,0.3); border-radius: 14px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+        .sc-dot-more { font-size: 8px; color: rgba(148,163,184,0.5); }
+        .sc-day-panel { margin-top: 16px; background: linear-gradient(160deg, rgba(18,28,45,0.92) 0%, rgba(10,16,28,0.96) 100%); border: 2px solid rgba(148,163,184,0.16); border-radius: 14px; padding: 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.5); }
         .sc-dp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .sc-dp-header h3 { font-size: 18px; font-weight: 600; color: #fff; margin: 0; }
-        .sc-dp-close { background: none; border: none; color: rgba(200,214,229,0.5); font-size: 24px; cursor: pointer; transition: color 0.2s; }
-        .sc-dp-close:hover { color: #fff; }
+        .sc-dp-header h3 { font-size: 18px; font-weight: 600; color: #e2e8f0; margin: 0; }
+        .sc-dp-close { background: none; border: none; color: rgba(148,163,184,0.5); font-size: 24px; cursor: pointer; transition: color 0.2s; }
+        .sc-dp-close:hover { color: #d4a853; }
         .sc-dp-events { display: flex; flex-direction: column; gap: 8px; }
-        .sc-event-card { padding: 14px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-left: 3px solid #58a6ff; border-radius: 10px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.2s; cursor: pointer; }
-        .sc-event-card:hover { transform: translateY(-1px); border-color: rgba(88,166,255,0.4); }
+        .sc-event-card { padding: 14px; background: linear-gradient(160deg, rgba(18,28,45,0.7) 0%, rgba(10,16,28,0.85) 100%); border: 1.5px solid rgba(148,163,184,0.12); border-left: 3px solid #d4a853; border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); transition: all 0.25s; cursor: pointer; }
+        .sc-event-card:hover { transform: translateY(-1px); border-color: rgba(212,168,83,0.35); box-shadow: inset 0 1px 0 rgba(212,168,83,0.08), 0 4px 16px rgba(0,0,0,0.4); }
         .sc-ev-header { display: flex; justify-content: space-between; align-items: center; }
-        .sc-ev-name { font-size: 14px; font-weight: 600; color: #fff; }
+        .sc-ev-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
         .sc-ev-tour { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
-        .sc-ev-details { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+        .sc-ev-details { font-size: 12px; color: rgba(148,163,184,0.5); margin-top: 4px; }
         .sc-ev-gtd { font-size: 13px; color: #22c55e; font-weight: 600; margin-top: 4px; }
       `}</style>
         </div>

@@ -110,10 +110,10 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
             onChange={e => setSearchTerm(e.target.value)}
             style={{
               width: '100%', padding: '8px 14px', borderRadius: 8,
-              border: '1px solid rgba(88,166,255,0.2)', background: 'rgba(13,17,23,0.7)',
-              color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none',
+              border: '1.5px solid rgba(148,163,184,0.15)', background: 'linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98))',
+              color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none',
               marginBottom: 8, boxSizing: 'border-box',
-              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
+              boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(148,163,184,0.08)',
             }}
           />
           <div style={{ display: 'grid', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
@@ -126,9 +126,9 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '8px 12px', borderRadius: 8,
-                    border: isSelected ? '1px solid rgba(212,168,83,0.5)' : '1px solid rgba(88,166,255,0.15)',
-                    background: isSelected ? 'rgba(212,168,83,0.1)' : 'rgba(13,17,23,0.5)',
-                    color: isSelected ? '#d4a853' : '#e0e8f0',
+                    border: isSelected ? '1.5px solid rgba(212,168,83,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
+                    background: isSelected ? 'rgba(212,168,83,0.1)' : 'linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85))',
+                    color: isSelected ? '#d4a853' : '#e2e8f0',
                     fontSize: 12, fontWeight: isSelected ? 700 : 400,
                     cursor: selectedIds.length >= 3 && !isSelected ? 'not-allowed' : 'pointer',
                     fontFamily: 'inherit', textAlign: 'left', width: '100%',
@@ -138,7 +138,7 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
                 >
                   <div style={{
                     width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-                    border: isSelected ? '2px solid #d4a853' : '2px solid rgba(88,166,255,0.3)',
+                    border: isSelected ? '2px solid #d4a853' : '2px solid rgba(148,163,184,0.2)',
                     background: isSelected ? 'rgba(212,168,83,0.2)' : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
@@ -181,8 +181,8 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
           {selectedVenues.length < 3 && (
             <button onClick={() => setSelectedIds(prev => prev)} style={{
               padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600,
-              border: '1px dashed rgba(88,166,255,0.3)', background: 'transparent',
-              color: 'rgba(200,214,229,0.4)', cursor: 'pointer', fontFamily: 'inherit',
+              border: '1.5px dashed rgba(148,163,184,0.2)', background: 'transparent',
+              color: 'rgba(148,163,184,0.5)', cursor: 'pointer', fontFamily: 'inherit',
             }}>+ Add Venue</button>
           )}
         </div>
@@ -190,13 +190,13 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
 
       {/* Comparison table */}
       {selectedVenues.length >= 2 && (
-        <div style={{ overflowX: 'auto', borderRadius: 12, border: '1px solid rgba(88,166,255,0.15)', background: 'rgba(13,17,23,0.5)' }}>
+        <div style={{ overflowX: 'auto', borderRadius: 12, border: '1.5px solid rgba(148,163,184,0.12)', background: 'linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr>
-                <th style={{ padding: '10px 14px', textAlign: 'left', color: 'rgba(200,214,229,0.5)', fontWeight: 600, borderBottom: '1px solid rgba(88,166,255,0.1)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Metric</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', color: 'rgba(148,163,184,0.6)', fontWeight: 600, borderBottom: '1px solid rgba(148,163,184,0.08)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Metric</th>
                 {selectedVenues.map(v => (
-                  <th key={v.id} style={{ padding: '10px 14px', textAlign: 'center', color: '#d4a853', fontWeight: 700, borderBottom: '1px solid rgba(88,166,255,0.1)', fontSize: 13, minWidth: 120 }}>
+                  <th key={v.id} style={{ padding: '10px 14px', textAlign: 'center', color: '#d4a853', fontWeight: 700, borderBottom: '1px solid rgba(148,163,184,0.08)', fontSize: 13, minWidth: 120 }}>
                     {v.name?.length > 18 ? v.name.slice(0, 18) + '…' : v.name}
                   </th>
                 ))}
@@ -205,11 +205,11 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
             <tbody>
               {COMPARE_FIELDS.slice(1).map((field, i) => (
                 <tr key={field.key} style={{ background: i % 2 === 0 ? 'rgba(13,17,23,0.3)' : 'transparent' }}>
-                  <td style={{ padding: '8px 14px', color: 'rgba(200,214,229,0.6)', fontWeight: 600, borderBottom: '1px solid rgba(88,166,255,0.05)', whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '8px 14px', color: 'rgba(148,163,184,0.7)', fontWeight: 600, borderBottom: '1px solid rgba(148,163,184,0.05)', whiteSpace: 'nowrap' }}>
                     {field.label}
                   </td>
                   {selectedVenues.map(v => (
-                    <td key={v.id} style={{ padding: '8px 14px', textAlign: 'center', color: '#e0e8f0', borderBottom: '1px solid rgba(88,166,255,0.05)' }}>
+                    <td key={v.id} style={{ padding: '8px 14px', textAlign: 'center', color: '#e2e8f0', borderBottom: '1px solid rgba(148,163,184,0.05)' }}>
                       {getFieldValue(v, field.key, userLocation, liveData)}
                     </td>
                   ))}

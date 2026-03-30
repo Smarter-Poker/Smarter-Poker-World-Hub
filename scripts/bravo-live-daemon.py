@@ -684,11 +684,12 @@ class BravoSessionManager:
 # CLEANUP: EVIDENCE FILES (keep last 7 days)
 # ============================================================
 def cleanup_evidence_files():
-    """Delete evidence JSON files older than 7 days."""
+    """Delete evidence JSON files older than 7 days (any source)."""
     try:
         cutoff = time.time() - (7 * 86400)
         count = 0
-        for f in EVIDENCE_DIR.glob('bravo_live_*.json'):
+        # Clean ALL evidence files, not just bravo's — prevents cross-daemon accumulation
+        for f in EVIDENCE_DIR.glob('*.json'):
             if f.stat().st_mtime < cutoff:
                 f.unlink()
                 count += 1
@@ -702,7 +703,7 @@ def cleanup_evidence_files():
 # CLEANUP: LOG FILES (keep last 14 days)
 # ============================================================
 def cleanup_log_files():
-    """Delete daemon log files older than 14 days."""
+    """Delete daemon log files older than 14 days. Truncate launchd stderr/stdout if >5MB."""
     try:
         cutoff = time.time() - (14 * 86400)
         count = 0
@@ -710,8 +711,19 @@ def cleanup_log_files():
             if f.stat().st_mtime < cutoff:
                 f.unlink()
                 count += 1
+        # Truncate launchd stderr/stdout logs if over 5MB
+        for logname in ['launchd-stderr.log', 'launchd-stdout.log']:
+            lf = LOG_DIR / logname
+            if lf.exists() and lf.stat().st_size > 5 * 1024 * 1024:
+                # Keep last 1000 lines
+                try:
+                    lines = lf.read_text().splitlines()[-1000:]
+                    lf.write_text('\n'.join(lines) + '\n')
+                    count += 1
+                except Exception:
+                    pass
         if count:
-            log.info(f'  🧹 Cleaned up {count} log files (>14 days old)')
+            log.info(f'  🧹 Cleaned up {count} log files (>14 days old / truncated)')
     except Exception as e:
         log.debug(f'  Log cleanup error: {e}')
 

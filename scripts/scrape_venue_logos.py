@@ -18,15 +18,18 @@ import asyncio
 import re
 from datetime import datetime, timezone
 import urllib.request as urllib_req
+from urllib.parse import urlparse
 from urllib.error import URLError, HTTPError
 from bs4 import BeautifulSoup
 
 from scrapling.fetchers import AsyncStealthySession
 from dotenv import load_dotenv
 
+# Load agent credentials first, then .env.local as fallback
+load_dotenv('.agent/skills/credentials/.env')
 load_dotenv('.env.local')
 
-SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
+SUPABASE_URL = os.environ.get("SUPABASE_URL") or os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 EVIDENCE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'scrape-evidence')
 os.makedirs(EVIDENCE_DIR, exist_ok=True)
@@ -207,7 +210,7 @@ async def process_venue(venue, session, semaphore):
             
         for try_url in urls_to_try:
             try:
-                domain = urllib_req.urlparse(try_url).scheme + '://' + urllib_req.urlparse(try_url).netloc
+                domain = urlparse(try_url).scheme + '://' + urlparse(try_url).netloc
                 page = await session.fetch(try_url, google_search=False)
                 if page.status != 200:
                     continue
@@ -236,20 +239,22 @@ async def main():
     venues = fetch_venues()
     print(f"Loaded {len(venues)} venues from Supabase.")
     
-    # Optional: filter out ones we don't need to do? 
-    # For now, let's process venues that either have no profile_photo_url or have one that might be PA placeholder
+    # Filter to only venues that need a logo — skip those with existing real logos
     targets = []
+    already_have = 0
     for v in venues:
-        logo = v.get('profile_photo_url')
-        if not logo or not is_valid_logo(logo) or 'favicons?domain' in logo:
-            targets.append(v)
-            
-    # Or to guarantee 100% pass via the extraction chain, we could process all.
-    # We will process all that we need to.
-    # Let's actually process up to 600 venues across the board right now.
-    targets = venues # Override to process all 585 sequentially/parallel to ensure genuine logos.
+        logo = v.get('profile_photo_url') or ''
+        # Skip venues that already have a real logo (not a favicon or placeholder)
+        if logo and 'favicons?domain' not in logo and 'icon.horse' not in logo and logo.startswith('http'):
+            already_have += 1
+            continue
+        # Must have at least a website or PA URL to attempt scraping
+        if not v.get('website') and not v.get('pokeratlas_url'):
+            continue
+        targets.append(v)
 
-    print(f"Processing {len(targets)} venues to extract genuine logos...")
+    print(f"  → {already_have} venues already have valid logos (skipped)")
+    print(f"  → {len(targets)} venues need logo scraping")
     
     semaphore = asyncio.Semaphore(3) # 3 concurrent requests
     

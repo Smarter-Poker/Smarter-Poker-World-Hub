@@ -39,8 +39,8 @@ function SourceBadge({ source }) {
     return (
         <span style={{
             fontSize: 10, letterSpacing: '0.3px',
-            color: isBravo ? 'rgba(239,68,68,0.9)' : 'rgba(88,166,255,0.9)',
-            background: isBravo ? 'rgba(239,68,68,0.12)' : 'rgba(88,166,255,0.12)',
+            color: isBravo ? 'rgba(239,68,68,0.9)' : 'rgba(212,168,83,0.9)',
+            background: isBravo ? 'rgba(239,68,68,0.12)' : 'rgba(212,168,83,0.12)',
             padding: '2px 6px',
             borderRadius: 4,
             fontWeight: 800,
@@ -423,7 +423,7 @@ export default function LiveGamesFeed({
                         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
                             {g.players_waiting > 0 && <span style={{ color: '#d4a853', fontSize: 11 }}>{g.players_waiting} waiting</span>}
                             {isPASource ? (
-                                <span style={{ color: '#58a6ff', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 11 }}>
+                                <span style={{ color: '#d4a853', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 11 }}>
                                     {g.runs || `~${g.tables_running} est.`}
                                 </span>
                             ) : (
@@ -438,8 +438,8 @@ export default function LiveGamesFeed({
                         onClick={() => toggleBreakdown(venueSlug)} 
                         style={{ 
                             display: 'block', width: '100%', marginTop: 6, padding: '5px 0', 
-                            background: 'rgba(88,166,255,0.06)', border: '1px solid rgba(88,166,255,0.15)', 
-                            borderRadius: 6, color: '#58a6ff', fontSize: 11, fontWeight: 600, 
+                            background: 'rgba(212,168,83,0.06)', border: '1.5px solid rgba(212,168,83,0.15)', 
+                            borderRadius: 6, color: '#d4a853', fontSize: 11, fontWeight: 600, 
                             cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' 
                         }}
                     >
@@ -497,7 +497,14 @@ export default function LiveGamesFeed({
                                 <img 
                                     src={v.logoUrl} alt="" loading="lazy"
                                     style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(255,255,255,0.08)' }}
-                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                    onError={(e) => {
+                                        const fallback = getVenueLogoFallback(v);
+                                        if (fallback && e.target.src !== fallback) {
+                                            e.target.src = fallback;
+                                        } else {
+                                            e.target.style.display = 'none';
+                                        }
+                                    }}
                                 />
                             ) : (
                                 <div style={{ width: 36, height: 36, borderRadius: 8, background: getInitialsColor(v.id || 0).bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: getInitialsColor(v.id || 0).text, flexShrink: 0, border: `1px solid ${getInitialsColor(v.id || 0).border}` }}>
@@ -564,7 +571,7 @@ export default function LiveGamesFeed({
                             </div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 20, fontWeight: 800, color: '#58a6ff' }}>{v.games?.length || 0}</div>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: '#d4a853' }}>{v.games?.length || 0}</div>
                             <div style={{ fontSize: 9, color: 'rgba(200,214,229,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Games</div>
                         </div>
                         {/* View Venue + Report Buttons */}
@@ -707,7 +714,7 @@ export default function LiveGamesFeed({
                         <div style={{ fontSize: 9, color: 'rgba(200,214,229,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Players Waiting</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: '#58a6ff' }}>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: '#d4a853' }}>
                             {refreshCountdown > 0 ? `${Math.floor(refreshCountdown / 60)}:${String(refreshCountdown % 60).padStart(2, '0')}` : '...'}
                         </div>
                         <div style={{ fontSize: 9, color: 'rgba(200,214,229,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Next Refresh</div>
@@ -785,11 +792,11 @@ export default function LiveGamesFeed({
                             <div style={{ display: 'flex', background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, overflow: 'hidden' }}>
                                 <button onClick={() => setViewMode('list')} style={{
                                     padding: '5px 10px', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
-                                    background: viewMode === 'list' ? 'rgba(88,166,255,0.15)' : 'transparent', color: viewMode === 'list' ? '#58a6ff' : '#8b949e'
+                                    background: viewMode === 'list' ? 'rgba(212,168,83,0.15)' : 'transparent', color: viewMode === 'list' ? '#d4a853' : '#8b949e'
                                 }}>List</button>
                                 <button onClick={() => setViewMode('map')} style={{
                                     padding: '5px 10px', border: 'none', borderLeft: '1px solid rgba(48,54,61,0.6)', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
-                                    background: viewMode === 'map' ? 'rgba(88,166,255,0.15)' : 'transparent', color: viewMode === 'map' ? '#58a6ff' : '#8b949e'
+                                    background: viewMode === 'map' ? 'rgba(212,168,83,0.15)' : 'transparent', color: viewMode === 'map' ? '#d4a853' : '#8b949e'
                                 }}>Map</button>
                             </div>
 
@@ -884,7 +891,7 @@ export default function LiveGamesFeed({
                                 onClick={() => fetchGlobalLiveData(true)} 
                                 disabled={isRefreshing}
                                 style={{ 
-                                    background: 'rgba(88,166,255,0.08)', border: '1px solid rgba(88,166,255,0.2)', 
+                                    background: 'rgba(212,168,83,0.08)', border: '1.5px solid rgba(212,168,83,0.2)', 
                                     borderRadius: 6, padding: '4px 10px', color: '#58a6ff', fontSize: 11, 
                                     fontWeight: 600, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit',
                                     display: 'flex', alignItems: 'center', gap: 4,

@@ -1,17 +1,18 @@
 /**
  * ScraperHealthDashboard — Admin panel for monitoring Bravo + PokerAtlas scrapers
  * 
- * Consumes /api/poker/scraper-health to display:
+ * Consumes /api/poker/scraper-health and /api/poker/scraper-metrics to display:
  *   - Per-source health status (healthy/stale/dead)
  *   - Last scrape timestamps and staleness
  *   - Record counts, venue counts, table/waiting totals
+ *   - Performance metrics with sparkline visualization
  *   - Visual status indicators with auto-refresh
  * 
  * Designed for the Futuristic Metal UI system.
  */
 import React, { useState, useEffect, useCallback } from 'react';
 
-const AUTO_REFRESH_MS = 30000; // Auto-refresh every 30s
+const AUTO_REFRESH_MS = 30000;
 
 const STATUS_COLORS = {
   healthy: { color: '#3fb950', bg: 'rgba(63,185,80,0.08)', border: 'rgba(63,185,80,0.3)', label: 'HEALTHY' },
@@ -40,16 +41,17 @@ function StatusBadge({ status }) {
   );
 }
 
-function StatCard({ label, value, color = '#e0e8f0', subtext }) {
+function StatCard({ label, value, color = '#e0e8f0' }) {
   return (
     <div style={{
-      flex: 1, minWidth: 100, padding: '12px 16px', borderRadius: 10,
-      background: 'rgba(13,17,23,0.6)', border: '1px solid rgba(48,54,61,0.4)',
+      flex: 1, minWidth: 80, padding: '10px 12px', borderRadius: 10,
+      background: 'linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85))',
+      border: '1.5px solid rgba(148,163,184,0.12)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3)',
       textAlign: 'center',
     }}>
-      <div style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1.2 }}>{value}</div>
-      <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.5)', fontWeight: 600, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{label}</div>
-      {subtext && <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.35)', marginTop: 2 }}>{subtext}</div>}
+      <div style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1.2 }}>{value}</div>
+      <div style={{ fontSize: 10, color: 'rgba(148,163,184,0.6)', fontWeight: 600, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{label}</div>
     </div>
   );
 }
@@ -57,11 +59,12 @@ function StatCard({ label, value, color = '#e0e8f0', subtext }) {
 function SourcePanel({ name, data }) {
   if (!data) return null;
   const statusCfg = STATUS_COLORS[data.status] || STATUS_COLORS.unknown;
-
   return (
     <div style={{
       padding: '16px 20px', borderRadius: 12,
-      background: 'rgba(13,17,23,0.7)', border: `1px solid ${statusCfg.border}`,
+      background: 'linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92))',
+      border: `1.5px solid ${statusCfg.border}`,
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35)',
       marginBottom: 12,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -73,7 +76,6 @@ function SourcePanel({ name, data }) {
         </div>
         <StatusBadge status={data.status} />
       </div>
-      
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <StatCard label="Minutes Ago" value={data.minutes_ago ?? '—'} color={statusCfg.color} />
         <StatCard label="Venues" value={data.venues ?? 0} />
@@ -81,7 +83,6 @@ function SourcePanel({ name, data }) {
         <StatCard label="Tables" value={data.tables_running ?? 0} color="#3fb950" />
         <StatCard label="Waiting" value={data.players_waiting ?? 0} color="#d4a853" />
       </div>
-      
       {data.batch_id && (
         <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.25)', marginTop: 8, fontFamily: 'monospace' }}>
           Batch: {data.batch_id}
@@ -97,6 +98,8 @@ export default function ScraperHealthDashboard() {
   const [error, setError] = useState(null);
   const [lastChecked, setLastChecked] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [metrics, setMetrics] = useState(null);
+  const [showMetrics, setShowMetrics] = useState(false);
 
   const fetchHealth = useCallback(async () => {
     try {
@@ -113,9 +116,16 @@ export default function ScraperHealthDashboard() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchHealth();
-  }, [fetchHealth]);
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const res = await fetch('/api/poker/scraper-metrics?hours=24');
+      if (!res.ok) return;
+      const data = await res.json();
+      setMetrics(data);
+    } catch (_) {}
+  }, []);
+
+  useEffect(() => { fetchHealth(); fetchMetrics(); }, [fetchHealth, fetchMetrics]);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -127,20 +137,16 @@ export default function ScraperHealthDashboard() {
   const overallCfg = STATUS_COLORS[overallStatus] || STATUS_COLORS.unknown;
 
   return (
-    <div style={{
-      padding: '20px', maxWidth: 800, margin: '0 auto',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-    }}>
-      <style>{`
-        @keyframes shd-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-      `}</style>
+    <div style={{ padding: '20px', maxWidth: 800, margin: '0 auto', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+      <style>{`@keyframes shd-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
 
       {/* HEADER */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20,
         padding: '16px 20px', borderRadius: 12,
-        background: `linear-gradient(135deg, ${overallCfg.bg}, rgba(13,17,23,0.8))`,
-        border: `1px solid ${overallCfg.border}`,
+        background: `linear-gradient(135deg, ${overallCfg.bg}, rgba(10,16,28,0.92))`,
+        border: `1.5px solid ${overallCfg.border}`,
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 20px rgba(0,0,0,0.4)',
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -155,75 +161,109 @@ export default function ScraperHealthDashboard() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            style={{
-              padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit',
-              background: autoRefresh ? 'rgba(63,185,80,0.12)' : 'rgba(139,148,158,0.08)',
-              border: `1px solid ${autoRefresh ? 'rgba(63,185,80,0.3)' : 'rgba(139,148,158,0.2)'}`,
-              color: autoRefresh ? '#3fb950' : '#8b949e',
-            }}
-          >
+          <button onClick={() => setAutoRefresh(!autoRefresh)} style={{
+            padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            background: autoRefresh ? 'rgba(63,185,80,0.12)' : 'rgba(139,148,158,0.08)',
+            border: `1px solid ${autoRefresh ? 'rgba(63,185,80,0.3)' : 'rgba(139,148,158,0.2)'}`,
+            color: autoRefresh ? '#3fb950' : '#8b949e',
+          }}>
             {autoRefresh ? 'Auto-Refresh ON' : 'Auto-Refresh OFF'}
           </button>
-          <button
-            onClick={() => { setLoading(true); fetchHealth(); }}
-            style={{
-              padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'inherit',
-              background: 'rgba(88,166,255,0.12)', border: '1px solid rgba(88,166,255,0.3)', color: '#58a6ff',
-            }}
-          >
+          <button onClick={() => { setLoading(true); fetchHealth(); fetchMetrics(); }} style={{
+            padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            background: 'linear-gradient(180deg, rgba(212,168,83,0.12), rgba(184,134,11,0.08))',
+            border: '1.5px solid rgba(212,168,83,0.35)', color: '#d4a853',
+          }}>
             Refresh Now
           </button>
         </div>
       </div>
 
-      {/* ERROR */}
       {error && (
-        <div style={{
-          padding: '12px 16px', marginBottom: 12, borderRadius: 10,
-          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)',
-          color: '#ef4444', fontSize: 13, fontWeight: 600,
-        }}>
+        <div style={{ padding: '12px 16px', marginBottom: 12, borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 13, fontWeight: 600 }}>
           Error: {error}
         </div>
       )}
 
-      {/* LOADING */}
       {loading && !health && (
-        <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
-          Loading scraper health data...
-        </div>
+        <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>Loading scraper health data...</div>
       )}
 
-      {/* SOURCE PANELS */}
       {health && (
         <>
           <SourcePanel name="Real-Time Engine" data={health.scrapers?.bravo} />
           <SourcePanel name="Catalog Engine" data={health.scrapers?.pokeratlas} />
 
-          {/* ISSUES */}
           {health.issues && health.issues.length > 0 && (
-            <div style={{
-              padding: '14px 18px', borderRadius: 12, marginTop: 8,
-              background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)',
-            }}>
+            <div style={{ padding: '14px 18px', borderRadius: 12, marginTop: 8, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 8 }}>Issues Detected</div>
               {health.issues.map((issue, i) => (
                 <div key={i} style={{ fontSize: 12, color: 'rgba(239,68,68,0.8)', marginBottom: 3, paddingLeft: 12, position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 0 }}>•</span>
-                  {issue}
+                  <span style={{ position: 'absolute', left: 0 }}>•</span>{issue}
                 </div>
               ))}
             </div>
           )}
 
-          {/* THRESHOLDS INFO */}
+          {/* PERFORMANCE METRICS TOGGLE */}
+          <button onClick={() => setShowMetrics(!showMetrics)} style={{
+            marginTop: 16, width: '100%', padding: '10px 16px', borderRadius: 10,
+            background: 'linear-gradient(160deg, rgba(18,28,45,0.6), rgba(10,16,28,0.75))',
+            border: '1.5px solid rgba(0,212,255,0.15)', cursor: 'pointer',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit',
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#e0e8f0' }}>Performance Metrics (24h)</span>
+            <span style={{ color: '#00d4ff', fontSize: 12 }}>{showMetrics ? 'Hide' : 'Show'}</span>
+          </button>
+
+          {showMetrics && metrics && (
+            <div style={{ marginTop: 8, padding: '16px 20px', borderRadius: 12, background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(0,212,255,0.1)' }}>
+              {['bravo', 'pokeratlas'].map(source => {
+                const src = metrics[source];
+                if (!src) return null;
+                const s = src.summary;
+                const hist = src.history || [];
+                const maxDur = Math.max(...hist.map(h => h.duration || 0), 1);
+                return (
+                  <div key={source} style={{ marginBottom: source === 'bravo' ? 16 : 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#e0e8f0', marginBottom: 8, textTransform: 'uppercase' }}>
+                      {source === 'bravo' ? 'Real-Time Engine' : 'Catalog Engine'}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                      <StatCard label="Cycles" value={s.cycles} color="#00d4ff" />
+                      <StatCard label="Avg Duration" value={`${s.avg_duration}s`} color="#d4a853" />
+                      <StatCard label="Avg Records" value={s.avg_records} color="#3fb950" />
+                      <StatCard label="Total Errors" value={s.total_errors} color={s.total_errors > 0 ? '#ef4444' : '#3fb950'} />
+                    </div>
+                    {hist.length > 1 && (
+                      <div style={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: 30 }}>
+                        {hist.slice(-30).map((h, i) => (
+                          <div key={i} title={`${new Date(h.time).toLocaleTimeString()}: ${h.duration}s, ${h.records} records`} style={{
+                            flex: 1, borderRadius: 2,
+                            height: `${Math.max((h.duration / maxDur) * 100, 5)}%`,
+                            background: h.errors > 0 ? 'rgba(239,68,68,0.5)' : 'rgba(0,212,255,0.4)',
+                            transition: 'height 0.3s ease',
+                          }} />
+                        ))}
+                      </div>
+                    )}
+                    {hist.length <= 1 && (
+                      <div style={{ color: 'rgba(200,214,229,0.3)', fontSize: 11, textAlign: 'center', padding: 8 }}>
+                        Collecting performance data...
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* THRESHOLDS */}
           <div style={{
             marginTop: 16, padding: '12px 16px', borderRadius: 10,
-            background: 'rgba(13,17,23,0.5)', border: '1px solid rgba(48,54,61,0.3)',
+            background: 'linear-gradient(160deg, rgba(18,28,45,0.6), rgba(10,16,28,0.75))',
+            border: '1.5px solid rgba(148,163,184,0.1)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 6px rgba(0,0,0,0.25)',
           }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(200,214,229,0.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Health Thresholds</div>
             <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'rgba(200,214,229,0.4)' }}>

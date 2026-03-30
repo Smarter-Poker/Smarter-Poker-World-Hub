@@ -341,8 +341,8 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
         .nmf-cta-gps:hover { background: rgba(34,197,94,0.2); }
         .nmf-cta-live { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
         .nmf-cta-live:hover { background: rgba(239,68,68,0.2); }
-        .nmf-cta-map { background: rgba(88,166,255,0.1); border-color: rgba(88,166,255,0.3); color: #58a6ff; }
-        .nmf-cta-map:hover { background: rgba(88,166,255,0.2); }
+        .nmf-cta-map { background: linear-gradient(180deg, rgba(212,168,83,0.12), rgba(184,134,11,0.08)); border-color: rgba(212,168,83,0.35); color: #d4a853; }
+        .nmf-cta-map:hover { border-color: rgba(212,168,83,0.5); }
         
         @keyframes nmf-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         @keyframes spin { to { transform: rotate(360deg); } }

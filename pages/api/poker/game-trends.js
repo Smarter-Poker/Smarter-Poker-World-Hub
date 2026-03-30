@@ -1,7 +1,8 @@
 /**
  * API: /api/poker/game-trends
- * Analyzes game type trends from venue_live_history data.
- * Returns which game types are growing/shrinking across the network.
+ * Analyzes game type trends from venue_live_tables data.
+ * Compares current snapshot against a cached previous snapshot
+ * stored in scraper_watchdog_state to show real trend arrows.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
@@ -31,21 +32,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ trends: [], total_games_now: 0, has_historical_data: false, analyzed_at: new Date().toISOString() });
     }
 
-    // Get historical snapshot from ~7 days ago
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    let histData = null;
-    try {
-      const { data: hd, error: histErr } = await supabase
-        .from('venue_live_history')
-        .select('venue_name, total_tables, game_count, snapshot_time')
-        .gte('snapshot_time', weekAgo)
-        .order('snapshot_time', { ascending: true })
-        .limit(1);
-      if (!histErr) histData = hd;
-    } catch (_) {
-      // venue_live_history may not exist yet — skip historical comparison
-    }
-
     // Aggregate current games by type
     const currentCounts = {};
     (currentData || []).forEach(row => {
@@ -53,20 +39,45 @@ export default async function handler(req, res) {
       currentCounts[game] = (currentCounts[game] || 0) + 1;
     });
 
-    // Historical comparison — venue_live_history stores aggregate counts 
-    // (total_tables per venue), not game-level detail. We can compare total 
-    // network size but not per-game trends from history alone.
-    const historicalCounts = {};
-    // Historical game-level data is not available in venue_live_history schema,
-    // so trend analysis only reflects current snapshot distribution.
+    // --- HISTORICAL COMPARISON ---
+    // Load previous snapshot from scraper_watchdog_state
+    let previousCounts = {};
+    let hasHistoricalData = false;
+    try {
+      const { data: prevSnap } = await supabase
+        .from('scraper_watchdog_state')
+        .select('value')
+        .eq('key', 'game_trends_snapshot')
+        .maybeSingle();
+      if (prevSnap?.value) {
+        const parsed = JSON.parse(prevSnap.value);
+        previousCounts = parsed.counts || {};
+        hasHistoricalData = Object.keys(previousCounts).length > 0;
+      }
+    } catch (_) {
+      // Table may not exist — just skip
+    }
+
+    // Save current snapshot for next comparison (runs ~every page load, but state is persisted)
+    try {
+      await supabase
+        .from('scraper_watchdog_state')
+        .upsert({
+          key: 'game_trends_snapshot',
+          value: JSON.stringify({ counts: currentCounts, saved_at: new Date().toISOString() }),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'key' });
+    } catch (_) {
+      // Silent — non-critical
+    }
 
     // Build trend analysis
-    const allGames = new Set([...Object.keys(currentCounts), ...Object.keys(historicalCounts)]);
+    const allGames = new Set([...Object.keys(currentCounts), ...Object.keys(previousCounts)]);
     const trends = [];
     
     allGames.forEach(game => {
       const current = currentCounts[game] || 0;
-      const previous = historicalCounts[game] || 0;
+      const previous = previousCounts[game] || 0;
       const change = previous > 0 ? Math.round(((current - previous) / previous) * 100) : 0;
       
       trends.push({
@@ -74,17 +85,18 @@ export default async function handler(req, res) {
         current_tables: current,
         previous_tables: previous,
         change_pct: change,
-        trend: previous === 0 ? 'stable' : (change > 5 ? 'up' : (change < -5 ? 'down' : 'stable')),
+        trend: previous === 0 ? (hasHistoricalData ? 'new' : 'stable') : (change > 10 ? 'up' : (change < -10 ? 'down' : 'stable')),
       });
     });
 
     // Sort by current table count descending
     trends.sort((a, b) => b.current_tables - a.current_tables);
 
+    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
     res.status(200).json({
       trends: trends.slice(0, 20),
       total_games_now: currentData?.length || 0,
-      has_historical_data: histData && histData.length > 0,
+      has_historical_data: hasHistoricalData,
       analyzed_at: new Date().toISOString(),
     });
   } catch (err) {
@@ -96,7 +108,7 @@ export default async function handler(req, res) {
 function normalizeGameType(raw) {
   if (!raw) return 'Unknown';
   let g = raw.trim();
-  // Normalize common patterns
+  // Normalize common patterns for cleaner grouping
   g = g.replace(/No Limit Hold'?em/i, 'NLH')
        .replace(/Pot Limit Omaha/i, 'PLO')
        .replace(/Limit Hold'?em/i, 'LHE')

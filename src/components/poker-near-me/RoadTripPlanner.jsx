@@ -3,7 +3,7 @@
  * Multi-stop trip builder with route overlay showing poker venues along the way.
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { getVenueLogoUrl } from './pnm-utils';
+import { getVenueLogoUrl, getVenueLogoFallback } from './pnm-utils';
 import { haversineMiles } from './pnm-utils';
 
 const CORRIDOR_OPTIONS = [25, 50, 100];
@@ -412,7 +412,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 return (
                                 <div key={v.id || i} className="rtp-venue-card">
                                     <div className="rtp-venue-card-row">
-                                        {logo && <img src={logo} alt="" className="rtp-venue-logo" onError={e => { e.target.style.display = 'none'; }} loading="lazy" />}
+                                        {logo && <img src={logo} alt="" className="rtp-venue-logo" onError={e => { const fb = getVenueLogoFallback(v); if (fb && e.target.src !== fb) { e.target.src = fb; } else { e.target.style.display = 'none'; } }} loading="lazy" />}
                                         <div>
                                             <div className="rtp-venue-name">{v.name}</div>
                                             <div className="rtp-venue-loc">{v.city}, {v.state}</div>
@@ -450,63 +450,63 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             <style jsx>{`
         .road-trip-planner { padding: 0 0 20px; }
         .rtp-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-        .rtp-header h2 { font-size: 22px; font-weight: 700; color: #fff; margin: 0; }
-        .rtp-form { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 16px; padding: 20px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .rtp-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; letter-spacing: -0.3px; }
+        .rtp-form { background: linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 16px; padding: 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35); }
         .rtp-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .rtp-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
         .rtp-dot.origin { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.5); }
-        .rtp-dot.waypoint { background: #58a6ff; box-shadow: 0 0 8px rgba(88,166,255,0.5); }
+        .rtp-dot.waypoint { background: #d4a853; box-shadow: 0 0 8px rgba(212,168,83,0.5); }
         .rtp-dot.destination { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
-        .rtp-input { flex: 1; padding: 12px 16px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 10px; color: #e0e8f0; font-size: 14px; font-family: inherit; transition: border-color 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        .rtp-input:focus { outline: none; border-color: rgba(88,166,255,0.5); }
-        .rtp-input::placeholder { color: rgba(200,214,229,0.3); }
-        .rtp-remove-btn { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; width: 32px; height: 32px; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+        .rtp-input { flex: 1; padding: 12px 16px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 10px; color: #e2e8f0; font-size: 14px; font-family: inherit; transition: border-color 0.25s; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(148,163,184,0.08); }
+        .rtp-input:focus { outline: none; border-color: rgba(212,168,83,0.5); }
+        .rtp-input::placeholder { color: rgba(148,163,184,0.35); }
+        .rtp-remove-btn { background: rgba(239,68,68,0.1); border: 1.5px solid rgba(239,68,68,0.3); color: #ef4444; width: 32px; height: 32px; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
         .rtp-remove-btn:hover { background: rgba(239,68,68,0.2); }
-        .rtp-add-waypoint { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); border-radius: 8px; color: #58a6ff; font-size: 13px; font-weight: 500; cursor: pointer; margin-bottom: 16px; transition: all 0.2s; }
-        .rtp-add-waypoint:hover { background: rgba(88,166,255,0.2); }
+        .rtp-add-waypoint { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: linear-gradient(180deg, rgba(212,168,83,0.12), rgba(184,134,11,0.08)); border: 1.5px solid rgba(212,168,83,0.35); border-radius: 8px; color: #d4a853; font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 16px; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(212,168,83,0.1); }
+        .rtp-add-waypoint:hover { border-color: rgba(212,168,83,0.5); }
         .rtp-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
         @media (max-width: 600px) { .rtp-options { grid-template-columns: 1fr; } }
-        .rtp-option-group label { display: block; font-size: 12px; font-weight: 500; color: rgba(200,214,229,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .rtp-option-group label { display: block; font-size: 12px; font-weight: 600; color: rgba(148,163,184,0.6); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
         .rtp-chips { display: flex; gap: 6px; }
-        .rtp-chip { padding: 8px 14px; border-radius: 8px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); color: rgba(200,214,229,0.7); font-size: 13px; cursor: pointer; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        .rtp-chip.active { background: rgba(88,166,255,0.15); border-color: rgba(88,166,255,0.4); color: #58a6ff; }
+        .rtp-chip { padding: 8px 14px; border-radius: 8px; background: linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95)); border: 1.5px solid rgba(148,163,184,0.15); color: rgba(148,163,184,0.7); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3); }
+        .rtp-chip.active { background: linear-gradient(180deg, rgba(212,168,83,0.15), rgba(184,134,11,0.08)); border-color: rgba(212,168,83,0.45); color: #d4a853; box-shadow: inset 0 1px 0 rgba(212,168,83,0.15), 0 0 10px rgba(212,168,83,0.1); }
         .rtp-date-row { display: flex; align-items: center; gap: 8px; }
-        .rtp-date { padding: 8px 12px; background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 8px; color: #e0e8f0; font-size: 13px; font-family: inherit; color-scheme: dark; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        .rtp-date-sep { color: rgba(200,214,229,0.3); font-size: 16px; }
+        .rtp-date { padding: 8px 12px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 8px; color: #e2e8f0; font-size: 13px; font-family: inherit; color-scheme: dark; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4); }
+        .rtp-date-sep { color: rgba(148,163,184,0.4); font-size: 16px; }
         .rtp-calculate-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #d4a853, #b8860b); border: none; border-radius: 12px; color: #000; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: filter 0.2s; }
         .rtp-calculate-btn:hover { filter: brightness(1.1); }
         .rtp-calculate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .rtp-spinner { width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        .rtp-error { margin-top: 12px; padding: 10px 14px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; color: #ef4444; font-size: 13px; }
+        .rtp-error { margin-top: 12px; padding: 10px 14px; background: rgba(239,68,68,0.1); border: 1.5px solid rgba(239,68,68,0.3); border-radius: 8px; color: #ef4444; font-size: 13px; }
         .rtp-results { margin-top: 20px; }
         .rtp-stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
         @media (max-width: 500px) { .rtp-stats-bar { grid-template-columns: repeat(2, 1fr); } }
-        .rtp-stat { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 12px; padding: 16px; text-align: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        .rtp-stat-value { display: block; font-size: 22px; font-weight: 700; color: #58a6ff; }
-        .rtp-stat-label { font-size: 11px; color: rgba(200,214,229,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
+        .rtp-stat { background: linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 12px; padding: 16px; text-align: center; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
+        .rtp-stat-value { display: block; font-size: 22px; font-weight: 700; color: #d4a853; }
+        .rtp-stat-label { font-size: 11px; color: rgba(148,163,184,0.5); text-transform: uppercase; letter-spacing: 0.5px; }
         .rtp-map-wrapper { margin-bottom: 20px; }
-        .rtp-map-toggle { display: none; width: 100%; padding: 10px; background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.2); border-radius: 10px; color: #58a6ff; font-size: 13px; font-weight: 600; cursor: pointer; align-items: center; justify-content: center; gap: 6px; font-family: inherit; margin-bottom: 8px; }
+        .rtp-map-toggle { display: none; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(212,168,83,0.08), rgba(184,134,11,0.04)); border: 1.5px solid rgba(212,168,83,0.2); border-radius: 10px; color: #d4a853; font-size: 13px; font-weight: 600; cursor: pointer; align-items: center; justify-content: center; gap: 6px; font-family: inherit; margin-bottom: 8px; }
         @media (max-width: 600px) { .rtp-map-toggle { display: flex; } }
-        .rtp-map { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(88,166,255,0.2); background: #0d1117; }
+        .rtp-map { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; border: 1.5px solid rgba(148,163,184,0.12); background: #0d1117; }
         @media (max-width: 600px) { .rtp-map { height: 250px; } }
         .rtp-venue-card-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
         .rtp-venue-logo { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
-        .rtp-venues-section h3, .rtp-series-section h3 { font-size: 18px; font-weight: 600; color: #fff; margin: 0 0 12px; }
+        .rtp-venues-section h3, .rtp-series-section h3 { font-size: 18px; font-weight: 600; color: #e2e8f0; margin: 0 0 12px; }
         .rtp-venue-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-        .rtp-venue-card { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 10px; padding: 14px; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); cursor: pointer; }
-        .rtp-venue-card:hover { border-color: rgba(88,166,255,0.4); transform: translateY(-1px); }
-        .rtp-venue-name { font-size: 14px; font-weight: 600; color: #e0e8f0; margin-bottom: 2px; }
-        .rtp-venue-loc { font-size: 12px; color: rgba(200,214,229,0.4); margin-bottom: 6px; }
+        .rtp-venue-card { background: linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 10px; padding: 14px; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); cursor: pointer; }
+        .rtp-venue-card:hover { border-color: rgba(212,168,83,0.35); transform: translateY(-1px); box-shadow: inset 0 1px 0 rgba(212,168,83,0.08), 0 4px 16px rgba(0,0,0,0.4); }
+        .rtp-venue-name { font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 2px; }
+        .rtp-venue-loc { font-size: 12px; color: rgba(148,163,184,0.5); margin-bottom: 6px; }
         .rtp-venue-tags { display: flex; gap: 6px; flex-wrap: wrap; }
         .rtp-tag { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
         .rtp-tag.type { background: rgba(99,102,241,0.2); color: #818cf8; }
-        .rtp-tag.trust { background: rgba(88,166,255,0.15); color: #58a6ff; }
-        .rtp-more { padding: 14px; text-align: center; color: rgba(200,214,229,0.4); font-size: 13px; }
+        .rtp-tag.trust { background: rgba(212,168,83,0.12); color: #d4a853; }
+        .rtp-more { padding: 14px; text-align: center; color: rgba(148,163,184,0.5); font-size: 13px; }
         .rtp-series-section { margin-top: 20px; }
-        .rtp-series-card { background: rgba(13,17,23,0.7); border: 1px solid rgba(88,166,255,0.2); border-radius: 10px; padding: 14px; margin-bottom: 8px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        .rtp-series-name { font-size: 14px; font-weight: 600; color: #e0e8f0; }
-        .rtp-series-dates { font-size: 12px; color: rgba(200,214,229,0.4); }
-        .rtp-series-venue { font-size: 12px; color: #58a6ff; margin-top: 2px; }
+        .rtp-series-card { background: linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 10px; padding: 14px; margin-bottom: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
+        .rtp-series-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
+        .rtp-series-dates { font-size: 12px; color: rgba(148,163,184,0.5); }
+        .rtp-series-venue { font-size: 12px; color: #d4a853; margin-top: 2px; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
         </div>

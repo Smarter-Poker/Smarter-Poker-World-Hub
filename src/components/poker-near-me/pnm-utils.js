@@ -82,10 +82,8 @@ export function parseMinStake(gameName) {
  * Get venue logo URL with intelligent fallback chain:
  * 1. profile_photo_url (from social page / Commander)
  * 2. cover_photo_url (uploaded venue cover)
- * 3. Clearbit Logo API (high-quality company logos from domain)
- * 4. icon.horse (reliable favicon service with fallback handling)
- * 5. Google Favicon API at 128px (derived from venue website domain)
- * 6. null (component should render gradient placeholder)
+ * 3. Google Favicon API at 128px (reliable, works for all domains)
+ * 4. null (component should render gradient placeholder)
  * 
  * @param {object} venue - Venue object
  * @returns {string|null} Logo URL or null
@@ -96,21 +94,21 @@ export function getVenueLogoUrl(venue) {
     if (venue.profile_photo_url) return venue.profile_photo_url;
     // Priority 2: Cover photo
     if (venue.cover_photo_url) return venue.cover_photo_url;
-    // Priority 3-5: Domain-based logo services
+    // Priority 3: Google Favicon at 128px — reliable for virtually all domains
     if (venue.website) {
         try {
             let domain = venue.website;
             if (!domain.startsWith('http')) domain = 'https://' + domain;
-            const hostname = new URL(domain).hostname.replace(/^www\./, '');
-            // Clearbit returns high-quality company logos (square, transparent bg)
-            return `https://logo.clearbit.com/${hostname}`;
+            const hostname = new URL(domain).hostname;
+            return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
         } catch { /* invalid URL */ }
     }
     return null;
 }
 
 /**
- * Fallback logo URL when the primary logo fails to load.
+ * Fallback logo URL when the primary Google Favicon fails to load.
+ * Uses icon.horse as alternate favicon service.
  * Called from onError handlers in venue card components.
  * 
  * @param {object} venue - Venue object with website
@@ -122,7 +120,7 @@ export function getVenueLogoFallback(venue) {
         let domain = venue.website;
         if (!domain.startsWith('http')) domain = 'https://' + domain;
         const hostname = new URL(domain).hostname;
-        return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
+        return `https://icon.horse/icon/${hostname}`;
     } catch { return null; }
 }
 

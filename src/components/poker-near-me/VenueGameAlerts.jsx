@@ -2,8 +2,10 @@
  * VenueGameAlerts — "Alert me when my game drops"
  * Allows users to subscribe to push notifications when specific 
  * game types start running at their favorite venues.
+ * 
+ * Includes "Currently Running" live context section.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 export default function VenueGameAlerts({ userId, venues = [] }) {
   const [alerts, setAlerts] = useState([]);
@@ -13,6 +15,8 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
   const [selectedGame, setSelectedGame] = useState('');
   const [creating, setCreating] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [liveGames, setLiveGames] = useState([]);
+  const [liveLoading, setLiveLoading] = useState(true);
 
   const GAME_TYPES = ['NLH 1/2', 'NLH 1/3', 'NLH 2/5', 'NLH 5/10', 'PLO 1/2', 'PLO 1/3', 'PLO 2/5', 'LHE 3/6', 'LHE 4/8', 'LHE 6/12', 'Mixed Game'];
 
@@ -25,6 +29,37 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
   }, [userId]);
 
   useEffect(() => { loadAlerts(); }, [loadAlerts]);
+
+  // Fetch live game data for context
+  useEffect(() => {
+    fetch('/api/poker/live-tables')
+      .then(r => r.json())
+      .then(d => {
+        const games = [];
+        (d.venues || []).forEach(v => {
+          (v.games || []).forEach(g => {
+            if (g.tables_running > 0) {
+              games.push({ venue: v.venue_name, game: g.game_name, tables: g.tables_running });
+            }
+          });
+        });
+        setLiveGames(games);
+        setLiveLoading(false);
+      })
+      .catch(() => setLiveLoading(false));
+  }, []);
+
+  // Count unique game types currently running for quick-add buttons
+  const liveGameTypes = useMemo(() => {
+    const counts = {};
+    liveGames.forEach(g => {
+      const key = g.game || 'Unknown';
+      counts[key] = (counts[key] || 0) + g.tables;
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+  }, [liveGames]);
 
   const createAlert = async () => {
     if (!selectedVenue || !selectedGame || !userId) return;
@@ -65,6 +100,14 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
 
   // Unique venue names from current live data
   const venueOptions = [...new Set(venues.map(v => v.venue_name || v.name).filter(Boolean))].sort();
+
+  // Check if alerted game is currently running
+  const isGameRunning = (venueName, gameType) => {
+    return liveGames.some(g => 
+      g.venue?.toLowerCase().trim() === venueName?.toLowerCase().trim() &&
+      g.game?.toLowerCase().includes(gameType?.toLowerCase())
+    );
+  };
 
   return (
     <div style={{
@@ -158,39 +201,79 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
         <div style={{
           textAlign: 'center', padding: 24, color: '#64748b', fontSize: 14,
         }}>
-          No active alerts. Create one to get notified when your game drops.
+          {userId 
+            ? 'No active alerts. Create one to get notified when your game drops.'
+            : 'Sign in to create game alerts and get notified when your game starts running.'}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {alerts.map(alert => (
-            <div key={alert.id} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '10px 12px', borderRadius: 10,
-              background: 'rgba(255,255,255,0.03)',
-            }}>
-              <div style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: '#4ade80', flexShrink: 0,
-                boxShadow: '0 0 6px rgba(34,197,94,0.5)',
-              }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: '#fff', fontSize: 14, fontWeight: 500 }}>{alert.venue_name}</div>
-                <div style={{ color: '#00d4ff', fontSize: 12 }}>{alert.game_type}</div>
+          {alerts.map(alert => {
+            const running = isGameRunning(alert.venue_name, alert.game_type);
+            return (
+              <div key={alert.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '10px 12px', borderRadius: 10,
+                background: running ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.03)',
+                border: running ? '1px solid rgba(34,197,94,0.15)' : '1px solid transparent',
+              }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: running ? '#4ade80' : '#64748b', flexShrink: 0,
+                  boxShadow: running ? '0 0 6px rgba(34,197,94,0.5)' : 'none',
+                  animation: running ? 'vga-pulse 2s infinite' : 'none',
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: '#fff', fontSize: 14, fontWeight: 500 }}>{alert.venue_name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ color: '#00d4ff', fontSize: 12 }}>{alert.game_type}</span>
+                    {running && (
+                      <span style={{
+                        fontSize: 10, color: '#4ade80', fontWeight: 700,
+                        background: 'rgba(34,197,94,0.15)', padding: '1px 6px', borderRadius: 4,
+                      }}>LIVE NOW</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => deleteAlert(alert.id)}
+                  style={{
+                    background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                    borderRadius: 6, padding: '4px 10px', fontSize: 12,
+                    color: '#f87171', cursor: 'pointer',
+                  }}
+                >
+                  Remove
+                </button>
               </div>
-              <button
-                onClick={() => deleteAlert(alert.id)}
-                style={{
-                  background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-                  borderRadius: 6, padding: '4px 10px', fontSize: 12,
-                  color: '#f87171', cursor: 'pointer',
-                }}
-              >
-                Remove
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      {/* Currently Running Games — Live Context */}
+      {!liveLoading && liveGameTypes.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{
+            fontSize: 12, fontWeight: 700, color: 'rgba(200,214,229,0.5)',
+            textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8,
+          }}>
+            Popular Games Running Now
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {liveGameTypes.map(([game, count]) => (
+              <div key={game} style={{
+                padding: '4px 10px', borderRadius: 6, fontSize: 11,
+                background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.15)',
+                color: '#94a3b8', cursor: 'default',
+              }}>
+                {game} <span style={{ color: '#00d4ff', fontWeight: 600 }}>({count})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <style>{`@keyframes vga-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
     </div>
   );
 }

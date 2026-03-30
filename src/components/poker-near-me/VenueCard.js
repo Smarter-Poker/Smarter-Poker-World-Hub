@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { getVenueLogoUrl, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor, isStaleData } from './pnm-utils';
+import { getVenueLogoUrl, getVenueLogoFallback, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor, isStaleData } from './pnm-utils';
 
 const formatMoney = (amount) => {
     if (!amount) return '$0';
@@ -141,6 +141,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     // Animated trust bar + staggered card entrance
     const [mounted, setMounted] = useState(false);
     const [logoError, setLogoError] = useState(false);
+    const [logoFallbackTried, setLogoFallbackTried] = useState(false);
     const cardRef = useRef(null);
     useEffect(() => {
         const delay = Math.min(index * 40, 400);
@@ -176,7 +177,17 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 src={logoUrl}
                                 alt=""
                                 className="vc3-logo-img"
-                                onError={() => setLogoError(true)}
+                                onError={(e) => {
+                                    if (!logoFallbackTried) {
+                                        const fallback = getVenueLogoFallback(venue);
+                                        if (fallback) {
+                                            setLogoFallbackTried(true);
+                                            e.target.src = fallback;
+                                            return;
+                                        }
+                                    }
+                                    setLogoError(true);
+                                }}
                                 loading="lazy"
                             />
                         ) : (
@@ -239,7 +250,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {/* Home Game Host Info */}
             {venue.venue_type === 'home_game' && venue.host_display_name && (
                 <div className="vc3-host">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     <span className="vc3-host-name">Hosted by {venue.host_display_name}</span>
                     {venue.host_username && (
                         <a href={'/hub/user/' + venue.host_username} onClick={e => e.stopPropagation()} className="vc3-host-link">Contact Host</a>
