@@ -11,7 +11,8 @@
  * Designed for the Futuristic Metal UI system.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-
+import { supabase } from '../../lib/supabase';
+import { busEmit, EventType } from '../../engine/EventBus';
 const AUTO_REFRESH_MS = 30000;
 
 const STATUS_COLORS = {
@@ -130,12 +131,33 @@ export default function ScraperHealthDashboard() {
   useEffect(() => { fetchHealth(); fetchMetrics(); }, [fetchHealth, fetchMetrics]);
 
   useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(() => {
-      fetchHealth();
-      fetchMetrics();
-    }, AUTO_REFRESH_MS);
-    return () => clearInterval(interval);
+    let interval = null;
+    if (autoRefresh) {
+      interval = setInterval(() => {
+        fetchHealth();
+        fetchMetrics();
+      }, AUTO_REFRESH_MS);
+    }
+
+    // ── NATIVE REAL-TIME PUSH ENABLED ──
+    const channel = supabase.channel('scraper-health-monitor')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'scraper_watchdog_state' },
+        () => {
+          // Immediately fetch new data upon Postgres DB mutation
+          fetchHealth();
+          fetchMetrics();
+          // Push event out so other pages on the frontend become instantly aware
+          busEmit(EventType.DATA_MUTATED, { entity: 'scraper_health' });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (interval) clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [autoRefresh, fetchHealth, fetchMetrics]);
 
   const overallStatus = health?.status || 'unknown';

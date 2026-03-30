@@ -170,6 +170,25 @@ export default async function handler(req, res) {
 
       results.sources[source] = { status: 'ok', minutes_ago: minutesAgo, count: count };
 
+      const currentHour = now.getHours().toString();
+      const baseKey = `baseline_${source}`;
+      let baselines = {};
+      try {
+        const { data: bData } = await supabase.from('scraper_watchdog_state').select('value').eq('key', baseKey).maybeSingle();
+        if (bData && bData.value) baselines = typeof bData.value === 'string' ? JSON.parse(bData.value) : bData.value;
+      } catch (e) { console.error('Baseline parse error', e); }
+
+      const previousBaseline = baselines[currentHour] || null;
+      baselines[currentHour] = previousBaseline ? Math.round((count * 0.1) + (previousBaseline * 0.9)) : count;
+
+      await supabase.from('scraper_watchdog_state').upsert({
+        key: baseKey,
+        value: JSON.stringify(baselines),
+        updated_at: now.toISOString(),
+      }, { onConflict: 'key' });
+
+      const relativeDrop = previousBaseline && previousBaseline > 50 && (count === 0 || count < (previousBaseline * 0.25));
+
       if (minutesAgo >= DEAD_THRESHOLD_MIN) {
         // TIER 3: Dead — escalated alerts, shorter cooldown
         results.sources[source].status = 'DEAD';
@@ -178,10 +197,13 @@ export default async function handler(req, res) {
         // TIER 2: Stale — standard alerts
         results.sources[source].status = 'STALE';
         await sendSmartAlert(supabase, source, `STALE — data is ${minutesAgo} minutes old`, 'stale', now, results);
-      } else if (count < 10 || count > 5000) {
+      } else if (count < 10 || count > 5000 || relativeDrop) {
         // TIER 4: Anomaly — Data exists and is fresh, but structurally compromised via wipe or loop
         results.sources[source].status = 'ANOMALY';
-        await sendSmartAlert(supabase, source, `ANOMALY — Table count breached safety limits: ${count} total tables returned`, 'dead', now, results);
+        const msg = relativeDrop 
+          ? `ANOMALY — 75%+ volumetric drop compared to ${currentHour}:00 baseline (${count} vs ${previousBaseline})`
+          : `ANOMALY — Table count breached safety limits: ${count} total tables returned`;
+        await sendSmartAlert(supabase, source, msg, 'dead', now, results);
       } else {
         // HEALTHY — check if we need to send "all clear"
         const alertState = await getAlertState(supabase, source);
