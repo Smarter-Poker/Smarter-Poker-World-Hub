@@ -460,10 +460,9 @@ export const MENU_CONFIGS = {
             createMenuItem.action('Replay Tutorial', () => handlers?.replayTutorial?.(), null, false, true),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),
-            createMenuItem.toggle('Geofence Alerts', state.geofenceAlerts !== false, handlers.setGeofenceAlerts, 'Get notified when near poker venues'),
+            createMenuItem.toggle('Geofence Alerts', state.geofenceAlerts !== false, handlers.setGeofenceAlerts, 'Get Notified When Near Poker Venues'),
             createMenuItem.toggle('Location Services', state.locationEnabled !== false, handlers.setLocationEnabled),
-            createMenuItem.toggle('Show Newcomer-Friendly', state.showNewcomerFriendly !== false, handlers.setShowNewcomerFriendly),
-            createMenuItem.navigation('Notification Preferences', '/hub/settings?section=notifications')
+            createMenuItem.toggle('Show Newcomer-Friendly', state.showNewcomerFriendly !== false, handlers.setShowNewcomerFriendly)
         ],
         bottomLinks: [
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
