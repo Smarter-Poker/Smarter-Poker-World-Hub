@@ -57,7 +57,7 @@ export default async function handler(req, res) {
         }
 
         // Step 1: Get all accepted friendship rows (both directions)
-        const [{ data: sentRows }, { data: receivedRows }] = await Promise.all([
+        const [sentResult, receivedResult] = await Promise.all([
           getSupabase()
             .from('friendships')
             .select('friend_id, created_at')
@@ -71,6 +71,23 @@ export default async function handler(req, res) {
             .eq('status', 'accepted')
             .limit(200),
         ]);
+
+        const sentRows = sentResult.data;
+        const receivedRows = receivedResult.data;
+
+        // ── DEBUG: Trace production query results (REMOVE AFTER FIX) ──
+        const keyUsed = process.env.SUPABASE_SERVICE_ROLE_KEY ? 'service_role' : 'anon';
+        console.log(`[friends-debug] userId=${userId}, keyType=${keyUsed}, sentRows=${sentRows?.length ?? 'null'}, receivedRows=${receivedRows?.length ?? 'null'}, sentError=${sentResult.error?.message || 'none'}, receivedError=${receivedResult.error?.message || 'none'}`);
+
+        // Also query ALL statuses for this user as a sanity check
+        const { data: allRows, error: allErr } = await getSupabase()
+          .from('friendships')
+          .select('status')
+          .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+          .limit(100);
+        const statusCounts = {};
+        (allRows || []).forEach(r => { statusCounts[r.status] = (statusCounts[r.status] || 0) + 1; });
+        console.log(`[friends-debug] allStatuses=${JSON.stringify(statusCounts)}, totalRows=${allRows?.length ?? 'null'}, allErr=${allErr?.message || 'none'}`);
 
         // Deduplicate friend IDs
         const friendIdSet = new Set();
