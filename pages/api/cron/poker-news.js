@@ -153,6 +153,7 @@ function categorizeArticle(title) {
 // SAVE TO NEWS ARCHIVE
 // ═══════════════════════════════════════════════════════════════════════════
 async function saveToNewsArchive(article) {
+    const supabase = getSupabase();
 
     // Check if article already exists in archive
     const { data: existing } = await supabase

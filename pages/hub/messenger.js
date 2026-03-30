@@ -41,9 +41,6 @@ import { createRingTone } from '../../src/utils/ringTone';
 import { createMultiDeviceAuthListener, withRetry, getCircuit, isOnline } from '../../src/utils/authGuard';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
-const MessageInput = dynamic(() => import('../../src/components/messenger/MessageInput'), { ssr: false });
-const MessageBubbleComponent = dynamic(() => import('../../src/components/messenger/MessageBubble'), { ssr: false });
-const ConversationItem = dynamic(() => import('../../src/components/messenger/ConversationItem'), { ssr: false });
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 COLOR PALETTE - Premium Poker Theme

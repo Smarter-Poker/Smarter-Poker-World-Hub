@@ -54,6 +54,7 @@ async function sendPush(userId, title, message, url, data = {}) {
 }
 
 async function wasAlreadySent(tournamentId, userId, reminderType) {
+    const supabase = getSupabase();
     const { data } = await supabase
         .from('tournament_reminders_sent')
         .select('id')

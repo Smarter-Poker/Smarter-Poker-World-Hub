@@ -82,6 +82,7 @@ function shuffleArray(array) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function selectDailyForCategory(category, targetDate, sixtyDaysAgo) {
+    const supabase = getSupabase();
     // Step 1: Get questions that haven't been used in the last 60 days
     // (daily_date is NULL or older than the 60-day window)
     const { data: freshQuestions, error: freshError } = await supabase

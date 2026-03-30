@@ -41,6 +41,7 @@ export default async function handler(req, res) {
       
 
       try {
+          const supabase = getSupabase();
 
           // Calculate today's identifier
           const now = new Date();
