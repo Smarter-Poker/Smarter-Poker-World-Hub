@@ -18,6 +18,7 @@ import HintButtons, { applyHint } from './HintButtons';
 import GhostOpponent from './GhostOpponent';
 import { toTitleCase } from '../../lib/trivia/titleCase';
 import * as audio from '../../lib/trivia/triviaAudio';
+import useVIP from '../../hooks/useVIP';
 
 
 // ══ Escalating stake values per question ══
@@ -42,6 +43,7 @@ export default function TriviaGame({
     const [answers, setAnswers] = useState([]);
     const [timeRemaining, setTimeRemaining] = useState(timeLimit);
     const [isLocked, setIsLocked] = useState(false);
+    const { isVip } = useVIP();
 
     // Hint system state
     const [hintsUsed, setHintsUsed] = useState({ fifty_fifty: false, skip: false, extra_time: false });
@@ -554,8 +556,11 @@ export default function TriviaGame({
                                     if (result.hiddenOptions) setEliminatedOptions(result.hiddenOptions);
                                     if (result.addTime) setTimeRemaining(prev => (prev || 0) + result.addTime);
                                     if (result.skipQuestion) advanceQuestion([...answers, -1]);
-                                    setDiamonds(prev => prev - hint.cost);
-                                    onDiamondsChange?.(-hint.cost);
+                                    
+                                    if (!isVip) {
+                                        setDiamonds(prev => prev - hint.cost);
+                                        onDiamondsChange?.(-hint.cost);
+                                    }
                                     setHintsUsed(prev => ({ ...prev, [hint.id]: true }));
                                 }}
                             />
