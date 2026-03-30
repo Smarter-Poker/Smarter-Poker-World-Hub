@@ -20,6 +20,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import { supabase } from '../../src/lib/supabase';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
+import InteractiveTutorial, { PNM_TAB_TUTORIALS } from '../../src/components/poker-near-me/InteractiveTutorial';
 const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
 const TourCard = dynamic(() => import('../../src/components/poker-near-me/TourCard'), { ssr: false });
 const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/SeriesCard'), { ssr: false });
@@ -249,7 +250,7 @@ export default function PokerNearMePage() {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedCity, setSelectedCity] = useState(null);
     const [nearestDistance, setNearestDistance] = useState(null);
-    const [hasSearched, setHasSearched] = useState(false);
+    const [hasSearched, setHasSearched] = useState(true);
 
     // Geofence alert state
     const [geofenceAlert, setGeofenceAlert] = useState(null);
@@ -295,6 +296,55 @@ export default function PokerNearMePage() {
     });
     const introVideoRef = useRef(null);
     const cityDebounceRef = useRef(null);
+
+    // ─── Tab-specific tutorial state ───
+    const [tabTutorialsSeen, setTabTutorialsSeen] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                return JSON.parse(localStorage.getItem('pnm_tab_tutorials_seen') || '{}');
+            } catch { return {}; }
+        }
+        return {};
+    });
+    const [showTabTutorial, setShowTabTutorial] = useState(false);
+    const [currentTutorialTab, setCurrentTutorialTab] = useState(null);
+
+    // Trigger tab tutorial on first visit to each tab
+    useEffect(() => {
+        if (activeTab && !tabTutorialsSeen[activeTab] && PNM_TAB_TUTORIALS[activeTab]) {
+            // Small delay to let the tab content render first
+            const timer = setTimeout(() => {
+                setCurrentTutorialTab(activeTab);
+                setShowTabTutorial(true);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [activeTab, tabTutorialsSeen]);
+
+    const handleTutorialDismiss = useCallback(() => {
+        setShowTabTutorial(false);
+        if (currentTutorialTab) {
+            const updated = { ...tabTutorialsSeen, [currentTutorialTab]: true };
+            setTabTutorialsSeen(updated);
+            try { localStorage.setItem('pnm_tab_tutorials_seen', JSON.stringify(updated)); } catch {}
+        }
+    }, [currentTutorialTab, tabTutorialsSeen]);
+
+    const handleTutorialDontShow = useCallback(() => {
+        setShowTabTutorial(false);
+        // Mark ALL tabs as seen
+        const allSeen = { venues: true, events: true, live: true, map: true, saved: true, more: true };
+        setTabTutorialsSeen(allSeen);
+        try { localStorage.setItem('pnm_tab_tutorials_seen', JSON.stringify(allSeen)); } catch {}
+    }, []);
+
+    const replayTutorial = useCallback(() => {
+        if (PNM_TAB_TUTORIALS[activeTab]) {
+            setCurrentTutorialTab(activeTab);
+            setShowTabTutorial(true);
+        }
+        setMenuOpen(false);
+    }, [activeTab]);
 
     const handleIntroEnd = useCallback(() => {
         sessionStorage.setItem('poker-near-me-intro-seen', 'true');
@@ -864,7 +914,8 @@ export default function PokerNearMePage() {
     const menuConfig = getMenuConfig('poker-near-me', null, preferences, {
         setGeofenceAlerts: (val) => updatePreference('geofenceAlerts', val),
         setLocationEnabled: (val) => updatePreference('locationEnabled', val),
-        setShowNewcomerFriendly: (val) => updatePreference('showNewcomerFriendly', val)
+        setShowNewcomerFriendly: (val) => updatePreference('showNewcomerFriendly', val),
+        replayTutorial,
     });
 
     const fetchAllData = async ({ includeVenues = false } = {}) => {
@@ -1709,91 +1760,15 @@ export default function PokerNearMePage() {
 
         return (
             <>
-                {/* Database Stats Banner */}
-                <div style={{
-                    display: 'flex', justifyContent: 'center', gap: 24, padding: '12px 16px',
-                    background: 'rgba(212,168,83,0.08)', borderRadius: 10,
-                    border: '1px solid rgba(212,168,83,0.15)', marginBottom: 12,
-                    flexWrap: 'wrap'
-                }}>
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
-                        <span style={{ color: '#d4a853', fontWeight: 800 }}>{dbStats.total || venues.length}</span> Venues
-                    </span>
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
-                        <span style={{ color: '#d4a853', fontWeight: 800 }}>{dbStats.tournaments || dailyTournaments.length}</span> Daily Tournaments
-                    </span>
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
-                        <span style={{ color: '#d4a853', fontWeight: 800 }}>{dbStats.states || '41'}</span> States
-                    </span>
-                </div>
-                {/* Sort & Results Bar */}
+                {/* Results count bar */}
                 <div className="results-bar">
                     <span className="results-count">{venues.length} result{venues.length !== 1 ? 's' : ''} found{userLocation && sortBy === 'default' ? ' (sorted by distance)' : ''}</span>
-                    <div className="sort-and-view-controls">
-                        <div className="view-mode-toggle">
-                            <button className={'view-mode-btn' + (venueViewMode === 'list' ? ' active' : '')} onClick={() => setVenueViewMode('list')} aria-label="List view" title="List View">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
-                            </button>
-                            <button className={'view-mode-btn' + (venueViewMode === 'map' ? ' active' : '')} onClick={() => setVenueViewMode('map')} aria-label="Map view" title="Map View">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg>
-                            </button>
-                        </div>
-                        <div className="sort-controls">
-                            <label>Sort:</label>
-                            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="sort-select">
-                                <option value="default">{userLocation ? 'Distance (Nearest)' : 'Default'}</option>
-                                <option value="trust-desc">Trust (High To Low)</option>
-                                <option value="trust-asc">Trust (Low To High)</option>
-                                <option value="distance">Distance (Nearest First)</option>
-                                <option value="name-az">Name (A-Z)</option>
-                                <option value="name-za">Name (Z-A)</option>
-                                <option value="venue-type">Venue Type</option>
-                                <option value="state-az">State (A-Z)</option>
-                                <option value="most-tables">Most Tables</option>
-                            </select>
-                        </div>
-                    </div>
                 </div>
-                {/* Venue View: List or Map */}
-                {venueViewMode === 'map' ? (
-                    <div className="inline-map-container">
-                        <MapErrorBoundary>
-                            <VenueMap
-                                key={'inline-' + sorted.length + '-' + (sorted[0]?.id || 'none')}
-                                venues={sorted}
-                                userLocation={userLocation}
-                            />
-                        </MapErrorBoundary>
-                        {userLocation && (
-                            <button className="map-recenter-btn" onClick={requestGpsLocation} aria-label="Recenter on my location" style={{ marginTop: 8 }}>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="3" />
-                                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
-                                </svg>
-                                My Location
-                            </button>
-                        )}
-                        {/* Mini venue list below map */}
-                        <div className="inline-map-venue-list">
-                            <h3 className="inline-map-list-title">{userLocation ? 'Closest Poker Rooms' : 'Poker Rooms'}</h3>
-                            <div className="inline-map-list-scroll">
-                                {sorted.slice(0, 12).map((venue, i) => (
-                                    <div key={venue.id || i} className="inline-map-mini-card" onClick={() => router.push(venue.is_social_page ? `/club/${venue.social_page_id}` : `/hub/venues/${venue.id}`)}>
-                                        <div className="mini-card-name">{venue.name}</div>
-                                        <div className="mini-card-loc">
-                                            {venue.city}, {venue.state}
-                                            {venue.distance_mi && <span className="mini-card-dist"> &bull; {venue.distance_mi.toFixed(1)} mi</span>}
-                                        </div>
-                                        <div className="mini-card-tags">
-                                            {venue.venue_type && <span className="mini-card-tag">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <>
+
+                {/* ═══ DUAL VIEW: Cards + Map ═══ */}
+                <div className="dual-view-layout">
+                    {/* LEFT: Venue Cards */}
+                    <div className="dual-view-list">
                         <div className="card-grid">
                             {displayed.map((venue, i) => {
                                 const maxGtd = venueMaxGtd[String(venue.id)] || 0;
@@ -1819,8 +1794,35 @@ export default function PokerNearMePage() {
                                 </button>
                             </div>
                         )}
-                    </>
-                )}
+                    </div>
+
+                    {/* RIGHT: Interactive Map */}
+                    <div className="dual-view-map">
+                        <div className="dual-map-header">
+                            <h3 className="dual-map-title">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg>
+                                Map View
+                            </h3>
+                            <span className="dual-map-count">{sorted.length} pins</span>
+                        </div>
+                        <MapErrorBoundary>
+                            <VenueMap
+                                key={'dual-' + sorted.length + '-' + (sorted[0]?.id || 'none')}
+                                venues={sorted}
+                                userLocation={userLocation}
+                            />
+                        </MapErrorBoundary>
+                        {userLocation && (
+                            <button className="map-recenter-btn" onClick={requestGpsLocation} aria-label="Recenter on my location" style={{ marginTop: 8 }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+                                </svg>
+                                My Location
+                            </button>
+                        )}
+                    </div>
+                </div>
             </>
         );
     };
@@ -2381,105 +2383,158 @@ export default function PokerNearMePage() {
                     bottomLinks={menuConfig.bottomLinks}
                 />
 
-                {/* ═══ VIP ACTION GATE REPLACED OLD PAGE WRAPPER ═══ */}
-                {/* ═══ NATIVE CSS SEARCH & FILTER ROW ═══ */}
-                    <div className="native-search-row">
-                        <form className="native-search-form" onSubmit={handleSearch}>
-                            <input
-                                type="text"
-                                className="native-search-input"
-                                placeholder="Search Venues, Cities, States, Tours..."
-                                value={searchQuery}
-                                onChange={handleSearchInputChange}
-                                autoComplete="off"
-                                autoFocus={!hasSearched && !searchQuery}
-                            />
-                            <button type="submit" className="native-search-btn" aria-label="Search">
+                {/* ═══ PAGE TITLE ═══ */}
+                <div className="pnm-title-bar">
+                    <h1 className="pnm-title">POKER NEAR ME</h1>
+                    <p className="pnm-subtitle">{dbStats.total || venues.length || '525'} Venues &bull; {dbStats.states || '41'} States &bull; Real-Time Data</p>
+                </div>
+
+                {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}
+                <div className="pnm-layout">
+
+                    {/* ─── LEFT SIDEBAR NAVIGATION ─── */}
+                    <aside className="pnm-sidebar" role="navigation" aria-label="Poker Near Me navigation">
+                        <nav className="sidebar-nav">
+                            {[
+                                { key: 'venues', label: 'Venues', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg> },
+                                { key: 'events', label: 'Events', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
+                                { key: 'live', label: 'Live Games', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#ef4444" /><circle cx="12" cy="12" r="7" stroke="#ef4444" strokeWidth="1.5" opacity="0.5" /><circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="1" opacity="0.25" /></svg>, badge: liveGames.length > 0 ? liveGames.length : null },
+                                { key: 'map', label: 'Full Map', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg> },
+                                { key: 'saved', label: 'Saved', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>, badge: Object.keys(favorites).filter(k => favorites[k]).length || null },
+                            ].map(tab => (
+                                <button
+                                    key={tab.key}
+                                    className={'sidebar-tab' + (activeTab === tab.key ? ' active' : '')}
+                                    onClick={() => setActiveTab(tab.key)}
+                                    role="tab"
+                                    aria-selected={activeTab === tab.key}
+                                    aria-label={tab.label + ' tab'}
+                                >
+                                    <span className="sidebar-tab-icon">{tab.icon}</span>
+                                    <span className="sidebar-tab-label">{tab.label}</span>
+                                    {tab.badge && <span className="sidebar-tab-badge">{tab.badge}</span>}
+                                </button>
+                            ))}
+                        </nav>
+
+                        {/* Event sub-tabs inside sidebar */}
+                        {activeTab === 'events' && (
+                            <div className="sidebar-sub-nav">
+                                {['tours', 'series', 'daily', 'calendar'].map(sub => (
+                                    <button
+                                        key={sub}
+                                        className={'sidebar-sub-tab' + (activeEventTab === sub ? ' active' : '')}
+                                        onClick={() => setActiveEventTab(sub)}
+                                    >
+                                        {sub.charAt(0).toUpperCase() + sub.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* ─── SIDEBAR FILTERS ─── */}
+                        <div className="sidebar-filters">
+                            <div className="sidebar-section-title">Search</div>
+                            <form className="sidebar-search-form" onSubmit={handleSearch}>
+                                <input
+                                    type="text"
+                                    className="sidebar-search-input"
+                                    placeholder="City, State, Venue..."
+                                    value={searchQuery}
+                                    onChange={handleSearchInputChange}
+                                    autoComplete="off"
+                                />
+                                <button type="submit" className="sidebar-search-btn" aria-label="Search">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                    </svg>
+                                </button>
+                            </form>
+
+                            <button className={'sidebar-gps-btn' + (userLocation ? ' active' : '') + (gpsLoading ? ' loading' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                                    <circle cx="12" cy="10" r="3" />
-                                </svg>
-                            </button>
-                        </form>
-                        
-                        <button className={'native-gps-btn' + (userLocation ? ' active' : '') + (gpsLoading ? ' loading' : '')} onClick={requestGpsLocation} disabled={gpsLoading} aria-label="Use GPS">
-                            {gpsLoading ? (
-                                <div style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#d4a853', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                            ) : (
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <circle cx="12" cy="12" r="3" />
                                     <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
                                 </svg>
-                            )}
-                        </button>
-                        <button className={'native-filter-btn' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)} aria-label="Filters">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                            </svg>
-                        </button>
-                    </div>
-
-                    {/* ═══ GPS LOCATION BANNER ═══ */}
-                    {gpsLocationLabel && userLocation && (
-                        <div className="gps-location-banner">
-                            <div className="gps-banner-inner">
-                                <div className="gps-pulse-dot" />
-                                <span className="gps-label">
-                                    {gpsLocationLabel === 'Locating...' ? (
-                                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>Determining your location...</span>
-                                    ) : (
-                                        <>Near <strong>{gpsLocationLabel}</strong></>
-                                    )}
-                                </span>
-                                <button className="gps-clear-btn" onClick={() => { setUserLocation(null); setGpsLocationLabel(null); setHasSearched(false); setVenues([]); setNearestDistance(null); }} aria-label="Clear GPS location">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ═══ MOBILE TAB BAR (6 Primary Tabs) ═══ */}
-                    <div className="mobile-tab-bar" role="tablist" aria-label="Poker Near Me navigation">
-                        {[
-                            { key: 'venues', label: 'Venues', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg> },
-                            { key: 'events', label: 'Events', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
-                            { key: 'live', label: 'Live', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#ef4444" /><circle cx="12" cy="12" r="7" stroke="#ef4444" strokeWidth="1.5" opacity="0.5" /><circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="1" opacity="0.25" /></svg> },
-                            { key: 'map', label: 'Map', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg> },
-                            { key: 'saved', label: 'Saved', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg> },
-                            { key: 'more', label: 'More', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg> },
-                        ].map(tab => (
-                            <button
-                                key={tab.key}
-                                className={'mtab' + (activeTab === tab.key ? ' active' : '')}
-                                onClick={() => setActiveTab(tab.key)}
-                                role="tab"
-                                aria-selected={activeTab === tab.key}
-                                aria-label={tab.label + ' tab'}
-                            >
-                                <span className="mtab-icon">{tab.icon}</span>
-                                <span className="mtab-label">{tab.label}</span>
-                                {tab.key === 'live' && liveGames.length > 0 && <span className="mtab-badge">{liveGames.length}</span>}
-                                {tab.key === 'saved' && Object.keys(favorites).filter(k => favorites[k]).length > 0 && <span className="mtab-badge fav">{Object.keys(favorites).filter(k => favorites[k]).length}</span>}
+                                {gpsLoading ? 'Locating...' : userLocation ? 'GPS Active' : 'Enable GPS'}
                             </button>
-                        ))}
-                    </div>
 
-                    {/* EVENT SUB-TABS ROW */}
-                    {activeTab === 'events' && (
-                        <div className="sub-tab-row">
-                            {['tours', 'series', 'daily', 'calendar'].map(sub => (
-                                <button
-                                    key={sub}
-                                    className={'sub-tab-btn' + (activeEventTab === sub ? ' active' : '')}
-                                    onClick={() => setActiveEventTab(sub)}
-                                >
-                                    {sub.charAt(0).toUpperCase() + sub.slice(1)}
-                                </button>
-                            ))}
+                            {gpsLocationLabel && userLocation && (
+                                <div className="sidebar-gps-label">
+                                    <div className="gps-pulse-dot" />
+                                    Near <strong>{gpsLocationLabel}</strong>
+                                    <button onClick={() => { setUserLocation(null); setGpsLocationLabel(null); setHasSearched(false); setVenues([]); setNearestDistance(null); }} className="sidebar-gps-clear">&times;</button>
+                                </div>
+                            )}
+
+                            {activeTab === 'venues' && (
+                                <>
+                                    <div className="sidebar-section-title">Filters</div>
+
+                                    <div className="sidebar-filter-group">
+                                        <label>Radius</label>
+                                        <div className="sidebar-chips">
+                                            {[25, 50, 100, 250, 'Any'].map(dist => (
+                                                <button key={dist} className={'sidebar-chip' + (filters.radius === dist ? ' active' : '')} onClick={() => { setFilters({ ...filters, radius: dist }); setHasSearched(true); }}>
+                                                    {dist === 'Any' ? 'Any' : `${dist} mi`}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="sidebar-filter-group">
+                                        <label>Venue Type</label>
+                                        <div className="sidebar-chips">
+                                            {['all', 'casino', 'card_room', 'poker_club', 'charity'].map(type => (
+                                                <button key={type} className={'sidebar-chip' + (filters.venueType === type ? ' active' : '')} onClick={() => setFilters({ ...filters, venueType: type })}>
+                                                    {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="sidebar-filter-group">
+                                        <label>Games</label>
+                                        <div className="sidebar-chips">
+                                            <button className={'sidebar-chip' + (filters.hasNLH ? ' active' : '')} onClick={() => setFilters({ ...filters, hasNLH: !filters.hasNLH })}>NLH</button>
+                                            <button className={'sidebar-chip' + (filters.hasPLO ? ' active' : '')} onClick={() => setFilters({ ...filters, hasPLO: !filters.hasPLO })}>PLO</button>
+                                            <button className={'sidebar-chip' + (filters.hasMixed ? ' active' : '')} onClick={() => setFilters({ ...filters, hasMixed: !filters.hasMixed })}>Mixed</button>
+                                        </div>
+                                    </div>
+
+                                    <div className="sidebar-filter-group">
+                                        <label>State</label>
+                                        <select
+                                            value={filters.selectedState}
+                                            onChange={e => setFilters(f => ({ ...f, selectedState: e.target.value }))}
+                                            className="sidebar-select"
+                                        >
+                                            <option value="all">All States</option>
+                                            {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
+                                                <option key={st} value={st}>{st}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="sidebar-filter-group">
+                                        <label>Sort By</label>
+                                        <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="sidebar-select">
+                                            <option value="default">{userLocation ? 'Distance (Nearest)' : 'Default'}</option>
+                                            <option value="trust-desc">Trust (High to Low)</option>
+                                            <option value="distance">Distance (Nearest)</option>
+                                            <option value="name-az">Name (A-Z)</option>
+                                            <option value="venue-type">Venue Type</option>
+                                            <option value="state-az">State (A-Z)</option>
+                                            <option value="most-tables">Most Tables</option>
+                                        </select>
+                                    </div>
+                                </>
+                            )}
                         </div>
-                    )}
+                    </aside>
+
+                    {/* ─── MAIN CONTENT AREA ─── */}
+                    <div className="pnm-main">
 
                     {/* Distance / Geofence notices (below HUD) */}
                     {(userLocation || nearestDistance) && (
@@ -2499,137 +2554,9 @@ export default function PokerNearMePage() {
                         </div>
                     )}
 
-                    {/* Filter Panel (below HUD) */}
-                    {showFilters && (
-                        <div className="filter-panel" style={{ maxWidth: 720, margin: '0 auto 16px', padding: 16, background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}>
-                            {activeTab === 'venues' && (
-                                <>
-                                    <div className="filter-group">
-                                        <label>Search Radius (Miles)</label>
-                                        <div className="filter-chips">
-                                            {[25, 50, 100, 250, 'Any'].map(dist => (
-                                                <button key={dist} type="button" className={'chip' + (filters.radius === dist ? ' active' : '')}
-                                                    onClick={() => {
-                                                        const newFilters = { ...filters, radius: dist };
-                                                        setFilters(newFilters);
-                                                        // Automatically trigger a refresh of venue data when radius changes
-                                                        setHasSearched(true);
-                                                    }}>
-                                                    {dist === 'Any' ? 'Anywhere' : `${dist} mi`}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="filter-group">
-                                        <label>Venue Type</label>
-                                        <div className="filter-chips">
-                                            {['all', 'casino', 'card_room', 'poker_club', 'charity'].map(type => (
-                                                <button key={type} className={'chip' + (filters.venueType === type ? ' active' : '')}
-                                                    onClick={() => setFilters({ ...filters, venueType: type })}>
-                                                    {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="filter-group">
-                                        <label>Games</label>
-                                        <div className="filter-chips">
-                                            <button className={'chip' + (filters.hasNLH ? ' active' : '')}
-                                                onClick={() => setFilters({ ...filters, hasNLH: !filters.hasNLH })}>NLH</button>
-                                            <button className={'chip' + (filters.hasPLO ? ' active' : '')}
-                                                onClick={() => setFilters({ ...filters, hasPLO: !filters.hasPLO })}>PLO</button>
-                                            <button className={'chip' + (filters.hasMixed ? ' active' : '')}
-                                                onClick={() => setFilters({ ...filters, hasMixed: !filters.hasMixed })}>Mixed</button>
-                                        </div>
-                                    </div>
-                                    <div className="filter-group">
-                                        <label>State</label>
-                                        <select
-                                            value={filters.selectedState}
-                                            onChange={e => {
-                                                const val = e.target.value;
-                                                setFilters(f => ({ ...f, selectedState: val }));
-                                            }}
-                                            style={{
-                                                width: '100%', padding: '10px 12px',
-                                                background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.15)',
-                                                borderRadius: 8, color: '#fff', fontSize: 14, appearance: 'auto'
-                                            }}
-                                        >
-                                            <option value="all">All States</option>
-                                            {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                                                <option key={st} value={st}>{st}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </>
-                            )}
-                            {activeTab === 'events' && activeEventTab === 'tours' && (
-                                <div className="filter-group">
-                                    <label>Tour Type</label>
-                                    <div className="filter-chips">
-                                        {['all', 'major', 'circuit', 'high_roller', 'regional'].map(type => (
-                                            <button key={type} className={'chip' + (filters.tourType === type ? ' active' : '')}
-                                                onClick={() => setFilters({ ...filters, tourType: type })}>
-                                                {type === 'all' ? 'All' : TOUR_TYPE_LABELS[type]}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            {activeTab === 'events' && activeEventTab === 'series' && (
-                                <>
-                                    <div className="filter-group">
-                                        <label>Timeframe</label>
-                                        <div className="filter-chips">
-                                            {[30, 60, 90, 180].map(days => (
-                                                <button key={days} className={'chip' + (filters.seriesTimeframe === days ? ' active' : '')}
-                                                    onClick={() => setFilters({ ...filters, seriesTimeframe: days })}>
-                                                    {days} Days
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="filter-group">
-                                        <label>Series Type</label>
-                                        <div className="filter-chips">
-                                            {['all', 'major', 'circuit', 'regional'].map(type => (
-                                                <button key={type} className={'chip' + (filters.seriesType === type ? ' active' : '')}
-                                                    onClick={() => setFilters({ ...filters, seriesType: type })}>
-                                                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                            {activeTab === 'events' && activeEventTab === 'daily' && (
-                                <div className="filter-group">
-                                    <label>Buy-In Range</label>
-                                    <div className="filter-inputs" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                                        <input type="number" placeholder="Min $" value={filters.minBuyin}
-                                            onChange={e => setFilters({ ...filters, minBuyin: e.target.value })}
-                                            style={{ width: 100, padding: '10px 12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#fff', fontSize: 14 }} />
-                                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>To</span>
-                                        <input type="number" placeholder="Max $" value={filters.maxBuyin}
-                                            onChange={e => setFilters({ ...filters, maxBuyin: e.target.value })}
-                                            style={{ width: 100, padding: '10px 12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#fff', fontSize: 14 }} />
-                                    </div>
-                                </div>
-                            )}
-                            <button onClick={() => {
-                                setHasSearched(true);
-                                fetchAllData({ includeVenues: true });
-                                setShowFilters(false);
-                            }}
-                                style={{ width: '100%', padding: 12, background: 'linear-gradient(135deg, #d4a853, #b8860b)', border: 'none', borderRadius: 10, color: '#000', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-                                Apply Filters
-                            </button>
-                        </div>
-                    )}
 
-                    {/* Main Content — with swipe + pull-to-refresh */}
-                    <main
+                    {/* Content area */}
+                    <div
                         className="pnm-content"
                         ref={contentRef}
                         onTouchStart={(e) => { handleTouchStart(e); handlePullStart(e); }}
@@ -2676,7 +2603,9 @@ export default function PokerNearMePage() {
                         )}
 
                         {renderContent()}
-                    </main>
+                    </div>{/* end pnm-content */}
+                    </div>{/* end pnm-main */}
+                </div>{/* end pnm-layout */}
 
                     {/* Geofence Alert Banner */}
                     {geofenceAlert && (
@@ -2735,6 +2664,442 @@ export default function PokerNearMePage() {
                         font-family: 'Inter', -apple-system, sans-serif;
                         overflow-x: hidden;
                         padding-bottom: 40px;
+                    }
+
+                    /* ═══ PAGE TITLE BAR ═══ */
+                    .pnm-title-bar {
+                        text-align: center;
+                        padding: 28px 20px 18px;
+                        position: relative;
+                    }
+                    .pnm-title {
+                        font-size: 36px;
+                        font-weight: 900;
+                        letter-spacing: 3px;
+                        margin: 0;
+                        background: linear-gradient(135deg, #d4a853 0%, #f5d799 40%, #d4a853 60%, #b8860b 100%);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        background-clip: text;
+                        text-shadow: none;
+                        filter: drop-shadow(0 0 20px rgba(212,168,83,0.3));
+                    }
+                    .pnm-subtitle {
+                        margin: 6px 0 0;
+                        font-size: 14px;
+                        color: rgba(148,163,184,0.6);
+                        letter-spacing: 1px;
+                        font-weight: 500;
+                    }
+
+                    /* ═══ SIDEBAR + MAIN LAYOUT ═══ */
+                    .pnm-layout {
+                        display: flex;
+                        max-width: 1600px;
+                        margin: 0 auto;
+                        min-height: calc(100vh - 160px);
+                        gap: 0;
+                    }
+
+                    /* ═══ LEFT SIDEBAR NAVIGATION ═══ */
+                    .pnm-sidebar {
+                        width: 240px;
+                        min-width: 240px;
+                        background: linear-gradient(180deg, rgba(12,20,35,0.97) 0%, rgba(8,14,26,0.99) 100%);
+                        border-right: 2px solid rgba(148,163,184,0.12);
+                        padding: 12px 0;
+                        position: sticky;
+                        top: 64px;
+                        height: calc(100vh - 64px);
+                        overflow-y: auto;
+                        overflow-x: hidden;
+                        z-index: 50;
+                        box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+                        scrollbar-width: thin;
+                        scrollbar-color: rgba(212,168,83,0.3) transparent;
+                    }
+                    .pnm-sidebar::-webkit-scrollbar { width: 4px; }
+                    .pnm-sidebar::-webkit-scrollbar-thumb { background: rgba(212,168,83,0.25); border-radius: 2px; }
+
+                    .sidebar-nav {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 2px;
+                        padding: 0 8px;
+                        margin-bottom: 16px;
+                    }
+
+                    .sidebar-tab {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        width: 100%;
+                        padding: 14px 16px;
+                        border-radius: 10px;
+                        background: transparent;
+                        border: 1.5px solid transparent;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        color: rgba(148,163,184,0.65);
+                        position: relative;
+                        text-align: left;
+                    }
+                    .sidebar-tab:hover {
+                        background: rgba(148,163,184,0.06);
+                        color: rgba(200,214,229,0.85);
+                    }
+                    .sidebar-tab.active {
+                        background: linear-gradient(135deg, rgba(212,168,83,0.12) 0%, rgba(184,134,11,0.06) 100%);
+                        border-color: rgba(212,168,83,0.3);
+                        color: #d4a853;
+                        box-shadow: inset 0 0 12px rgba(212,168,83,0.06), 0 0 8px rgba(212,168,83,0.08);
+                    }
+                    .sidebar-tab.active::before {
+                        content: '';
+                        position: absolute;
+                        left: 0;
+                        top: 6px;
+                        bottom: 6px;
+                        width: 3px;
+                        background: #d4a853;
+                        border-radius: 0 3px 3px 0;
+                        box-shadow: 0 0 8px rgba(212,168,83,0.4);
+                    }
+
+                    .sidebar-tab-icon {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 24px;
+                        height: 24px;
+                        flex-shrink: 0;
+                    }
+                    .sidebar-tab-label {
+                        font-size: 15px;
+                        font-weight: 600;
+                        white-space: nowrap;
+                    }
+                    .sidebar-tab-badge {
+                        margin-left: auto;
+                        background: #ef4444;
+                        color: #fff;
+                        font-size: 11px;
+                        font-weight: 700;
+                        padding: 2px 7px;
+                        border-radius: 10px;
+                        min-width: 20px;
+                        text-align: center;
+                        animation: livePulse 2s ease-in-out infinite;
+                    }
+
+                    /* Sidebar Sub-Nav (Events sub-tabs) */
+                    .sidebar-sub-nav {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 2px;
+                        padding: 4px 12px 12px;
+                        margin-left: 24px;
+                        border-left: 2px solid rgba(148,163,184,0.1);
+                    }
+                    .sidebar-sub-tab {
+                        padding: 10px 14px;
+                        background: transparent;
+                        border: none;
+                        border-radius: 8px;
+                        color: rgba(148,163,184,0.6);
+                        font-size: 14px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        text-align: left;
+                        transition: all 0.2s;
+                    }
+                    .sidebar-sub-tab:hover {
+                        background: rgba(148,163,184,0.06);
+                        color: #e2e8f0;
+                    }
+                    .sidebar-sub-tab.active {
+                        background: rgba(212,168,83,0.1);
+                        color: #d4a853;
+                        font-weight: 700;
+                    }
+
+                    /* ═══ SIDEBAR FILTERS ═══ */
+                    .sidebar-filters {
+                        padding: 0 12px;
+                        border-top: 1px solid rgba(148,163,184,0.08);
+                        margin-top: 8px;
+                        padding-top: 12px;
+                    }
+                    .sidebar-section-title {
+                        font-size: 11px;
+                        font-weight: 800;
+                        text-transform: uppercase;
+                        letter-spacing: 1.5px;
+                        color: rgba(148,163,184,0.4);
+                        margin-bottom: 10px;
+                        padding: 0 4px;
+                    }
+                    .sidebar-search-form {
+                        display: flex;
+                        gap: 6px;
+                        margin-bottom: 10px;
+                    }
+                    .sidebar-search-input {
+                        flex: 1;
+                        padding: 10px 12px;
+                        background: rgba(0,0,0,0.35);
+                        border: 1.5px solid rgba(148,163,184,0.15);
+                        border-radius: 8px;
+                        color: #e2e8f0;
+                        font-size: 14px;
+                        font-family: inherit;
+                        outline: none;
+                        transition: border-color 0.2s;
+                    }
+                    .sidebar-search-input:focus {
+                        border-color: rgba(212,168,83,0.4);
+                    }
+                    .sidebar-search-input::placeholder {
+                        color: rgba(148,163,184,0.35);
+                    }
+                    .sidebar-search-btn {
+                        width: 40px;
+                        background: rgba(0,0,0,0.3);
+                        border: 1.5px solid rgba(148,163,184,0.15);
+                        border-radius: 8px;
+                        color: rgba(148,163,184,0.5);
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                    }
+                    .sidebar-search-btn:hover {
+                        color: #d4a853;
+                        border-color: rgba(212,168,83,0.3);
+                    }
+
+                    .sidebar-gps-btn {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        width: 100%;
+                        padding: 10px 12px;
+                        background: rgba(0,0,0,0.25);
+                        border: 1.5px solid rgba(148,163,184,0.12);
+                        border-radius: 8px;
+                        color: rgba(148,163,184,0.6);
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        margin-bottom: 10px;
+                    }
+                    .sidebar-gps-btn:hover {
+                        border-color: rgba(59,130,246,0.3);
+                        color: #60a5fa;
+                    }
+                    .sidebar-gps-btn.active {
+                        background: rgba(34,197,94,0.08);
+                        border-color: rgba(34,197,94,0.25);
+                        color: #4ade80;
+                    }
+
+                    .sidebar-gps-label {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 8px 10px;
+                        background: rgba(34,197,94,0.06);
+                        border: 1px solid rgba(34,197,94,0.15);
+                        border-radius: 8px;
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.7);
+                        margin-bottom: 12px;
+                    }
+                    .sidebar-gps-clear {
+                        margin-left: auto;
+                        background: none;
+                        border: none;
+                        color: rgba(255,255,255,0.3);
+                        font-size: 18px;
+                        cursor: pointer;
+                        line-height: 1;
+                        padding: 0;
+                    }
+                    .sidebar-gps-clear:hover { color: #ef4444; }
+
+                    .sidebar-filter-group {
+                        margin-bottom: 14px;
+                    }
+                    .sidebar-filter-group label {
+                        display: block;
+                        font-size: 13px;
+                        font-weight: 700;
+                        color: rgba(255,255,255,0.55);
+                        margin-bottom: 8px;
+                        padding: 0 2px;
+                    }
+                    .sidebar-chips {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 6px;
+                    }
+                    .sidebar-chip {
+                        padding: 8px 14px;
+                        background: rgba(0,0,0,0.35);
+                        border: 1.5px solid rgba(148,163,184,0.12);
+                        border-radius: 8px;
+                        color: rgba(255,255,255,0.6);
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .sidebar-chip:hover {
+                        background: rgba(255,255,255,0.06);
+                        border-color: rgba(255,255,255,0.2);
+                        color: #fff;
+                    }
+                    .sidebar-chip.active {
+                        background: rgba(212,168,83,0.15);
+                        border-color: rgba(212,168,83,0.4);
+                        color: #d4a853;
+                    }
+
+                    .sidebar-select {
+                        width: 100%;
+                        padding: 10px 12px;
+                        background: rgba(0,0,0,0.35);
+                        border: 1.5px solid rgba(148,163,184,0.15);
+                        border-radius: 8px;
+                        color: #e2e8f0;
+                        font-size: 14px;
+                        font-family: inherit;
+                        cursor: pointer;
+                        appearance: auto;
+                    }
+                    .sidebar-select:focus {
+                        border-color: rgba(212,168,83,0.4);
+                        outline: none;
+                    }
+
+                    /* ═══ MAIN CONTENT AREA ═══ */
+                    .pnm-main {
+                        flex: 1;
+                        min-width: 0;
+                        padding: 0 20px 40px;
+                    }
+
+                    /* ═══ MOBILE SIDEBAR → DRAWER ═══ */
+                    @media (max-width: 768px) {
+                        .pnm-title {
+                            font-size: 28px;
+                            letter-spacing: 2px;
+                        }
+                        .pnm-title-bar {
+                            padding: 20px 16px 12px;
+                        }
+                        .pnm-layout {
+                            flex-direction: column;
+                        }
+                        .pnm-sidebar {
+                            width: 100%;
+                            min-width: 100%;
+                            position: relative;
+                            top: 0;
+                            height: auto;
+                            max-height: none;
+                            border-right: none;
+                            border-bottom: 2px solid rgba(148,163,184,0.12);
+                            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+                            padding: 8px 0 12px;
+                        }
+                        .sidebar-nav {
+                            flex-direction: row;
+                            overflow-x: auto;
+                            -webkit-overflow-scrolling: touch;
+                            gap: 4px;
+                            padding: 0 12px;
+                            margin-bottom: 8px;
+                        }
+                        .sidebar-tab {
+                            flex-direction: column;
+                            gap: 4px;
+                            padding: 10px 14px;
+                            min-width: 72px;
+                            align-items: center;
+                            text-align: center;
+                        }
+                        .sidebar-tab.active::before {
+                            display: none;
+                        }
+                        .sidebar-tab.active {
+                            box-shadow: inset 0 -2px 0 #d4a853, inset 0 0 8px rgba(212,168,83,0.08);
+                        }
+                        .sidebar-tab-label {
+                            font-size: 12px;
+                        }
+                        .sidebar-tab-icon {
+                            width: 22px;
+                            height: 22px;
+                        }
+                        .sidebar-sub-nav {
+                            flex-direction: row;
+                            margin-left: 0;
+                            border-left: none;
+                            gap: 4px;
+                            padding: 0 12px 8px;
+                            overflow-x: auto;
+                        }
+                        .sidebar-sub-tab {
+                            padding: 8px 16px;
+                            font-size: 13px;
+                            white-space: nowrap;
+                        }
+                        .sidebar-filters {
+                            padding: 0 12px 8px;
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 8px;
+                            align-items: flex-start;
+                        }
+                        .sidebar-section-title {
+                            width: 100%;
+                            margin-bottom: 4px;
+                        }
+                        .sidebar-search-form {
+                            flex: 1;
+                            min-width: 200px;
+                            margin-bottom: 0;
+                        }
+                        .sidebar-gps-btn {
+                            min-width: 120px;
+                            flex: 0;
+                            margin-bottom: 0;
+                        }
+                        .sidebar-gps-label { width: 100%; }
+                        .sidebar-filter-group {
+                            margin-bottom: 0;
+                        }
+                        .sidebar-chips {
+                            gap: 4px;
+                        }
+                        .sidebar-chip {
+                            padding: 6px 12px;
+                            font-size: 12px;
+                        }
+                        .sidebar-select {
+                            font-size: 13px;
+                            padding: 8px 10px;
+                        }
+                        .sidebar-filter-group label {
+                            font-size: 12px;
+                            margin-bottom: 4px;
+                        }
+                        .pnm-main {
+                            padding: 0 12px 40px;
+                        }
                     }
 
                     /* Space Background */
@@ -3605,14 +3970,15 @@ export default function PokerNearMePage() {
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
-                        padding: 10px 4px;
-                        margin-bottom: 12px;
+                        padding: 12px 4px;
+                        margin-bottom: 16px;
                         flex-wrap: wrap;
                         gap: 10px;
                     }
                     .results-count {
-                        font-size: 13px;
-                        color: rgba(255,255,255,0.5);
+                        font-size: 15px;
+                        color: rgba(255,255,255,0.6);
+                        font-weight: 600;
                     }
                     .sort-controls {
                         display: flex;
@@ -3620,17 +3986,75 @@ export default function PokerNearMePage() {
                         gap: 8px;
                     }
                     .sort-controls label {
-                        font-size: 12px;
-                        color: rgba(255,255,255,0.4);
+                        font-size: 14px;
+                        color: rgba(255,255,255,0.5);
+                        font-weight: 500;
                     }
                     .sort-select {
-                        padding: 6px 12px;
+                        padding: 10px 14px;
                         background: rgba(15,23,42,0.8);
-                        border: 1px solid rgba(255,255,255,0.15);
+                        border: 1.5px solid rgba(255,255,255,0.15);
                         border-radius: 8px;
                         color: #fff;
-                        font-size: 13px;
+                        font-size: 14px;
                         cursor: pointer;
+                    }
+
+                    /* ═══ DUAL VIEW LAYOUT ═══ */
+                    .dual-view-layout {
+                        display: grid;
+                        grid-template-columns: 1fr 420px;
+                        gap: 20px;
+                        align-items: start;
+                    }
+                    .dual-view-list {
+                        min-width: 0;
+                    }
+                    .dual-view-map {
+                        position: sticky;
+                        top: 80px;
+                        border-radius: 14px;
+                        overflow: hidden;
+                        background: linear-gradient(160deg, rgba(16,24,36,0.95) 0%, rgba(10,16,26,0.98) 100%);
+                        border: 2px solid rgba(148,163,184,0.14);
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+                    }
+                    .dual-map-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 12px 16px;
+                        border-bottom: 1px solid rgba(148,163,184,0.08);
+                    }
+                    .dual-map-title {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: 15px;
+                        font-weight: 700;
+                        color: #d4a853;
+                        margin: 0;
+                    }
+                    .dual-map-count {
+                        font-size: 12px;
+                        color: rgba(148,163,184,0.5);
+                        font-weight: 600;
+                    }
+                    @media (max-width: 1024px) {
+                        .dual-view-layout {
+                            grid-template-columns: 1fr;
+                        }
+                        .dual-view-map {
+                            position: relative;
+                            top: 0;
+                            order: -1;
+                            max-height: 350px;
+                        }
+                    }
+                    @media (max-width: 768px) {
+                        .dual-view-map {
+                            max-height: 280px;
+                        }
                     }
 
                     /* Badge Row */
@@ -5175,6 +5599,15 @@ export default function PokerNearMePage() {
                 `}</style>
                       <BottomNavBar />
                       {UpgradePopup}
+
+            {/* ═══ Tab-Specific Interactive Tutorial ═══ */}
+            <InteractiveTutorial
+                steps={currentTutorialTab ? (PNM_TAB_TUTORIALS[currentTutorialTab] || []) : []}
+                storageKey={`pnm_tab_tutorial_${currentTutorialTab}_seen`}
+                visible={showTabTutorial}
+                onDismiss={handleTutorialDismiss}
+                onDontShowAgain={handleTutorialDontShow}
+            />
             </div>
         </>
     );

@@ -237,7 +237,7 @@ export default function PokerNearMeLobby() {
   const [liveGameCount, setLiveGameCount] = useState(0);
   const [lastFetchTime, setLastFetchTime] = useState(null);
   const [showTutorial, setShowTutorial] = useState(() => {
-    if (typeof window !== 'undefined') return !localStorage.getItem('pnm_tutorial_seen');
+    if (typeof window !== 'undefined') return !localStorage.getItem('pnm_lobby_tutorial_seen');
     return false;
   });
 
@@ -258,7 +258,9 @@ export default function PokerNearMeLobby() {
   const locationToastTimeoutRef = useRef(null);
 
   // ─── Menu config ───
-  const menuConfig = useMemo(() => getMenuConfig('poker-near-me'), []);
+  const menuConfig = useMemo(() => getMenuConfig('poker-near-me', null, {}, {
+    replayTutorial: () => { setShowTutorial(true); setMenuOpen(false); },
+  }), []);
 
   // ─── Deep Link: hydration guard ───
   // Prevents the write-back effect from clearing URL params before mount reads them
@@ -2243,7 +2245,7 @@ export default function PokerNearMeLobby() {
           liveData={liveData}
           onRefresh={handleRefreshAll}
           showTutorial={showTutorial}
-          onTutorialDismiss={() => { setShowTutorial(false); try { localStorage.setItem('pnm_tutorial_seen', '1'); } catch {} }}
+          onTutorialDismiss={() => { setShowTutorial(false); try { localStorage.setItem('pnm_lobby_tutorial_seen', '1'); } catch {} }}
           gpsActive={gpsActive}
           gpsLoading={gpsLoading}
           onGpsClick={handleGpsClick}
