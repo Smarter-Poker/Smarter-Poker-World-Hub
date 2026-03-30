@@ -1,10 +1,5 @@
-/**
- * MessageInput — Extracted from messenger.js for bundle splitting
- * Chat input with emoji picker, GIF search, and media upload
- */
-import { useState, useEffect, useRef, useCallback, Fragment } from "react";
-import Image from "next/image";
-import { C } from "./messengerConstants";
+import React, { useState, useRef } from 'react';
+import C from './MessengerTheme';
 
 function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) {
     const [text, setText] = useState('');

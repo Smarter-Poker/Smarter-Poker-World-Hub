@@ -83,6 +83,7 @@ export default async function handler(req, res) {
       }
 
       try {
+          const supabase = getSupabase();
           // Fetch all charity social pages that have metadata
           const { data: charityPages, error } = await supabase
               .from('social_pages')

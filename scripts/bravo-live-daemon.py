@@ -940,6 +940,27 @@ def run_scrape_cycle(mgr):
     with open(evidence_file, 'w') as f:
         json.dump(evidence, f, indent=2)
 
+    # Save performance metrics to Supabase for monitoring dashboard
+    try:
+        metrics_row = json.dumps({
+            'source': 'bravo',
+            'cycle_start': cycle_start.isoformat(),
+            'duration_seconds': int(duration),
+            'venues_scraped': len(slugs),
+            'venues_with_data': len(results),
+            'errors': errors,
+            'records_saved': saved,
+        }).encode()
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/scraper_metrics',
+            data=metrics_row, method='POST',
+            headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
+        )
+        urllib.request.urlopen(req, timeout=10)
+        log.debug('  📈 Scraper metrics recorded')
+    except Exception as e:
+        log.debug(f'  Metrics insert skipped: {e}')
+
     with open(BASE_DIR / 'data' / 'bravo-live-snapshot.json', 'w') as f:
         json.dump({
             'metadata': evidence,

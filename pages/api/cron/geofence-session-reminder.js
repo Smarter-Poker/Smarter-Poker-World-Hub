@@ -33,6 +33,7 @@ export default async function handler(req, res) {
 
 
       try {
+          const supabase = getSupabase();
           // Find visits that:
           // 1. Are at least 12 hours old
           // 2. Haven't been notified yet

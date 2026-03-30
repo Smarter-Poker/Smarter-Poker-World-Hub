@@ -1426,7 +1426,7 @@ export default function PokerNearMeLobby() {
                   <div style={{ textAlign: 'center', padding: 40, color: '#8b949e' }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.3 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: '#c9d1d9' }}>No Results Found</p>
-                    <p style={{ fontSize: 13 }}>Try expanding distance, changing venue type, or selecting a different state.</p>
+                    <p style={{ fontSize: 13 }}>Try Expanding Distance, Changing Venue Type, Or Selecting A Different State.</p>
                   </div>
                 )}
               </div>
@@ -1435,7 +1435,7 @@ export default function PokerNearMeLobby() {
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(88,166,255,0.25)" strokeWidth="1" style={{ marginBottom: 16 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <p style={{ fontSize: 16, fontWeight: 700, color: '#c9d1d9', marginBottom: 8 }}>Search All Venues</p>
                 <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5, maxWidth: 320, margin: '0 auto' }}>
-                  Set your filters above and tap Search. Enable GPS for distance-based results.
+                  Set Your Filters Above And Tap Search. Enable GPS For Distance-Based Results.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20 }}>
                   <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#58a6ff' }}>{venues.length || '500+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
@@ -1464,7 +1464,7 @@ export default function PokerNearMeLobby() {
             {/* Search parameters */}
             <div style={{ background: 'rgba(13,17,23,0.95)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: 14, padding: 14, marginBottom: 14 }}>
               <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <input type="text" placeholder="Search home games..." value={hgSearch}
+                <input type="text" placeholder="Search Home Games..." value={hgSearch}
                   onChange={(e) => setFilters(prev => ({ ...prev, hgSearch: e.target.value }))}
                   style={{ flex: 1, minWidth: 120, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(48,54,61,0.6)', background: '#161b22', color: '#c9d1d9', fontSize: 13, fontFamily: 'inherit' }} />
                 <select value={hgState}
@@ -1527,7 +1527,7 @@ export default function PokerNearMeLobby() {
                 {homeGames.length === 0 && !loading && (
                   <div style={{ textAlign: 'center', padding: 40, color: '#8b949e' }}>
                     <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: '#c9d1d9' }}>No Home Games Found</p>
-                    <p style={{ fontSize: 13 }}>Try a different search or state filter.</p>
+                    <p style={{ fontSize: 13 }}>Try A Different Search Or State Filter.</p>
                   </div>
                 )}
               </div>
@@ -1536,8 +1536,8 @@ export default function PokerNearMeLobby() {
                 <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(88,166,255,0.25)" strokeWidth="1" style={{ marginBottom: 14 }}>
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
-                <p style={{ fontSize: 15, fontWeight: 700, color: '#c9d1d9', marginBottom: 6 }}>Find or List Home Games</p>
-                <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5 }}>Search for home games near you or filter by state. Use the search bar above to get started.</p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: '#c9d1d9', marginBottom: 6 }}>Find Or List Home Games</p>
+                <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5 }}>Search For Home Games Near You Or Filter By State. Use The Search Bar Above To Get Started.</p>
               </div>
             )}
 
@@ -1774,7 +1774,7 @@ export default function PokerNearMeLobby() {
                   <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.3 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>No Results Found</p>
-                    <p style={{ fontSize: 13 }}>Try expanding distance, changing venue type, or selecting a different state.</p>
+                    <p style={{ fontSize: 13 }}>Try Expanding Distance, Changing Venue Type, Or Selecting A Different State.</p>
                   </div>
                 )}
               </div>
@@ -1786,7 +1786,7 @@ export default function PokerNearMeLobby() {
                 </svg>
                 <p style={{ fontSize: 16, fontWeight: 700, color: '#c9d1d9', marginBottom: 8 }}>Find Poker Anywhere</p>
                 <p style={{ fontSize: 13, color: '#8b949e', lineHeight: 1.5, maxWidth: 320, margin: '0 auto' }}>
-                  Enable GPS to find games near you, or set your search parameters above and tap Search. Filter by venue type, game type, distance, and buy-in range.
+                  Enable GPS To Find Games Near You, Or Set Your Search Parameters Above And Tap Search. Filter By Venue Type, Game Type, Distance, And Buy-In Range.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
                   <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#58a6ff' }}>{venues.length || '500+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
@@ -1854,7 +1854,7 @@ export default function PokerNearMeLobby() {
         component = (
           <div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <input type="text" placeholder="Search tours..." value={tourSearch}
+              <input type="text" placeholder="Search Tours..." value={tourSearch}
                 onChange={(e) => setFilters(prev => ({ ...prev, tourSearch: e.target.value }))}
                 style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(88,166,255,0.2)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
               <select value={tourState}
@@ -1902,7 +1902,7 @@ export default function PokerNearMeLobby() {
         component = (
           <div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <input type="text" placeholder="Search series..." value={seriesSearch}
+              <input type="text" placeholder="Search Series..." value={seriesSearch}
                 onChange={(e) => setFilters(prev => ({ ...prev, seriesSearch: e.target.value }))}
                 style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(88,166,255,0.2)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
               <select value={seriesState}
@@ -1959,7 +1959,7 @@ export default function PokerNearMeLobby() {
         break;
 
       case 'calendar':
-        component = <SeasonalCalendar />;
+        component = <SeasonalCalendar series={series} tours={tours} dailyTournaments={dailyTournaments} />;
         break;
 
       case 'roadtrip':
@@ -2013,8 +2013,8 @@ export default function PokerNearMeLobby() {
             ))}
             {favVenues.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
-                <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No saved venues yet</p>
-                <p style={{ fontSize: 13 }}>Tap the heart on any venue to save it here.</p>
+                <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Saved Venues Yet</p>
+                <p style={{ fontSize: 13 }}>Tap The Heart On Any Venue To Save It Here.</p>
               </div>
             )}
             {favVenues.length >= 2 && (
@@ -2334,12 +2334,15 @@ export default function PokerNearMeLobby() {
                 {[
                   { id: 'nearme', icon: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z', label: 'Near Me' },
                   { id: 'search', icon: 'M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-5.2-5.2', label: 'Search' },
+                  { id: 'homegames', icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z', label: 'Home' },
                   { id: 'daily', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', label: 'Daily' },
                   { id: 'livegames', icon: 'M13 10V3L4 14h7v7l9-11h-7z', label: 'Live' },
                   { id: 'mapview', icon: 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7', label: 'Map' },
                   { id: 'tours', icon: 'M3 21l1.65-3.8a9 9 0 1112.7 0L21 21', label: 'Tours' },
+                  { id: 'calendar', icon: 'M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z', label: 'Calendar' },
                   { id: 'series', icon: 'M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z', label: 'Series' },
                   { id: 'favorites', icon: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z', label: 'Saved' },
+                  { id: 'alerts', icon: 'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0', label: 'Alerts' },
                 ].map(p => (
                   <button key={p.id} onClick={() => { setActivePod(p.id); playClickSound(); }}
                     style={{

@@ -26,6 +26,7 @@ export default async function handler(req, res) {
       }
 
       try {
+          const supabase = getSupabase();
           console.log('[Cron] Starting expired day pass cleanup...');
 
           const { data, error } = await supabase

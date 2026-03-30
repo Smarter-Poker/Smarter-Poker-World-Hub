@@ -923,6 +923,27 @@ def run_scrape_cycle(mgr):
     with open(evidence_file, 'w') as f:
         json.dump(evidence, f, indent=2)
 
+    # Save performance metrics to Supabase for monitoring dashboard
+    try:
+        metrics_row = json.dumps({
+            'source': 'pokeratlas',
+            'cycle_start': cycle_start.isoformat(),
+            'duration_seconds': int((datetime.now(timezone.utc) - cycle_start).total_seconds()),
+            'venues_scraped': len(all_venues),
+            'venues_with_data': len([v for v in all_venues if v['games']]),
+            'errors': errors,
+            'records_saved': saved,
+        }).encode()
+        req = urllib.request.Request(
+            f'{SUPABASE_URL}/rest/v1/scraper_metrics',
+            data=metrics_row, method='POST',
+            headers={**SB_HEADERS, 'Prefer': 'return=minimal'}
+        )
+        urllib.request.urlopen(req, timeout=10)
+        log.debug('  📈 Scraper metrics recorded')
+    except Exception as e:
+        log.debug(f'  Metrics insert skipped: {e}')
+
     # Snapshot
     with open(BASE_DIR / 'data' / 'pokeratlas-live-snapshot.json', 'w') as f:
         json.dump({

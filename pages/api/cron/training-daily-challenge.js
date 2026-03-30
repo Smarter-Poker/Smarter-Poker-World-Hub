@@ -44,6 +44,7 @@ export default async function handler(req, res) {
       
 
       try {
+          const supabase = getSupabase();
 
           // Get today's date
           const today = new Date();

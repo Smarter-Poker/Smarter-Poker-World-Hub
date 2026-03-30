@@ -50,18 +50,18 @@ const MORE_TOOLS = [
 
 // ─── TUTORIAL STEPS ───
 const TUTORIAL_STEPS = [
-  { id: 'nearme', title: 'Poker Near Me', desc: 'Find poker rooms within your search radius — sorted by distance when GPS is active.' },
-  { id: 'homegames', title: 'Home Games', desc: 'Search for home games nearby, or list your own for other players to find.' },
-  { id: 'livegames', title: 'Live Games', desc: 'See what tables are running RIGHT NOW — data scraped from Bravo Poker Live.' },
-  { id: 'tours', title: 'Poker Tours', desc: 'Browse upcoming stops on major tours like WSOP, WPT, MSPT, and more.' },
-  { id: 'mapview', title: 'Map View', desc: 'Interactive map showing all venues with filters for game type, stakes, and hours.' },
-  { id: 'calendar', title: 'Calendar', desc: 'Monthly view of upcoming tournaments and series in your area.' },
-  { id: 'series', title: 'Poker Series', desc: 'Multi-day tournament series with schedules, buy-ins, and guaranteed prize pools.' },
-  { id: 'roadtrip', title: 'Trip Planner', desc: 'Plan a poker road trip — find venues along your route with stop recommendations.' },
-  { id: 'daily', title: 'Daily Grind', desc: 'Today\'s daily tournaments — filtered by day, buy-in range, and distance.' },
-  { id: 'favorites', title: 'Saved Venues', desc: 'Quick access to your bookmarked venues with alerts when new games appear.' },
-  { id: 'social', title: 'Friends', desc: 'Connect with poker friends and see who\'s playing nearby (coming soon).' },
-  { id: 'alerts', title: 'Tournament Alerts', desc: 'Get notified when new tournaments are posted at venues you follow.' },
+  { id: 'nearme', title: 'Poker Near Me', desc: 'Find Poker Rooms Within Your Search Radius — Sorted By Distance When GPS Is Active.' },
+  { id: 'homegames', title: 'Home Games', desc: 'Search For Home Games Nearby, Or List Your Own For Other Players To Find.' },
+  { id: 'livegames', title: 'Live Games', desc: 'See What Tables Are Running RIGHT NOW — Data Scraped From Bravo Poker Live.' },
+  { id: 'tours', title: 'Poker Tours', desc: 'Browse Upcoming Stops On Major Tours Like WSOP, WPT, MSPT, And More.' },
+  { id: 'mapview', title: 'Map View', desc: 'Interactive Map Showing All Venues With Filters For Game Type, Stakes, And Hours.' },
+  { id: 'calendar', title: 'Calendar', desc: 'Monthly View Of Upcoming Tournaments And Series In Your Area.' },
+  { id: 'series', title: 'Poker Series', desc: 'Multi-Day Tournament Series With Schedules, Buy-Ins, And Guaranteed Prize Pools.' },
+  { id: 'roadtrip', title: 'Trip Planner', desc: 'Plan A Poker Road Trip — Find Venues Along Your Route With Stop Recommendations.' },
+  { id: 'daily', title: 'Daily Grind', desc: 'Today\'s Daily Tournaments — Filtered By Day, Buy-In Range, And Distance.' },
+  { id: 'favorites', title: 'Saved Venues', desc: 'Quick Access To Your Bookmarked Venues With Alerts When New Games Appear.' },
+  { id: 'social', title: 'Friends', desc: 'Connect With Poker Friends And See Who\'s Playing Nearby (Coming Soon).' },
+  { id: 'alerts', title: 'Tournament Alerts', desc: 'Get Notified When New Tournaments Are Posted At Venues You Follow.' },
 ];
 
 /**
@@ -138,6 +138,7 @@ function FirstTimeTutorial({ step, totalSteps, onNext, onSkip }) {
       alignItems: 'center', justifyContent: 'center',
       backdropFilter: 'blur(4px)',
       fontFamily: 'Inter, system-ui, sans-serif',
+      pointerEvents: 'auto', // CRITICAL: Override parent's pointerEvents: 'none'
     }}>
       {/* Spotlight hint */}
       <div style={{ textAlign: 'center', maxWidth: 340, padding: '0 20px' }}>
@@ -316,7 +317,7 @@ export default function LobbyOverlay({
               ref={searchRef}
               type="text"
               className="lobby-search-input"
-              placeholder="Search city, venue, or zip..."
+              placeholder="Search City, Venue, Or Zip..."
               value={searchQuery}
               onChange={(e) => onSearchChange?.(e.target.value)}
               onFocus={() => setSearchFocused(true)}
@@ -472,7 +473,7 @@ export default function LobbyOverlay({
                     Enable Location
                   </div>
                   <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
-                    Find poker rooms, live games, and events near you
+                    Find Poker Rooms, Live Games, And Events Near You
                   </div>
                 </div>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(34,197,94,0.5)" strokeWidth="2" style={{ flexShrink: 0 }}>

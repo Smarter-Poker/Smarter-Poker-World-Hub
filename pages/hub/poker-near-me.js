@@ -1316,7 +1316,7 @@ export default function PokerNearMePage() {
                         </svg>
                     </div>
                     <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Your Saved Venues</h3>
-                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', maxWidth: 320, lineHeight: 1.5, margin: '0 auto 24px' }}>Keep track of your favorite card rooms, local games, and regular stops. Tap the heart icon on any venue card to save it here.</p>
+                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', maxWidth: 320, lineHeight: 1.5, margin: '0 auto 24px' }}>Keep Track Of Your Favorite Card Rooms, Local Games, And Regular Stops. Tap The Heart Icon On Any Venue Card To Save It Here.</p>
                     <button onClick={() => setActiveTab('venues')} className="primary-btn" style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 14px rgba(239,68,68,0.3)' }}>Explore Venues</button>
                 </div>
             );
@@ -2348,7 +2348,7 @@ export default function PokerNearMePage() {
                             <input
                                 type="text"
                                 className="native-search-input"
-                                placeholder="Search venues, cities, states, tours..."
+                                placeholder="Search Venues, Cities, States, Tours..."
                                 value={searchQuery}
                                 onChange={handleSearchInputChange}
                                 autoComplete="off"
@@ -2452,7 +2452,7 @@ export default function PokerNearMePage() {
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
                             </svg>
-                            <span>Notifications Blocked - Venue Alerts Will Show In-app Only</span>
+                            <span>Notifications Blocked - Venue Alerts Will Show In-App Only</span>
                         </div>
                     )}
 

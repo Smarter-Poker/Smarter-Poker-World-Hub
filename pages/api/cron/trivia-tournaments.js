@@ -41,7 +41,7 @@ export default async function handler(req, res) {
           };
 
           // 1. Start any tournament whose start_time has passed and is still 'upcoming'
-          const { data: upcomingTournaments } = await supabase
+          const { data: upcomingTournaments } = await getSupabase()
               .from('trivia_tournaments')
               .select('*')
               .eq('status', 'upcoming')
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
 
           for (const tournament of upcomingTournaments || []) {
               // Get registered entries
-              const { data: entries } = await supabase
+              const { data: entries } = await getSupabase()
                   .from('trivia_tournament_entries')
                   .select('*')
                   .eq('tournament_id', tournament.id)
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
           const endOfDay = new Date(tomorrow7pmCST);
           endOfDay.setUTCHours(23, 59, 59, 999);
 
-          const { data: existingTournament } = await supabase
+          const { data: existingTournament } = await getSupabase()
               .from('trivia_tournaments')
               .select('id')
               .gte('start_time', startOfDay.toISOString())
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
 
           if (!existingTournament) {
               // Load questions for the tournament
-              const { data: questions } = await supabase
+              const { data: questions } = await getSupabase()
                   .from('trivia_questions')
                   .select('*')
                   .limit(100);
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
                   ?.sort(() => Math.random() - 0.5)
                   .slice(0, 20) || []; // 20 questions per round (all categories)
 
-              const { data: newTournament, error } = await supabase
+              const { data: newTournament, error } = await getSupabase()
                   .from('trivia_tournaments')
                   .insert({
                       name: `Daily Championship — ${tomorrow7pmCST.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`,
@@ -151,7 +151,7 @@ async function generateBracket(tournament, entries) {
     // Seed players (random seeding for now)
     const shuffled = entries.sort(() => Math.random() - 0.5);
     for (let i = 0; i < shuffled.length; i++) {
-        await supabase
+        await getSupabase()
             .from('trivia_tournament_entries')
             .update({ seed_number: i + 1 })
             .eq('id', shuffled[i].id);
@@ -185,7 +185,7 @@ async function generateBracket(tournament, entries) {
     const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     // Create round record
-    await supabase
+    await getSupabase()
         .from('trivia_tournament_rounds')
         .insert({
             tournament_id: tournament.id,
@@ -196,7 +196,7 @@ async function generateBracket(tournament, entries) {
         });
 
     // Update tournament status
-    await supabase
+    await getSupabase()
         .from('trivia_tournaments')
         .update({
             status: 'active',
@@ -215,7 +215,7 @@ async function generateBracket(tournament, entries) {
     }));
 
     if (notifications.length > 0) {
-        await supabase
+        await getSupabase()
             .from('trivia_tournament_notifications')
             .insert(notifications);
     }
@@ -237,7 +237,7 @@ async function cancelAndRefund(tournament, entries) {
         });
 
         // Notify player
-        await supabase
+        await getSupabase()
             .from('trivia_tournament_notifications')
             .insert({
                 user_id: entry.user_id,
@@ -247,7 +247,7 @@ async function cancelAndRefund(tournament, entries) {
             });
     }
 
-    await supabase
+    await getSupabase()
         .from('trivia_tournaments')
         .update({ status: 'cancelled' })
         .eq('id', tournament.id);

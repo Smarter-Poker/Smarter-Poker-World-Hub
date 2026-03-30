@@ -83,6 +83,7 @@ export default async function handler(req, res) {
       
 
       try {
+          const supabase = getSupabase();
           const today = new Date();
           const challengeDate = today.toISOString().split('T')[0];
 

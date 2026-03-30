@@ -1,10 +1,15 @@
-/**
- * MessageBubble — Extracted from messenger.js for bundle splitting
- * Individual chat message with reactions, status, context menu
- */
-import { useState, useEffect, useRef, Fragment } from "react";
-import Image from "next/image";
-import { C, formatMessageTime } from "./messengerConstants";
+import React, { useState, useEffect } from 'react';
+import C from './MessengerTheme';
+
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🎯', '💎', '♠️', '♥️'];
+
+function formatMessageTime(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 
 function MessageContent({ content }) {
     if (!content || typeof content !== 'string') return <span>{content}</span>;
@@ -475,4 +480,5 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
     );
 }
 
+export { MessageContent, MessageBubble };
 export default MessageBubble;

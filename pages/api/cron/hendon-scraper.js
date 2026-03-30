@@ -39,6 +39,7 @@ export default async function handler(req, res) {
       }
 
       try {
+          const supabase = getSupabase();
           // Get all profiles with HendonMob URLs that need scraping
           // Either never scraped or scraped more than 7 days ago
           const { data: profiles, error: fetchError } = await supabase

@@ -41,6 +41,7 @@ export default async function handler(req, res) {
 
 
       try {
+          const supabase = getSupabase();
           const now = new Date();
           const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
