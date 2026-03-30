@@ -683,7 +683,7 @@ export default function VenueDetailPage() {
         action: newState ? 'follow' : 'unfollow',
         user_id: getAnonymousUserId(),
       }),
-    }).catch(function () { }).catch(() => {});
+    }).catch(function () { /* follow is best-effort */ });
   };
 
   var handleShare = async function () {

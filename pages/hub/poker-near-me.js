@@ -3,7 +3,7 @@
  * Find poker rooms, casinos, and tournaments near you
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
@@ -962,10 +962,10 @@ export default function PokerNearMePage() {
         }
     };
 
-    const fetchDailyTournaments = async () => {
+    const fetchDailyTournaments = async (dayOverride) => {
         try {
             const params = new URLSearchParams({ limit: '999' });
-            params.set('day', filters.selectedDay);
+            params.set('day', dayOverride || filters.selectedDay);
 
             if (selectedCity && selectedCity.state) {
                 params.set('state', selectedCity.state);
@@ -1004,6 +1004,18 @@ export default function PokerNearMePage() {
             setDailyTournaments([]);
         }
     };
+
+    // Pre-compute venueId → maxGuaranteed lookup (eliminates O(n*m) per-card computation)
+    const venueMaxGtd = useMemo(() => {
+        const map = {};
+        (dailyTournaments || []).forEach(t => {
+            if (t.guaranteed) {
+                const vid = String(t.venue_id);
+                map[vid] = Math.max(map[vid] || 0, Number(t.guaranteed));
+            }
+        });
+        return map;
+    }, [dailyTournaments]);
 
     // Fetch the full venue list for search suggestions
     const fetchLiveVenueList = async () => {
@@ -1767,7 +1779,7 @@ export default function PokerNearMePage() {
                     <>
                         <div className="card-grid">
                             {displayed.map((venue, i) => {
-                                const maxGtd = (dailyTournaments || []).filter(t => String(t.venue_id) === String(venue.id) && t.guaranteed).reduce((m, t) => Math.max(m, Number(t.guaranteed)), 0);
+                                const maxGtd = venueMaxGtd[String(venue.id)] || 0;
                                 return (
                                     <VenueCard
                                         key={venue.id || i}
@@ -1972,7 +1984,7 @@ export default function PokerNearMePage() {
                             className={'day-btn' + (filters.selectedDay === day ? ' active' : '')}
                             onClick={() => {
                                 setFilters({ ...filters, selectedDay: day });
-                                setTimeout(() => fetchDailyTournaments(), 0);
+                                fetchDailyTournaments(day);
                             }}
                         >
                             {day.slice(0, 3)}
@@ -2635,7 +2647,7 @@ export default function PokerNearMePage() {
                         {/* Push notification opt-in */}
                         {pushPermission === 'default' && userLocation && (
                             <div className="push-optin-banner">
-                                <span>🔔 Get notified when you’re near a poker room?</span>
+                                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ verticalAlign: -2, marginRight: 4 }}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg> Get notified when you’re near a poker room?</span>
                                 <button onClick={requestPushPermission}>Enable</button>
                                 <button onClick={() => setPushPermission('dismissed')} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer' }}>Dismiss</button>
                             </div>
