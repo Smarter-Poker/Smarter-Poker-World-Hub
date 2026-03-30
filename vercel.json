@@ -254,6 +254,10 @@
       "schedule": "5 0 1 * *"
     },
     {
+      "path": "/api/cron/vip-status-check",
+      "schedule": "0 * * * *"
+    },
+    {
       "path": "/api/cron/update-charity-locations",
       "schedule": "0 6 * * *"
     },
