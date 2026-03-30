@@ -41,7 +41,7 @@ import { cachedFetch, fetchWithRetry } from '../../src/components/poker-near-me/
 import { MapErrorBoundary } from '../../src/components/poker-near-me/VenueMap';
 
 // Page configuration constants
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 25;
 const PAGE_SIZE_DAILY = 50;
 const PAGE_SIZE_LIVE = 30;
 const LIVE_REFRESH_MS = 120000; // 2 minutes
@@ -256,6 +256,9 @@ export default function PokerNearMePage() {
     const [geofenceAlert, setGeofenceAlert] = useState(null);
     const geofenceRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
+
+    // Map fullscreen modal state
+    const [mapFullscreen, setMapFullscreen] = useState(false);
 
     // Review panel state (Feature #9)
     const [reviewVenue, setReviewVenue] = useState(null);
@@ -1757,71 +1760,119 @@ export default function PokerNearMePage() {
 
         const sorted = getSortedVenues(venues);
         const displayed = sorted.slice(0, displayCount.venues);
+        const remaining = venues.length - displayed.length;
 
         return (
             <>
                 {/* Results count bar */}
                 <div className="results-bar">
                     <span className="results-count">{venues.length} result{venues.length !== 1 ? 's' : ''} found{userLocation && sortBy === 'default' ? ' (sorted by distance)' : ''}</span>
+                    <span className="results-showing">Showing {displayed.length} of {venues.length}</span>
                 </div>
 
-                {/* ═══ DUAL VIEW: Cards + Map ═══ */}
-                <div className="dual-view-layout">
-                    {/* LEFT: Venue Cards */}
-                    <div className="dual-view-list">
-                        <div className="card-grid">
-                            {displayed.map((venue, i) => {
-                                const maxGtd = venueMaxGtd[String(venue.id)] || 0;
-                                return (
-                                    <VenueCard
-                                        key={venue.id || i}
-                                        venue={{ ...venue, max_gtd: maxGtd }}
-                                        index={i}
-                                        isFavorited={isFavorited('venue', venue.id)}
-                                        isNewcomer={isNewcomerFriendly(venue)}
-                                        hasPromo={promotionVenueIds.has(String(venue.id))}
-                                        onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
-                                        onNavigate={(path) => router.push(path)}
-                                    />
-                                );
-                            })}
-                        </div>
-                        {/* Load More */}
-                        {displayCount.venues < venues.length && (
-                            <div className="load-more">
-                                <button className="load-more-btn" onClick={() => loadMore('venues')}>
-                                    Show More Results ({venues.length - displayed.length} more)
+                {/* ═══ CLICKABLE MAP CARD (same size as venue cards) ═══ */}
+                <div className="map-preview-card" onClick={() => setMapFullscreen(true)}>
+                    <div className="map-preview-overlay">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2">
+                            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                            <line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
+                        </svg>
+                        <span className="map-preview-label">Open Map</span>
+                        <span className="map-preview-count">{sorted.length} venues</span>
+                    </div>
+                    <MapErrorBoundary>
+                        <VenueMap
+                            key={'preview-' + sorted.length + '-' + (sorted[0]?.id || 'none')}
+                            venues={sorted}
+                            userLocation={userLocation}
+                        />
+                    </MapErrorBoundary>
+                </div>
+
+                {/* ═══ FULLSCREEN MAP MODAL ═══ */}
+                {mapFullscreen && (
+                    <div className="map-fullscreen-backdrop" onClick={() => setMapFullscreen(false)}>
+                        <div className="map-fullscreen-modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="map-fullscreen-header">
+                                <h2 className="map-fullscreen-title">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2">
+                                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                                        <line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
+                                    </svg>
+                                    Poker Venues Map
+                                </h2>
+                                <div className="map-fullscreen-info">
+                                    <span className="map-fullscreen-count">{sorted.length} venues</span>
+                                    {userLocation && (
+                                        <button className="map-recenter-btn" onClick={requestGpsLocation}>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /></svg>
+                                            My Location
+                                        </button>
+                                    )}
+                                </div>
+                                <button className="map-fullscreen-close" onClick={() => setMapFullscreen(false)} aria-label="Close map">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                                 </button>
                             </div>
-                        )}
-                    </div>
-
-                    {/* RIGHT: Interactive Map */}
-                    <div className="dual-view-map">
-                        <div className="dual-map-header">
-                            <h3 className="dual-map-title">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg>
-                                Map View
-                            </h3>
-                            <span className="dual-map-count">{sorted.length} pins</span>
+                            <div className="map-fullscreen-body">
+                                <div className="map-fullscreen-map">
+                                    <MapErrorBoundary>
+                                        <VenueMap
+                                            key={'fullscreen-' + sorted.length}
+                                            venues={sorted}
+                                            userLocation={userLocation}
+                                        />
+                                    </MapErrorBoundary>
+                                </div>
+                                <div className="map-fullscreen-list">
+                                    <h3 className="map-list-title">Results ({sorted.length})</h3>
+                                    <div className="map-list-scroll">
+                                        {sorted.map((venue, i) => (
+                                            <div key={venue.id || i} className="map-list-item" onClick={() => { setMapFullscreen(false); router.push(venue.is_social_page ? `/club/${venue.social_page_id}` : `/hub/venues/${venue.id}`); }}>
+                                                <div className="map-list-item-main">
+                                                    <span className="map-list-name">{venue.name}</span>
+                                                    <span className="map-list-loc">{venue.city}, {venue.state}</span>
+                                                </div>
+                                                <div className="map-list-item-meta">
+                                                    {venue.distance_mi && <span className="map-list-dist">{venue.distance_mi.toFixed(1)} mi</span>}
+                                                    {venue.venue_type && <span className="map-list-type">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <MapErrorBoundary>
-                            <VenueMap
-                                key={'dual-' + sorted.length + '-' + (sorted[0]?.id || 'none')}
-                                venues={sorted}
-                                userLocation={userLocation}
-                            />
-                        </MapErrorBoundary>
-                        {userLocation && (
-                            <button className="map-recenter-btn" onClick={requestGpsLocation} aria-label="Recenter on my location" style={{ marginTop: 8 }}>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="3" />
-                                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
-                                </svg>
-                                My Location
-                            </button>
-                        )}
                     </div>
+                )}
+
+                {/* ═══ FULL-WIDTH VENUE CARDS BELOW MAP ═══ */}
+                <div className="venues-cards-section">
+                    <div className="card-grid">
+                        {displayed.map((venue, i) => {
+                            const maxGtd = venueMaxGtd[String(venue.id)] || 0;
+                            return (
+                                <VenueCard
+                                    key={venue.id || i}
+                                    venue={{ ...venue, max_gtd: maxGtd }}
+                                    index={i}
+                                    isFavorited={isFavorited('venue', venue.id)}
+                                    isNewcomer={isNewcomerFriendly(venue)}
+                                    hasPromo={promotionVenueIds.has(String(venue.id))}
+                                    onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
+                                    onNavigate={(path) => router.push(path)}
+                                />
+                            );
+                        })}
+                    </div>
+                    {/* Load More */}
+                    {remaining > 0 && (
+                        <div className="load-more">
+                            <button className="load-more-btn" onClick={() => loadMore('venues')}>
+                                Show More Results ({remaining} more)
+                            </button>
+                        </div>
+                    )}
                 </div>
             </>
         );
@@ -4000,60 +4051,246 @@ export default function PokerNearMePage() {
                         cursor: pointer;
                     }
 
-                    /* ═══ DUAL VIEW LAYOUT ═══ */
-                    .dual-view-layout {
-                        display: grid;
-                        grid-template-columns: 1fr 420px;
-                        gap: 20px;
-                        align-items: start;
-                    }
-                    .dual-view-list {
-                        min-width: 0;
-                    }
-                    .dual-view-map {
-                        position: sticky;
-                        top: 80px;
+                    /* ═══ MAP PREVIEW CARD (same size as venue cards) ═══ */
+                    .map-preview-card {
+                        position: relative;
                         border-radius: 14px;
                         overflow: hidden;
                         background: linear-gradient(160deg, rgba(16,24,36,0.95) 0%, rgba(10,16,26,0.98) 100%);
-                        border: 2px solid rgba(148,163,184,0.14);
-                        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+                        border: 2px solid rgba(148,163,184,0.16);
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.06),
+                            0 4px 20px rgba(0,0,0,0.4);
+                        margin-bottom: 16px;
+                        height: 220px;
+                        cursor: pointer;
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     }
-                    .dual-map-header {
+                    .map-preview-card:hover {
+                        border-color: rgba(212,168,83,0.4);
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.1),
+                            0 8px 32px rgba(0,0,0,0.5),
+                            0 0 0 1px rgba(212,168,83,0.1);
+                        transform: translateY(-2px);
+                    }
+                    .map-preview-card .leaflet-container,
+                    .map-preview-card > div:last-child {
+                        height: 100% !important;
+                        min-height: 220px !important;
+                        pointer-events: none;
+                    }
+                    .map-preview-overlay {
+                        position: absolute;
+                        inset: 0;
+                        z-index: 10;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        background: rgba(3,7,18,0.55);
+                        backdrop-filter: blur(2px);
+                        transition: background 0.3s;
+                        pointer-events: none;
+                    }
+                    .map-preview-card:hover .map-preview-overlay {
+                        background: rgba(3,7,18,0.35);
+                    }
+                    .map-preview-label {
+                        font-size: 18px;
+                        font-weight: 800;
+                        color: #d4a853;
+                        letter-spacing: 1px;
+                        text-transform: uppercase;
+                    }
+                    .map-preview-count {
+                        font-size: 13px;
+                        color: rgba(148,163,184,0.6);
+                        font-weight: 600;
+                    }
+                    .venues-cards-section {
+                        margin-top: 4px;
+                    }
+                    .results-showing {
+                        font-size: 12px;
+                        color: rgba(148,163,184,0.45);
+                        font-weight: 500;
+                    }
+
+                    /* ═══ FULLSCREEN MAP MODAL ═══ */
+                    .map-fullscreen-backdrop {
+                        position: fixed;
+                        inset: 0;
+                        z-index: 99990;
+                        background: rgba(0,0,0,0.85);
+                        backdrop-filter: blur(8px);
+                        display: flex;
+                        align-items: stretch;
+                        justify-content: center;
+                        animation: fadeInFS 0.2s ease-out;
+                    }
+                    @keyframes fadeInFS { from { opacity: 0; } to { opacity: 1; } }
+                    .map-fullscreen-modal {
+                        width: 100%;
+                        height: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        background: linear-gradient(180deg, #0a1628 0%, #0d1b2a 100%);
+                        overflow: hidden;
+                    }
+                    .map-fullscreen-header {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 14px 20px;
+                        border-bottom: 2px solid rgba(148,163,184,0.12);
+                        background: linear-gradient(180deg, rgba(12,20,35,0.98) 0%, rgba(8,14,26,0.99) 100%);
+                        flex-shrink: 0;
+                    }
+                    .map-fullscreen-title {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        font-size: 20px;
+                        font-weight: 800;
+                        color: #d4a853;
+                        margin: 0;
+                        flex: 1;
+                    }
+                    .map-fullscreen-info {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                    }
+                    .map-fullscreen-count {
+                        font-size: 13px;
+                        color: rgba(148,163,184,0.6);
+                        font-weight: 600;
+                    }
+                    .map-fullscreen-close {
+                        width: 40px;
+                        height: 40px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: rgba(255,255,255,0.06);
+                        border: 1.5px solid rgba(148,163,184,0.15);
+                        border-radius: 10px;
+                        color: rgba(255,255,255,0.7);
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        flex-shrink: 0;
+                    }
+                    .map-fullscreen-close:hover {
+                        background: rgba(239,68,68,0.15);
+                        border-color: rgba(239,68,68,0.3);
+                        color: #f87171;
+                    }
+                    .map-fullscreen-body {
+                        flex: 1;
+                        display: flex;
+                        min-height: 0;
+                    }
+                    .map-fullscreen-map {
+                        flex: 1;
+                        min-width: 0;
+                    }
+                    .map-fullscreen-map .leaflet-container,
+                    .map-fullscreen-map > div {
+                        height: 100% !important;
+                        min-height: 100% !important;
+                    }
+                    .map-fullscreen-list {
+                        width: 340px;
+                        flex-shrink: 0;
+                        display: flex;
+                        flex-direction: column;
+                        border-left: 2px solid rgba(148,163,184,0.1);
+                        background: rgba(8,14,26,0.95);
+                    }
+                    .map-list-title {
+                        padding: 14px 16px;
+                        margin: 0;
+                        font-size: 15px;
+                        font-weight: 800;
+                        color: rgba(255,255,255,0.8);
+                        border-bottom: 1px solid rgba(148,163,184,0.08);
+                        flex-shrink: 0;
+                    }
+                    .map-list-scroll {
+                        flex: 1;
+                        overflow-y: auto;
+                        scrollbar-width: thin;
+                        scrollbar-color: rgba(212,168,83,0.3) transparent;
+                    }
+                    .map-list-scroll::-webkit-scrollbar { width: 4px; }
+                    .map-list-scroll::-webkit-scrollbar-thumb { background: rgba(212,168,83,0.25); border-radius: 2px; }
+                    .map-list-item {
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
                         padding: 12px 16px;
-                        border-bottom: 1px solid rgba(148,163,184,0.08);
+                        border-bottom: 1px solid rgba(148,163,184,0.06);
+                        cursor: pointer;
+                        transition: background 0.15s;
                     }
-                    .dual-map-title {
+                    .map-list-item:hover {
+                        background: rgba(212,168,83,0.06);
+                    }
+                    .map-list-item-main {
                         display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        font-size: 15px;
-                        font-weight: 700;
-                        color: #d4a853;
-                        margin: 0;
+                        flex-direction: column;
+                        gap: 2px;
+                        min-width: 0;
+                        flex: 1;
                     }
-                    .dual-map-count {
+                    .map-list-name {
+                        font-size: 14px;
+                        font-weight: 700;
+                        color: #e8ecf0;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .map-list-loc {
                         font-size: 12px;
                         color: rgba(148,163,184,0.5);
+                    }
+                    .map-list-item-meta {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-end;
+                        gap: 2px;
+                        flex-shrink: 0;
+                        margin-left: 12px;
+                    }
+                    .map-list-dist {
+                        font-size: 12px;
+                        font-weight: 700;
+                        color: #4ade80;
+                    }
+                    .map-list-type {
+                        font-size: 11px;
+                        color: rgba(148,163,184,0.45);
                         font-weight: 600;
                     }
-                    @media (max-width: 1024px) {
-                        .dual-view-layout {
-                            grid-template-columns: 1fr;
-                        }
-                        .dual-view-map {
-                            position: relative;
-                            top: 0;
-                            order: -1;
-                            max-height: 350px;
-                        }
-                    }
                     @media (max-width: 768px) {
-                        .dual-view-map {
-                            max-height: 280px;
+                        .map-fullscreen-body {
+                            flex-direction: column;
+                        }
+                        .map-fullscreen-map {
+                            height: 50%;
+                            flex: none;
+                        }
+                        .map-fullscreen-list {
+                            width: 100%;
+                            flex: 1;
+                            border-left: none;
+                            border-top: 2px solid rgba(148,163,184,0.1);
+                        }
+                        .map-preview-card {
+                            height: 180px;
                         }
                     }
 
