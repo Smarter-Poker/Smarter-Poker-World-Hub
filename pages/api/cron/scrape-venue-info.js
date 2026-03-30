@@ -263,6 +263,10 @@ function normalizeAddress(addr) {
 // ---------------------------------------------------------------------------
 // Main handler
 // ---------------------------------------------------------------------------
+export const config = {
+    maxDuration: 60 // Vercel timeout limit for cron
+};
+
 export default async function handler(req, res) {
   try {
       // CRON_SECRET auth — optional, skip in dev
@@ -403,12 +407,12 @@ export default async function handler(req, res) {
                       }
 
                       // Update Supabase if available
-                      if (supabase && venue.id) {
+                      if (getSupabase() && venue.id) {
                           try {
                               const supabaseUpdates = { ...updates };
                               supabaseUpdates.last_info_check = new Date().toISOString();
 
-                              await supabase
+                              await getSupabase()
                                   .from('poker_venues')
                                   .update(supabaseUpdates)
                                   .eq('id', venue.id);
