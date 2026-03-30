@@ -23,6 +23,8 @@ import time
 import traceback
 import urllib.request
 import uuid
+import subprocess
+import threading
 from typing import Dict, List, Optional
 from pathlib import Path
 from dotenv import load_dotenv
@@ -59,6 +61,7 @@ MAX_RETRIES = 3
 CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive regions fail (was 10)
 SESSION_REFRESH_MINUTES = 90   # Proactive session refresh
 WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this many minutes (launchd restarts)
+CONNECT_TIMEOUT_SECONDS = 90   # Hard kill if connect() hangs longer than this
 
 # Directories
 LOG_DIR = BASE_DIR / 'data' / 'pokeratlas-logs'
@@ -476,12 +479,27 @@ class PokerAtlasSessionManager:
         self.tier2_failures = 0
 
     def connect(self):
-        """Establish a new StealthySession."""
+        """Establish a new StealthySession.
+        
+        Protected by CONNECT_TIMEOUT_SECONDS hard-kill timer to prevent
+        zombie states when StealthySession.start() hangs.
+        """
         from scrapling.fetchers import StealthySession
 
         self.disconnect()
+        _kill_zombie_browsers()
 
         log.info('🔌 Establishing new StealthySession...')
+
+        # Arm a hard-kill timer
+        watchdog_timer = threading.Timer(
+            CONNECT_TIMEOUT_SECONDS,
+            _hard_kill_on_hang,
+            args=('connect() hung for >{}s'.format(CONNECT_TIMEOUT_SECONDS),)
+        )
+        watchdog_timer.daemon = True
+        watchdog_timer.start()
+
         try:
             self.session = StealthySession(headless=True, solve_cloudflare=True)
             self.session.start()
@@ -489,8 +507,10 @@ class PokerAtlasSessionManager:
             self._session_dead = False
             self.consecutive_fetch_failures = 0
             log.info('  ✅ Session ready')
+            watchdog_timer.cancel()
             return True
         except Exception as e:
+            watchdog_timer.cancel()
             log.error(f'  {ERROR_SESSION_DEAD}: {e}')
             traceback.print_exc()
             self.disconnect()
@@ -967,13 +987,49 @@ def _maybe_rotate_log():
         root_logger.addHandler(logging.FileHandler(new_path))
         log.info(f'\U0001f4c5 Rotated log file to {new_path}')
 
+# ============================================================
+# ZOMBIE BROWSER CLEANUP
+# ============================================================
+def _kill_zombie_browsers():
+    """Kill orphaned camoufox/chromium processes that leak on crash."""
+    my_pid = os.getpid()
+    for proc_name in ('camoufox', 'firefox', 'chromium'):
+        try:
+            result = subprocess.run(
+                ['pgrep', '-f', proc_name],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.stdout.strip():
+                pids = [int(p) for p in result.stdout.strip().split('\n') if p.strip()]
+                for pid in pids:
+                    if pid != my_pid:
+                        try:
+                            os.kill(pid, signal.SIGKILL)
+                            log.info(f'  🧹 Killed zombie {proc_name} process (PID {pid})')
+                        except ProcessLookupError:
+                            pass
+                        except PermissionError:
+                            pass
+        except Exception:
+            pass
+
+
+def _hard_kill_on_hang(reason):
+    """Force-exit the process when connect() hangs."""
+    log.error(f'🚨 HARD KILL: {reason}')
+    write_heartbeat('hard_kill', {'reason': reason})
+    _kill_zombie_browsers()
+    os._exit(1)
+
+
 def main():
     log.info('=' * 60)
-    log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v2.1')
+    log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v2.2')
     log.info(f'Interval: {SCRAPE_INTERVAL}s ({SCRAPE_INTERVAL // 60}min)')
     log.info(f'Strategy: session.fetch() per region (no login needed)')
     log.info(f'Data: game catalog + buy-in + run schedule')
     log.info(f'Watchdog: exit after {WATCHDOG_MAX_STALE_MINUTES}min with no data')
+    log.info(f'Connect timeout: {CONNECT_TIMEOUT_SECONDS}s hard-kill')
     log.info(f'Log dir: {LOG_DIR}')
     log.info('=' * 60)
 
@@ -981,27 +1037,28 @@ def main():
     last_successful_save = time.time()  # Assume fresh at boot
 
     while running:
+        # ── GLOBAL WATCHDOG: Check wall-clock time BEFORE entering scrape ──
+        stale_minutes = (time.time() - last_successful_save) / 60
+        if stale_minutes >= WATCHDOG_MAX_STALE_MINUTES:
+            log.error(
+                f'🚨 WATCHDOG: No successful data save in {stale_minutes:.0f} minutes '
+                f'(threshold: {WATCHDOG_MAX_STALE_MINUTES}min). '
+                f'Exiting so launchd can restart with a clean process.'
+            )
+            write_heartbeat('watchdog_exit', {
+                'stale_minutes': round(stale_minutes),
+                'consecutive_failures': mgr.consecutive_failures,
+            })
+            mgr.disconnect()
+            _kill_zombie_browsers()
+            sys.exit(1)
+
         try:
             count = run_scrape_cycle(mgr)
             if count > 0:
                 last_successful_save = time.time()
                 log.info(f'⏰ Next scrape in {SCRAPE_INTERVAL // 60} minutes...')
             else:
-                # ── WATCHDOG: Exit if stuck too long ──
-                stale_minutes = (time.time() - last_successful_save) / 60
-                if stale_minutes >= WATCHDOG_MAX_STALE_MINUTES:
-                    log.error(
-                        f'🚨 WATCHDOG: No successful data save in {stale_minutes:.0f} minutes '
-                        f'(threshold: {WATCHDOG_MAX_STALE_MINUTES}min). '
-                        f'Exiting so launchd can restart with a clean process.'
-                    )
-                    write_heartbeat('watchdog_exit', {
-                        'stale_minutes': round(stale_minutes),
-                        'consecutive_failures': mgr.consecutive_failures,
-                    })
-                    mgr.disconnect()
-                    sys.exit(1)
-
                 backoff = min(60 * (mgr.consecutive_failures + 1), 300)
                 log.warning(f'⏰ Retrying in {backoff}s (failure #{mgr.consecutive_failures})...')
                 for _ in range(backoff):
@@ -1014,6 +1071,11 @@ def main():
             log.error(f'💥 Unexpected error: {e}')
             traceback.print_exc()
             mgr.consecutive_failures += 1
+            # Force disconnect on any unexpected error to prevent zombie state
+            try:
+                mgr.disconnect()
+            except Exception:
+                pass
 
         # Sleep for interval
         for _ in range(SCRAPE_INTERVAL):
@@ -1023,6 +1085,7 @@ def main():
 
     log.info('🛑 Shutting down...')
     mgr.disconnect()
+    _kill_zombie_browsers()
     log.info('Daemon stopped.')
 
 if __name__ == '__main__':

@@ -50,6 +50,8 @@ import signal
 import logging
 import traceback
 import urllib.request
+import subprocess
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
@@ -100,6 +102,7 @@ VENUE_RETRY_COUNT = 1          # Retry failed venues once before giving up
 CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive venues fail (was 10)
 SESSION_REFRESH_MINUTES = 90   # Proactive session refresh to prevent zombie browsers
 WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this many minutes (launchd restarts)
+CONNECT_TIMEOUT_SECONDS = 90   # Hard kill if connect() hangs longer than this
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = BASE_DIR / 'data' / 'bravo-logs'
 EVIDENCE_DIR = BASE_DIR / 'data' / 'scrape-evidence'
@@ -393,13 +396,28 @@ class BravoSessionManager:
         self.tier2_failures = 0  # Track Tier 2 failures to avoid wasting time
 
     def connect(self):
-        """Establish a new Scrapling StealthySession and login to Bravo."""
+        """Establish a new Scrapling StealthySession and login to Bravo.
+        
+        Protected by CONNECT_TIMEOUT_SECONDS hard-kill timer to prevent
+        zombie states when StealthySession.start() hangs.
+        """
         from scrapling.fetchers import StealthySession
 
-        # Close any existing session
+        # Close any existing session and kill zombie browser processes
         self.disconnect()
+        _kill_zombie_browsers()
 
         log.info('🔌 Establishing new StealthySession...')
+
+        # Arm a hard-kill timer — if connect takes too long, force-exit
+        # so launchd can restart us with a clean process
+        watchdog_timer = threading.Timer(
+            CONNECT_TIMEOUT_SECONDS,
+            _hard_kill_on_hang,
+            args=('connect() hung for >{}s'.format(CONNECT_TIMEOUT_SECONDS),)
+        )
+        watchdog_timer.daemon = True
+        watchdog_timer.start()
 
         try:
             self.session = StealthySession(headless=True, solve_cloudflare=True)
@@ -413,6 +431,7 @@ class BravoSessionManager:
 
             if resp.status != 200:
                 log.error(f'  {ERROR_CF_BLOCKED}: Status {resp.status}')
+                watchdog_timer.cancel()
                 return False
 
             log.info('  ✅ Cloudflare solved')
@@ -421,9 +440,12 @@ class BravoSessionManager:
             self.context = self.session.context
             self.page = self.context.new_page()
 
-            return self._login()
+            result = self._login()
+            watchdog_timer.cancel()
+            return result
 
         except Exception as e:
+            watchdog_timer.cancel()
             log.error(f'  {ERROR_SESSION_DEAD}: {e}')
             traceback.print_exc()
             self.disconnect()
@@ -975,42 +997,91 @@ def _maybe_rotate_log():
         root_logger.addHandler(logging.FileHandler(new_path))
         log.info(f'📅 Rotated log file to {new_path}')
 
+# ============================================================
+# ZOMBIE BROWSER CLEANUP
+# ============================================================
+def _kill_zombie_browsers():
+    """Kill orphaned camoufox/chromium processes that leak on crash.
+    
+    When StealthySession crashes, it can leave headless browser processes
+    running that consume CPU. This function cleans them up before
+    starting a new session.
+    """
+    my_pid = os.getpid()
+    for proc_name in ('camoufox', 'firefox', 'chromium'):
+        try:
+            result = subprocess.run(
+                ['pgrep', '-f', proc_name],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.stdout.strip():
+                pids = [int(p) for p in result.stdout.strip().split('\n') if p.strip()]
+                for pid in pids:
+                    if pid != my_pid:
+                        try:
+                            os.kill(pid, signal.SIGKILL)
+                            log.info(f'  🧹 Killed zombie {proc_name} process (PID {pid})')
+                        except ProcessLookupError:
+                            pass
+                        except PermissionError:
+                            pass
+        except Exception:
+            pass
+
+
+def _hard_kill_on_hang(reason):
+    """Force-exit the process when connect() or fetch() hangs.
+    
+    This is called by a threading.Timer as a last resort when the
+    daemon gets stuck inside Scrapling/browser calls that never return.
+    launchd KeepAlive=true will restart us with a clean process.
+    """
+    log.error(f'🚨 HARD KILL: {reason}')
+    write_heartbeat('hard_kill', {'reason': reason})
+    _kill_zombie_browsers()
+    os._exit(1)  # os._exit to bypass finally blocks that might hang
+
+
 def main():
     log.info('=' * 60)
-    log.info('BRAVO POKER LIVE — AUTONOMOUS DAEMON v2.1')
+    log.info('BRAVO POKER LIVE — AUTONOMOUS DAEMON v2.2')
     log.info(f'Interval: {SCRAPE_INTERVAL}s ({SCRAPE_INTERVAL // 60}min)')
     log.info(f'Persistent session: YES (stays logged in between cycles)')
     log.info(f'Retry policy: {MAX_RETRIES}x with exponential backoff')
     log.info(f'Health check: every {HEALTH_CHECK_INTERVAL} cycles')
     log.info(f'Watchdog: exit after {WATCHDOG_MAX_STALE_MINUTES}min with no data')
+    log.info(f'Connect timeout: {CONNECT_TIMEOUT_SECONDS}s hard-kill')
     log.info(f'Log dir: {LOG_DIR}')
     log.info('=' * 60)
 
     mgr = BravoSessionManager()
     last_successful_save = time.time()  # Assume fresh at boot
+    process_start = time.time()
 
     while running:
+        # ── GLOBAL WATCHDOG: Check wall-clock time BEFORE entering scrape ──
+        # This catches the case where connect() or scrape hangs indefinitely
+        stale_minutes = (time.time() - last_successful_save) / 60
+        if stale_minutes >= WATCHDOG_MAX_STALE_MINUTES:
+            log.error(
+                f'🚨 WATCHDOG: No successful data save in {stale_minutes:.0f} minutes '
+                f'(threshold: {WATCHDOG_MAX_STALE_MINUTES}min). '
+                f'Exiting so launchd can restart with a clean process.'
+            )
+            write_heartbeat('watchdog_exit', {
+                'stale_minutes': round(stale_minutes),
+                'consecutive_failures': mgr.consecutive_failures,
+            })
+            mgr.disconnect()
+            _kill_zombie_browsers()
+            sys.exit(1)
+
         try:
             count = run_scrape_cycle(mgr)
             if count > 0:
                 last_successful_save = time.time()
                 log.info(f'⏰ Next scrape in {SCRAPE_INTERVAL // 60} minutes...')
             else:
-                # ── WATCHDOG: Exit if stuck too long ──
-                stale_minutes = (time.time() - last_successful_save) / 60
-                if stale_minutes >= WATCHDOG_MAX_STALE_MINUTES:
-                    log.error(
-                        f'🚨 WATCHDOG: No successful data save in {stale_minutes:.0f} minutes '
-                        f'(threshold: {WATCHDOG_MAX_STALE_MINUTES}min). '
-                        f'Exiting so launchd can restart with a clean process.'
-                    )
-                    write_heartbeat('watchdog_exit', {
-                        'stale_minutes': round(stale_minutes),
-                        'consecutive_failures': mgr.consecutive_failures,
-                    })
-                    mgr.disconnect()
-                    sys.exit(1)
-
                 # Shorter backoff on failure
                 backoff = min(60 * (mgr.consecutive_failures + 1), 300)
                 log.warning(f'⏰ Retrying in {backoff}s (failure #{mgr.consecutive_failures})...')
@@ -1024,6 +1095,11 @@ def main():
             log.error(f'💥 Unexpected error: {e}')
             traceback.print_exc()
             mgr.consecutive_failures += 1
+            # Force disconnect on any unexpected error to prevent zombie state
+            try:
+                mgr.disconnect()
+            except Exception:
+                pass
 
         # Sleep in 1s intervals for signal responsiveness
         for _ in range(SCRAPE_INTERVAL):
@@ -1034,6 +1110,7 @@ def main():
     # Clean shutdown
     log.info('🛑 Shutting down, closing session...')
     mgr.disconnect()
+    _kill_zombie_browsers()
     log.info('Daemon stopped.')
 
 if __name__ == '__main__':

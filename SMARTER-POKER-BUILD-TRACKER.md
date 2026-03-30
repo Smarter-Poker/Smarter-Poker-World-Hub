@@ -191,10 +191,96 @@
 
 ---
 
+## PHASE 5 — SKIPPED (HIGH RISK)
+
+**Commander SSR Auth** — Move PIN validation from client-side overlay to getServerSideProps.
+**Reason:** High risk of locking out admins. No staging environment available. Current client-side gate prevents casual access, and API routes are properly auth-gated via middleware. Deferred until staging env is available.
+
+---
+
+## PHASE 6 — Completed (2026-03-29)
+
+### Automated Cron Health Monitoring
+| Deliverable | Status | Location |
+|---|---|---|
+| Cron Health Monitor Dashboard | DONE | Desktop/smarter-poker-cron-monitor.jsx |
+| Scheduled Health Check Task | DONE | smarter-poker-cron-health (every 6 hours) |
+| 45 cron endpoints tracked | DONE | All vercel.json crons cataloged |
+
+**Features:** Auto-refresh, health score trending (recharts), category grouping (7 tiers), alert panel for 500s, JSON export, auth-gated vs failing distinction.
+
+---
+
+## PHASE 7 — Completed (2026-03-29)
+
+### Session Memory System
+| Deliverable | Status | Location |
+|---|---|---|
+| SUMMARY.md | DONE | .memory/SUMMARY.md |
+| Decision: Lazy Supabase Init | DONE | .memory/decisions/001-lazy-supabase-init.md |
+| Decision: JWT Fallback Auth | DONE | .memory/decisions/002-jwt-fallback-auth.md |
+| Decision: Skip Commander SSR | DONE | .memory/decisions/003-skip-commander-ssr-auth.md |
+| Pattern: Supabase Lazy Init | DONE | .memory/patterns/supabase-lazy-init.md |
+| Pattern: API Error Handling | DONE | .memory/patterns/api-error-handling.md |
+| Context: Architecture | DONE | .memory/context/architecture.md |
+| Context: Cron System | DONE | .memory/context/cron-system.md |
+| Context: Supabase RPCs | DONE | .memory/context/supabase-rpcs.md |
+| Problem: Cron 500 Cascade | DONE | .memory/problems/cron-500-cascade.md |
+| Preferences: Coding Style | DONE | .memory/preferences/coding-style.md |
+
+**Total:** 11 memory files across 5 categories (decisions, patterns, context, problems, preferences)
+
+---
+
+## PHASE 8 — Completed (2026-03-29)
+
+### Cross-Project Health Dashboard
+| Deliverable | Status | Location |
+|---|---|---|
+| Cross-Project Dashboard | DONE | Desktop/smarter-poker-cross-project-dashboard.jsx |
+| All 22 Vercel projects cataloged | DONE | 5 tiers: Core, Engine, Orb, Social, Other |
+
+**Features:** Live health checks, tier grouping with color coding, deployment details (URL, state, commit message), bar chart by tier, expandable project rows, JSON export.
+
+---
+
+## PHASE 9 — Completed (2026-03-29)
+
+### Performance Baseline
+| Deliverable | Status | Location |
+|---|---|---|
+| Performance Dashboard | DONE | Desktop/smarter-poker-performance.jsx |
+| Baseline JSON Data | DONE | Desktop/smarter-poker-performance-baseline.json |
+| 8 pages baselined | DONE | /, /hub, /hub/poker-near-me, /hub/training, /hub/diamond-store, /hub/social, /commander, /api/health |
+
+**Key Metrics:**
+- Overall Grade: B (avg 3125ms including TLS from sandbox)
+- Fastest: /hub/diamond-store (2293ms)
+- Slowest: / (4371ms)
+- DB Latency: 132ms
+- Security Headers: 6/6
+- Vercel Cache: HIT
+- All pages responding (200 or expected 307)
+
+**Features:** Live re-test capability, baseline comparison, radar chart, security header audit, API health display.
+
+---
+
+## PHASE 10 — Partial (2026-03-29)
+
+### Infrastructure Hardening
+| Deliverable | Status | Risk | Location |
+|---|---|---|---|
+| Supabase RPC Audit | DONE | LOW | .memory/context/supabase-rpcs.md |
+| Shared TypeScript types | SKIPPED | HIGH | Would change imports across repos |
+| Database migration tooling | SKIPPED | HIGH | Touches production data workflows |
+
+**RPC Audit Findings:** 17 unique RPC functions identified, `add_diamonds_to_balance` is most critical (20+ call sites). Full inventory documented.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 5: Commander SSR Auth** — Move PIN validation from client-side overlay to getServerSideProps
-- **Phase 6: Cron Monitoring Automation** — Set up scheduled task to monitor cron health and alert on regressions
-- **Phase 7: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
-- **Phase 8: Cross-Orb Health Dashboard** — Unified monitoring across all 22 Vercel projects
-- **Phase 9: Performance Baseline** — Lighthouse scores, Core Web Vitals, API latency benchmarks
-- **Phase 10: Infrastructure Hardening** — Shared TypeScript types package, database migration safety tooling, Supabase RPC audit
+- **Phase 11: Commander SSR Auth** — Revisit when staging environment available
+- **Phase 12: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
+- **Phase 13: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
+- **Phase 14: Database Migration Safety** — Supabase migration tooling and rollback procedures
