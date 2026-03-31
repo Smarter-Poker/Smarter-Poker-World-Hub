@@ -1560,7 +1560,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     </button>
                 </div>
 
-                {/* H7: Diamond Transfer Panel */}
+                {/* H7: Diamond Transfer Panel — Type-to-search UX */}
                 {showTransfer && (
                     <div style={{
                         padding: '12px 16px',
@@ -1569,17 +1569,17 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         animation: 'walletFadeIn 0.2s ease',
                     }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: '#f97316', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            Send Diamonds to a Friend
+                            Send Diamonds To A Friend
                         </div>
                         {/* Anti-abuse info */}
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 8, lineHeight: 1.4 }}>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 10, lineHeight: 1.4 }}>
                             Standard: 10-100 per transfer | 500/day | 200/day per friend | 60s cooldown<br/>
                             VIP Friends (60+ days): 10-500 per transfer | 2,000/day<br/>
                             5min cooldown between transfers to same friend | 1,000/day receive cap
                         </div>
                         {/* P2-4: Daily limit progress bar */}
                         {dailyLimitInfo && (
-                            <div style={{ marginBottom: 8 }}>
+                            <div style={{ marginBottom: 10 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>
                                     <span>Today: {dailyLimitInfo.sent.toLocaleString()} / {dailyLimitInfo.limit.toLocaleString()}</span>
                                     <span style={{ color: dailyLimitInfo.sent >= dailyLimitInfo.limit * 0.8 ? '#f87171' : '#4ade80' }}>
@@ -1597,195 +1597,204 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 </div>
                             </div>
                         )}
-                        {/* P2-3: Recent recipients quick-send */}
-                        {recentRecipients.length > 0 && !transferRecipient && (
-                            <div style={{ marginBottom: 8 }}>
-                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Recent</div>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                    {recentRecipients.map(r => (
+                        {/* Friend search + Amount — side by side on larger screens, stacked on mobile */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {/* Friend type-to-search input with autocomplete dropdown */}
+                            <div style={{ position: 'relative' }}>
+                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                                    Recipient
+                                </div>
+                                {transferRecipient ? (
+                                    /* Selected friend display */
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        padding: '8px 12px',
+                                        background: 'rgba(249, 115, 22, 0.12)',
+                                        border: '1px solid rgba(249, 115, 22, 0.4)',
+                                        borderRadius: 10,
+                                    }}>
+                                        {transferRecipient.avatar_url && (
+                                            <img src={transferRecipient.avatar_url} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }} />
+                                        )}
+                                        <span style={{ color: '#f97316', fontSize: 13, fontWeight: 600, flex: 1 }}>
+                                            {transferRecipient.display_name || transferRecipient.username}
+                                        </span>
+                                        {transferRecipient.is_vip && (
+                                            <Crown size={12} color="#eab308" />
+                                        )}
                                         <button
-                                            key={r.id}
-                                            onClick={() => setTransferRecipient(r)}
+                                            onClick={() => { setTransferRecipient(null); setFriendSearch(''); setTransferAmount(''); setConfirmTransfer(null); }}
                                             style={{
-                                                padding: '4px 10px',
-                                                borderRadius: 12,
-                                                border: '1px solid rgba(0,212,255,0.2)',
-                                                background: 'rgba(0,212,255,0.06)',
-                                                color: '#00d4ff',
-                                                fontSize: 10,
-                                                fontWeight: 500,
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 4,
-                                                transition: 'all 0.15s',
+                                                background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
+                                                width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: 'rgba(255,255,255,0.5)', cursor: 'pointer', flexShrink: 0,
                                             }}
                                         >
-                                            {r.avatar_url && (
-                                                <img src={r.avatar_url} alt="" style={{ width: 14, height: 14, borderRadius: '50%', objectFit: 'cover' }} />
-                                            )}
-                                            {r.display_name || r.username || 'User'}
+                                            <X size={10} />
                                         </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {/* Friend picker */}
-                        <div style={{ marginBottom: 8 }}>
-                            {friendsLoading ? (
-                                <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Loading friends...</div>
-                            ) : transferFriends.length === 0 ? (
-                                <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>No friends found. Add friends first.</div>
-                            ) : (
-                                <>
-                                    {/* #8: Friend search */}
-                                    {transferFriends.length > 6 && (
-                                        <div style={{ marginBottom: 6 }}>
+                                    </div>
+                                ) : (
+                                    /* Search input */
+                                    <>
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', gap: 8,
+                                            background: 'rgba(255,255,255,0.04)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: 10, padding: '8px 12px',
+                                        }}>
+                                            <Search size={14} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
                                             <input
                                                 type="text"
                                                 value={friendSearch}
                                                 onChange={e => setFriendSearch(e.target.value)}
-                                                placeholder="Search friends..."
+                                                placeholder="Type a friend's name..."
+                                                autoFocus
                                                 style={{
-                                                    width: '100%', padding: '5px 10px',
-                                                    background: 'rgba(255,255,255,0.04)',
-                                                    border: '1px solid rgba(255,255,255,0.08)',
-                                                    borderRadius: 8, color: '#e2e8f0', fontSize: 11,
-                                                    outline: 'none', fontFamily: "'Inter', sans-serif",
+                                                    flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                                                    color: '#e2e8f0', fontSize: 13, fontFamily: "'Inter', sans-serif",
+                                                }}
+                                            />
+                                            {friendSearch && (
+                                                <button
+                                                    onClick={() => setFriendSearch('')}
+                                                    style={{
+                                                        background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
+                                                        width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        color: 'rgba(255,255,255,0.5)', cursor: 'pointer', flexShrink: 0, fontSize: 10,
+                                                    }}
+                                                >
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        {/* Autocomplete dropdown — shows after 3 chars typed */}
+                                        {friendSearch.trim().length >= 3 && (
+                                            <div style={{
+                                                position: 'absolute', left: 0, right: 0, top: '100%',
+                                                zIndex: 10, marginTop: 4,
+                                                background: 'rgba(10, 22, 40, 0.98)',
+                                                border: '1px solid rgba(255,255,255,0.12)',
+                                                borderRadius: 10,
+                                                maxHeight: 180, overflowY: 'auto',
+                                                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                                            }}>
+                                                {friendsLoading ? (
+                                                    <div style={{ padding: '12px 14px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Loading friends...</div>
+                                                ) : (() => {
+                                                    const q = friendSearch.trim().toLowerCase();
+                                                    const matches = transferFriends.filter(f =>
+                                                        (f.display_name || '').toLowerCase().includes(q) ||
+                                                        (f.username || '').toLowerCase().includes(q)
+                                                    );
+                                                    if (matches.length === 0) {
+                                                        return <div style={{ padding: '12px 14px', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>No matching friends found</div>;
+                                                    }
+                                                    return matches.slice(0, 10).map(f => (
+                                                        <button
+                                                            key={f.id}
+                                                            onClick={() => { setTransferRecipient(f); setFriendSearch(''); }}
+                                                            style={{
+                                                                width: '100%', padding: '10px 14px',
+                                                                background: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                                color: '#e2e8f0', fontSize: 12, fontWeight: 500,
+                                                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                                                                textAlign: 'left', transition: 'background 0.1s',
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(249, 115, 22, 0.1)'; }}
+                                                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                                        >
+                                                            {f.avatar_url ? (
+                                                                <img src={f.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                                                            ) : (
+                                                                <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(249,115,22,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#f97316', fontWeight: 700, flexShrink: 0 }}>
+                                                                    {(f.display_name || f.username || '?')[0].toUpperCase()}
+                                                                </div>
+                                                            )}
+                                                            <div style={{ flex: 1 }}>
+                                                                <div style={{ fontWeight: 600, fontSize: 13 }}>{f.display_name || f.username}</div>
+                                                                {f.display_name && f.username && (
+                                                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>@{f.username}</div>
+                                                                )}
+                                                            </div>
+                                                            {f.is_vip && <Crown size={12} color="#eab308" />}
+                                                        </button>
+                                                    ));
+                                                })()}
+                                            </div>
+                                        )}
+                                        {/* Hint text when less than 3 chars */}
+                                        {friendSearch.trim().length > 0 && friendSearch.trim().length < 3 && (
+                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 4, paddingLeft: 4 }}>
+                                                Type at least 3 characters to search...
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Amount input — only shown when recipient selected */}
+                            {transferRecipient && (
+                                <div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                                        Amount
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <div style={{
+                                            flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+                                            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: 10, padding: '8px 12px',
+                                        }}>
+                                            <Sparkles size={14} color="#00d4ff" />
+                                            <input
+                                                type="number"
+                                                min="10" max="500"
+                                                value={transferAmount}
+                                                onChange={e => setTransferAmount(e.target.value)}
+                                                placeholder="Enter diamond amount..."
+                                                autoFocus
+                                                style={{
+                                                    flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                                                    color: '#e2e8f0', fontSize: 14, fontWeight: 600,
+                                                    fontFamily: "'Inter', sans-serif",
                                                 }}
                                             />
                                         </div>
-                                    )}
-                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                        {transferFriends
-                                            .filter(f => {
-                                                if (!friendSearch.trim()) return true;
-                                                const q = friendSearch.trim().toLowerCase();
-                                                return (f.display_name || '').toLowerCase().includes(q) ||
-                                                       (f.username || '').toLowerCase().includes(q);
-                                            })
-                                            .slice(0, 20).map(f => (
                                         <button
-                                            key={f.id}
-                                            onClick={() => setTransferRecipient(transferRecipient?.id === f.id ? null : f)}
+                                            onClick={handleTransfer}
+                                            disabled={transferLoading || !transferAmount || cooldownSeconds > 0}
                                             style={{
-                                                padding: '5px 10px',
-                                                borderRadius: 14,
-                                                border: transferRecipient?.id === f.id
-                                                    ? '1px solid rgba(249, 115, 22, 0.6)'
-                                                    : '1px solid rgba(255,255,255,0.08)',
-                                                background: transferRecipient?.id === f.id
-                                                    ? 'rgba(249, 115, 22, 0.15)'
-                                                    : 'rgba(255,255,255,0.04)',
-                                                color: transferRecipient?.id === f.id ? '#f97316' : 'rgba(255,255,255,0.6)',
-                                                fontSize: 11,
-                                                fontWeight: 500,
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 5,
-                                                transition: 'all 0.15s',
+                                                padding: '9px 18px',
+                                                background: transferLoading ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.3))',
+                                                border: '1px solid rgba(249, 115, 22, 0.5)',
+                                                borderRadius: 10, color: '#f97316', fontSize: 12, fontWeight: 700,
+                                                cursor: transferLoading || cooldownSeconds > 0 ? 'default' : 'pointer',
+                                                opacity: transferLoading || !transferAmount || cooldownSeconds > 0 ? 0.5 : 1,
+                                                transition: 'all 0.15s', whiteSpace: 'nowrap',
                                             }}
                                         >
-                                            {f.avatar_url && (
-                                                <img src={f.avatar_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' }} />
-                                            )}
-                                            {f.display_name || f.username || 'User'}
-                                            {/* R8-I8: VIP badge on friends */}
-                                            {f.is_vip && (
-                                                <Crown size={10} color="#eab308" style={{ marginLeft: -2 }} />
-                                            )}
+                                            {transferLoading ? 'Sending...' : cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : 'Send'}
                                         </button>
-                                    ))}
                                     </div>
-                                </>
+                                </div>
                             )}
                         </div>
-                        {/* Amount + Send */}
-                        {transferRecipient && (
-                            <>
-                                {/* R8-I7: Quick-amount preset buttons */}
-                                <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                                    {QUICK_AMOUNTS.map(qa => (
-                                        <button
-                                            key={qa}
-                                            onClick={() => setTransferAmount(String(qa))}
-                                            style={{
-                                                flex: 1,
-                                                padding: '5px 0',
-                                                borderRadius: 8,
-                                                border: transferAmount === String(qa)
-                                                    ? '1px solid rgba(0, 212, 255, 0.5)'
-                                                    : '1px solid rgba(255,255,255,0.08)',
-                                                background: transferAmount === String(qa)
-                                                    ? 'rgba(0, 212, 255, 0.12)'
-                                                    : 'rgba(255, 255, 255, 0.03)',
-                                                color: transferAmount === String(qa) ? '#00d4ff' : 'rgba(255,255,255,0.5)',
-                                                fontSize: 12,
-                                                fontWeight: 700,
-                                                fontFamily: 'Orbitron, monospace',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.15s',
-                                            }}
-                                        >
-                                            {qa}
-                                        </button>
-                                    ))}
-                                </div>
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                    <div style={{
-                                        flex: 1, display: 'flex', alignItems: 'center', gap: 6,
-                                        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                                        borderRadius: 10, padding: '6px 12px',
-                                    }}>
-                                        <Sparkles size={14} color="#00d4ff" />
-                                        <input
-                                            type="number"
-                                            min="10" max="500"
-                                            value={transferAmount}
-                                            onChange={e => setTransferAmount(e.target.value)}
-                                            placeholder="Amount"
-                                            style={{
-                                                flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                                                color: '#e2e8f0', fontSize: 14, fontWeight: 600,
-                                                fontFamily: "'Inter', sans-serif", width: 60,
-                                            }}
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={handleTransfer}
-                                        disabled={transferLoading || !transferAmount || cooldownSeconds > 0}
-                                        style={{
-                                            padding: '8px 16px',
-                                            background: transferLoading ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(234, 88, 12, 0.3))',
-                                            border: '1px solid rgba(249, 115, 22, 0.5)',
-                                            borderRadius: 10, color: '#f97316', fontSize: 12, fontWeight: 700,
-                                            cursor: transferLoading || cooldownSeconds > 0 ? 'default' : 'pointer',
-                                            opacity: transferLoading || !transferAmount || cooldownSeconds > 0 ? 0.5 : 1,
-                                            transition: 'all 0.15s', whiteSpace: 'nowrap',
-                                        }}
-                                    >
-                                        {transferLoading ? 'Sending...' : cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : `Send to ${transferRecipient.display_name || transferRecipient.username}`}
-                                    </button>
-                                </div>
-                            </>
-                        )}
+
                         {/* Error / Success feedback */}
                         {transferError && (
-                            <div style={{ marginTop: 6, fontSize: 11, color: '#f87171', padding: '4px 8px', background: 'rgba(248,113,113,0.08)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ marginTop: 8, fontSize: 11, color: '#f87171', padding: '6px 10px', background: 'rgba(248,113,113,0.08)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                                 {cooldownSeconds > 0 && <Clock size={12} color="#f87171" />}
                                 {cooldownSeconds > 0 ? `Cooldown: ${cooldownSeconds}s remaining` : transferError}
                             </div>
                         )}
                         {transferSuccess && (
-                            <div style={{ marginTop: 6, fontSize: 11, color: '#4ade80', padding: '4px 8px', background: 'rgba(74,222,128,0.08)', borderRadius: 6 }}>
+                            <div style={{ marginTop: 8, fontSize: 11, color: '#4ade80', padding: '6px 10px', background: 'rgba(74,222,128,0.08)', borderRadius: 6 }}>
                                 {transferSuccess}
                             </div>
                         )}
                         {/* #5: Confirmation dialog */}
                         {confirmTransfer && (
                             <div style={{
-                                marginTop: 8, padding: '10px 14px',
+                                marginTop: 10, padding: '12px 14px',
                                 background: 'rgba(249, 115, 22, 0.1)',
                                 border: '1px solid rgba(249, 115, 22, 0.3)',
                                 borderRadius: 10,

@@ -99,10 +99,12 @@ LOGIN_TIMEOUT = 15000          # 15s for login flow
 RATE_LIMIT_DELAY = 0.5         # 0.5s between venues
 HEALTH_CHECK_INTERVAL = 3      # Health-check every N cycles
 VENUE_RETRY_COUNT = 1          # Retry failed venues once before giving up
-CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive venues fail (was 10)
-SESSION_REFRESH_MINUTES = 90   # Proactive session refresh to prevent zombie browsers
+CIRCUIT_BREAKER_THRESHOLD = 8  # Abort cycle + reconnect if this many consecutive venues fail
+SESSION_REFRESH_MINUTES = 45   # Proactive session refresh to prevent zombie browsers (was 90 — too long)
 WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this many minutes (launchd restarts)
-CONNECT_TIMEOUT_SECONDS = 90   # Hard kill if connect() hangs longer than this
+CONNECT_TIMEOUT_SECONDS = 60   # Hard kill if connect() hangs longer than this (was 90)
+CHUNK_SIZE = 25                 # Publish partial results every N venues (don't wait for full cycle)
+PAGE_RECYCLE_INTERVAL = 50     # Recycle browser page every N venues to prevent memory leaks
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = BASE_DIR / 'data' / 'bravo-logs'
 EVIDENCE_DIR = BASE_DIR / 'data' / 'scrape-evidence'
@@ -658,6 +660,25 @@ class BravoSessionManager:
         # All tiers failed
         return None
 
+    def recycle_page(self):
+        """Close and reopen the browser page to free memory.
+        
+        After navigating ~50 pages, the browser context accumulates DOM
+        snapshots and network data that leak memory. Recycling the page
+        (but keeping the context/session) clears this without losing
+        authentication cookies.
+        """
+        try:
+            if self.page:
+                self.page.close()
+            self.page = self.context.new_page()
+            log.info('  ♻️  Page recycled (memory cleanup)')
+            return True
+        except Exception as e:
+            log.warning(f'  ⚠️  Page recycle failed: {e} — marking session dead')
+            self._session_dead = True
+            return False
+
     def disconnect(self):
         """Safely close the session."""
         try:
@@ -856,99 +877,11 @@ def save_game_history_snapshot(batch_id, results):
 
 
 # ============================================================
-# MAIN SCRAPE CYCLE
+# CHUNKED PUBLISH HELPER
 # ============================================================
-def run_scrape_cycle(mgr):
-    """Run one full scrape cycle using the persistent session."""
-    batch_id = str(uuid.uuid4())
-    cycle_start = datetime.now(timezone.utc)
-
-    # Rotate log file handler if day changed
-    _maybe_rotate_log()
-
-    # Run periodic cleanup (lightweight, runs at start of each cycle)
-    cleanup_evidence_files()
-    cleanup_log_files()
-
-    log.info(f'=== SCRAPE CYCLE #{mgr.total_cycles + 1} | Batch: {batch_id[:8]} ===')
-
-    # Ensure connected
-    if not mgr.ensure_connected():
-        mgr.consecutive_failures += 1
-        write_heartbeat('connect_failed', {'consecutive_failures': mgr.consecutive_failures})
-        
-        # Exponential Backoff natively applied on EVERY failure
-        import random
-        base_delays = [5, 15, 45, 120, 300]
-        # Map failure 1 to index 0 (5s), clamp at index 4 (300s)
-        idx = min(max(0, mgr.consecutive_failures - 1), len(base_delays) - 1)
-        backoff = int(base_delays[idx] * random.uniform(0.9, 1.1))
-        
-        log.error(f'🚨 {mgr.consecutive_failures} consecutive failures — applying stealth backoff ({backoff}s)')
-        time.sleep(backoff)
-        return 0
-
-    # Daily discovery pass (once per day)
-    daily_bravo_discovery(mgr)
-
-    # Load venue slugs
-    slugs = load_bravo_slugs()
-    if not slugs:
-        log.info('No registry found, discovering slugs...')
-        slugs = discover_bravo_slugs(mgr.page)
-    log.info(f'Scraping {len(slugs)} venues...')
-
-    # Scrape each venue
-    results = []
-    errors = 0
-    skipped = 0
-
-    consecutive_venue_failures = 0
-    for i, slug in enumerate(slugs):
-        # CIRCUIT BREAKER: If too many consecutive venues fail, abort cycle and reconnect
-        if consecutive_venue_failures >= CIRCUIT_BREAKER_THRESHOLD:
-            log.error(f'🔴 CIRCUIT BREAKER: {consecutive_venue_failures} consecutive failures — aborting cycle, forcing reconnect')
-            mgr._session_dead = True
-            mgr.tier2_failures = 0  # Reset Tier 2 counter on full reconnect
-            break
-
-        html = mgr.navigate_venue(slug)
-        if html is None:
-            errors += 1
-            consecutive_venue_failures += 1
-            continue
-
-        consecutive_venue_failures = 0  # Reset on success
-
-        data = extract_live_data(html, slug)
-        data['batch_id'] = batch_id
-
-        total_tables = sum(g['tables'] for g in data['live_games'])
-        total_waiting = sum(w['players_waiting'] for w in data['waitlist'])
-
-        if data['live_games'] or data['waitlist']:
-            results.append(data)
-            log.info(
-                f'  [{i+1}/{len(slugs)}] ✅ {data["venue_name"][:28]:28} | '
-                f'{total_tables} tables | {total_waiting} waiting'
-            )
-        else:
-            skipped += 1
-            # Only log every 10th skip to reduce noise
-            if skipped <= 3 or skipped % 10 == 0:
-                log.info(f'  [{i+1}/{len(slugs)}] ⏭️  {slug[:28]:28} | no live data')
-
-        time.sleep(RATE_LIMIT_DELAY)
-
-        # Checkpoint every 50
-        if (i + 1) % 50 == 0:
-            log.info(f'  --- {i+1}/{len(slugs)} | {len(results)} active | {errors} errors ---')
-
-    # Save to Supabase
-    log.info(f'💾 Saving {len(results)} venue records to Supabase...')
-    
+def build_payload_from_results(results, batch_id):
+    """Convert venue results into Supabase-ready payload records."""
     payload = []
-    
     for data in results:
         for game in data['live_games']:
             record = {
@@ -984,18 +917,156 @@ def run_scrape_cycle(mgr):
                     'source': 'bravo',
                 }
                 payload.append(record)
+    return payload
 
-    saved = 0
-    if payload:
-        # Atomic Batch Insert
-        if sb_upsert('venue_live_tables', payload):
-            saved = len(payload)
-            # Safe delete of stale batches using neq (not equal to current batch) to prevent UI empty flash
-            sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.bravo')
-            # Save historical snapshot for trend analysis (#5)
-            save_history_snapshot(batch_id, results)
-            # Save per-game history for game-type heatmaps (#10)
-            save_game_history_snapshot(batch_id, results)
+
+def publish_chunk(chunk_results, batch_id, chunk_num):
+    """Publish a chunk of venue results to Supabase immediately.
+    
+    Returns (records_saved, success).
+    """
+    payload = build_payload_from_results(chunk_results, batch_id)
+    if not payload:
+        return 0, True
+    
+    if sb_upsert('venue_live_tables', payload):
+        log.info(f'  📤 CHUNK {chunk_num} published: {len(payload)} records from {len(chunk_results)} venues')
+        return len(payload), True
+    else:
+        log.error(f'  ❌ CHUNK {chunk_num} publish FAILED')
+        return 0, False
+
+
+# ============================================================
+# MAIN SCRAPE CYCLE
+# ============================================================
+def run_scrape_cycle(mgr):
+    """Run one full scrape cycle with chunked publish.
+    
+    CHUNKED PUBLISH PATTERN:
+    Instead of scraping all 156 venues then saving at the end (where a
+    crash at venue #50 means zero data), we publish every CHUNK_SIZE
+    venues. Users get partial data within minutes.
+    
+    Flow:
+      Scrape venues 1-25 → PUBLISH → Scrape 26-50 → PUBLISH → ...
+      At the very end, delete stale records from previous batches.
+    """
+    batch_id = str(uuid.uuid4())
+    cycle_start = datetime.now(timezone.utc)
+
+    # Rotate log file handler if day changed
+    _maybe_rotate_log()
+
+    # Run periodic cleanup (lightweight, runs at start of each cycle)
+    cleanup_evidence_files()
+    cleanup_log_files()
+
+    log.info(f'=== SCRAPE CYCLE #{mgr.total_cycles + 1} | Batch: {batch_id[:8]} ===')
+
+    # Ensure connected
+    if not mgr.ensure_connected():
+        mgr.consecutive_failures += 1
+        write_heartbeat('connect_failed', {'consecutive_failures': mgr.consecutive_failures})
+        
+        import random
+        base_delays = [5, 15, 45, 120, 300]
+        idx = min(max(0, mgr.consecutive_failures - 1), len(base_delays) - 1)
+        backoff = int(base_delays[idx] * random.uniform(0.9, 1.1))
+        
+        log.error(f'🚨 {mgr.consecutive_failures} consecutive failures — applying stealth backoff ({backoff}s)')
+        time.sleep(backoff)
+        return 0
+
+    # Daily discovery pass (once per day)
+    daily_bravo_discovery(mgr)
+
+    # Load venue slugs
+    slugs = load_bravo_slugs()
+    if not slugs:
+        log.info('No registry found, discovering slugs...')
+        slugs = discover_bravo_slugs(mgr.page)
+    log.info(f'Scraping {len(slugs)} venues (chunked publish every {CHUNK_SIZE})...')
+
+    # Scrape each venue — CHUNKED PUBLISH
+    all_results = []        # All results for evidence/history
+    chunk_results = []      # Current chunk buffer
+    total_saved = 0
+    total_errors = 0
+    total_skipped = 0
+    chunk_num = 0
+
+    consecutive_venue_failures = 0
+    cycle_aborted = False
+
+    for i, slug in enumerate(slugs):
+        # CIRCUIT BREAKER: If too many consecutive venues fail, abort and reconnect
+        if consecutive_venue_failures >= CIRCUIT_BREAKER_THRESHOLD:
+            log.error(f'🔴 CIRCUIT BREAKER: {consecutive_venue_failures} consecutive failures — aborting cycle, forcing reconnect')
+            mgr._session_dead = True
+            mgr.tier2_failures = 0
+            cycle_aborted = True
+            break
+
+        # PAGE RECYCLING: Prevent browser memory leaks
+        if (i + 1) % PAGE_RECYCLE_INTERVAL == 0 and not mgr._session_dead:
+            mgr.recycle_page()
+
+        html = mgr.navigate_venue(slug)
+        if html is None:
+            total_errors += 1
+            consecutive_venue_failures += 1
+            continue
+
+        consecutive_venue_failures = 0  # Reset on success
+
+        data = extract_live_data(html, slug)
+        data['batch_id'] = batch_id
+
+        total_tables = sum(g['tables'] for g in data['live_games'])
+        total_waiting = sum(w['players_waiting'] for w in data['waitlist'])
+
+        if data['live_games'] or data['waitlist']:
+            chunk_results.append(data)
+            all_results.append(data)
+            log.info(
+                f'  [{i+1}/{len(slugs)}] ✅ {data["venue_name"][:28]:28} | '
+                f'{total_tables} tables | {total_waiting} waiting'
+            )
+        else:
+            total_skipped += 1
+            if total_skipped <= 3 or total_skipped % 10 == 0:
+                log.info(f'  [{i+1}/{len(slugs)}] ⏭️  {slug[:28]:28} | no live data')
+
+        time.sleep(RATE_LIMIT_DELAY)
+
+        # ── CHUNKED PUBLISH: Flush buffer every CHUNK_SIZE venues with data ──
+        if len(chunk_results) >= CHUNK_SIZE:
+            chunk_num += 1
+            saved, ok = publish_chunk(chunk_results, batch_id, chunk_num)
+            total_saved += saved
+            chunk_results = []  # Reset buffer
+
+            # Update heartbeat after each chunk so watchdog sees activity
+            write_heartbeat('scraping', {
+                'cycle': mgr.total_cycles + 1,
+                'progress': f'{i+1}/{len(slugs)}',
+                'records_saved': total_saved,
+                'chunk': chunk_num,
+            })
+
+    # ── Flush remaining venues in the last partial chunk ──
+    if chunk_results:
+        chunk_num += 1
+        saved, ok = publish_chunk(chunk_results, batch_id, chunk_num)
+        total_saved += saved
+
+    # ── Stale record cleanup (only AFTER all chunks published) ──
+    if total_saved > 0:
+        sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.bravo')
+        # Save historical snapshots
+        save_history_snapshot(batch_id, all_results)
+        save_game_history_snapshot(batch_id, all_results)
 
     # Save evidence
     duration = (datetime.now(timezone.utc) - cycle_start).total_seconds()
@@ -1003,10 +1074,12 @@ def run_scrape_cycle(mgr):
         'batch_id': batch_id,
         'scrape_timestamp': cycle_start.isoformat(),
         'venues_scraped': len(slugs),
-        'venues_with_data': len(results),
-        'venues_skipped': skipped,
-        'total_records_saved': saved,
-        'errors': errors,
+        'venues_with_data': len(all_results),
+        'venues_skipped': total_skipped,
+        'total_records_saved': total_saved,
+        'errors': total_errors,
+        'chunks_published': chunk_num,
+        'cycle_aborted': cycle_aborted,
         'duration_seconds': duration,
         'session_uptime_minutes': (
             (datetime.now(timezone.utc) - mgr.last_login_time).total_seconds() / 60
@@ -1024,9 +1097,9 @@ def run_scrape_cycle(mgr):
             'cycle_start': cycle_start.isoformat(),
             'duration_seconds': int(duration),
             'venues_scraped': len(slugs),
-            'venues_with_data': len(results),
-            'errors': errors,
-            'records_saved': saved,
+            'venues_with_data': len(all_results),
+            'errors': total_errors,
+            'records_saved': total_saved,
         }).encode()
         req = urllib.request.Request(
             f'{SUPABASE_URL}/rest/v1/scraper_metrics',
@@ -1041,26 +1114,29 @@ def run_scrape_cycle(mgr):
     with open(BASE_DIR / 'data' / 'bravo-live-snapshot.json', 'w') as f:
         json.dump({
             'metadata': evidence,
-            'venues': results,
+            'venues': all_results,
         }, f, indent=2, default=str)
 
     mgr.total_cycles += 1
-    mgr.consecutive_failures = 0
+    # Only reset consecutive_failures when we actually saved data
+    if total_saved > 0:
+        mgr.consecutive_failures = 0
 
     # Write heartbeat for external watchdog
-    write_heartbeat('ok' if saved > 0 else 'empty', {
+    write_heartbeat('ok' if total_saved > 0 else 'empty', {
         'cycle': mgr.total_cycles,
-        'records_saved': saved,
-        'venues_with_data': len(results),
-        'errors': errors,
+        'records_saved': total_saved,
+        'venues_with_data': len(all_results),
+        'errors': total_errors,
+        'chunks_published': chunk_num,
         'duration_seconds': round(duration),
     })
 
     log.info(
-        f'=== CYCLE #{mgr.total_cycles} COMPLETE | {len(results)}/{len(slugs)} venues | '
-        f'{saved} records | {duration:.0f}s | Errors: {errors} ==='
+        f'=== CYCLE #{mgr.total_cycles} COMPLETE | {len(all_results)}/{len(slugs)} venues | '
+        f'{total_saved} records in {chunk_num} chunks | {duration:.0f}s | Errors: {total_errors} ==='
     )
-    return len(results)
+    return len(all_results)
 
 # ============================================================
 # DAEMON LOOP
@@ -1142,7 +1218,7 @@ def _hard_kill_on_hang(reason):
 
 def main():
     log.info('=' * 60)
-    log.info('BRAVO POKER LIVE — AUTONOMOUS DAEMON v2.2')
+    log.info('BRAVO POKER LIVE — AUTONOMOUS DAEMON v3.0 (Chunked Publish)')
     log.info(f'Interval: {SCRAPE_INTERVAL}s ({SCRAPE_INTERVAL // 60}min)')
     log.info(f'Persistent session: YES (stays logged in between cycles)')
     log.info(f'Retry policy: {MAX_RETRIES}x with exponential backoff')

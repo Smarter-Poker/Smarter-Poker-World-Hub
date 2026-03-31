@@ -41,7 +41,7 @@ import { cachedFetch, fetchWithRetry } from '../../src/components/poker-near-me/
 import { MapErrorBoundary } from '../../src/components/poker-near-me/VenueMap';
 
 // Page configuration constants
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 4;
 const PAGE_SIZE_DAILY = 50;
 const PAGE_SIZE_LIVE = 30;
 const LIVE_REFRESH_MS = 120000; // 2 minutes
@@ -1612,13 +1612,16 @@ export default function PokerNearMePage() {
                     </div>
 
                     {/* Map Container - wrapped in Error Boundary */}
+                    <div className="map-tab-container">
                     <MapErrorBoundary>
                         <VenueMap
                             key="map-tab-main"
                             venues={filteredVenues}
                             userLocation={userLocation}
+                            fullHeight
                         />
                     </MapErrorBoundary>
+                    </div>
 
                     {/* Recenter Button */}
                     {userLocation && (
@@ -1665,29 +1668,31 @@ export default function PokerNearMePage() {
                         {/* Game Type */}
                         <div className="sidebar-filter-group">
                             <label className="sidebar-label">Game Type</label>
-                            <div className="sidebar-chips">
-                                {['all', 'Cash', 'MTT', 'Mixed'].map(type => (
-                                    <button
-                                        key={type}
-                                        className={'sidebar-chip' + (filters.gameType === type.toLowerCase() ? ' active' : '')}
-                                        onClick={() => setFilters(p => ({ ...p, gameType: type.toLowerCase() }))}
-                                    >{type === 'all' ? 'All' : type}</button>
-                                ))}
-                            </div>
+                            <select
+                                value={filters.gameType}
+                                onChange={e => setFilters(p => ({ ...p, gameType: e.target.value }))}
+                                className="sidebar-select"
+                            >
+                                <option value="all">All</option>
+                                <option value="cash">Cash</option>
+                                <option value="mtt">MTT</option>
+                                <option value="mixed">Mixed</option>
+                            </select>
                         </div>
 
                         {/* Stakes */}
                         <div className="sidebar-filter-group">
                             <label className="sidebar-label">Stakes</label>
-                            <div className="sidebar-chips">
-                                {['all', '$1/2', '$2/5', '$5/10+'].map(stake => (
-                                    <button
-                                        key={stake}
-                                        className={'sidebar-chip' + (filters.stakes === stake ? ' active' : '')}
-                                        onClick={() => setFilters(p => ({ ...p, stakes: stake }))}
-                                    >{stake === 'all' ? 'All' : stake}</button>
-                                ))}
-                            </div>
+                            <select
+                                value={filters.stakes}
+                                onChange={e => setFilters(p => ({ ...p, stakes: e.target.value }))}
+                                className="sidebar-select"
+                            >
+                                <option value="all">All</option>
+                                <option value="$1/2">$1/2</option>
+                                <option value="$2/5">$2/5</option>
+                                <option value="$5/10+">$5/10+</option>
+                            </select>
                         </div>
 
                         {/* Buy-in Range */}
@@ -1815,25 +1820,9 @@ export default function PokerNearMePage() {
                                             key="fullscreen-map"
                                             venues={sorted}
                                             userLocation={userLocation}
+                                            fullHeight
                                         />
                                     </MapErrorBoundary>
-                                </div>
-                                <div className="map-fullscreen-list">
-                                    <h3 className="map-list-title">Results ({sorted.length})</h3>
-                                    <div className="map-list-scroll">
-                                        {sorted.map((venue, i) => (
-                                            <div key={venue.id || i} className="map-list-item" onClick={() => { setMapFullscreen(false); router.push(venue.is_social_page ? `/club/${venue.social_page_id}` : `/hub/venues/${venue.id}`); }}>
-                                                <div className="map-list-item-main">
-                                                    <span className="map-list-name">{venue.name}</span>
-                                                    <span className="map-list-loc">{venue.city}, {venue.state}</span>
-                                                </div>
-                                                <div className="map-list-item-meta">
-                                                    {venue.distance_mi && <span className="map-list-dist">{venue.distance_mi.toFixed(1)} mi</span>}
-                                                    {venue.venue_type && <span className="map-list-type">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2518,33 +2507,49 @@ export default function PokerNearMePage() {
 
                                     <div className="sidebar-filter-group">
                                         <label>Radius</label>
-                                        <div className="sidebar-chips">
-                                            {[25, 50, 100, 250, 'Any'].map(dist => (
-                                                <button key={dist} className={'sidebar-chip' + (filters.radius === dist ? ' active' : '')} onClick={() => { setFilters({ ...filters, radius: dist }); setHasSearched(true); }}>
-                                                    {dist === 'Any' ? 'Any' : `${dist} mi`}
-                                                </button>
-                                            ))}
-                                        </div>
+                                        <select
+                                            value={filters.radius}
+                                            onChange={e => { setFilters({ ...filters, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }); setHasSearched(true); }}
+                                            className="sidebar-select"
+                                        >
+                                            <option value={25}>25 Mi</option>
+                                            <option value={50}>50 Mi</option>
+                                            <option value={100}>100 Mi</option>
+                                            <option value={250}>250 Mi</option>
+                                            <option value="Any">Any</option>
+                                        </select>
                                     </div>
 
                                     <div className="sidebar-filter-group">
                                         <label>Venue Type</label>
-                                        <div className="sidebar-chips">
-                                            {['all', 'casino', 'card_room', 'poker_club', 'charity'].map(type => (
-                                                <button key={type} className={'sidebar-chip' + (filters.venueType === type ? ' active' : '')} onClick={() => setFilters({ ...filters, venueType: type })}>
-                                                    {type === 'all' ? 'All' : VENUE_TYPE_LABELS[type]}
-                                                </button>
-                                            ))}
-                                        </div>
+                                        <select
+                                            value={filters.venueType}
+                                            onChange={e => setFilters({ ...filters, venueType: e.target.value })}
+                                            className="sidebar-select"
+                                        >
+                                            <option value="all">All</option>
+                                            <option value="casino">Casino</option>
+                                            <option value="card_room">Card Room</option>
+                                            <option value="poker_club">Poker Club</option>
+                                            <option value="charity">Charity Room</option>
+                                        </select>
                                     </div>
 
                                     <div className="sidebar-filter-group">
                                         <label>Games</label>
-                                        <div className="sidebar-chips">
-                                            <button className={'sidebar-chip' + (filters.hasNLH ? ' active' : '')} onClick={() => setFilters({ ...filters, hasNLH: !filters.hasNLH })}>NLH</button>
-                                            <button className={'sidebar-chip' + (filters.hasPLO ? ' active' : '')} onClick={() => setFilters({ ...filters, hasPLO: !filters.hasPLO })}>PLO</button>
-                                            <button className={'sidebar-chip' + (filters.hasMixed ? ' active' : '')} onClick={() => setFilters({ ...filters, hasMixed: !filters.hasMixed })}>Mixed</button>
-                                        </div>
+                                        <select
+                                            value={filters.hasNLH ? 'NLH' : filters.hasPLO ? 'PLO' : filters.hasMixed ? 'Mixed' : 'all'}
+                                            onChange={e => {
+                                                const v = e.target.value;
+                                                setFilters({ ...filters, hasNLH: v === 'NLH', hasPLO: v === 'PLO', hasMixed: v === 'Mixed' });
+                                            }}
+                                            className="sidebar-select"
+                                        >
+                                            <option value="all">All Games</option>
+                                            <option value="NLH">NLH</option>
+                                            <option value="PLO">PLO</option>
+                                            <option value="Mixed">Mixed</option>
+                                        </select>
                                     </div>
 
                                     <div className="sidebar-filter-group">
@@ -2748,11 +2753,11 @@ export default function PokerNearMePage() {
 
                     /* ═══ LEFT SIDEBAR NAVIGATION ═══ */
                     .pnm-sidebar {
-                        width: 240px;
-                        min-width: 240px;
+                        width: 200px;
+                        min-width: 200px;
                         background: linear-gradient(180deg, rgba(12,20,35,0.97) 0%, rgba(8,14,26,0.99) 100%);
                         border-right: 2px solid rgba(148,163,184,0.12);
-                        padding: 12px 0;
+                        padding: 8px 0;
                         position: sticky;
                         top: 64px;
                         height: calc(100vh - 64px);
@@ -2777,10 +2782,10 @@ export default function PokerNearMePage() {
                     .sidebar-tab {
                         display: flex;
                         align-items: center;
-                        gap: 12px;
+                        gap: 10px;
                         width: 100%;
-                        padding: 14px 16px;
-                        border-radius: 10px;
+                        padding: 10px 12px;
+                        border-radius: 8px;
                         background: transparent;
                         border: 1.5px solid transparent;
                         cursor: pointer;
@@ -2820,7 +2825,7 @@ export default function PokerNearMePage() {
                         flex-shrink: 0;
                     }
                     .sidebar-tab-label {
-                        font-size: 15px;
+                        font-size: 13px;
                         font-weight: 600;
                         white-space: nowrap;
                     }
@@ -3356,26 +3361,11 @@ export default function PokerNearMePage() {
                             0 2px 6px rgba(0,0,0,0.3);
                     }
 
-                    /* Card Grid */
+                    /* Card Grid — always 2 columns */
                     .card-grid {
                         display: grid;
-                        grid-template-columns: 1fr;
+                        grid-template-columns: repeat(2, 1fr);
                         gap: 16px;
-                    }
-                    @media (min-width: 640px) {
-                        .card-grid {
-                            grid-template-columns: repeat(2, 1fr);
-                        }
-                    }
-                    @media (min-width: 1024px) {
-                        .card-grid {
-                            grid-template-columns: repeat(3, 1fr);
-                        }
-                    }
-                    @media (min-width: 1280px) {
-                        .card-grid {
-                            grid-template-columns: repeat(4, 1fr);
-                        }
                     }
 
                     /* Entity Cards — Vault-V3 Metal Frame */
@@ -4056,7 +4046,8 @@ export default function PokerNearMePage() {
                             inset 0 1px 0 rgba(255,255,255,0.06),
                             0 4px 20px rgba(0,0,0,0.4);
                         margin-bottom: 16px;
-                        height: 220px;
+                        aspect-ratio: 16 / 9;
+                        max-height: 280px;
                         cursor: pointer;
                         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     }
@@ -4071,7 +4062,7 @@ export default function PokerNearMePage() {
                     .map-preview-card .leaflet-container,
                     .map-preview-card > div:last-child {
                         height: 100% !important;
-                        min-height: 220px !important;
+                        min-height: 100% !important;
                         pointer-events: none;
                     }
                     .map-preview-overlay {
@@ -4189,6 +4180,7 @@ export default function PokerNearMePage() {
                     .map-fullscreen-map {
                         flex: 1;
                         min-width: 0;
+                        width: 100%;
                     }
                     .map-fullscreen-map .leaflet-container,
                     .map-fullscreen-map > div {
@@ -5263,6 +5255,12 @@ export default function PokerNearMePage() {
                         .map-sidebar:focus-within {
                             transform: translateY(0);
                         }
+                        .map-tab-container {
+                            height: calc(100vh - 260px);
+                            min-height: 300px;
+                            max-height: 500px;
+                            border-radius: 8px;
+                        }
                     }
 
                     /* Extra-small screens (under 375px) */
@@ -5331,6 +5329,28 @@ export default function PokerNearMePage() {
                     }
                     .leaflet-control-attribution a {
                         color: rgba(255,255,255,0.4) !important;
+                    }
+
+                    /* Map Tab — full-height map container */
+                    .map-tab-container {
+                        width: 100%;
+                        height: calc(100vh - 340px);
+                        min-height: 400px;
+                        max-height: 700px;
+                        border-radius: 12px;
+                        overflow: hidden;
+                        border: 1.5px solid rgba(148,163,184,0.12);
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.04),
+                            0 4px 20px rgba(0,0,0,0.4);
+                    }
+                    .map-tab-container .leaflet-container {
+                        height: 100% !important;
+                        width: 100% !important;
+                    }
+                    .room-distance {
+                        color: #4ade80;
+                        font-weight: 600;
                     }
 
                     /* Two-Column Map Layout */

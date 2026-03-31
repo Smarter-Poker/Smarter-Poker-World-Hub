@@ -93,12 +93,16 @@ export default async function handler(req, res) {
         }
 
         // ── Guard 1: Friendship verification + age for tier ──
-        const { data: friendship } = await getSupabase()
+        // BUG-FIX: Use .limit(1) before .maybeSingle() because duplicate friendship
+        // rows (both A→B and B→A as 'accepted') cause PGRST116 error with .maybeSingle()
+        // which silently returns null, blocking all transfers between confirmed friends.
+        const { data: friendshipRows } = await getSupabase()
             .from('friendships')
             .select('id, status, created_at')
             .or(`and(user_id.eq.${userId},friend_id.eq.${recipientId}),and(user_id.eq.${recipientId},friend_id.eq.${userId})`)
             .eq('status', 'accepted')
-            .maybeSingle();
+            .limit(1);
+        const friendship = friendshipRows?.[0] || null;
 
         if (!friendship) {
             return res.status(403).json({ success: false, error: 'You can only send diamonds to accepted friends' });

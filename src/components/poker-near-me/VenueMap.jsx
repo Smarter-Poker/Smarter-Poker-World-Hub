@@ -73,7 +73,7 @@ export class MapErrorBoundary extends React.Component {
 }
 
 // ─── Main Map Component ───
-export default function VenueMap({ venues, userLocation }) {
+export default function VenueMap({ venues, userLocation, fullHeight = false }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const userMarkerRef = useRef(null);
@@ -155,15 +155,22 @@ export default function VenueMap({ venues, userLocation }) {
     if (mapInstanceRef.current) return;
 
     const L = window.L;
-    const defaultCenter = [39.8283, -98.5795];
-    const defaultZoom = 4;
+    // Continental US bounds — SW corner to NE corner
+    const usBounds = L.latLngBounds(
+      L.latLng(24.396308, -125.0), // Southwest (southern tip of FL / western CA)
+      L.latLng(49.384358, -66.93457) // Northeast (northern ME / WA border)
+    );
 
     const map = L.map(mapContainerRef.current, {
-      center: defaultCenter,
-      zoom: defaultZoom,
       zoomControl: true,
       attributionControl: true,
+      maxBounds: usBounds.pad(0.15), // Allow slight pan beyond border
+      maxBoundsViscosity: 0.8,
+      minZoom: 3,
     });
+
+    // Fit to US bounds smoothly
+    map.fitBounds(usBounds, { padding: [10, 10] });
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
@@ -299,10 +306,11 @@ export default function VenueMap({ venues, userLocation }) {
   }, [userLocation, mapReady]);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', width: '100%', height: fullHeight ? '100%' : 'auto' }}>
       {!mapReady && (
         <div style={{
-          height: 'calc(100vh - 280px)',
+          width: '100%',
+          ...(fullHeight ? { height: '100%', minHeight: 400 } : { aspectRatio: '16 / 9', maxHeight: '50vh' }),
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexDirection: 'column', gap: 12,
           color: 'rgba(255,255,255,0.5)',
@@ -318,12 +326,13 @@ export default function VenueMap({ venues, userLocation }) {
       <div
         ref={mapContainerRef}
         style={{
-          height: 'calc(100vh - 280px)',
-          minHeight: 400,
           width: '100%',
-          borderRadius: 12,
+          ...(fullHeight
+            ? { height: '100%', minHeight: 400 }
+            : { aspectRatio: '16 / 9', maxHeight: '50vh', minHeight: 260 }),
+          borderRadius: fullHeight ? 0 : 12,
           overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: fullHeight ? 'none' : '1px solid rgba(255,255,255,0.1)',
           display: mapReady ? 'block' : 'none',
         }}
       />

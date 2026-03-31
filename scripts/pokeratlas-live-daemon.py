@@ -58,10 +58,10 @@ if not SUPABASE_KEY:
 SCRAPE_INTERVAL = 900  # 15 minutes (offset 7min from Bravo via launchd start)
 RATE_LIMIT_DELAY = 1.0  # seconds between region page fetches
 MAX_RETRIES = 3
-CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive regions fail (was 10)
-SESSION_REFRESH_MINUTES = 90   # Proactive session refresh
+CIRCUIT_BREAKER_THRESHOLD = 5  # Abort cycle + reconnect if this many consecutive regions fail
+SESSION_REFRESH_MINUTES = 60   # Proactive session refresh (was 90 — too long)
 WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this many minutes (launchd restarts)
-CONNECT_TIMEOUT_SECONDS = 90   # Hard kill if connect() hangs longer than this
+CONNECT_TIMEOUT_SECONDS = 60   # Hard kill if connect() hangs longer than this (was 90)
 
 # Directories
 LOG_DIR = BASE_DIR / 'data' / 'pokeratlas-logs'
@@ -846,12 +846,11 @@ def run_scrape_cycle(mgr):
         time.sleep(backoff)
         return 0
 
-    # Load validated region slugs (fast — only ~11 regions)
+    # Load validated region slugs (fast — only ~27 regions)
     regions = load_pa_regions()
     log.info(f'Scraping {len(regions)} validated regions...')
 
-    # Run daily discovery in background (once per day)
-    discover_regions(mgr)
+    # Scrape each region FIRST, then run discovery pass (so critical data publishes before discovery wastes time)
 
     # Scrape each region
     all_venues = []
@@ -1033,6 +1032,11 @@ def run_scrape_cycle(mgr):
         f'=== CYCLE #{mgr.total_cycles} COMPLETE | {len(all_venues)} venues | '
         f'{saved} records | {duration:.0f}s | Errors: {errors} ==='
     )
+
+    # Run daily discovery AFTER validated scrape (so real data gets published first)
+    if saved > 0:
+        discover_regions(mgr)
+
     return len(all_venues)
 
 # ============================================================
@@ -1105,7 +1109,7 @@ def _hard_kill_on_hang(reason):
 
 def main():
     log.info('=' * 60)
-    log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v2.2')
+    log.info('POKER ATLAS LIVE GAMES — AUTONOMOUS DAEMON v3.0')
     log.info(f'Interval: {SCRAPE_INTERVAL}s ({SCRAPE_INTERVAL // 60}min)')
     log.info(f'Strategy: session.fetch() per region (no login needed)')
     log.info(f'Data: game catalog + buy-in + run schedule')
