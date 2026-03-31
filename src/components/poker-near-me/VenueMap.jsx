@@ -164,13 +164,13 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
     const map = L.map(mapContainerRef.current, {
       zoomControl: true,
       attributionControl: true,
-      maxBounds: usBounds.pad(0.15), // Allow slight pan beyond border
-      maxBoundsViscosity: 0.8,
-      minZoom: 3,
+      maxBounds: usBounds.pad(0.25), // Allow slight pan beyond border
+      maxBoundsViscosity: 0.85,
+      minZoom: 4,
     });
 
     // Fit to US bounds smoothly
-    map.fitBounds(usBounds, { padding: [10, 10] });
+    map.fitBounds(usBounds, { padding: [20, 20], maxZoom: 6 });
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
