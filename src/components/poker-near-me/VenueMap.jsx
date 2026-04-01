@@ -84,16 +84,20 @@ const LEAFLET_CUSTOM_CSS = `
   border-bottom: none !important;
 }
 
-/* ═══ ATTRIBUTION ═══ */
+/* ═══ ATTRIBUTION — Smarter.Poker Branding ═══ */
 .leaflet-control-attribution {
-  background: rgba(10,10,21,0.7) !important;
-  color: rgba(148,163,184,0.4) !important;
-  font-size: 9px !important;
-  padding: 2px 6px !important;
-  border-radius: 4px 0 0 0 !important;
+  background: linear-gradient(90deg, rgba(10,10,21,0.85), rgba(10,10,21,0.7)) !important;
+  color: rgba(212,168,83,0.7) !important;
+  font-size: 10px !important;
+  padding: 3px 10px !important;
+  border-radius: 6px 0 0 0 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
 }
 .leaflet-control-attribution a {
-  color: rgba(212,168,83,0.5) !important;
+  color: #d4a853 !important;
+  text-decoration: none !important;
 }
 
 /* ═══ PREMIUM POPUP ═══ */
@@ -398,9 +402,9 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
     // Fit to US bounds
     map.fitBounds(usBounds, { padding: [20, 20], maxZoom: 6 });
 
-    // Dark tile layer
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    // Dark tile layer — NO LABELS (removes 'UNITED STATES' text)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+      attribution: 'Powered By <a href="https://smarter.poker">Smarter.Poker</a>',
       subdomains: 'abcd',
       maxZoom: 19,
     }).addTo(map);
@@ -462,15 +466,16 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
     };
     loadOverlays();
 
-    // ═══ VENUE MARKERS ═══
+    // ═══ VENUE MARKERS — Lower cluster radius for more individual pins ═══
     const clusterGroup = L.markerClusterGroup({
-      maxClusterRadius: 50,
+      maxClusterRadius: 30,
       iconCreateFunction: function(cluster) {
         return createClusterIcon(L, cluster);
       },
       spiderfyOnMaxZoom: true,
       showCoverageOnHover: false,
       zoomToBoundsOnClick: true,
+      disableClusteringAtZoom: 10,
     });
 
     const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude; });
@@ -519,8 +524,23 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
     map.on('zoomend', updateCircles);
     updateCircles();
 
+    // ═══ SHOW USER LOCATION PIN IMMEDIATELY IF AVAILABLE ═══
     if (userLocation) {
-      map.setView([userLocation.lat, userLocation.lng], 12);
+      const userIcon = L.divIcon({
+        className: 'user-location-dot',
+        html: '<div style="position:relative;width:28px;height:28px;">' +
+          '<div style="position:absolute;inset:0;border-radius:50%;background:rgba(59,130,246,0.3);animation:userPulse 2s ease-in-out infinite;"></div>' +
+          '<div style="position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 16px rgba(59,130,246,0.9), 0 0 32px rgba(59,130,246,0.4);"></div>' +
+          '</div>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
+
+      userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 1000 })
+        .addTo(map)
+        .bindPopup('<div style="padding:10px 14px;"><b style="color:#fff;font-size:14px;">You Are Here</b><br/><span style="font-size:11px;color:rgba(148,163,184,0.7);">Your Current Location</span></div>');
+
+      map.setView([userLocation.lat, userLocation.lng], 8);
     }
 
     return () => {
