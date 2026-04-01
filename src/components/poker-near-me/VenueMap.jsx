@@ -552,6 +552,13 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
 
       marker._venueCircle = circle;
       marker._venueData = venue;
+      // Fire onVenueClick callback when marker popup opens
+      marker.on('popupopen', function() {
+        if (onVenueClick && venue.id) {
+          onVenueClick(venue);
+        }
+      });
+
       clusterGroup.addLayer(marker);
     });
 

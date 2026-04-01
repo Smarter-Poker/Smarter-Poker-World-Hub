@@ -267,6 +267,10 @@ export default function PokerNearMePage() {
     // Review panel state (Feature #9)
     const [reviewVenue, setReviewVenue] = useState(null);
 
+    // Pin-to-card highlight state
+    const [highlightedVenueId, setHighlightedVenueId] = useState(null);
+    const highlightTimeoutRef = useRef(null);
+
     // Swipe gesture state
     const touchStartRef = useRef(null);
     const touchEndRef = useRef(null);
@@ -891,6 +895,18 @@ export default function PokerNearMePage() {
     const loadMore = (tab) => {
         setDisplayCount(prev => ({ ...prev, [tab]: prev[tab] + PAGE_SIZE }));
     };
+
+    // Pin→Card sync: scroll to and highlight venue card when map pin is clicked
+    const onMapVenueClick = useCallback((venue) => {
+        if (!venue || !venue.id) return;
+        const cardEl = document.getElementById('venue-card-' + venue.id);
+        if (cardEl) {
+            cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setHighlightedVenueId(venue.id);
+            if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+            highlightTimeoutRef.current = setTimeout(() => setHighlightedVenueId(null), 3000);
+        }
+    }, []);
 
     const isNewcomerFriendly = (venue) => {
         if (!venue) return false;
@@ -1762,6 +1778,7 @@ export default function PokerNearMePage() {
                             venues={filteredVenues}
                             userLocation={userLocation}
                             fullHeight
+                            onVenueClick={onMapVenueClick}
                         />
                     </MapErrorBoundary>
                     </div>
@@ -1945,6 +1962,7 @@ export default function PokerNearMePage() {
                             key="venues-preview"
                             venues={sorted}
                             userLocation={userLocation}
+                            onVenueClick={onMapVenueClick}
                         />
                     </MapErrorBoundary>
                 </div>
@@ -1982,6 +2000,7 @@ export default function PokerNearMePage() {
                                             venues={sorted}
                                             userLocation={userLocation}
                                             fullHeight
+                                            onVenueClick={onMapVenueClick}
                                         />
                                     </MapErrorBoundary>
                                 </div>
@@ -1995,9 +2014,11 @@ export default function PokerNearMePage() {
                     <div className="card-grid">
                         {displayed.map((venue, i) => {
                             const maxGtd = venueMaxGtd[String(venue.id)] || 0;
+                            const isHighlighted = highlightedVenueId === venue.id;
                             return (
+                                <div key={venue.id || i} id={'venue-card-' + venue.id}
+                                    className={'venue-card-wrapper' + (isHighlighted ? ' venue-card-highlighted' : '')}>
                                 <VenueCard
-                                    key={venue.id || i}
                                     venue={{ ...venue, max_gtd: maxGtd }}
                                     index={i}
                                     isFavorited={isFavorited('venue', venue.id)}
@@ -2006,6 +2027,7 @@ export default function PokerNearMePage() {
                                     onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                                     onNavigate={(path) => router.push(path)}
                                 />
+                                </div>
                             );
                         })}
                     </div>
@@ -3580,6 +3602,21 @@ export default function PokerNearMePage() {
                         display: grid;
                         grid-template-columns: repeat(2, 1fr);
                         gap: 16px;
+                    }
+
+                    /* Pin→Card highlight wrapper */
+                    .venue-card-wrapper {
+                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                        border-radius: 14px;
+                    }
+                    .venue-card-highlighted {
+                        animation: venueHighlight 3s ease-out forwards;
+                        border-radius: 14px;
+                    }
+                    @keyframes venueHighlight {
+                        0% { box-shadow: 0 0 0 3px rgba(212,168,83,0.8), 0 0 30px rgba(212,168,83,0.3); transform: scale(1.02); }
+                        30% { box-shadow: 0 0 0 3px rgba(212,168,83,0.5), 0 0 20px rgba(212,168,83,0.2); transform: scale(1.01); }
+                        100% { box-shadow: 0 0 0 0px transparent; transform: scale(1); }
                     }
 
                     /* Entity Cards — Vault-V3 Metal Frame */
