@@ -1962,35 +1962,7 @@ export default function PokerNearMePage() {
 
         return (
             <>
-                {/* Results count bar with Sort dropdown */}
-                <div className="results-bar">
-                    <span className="results-count">{venues.length} result{venues.length !== 1 ? 's' : ''} found</span>
-                    <div className="results-bar-right">
-                        <div className="sort-results-wrapper">
-                            <label className="sort-results-label">Sort:</label>
-                            <select
-                                value={sortBy}
-                                onChange={e => setSortBy(e.target.value)}
-                                className="sort-results-select"
-                            >
-                                <option value="default">{userLocation ? 'Nearest First' : 'Default'}</option>
-                                <option value="distance">Distance (Nearest)</option>
-                                <option value="trust-desc">Trust Score (High → Low)</option>
-                                <option value="trust-asc">Trust Score (Low → High)</option>
-                                <option value="name-az">Name (A → Z)</option>
-                                <option value="name-za">Name (Z → A)</option>
-                                <option value="venue-type">Venue Type</option>
-                                <option value="state-az">State (A → Z)</option>
-                                <option value="most-tables">Most Tables</option>
-                                <option value="most-games">Most Games Offered</option>
-                                <option value="city-az">City (A → Z)</option>
-                            </select>
-                        </div>
-                        <span className="results-showing">Showing {displayed.length} of {venues.length}</span>
-                    </div>
-                </div>
-
-                {/* ═══ MAP CARD — Toggles between preview and full-screen in-place ═══ */}
+                {/* ═══ MAP CARD — Directly under header ═══ */}
                 <div className={`map-preview-card${mapFullscreen ? ' map-preview-fullscreen' : ''}`}>
                     <div className="map-preview-expand-badge" onClick={(e) => { e.stopPropagation(); setMapFullscreen(!mapFullscreen); }} style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
                         {mapFullscreen ? (
@@ -2020,6 +1992,34 @@ export default function PokerNearMePage() {
                             onVenueClick={onMapVenueClick}
                         />
                     </MapErrorBoundary>
+                </div>
+
+                {/* Results count bar with Sort dropdown + Expand Map — ALL ON ONE LINE BELOW MAP */}
+                <div className="results-bar">
+                    <span className="results-count">{venues.length} result{venues.length !== 1 ? 's' : ''} found</span>
+                    <div className="results-bar-right">
+                        <div className="sort-results-wrapper">
+                            <label className="sort-results-label">Sort:</label>
+                            <select
+                                value={sortBy}
+                                onChange={e => setSortBy(e.target.value)}
+                                className="sort-results-select"
+                            >
+                                <option value="default">{userLocation ? 'Nearest First' : 'Default'}</option>
+                                <option value="distance">Distance (Nearest)</option>
+                                <option value="trust-desc">Trust Score (High → Low)</option>
+                                <option value="trust-asc">Trust Score (Low → High)</option>
+                                <option value="name-az">Name (A → Z)</option>
+                                <option value="name-za">Name (Z → A)</option>
+                                <option value="venue-type">Venue Type</option>
+                                <option value="state-az">State (A → Z)</option>
+                                <option value="most-tables">Most Tables</option>
+                                <option value="most-games">Most Games Offered</option>
+                                <option value="city-az">City (A → Z)</option>
+                            </select>
+                        </div>
+                        <span className="results-showing">Showing {displayed.length} of {venues.length}</span>
+                    </div>
                 </div>
 
                 {/* ═══ FULL-WIDTH VENUE CARDS BELOW MAP ═══ */}
@@ -3761,17 +3761,23 @@ export default function PokerNearMePage() {
                         gap: 8px;
                         margin-bottom: 8px;
                     }
-                    .vc3-type-badge {
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 5px;
-                        padding: 3px 9px;
-                        border-radius: 6px;
-                        font-size: 10.5px;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        letter-spacing: 0.4px;
-                        border: 1px solid;
+                    .vc3-type-label {
+                        font-size: 12px;
+                        font-weight: 500;
+                        letter-spacing: 0.2px;
+                    }
+                    .vc3-right-stack {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-end;
+                        gap: 4px;
+                        flex-shrink: 0;
+                    }
+                    .vc3-hours-compact {
+                        font-size: 11px;
+                        color: rgba(255,255,255,0.4);
+                        font-weight: 500;
+                        white-space: nowrap;
                     }
                     .vc3-status-group {
                         display: flex;
@@ -3812,21 +3818,16 @@ export default function PokerNearMePage() {
                         white-space: nowrap;
                     }
 
-                    /* Favorite button */
+                    /* Favorite button — now inline in right-stack */
                     .vc3-fav {
-                        position: absolute;
-                        top: 12px; right: 12px;
-                        background: rgba(0,0,0,0.35);
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-radius: 50%;
-                        width: 34px; height: 34px;
-                        display: flex; align-items: center; justify-content: center;
+                        background: none;
+                        border: none;
+                        padding: 4px;
                         cursor: pointer;
-                        z-index: 2;
-                        transition: all 0.2s;
+                        transition: transform 0.2s;
                     }
-                    .vc3-fav:hover { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.3); transform: scale(1.1); }
-                    .vc3-fav.active { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.25); }
+                    .vc3-fav:hover { transform: scale(1.15); }
+                    .vc3-fav.active svg { filter: drop-shadow(0 0 6px rgba(239,68,68,0.5)); }
 
                     /* Venue name — now inside header identity block */
                     .vc3-name {
@@ -5538,16 +5539,14 @@ export default function PokerNearMePage() {
                             gap: 4px;
                             margin-bottom: 8px;
                         }
-                        .vc3-type-badge {
-                            font-size: 9.5px;
-                            padding: 2px 7px;
+                        .vc3-type-label {
+                            font-size: 11px;
                         }
-                        .vc3-status-group {
-                            gap: 4px;
+                        .vc3-right-stack {
+                            gap: 2px;
                         }
                         .vc3-fav {
-                            width: 32px; height: 32px;
-                            top: 10px; right: 10px;
+                            padding: 2px;
                         }
                         .vc3-actions {
                             gap: 6px;

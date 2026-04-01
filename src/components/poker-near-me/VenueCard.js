@@ -170,7 +170,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
             {/* === HEADER ZONE === */}
             <div className="vc3-header">
-                {/* Left: Logo + Name + Type stacked */}
+                {/* Left: Logo + Name */}
                 <div className="vc3-header-left">
                     {/* Venue Logo — 1.5x size */}
                     <div className="vc3-logo" style={!logoUrl || logoError ? { background: getVenueColor(venue).bg, border: `1px solid ${getVenueColor(venue).border}` } : {}}>
@@ -199,28 +199,25 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     {/* Name + Type — stacked beside logo */}
                     <div className="vc3-identity">
                         <h4 className="vc3-name">{venue.name || 'Unknown Venue'}</h4>
-                        <div className="vc3-type-badge" style={{
-                            background: typeColor.bg,
-                            borderColor: typeColor.border,
-                            color: typeColor.color,
-                        }}>
-                            {typeIcon}
-                            <span>{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
-                        </div>
+                        <span className="vc3-type-label" style={{ color: typeColor.color }}>
+                            {VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}
+                        </span>
                     </div>
                 </div>
 
-                {/* Right: Status indicators */}
-                <div className="vc3-status-group">
-                    {/* Open/Closed indicator */}
-                    {openStatus && (
-                        <span className={`vc3-open-pill ${openStatus.open ? 'open' : 'closed'}`}
-                              title={openStatus.nextChange || ''}>
-                            <span className={`vc3-open-dot ${openStatus.open ? '' : 'closed'}`} />
-                            {openStatus.label}
-                        </span>
-                    )}
-                    {/* Distance pill */}
+                {/* Right: Heart + Distance + Hours stacked */}
+                <div className="vc3-right-stack">
+                    {/* Favorite Button */}
+                    <button
+                        className={'vc3-fav' + (isFavorited ? ' active' : '')}
+                        onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}
+                        title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.45)'} strokeWidth="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                        </svg>
+                    </button>
+                    {/* Distance */}
                     {venue.distance_mi && (
                         <span className="vc3-distance">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -229,19 +226,14 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                             {typeof venue.distance_mi === 'number' ? venue.distance_mi.toFixed(1) : venue.distance_mi} mi
                         </span>
                     )}
+                    {/* Hours */}
+                    {(venue.hours || venue.hours_weekday) && (
+                        <span className="vc3-hours-compact">
+                            {(venue.hours === '24/7' || venue.hours_weekday === '24/7') && !['charity', 'home_game'].includes(venue.venue_type) ? '24/7' : (venue.hours_weekday || venue.hours)}
+                        </span>
+                    )}
                 </div>
             </div>
-
-            {/* Favorite Button */}
-            <button
-                className={'vc3-fav' + (isFavorited ? ' active' : '')}
-                onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}
-                title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-            >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.45)'} strokeWidth="2">
-                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                </svg>
-            </button>
 
             {/* === ADDRESS === */}
             <p className="vc3-address">
@@ -483,11 +475,18 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
             <style jsx>{`
                 .vc3-header-left { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; }
-                .vc3-identity { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+                .vc3-identity { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
                 .vc3-identity .vc3-name { font-size: 16px; font-weight: 700; color: #fff; margin: 0; padding: 0; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                .vc3-type-label { font-size: 12px; font-weight: 500; letter-spacing: 0.2px; }
                 .vc3-logo { width: 54px; height: 54px; border-radius: 10px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); }
                 .vc3-logo-img { width: 100%; height: 100%; object-fit: cover; }
                 .vc3-logo-initials { font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; }
+                .vc3-right-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+                .vc3-fav { position: static; background: none; border: none; padding: 4px; cursor: pointer; transition: transform 0.2s; }
+                .vc3-fav:hover { transform: scale(1.15); }
+                .vc3-fav.active svg { filter: drop-shadow(0 0 6px rgba(239,68,68,0.5)); }
+                .vc3-distance { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 500; white-space: nowrap; }
+                .vc3-hours-compact { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 500; white-space: nowrap; }
                 .vc3-open-pill.closed { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
                 .vc3-open-dot.closed { background: #ef4444; animation: none; }
                 .vc3-hours-next { color: rgba(255,255,255,0.3); font-size: 11px; }
@@ -562,9 +561,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     .vc3-actions-secondary { width: 100%; justify-content: flex-start; }
                     .vc3-actions-primary { width: 100%; justify-content: stretch; }
                     .vc3-pill { flex: 1; justify-content: center; }
-                    .vc3-name { font-size: 16px; padding-right: 70px; }
-                    .vc3-header { flex-wrap: wrap; gap: 8px; }
-                    .vc3-status-group { flex-wrap: wrap; gap: 4px; }
+                    .vc3-name { font-size: 15px; }
+                    .vc3-header { flex-wrap: nowrap; gap: 6px; }
+                    .vc3-right-stack { gap: 2px; }
                 }
             `}</style>
         </div>
