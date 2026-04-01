@@ -1,11 +1,18 @@
 /**
- * Venue Map — Leaflet-based interactive map with marker clustering
- * Extracted from poker-near-me.js for bundle splitting
+ * Venue Map — Premium US-Only Leaflet Map with Neon Markers
+ * ═══════════════════════════════════════════════════════════
+ * - Black mask hides everything outside the continental US
+ * - Subtle gold state boundary lines
+ * - Glowing venue markers with venue-type coloring
+ * - Gradient cluster orbs with size tiers
+ * - Futuristic Metal themed popups and controls
  * 
  * Dependencies:
- * - Leaflet (loaded dynamically via script injection — no Node dep)
+ * - Leaflet (loaded dynamically via script injection)
  * - leaflet.markercluster (loaded dynamically)
  * - Dark tile layer from CartoDB
+ * - /public/data/us-states-simplified.json
+ * - /public/data/us-mask-outer.json
  */
 
 import React, { useRef, useState, useEffect } from 'react';
@@ -18,6 +25,16 @@ const VENUE_TYPE_LABELS = {
   home_game: 'Home Game',
   charity: 'Charity Room'
 };
+
+// Venue type → marker color
+const VENUE_TYPE_COLORS = {
+  casino: { fill: '#d4a853', glow: 'rgba(212,168,83,0.6)', label: 'Gold' },
+  card_room: { fill: '#00d4ff', glow: 'rgba(0,212,255,0.5)', label: 'Cyan' },
+  poker_club: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)', label: 'Green' },
+  charity: { fill: '#a855f7', glow: 'rgba(168,85,247,0.5)', label: 'Purple' },
+  home_game: { fill: '#f59e0b', glow: 'rgba(245,158,11,0.5)', label: 'Amber' },
+};
+const DEFAULT_VENUE_COLOR = VENUE_TYPE_COLORS.casino;
 
 const GEOFENCE_RADII = {
   casino: 500,
@@ -32,11 +49,106 @@ function getGeofenceRadius(venueType) {
 }
 
 function getTrustLevel(score) {
-  if (score >= 4.5) return { label: 'High', color: '#22c55e' };
-  if (score >= 4.0) return { label: 'Good', color: '#3b82f6' };
-  if (score >= 3.0) return { label: 'Moderate', color: '#f59e0b' };
-  return { label: 'Low', color: '#ef4444' };
+  if (score >= 4.5) return { label: 'Excellent', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' };
+  if (score >= 4.0) return { label: 'Good', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' };
+  if (score >= 3.0) return { label: 'Moderate', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' };
+  return { label: 'Low', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' };
 }
+
+// ─── Custom CSS for Leaflet elements ───
+const LEAFLET_CUSTOM_CSS = `
+/* ═══ PREMIUM MAP CONTROLS ═══ */
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 1px rgba(212,168,83,0.3) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+}
+.leaflet-control-zoom a {
+  background: rgba(10,10,21,0.92) !important;
+  color: #d4a853 !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(212,168,83,0.15) !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+.leaflet-control-zoom a:hover {
+  background: rgba(212,168,83,0.15) !important;
+  color: #f0d48a !important;
+}
+.leaflet-control-zoom a:last-child {
+  border-bottom: none !important;
+}
+
+/* ═══ ATTRIBUTION ═══ */
+.leaflet-control-attribution {
+  background: rgba(10,10,21,0.7) !important;
+  color: rgba(148,163,184,0.4) !important;
+  font-size: 9px !important;
+  padding: 2px 6px !important;
+  border-radius: 4px 0 0 0 !important;
+}
+.leaflet-control-attribution a {
+  color: rgba(212,168,83,0.5) !important;
+}
+
+/* ═══ PREMIUM POPUP ═══ */
+.leaflet-popup-content-wrapper {
+  background: linear-gradient(145deg, rgba(15,23,42,0.98) 0%, rgba(10,10,21,0.99) 100%) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 1px rgba(212,168,83,0.4), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(212,168,83,0.2) !important;
+  padding: 0 !important;
+}
+.leaflet-popup-content {
+  margin: 0 !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+}
+.leaflet-popup-tip {
+  background: rgba(15,23,42,0.98) !important;
+  border: 1px solid rgba(212,168,83,0.15) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+}
+.leaflet-popup-close-button {
+  color: rgba(148,163,184,0.5) !important;
+  font-size: 20px !important;
+  padding: 6px 10px 0 0 !important;
+  transition: color 0.2s !important;
+}
+.leaflet-popup-close-button:hover {
+  color: #d4a853 !important;
+}
+
+/* ═══ MARKER PULSE ANIMATION ═══ */
+@keyframes markerPulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.8); opacity: 0; }
+}
+@keyframes markerGlow {
+  0%, 100% { box-shadow: 0 0 6px var(--marker-glow); }
+  50% { box-shadow: 0 0 14px var(--marker-glow), 0 0 24px var(--marker-glow); }
+}
+@keyframes userPulse {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(2.2); opacity: 0; }
+}
+
+/* ═══ CLUSTER ICON OVERRIDES ═══ */
+.venue-cluster-icon {
+  background: transparent !important;
+  border: none !important;
+}
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+  background: transparent !important;
+}
+.marker-cluster div {
+  background: transparent !important;
+}
+`;
 
 // ─── Error Boundary ───
 export class MapErrorBoundary extends React.Component {
@@ -70,6 +182,110 @@ export class MapErrorBoundary extends React.Component {
     }
     return this.props.children;
   }
+}
+
+// ─── Helper: Create venue marker icon ───
+function createVenueIcon(L, venueType) {
+  const colors = VENUE_TYPE_COLORS[venueType] || DEFAULT_VENUE_COLOR;
+  return L.divIcon({
+    className: 'venue-map-marker',
+    html: `<div style="position:relative;width:22px;height:22px;">
+      <div style="position:absolute;inset:0;border-radius:50%;background:${colors.glow};animation:markerPulse 3s ease-in-out infinite;"></div>
+      <div style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:${colors.fill};border:2px solid rgba(255,255,255,0.85);box-shadow:0 0 10px ${colors.glow};--marker-glow:${colors.glow};animation:markerGlow 3s ease-in-out infinite;"></div>
+    </div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    popupAnchor: [0, -14],
+  });
+}
+
+// ─── Helper: Create cluster icon ───
+function createClusterIcon(L, cluster) {
+  const count = cluster.getChildCount();
+  
+  // Size tiers
+  let size, fontSize, borderWidth;
+  if (count >= 100) {
+    size = 58; fontSize = 15; borderWidth = 3;
+  } else if (count >= 50) {
+    size = 48; fontSize = 14; borderWidth = 2.5;
+  } else if (count >= 20) {
+    size = 42; fontSize = 13; borderWidth = 2;
+  } else if (count >= 10) {
+    size = 36; fontSize = 12; borderWidth = 2;
+  } else {
+    size = 30; fontSize = 11; borderWidth = 2;
+  }
+
+  // Color gradient based on count
+  let bgGradient, glowColor, textColor;
+  if (count >= 100) {
+    bgGradient = 'linear-gradient(135deg, #d4a853 0%, #b8860b 50%, #8B6914 100%)';
+    glowColor = 'rgba(212,168,83,0.5)';
+    textColor = '#000';
+  } else if (count >= 50) {
+    bgGradient = 'linear-gradient(135deg, #f0d48a 0%, #d4a853 50%, #b8860b 100%)';
+    glowColor = 'rgba(212,168,83,0.4)';
+    textColor = '#000';
+  } else if (count >= 20) {
+    bgGradient = 'linear-gradient(135deg, rgba(212,168,83,0.9) 0%, rgba(184,134,11,0.85) 100%)';
+    glowColor = 'rgba(212,168,83,0.35)';
+    textColor = '#000';
+  } else {
+    bgGradient = 'linear-gradient(135deg, rgba(212,168,83,0.75) 0%, rgba(184,134,11,0.7) 100%)';
+    glowColor = 'rgba(212,168,83,0.25)';
+    textColor = '#1a1a2e';
+  }
+
+  return L.divIcon({
+    html: `<div style="
+      width:${size}px;height:${size}px;border-radius:50%;
+      background:${bgGradient};
+      border:${borderWidth}px solid rgba(255,255,255,0.9);
+      display:flex;align-items:center;justify-content:center;
+      font-size:${fontSize}px;font-weight:800;color:${textColor};
+      box-shadow:0 0 ${size/2}px ${glowColor}, 0 4px 16px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(0,0,0,0.2);
+      text-shadow:0 1px 2px rgba(255,255,255,0.3);
+      font-family:'Inter',-apple-system,sans-serif;
+      letter-spacing:-0.5px;
+    ">${count}</div>`,
+    className: 'venue-cluster-icon',
+    iconSize: [size, size],
+  });
+}
+
+// ─── Helper: Build popup HTML ───
+function buildPopupHtml(venue) {
+  const trust = getTrustLevel(venue.trust_score);
+  const colors = VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR;
+  const typeBadge = VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type || '';
+  const detailPath = venue.is_social_page
+    ? '/club/' + venue.social_page_id
+    : '/hub/venues/' + venue.id;
+  
+  const games = (venue.games_offered || []).slice(0, 3).join(', ');
+  const hours = venue.is_24_hours ? '24/7' : (venue.hours_of_operation || '');
+
+  return `<div style="min-width:220px;max-width:300px;padding:16px 18px 14px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="width:10px;height:10px;border-radius:50%;background:${colors.fill};box-shadow:0 0 8px ${colors.glow};flex-shrink:0;"></div>
+      <div style="font-size:15px;font-weight:700;color:#fff;line-height:1.2;">${venue.name || ''}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+      <span style="padding:3px 10px;border-radius:6px;background:rgba(${colors.fill === '#d4a853' ? '212,168,83' : colors.fill === '#00d4ff' ? '0,212,255' : colors.fill === '#22c55e' ? '34,197,94' : colors.fill === '#a855f7' ? '168,85,247' : '245,158,11'},0.15);color:${colors.fill};font-size:11px;font-weight:600;letter-spacing:0.3px;">${typeBadge}</span>
+      <span style="font-size:12px;color:rgba(148,163,184,0.8);">${venue.city || ''}, ${venue.state || ''}</span>
+    </div>
+    ${hours ? `<div style="font-size:11px;color:rgba(148,163,184,0.6);margin-bottom:6px;">Hours: ${hours}</div>` : ''}
+    ${games ? `<div style="font-size:11px;color:rgba(148,163,184,0.6);margin-bottom:8px;">Games: ${games}</div>` : ''}
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+      <div style="padding:4px 10px;border-radius:6px;background:${trust.bg};color:${trust.color};font-size:11px;font-weight:700;">Trust: ${trust.label}</div>
+      <div style="font-size:11px;color:rgba(148,163,184,0.5);">${venue.trust_score || '—'}/5</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="${detailPath}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;transition:transform 0.15s;letter-spacing:0.3px;">View Details</a>
+      <a href="https://www.google.com/maps/dir/?api=1&destination=${venue.latitude},${venue.longitude}" target="_blank" rel="noopener" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);text-decoration:none;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;transition:all 0.15s;">Directions</a>
+    </div>
+  </div>`;
 }
 
 // ─── Main Map Component ───
@@ -149,29 +365,40 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
     loadLeaflet();
   }, []);
 
+  // Inject custom CSS once
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (document.querySelector('#venue-map-custom-css')) return;
+    const style = document.createElement('style');
+    style.id = 'venue-map-custom-css';
+    style.textContent = LEAFLET_CUSTOM_CSS;
+    document.head.appendChild(style);
+  }, []);
+
   // Initialize map once Leaflet is ready
   useEffect(() => {
     if (!mapReady || !mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
 
     const L = window.L;
-    // Continental US bounds — SW corner to NE corner
+    // Continental US bounds — tight fit
     const usBounds = L.latLngBounds(
-      L.latLng(24.396308, -125.0), // Southwest (southern tip of FL / western CA)
-      L.latLng(49.384358, -66.93457) // Northeast (northern ME / WA border)
+      L.latLng(24.396308, -125.0),   // Southwest
+      L.latLng(49.384358, -66.93457) // Northeast
     );
 
     const map = L.map(mapContainerRef.current, {
       zoomControl: true,
       attributionControl: true,
-      maxBounds: usBounds.pad(0.25), // Allow slight pan beyond border
-      maxBoundsViscosity: 0.85,
+      maxBounds: usBounds.pad(0.05),  // Very slight padding — hard lock to US
+      maxBoundsViscosity: 1.0,         // No rubber-banding at all
       minZoom: 4,
     });
 
-    // Fit to US bounds smoothly
+    // Fit to US bounds
     map.fitBounds(usBounds, { padding: [20, 20], maxZoom: 6 });
 
+    // Dark tile layer
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
       subdomains: 'abcd',
@@ -180,63 +407,95 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
 
     mapInstanceRef.current = map;
 
-    const goldIcon = L.divIcon({
-      className: 'venue-map-marker',
-      html: '<div style="width:14px;height:14px;border-radius:50%;background:#d4a853;border:2px solid #fff;box-shadow:0 0 8px rgba(212,168,83,0.6);"></div>',
-      iconSize: [18, 18],
-      iconAnchor: [9, 9],
-      popupAnchor: [0, -12],
-    });
+    // ═══ LOAD US GEOJSON OVERLAYS ═══
+    const loadOverlays = async () => {
+      try {
+        // Load states GeoJSON for boundaries + mask
+        const statesResp = await fetch('/data/us-states-simplified.json');
+        const statesData = await statesResp.json();
 
+        // 1. INVERSE MASK — Black out everything outside the US
+        // Collect all state coordinates to build the US hole
+        const worldOuter = [
+          [90, -180], [90, 180], [-90, 180], [-90, -180], [90, -180]
+        ];
+
+        // For each state, add its boundary as a GeoJSON layer with the mask
+        // We use a simpler approach: overlay the world mask excluding US
+        statesData.features.forEach(function(feature) {
+          const geom = feature.geometry;
+          if (geom.type === 'Polygon') {
+            // Reverse the winding for Leaflet hole rendering
+            const coords = geom.coordinates[0].map(function(c) { return [c[1], c[0]]; });
+            L.polygon([worldOuter, coords], {
+              color: 'transparent',
+              fillColor: '#06080d',
+              fillOpacity: 0.92,
+              interactive: false,
+              pane: 'overlayPane',
+            }).addTo(map);
+          } else if (geom.type === 'MultiPolygon') {
+            geom.coordinates.forEach(function(poly) {
+              const coords = poly[0].map(function(c) { return [c[1], c[0]]; });
+              L.polygon([worldOuter, coords], {
+                color: 'transparent',
+                fillColor: '#06080d',
+                fillOpacity: 0.92,
+                interactive: false,
+                pane: 'overlayPane',
+              }).addTo(map);
+            });
+          }
+        });
+
+        // 2. STATE BOUNDARY LINES — Subtle gold outlines
+        L.geoJSON(statesData, {
+          style: function() {
+            return {
+              color: 'rgba(212,168,83,0.12)',
+              weight: 1,
+              fillColor: 'transparent',
+              fillOpacity: 0,
+              interactive: false,
+            };
+          },
+          pane: 'overlayPane',
+        }).addTo(map);
+
+      } catch (err) {
+        console.warn('Could not load US overlays:', err);
+      }
+    };
+    loadOverlays();
+
+    // ═══ VENUE MARKERS ═══
     const clusterGroup = L.markerClusterGroup({
       maxClusterRadius: 50,
-      iconCreateFunction: function (cluster) {
-        const count = cluster.getChildCount();
-        let size = 36;
-        if (count > 50) size = 48;
-        else if (count > 20) size = 42;
-        return L.divIcon({
-          html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:rgba(212,168,83,0.85);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;box-shadow:0 2px 10px rgba(0,0,0,0.4);">' + count + '</div>',
-          className: 'venue-cluster-icon',
-          iconSize: [size, size],
-        });
+      iconCreateFunction: function(cluster) {
+        return createClusterIcon(L, cluster);
       },
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
     });
 
-    const validVenues = (venues || []).filter(function (v) { return v.latitude && v.longitude; });
+    const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude; });
 
-    validVenues.forEach(function (venue) {
-      const trust = getTrustLevel(venue.trust_score);
-      const typeBadge = VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type || '';
+    validVenues.forEach(function(venue) {
+      const venueIcon = createVenueIcon(L, venue.venue_type);
+      const popupHtml = buildPopupHtml(venue);
 
-      const detailPath = venue.is_social_page
-        ? '/club/' + venue.social_page_id
-        : '/hub/venues/' + venue.id;
-
-      const popupHtml = '<div style="font-family:Inter,-apple-system,sans-serif;min-width:200px;max-width:280px;background:#0f172a;padding:12px;border-radius:10px;">' +
-        '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">' + (venue.name || '') + '</div>' +
-        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
-        '<span style="padding:2px 8px;border-radius:4px;background:rgba(99,102,241,0.2);color:#818cf8;font-size:11px;font-weight:600;">' + typeBadge + '</span>' +
-        '<span style="font-size:12px;color:rgba(255,255,255,0.5);">' + (venue.city || '') + ', ' + (venue.state || '') + '</span>' +
-        '</div>' +
-        '<div style="font-size:12px;color:' + trust.color + ';font-weight:600;margin-bottom:8px;">Trust: ' + trust.label + ' (' + (venue.trust_score || '-') + '/5)</div>' +
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
-        '<a href="' + detailPath + '" style="padding:6px 12px;border-radius:6px;background:#d4a853;color:#000;text-decoration:none;font-size:12px;font-weight:600;">View Details</a>' +
-        '<a href="' + detailPath + '?action=checkin" style="padding:6px 12px;border-radius:6px;background:rgba(37,99,235,0.8);color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Check In</a>' +
-        '<a href="' + detailPath + '?action=review" style="padding:6px 12px;border-radius:6px;background:rgba(255,255,255,0.1);color:#fff;text-decoration:none;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.2);">Review</a>' +
-        '</div>' +
-        '</div>';
-
-      const marker = L.marker([venue.latitude, venue.longitude], { icon: goldIcon })
-        .bindPopup(popupHtml, { maxWidth: 300, className: 'venue-popup' });
+      const marker = L.marker([venue.latitude, venue.longitude], { icon: venueIcon })
+        .bindPopup(popupHtml, { maxWidth: 320, className: 'venue-popup', closeButton: true });
 
       const radius = getGeofenceRadius(venue.venue_type);
+      const venueColors = VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR;
       const circle = L.circle([venue.latitude, venue.longitude], {
         radius: radius,
-        color: '#d4a853',
+        color: venueColors.fill,
         weight: 1,
         opacity: 0.35,
-        fillColor: '#d4a853',
+        fillColor: venueColors.fill,
         fillOpacity: 0.08,
       });
 
@@ -247,6 +506,7 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
 
     map.addLayer(clusterGroup);
 
+    // Geofence circles at high zoom
     const circlesGroup = L.layerGroup();
     circlesGroup.addTo(map);
 
@@ -254,7 +514,7 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
       circlesGroup.clearLayers();
       const zoom = map.getZoom();
       if (zoom >= 11) {
-        clusterGroup.eachLayer(function (marker) {
+        clusterGroup.eachLayer(function(marker) {
           if (marker._venueCircle) {
             circlesGroup.addLayer(marker._venueCircle);
           }
@@ -289,17 +549,17 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
     if (userLocation) {
       const userIcon = L.divIcon({
         className: 'user-location-dot',
-        html: '<div style="position:relative;width:18px;height:18px;">' +
+        html: '<div style="position:relative;width:24px;height:24px;">' +
           '<div style="position:absolute;inset:0;border-radius:50%;background:rgba(59,130,246,0.3);animation:userPulse 2s ease-in-out infinite;"></div>' +
-          '<div style="position:absolute;top:4px;left:4px;width:10px;height:10px;border-radius:50%;background:#3b82f6;border:2px solid #fff;box-shadow:0 0 6px rgba(59,130,246,0.8);"></div>' +
+          '<div style="position:absolute;top:5px;left:5px;width:14px;height:14px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 12px rgba(59,130,246,0.8);"></div>' +
           '</div>',
-        iconSize: [18, 18],
-        iconAnchor: [9, 9],
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
       });
 
       userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 1000 })
         .addTo(map)
-        .bindPopup('<b style="color:#1a1a2e;">Your Location</b>');
+        .bindPopup('<div style="padding:8px 12px;"><b style="color:#fff;font-size:14px;">Your Location</b></div>');
 
       map.setView([userLocation.lat, userLocation.lng], Math.max(map.getZoom(), 12));
     }
@@ -307,20 +567,37 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: fullHeight ? '100%' : 'auto' }}>
+      {/* Premium loading skeleton */}
       {!mapReady && (
         <div style={{
           width: '100%',
           ...(fullHeight ? { height: '100%', minHeight: 400 } : { aspectRatio: '16 / 9', maxHeight: '50vh' }),
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexDirection: 'column', gap: 12,
-          color: 'rgba(255,255,255,0.5)',
+          color: 'rgba(212,168,83,0.6)',
+          background: 'linear-gradient(180deg, rgba(10,10,21,0.95) 0%, rgba(6,8,13,1) 100%)',
+          borderRadius: fullHeight ? 0 : 12,
+          position: 'relative',
+          overflow: 'hidden',
         }}>
+          {/* Animated gradient sweep */}
           <div style={{
-            width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)',
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(90deg, transparent 0%, rgba(212,168,83,0.04) 50%, transparent 100%)',
+            animation: 'shimmer 2s ease-in-out infinite',
+          }} />
+          <div style={{
+            width: 48, height: 48, border: '3px solid rgba(212,168,83,0.15)',
             borderTopColor: '#d4a853', borderRadius: '50%',
             animation: 'spin 1s linear infinite',
           }} />
-          <span>Loading Map...</span>
+          <span style={{ fontFamily: 'Inter, -apple-system, sans-serif', fontSize: 14, fontWeight: 600, letterSpacing: '1px' }}>
+            LOADING MAP...
+          </span>
+          <span style={{ fontSize: 11, color: 'rgba(148,163,184,0.4)' }}>
+            {(venues || []).length} venues ready
+          </span>
+          <style>{`@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
         </div>
       )}
       <div
@@ -332,8 +609,9 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
             : { aspectRatio: '16 / 9', maxHeight: '50vh', minHeight: 260 }),
           borderRadius: fullHeight ? 0 : 12,
           overflow: 'hidden',
-          border: fullHeight ? 'none' : '1px solid rgba(255,255,255,0.1)',
+          border: fullHeight ? 'none' : '1px solid rgba(212,168,83,0.15)',
           display: mapReady ? 'block' : 'none',
+          boxShadow: fullHeight ? 'none' : '0 4px 24px rgba(0,0,0,0.4)',
         }}
       />
     </div>

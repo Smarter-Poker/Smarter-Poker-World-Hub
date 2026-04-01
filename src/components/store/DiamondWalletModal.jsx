@@ -145,7 +145,7 @@ const DATE_RANGE_OPTIONS = [
 ];
 
 // ── R8-I7: Quick-amount preset buttons for transfers ──
-const QUICK_AMOUNTS = [10, 25, 50, 100];
+// Quick amounts removed — users must type amounts manually
 
 // ── R8-I2: Recent recipients localStorage ──
 const RECENT_RECIPIENTS_KEY = 'sp-wallet-recent-recipients';
@@ -1605,50 +1605,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         )}
                         {/* Friend search + Amount — side by side on larger screens, stacked on mobile */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {/* R8-I2: Recent Recipients quick-select */}
-                            {!transferRecipient && recentRecipients.length > 0 && friendSearch.trim().length < 3 && (
-                                <div style={{ marginBottom: 2 }}>
-                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                                        Recent Recipients
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                        {recentRecipients.map(r => (
-                                            <button
-                                                key={r.id}
-                                                onClick={() => {
-                                                    setTransferRecipient(r);
-                                                    setFriendSearch('');
-                                                    if (r.lastAmount) setTransferAmount(String(r.lastAmount));
-                                                }}
-                                                style={{
-                                                    display: 'flex', alignItems: 'center', gap: 6,
-                                                    padding: '5px 10px',
-                                                    background: 'rgba(249, 115, 22, 0.08)',
-                                                    border: '1px solid rgba(249, 115, 22, 0.2)',
-                                                    borderRadius: 16,
-                                                    color: 'rgba(255,255,255,0.6)',
-                                                    fontSize: 11,
-                                                    fontWeight: 500,
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.15s',
-                                                }}
-                                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(249, 115, 22, 0.15)'; e.currentTarget.style.borderColor = 'rgba(249, 115, 22, 0.4)'; }}
-                                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(249, 115, 22, 0.08)'; e.currentTarget.style.borderColor = 'rgba(249, 115, 22, 0.2)'; }}
-                                            >
-                                                {r.avatar_url ? (
-                                                    <img src={r.avatar_url} alt="" style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover' }} />
-                                                ) : (
-                                                    <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(249,115,22,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: '#f97316', fontWeight: 700 }}>
-                                                        {(r.display_name || r.username || '?')[0].toUpperCase()}
-                                                    </div>
-                                                )}
-                                                {r.display_name || r.username}
-                                                {r.is_vip && <Crown size={10} color="#eab308" />}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
                             {/* Friend type-to-search input with autocomplete dropdown */}
                             <div style={{ position: 'relative' }}>
                                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
@@ -1824,33 +1780,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                         >
                                             {transferLoading ? 'Sending...' : cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : 'Send'}
                                         </button>
-                                    </div>
-                                    {/* R8-I7: Quick-amount preset buttons */}
-                                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                                        {QUICK_AMOUNTS.map(qa => (
-                                            <button
-                                                key={qa}
-                                                onClick={() => setTransferAmount(String(qa))}
-                                                style={{
-                                                    flex: 1,
-                                                    padding: '5px 0',
-                                                    background: parseInt(transferAmount) === qa
-                                                        ? 'rgba(0, 212, 255, 0.15)'
-                                                        : 'rgba(255,255,255,0.04)',
-                                                    border: parseInt(transferAmount) === qa
-                                                        ? '1px solid rgba(0, 212, 255, 0.4)'
-                                                        : '1px solid rgba(255,255,255,0.08)',
-                                                    borderRadius: 8,
-                                                    color: parseInt(transferAmount) === qa ? '#00d4ff' : 'rgba(255,255,255,0.45)',
-                                                    fontSize: 11,
-                                                    fontWeight: 600,
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.15s',
-                                                }}
-                                            >
-                                                {qa}
-                                            </button>
-                                        ))}
                                     </div>
                                 </div>
                             )}
