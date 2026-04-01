@@ -623,6 +623,12 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
             return;
         }
 
+        // Poker Near Me routes to the 12-icon lobby, not the tab-based page
+        if (cardId === 'poker-near-me') {
+            router.push('/hub/poker-near-me-lobby');
+            return;
+        }
+
         // Club Arena is a standalone Vite SPA — MUST use full page navigation.
         // Next.js router.push loads the HTML but type="module" scripts don't
         // re-execute, leaving React unmounted (black screen bug).
@@ -684,6 +690,12 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
         // Toke Tracker card routes to dedicated hub page with 4 icon cards
         if (orbId === 'toke-tracker') {
             router.push('/hub/toke-tracker');
+            return;
+        }
+
+        // Poker Near Me routes to the 12-icon lobby, not the tab-based page
+        if (orbId === 'poker-near-me') {
+            router.push('/hub/poker-near-me-lobby');
             return;
         }
 

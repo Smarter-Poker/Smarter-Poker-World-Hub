@@ -559,17 +559,20 @@ export default function PokerNearMePage() {
         }
     }, [selectedCity, userLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Auto-refresh venues when venue-affecting filter values change
-    const filterRefreshRef = useRef(null);
+    // Auto-request GPS on mount so default view is user-local (50mi radius)
+    const gpsAutoRequestedRef = useRef(false);
     useEffect(() => {
-        if (!hasSearched) return;
-        // Debounce to prevent rapid re-fetching during filter cascades
-        if (filterRefreshRef.current) clearTimeout(filterRefreshRef.current);
-        filterRefreshRef.current = setTimeout(() => {
-            fetchVenues();
-        }, 400);
-        return () => { if (filterRefreshRef.current) clearTimeout(filterRefreshRef.current); };
-    }, [filters.radius, filters.venueType, filters.hasNLH, filters.hasPLO, filters.hasMixed]); // eslint-disable-line react-hooks/exhaustive-deps
+        if (gpsAutoRequestedRef.current) return;
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            gpsAutoRequestedRef.current = true;
+            // Small delay to let page paint first
+            setTimeout(() => {
+                if (!userLocation && !selectedCity) {
+                    requestGpsLocation();
+                }
+            }, 600);
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Close search history on outside click
     useEffect(() => {
@@ -2497,8 +2500,32 @@ export default function PokerNearMePage() {
                             </div>
                         )}
 
-                        {/* ─── SIDEBAR FILTERS ─── */}
+                        {/* ─── GPS LOCATION (first item) ─── */}
                         <div className="sidebar-filters">
+                            {/* Show GPS button ONLY when not yet active; once active, show location */}
+                            {!userLocation && (
+                                <button className={'sidebar-gps-btn' + (gpsLoading ? ' loading' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="3" />
+                                        <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+                                    </svg>
+                                    {gpsLoading ? 'Locating...' : 'Enable GPS'}
+                                </button>
+                            )}
+
+                            {/* GPS location confirmation — replaces the button once active */}
+                            {userLocation && gpsLocationLabel && (
+                                <div className="sidebar-gps-label">
+                                    <div className="gps-pulse-dot" />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: 'rgba(74,222,128,0.7)', marginBottom: 2 }}>Your Location</div>
+                                        <strong style={{ fontSize: 13 }}>{gpsLocationLabel}</strong>
+                                    </div>
+                                    <button onClick={() => { setUserLocation(null); setGpsLocationLabel(null); setHasSearched(false); setVenues([]); setNearestDistance(null); }} className="sidebar-gps-clear" title="Clear Location">&times;</button>
+                                </div>
+                            )}
+
+                            {/* ─── SEARCH ─── */}
                             <div className="sidebar-section-title">Search</div>
                             <form className="sidebar-search-form" onSubmit={handleSearch}>
                                 <input
@@ -2516,22 +2543,6 @@ export default function PokerNearMePage() {
                                 </button>
                             </form>
 
-                            <button className={'sidebar-gps-btn' + (userLocation ? ' active' : '') + (gpsLoading ? ' loading' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="3" />
-                                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
-                                </svg>
-                                {gpsLoading ? 'Locating...' : userLocation ? 'GPS Active' : 'Enable GPS'}
-                            </button>
-
-                            {gpsLocationLabel && userLocation && (
-                                <div className="sidebar-gps-label">
-                                    <div className="gps-pulse-dot" />
-                                    Near <strong>{gpsLocationLabel}</strong>
-                                    <button onClick={() => { setUserLocation(null); setGpsLocationLabel(null); setHasSearched(false); setVenues([]); setNearestDistance(null); }} className="sidebar-gps-clear">&times;</button>
-                                </div>
-                            )}
-
                             {activeTab === 'venues' && (
                                 <>
                                     <div className="sidebar-section-title">Filters</div>
@@ -2540,7 +2551,7 @@ export default function PokerNearMePage() {
                                         <label>Radius</label>
                                         <select
                                             value={filters.radius}
-                                            onChange={e => { setFilters({ ...filters, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }); setHasSearched(true); }}
+                                            onChange={e => { setFilters({ ...filters, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }); }}
                                             className="sidebar-select"
                                         >
                                             <option value={25}>25 Mi</option>
@@ -2609,6 +2620,21 @@ export default function PokerNearMePage() {
                                             <option value="most-tables">Most Tables</option>
                                         </select>
                                     </div>
+
+                                    {/* ─── APPLY FILTERS BUTTON ─── */}
+                                    <button
+                                        className="sidebar-apply-filters-btn"
+                                        onClick={() => {
+                                            setHasSearched(true);
+                                            setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
+                                            fetchVenues();
+                                        }}
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                        Apply Filters
+                                    </button>
                                 </>
                             )}
                         </div>
@@ -2784,11 +2810,11 @@ export default function PokerNearMePage() {
 
                     /* ═══ LEFT SIDEBAR NAVIGATION ═══ */
                     .pnm-sidebar {
-                        width: 200px;
-                        min-width: 200px;
+                        width: 160px;
+                        min-width: 160px;
                         background: linear-gradient(180deg, rgba(12,20,35,0.97) 0%, rgba(8,14,26,0.99) 100%);
                         border-right: 2px solid rgba(148,163,184,0.12);
-                        padding: 8px 0;
+                        padding: 6px 0;
                         position: sticky;
                         top: 64px;
                         height: calc(100vh - 64px);
@@ -2805,18 +2831,18 @@ export default function PokerNearMePage() {
                     .sidebar-nav {
                         display: flex;
                         flex-direction: column;
-                        gap: 2px;
-                        padding: 0 8px;
-                        margin-bottom: 16px;
+                        gap: 1px;
+                        padding: 0 6px;
+                        margin-bottom: 10px;
                     }
 
                     .sidebar-tab {
                         display: flex;
                         align-items: center;
-                        gap: 10px;
+                        gap: 8px;
                         width: 100%;
-                        padding: 10px 12px;
-                        border-radius: 8px;
+                        padding: 7px 8px;
+                        border-radius: 6px;
                         background: transparent;
                         border: 1.5px solid transparent;
                         cursor: pointer;
@@ -2856,7 +2882,7 @@ export default function PokerNearMePage() {
                         flex-shrink: 0;
                     }
                     .sidebar-tab-label {
-                        font-size: 13px;
+                        font-size: 12px;
                         font-weight: 600;
                         white-space: nowrap;
                     }
@@ -2906,10 +2932,10 @@ export default function PokerNearMePage() {
 
                     /* ═══ SIDEBAR FILTERS ═══ */
                     .sidebar-filters {
-                        padding: 0 12px;
+                        padding: 0 8px;
                         border-top: 1px solid rgba(148,163,184,0.08);
-                        margin-top: 8px;
-                        padding-top: 12px;
+                        margin-top: 6px;
+                        padding-top: 8px;
                     }
                     .sidebar-section-title {
                         font-size: 11px;
@@ -2927,15 +2953,16 @@ export default function PokerNearMePage() {
                     }
                     .sidebar-search-input {
                         flex: 1;
-                        padding: 10px 12px;
+                        padding: 8px 10px;
                         background: rgba(0,0,0,0.35);
                         border: 1.5px solid rgba(148,163,184,0.15);
-                        border-radius: 8px;
+                        border-radius: 6px;
                         color: #e2e8f0;
-                        font-size: 14px;
+                        font-size: 13px;
                         font-family: inherit;
                         outline: none;
                         transition: border-color 0.2s;
+                        min-width: 0;
                     }
                     .sidebar-search-input:focus {
                         border-color: rgba(212,168,83,0.4);
@@ -2963,18 +2990,19 @@ export default function PokerNearMePage() {
                     .sidebar-gps-btn {
                         display: flex;
                         align-items: center;
-                        gap: 8px;
+                        gap: 6px;
                         width: 100%;
-                        padding: 10px 12px;
-                        background: rgba(0,0,0,0.25);
-                        border: 1.5px solid rgba(148,163,184,0.12);
+                        padding: 8px 10px;
+                        background: rgba(59,130,246,0.08);
+                        border: 1.5px solid rgba(59,130,246,0.25);
                         border-radius: 8px;
-                        color: rgba(148,163,184,0.6);
-                        font-size: 13px;
-                        font-weight: 600;
+                        color: #60a5fa;
+                        font-size: 12px;
+                        font-weight: 700;
                         cursor: pointer;
                         transition: all 0.2s;
                         margin-bottom: 10px;
+                        letter-spacing: 0.3px;
                     }
                     .sidebar-gps-btn:hover {
                         border-color: rgba(59,130,246,0.3);
@@ -2989,14 +3017,14 @@ export default function PokerNearMePage() {
                     .sidebar-gps-label {
                         display: flex;
                         align-items: center;
-                        gap: 8px;
-                        padding: 8px 10px;
+                        gap: 6px;
+                        padding: 8px 8px;
                         background: rgba(34,197,94,0.06);
-                        border: 1px solid rgba(34,197,94,0.15);
+                        border: 1px solid rgba(34,197,94,0.2);
                         border-radius: 8px;
                         font-size: 12px;
-                        color: rgba(255,255,255,0.7);
-                        margin-bottom: 12px;
+                        color: rgba(255,255,255,0.8);
+                        margin-bottom: 10px;
                     }
                     .sidebar-gps-clear {
                         margin-left: auto;
@@ -3011,15 +3039,17 @@ export default function PokerNearMePage() {
                     .sidebar-gps-clear:hover { color: #ef4444; }
 
                     .sidebar-filter-group {
-                        margin-bottom: 14px;
+                        margin-bottom: 10px;
                     }
                     .sidebar-filter-group label {
                         display: block;
-                        font-size: 13px;
+                        font-size: 11px;
                         font-weight: 700;
-                        color: rgba(255,255,255,0.55);
-                        margin-bottom: 8px;
+                        color: rgba(255,255,255,0.5);
+                        margin-bottom: 4px;
                         padding: 0 2px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
                     }
                     .sidebar-chips {
                         display: flex;
@@ -3050,15 +3080,42 @@ export default function PokerNearMePage() {
 
                     .sidebar-select {
                         width: 100%;
-                        padding: 10px 12px;
+                        padding: 7px 8px;
                         background: rgba(0,0,0,0.35);
                         border: 1.5px solid rgba(148,163,184,0.15);
-                        border-radius: 8px;
+                        border-radius: 6px;
                         color: #e2e8f0;
-                        font-size: 14px;
+                        font-size: 12px;
                         font-family: inherit;
                         cursor: pointer;
                         appearance: auto;
+                    }
+                    /* ═══ APPLY FILTERS BUTTON ═══ */
+                    .sidebar-apply-filters-btn {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 6px;
+                        width: 100%;
+                        padding: 10px 12px;
+                        margin-top: 14px;
+                        background: linear-gradient(135deg, #d4a853, #b8860b);
+                        border: none;
+                        border-radius: 8px;
+                        color: #000;
+                        font-size: 13px;
+                        font-weight: 800;
+                        letter-spacing: 0.5px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        box-shadow: 0 2px 12px rgba(212,168,83,0.25);
+                    }
+                    .sidebar-apply-filters-btn:hover {
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 18px rgba(212,168,83,0.4);
+                    }
+                    .sidebar-apply-filters-btn:active {
+                        transform: translateY(0);
                     }
                     .sidebar-select:focus {
                         border-color: rgba(212,168,83,0.4);
