@@ -1,8 +1,9 @@
 {
   "metadata": {
-    "description": "Tournament venues (Phase 6)",
+    "description": "Tournament venues (Phase 6 + Automated Scrape Update)",
     "generated": "2026-03-26T14:25:32.233554+00:00",
-    "totalVenues": 136
+    "totalVenues": 205,
+    "lastUpdated": "2026-04-01T22:27:35.268Z"
   },
   "venues": [
     {
@@ -552,7 +553,7 @@
       "venue_id": 1992
     },
     {
-      "name": "Johnny\u2019s Game ",
+      "name": "Johnny’s Game ",
       "state": "IL",
       "city": "Las Vegas",
       "type": "poker_room",
@@ -956,6 +957,558 @@
       "city": "Bell Gardens",
       "type": "card_room",
       "venue_id": 2505
+    },
+    {
+      "name": "Casino 99",
+      "state": "CA",
+      "city": "Chico",
+      "type": "casino",
+      "venue_id": 1936,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/casino-99-chico/tournaments"
+    },
+    {
+      "name": "Bally Twin River",
+      "state": "RI",
+      "city": "Lincoln",
+      "type": "casino",
+      "venue_id": 2494,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/ballys-twin-river-lincoln/tournaments"
+    },
+    {
+      "name": "Canterbury Park Card Club",
+      "state": "MN",
+      "city": "Shakopee",
+      "type": "casino",
+      "venue_id": 1983,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/canterbury-park-shakopee/tournaments"
+    },
+    {
+      "name": "Grand Victoria",
+      "state": "IL",
+      "city": "Elgin",
+      "type": "casino",
+      "venue_id": 2315,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/grand-victoria-elgin/tournaments"
+    },
+    {
+      "name": "Viking Social Poker Club",
+      "state": "OH",
+      "city": "Steubenville",
+      "type": "casino",
+      "venue_id": 2010,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/viking-social-poker-club-steubenville/tournaments"
+    },
+    {
+      "name": "Beau Rivage",
+      "state": "MS",
+      "city": "Biloxi",
+      "type": "casino",
+      "venue_id": 1851,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bear-river-casino-loleta/tournaments"
+    },
+    {
+      "name": "Parkwest Casino Lotus",
+      "state": "CA",
+      "city": "Sacramento",
+      "type": "casino",
+      "venue_id": 1935,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/parkwest-lodi/tournaments"
+    },
+    {
+      "name": "Caesars New Orleans",
+      "state": "LA",
+      "city": "New Orleans",
+      "type": "casino",
+      "venue_id": 2059,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/caesars-new-orleans/tournaments"
+    },
+    {
+      "name": "Turning Stone Resort",
+      "state": "NY",
+      "city": "Verona",
+      "type": "casino",
+      "venue_id": 1839,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "name": "Horseshoe Indiana",
+      "state": "IN",
+      "city": "Elizabeth",
+      "type": "casino",
+      "venue_id": 2318,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/horseshoe-indy-shelbyville/tournaments"
+    },
+    {
+      "name": "Harrahs Cherokee",
+      "state": "NC",
+      "city": "Cherokee",
+      "type": "casino",
+      "venue_id": 1843,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/harrahs-cherokee/tournaments"
+    },
+    {
+      "name": "Harrah's Cherokee",
+      "state": "NC",
+      "city": "Cherokee",
+      "type": "casino",
+      "venue_id": 1878,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/harrahs-cherokee/tournaments"
+    },
+    {
+      "name": "Golden Nugget AC",
+      "state": "NJ",
+      "city": "Atlantic City",
+      "type": "casino",
+      "venue_id": 2293,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/golden-nugget-lv-las-vegas/tournaments"
+    },
+    {
+      "name": "Lucky Chances",
+      "state": "CA",
+      "city": "Colma",
+      "type": "casino",
+      "venue_id": 2207,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/lucky-chances-colma/tournaments"
+    },
+    {
+      "name": "Horseshoe Casino Tunica",
+      "state": "MS",
+      "city": "Robinsonville",
+      "type": "casino",
+      "venue_id": 2032,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/horseshoe-tunica-robinsonville/tournaments"
+    },
+    {
+      "name": "Hard Rock Casino Cincinnati",
+      "state": "OH",
+      "city": "Cincinnati",
+      "type": "casino",
+      "venue_id": 2034,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/hard-rock-cincinnati/tournaments"
+    },
+    {
+      "name": "Rivers Casino Des Plaines",
+      "state": "IL",
+      "city": "Des Plaines",
+      "type": "casino",
+      "venue_id": 1868,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/rivers-casino-des-plaines/tournaments"
+    },
+    {
+      "name": "Hard Rock Cincinnati",
+      "state": "OH",
+      "city": "Cincinnati",
+      "type": "casino",
+      "venue_id": 1879,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/hard-rock-cincinnati/tournaments"
+    },
+    {
+      "name": "South Point Casino",
+      "state": "NV",
+      "city": "Las Vegas",
+      "type": "casino",
+      "venue_id": 1987,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/tournaments"
+    },
+    {
+      "name": "Sycuan Casino",
+      "state": "CA",
+      "city": "El Cajon",
+      "type": "casino",
+      "venue_id": 2017,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/sycuan-casino-el-cajon/tournaments"
+    },
+    {
+      "name": "Bally's Black Hawk Casino",
+      "state": "CO",
+      "city": "Black Hawk",
+      "type": "casino",
+      "venue_id": 2020,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/ballys-black-hawk/tournaments"
+    },
+    {
+      "name": "Cadillac Jacks",
+      "state": "SD",
+      "city": "Deadwood",
+      "type": "casino",
+      "venue_id": 2483,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/cadillac-jacks-deadwood/tournaments"
+    },
+    {
+      "name": "Hollywood St Louis",
+      "state": "MO",
+      "city": "Maryland Heights",
+      "type": "casino",
+      "venue_id": 2343,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/hollywood-st-louis-maryland-heights/tournaments"
+    },
+    {
+      "name": "MGM Grand Detroit",
+      "state": "MI",
+      "city": "Detroit",
+      "type": "casino",
+      "venue_id": 1871,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/mgm-grand-detroit/tournaments"
+    },
+    {
+      "name": "Rivers Casino Pittsburgh",
+      "state": "PA",
+      "city": "Pittsburgh",
+      "type": "casino",
+      "venue_id": 1889,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/rivers-casino-pittsburgh/tournaments"
+    },
+    {
+      "name": "Foxwoods Resort Casino",
+      "state": "CT",
+      "city": "Mashantucket",
+      "type": "casino",
+      "venue_id": 1835,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/foxwoods-mashantucket/tournaments"
+    },
+    {
+      "name": "Turning Stone Casino",
+      "state": "NY",
+      "city": "Verona",
+      "type": "casino",
+      "venue_id": 2052,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "name": "Parx Casino",
+      "state": "PA",
+      "city": "Bensalem",
+      "type": "casino",
+      "venue_id": 1833,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/parx-casino-bensalem/tournaments"
+    },
+    {
+      "name": "Grand Sierra Resort",
+      "state": "NV",
+      "city": "Reno",
+      "type": "casino",
+      "venue_id": 1994,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/grand-sierra-reno/tournaments"
+    },
+    {
+      "name": "FireKeepers Casino",
+      "state": "MI",
+      "city": "Battle Creek",
+      "type": "casino",
+      "venue_id": 1845,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/firekeepers-battle-creek/tournaments"
+    },
+    {
+      "name": "Horseshoe LV",
+      "state": "NV",
+      "city": "Las Vegas",
+      "type": "casino",
+      "venue_id": 2138,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas/tournaments"
+    },
+    {
+      "name": "Harrah's Pompano Beach",
+      "state": "FL",
+      "city": "Pompano Beach",
+      "type": "casino",
+      "venue_id": 2027,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/harrahs-pompano-pompano-beach/tournaments"
+    },
+    {
+      "name": "Hollywood Columbus",
+      "state": "OH",
+      "city": "Columbus",
+      "type": "casino",
+      "venue_id": 1880,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/hollywood-columbus/tournaments"
+    },
+    {
+      "name": "Red Rock",
+      "state": "NV",
+      "city": "Las Vegas",
+      "type": "casino",
+      "venue_id": 2153,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/red-rock-las-vegas/tournaments"
+    },
+    {
+      "name": "Gardens Casino",
+      "state": "CA",
+      "city": "Hawaiian Gardens",
+      "type": "casino",
+      "venue_id": 2186,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/the-gardens-hawaiian-gardens/tournaments"
+    },
+    {
+      "name": "Caesars AC",
+      "state": "NJ",
+      "city": "Atlantic City",
+      "type": "casino",
+      "venue_id": 2298,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/caesars-palace-las-vegas/tournaments"
+    },
+    {
+      "name": "Win-River Casino",
+      "state": "CA",
+      "city": "Redding",
+      "type": "casino",
+      "venue_id": 2226,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/win-river-casino-redding/tournaments"
+    },
+    {
+      "name": "Rosemack Poker Room",
+      "state": "MI",
+      "city": "Roseville",
+      "type": "casino",
+      "venue_id": 1972,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/rosemack-roseville/tournaments"
+    },
+    {
+      "name": "Horseshoe Las Vegas",
+      "state": "NV",
+      "city": "Las Vegas",
+      "type": "casino",
+      "venue_id": 2054,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/horseshoe-las-vegas/tournaments"
+    },
+    {
+      "name": "Grand Falls Casino Resort",
+      "state": "IA",
+      "city": "Larchwood",
+      "type": "casino",
+      "venue_id": 2051,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/grand-falls-larchwood/tournaments"
+    },
+    {
+      "name": "Bally's Twin River Lincoln",
+      "state": "RI",
+      "city": "Lincoln",
+      "type": "casino",
+      "venue_id": 1892,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/ballys-twin-river-lincoln/tournaments"
+    },
+    {
+      "name": "Medford Social Club Poker Room",
+      "state": "OR",
+      "city": "Medford",
+      "type": "casino",
+      "venue_id": 1957,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/medford-social/tournaments"
+    },
+    {
+      "name": "Shooters Poker Room",
+      "state": "MT",
+      "city": "Billings",
+      "type": "casino",
+      "venue_id": 1942,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/shooters-poker-room-billings/tournaments"
+    },
+    {
+      "name": "FireKeepers",
+      "state": "MI",
+      "city": "Battle Creek",
+      "type": "casino",
+      "venue_id": 2327,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/firekeepers-battle-creek/tournaments"
+    },
+    {
+      "name": "Par-A-Dice",
+      "state": "IL",
+      "city": "East Peoria",
+      "type": "casino",
+      "venue_id": 2317,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/paradise-poker-utica/tournaments"
+    },
+    {
+      "name": "Rivers Pittsburgh",
+      "state": "PA",
+      "city": "Pittsburgh",
+      "type": "casino",
+      "venue_id": 2300,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/rivers-casino-pittsburgh/tournaments"
+    },
+    {
+      "name": "MGM Grand Poker Room",
+      "state": "NV",
+      "city": "Las Vegas",
+      "type": "casino",
+      "venue_id": 1986,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/mgm-grand-las-vegas/tournaments"
+    },
+    {
+      "name": "Peppermill Resort Spa Casino",
+      "state": "NV",
+      "city": "Reno",
+      "type": "casino",
+      "venue_id": 1993,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/peppermill-reno/tournaments"
+    },
+    {
+      "name": "Parkwest Casino Cordova",
+      "state": "CA",
+      "city": "Rancho Cordova",
+      "type": "casino",
+      "venue_id": 1934,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/parkwest-lodi/tournaments"
+    },
+    {
+      "name": "Commerce Casino",
+      "state": "CA",
+      "city": "Los Angeles",
+      "type": "casino",
+      "venue_id": 2014,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/commerce-casino-los-angeles/tournaments"
+    },
+    {
+      "name": "bestbet Jacksonville",
+      "state": "FL",
+      "city": "Jacksonville",
+      "type": "casino",
+      "venue_id": 1827,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bestbet-jacksonville/tournaments"
+    },
+    {
+      "name": "Legends Poker Place of Metamora",
+      "state": "MI",
+      "city": "Las Vegas",
+      "type": "casino",
+      "venue_id": 1980,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/legends-poker-place-metamora/tournaments"
+    },
+    {
+      "name": "Grand Victoria Casino",
+      "state": "IL",
+      "city": "Elgin",
+      "type": "casino",
+      "venue_id": 2056,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/grand-victoria-elgin/tournaments"
+    },
+    {
+      "name": "Riverside Casino",
+      "state": "IA",
+      "city": "Riverside",
+      "type": "casino",
+      "venue_id": 2053,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/riverside-casino/tournaments"
+    },
+    {
+      "name": "Mohegan Sun",
+      "state": "CT",
+      "city": "Uncasville",
+      "type": "casino",
+      "venue_id": 1834,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/mohegan-sun-uncasville/tournaments"
+    },
+    {
+      "name": "Graton Resort & Casino",
+      "state": "CA",
+      "city": "Rohnert Park",
+      "type": "casino",
+      "venue_id": 1823,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/graton-casino-rohnert-park/tournaments"
+    },
+    {
+      "name": "Hard Rock Tulsa",
+      "state": "OK",
+      "city": "Catoosa",
+      "type": "casino",
+      "venue_id": 1841,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/hard-rock-tulsa-catoosa/tournaments"
+    },
+    {
+      "name": "Lucky Chances Casino",
+      "state": "CA",
+      "city": "Colma",
+      "type": "casino",
+      "venue_id": 1930,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/lucky-chances-colma/tournaments"
+    },
+    {
+      "name": "Horseshoe Council Bluffs",
+      "state": "IA",
+      "city": "Council Bluffs",
+      "type": "casino",
+      "venue_id": 2339,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/horseshoe-cb-council-bluffs/tournaments"
+    },
+    {
+      "name": "Westgate Poker Room",
+      "state": "MI",
+      "city": "Comstock Park",
+      "type": "casino",
+      "venue_id": 2836,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/westgate-poker-room-comstock-park/tournaments"
+    },
+    {
+      "name": "Horseshoe Baltimore",
+      "state": "MD",
+      "city": "Baltimore",
+      "type": "casino",
+      "venue_id": 1838,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/horseshoe-baltimore/tournaments"
+    },
+    {
+      "name": "Del Lago Resort",
+      "state": "NY",
+      "city": "Waterloo",
+      "type": "casino",
+      "venue_id": 2468,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments"
+    },
+    {
+      "name": "Horseshoe Tunica",
+      "state": "MS",
+      "city": "Robinsonville",
+      "type": "casino",
+      "venue_id": 1850,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/horseshoe-tunica-robinsonville/tournaments"
+    },
+    {
+      "name": "Stones Gambling Hall",
+      "state": "CA",
+      "city": "Citrus Heights",
+      "type": "casino",
+      "venue_id": 1928,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/stones-gambling-hall-citrus-heights/tournaments"
+    },
+    {
+      "name": "Bellagio",
+      "state": "NV",
+      "city": "Las Vegas",
+      "type": "casino",
+      "venue_id": 1815,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments"
+    },
+    {
+      "name": "Horseshoe Hammond",
+      "state": "IN",
+      "city": "Hammond",
+      "type": "casino",
+      "venue_id": 1844,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/horseshoe-hammond/tournaments"
+    },
+    {
+      "name": "Parkwest Casino Lodi",
+      "state": "CA",
+      "city": "Lodi",
+      "type": "casino",
+      "venue_id": 1865,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/parkwest-lodi/tournaments"
+    },
+    {
+      "name": "Aria Casino",
+      "state": "NV",
+      "city": "Las Vegas",
+      "type": "casino",
+      "venue_id": 2036,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/aria-las-vegas/tournaments"
+    },
+    {
+      "name": "River Spirit Casino",
+      "state": "OK",
+      "city": "Tulsa",
+      "type": "casino",
+      "venue_id": 1882,
+      "pokerAtlasUrl": "https://www.pokeratlas.com/poker-room/river-spirit-casino-tulsa/tournaments"
     }
   ]
 }
