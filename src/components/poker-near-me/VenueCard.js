@@ -99,10 +99,12 @@ function getGameChipStyle(gameName) {
 }
 
 function getTrustLevel(score) {
-    if (score >= 4.5) return { label: 'Excellent', color: '#22c55e', pct: 90 };
-    if (score >= 4.0) return { label: 'Good', color: '#3b82f6', pct: 75 };
-    if (score >= 3.0) return { label: 'Moderate', color: '#f59e0b', pct: 55 };
-    return { label: 'Low', color: '#ef4444', pct: 30 };
+    // Use actual ratio for bar fill (score/5 * 100)
+    const pct = Math.round((score / 5) * 100);
+    if (score >= 4.5) return { label: 'Excellent', color: '#22c55e', pct };
+    if (score >= 4.0) return { label: 'Good', color: '#3b82f6', pct };
+    if (score >= 3.0) return { label: 'Moderate', color: '#f59e0b', pct };
+    return { label: 'Low', color: '#ef4444', pct };
 }
 
 // Generate venue initials for logo placeholder
@@ -285,7 +287,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {/* === QUICK TAGS (auto-generated intelligence) === */}
             <div className="vc3-badges">
                 {venue.is_featured && <span className="vc3-badge vc3-badge-featured">Featured</span>}
-                {isNewcomer && <span className="vc3-badge vc3-badge-newcomer">Newcomer Friendly</span>}
                 {hasPromo && <span className="vc3-badge vc3-badge-promo">Active Promo</span>}
                 {hasLiveData && (
                     <span className="vc3-badge vc3-badge-live">

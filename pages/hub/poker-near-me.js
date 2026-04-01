@@ -49,6 +49,7 @@ const LIVE_REFRESH_MS = 120000; // 2 minutes
 const SEARCH_DEBOUNCE_MS = 400;
 const SEARCH_HISTORY_MAX = 8;
 const DEFAULT_RADIUS_MILES = 50;
+const RADIUS_TIERS = [50, 100, 200, 500]; // Progressive radius expansion for "Load More"
 
 // Tab order for swipe navigation
 const TAB_ORDER = ['venues', 'events', 'live', 'map', 'saved', 'more'];
@@ -893,7 +894,23 @@ export default function PokerNearMePage() {
     };
 
     const loadMore = (tab) => {
-        setDisplayCount(prev => ({ ...prev, [tab]: prev[tab] + PAGE_SIZE }));
+        if (tab === 'venues') {
+            // If there are still un-rendered venues, just show more
+            if (displayCount.venues < venues.length) {
+                setDisplayCount(prev => ({ ...prev, venues: prev.venues + PAGE_SIZE }));
+            } else if (userLocation) {
+                // All current results shown — expand radius to next tier
+                const currentRadius = Number(filters.radius) || 50;
+                const nextTier = RADIUS_TIERS.find(r => r > currentRadius);
+                if (nextTier) {
+                    setFilters(prev => ({ ...prev, radius: nextTier }));
+                    // Reset display count so first batch of new results shows
+                    setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
+                }
+            }
+        } else {
+            setDisplayCount(prev => ({ ...prev, [tab]: prev[tab] + PAGE_SIZE }));
+        }
     };
 
     // Pin→Card sync: scroll to and highlight venue card when map pin is clicked
@@ -925,16 +942,7 @@ export default function PokerNearMePage() {
         }
     }, [activeTab, venues.length]);
 
-    const isNewcomerFriendly = (venue) => {
-        if (!venue) return false;
-        const hasLowStakes = venue.stakes_cash && venue.stakes_cash.some(s => {
-            const match = s.match(/\$?(\d+)/);
-            return match && parseInt(match[1]) <= 2;
-        });
-        const highTrust = (venue.trust_score || 0) >= 4.0;
-        const isCardRoom = venue.venue_type === 'card_room' || venue.venue_type === 'charity';
-        return (hasLowStakes && highTrust) || (isCardRoom && highTrust);
-    };
+
 
     // Reverse geocode lat/lng to city, state using OpenStreetMap Nominatim (free, no API key)
     const reverseGeocode = useCallback(async (lat, lng) => {
@@ -1582,7 +1590,7 @@ export default function PokerNearMePage() {
                                 venue={{ ...venue, max_gtd: maxGtd }}
                                 index={i}
                                 isFavorited={true}
-                                isNewcomer={isNewcomerFriendly(venue)}
+
                                 onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                                 onNavigate={(path) => router.push(path)}
                             />
@@ -1823,7 +1831,7 @@ export default function PokerNearMePage() {
                                         venue={{ ...venue, max_gtd: maxGtd }}
                                         index={i}
                                         isFavorited={isFavorited('venue', venue.id)}
-                                        isNewcomer={isNewcomerFriendly(venue)}
+        
                                         hasPromo={promotionVenueIds.has(String(venue.id))}
                                         onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                                         onNavigate={(path) => router.push(path)}
@@ -2039,7 +2047,7 @@ export default function PokerNearMePage() {
                                     venue={{ ...venue, max_gtd: maxGtd }}
                                     index={i}
                                     isFavorited={isFavorited('venue', venue.id)}
-                                    isNewcomer={isNewcomerFriendly(venue)}
+    
                                     hasPromo={promotionVenueIds.has(String(venue.id))}
                                     onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                                     onNavigate={(path) => router.push(path)}
@@ -2048,14 +2056,33 @@ export default function PokerNearMePage() {
                             );
                         })}
                     </div>
-                    {/* Load More */}
-                    {remaining > 0 && (
-                        <div className="load-more">
-                            <button className="load-more-btn" onClick={() => loadMore('venues')}>
-                                Show More Results ({remaining} more)
-                            </button>
-                        </div>
-                    )}
+                    {/* Load More / Expand Radius */}
+                    {(() => {
+                        const currentRadius = Number(filters.radius) || 50;
+                        const nextTier = RADIUS_TIERS.find(r => r > currentRadius);
+                        const hasMoreToShow = remaining > 0;
+                        const canExpandRadius = userLocation && nextTier && !hasMoreToShow;
+                        
+                        if (hasMoreToShow) {
+                            return (
+                                <div className="load-more">
+                                    <button className="load-more-btn" onClick={() => loadMore('venues')}>
+                                        Show More Results ({remaining} Remaining)
+                                    </button>
+                                </div>
+                            );
+                        }
+                        if (canExpandRadius) {
+                            return (
+                                <div className="load-more">
+                                    <button className="load-more-btn" onClick={() => loadMore('venues')}>
+                                        Search Farther — Expand To {nextTier} Miles
+                                    </button>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
                 </div>
             </>
         );
@@ -2723,7 +2750,9 @@ export default function PokerNearMePage() {
                                             <option value={25}>25 Mi</option>
                                             <option value={50}>50 Mi</option>
                                             <option value={100}>100 Mi</option>
+                                            <option value={200}>200 Mi</option>
                                             <option value={250}>250 Mi</option>
+                                            <option value={500}>500 Mi</option>
                                             <option value="Any">Any</option>
                                         </select>
                                     </div>
