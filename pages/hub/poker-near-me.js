@@ -36,6 +36,7 @@ const NearMeNowFeed = dynamic(() => import('../../src/components/poker-near-me/N
 const VoiceSearch = dynamic(() => import('../../src/components/poker-near-me/VoiceSearch'), { ssr: false });
 const TripCostCalculator = dynamic(() => import('../../src/components/poker-near-me/TripCostCalculator'), { ssr: false });
 const SeasonalCalendar = dynamic(() => import('../../src/components/poker-near-me/SeasonalCalendar'), { ssr: false });
+const LiveGamesFeed = dynamic(() => import('../../src/components/poker-near-me/LiveGamesFeed'), { ssr: false });
 
 import { cachedFetch, fetchWithRetry } from '../../src/components/poker-near-me/lobby/PnmApiCache';
 import { MapErrorBoundary } from '../../src/components/poker-near-me/VenueMap';
@@ -239,6 +240,9 @@ export default function PokerNearMePage() {
     const [series, setSeries] = useState([]);
     const [dailyTournaments, setDailyTournaments] = useState([]);
     const [dbStats, setDbStats] = useState({ total: 0, tournaments: 0, states: 0 });
+
+    // Live table count for map stats (fetched from live-tables API)
+    const [liveTableCount, setLiveTableCount] = useState(0);
 
     // UI states
     const [loading, setLoading] = useState(true);
@@ -523,6 +527,23 @@ export default function PokerNearMePage() {
                     setFetchError('Unable to load venue data. Check your connection.');
                 }
             });
+    }, []);
+
+    // Fetch live table count for map stats header
+    useEffect(() => {
+        const fetchLiveCount = () => {
+            fetch('/api/poker/live-tables')
+                .then(r => r.json())
+                .then(json => {
+                    if (json.metadata && typeof json.metadata.total_tables_running === 'number') {
+                        setLiveTableCount(json.metadata.total_tables_running);
+                    }
+                })
+                .catch(() => { /* silent fail */ });
+        };
+        fetchLiveCount();
+        const interval = setInterval(fetchLiveCount, 120000); // refresh every 2 min
+        return () => clearInterval(interval);
     }, []);
 
     // Fetch ALL data on mount (venues + tours + series + daily tournaments)
@@ -1486,7 +1507,17 @@ export default function PokerNearMePage() {
     // Render content based on active tab
     const renderContent = () => {
         if (activeTab === 'map') return renderMap();
-        if (activeTab === 'live') return renderLiveGames();
+        if (activeTab === 'live') return (
+            <LiveGamesFeed
+                venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues}
+                userLocation={userLocation}
+                favorites={favorites}
+                handleToggleFavorite={(venueId, venueData) => toggleFavorite('venue', venueId, null, venueData)}
+                router={router}
+                setSelectedVenueForReview={setReviewVenue}
+                user={user}
+            />
+        );
         if (activeTab === 'saved') return renderFavorites();
 
         // For venues tab: show search landing if no search yet, skip skeleton
@@ -1589,7 +1620,7 @@ export default function PokerNearMePage() {
                     {/* Header Row */}
                     <div className="map-header-row">
                         <h2 className="map-title">Poker Rooms Near You</h2>
-                        <span className="map-stats">{filteredVenues.length} rooms • {liveGames.length} active tables • {dailyTournaments.length} tournaments today</span>
+                        <span className="map-stats">{filteredVenues.length} rooms • {liveTableCount.toLocaleString()} active tables • {dailyTournaments.length} tournaments today</span>
                     </div>
 
                     {/* Quick Filter Chips */}
