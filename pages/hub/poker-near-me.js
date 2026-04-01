@@ -3619,6 +3619,7 @@ export default function PokerNearMePage() {
                         display: grid;
                         grid-template-columns: repeat(2, 1fr);
                         gap: 16px;
+                        align-items: stretch;
                     }
 
                     /* Pin→Card highlight wrapper */
@@ -3691,6 +3692,9 @@ export default function PokerNearMePage() {
                         border-radius: 14px;
                         padding: 16px 18px 14px;
                         transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+                        display: flex;
+                        flex-direction: column;
+                        height: 100%;
                         box-shadow:
                             inset 0 1px 0 rgba(255,255,255,0.06),
                             inset 0 -1px 0 rgba(0,0,0,0.3),
@@ -3730,10 +3734,10 @@ export default function PokerNearMePage() {
                     /* Header zone: type badge + status indicators */
                     .vc3-header {
                         display: flex;
-                        align-items: center;
+                        align-items: flex-start;
                         justify-content: space-between;
                         gap: 8px;
-                        margin-bottom: 10px;
+                        margin-bottom: 8px;
                     }
                     .vc3-type-badge {
                         display: inline-flex;
@@ -3802,14 +3806,13 @@ export default function PokerNearMePage() {
                     .vc3-fav:hover { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.3); transform: scale(1.1); }
                     .vc3-fav.active { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.25); }
 
-                    /* Venue name */
+                    /* Venue name — now inside header identity block */
                     .vc3-name {
-                        font-size: 17px;
+                        font-size: 16px;
                         font-weight: 800;
-                        margin: 0 0 5px;
+                        margin: 0;
                         color: #e8ecf0;
-                        padding-right: 42px;
-                        line-height: 1.3;
+                        line-height: 1.25;
                         letter-spacing: -0.15px;
                     }
 
@@ -3975,7 +3978,7 @@ export default function PokerNearMePage() {
                         gap: 8px;
                         padding-top: 10px;
                         border-top: 1px solid rgba(255,255,255,0.06);
-                        margin-top: 6px;
+                        margin-top: auto;
                     }
                     .vc3-actions-secondary { display: flex; gap: 5px; }
                     .vc3-actions-primary { display: flex !important; gap: 6px; flex: 1; justify-content: flex-end; flex-wrap: nowrap; }
@@ -5460,7 +5463,6 @@ export default function PokerNearMePage() {
                         }
                         .vc3-name {
                             font-size: 15px;
-                            padding-right: 38px;
                         }
                         .vc3-header {
                             gap: 4px;

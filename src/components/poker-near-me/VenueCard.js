@@ -168,9 +168,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
             {/* === HEADER ZONE === */}
             <div className="vc3-header">
-                {/* Left: Logo + Type badge */}
+                {/* Left: Logo + Name + Type stacked */}
                 <div className="vc3-header-left">
-                    {/* Venue Logo */}
+                    {/* Venue Logo — 1.5x size */}
                     <div className="vc3-logo" style={!logoUrl || logoError ? { background: getVenueColor(venue).bg, border: `1px solid ${getVenueColor(venue).border}` } : {}}>
                         {logoUrl && !logoError ? (
                             <img
@@ -194,13 +194,17 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                             <span className="vc3-logo-initials" style={{ color: getVenueColor(venue).text }}>{getVenueInitials(venue.name)}</span>
                         )}
                     </div>
-                    <div className="vc3-type-badge" style={{
-                        background: typeColor.bg,
-                        borderColor: typeColor.border,
-                        color: typeColor.color,
-                    }}>
-                        {typeIcon}
-                        <span>{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
+                    {/* Name + Type — stacked beside logo */}
+                    <div className="vc3-identity">
+                        <h4 className="vc3-name">{venue.name || 'Unknown Venue'}</h4>
+                        <div className="vc3-type-badge" style={{
+                            background: typeColor.bg,
+                            borderColor: typeColor.border,
+                            color: typeColor.color,
+                        }}>
+                            {typeIcon}
+                            <span>{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -237,9 +241,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 </svg>
             </button>
 
-            {/* === IDENTITY ZONE === */}
-            <h4 className="vc3-name">{venue.name || 'Unknown Venue'}</h4>
-
+            {/* === ADDRESS === */}
             <p className="vc3-address">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
@@ -479,10 +481,12 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             </div>
 
             <style jsx>{`
-                .vc3-header-left { display: flex; align-items: center; gap: 8px; }
-                .vc3-logo { width: 36px; height: 36px; border-radius: 8px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); }
-                .vc3-logo-img { width: 100%; height: 100%; object-fit: cover; }
-                .vc3-logo-initials { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; }
+                .vc3-header-left { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; }
+                .vc3-identity { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+                .vc3-identity .vc3-name { font-size: 16px; font-weight: 700; color: #fff; margin: 0; padding: 0; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                .vc3-logo { width: 54px; height: 54px; border-radius: 10px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); }
+                .vc3-logo-img { width: 100%; height: 100%; object-fit: contain; padding: 2px; }
+                .vc3-logo-initials { font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; }
                 .vc3-open-pill.closed { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
                 .vc3-open-dot.closed { background: #ef4444; animation: none; }
                 .vc3-hours-next { color: rgba(255,255,255,0.3); font-size: 11px; }
