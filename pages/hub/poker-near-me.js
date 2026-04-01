@@ -1964,25 +1964,16 @@ export default function PokerNearMePage() {
             <>
                 {/* ═══ MAP CARD — Directly under header ═══ */}
                 <div className={`map-preview-card${mapFullscreen ? ' map-preview-fullscreen' : ''}`}>
-                    <div className="map-preview-expand-badge" onClick={(e) => { e.stopPropagation(); setMapFullscreen(!mapFullscreen); }} style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
-                        {mapFullscreen ? (
-                            <>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" />
-                                    <line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" />
-                                </svg>
-                                Collapse Map
-                            </>
-                        ) : (
-                            <>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
-                                    <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
-                                </svg>
-                                Expand Map · {sorted.length} Venues
-                            </>
-                        )}
-                    </div>
+                    {/* Only show collapse badge when fullscreen */}
+                    {mapFullscreen && (
+                        <div className="map-preview-expand-badge" onClick={(e) => { e.stopPropagation(); setMapFullscreen(false); }} style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" />
+                                <line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" />
+                            </svg>
+                            Collapse Map
+                        </div>
+                    )}
                     <MapErrorBoundary>
                         <VenueMap
                             key={mapFullscreen ? 'venues-fullscreen' : 'venues-preview'}
@@ -1994,7 +1985,7 @@ export default function PokerNearMePage() {
                     </MapErrorBoundary>
                 </div>
 
-                {/* Results count bar with Sort dropdown + Expand Map — ALL ON ONE LINE BELOW MAP */}
+                {/* Results bar: results count + Sort + Expand Map — ALL ON ONE LINE BELOW MAP */}
                 <div className="results-bar">
                     <span className="results-count">{venues.length} result{venues.length !== 1 ? 's' : ''} found</span>
                     <div className="results-bar-right">
@@ -2020,6 +2011,16 @@ export default function PokerNearMePage() {
                         </div>
                         <span className="results-showing">Showing {displayed.length} of {venues.length}</span>
                     </div>
+                    {/* Expand Map button — on same line */}
+                    {!mapFullscreen && (
+                        <button className="expand-map-inline-btn" onClick={() => setMapFullscreen(true)}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
+                                <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
+                            </svg>
+                            Expand Map
+                        </button>
+                    )}
                 </div>
 
                 {/* ═══ FULL-WIDTH VENUE CARDS BELOW MAP ═══ */}
@@ -4299,10 +4300,31 @@ export default function PokerNearMePage() {
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
-                        padding: 12px 4px;
-                        margin-bottom: 16px;
+                        padding: 8px 4px;
+                        margin-bottom: 2px;
                         flex-wrap: wrap;
-                        gap: 10px;
+                        gap: 8px;
+                    }
+                    .expand-map-inline-btn {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 5px;
+                        padding: 5px 12px;
+                        background: rgba(212,168,83,0.08);
+                        border: 1px solid rgba(212,168,83,0.25);
+                        border-radius: 8px;
+                        color: #d4a853;
+                        font-size: 12px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        font-family: inherit;
+                        white-space: nowrap;
+                    }
+                    .expand-map-inline-btn:hover {
+                        background: rgba(212,168,83,0.16);
+                        border-color: rgba(212,168,83,0.4);
+                        box-shadow: 0 0 10px rgba(212,168,83,0.15);
                     }
                     .results-count {
                         font-size: 15px;
