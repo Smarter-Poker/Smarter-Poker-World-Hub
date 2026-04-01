@@ -16,6 +16,7 @@ import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../s
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 
@@ -204,6 +205,13 @@ export default function PokerNearMePage() {
     const { user } = useAvatar();
     const bus = useTrainingBus();
     const userId = user?.id;
+
+    // [HARDENING] Bind venue component to Supabase postgres_changes for global updates
+    useVenueRealtime(() => {
+        if (typeof fetchVenues === 'function') {
+            fetchVenues({ silent: true });
+        }
+    });
 
     // ═══ VIP ACTION GATE ═══
     const { guardAction, UpgradePopup } = useFeatureGate('poker_near_me');

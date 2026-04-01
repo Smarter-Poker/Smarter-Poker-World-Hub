@@ -7,6 +7,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState } from 'react';
 import useSWR from 'swr';
+import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -102,6 +103,10 @@ export default function DailyTournaments() {
         `/api/poker/daily-tournaments?${swrParams}`,
         (url) => fetch(url).then(r => r.json()).then(d => d.success ? d : { tournaments: [], stats: {} })
     );
+
+    // [HARDENING] Real-time synchronization for global table/venue changes.
+    // Forces the UI to immutably drop closed properties on-the-fly.
+    useVenueRealtime(() => refreshTournaments());
     const tournaments = swrData?.tournaments || [];
     const stats = swrData?.stats || {};
 
