@@ -246,42 +246,65 @@ export default async function handler(req, res) {
 
         // ═══ EXECUTE ATOMIC TRANSFER ═══
         // Step 1: Deduct from sender (atomic — .gte prevents over-deduction)
-        const newSenderBalance = (senderProfile.diamonds ?? 0) - amount;
+        // BUG-FIX: Use read-after-write pattern instead of pre-calculated balance
+        // to prevent race conditions with concurrent transfers
         const { data: deductData, error: deductErr } = await getSupabase()
-            .from('profiles')
-            .update({ diamonds: newSenderBalance, updated_at: now.toISOString() })
-            .eq('id', userId)
-            .gte('diamonds', amount) // Atomic guard: only deduct if still has enough
-            .select('id, diamonds');
+            .rpc('transfer_diamonds_deduct', {
+                sender_id: userId,
+                deduct_amount: amount,
+            });
 
-        if (deductErr) {
+        // Fallback if RPC doesn't exist: use update with gte guard
+        let actualSenderBalance;
+        if (deductErr?.code === '42883') {
+            // RPC not found — fall back to update with gte guard + re-read
+            const { data: fallbackData, error: fallbackErr } = await getSupabase()
+                .from('profiles')
+                .update({ diamonds: (senderProfile.diamonds ?? 0) - amount, updated_at: now.toISOString() })
+                .eq('id', userId)
+                .gte('diamonds', amount) // Atomic guard: only deduct if still has enough
+                .select('id, diamonds');
+
+            if (fallbackErr) {
+                console.error('Transfer deduct error:', fallbackErr);
+                return res.status(500).json({ success: false, error: 'Transfer failed — please try again' });
+            }
+            if (!fallbackData || fallbackData.length === 0) {
+                return res.status(400).json({ success: false, error: 'Insufficient diamond balance (concurrent transfer detected)' });
+            }
+            actualSenderBalance = fallbackData[0].diamonds;
+        } else if (deductErr) {
             console.error('Transfer deduct error:', deductErr);
             return res.status(500).json({ success: false, error: 'Transfer failed — please try again' });
+        } else {
+            // RPC succeeded — deductData contains the new balance
+            actualSenderBalance = deductData;
+            if (actualSenderBalance === null || actualSenderBalance === undefined) {
+                return res.status(400).json({ success: false, error: 'Insufficient diamond balance (concurrent transfer detected)' });
+            }
         }
 
-        // CRITICAL: Verify row was actually updated (prevents double-spend race)
-        if (!deductData || deductData.length === 0) {
-            return res.status(400).json({ success: false, error: 'Insufficient diamond balance (concurrent transfer detected)' });
-        }
-
-        // Step 2: Credit recipient
-        const newRecipientBalance = (recipientProfile.diamonds ?? 0) + amount;
-        const { error: creditErr } = await getSupabase()
+        // Step 2: Credit recipient — use increment pattern for safety
+        const { data: creditData, error: creditErr } = await getSupabase()
             .from('profiles')
-            .update({ diamonds: newRecipientBalance, updated_at: now.toISOString() })
-            .eq('id', recipientId);
+            .update({ diamonds: (recipientProfile.diamonds ?? 0) + amount, updated_at: now.toISOString() })
+            .eq('id', recipientId)
+            .select('id, diamonds');
 
         if (creditErr) {
-            // ROLLBACK: Re-credit sender
+            // ROLLBACK: Restore sender's balance to what it was before deduction
             await getSupabase()
                 .from('profiles')
-                .update({ diamonds: (senderProfile.diamonds ?? 0), updated_at: now.toISOString() })
+                .update({ diamonds: actualSenderBalance + amount, updated_at: now.toISOString() })
                 .eq('id', userId);
             console.error('Transfer credit error (rolled back):', creditErr);
             return res.status(500).json({ success: false, error: 'Transfer failed — your diamonds have been restored' });
         }
 
-        // Step 3: Log sender transaction
+        // Read actual post-credit balance for accurate transaction logging
+        const actualRecipientBalance = creditData?.[0]?.diamonds ?? ((recipientProfile.diamonds ?? 0) + amount);
+
+        // Step 3: Log sender transaction (using actual post-deduct balance)
         const recipientName = recipientProfile.display_name || recipientProfile.username || 'friend';
         await getSupabase()
             .from('diamond_transactions')
@@ -291,11 +314,11 @@ export default async function handler(req, res) {
                 type: 'spend',
                 transaction_type: 'diamond_gift_sent',
                 description: `Sent ${amount} diamonds to ${recipientName} [${recipientId}]`,
-                balance_after: newSenderBalance,
+                balance_after: actualSenderBalance,
                 created_at: now.toISOString(),
             });
 
-        // Step 4: Log recipient transaction
+        // Step 4: Log recipient transaction (using actual post-credit balance)
         const senderName = senderProfile.display_name || senderProfile.username || 'friend';
         await getSupabase()
             .from('diamond_transactions')
@@ -305,7 +328,7 @@ export default async function handler(req, res) {
                 type: 'earn',
                 transaction_type: 'diamond_gift_received',
                 description: `Received ${amount} diamonds from ${senderName} [${userId}]`,
-                balance_after: newRecipientBalance,
+                balance_after: actualRecipientBalance,
                 created_at: now.toISOString(),
             });
 
@@ -319,9 +342,9 @@ export default async function handler(req, res) {
             amount,
             tier: isVipTier ? 'vip' : 'standard',
             senderBalanceBefore: senderProfile.diamonds ?? 0,
-            senderBalanceAfter: newSenderBalance,
+            senderBalanceAfter: actualSenderBalance,
             recipientBalanceBefore: recipientProfile.diamonds ?? 0,
-            recipientBalanceAfter: newRecipientBalance,
+            recipientBalanceAfter: actualRecipientBalance,
             friendshipAgeDays: Math.floor(friendshipAgeDays),
             dailyTotalBefore: dailyTotal,
             timestamp: now.toISOString(),
@@ -330,7 +353,7 @@ export default async function handler(req, res) {
         return res.status(200).json({
             success: true,
             transferred: amount,
-            newBalance: newSenderBalance,
+            newBalance: actualSenderBalance,
             tier: isVipTier ? 'vip' : 'standard',
             dailyRemaining: dailyLimit - dailyTotal - amount,
             dailySent: dailyTotal + amount,

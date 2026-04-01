@@ -1197,6 +1197,13 @@ export default function PokerNearMeLobby() {
   // ─── Pod click → open panel with feature ───
   const handlePodClick = useCallback((podId) => {
     playClickSound();
+
+    // "Near Me" pod navigates to the full Poker Near Me page (sidebar + map + filters)
+    if (podId === 'nearme') {
+      router.push('/hub/poker-near-me');
+      return;
+    }
+
     if (activePod === podId) {
       setActivePod(null);
       setShowPanel(false);
@@ -1212,7 +1219,7 @@ export default function PokerNearMeLobby() {
     playPanelOpenSound();
     // Emit TrainingBus event for pod interaction tracking
     try { bus?.emitHandComplete?.({ action: 'pod_click', pod: podId }); } catch { }
-  }, [activePod, bus]);
+  }, [activePod, bus, router]);
 
   // ─── Auto-open panel for GPS-gated pods after GPS is enabled ───
   // When a user clicks a GPS-required pod without GPS, we set activePod but

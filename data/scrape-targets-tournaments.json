@@ -1,0 +1,1205 @@
+{
+  "targets": [
+    {
+      "venue_id": 2439,
+      "venue_name": "Palace Poker Grand Prairie",
+      "city": "Grand Prairie",
+      "state": "TX",
+      "slug": "palace-poker-grand-prairie-grand-prairie",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/palace-poker-grand-prairie-grand-prairie/tournaments"
+    },
+    {
+      "venue_id": 2130,
+      "venue_name": "Wynn",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "wynn-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/wynn-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 2313,
+      "venue_name": "Rivers Chicago",
+      "city": "Chicago",
+      "state": "IL",
+      "slug": "rivers-chicago-chicago",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/rivers-chicago-chicago/tournaments"
+    },
+    {
+      "venue_id": 1857,
+      "venue_name": "Casino M8trix",
+      "city": "San Jose",
+      "state": "CA",
+      "slug": "casino-m8trix-san-jose",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/casino-m8trix-san-jose/tournaments"
+    },
+    {
+      "venue_id": 1984,
+      "venue_name": "Aria Resort & Casino",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "aria-resort-and-casino-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/aria-resort-and-casino-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 2533,
+      "venue_name": "Texas Card House Houston",
+      "city": "Spring",
+      "state": "TX",
+      "slug": "texas-card-house-houston-spring",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/texas-card-house-houston-spring/tournaments"
+    },
+    {
+      "venue_id": 1937,
+      "venue_name": "Turlock Poker Room",
+      "city": "Turlock",
+      "state": "CA",
+      "slug": "turlock-poker-room-turlock",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/turlock-poker-room-turlock/tournaments"
+    },
+    {
+      "venue_id": 1866,
+      "venue_name": "Pala Casino Spa Resort",
+      "city": "Pala",
+      "state": "CA",
+      "slug": "pala-casino-spa-resort-pala",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/pala-casino-spa-resort-pala/tournaments"
+    },
+    {
+      "venue_id": 1936,
+      "venue_name": "Casino 99",
+      "city": "Chico",
+      "state": "CA",
+      "slug": "casino-99-chico",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/casino-99-chico/tournaments"
+    },
+    {
+      "venue_id": 1910,
+      "venue_name": "Lodge Card Club Austin",
+      "city": "Round Rock",
+      "state": "TX",
+      "slug": "lodge-card-club-austin-round-rock",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/lodge-card-club-austin-round-rock/tournaments"
+    },
+    {
+      "venue_id": 2131,
+      "venue_name": "Venetian",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "venetian-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/venetian-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 1983,
+      "venue_name": "Canterbury Park Card Club",
+      "city": "Shakopee",
+      "state": "MN",
+      "slug": "canterbury-park-card-club-shakopee",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/canterbury-park-card-club-shakopee/tournaments"
+    },
+    {
+      "venue_id": 1935,
+      "venue_name": "Parkwest Casino Lotus",
+      "city": "Sacramento",
+      "state": "CA",
+      "slug": "parkwest-casino-lotus-sacramento",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/parkwest-casino-lotus-sacramento/tournaments"
+    },
+    {
+      "venue_id": 1901,
+      "venue_name": "Aggieland Poker Club",
+      "city": "College Station",
+      "state": "TX",
+      "slug": "aggieland-poker-club-college-station",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/aggieland-poker-club-college-station/tournaments"
+    },
+    {
+      "venue_id": 1839,
+      "venue_name": "Turning Stone Resort",
+      "city": "Verona",
+      "state": "NY",
+      "slug": "turning-stone-resort-verona",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/turning-stone-resort-verona/tournaments"
+    },
+    {
+      "venue_id": 1817,
+      "venue_name": "Wynn Las Vegas",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "wynn-las-vegas-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/wynn-las-vegas-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 1979,
+      "venue_name": "Krazy Kopz @ The Ivory Room",
+      "city": "Westland",
+      "state": "MI",
+      "slug": "krazy-kopz-the-ivory-room-westland",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/krazy-kopz-the-ivory-room-westland/tournaments"
+    },
+    {
+      "venue_id": 1878,
+      "venue_name": "Harrah's Cherokee",
+      "city": "Cherokee",
+      "state": "NC",
+      "slug": "harrahs-cherokee-cherokee",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/harrahs-cherokee-cherokee/tournaments"
+    },
+    {
+      "venue_id": 1899,
+      "venue_name": "101 Poker Club",
+      "city": "Katy",
+      "state": "TX",
+      "slug": "101-poker-club-katy",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/101-poker-club-katy/tournaments"
+    },
+    {
+      "venue_id": 1819,
+      "venue_name": "Resorts World Las Vegas",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "resorts-world-las-vegas-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 1870,
+      "venue_name": "MGM Springfield",
+      "city": "Springfield",
+      "state": "MA",
+      "slug": "mgm-springfield-springfield",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/mgm-springfield-springfield/tournaments"
+    },
+    {
+      "venue_id": 1922,
+      "venue_name": "Texas Card House Rio Grande Valley",
+      "city": "Edinburg",
+      "state": "TX",
+      "slug": "texas-card-house-rio-grande-valley-edinburg",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/texas-card-house-rio-grande-valley-edinburg/tournaments"
+    },
+    {
+      "venue_id": 1874,
+      "venue_name": "Soaring Eagle Casino",
+      "city": "Mt Pleasant",
+      "state": "MI",
+      "slug": "soaring-eagle-casino-mt-pleasant",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/soaring-eagle-casino-mt-pleasant/tournaments"
+    },
+    {
+      "venue_id": 1868,
+      "venue_name": "Rivers Casino Des Plaines",
+      "city": "Des Plaines",
+      "state": "IL",
+      "slug": "rivers-casino-des-plaines-des-plaines",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/rivers-casino-des-plaines-des-plaines/tournaments"
+    },
+    {
+      "venue_id": 1893,
+      "venue_name": "Muckleshoot Casino",
+      "city": "Auburn",
+      "state": "WA",
+      "slug": "muckleshoot-casino-auburn",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/muckleshoot-casino-auburn/tournaments"
+    },
+    {
+      "venue_id": 1879,
+      "venue_name": "Hard Rock Cincinnati",
+      "city": "Cincinnati",
+      "state": "OH",
+      "slug": "hard-rock-cincinnati-cincinnati",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/hard-rock-cincinnati-cincinnati/tournaments"
+    },
+    {
+      "venue_id": 1987,
+      "venue_name": "South Point Casino",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "south-point-casino-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/south-point-casino-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 2328,
+      "venue_name": "Soaring Eagle",
+      "city": "Mt Pleasant",
+      "state": "MI",
+      "slug": "soaring-eagle-mt-pleasant",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/soaring-eagle-mt-pleasant/tournaments"
+    },
+    {
+      "venue_id": 1981,
+      "venue_name": "Momo's Poker Room",
+      "city": "Taylor",
+      "state": "MI",
+      "slug": "momos-poker-room-taylor",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/momos-poker-room-taylor/tournaments"
+    },
+    {
+      "venue_id": 1905,
+      "venue_name": "Elite Poker Lounge",
+      "city": "McAllen",
+      "state": "TX",
+      "slug": "elite-poker-lounge-mcallen",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/elite-poker-lounge-mcallen/tournaments"
+    },
+    {
+      "venue_id": 1886,
+      "venue_name": "Rivers Casino Philadelphia",
+      "city": "Philadelphia",
+      "state": "PA",
+      "slug": "rivers-casino-philadelphia-philadelphia",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/rivers-casino-philadelphia-philadelphia/tournaments"
+    },
+    {
+      "venue_id": 1871,
+      "venue_name": "MGM Grand Detroit",
+      "city": "Detroit",
+      "state": "MI",
+      "slug": "mgm-grand-detroit-detroit",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/mgm-grand-detroit-detroit/tournaments"
+    },
+    {
+      "venue_id": 1918,
+      "venue_name": "Spades Poker House",
+      "city": "Webster",
+      "state": "TX",
+      "slug": "spades-poker-house-webster",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/spades-poker-house-webster/tournaments"
+    },
+    {
+      "venue_id": 1894,
+      "venue_name": "Tulalip Resort Casino",
+      "city": "Tulalip",
+      "state": "WA",
+      "slug": "tulalip-resort-casino-tulalip",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/tulalip-resort-casino-tulalip/tournaments"
+    },
+    {
+      "venue_id": 2230,
+      "venue_name": "Gulfstream Park",
+      "city": "Hallandale Beach",
+      "state": "FL",
+      "slug": "gulfstream-park-hallandale-beach",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/gulfstream-park-hallandale-beach/tournaments"
+    },
+    {
+      "venue_id": 1913,
+      "venue_name": "Palace Poker",
+      "city": "Grand Prairie",
+      "state": "TX",
+      "slug": "palace-poker-grand-prairie",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/palace-poker-grand-prairie/tournaments"
+    },
+    {
+      "venue_id": 1889,
+      "venue_name": "Rivers Casino Pittsburgh",
+      "city": "Pittsburgh",
+      "state": "PA",
+      "slug": "rivers-casino-pittsburgh-pittsburgh",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/rivers-casino-pittsburgh-pittsburgh/tournaments"
+    },
+    {
+      "venue_id": 2499,
+      "venue_name": "Bellagio Poker Room",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "bellagio-poker-room-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/bellagio-poker-room-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 1835,
+      "venue_name": "Foxwoods Resort Casino",
+      "city": "Mashantucket",
+      "state": "CT",
+      "slug": "foxwoods-resort-casino-ledyard",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/foxwoods-resort-casino-ledyard/tournaments"
+    },
+    {
+      "venue_id": 1939,
+      "venue_name": "California Grand Casino",
+      "city": "Pacheco",
+      "state": "CA",
+      "slug": "california-grand-casino-pacheco",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/california-grand-casino-pacheco/tournaments"
+    },
+    {
+      "venue_id": 1916,
+      "venue_name": "Shuffle 214",
+      "city": "Dallas",
+      "state": "TX",
+      "slug": "shuffle-214-dallas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/shuffle-214-dallas/tournaments"
+    },
+    {
+      "venue_id": 1991,
+      "venue_name": "Sunset Station",
+      "city": "Henderson",
+      "state": "NV",
+      "slug": "sunset-station-henderson",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/sunset-station-henderson/tournaments"
+    },
+    {
+      "venue_id": 2505,
+      "venue_name": "The Bicycle Casino",
+      "city": "Bell Gardens",
+      "state": "CA",
+      "slug": "the-bicycle-casino-bell-gardens",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/the-bicycle-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_id": 1926,
+      "venue_name": "Bankers Casino",
+      "city": "Salinas",
+      "state": "CA",
+      "slug": "bankers-casino-salinas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/bankers-casino-salinas/tournaments"
+    },
+    {
+      "venue_id": 1929,
+      "venue_name": "Artichoke Joe's Casino",
+      "city": "San Bruno",
+      "state": "CA",
+      "slug": "artichoke-joes-casino-san-bruno",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/artichoke-joes-casino-san-bruno/tournaments"
+    },
+    {
+      "venue_id": 1833,
+      "venue_name": "Parx Casino",
+      "city": "Bensalem",
+      "state": "PA",
+      "slug": "parx-casino-bensalem",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/parx-casino-bensalem/tournaments"
+    },
+    {
+      "venue_id": 1840,
+      "venue_name": "Choctaw Casino Resort",
+      "city": "Durant",
+      "state": "OK",
+      "slug": "choctaw-casino-resort-durant",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/choctaw-casino-resort-durant/tournaments"
+    },
+    {
+      "venue_id": 1994,
+      "venue_name": "Grand Sierra Resort",
+      "city": "Reno",
+      "state": "NV",
+      "slug": "grand-sierra-resort-reno",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/grand-sierra-resort-reno/tournaments"
+    },
+    {
+      "venue_id": 1990,
+      "venue_name": "Station Casinos Green Valley Ranch",
+      "city": "Henderson",
+      "state": "NV",
+      "slug": "station-casinos-green-valley-ranch-henderson",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/station-casinos-green-valley-ranch-henderson/tournaments"
+    },
+    {
+      "venue_id": 1907,
+      "venue_name": "Gin Mill Card Club Lubbock",
+      "city": "Lubbock",
+      "state": "TX",
+      "slug": "gin-mill-card-club-lubbock-lubbock",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/gin-mill-card-club-lubbock-lubbock/tournaments"
+    },
+    {
+      "venue_id": 1845,
+      "venue_name": "FireKeepers Casino",
+      "city": "Battle Creek",
+      "state": "MI",
+      "slug": "firekeepers-casino-battle-creek",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/firekeepers-casino-battle-creek/tournaments"
+    },
+    {
+      "venue_id": 2140,
+      "venue_name": "Sahara",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "sahara-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/sahara-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 1933,
+      "venue_name": "Kings Card Club",
+      "city": "Stockton",
+      "state": "CA",
+      "slug": "kings-card-club-stockton",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/kings-card-club-stockton/tournaments"
+    },
+    {
+      "venue_id": 2145,
+      "venue_name": "Binions",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "binions-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/binions-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 2203,
+      "venue_name": "Fantasy Springs",
+      "city": "Indio",
+      "state": "CA",
+      "slug": "fantasy-springs-indio",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/fantasy-springs-indio/tournaments"
+    },
+    {
+      "venue_id": 2148,
+      "venue_name": "The D",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "the-d-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/the-d-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 1880,
+      "venue_name": "Hollywood Columbus",
+      "city": "Columbus",
+      "state": "OH",
+      "slug": "hollywood-columbus-columbus",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/hollywood-columbus-columbus/tournaments"
+    },
+    {
+      "venue_id": 2243,
+      "venue_name": "Seminole Coconut Creek",
+      "city": "Coconut Creek",
+      "state": "FL",
+      "slug": "seminole-coconut-creek-coconut-creek",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/seminole-coconut-creek-coconut-creek/tournaments"
+    },
+    {
+      "venue_id": 1895,
+      "venue_name": "Snoqualmie Casino",
+      "city": "Snoqualmie",
+      "state": "WA",
+      "slug": "snoqualmie-casino-snoqualmie",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/snoqualmie-casino-snoqualmie/tournaments"
+    },
+    {
+      "venue_id": 2497,
+      "venue_name": "Dover Downs",
+      "city": "Dover",
+      "state": "DE",
+      "slug": "dover-downs-dover",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/dover-downs-dover/tournaments"
+    },
+    {
+      "venue_id": 1890,
+      "venue_name": "Mount Airy Casino",
+      "city": "Mount Pocono",
+      "state": "PA",
+      "slug": "mount-airy-casino-mount-pocono",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/mount-airy-casino-mount-pocono/tournaments"
+    },
+    {
+      "venue_id": 1864,
+      "venue_name": "Table Mountain Casino",
+      "city": "Friant",
+      "state": "CA",
+      "slug": "table-mountain-casino-friant",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/table-mountain-casino-friant/tournaments"
+    },
+    {
+      "venue_id": 2169,
+      "venue_name": "Atlantis Casino",
+      "city": "Reno",
+      "state": "NV",
+      "slug": "atlantis-casino-reno",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/atlantis-casino-reno/tournaments"
+    },
+    {
+      "venue_id": 2188,
+      "venue_name": "Normandie Casino",
+      "city": "Gardena",
+      "state": "CA",
+      "slug": "normandie-casino-gardena",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/normandie-casino-gardena/tournaments"
+    },
+    {
+      "venue_id": 2189,
+      "venue_name": "Crystal Park Casino",
+      "city": "Compton",
+      "state": "CA",
+      "slug": "crystal-park-casino-compton",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/crystal-park-casino-compton/tournaments"
+    },
+    {
+      "venue_id": 2193,
+      "venue_name": "San Manuel",
+      "city": "Highland",
+      "state": "CA",
+      "slug": "san-manuel-highland",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/san-manuel-highland/tournaments"
+    },
+    {
+      "venue_id": 1881,
+      "venue_name": "Choctaw Casino Durant",
+      "city": "Durant",
+      "state": "OK",
+      "slug": "choctaw-casino-durant-durant",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/choctaw-casino-durant-durant/tournaments"
+    },
+    {
+      "venue_id": 2133,
+      "venue_name": "MGM Grand",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "mgm-grand-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/mgm-grand-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 2481,
+      "venue_name": "Deadwood Mountain Grand",
+      "city": "Deadwood",
+      "state": "SD",
+      "slug": "deadwood-mountain-grand-deadwood",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/deadwood-mountain-grand-deadwood/tournaments"
+    },
+    {
+      "venue_id": 1846,
+      "venue_name": "JACK Cleveland Casino",
+      "city": "Cleveland",
+      "state": "OH",
+      "slug": "jack-cleveland-casino-cleveland",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/jack-cleveland-casino-cleveland/tournaments"
+    },
+    {
+      "venue_id": 1972,
+      "venue_name": "Rosemack Poker Room",
+      "city": "Roseville",
+      "state": "MI",
+      "slug": "rosemack-poker-room-roseville",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/rosemack-poker-room-roseville/tournaments"
+    },
+    {
+      "venue_id": 2218,
+      "venue_name": "Cache Creek",
+      "city": "Brooks",
+      "state": "CA",
+      "slug": "cache-creek-brooks",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/cache-creek-brooks/tournaments"
+    },
+    {
+      "venue_id": 1822,
+      "venue_name": "Hustler Casino",
+      "city": "Gardena",
+      "state": "CA",
+      "slug": "hustler-casino-gardena",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/hustler-casino-gardena/tournaments"
+    },
+    {
+      "venue_id": 2478,
+      "venue_name": "Mardi Gras Casino",
+      "city": "Cross Lanes",
+      "state": "WV",
+      "slug": "mardi-gras-casino-cross-lanes",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/mardi-gras-casino-cross-lanes/tournaments"
+    },
+    {
+      "venue_id": 2237,
+      "venue_name": "Orange City Racing",
+      "city": "Orange City",
+      "state": "FL",
+      "slug": "orange-city-racing-orange-city",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/orange-city-racing-orange-city/tournaments"
+    },
+    {
+      "venue_id": 2249,
+      "venue_name": "Ebro Greyhound Park",
+      "city": "Ebro",
+      "state": "FL",
+      "slug": "ebro-greyhound-park-ebro",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/ebro-greyhound-park-ebro/tournaments"
+    },
+    {
+      "venue_id": 2262,
+      "venue_name": "Prime Social",
+      "city": "Houston",
+      "state": "TX",
+      "slug": "prime-social-houston",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/prime-social-houston/tournaments"
+    },
+    {
+      "venue_id": 1914,
+      "venue_name": "Poker House Fort Worth",
+      "city": "Burleson",
+      "state": "TX",
+      "slug": "poker-house-fort-worth-burleson",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/poker-house-fort-worth-burleson/tournaments"
+    },
+    {
+      "venue_id": 2206,
+      "venue_name": "Bay 101",
+      "city": "San Jose",
+      "state": "CA",
+      "slug": "bay-101-san-jose",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/bay-101-san-jose/tournaments"
+    },
+    {
+      "venue_id": 1932,
+      "venue_name": "Limelight Card Room",
+      "city": "Sacramento",
+      "state": "CA",
+      "slug": "limelight-card-room-sacramento",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/limelight-card-room-sacramento/tournaments"
+    },
+    {
+      "venue_id": 1885,
+      "venue_name": "Seven Feathers Casino Resort",
+      "city": "Canyonville",
+      "state": "OR",
+      "slug": "seven-feathers-casino-resort-canyonville",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/seven-feathers-casino-resort-canyonville/tournaments"
+    },
+    {
+      "venue_id": 2037,
+      "venue_name": "Daytona Beach Racing and Card Club",
+      "city": "Daytona Beach",
+      "state": "FL",
+      "slug": "daytona-beach-racing-and-card-club-daytona-beach",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/daytona-beach-racing-and-card-club-daytona-beach/tournaments"
+    },
+    {
+      "venue_id": 1892,
+      "venue_name": "Bally's Twin River Lincoln",
+      "city": "Lincoln",
+      "state": "RI",
+      "slug": "ballys-twin-river-lincoln-lincoln",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/ballys-twin-river-lincoln-lincoln/tournaments"
+    },
+    {
+      "venue_id": 1873,
+      "venue_name": "Hollywood Casino Greektown",
+      "city": "Detroit",
+      "state": "MI",
+      "slug": "hollywood-casino-greektown-detroit",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/hollywood-casino-greektown-detroit/tournaments"
+    },
+    {
+      "venue_id": 1842,
+      "venue_name": "WinStar World Casino",
+      "city": "Thackerville",
+      "state": "OK",
+      "slug": "winstar-world-casino-thackerville",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/winstar-world-casino-thackerville/tournaments"
+    },
+    {
+      "venue_id": 1957,
+      "venue_name": "Medford Social Club Poker Room",
+      "city": "Medford",
+      "state": "OR",
+      "slug": "medford-social-club-poker-room-medford",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/medford-social-club-poker-room-medford/tournaments"
+    },
+    {
+      "venue_id": 1942,
+      "venue_name": "Shooters Poker Room",
+      "city": "Billings",
+      "state": "MT",
+      "slug": "shooters-poker-room-billings",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/shooters-poker-room-billings/tournaments"
+    },
+    {
+      "venue_id": 1883,
+      "venue_name": "Spirit Mountain Casino",
+      "city": "Grand Ronde",
+      "state": "OR",
+      "slug": "spirit-mountain-casino-grand-ronde",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/spirit-mountain-casino-grand-ronde/tournaments"
+    },
+    {
+      "venue_id": 2296,
+      "venue_name": "Resorts Casino",
+      "city": "Atlantic City",
+      "state": "NJ",
+      "slug": "resorts-casino-atlantic-city",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/resorts-casino-atlantic-city/tournaments"
+    },
+    {
+      "venue_id": 1906,
+      "venue_name": "Empire Poker Club",
+      "city": "Houston",
+      "state": "TX",
+      "slug": "empire-poker-club-houston",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/empire-poker-club-houston/tournaments"
+    },
+    {
+      "venue_id": 1986,
+      "venue_name": "MGM Grand Poker Room",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "mgm-grand-poker-room-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/mgm-grand-poker-room-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 1888,
+      "venue_name": "Wind Creek Bethlehem",
+      "city": "Bethlehem",
+      "state": "PA",
+      "slug": "wind-creek-bethlehem-bethlehem",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/wind-creek-bethlehem-bethlehem/tournaments"
+    },
+    {
+      "venue_id": 2238,
+      "venue_name": "Jacksonville Poker Room",
+      "city": "Jacksonville",
+      "state": "FL",
+      "slug": "jacksonville-poker-room-jacksonville",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/jacksonville-poker-room-jacksonville/tournaments"
+    },
+    {
+      "venue_id": 1955,
+      "venue_name": "Pensacola Greyhound",
+      "city": "Pensacola",
+      "state": "FL",
+      "slug": "pensacola-greyhound-pensacola",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/pensacola-greyhound-pensacola/tournaments"
+    },
+    {
+      "venue_id": 1993,
+      "venue_name": "Peppermill Resort Spa Casino",
+      "city": "Reno",
+      "state": "NV",
+      "slug": "peppermill-resort-spa-casino-reno",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/peppermill-resort-spa-casino-reno/tournaments"
+    },
+    {
+      "venue_id": 2301,
+      "venue_name": "Sands Bethlehem",
+      "city": "Bethlehem",
+      "state": "PA",
+      "slug": "sands-bethlehem-bethlehem",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/sands-bethlehem-bethlehem/tournaments"
+    },
+    {
+      "venue_id": 1898,
+      "venue_name": "Oneida Casino",
+      "city": "Green Bay",
+      "state": "WI",
+      "slug": "oneida-casino-green-bay",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/oneida-casino-green-bay/tournaments"
+    },
+    {
+      "venue_id": 1872,
+      "venue_name": "MotorCity Casino Hotel",
+      "city": "Detroit",
+      "state": "MI",
+      "slug": "motorcity-casino-hotel-detroit",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/motorcity-casino-hotel-detroit/tournaments"
+    },
+    {
+      "venue_id": 1934,
+      "venue_name": "Parkwest Casino Cordova",
+      "city": "Rancho Cordova",
+      "state": "CA",
+      "slug": "parkwest-casino-cordova-rancho-cordova",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/parkwest-casino-cordova-rancho-cordova/tournaments"
+    },
+    {
+      "venue_id": 1973,
+      "venue_name": "Roundtree Poker Room",
+      "city": "Ypsilanti",
+      "state": "MI",
+      "slug": "roundtree-poker-room-ypsilanti",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/roundtree-poker-room-ypsilanti/tournaments"
+    },
+    {
+      "venue_id": 1827,
+      "venue_name": "bestbet Jacksonville",
+      "city": "Jacksonville",
+      "state": "FL",
+      "slug": "bestbet-jacksonville-jacksonville",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/bestbet-jacksonville-jacksonville/tournaments"
+    },
+    {
+      "venue_id": 2465,
+      "venue_name": "Turning Stone",
+      "city": "Verona",
+      "state": "NY",
+      "slug": "turning-stone-verona",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/turning-stone-verona/tournaments"
+    },
+    {
+      "venue_id": 1980,
+      "venue_name": "Legends Poker Place of Metamora",
+      "city": "Las Vegas",
+      "state": "MI",
+      "slug": "legends-poker-place-of-metamora-metamora",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/legends-poker-place-of-metamora-metamora/tournaments"
+    },
+    {
+      "venue_id": 2175,
+      "venue_name": "Nugget Sparks",
+      "city": "Sparks",
+      "state": "NV",
+      "slug": "nugget-sparks-sparks",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/nugget-sparks-sparks/tournaments"
+    },
+    {
+      "venue_id": 2129,
+      "venue_name": "Aria",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "aria-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/aria-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 2227,
+      "venue_name": "Rolling Hills Casino",
+      "city": "Corning",
+      "state": "CA",
+      "slug": "rolling-hills-casino-corning",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/rolling-hills-casino-corning/tournaments"
+    },
+    {
+      "venue_id": 2143,
+      "venue_name": "Mandalay Bay",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "mandalay-bay-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/mandalay-bay-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 2170,
+      "venue_name": "Peppermill",
+      "city": "Reno",
+      "state": "NV",
+      "slug": "peppermill-reno",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/peppermill-reno/tournaments"
+    },
+    {
+      "venue_id": 2194,
+      "venue_name": "Morongo",
+      "city": "Cabazon",
+      "state": "CA",
+      "slug": "morongo-cabazon",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/morongo-cabazon/tournaments"
+    },
+    {
+      "venue_id": 2419,
+      "venue_name": "River Room Social Club",
+      "city": "Houston",
+      "state": "TX",
+      "slug": "river-room-social-club-houston",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/river-room-social-club-houston/tournaments"
+    },
+    {
+      "venue_id": 1965,
+      "venue_name": "Burton Eagles Poker Room",
+      "city": "Burton",
+      "state": "MI",
+      "slug": "burton-eagles-poker-room-burton",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/burton-eagles-poker-room-burton/tournaments"
+    },
+    {
+      "venue_id": 2264,
+      "venue_name": "52 Social",
+      "city": "Houston",
+      "state": "TX",
+      "slug": "52-social-houston",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/52-social-houston/tournaments"
+    },
+    {
+      "venue_id": 2486,
+      "venue_name": "Ho-Chunk Gaming Wisconsin Dells",
+      "city": "Baraboo",
+      "state": "WI",
+      "slug": "ho-chunk-gaming-wisconsin-dells-baraboo",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/ho-chunk-gaming-wisconsin-dells-baraboo/tournaments"
+    },
+    {
+      "venue_id": 1823,
+      "venue_name": "Graton Resort & Casino",
+      "city": "Rohnert Park",
+      "state": "CA",
+      "slug": "graton-resort-and-casino-rohnert-park",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/graton-resort-and-casino-rohnert-park/tournaments"
+    },
+    {
+      "venue_id": 2306,
+      "venue_name": "Hollywood Penn National",
+      "city": "Grantville",
+      "state": "PA",
+      "slug": "hollywood-penn-national-grantville",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/hollywood-penn-national-grantville/tournaments"
+    },
+    {
+      "venue_id": 1841,
+      "venue_name": "Hard Rock Tulsa",
+      "city": "Catoosa",
+      "state": "OK",
+      "slug": "hard-rock-tulsa-catoosa",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/hard-rock-tulsa-catoosa/tournaments"
+    },
+    {
+      "venue_id": 1949,
+      "venue_name": "TGT Poker & Racebook",
+      "city": "Tampa",
+      "state": "FL",
+      "slug": "tgt-poker-and-racebook-tampa",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/tgt-poker-and-racebook-tampa/tournaments"
+    },
+    {
+      "venue_id": 1930,
+      "venue_name": "Lucky Chances Casino",
+      "city": "Colma",
+      "state": "CA",
+      "slug": "lucky-chances-casino-colma",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/lucky-chances-casino-colma/tournaments"
+    },
+    {
+      "venue_id": 2472,
+      "venue_name": "Sandia Resort Casino",
+      "city": "Albuquerque",
+      "state": "NM",
+      "slug": "sandia-resort-casino-albuquerque",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/sandia-resort-casino-albuquerque/tournaments"
+    },
+    {
+      "venue_id": 2477,
+      "venue_name": "Wheeling Island",
+      "city": "Wheeling",
+      "state": "WV",
+      "slug": "wheeling-island-wheeling",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/wheeling-island-wheeling/tournaments"
+    },
+    {
+      "venue_id": 2307,
+      "venue_name": "Meadows Casino",
+      "city": "Washington",
+      "state": "PA",
+      "slug": "meadows-casino-washington",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/meadows-casino-washington/tournaments"
+    },
+    {
+      "venue_id": 2457,
+      "venue_name": "Beaumont Card Club",
+      "city": "Beaumont",
+      "state": "TX",
+      "slug": "beaumont-card-club-beaumont",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/beaumont-card-club-beaumont/tournaments"
+    },
+    {
+      "venue_id": 2233,
+      "venue_name": "TGT Poker",
+      "city": "Tampa",
+      "state": "FL",
+      "slug": "tgt-poker-tampa",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/tgt-poker-tampa/tournaments"
+    },
+    {
+      "venue_id": 1985,
+      "venue_name": "WSOP Room at Paris",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "wsop-room-at-paris-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/wsop-room-at-paris-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 2491,
+      "venue_name": "Spirit Lake Casino",
+      "city": "St Michael",
+      "state": "ND",
+      "slug": "spirit-lake-casino-st-michael",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/spirit-lake-casino-st-michael/tournaments"
+    },
+    {
+      "venue_id": 1896,
+      "venue_name": "Northern Quest Casino",
+      "city": "Airway Heights",
+      "state": "WA",
+      "slug": "northern-quest-casino-airway-heights",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/northern-quest-casino-airway-heights/tournaments"
+    },
+    {
+      "venue_id": 2440,
+      "venue_name": "Oak Cliff Card Club",
+      "city": "Dallas",
+      "state": "TX",
+      "slug": "oak-cliff-card-club-dallas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/oak-cliff-card-club-dallas/tournaments"
+    },
+    {
+      "venue_id": 1821,
+      "venue_name": "The Bicycle Hotel & Casino",
+      "city": "Bell Gardens",
+      "state": "CA",
+      "slug": "the-bicycle-hotel-and-casino-bell-gardens",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/the-bicycle-hotel-and-casino-bell-gardens/tournaments"
+    },
+    {
+      "venue_id": 2001,
+      "venue_name": "Johnny\u2019s Game ",
+      "city": "Las Vegas",
+      "state": "IL",
+      "slug": "johnny-s-game-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/johnny-s-game-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 1964,
+      "venue_name": "The Brook Poker Room",
+      "city": "Seabrook",
+      "state": "NH",
+      "slug": "the-brook-poker-room-seabrook",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/the-brook-poker-room-seabrook/tournaments"
+    },
+    {
+      "venue_id": 1897,
+      "venue_name": "Potawatomi Casino Hotel",
+      "city": "Milwaukee",
+      "state": "WI",
+      "slug": "potawatomi-casino-hotel-milwaukee",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/potawatomi-casino-hotel-milwaukee/tournaments"
+    },
+    {
+      "venue_id": 1867,
+      "venue_name": "Barona Resort & Casino",
+      "city": "Lakeside",
+      "state": "CA",
+      "slug": "barona-resort-and-casino-lakeside",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/barona-resort-and-casino-lakeside/tournaments"
+    },
+    {
+      "venue_id": 1928,
+      "venue_name": "Stones Gambling Hall",
+      "city": "Citrus Heights",
+      "state": "CA",
+      "slug": "stones-gambling-hall-citrus-heights",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/stones-gambling-hall-citrus-heights/tournaments"
+    },
+    {
+      "venue_id": 1815,
+      "venue_name": "Bellagio",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "bellagio-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/bellagio-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 2185,
+      "venue_name": "Hollywood Park Casino",
+      "city": "Inglewood",
+      "state": "CA",
+      "slug": "hollywood-park-casino-inglewood",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/hollywood-park-casino-inglewood/tournaments"
+    },
+    {
+      "venue_id": 1852,
+      "venue_name": "Bay 101 Casino",
+      "city": "San Jose",
+      "state": "CA",
+      "slug": "bay-101-casino-san-jose",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/bay-101-casino-san-jose/tournaments"
+    },
+    {
+      "venue_id": 1989,
+      "venue_name": "Station Casinos Red Rock",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "station-casinos-red-rock-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/station-casinos-red-rock-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 2204,
+      "venue_name": "Soboba Casino",
+      "city": "San Jacinto",
+      "state": "CA",
+      "slug": "soboba-casino-san-jacinto",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/soboba-casino-san-jacinto/tournaments"
+    },
+    {
+      "venue_id": 1900,
+      "venue_name": "Ace 1 Social Club",
+      "city": "Corpus Christi",
+      "state": "TX",
+      "slug": "ace-1-social-club-corpus-christi",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/ace-1-social-club-corpus-christi/tournaments"
+    },
+    {
+      "venue_id": 2433,
+      "venue_name": "Lodge Card Club San Antonio",
+      "city": "San Antonio",
+      "state": "TX",
+      "slug": "lodge-card-club-san-antonio-san-antonio",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/lodge-card-club-san-antonio-san-antonio/tournaments"
+    },
+    {
+      "venue_id": 1865,
+      "venue_name": "Parkwest Casino Lodi",
+      "city": "Lodi",
+      "state": "CA",
+      "slug": "parkwest-casino-lodi-lodi",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/parkwest-casino-lodi-lodi/tournaments"
+    },
+    {
+      "venue_id": 2151,
+      "venue_name": "South Point",
+      "city": "Las Vegas",
+      "state": "NV",
+      "slug": "south-point-las-vegas",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/south-point-las-vegas/tournaments"
+    },
+    {
+      "venue_id": 1927,
+      "venue_name": "Oaks Card Club",
+      "city": "Emeryville",
+      "state": "CA",
+      "slug": "oaks-card-club-emeryville",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/oaks-card-club-emeryville/tournaments"
+    },
+    {
+      "venue_id": 1954,
+      "venue_name": "Creek Entertainment",
+      "city": "Gretna",
+      "state": "FL",
+      "slug": "creek-entertainment-gretna",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/creek-entertainment-gretna/tournaments"
+    },
+    {
+      "venue_id": 1915,
+      "venue_name": "SA Card House",
+      "city": "San Antonio",
+      "state": "TX",
+      "slug": "sa-card-house-san-antonio",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/sa-card-house-san-antonio/tournaments"
+    },
+    {
+      "venue_id": 1882,
+      "venue_name": "River Spirit Casino",
+      "city": "Tulsa",
+      "state": "OK",
+      "slug": "river-spirit-casino-tulsa",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/river-spirit-casino-tulsa/tournaments"
+    },
+    {
+      "venue_id": 2302,
+      "venue_name": "SugarHouse Philadelphia",
+      "city": "Philadelphia",
+      "state": "PA",
+      "slug": "sugarhouse-philadelphia-philadelphia",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/sugarhouse-philadelphia-philadelphia/tournaments"
+    },
+    {
+      "venue_id": 1970,
+      "venue_name": "Owosso Poker Room",
+      "city": "Owosso",
+      "state": "MI",
+      "slug": "owosso-poker-room-owosso",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/owosso-poker-room-owosso/tournaments"
+    },
+    {
+      "venue_id": 2305,
+      "venue_name": "Mohegan Sun Pocono",
+      "city": "Wilkes-Barre",
+      "state": "PA",
+      "slug": "mohegan-sun-pocono-wilkes-barre",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/mohegan-sun-pocono-wilkes-barre/tournaments"
+    },
+    {
+      "venue_id": 2430,
+      "venue_name": "Red Star Social",
+      "city": "Austin",
+      "state": "TX",
+      "slug": "red-star-social-austin",
+      "tournament_url": "https://www.pokeratlas.com/poker-room/red-star-social-austin/tournaments"
+    }
+  ],
+  "count": 150
+}
