@@ -415,44 +415,38 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
         const statesData = await statesResp.json();
 
         // 1. INVERSE MASK — Black out everything outside the US
-        // Collect all state coordinates to build the US hole
+        // Create a single massive polygon covering the world, with ALL US states as holes
         const worldOuter = [
           [90, -180], [90, 180], [-90, 180], [-90, -180], [90, -180]
         ];
 
-        // For each state, add its boundary as a GeoJSON layer with the mask
-        // We use a simpler approach: overlay the world mask excluding US
+        // Collect ALL state polygon rings as holes in one L.polygon call
+        const allHoles = [];
         statesData.features.forEach(function(feature) {
           const geom = feature.geometry;
           if (geom.type === 'Polygon') {
-            // Reverse the winding for Leaflet hole rendering
-            const coords = geom.coordinates[0].map(function(c) { return [c[1], c[0]]; });
-            L.polygon([worldOuter, coords], {
-              color: 'transparent',
-              fillColor: '#06080d',
-              fillOpacity: 0.92,
-              interactive: false,
-              pane: 'overlayPane',
-            }).addTo(map);
+            allHoles.push(geom.coordinates[0].map(function(c) { return [c[1], c[0]]; }));
           } else if (geom.type === 'MultiPolygon') {
             geom.coordinates.forEach(function(poly) {
-              const coords = poly[0].map(function(c) { return [c[1], c[0]]; });
-              L.polygon([worldOuter, coords], {
-                color: 'transparent',
-                fillColor: '#06080d',
-                fillOpacity: 0.92,
-                interactive: false,
-                pane: 'overlayPane',
-              }).addTo(map);
+              allHoles.push(poly[0].map(function(c) { return [c[1], c[0]]; }));
             });
           }
         });
+
+        // Single polygon: world outer ring + all US state holes
+        L.polygon([worldOuter].concat(allHoles), {
+          color: 'transparent',
+          fillColor: '#040608',
+          fillOpacity: 0.97,
+          interactive: false,
+          pane: 'overlayPane',
+        }).addTo(map);
 
         // 2. STATE BOUNDARY LINES — Subtle gold outlines
         L.geoJSON(statesData, {
           style: function() {
             return {
-              color: 'rgba(212,168,83,0.12)',
+              color: 'rgba(212,168,83,0.15)',
               weight: 1,
               fillColor: 'transparent',
               fillOpacity: 0,
