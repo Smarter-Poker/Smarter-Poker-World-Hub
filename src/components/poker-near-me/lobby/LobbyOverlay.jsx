@@ -19,22 +19,23 @@ import InteractiveTutorial, { LOBBY_TUTORIAL_STEPS } from '../InteractiveTutoria
 // ─── GRID HOTSPOT MAPPING ───
 // 12 clickable areas laid over the single dynamic image, in a 4×3 grid.
 // Each entry defines the pod ID that gets opened when the hotspot is tapped.
+// badgeKey maps to a key in liveData for live count badges.
 const GRID_HOTSPOTS = [
   // Row 1
-  { id: 'nearme', label: 'Poker Near Me' },
-  { id: 'homegames', label: 'Home Games' },
-  { id: 'livegames', label: 'Live Games' },
-  { id: 'tours', label: 'Poker Tours' },
+  { id: 'nearme', label: 'Poker Near Me', badgeKey: 'venueCount' },
+  { id: 'homegames', label: 'Home Games', badgeKey: 'homeGameCount' },
+  { id: 'livegames', label: 'Live Games', badgeKey: 'liveGameCount' },
+  { id: 'tours', label: 'Poker Tours', badgeKey: 'tourCount' },
   // Row 2
-  { id: 'mapview', label: 'Map View' },
-  { id: 'calendar', label: 'Calendar' },
-  { id: 'series', label: 'Poker Series' },
+  { id: 'mapview', label: 'Map View', badgeKey: 'mappableCount' },
+  { id: 'calendar', label: 'Calendar', badgeKey: 'calendarCount' },
+  { id: 'series', label: 'Poker Series', badgeKey: 'seriesCount' },
   { id: 'roadtrip', label: 'Trip Planner' },
   // Row 3
-  { id: 'daily', label: 'Daily Grind' },
-  { id: 'favorites', label: 'Saved Venues' },
-  { id: 'social', label: 'Friends' },
-  { id: 'alerts', label: 'Tournament Alerts' },
+  { id: 'daily', label: 'Daily Grind', badgeKey: 'dailyCount' },
+  { id: 'favorites', label: 'Saved Venues', badgeKey: 'savedCount' },
+  { id: 'social', label: 'Friends', badgeKey: 'friendsNearby' },
+  { id: 'alerts', label: 'Tournament Alerts', badgeKey: 'alertCount' },
 ];
 
 
@@ -415,10 +416,12 @@ export default function LobbyOverlay({
         msOverflowStyle: 'none',
       }}>
         <div style={{ position: 'relative', maxWidth: 900, width: '100%' }}>
-          {/* The user's exact dynamic image */}
+          {/* Grid image — JPG for 1MB savings over PNG */}
           <img
-            src="/images/lobby-pods/poker-near-me-grid.png"
+            src="/images/lobby-pods/poker-near-me-grid.jpg"
             alt="Poker Near Me Feature Grid"
+            loading="eager"
+            fetchpriority="high"
             style={{
               width: '100%',
               height: 'auto',
@@ -441,29 +444,117 @@ export default function LobbyOverlay({
             overflow: 'visible',
             pointerEvents: showTutorial ? 'none' : 'auto',
           }}>
-            {GRID_HOTSPOTS.map((hotspot) => (
-              <button
-                key={hotspot.id}
-                data-tutorial-id={`pod-${hotspot.id}`}
-                onClick={() => {
-                  try { navigator.vibrate?.([10, 30, 10]); } catch { }
-                  onPodSelect?.(hotspot.id);
-                }}
-                aria-label={`Open ${hotspot.label}`}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  margin: 0,
-                  position: 'relative',
-                  overflow: 'visible',
-                  WebkitTapHighlightColor: 'transparent',
-                  outline: 'none',
-                }}
-              />
-            ))}
+            {GRID_HOTSPOTS.map((hotspot) => {
+              // Resolve live badge count from liveData
+              const badgeVal = hotspot.badgeKey ? (liveData?.[hotspot.badgeKey] ?? 0) : 0;
+              // Badge display logic:
+              //   -1 = "Coming Soon" sentinel (friends)
+              //    0 = no badge
+              //   >0 = show count
+              const showBadge = badgeVal > 0;
+              const badgeText = badgeVal > 99 ? '99+' : String(badgeVal);
+              // Color coding per category
+              const badgeColor = hotspot.id === 'livegames' ? '#3fb950'
+                : hotspot.id === 'favorites' ? '#f59e0b'
+                : hotspot.id === 'alerts' ? '#ef4444'
+                : '#6ee7ef';
+
+              return (
+                <button
+                  key={hotspot.id}
+                  data-tutorial-id={`pod-${hotspot.id}`}
+                  onClick={() => {
+                    try { navigator.vibrate?.([10, 30, 10]); } catch { }
+                    onPodSelect?.(hotspot.id);
+                  }}
+                  aria-label={`Open ${hotspot.label}${showBadge ? ` (${badgeText})` : ''}`}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    margin: 0,
+                    position: 'relative',
+                    overflow: 'visible',
+                    WebkitTapHighlightColor: 'transparent',
+                    outline: 'none',
+                  }}
+                >
+                  {/* Live data badge */}
+                  {showBadge && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '6%',
+                      right: '6%',
+                      zIndex: 5,
+                      minWidth: 22,
+                      height: 22,
+                      padding: '0 6px',
+                      borderRadius: 11,
+                      background: badgeColor,
+                      color: '#000',
+                      fontSize: 11,
+                      fontWeight: 800,
+                      fontFamily: 'Inter, system-ui, sans-serif',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: `0 0 8px ${badgeColor}66, 0 2px 6px rgba(0,0,0,0.4)`,
+                      pointerEvents: 'none',
+                      lineHeight: 1,
+                      letterSpacing: '-0.02em',
+                    }}>
+                      {badgeText}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
+        </div>
+
+        {/* ═══ LIVE STATS BAR — below the grid ═══ */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 'clamp(16px, 3vw, 32px)',
+          padding: '14px 20px',
+          marginTop: 12,
+          maxWidth: 900,
+          width: '100%',
+          background: 'linear-gradient(135deg, rgba(10,18,32,0.85), rgba(6,12,24,0.85))',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderRadius: 14,
+          border: '1px solid rgba(110,231,239,0.1)',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          pointerEvents: 'none',
+        }}>
+          {[
+            { value: liveData?.venueCount || liveData?.liveGameCount || '—', label: 'Venues', color: '#6ee7ef', show: true },
+            { value: liveData?.liveGameCount || '—', label: 'Live Tables', color: '#3fb950', show: (liveData?.liveGameCount || 0) > 0 },
+            { value: liveData?.dailyCount || '—', label: 'Today\'s Events', color: '#d4a853', show: true },
+            { value: liveData?.savedCount || 0, label: 'Saved', color: '#f59e0b', show: (liveData?.savedCount || 0) > 0 },
+          ].filter(s => s.show).map((stat, i) => (
+            <div key={i} style={{ textAlign: 'center', minWidth: 50 }}>
+              <div style={{
+                fontSize: 'clamp(18px, 2.5vw, 26px)',
+                fontWeight: 800,
+                color: stat.color,
+                lineHeight: 1.1,
+                letterSpacing: '-0.02em',
+              }}>{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</div>
+              <div style={{
+                fontSize: 'clamp(9px, 1.2vw, 11px)',
+                color: 'rgba(200,214,229,0.4)',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                marginTop: 2,
+              }}>{stat.label}</div>
+            </div>
+          ))}
         </div>
 
 

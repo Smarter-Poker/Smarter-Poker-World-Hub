@@ -397,10 +397,12 @@ export default function PokerNearMePage() {
         }
     }, [filters]);
 
+    const filtersRef = useRef(filters);
+    filtersRef.current = filters;
     useEffect(() => {
         const handleSync = (e) => {
             if (e.detail && typeof window !== 'undefined') {
-                const currentStr = JSON.stringify(filters);
+                const currentStr = JSON.stringify(filtersRef.current);
                 const newStr = JSON.stringify(e.detail);
                 if (currentStr !== newStr) {
                     setFilters(e.detail);
@@ -409,7 +411,7 @@ export default function PokerNearMePage() {
         };
         window.addEventListener('poker-near-me-filters-sync', handleSync);
         return () => window.removeEventListener('poker-near-me-filters-sync', handleSync);
-    }, [filters]);
+    }, []);
 
     // --- Live games search-first ---
     const [liveGames, setLiveGames] = useState([]);
@@ -476,10 +478,12 @@ export default function PokerNearMePage() {
         }
     }, [mapFilters]);
 
+    const mapFiltersRef = useRef(mapFilters);
+    mapFiltersRef.current = mapFilters;
     useEffect(() => {
         const handleSync = (e) => {
             if (e.detail && typeof window !== 'undefined') {
-                const currentStr = JSON.stringify(mapFilters);
+                const currentStr = JSON.stringify(mapFiltersRef.current);
                 const newStr = JSON.stringify(e.detail);
                 if (currentStr !== newStr) {
                     setMapFilters(e.detail);
@@ -488,7 +492,7 @@ export default function PokerNearMePage() {
         };
         window.addEventListener('poker-near-me-map-filters-sync', handleSync);
         return () => window.removeEventListener('poker-near-me-map-filters-sync', handleSync);
-    }, [mapFilters]);
+    }, []);
 
     // Selected room for detail panel
     const [selectedRoom, setSelectedRoom] = useState(null);
@@ -1385,16 +1389,8 @@ export default function PokerNearMePage() {
         const elapsed = Date.now() - touchStartRef.current.time;
         // Must be a horizontal swipe: fast, horizontal dominant, > 80px
         if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.5 && elapsed < 500) {
-            // For swiping at the main level
-            const currentIdx = TAB_ORDER.indexOf(activeTab);
-            if (currentIdx !== -1) {
-                if (dx < 0 && currentIdx < TAB_ORDER.length - 1) {
-                    setActiveTab(TAB_ORDER[currentIdx + 1]);
-                } else if (dx > 0 && currentIdx > 0) {
-                    setActiveTab(TAB_ORDER[currentIdx - 1]);
-                }
-            } else if (activeTab === 'events') {
-                // Nested swiping within events tab
+            // Events tab: handle sub-tab swiping FIRST (tours/series/daily/calendar)
+            if (activeTab === 'events') {
                 const evtIdx = EVENTS_SUB_TABS.indexOf(activeEventTab);
                 if (evtIdx !== -1) {
                     if (dx < 0 && evtIdx < EVENTS_SUB_TABS.length - 1) {
@@ -1405,6 +1401,16 @@ export default function PokerNearMePage() {
                         setActiveTab('venues'); // Exit left to venues
                     } else if (dx < 0 && evtIdx === EVENTS_SUB_TABS.length - 1) {
                         setActiveTab('live'); // Exit right to live
+                    }
+                }
+            } else {
+                // All other tabs: main-level tab swiping
+                const currentIdx = TAB_ORDER.indexOf(activeTab);
+                if (currentIdx !== -1) {
+                    if (dx < 0 && currentIdx < TAB_ORDER.length - 1) {
+                        setActiveTab(TAB_ORDER[currentIdx + 1]);
+                    } else if (dx > 0 && currentIdx > 0) {
+                        setActiveTab(TAB_ORDER[currentIdx - 1]);
                     }
                 }
             }
