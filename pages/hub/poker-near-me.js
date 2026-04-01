@@ -899,13 +899,21 @@ export default function PokerNearMePage() {
             if (displayCount.venues < venues.length) {
                 setDisplayCount(prev => ({ ...prev, venues: prev.venues + PAGE_SIZE }));
             } else if (userLocation) {
-                // All current results shown — expand radius to next tier
+                // All current results shown — expand radius to next tier and re-fetch
                 const currentRadius = Number(filters.radius) || 50;
                 const nextTier = RADIUS_TIERS.find(r => r > currentRadius);
                 if (nextTier) {
-                    setFilters(prev => ({ ...prev, radius: nextTier }));
-                    // Reset display count so first batch of new results shows
+                    // Update radius in state, then trigger a re-fetch
+                    setFilters(prev => {
+                        const updated = { ...prev, radius: nextTier };
+                        // Persist to localStorage immediately
+                        try { localStorage.setItem('poker-near-me-search-filters', JSON.stringify(updated)); } catch (e) {}
+                        return updated;
+                    });
+                    // Reset display count for fresh batch
                     setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
+                    // Schedule fetch with explicit radius override (avoids stale closure)
+                    setTimeout(() => fetchVenues({ radiusOverride: nextTier }), 50);
                 }
             }
         } else {
@@ -1103,7 +1111,7 @@ export default function PokerNearMePage() {
         if (!silent) setLoading(false);
     };
 
-    const fetchVenues = async ({ silent = false } = {}) => {
+    const fetchVenues = async ({ silent = false, radiusOverride = null } = {}) => {
         if (!silent) setVenueLoading(true);
         setFetchError(null);
         try {
@@ -1115,8 +1123,9 @@ export default function PokerNearMePage() {
             if (userLocation) {
                 params.set('lat', userLocation.lat.toString());
                 params.set('lng', userLocation.lng.toString());
-                // Send radius in miles — API compares against distance_mi
-                const miRadius = filters.radius === 'Any' ? 5000 : Number(filters.radius);
+                // Use override radius if provided (loadMore case), else read from state
+                const effectiveRadius = radiusOverride || filters.radius;
+                const miRadius = effectiveRadius === 'Any' ? 5000 : Number(effectiveRadius);
                 params.set('radius', String(miRadius));
             }
             if (searchQuery) {
