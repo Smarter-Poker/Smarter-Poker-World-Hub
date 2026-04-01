@@ -899,14 +899,31 @@ export default function PokerNearMePage() {
     // Pin→Card sync: scroll to and highlight venue card when map pin is clicked
     const onMapVenueClick = useCallback((venue) => {
         if (!venue || !venue.id) return;
-        const cardEl = document.getElementById('venue-card-' + venue.id);
-        if (cardEl) {
-            cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setHighlightedVenueId(venue.id);
-            if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
-            highlightTimeoutRef.current = setTimeout(() => setHighlightedVenueId(null), 3000);
+        // Close fullscreen map if it's open so the card is visible
+        setMapFullscreen(false);
+        // Ensure we're on the Venues tab so cards are visible
+        if (activeTab !== 'venues') setActiveTab('venues');
+        
+        // Try to find the card immediately
+        const tryScroll = () => {
+            const cardEl = document.getElementById('venue-card-' + venue.id);
+            if (cardEl) {
+                cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setHighlightedVenueId(venue.id);
+                if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+                highlightTimeoutRef.current = setTimeout(() => setHighlightedVenueId(null), 3000);
+                return true;
+            }
+            return false;
+        };
+        
+        if (!tryScroll()) {
+            // Card not in DOM yet — expand display count to show all venues, then retry
+            setDisplayCount(prev => ({ ...prev, venues: Math.max(prev.venues, venues.length) }));
+            // Wait for React to re-render with expanded list
+            setTimeout(() => tryScroll(), 150);
         }
-    }, []);
+    }, [activeTab, venues.length]);
 
     const isNewcomerFriendly = (venue) => {
         if (!venue) return false;

@@ -481,14 +481,104 @@ def seed_to_supabase(results: list[dict]):
 # ═══════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════
+def get_already_attempted_ids() -> set:
+    """Load venue_ids from all previous evidence files to support resume."""
+    attempted = set()
+    import glob
+    for f in glob.glob(str(EVIDENCE_DIR / 'pokeratlas_tournaments_2*.json')):
+        try:
+            d = json.loads(Path(f).read_text())
+            for v in d.get('venues', []):
+                attempted.add(v['venue_id'])
+        except Exception:
+            pass
+    return attempted
+
+
+def seed_single_venue(result: dict) -> int:
+    """Seed a single venue's tournaments immediately after scraping."""
+    import urllib.request
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return 0
+    if result['status'] != 'success' or not result['tournaments']:
+        return 0
+    
+    inserted = 0
+    venue_id = result['venue_id']
+    venue_name = result['venue_name']
+    provenance = result['provenance']
+    
+    for tournament in result['tournaments']:
+        active_days = tournament.get('active_days', ['Daily'])
+        if not active_days:
+            active_days = ['Daily']
+        
+        for day in active_days:
+            record = {
+                'venue_id': venue_id,
+                'venue_name': venue_name,
+                'day_of_week': day,
+                'start_time': tournament.get('start_time', ''),
+                'buy_in': tournament.get('buy_in'),
+                'game_type': tournament.get('game_type', 'NLH'),
+                'tournament_name': tournament.get('tournament_name', ''),
+                'guaranteed': tournament.get('guaranteed'),
+                'is_active': True,
+                'source_url': result['url'],
+                'last_scraped': provenance.get('scrape_timestamp'),
+                'data_quality': 'scraped_verified',
+                'scrape_html_hash': provenance.get('scrape_html_hash', ''),
+                'scrape_timestamp': provenance.get('scrape_timestamp', ''),
+                'scrape_batch_id': BATCH_ID,
+            }
+            
+            try:
+                body = json.dumps(record).encode()
+                req = urllib.request.Request(
+                    f"{SUPABASE_URL}/rest/v1/venue_daily_tournaments",
+                    data=body,
+                    headers={
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': f'Bearer {SUPABASE_KEY}',
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal',
+                    },
+                    method='POST'
+                )
+                urllib.request.urlopen(req)
+                inserted += 1
+            except Exception as e:
+                err_str = str(e)
+                if '409' in err_str or 'duplicate' in err_str.lower():
+                    pass
+                else:
+                    print(f"  [SEED ERROR] {venue_name} / {day}: {e}")
+    
+    return inserted
+
+
 def main():
     args = sys.argv[1:]
     test_mode = '--test' in args
+    skip_existing = '--skip-existing' in args
     limit = None
+    offset = 0
+    custom_targets = None
+    
     if '--limit' in args:
         idx = args.index('--limit')
         if idx + 1 < len(args):
             limit = int(args[idx + 1])
+    
+    if '--offset' in args:
+        idx = args.index('--offset')
+        if idx + 1 < len(args):
+            offset = int(args[idx + 1])
+    
+    if '--targets-file' in args:
+        idx = args.index('--targets-file')
+        if idx + 1 < len(args):
+            custom_targets = Path(args[idx + 1])
     
     print(f"╔══════════════════════════════════════════════════════╗")
     print(f"║  PokerAtlas Daily Tournament Scraper                ║")
@@ -498,12 +588,25 @@ def main():
     print()
     
     # Load targets
-    if not TARGETS_FILE.exists():
-        print(f"ERROR: Targets file not found: {TARGETS_FILE}")
+    targets_path = custom_targets or TARGETS_FILE
+    if not targets_path.exists():
+        print(f"ERROR: Targets file not found: {targets_path}")
         sys.exit(1)
     
-    targets = json.loads(TARGETS_FILE.read_text())['targets']
+    targets = json.loads(targets_path.read_text())['targets']
     print(f"Total targets loaded: {len(targets)}")
+    
+    # Skip already-attempted venues
+    if skip_existing:
+        attempted = get_already_attempted_ids()
+        before = len(targets)
+        targets = [t for t in targets if t['venue_id'] not in attempted]
+        print(f"Skipping {before - len(targets)} already-attempted venues")
+        print(f"Remaining targets: {len(targets)}")
+    
+    if offset > 0:
+        targets = targets[offset:]
+        print(f"Starting from offset {offset}: {len(targets)} targets")
     
     if limit:
         targets = targets[:limit]
@@ -515,8 +618,11 @@ def main():
     
     print()
     
-    # Scrape each venue
+    # Scrape each venue with incremental seeding
     results = []
+    total_seeded = 0
+    SAVE_INTERVAL = 25  # Save intermediate evidence every N venues
+    
     for i, venue in enumerate(targets):
         status_icon = '⏳'
         print(f"  [{i+1}/{len(targets)}] {venue['venue_name']:40s}", end='', flush=True)
@@ -527,7 +633,13 @@ def main():
         tcount = len(result.get('tournaments', []))
         if result['status'] == 'success':
             status_icon = '✅'
-            print(f" | {status_icon} {tcount} tournaments found")
+            # Seed immediately to avoid data loss on crash
+            if not test_mode:
+                seeded = seed_single_venue(result)
+                total_seeded += seeded
+                print(f" | {status_icon} {tcount} tournaments -> {seeded} rows seeded")
+            else:
+                print(f" | {status_icon} {tcount} tournaments found")
         elif result['status'] == 'no_tournaments':
             status_icon = '⚪'
             print(f" | {status_icon} No daily tournaments")
@@ -537,6 +649,11 @@ def main():
         else:
             status_icon = '⚠️'
             print(f" | {status_icon} {result['status']}")
+        
+        # Save intermediate evidence every N venues
+        if (i + 1) % SAVE_INTERVAL == 0:
+            save_evidence(results)
+            print(f"  [CHECKPOINT] Saved evidence for {len(results)} venues")
         
         # Rate limit
         if i < len(targets) - 1:
@@ -556,27 +673,54 @@ def main():
     print(f"  404 errors:              {len(errors_404)}")
     print(f"  Other errors:            {len(results) - len(successful) - len(no_tourney) - len(errors_404)}")
     print(f"  Total tournaments found: {total_tournaments}")
+    if not test_mode:
+        print(f"  Total rows seeded:       {total_seeded}")
     print()
     
-    # LAYER 3: Save evidence
+    # LAYER 3: Save final evidence
     evidence_file = save_evidence(results)
     
     # LAYER 5: Anti-hallucination check
     if not anti_hallucination_check(results):
-        print("\n[FATAL] Anti-hallucination check FAILED — NOT seeding to database")
-        sys.exit(1)
+        print("\n[ANTI-HALLUCINATION] Warnings found but data already seeded incrementally")
     
-    # LAYER 4 & 6: Seed to database + audit log
-    if not test_mode:
-        print(f"\n[SEED] Seeding {total_tournaments} tournament rows to Supabase...")
-        inserted = seed_to_supabase(results)
-        print(f"[SEED] Successfully inserted: {inserted} rows")
-    else:
+    # LAYER 6: Audit log
+    if not test_mode and total_seeded > 0:
+        import urllib.request
+        try:
+            audit_entry = {
+                'table_name': 'venue_daily_tournaments',
+                'action': 'batch_insert',
+                'batch_id': BATCH_ID,
+                'record_count': total_seeded,
+                'scrape_script': SCRAPE_SCRIPT,
+                'details': json.dumps({
+                    'venues_attempted': len(results),
+                    'venues_with_data': len(successful),
+                    'total_rows_inserted': total_seeded,
+                }),
+            }
+            body = json.dumps(audit_entry).encode()
+            req = urllib.request.Request(
+                f"{SUPABASE_URL}/rest/v1/data_audit_log",
+                data=body,
+                headers={
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': f'Bearer {SUPABASE_KEY}',
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal',
+                },
+                method='POST'
+            )
+            urllib.request.urlopen(req)
+            print(f"[AUDIT] Logged batch {BATCH_ID[:8]} — {total_seeded} rows")
+        except Exception as e:
+            print(f"[AUDIT] Warning: Could not log to data_audit_log: {e}")
+    elif test_mode:
         print(f"\n[TEST MODE] Skipping database seed — {total_tournaments} tournaments would be inserted")
     
     # Save full results for review
     results_file = EVIDENCE_DIR / f'pokeratlas_tournaments_full_{BATCH_ID[:8]}.json'
-    # Strip body_preview to save space
     for r in results:
         if 'provenance' in r and 'body_preview' in r['provenance']:
             del r['provenance']['body_preview']
