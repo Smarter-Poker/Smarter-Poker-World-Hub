@@ -518,6 +518,11 @@ while [ $attempt -lt $MAX_RETRIES ]; do
       --branch "${BRANCH}" \
       --duration "$(( TOTAL_END - TOTAL_START ))" \
       --msg "${MSG}" 2>/dev/null || true
+
+    if which vercel >/dev/null 2>&1 || npx -y vercel --version >/dev/null 2>&1; then
+      echo "🚀 Triggering Vercel production deploy (webhook bypass)..."
+      npx -y vercel deploy --prod --yes || echo "⚠️ Vercel deployment failed, but git push succeeded."
+    fi
     exit 0
    else
     if [ $attempt -lt $MAX_RETRIES ]; then
@@ -536,6 +541,11 @@ while [ $attempt -lt $MAX_RETRIES ]; do
       echo "═══════════════════════════════════════════════════"
       echo "✅ Push successful!"
       echo "═══════════════════════════════════════════════════"
+
+      if which vercel >/dev/null 2>&1 || npx -y vercel --version >/dev/null 2>&1; then
+        echo "🚀 Triggering Vercel production deploy (webhook bypass)..."
+        npx -y vercel deploy --prod --yes || echo "⚠️ Vercel deployment failed, but git push succeeded."
+      fi
       exit 0
     else
       if [ $attempt -lt $MAX_RETRIES ]; then
