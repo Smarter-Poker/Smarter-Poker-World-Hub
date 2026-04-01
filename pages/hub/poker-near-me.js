@@ -546,9 +546,10 @@ export default function PokerNearMePage() {
         return () => clearInterval(interval);
     }, []);
 
-    // Fetch ALL data on mount (venues + tours + series + daily tournaments)
+    // Fetch non-venue data on mount (tours, series, daily tournaments)
+    // Venues are fetched AFTER GPS resolves to enforce 50mi radius default
     useEffect(() => {
-        fetchAllData({ includeVenues: true });
+        fetchAllData({ includeVenues: false });
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // When city or GPS location is set, search for venues
@@ -559,20 +560,56 @@ export default function PokerNearMePage() {
         }
     }, [selectedCity, userLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Auto-request GPS on mount so default view is user-local (50mi radius)
+    // Auto-request GPS on mount — restore saved location first for instant display
     const gpsAutoRequestedRef = useRef(false);
     useEffect(() => {
         if (gpsAutoRequestedRef.current) return;
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
-            gpsAutoRequestedRef.current = true;
-            // Small delay to let page paint first
-            setTimeout(() => {
-                if (!userLocation && !selectedCity) {
-                    requestGpsLocation();
+        gpsAutoRequestedRef.current = true;
+
+        // Restore saved GPS location from localStorage for instant venue display
+        let hasSavedLocation = false;
+        try {
+            const saved = localStorage.getItem('sp-user-gps');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Use saved location if less than 24 hours old
+                if (parsed.lat && parsed.lng && parsed.time && (Date.now() - parsed.time) < 86400000) {
+                    setUserLocation({ lat: parsed.lat, lng: parsed.lng });
+                    setGpsLocationLabel(parsed.label || `${parsed.lat.toFixed(3)}, ${parsed.lng.toFixed(3)}`);
+                    setHasSearched(true);
+                    hasSavedLocation = true;
                 }
-            }, 600);
+            }
+        } catch (e) { /* ignore corrupt data */ }
+
+        // Request fresh GPS — silent refresh if we already have saved location
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            setTimeout(() => {
+                if (!selectedCity) {
+                    if (hasSavedLocation) {
+                        // Silent refresh — don't show alerts, just update if GPS is available
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => handleGpsSuccess(pos),
+                            () => { /* silent fail — saved location is still active */ },
+                            { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+                        );
+                    } else {
+                        requestGpsLocation();
+                    }
+                }
+            }, hasSavedLocation ? 2000 : 600);
         }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // GPS fallback — if GPS loading finishes without a location, show all venues
+    const gpsFallbackRef = useRef(false);
+    useEffect(() => {
+        // Only trigger once: when gpsLoading transitions true→false without a location
+        if (gpsFallbackRef.current && !gpsLoading && !userLocation && !selectedCity) {
+            fetchVenues();
+        }
+        if (gpsLoading) gpsFallbackRef.current = true;
+    }, [gpsLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Close search history on outside click
     useEffect(() => {
@@ -864,10 +901,23 @@ export default function PokerNearMePage() {
         setHasSearched(true);
         setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
         setGpsLoading(false);
-        setTimeout(() => { fetchAllData({ includeVenues: true }); }, 0);
-        // Resolve city/state asynchronously
+        // Save GPS to localStorage for instant restore on next visit
+        try {
+            localStorage.setItem('sp-user-gps', JSON.stringify({ lat: loc.lat, lng: loc.lng, time: Date.now() }));
+        } catch (e) { /* storage full */ }
+        // Re-fetch location-dependent data (daily tournaments); venues handled by userLocation useEffect
+        setTimeout(() => { fetchAllData({ includeVenues: false }); }, 0);
+        // Resolve city/state asynchronously and persist label
         reverseGeocode(loc.lat, loc.lng).then(label => {
-            if (label) setGpsLocationLabel(label);
+            if (label) {
+                setGpsLocationLabel(label);
+                // Update saved GPS with human-readable label
+                try {
+                    const saved = JSON.parse(localStorage.getItem('sp-user-gps') || '{}');
+                    saved.label = label;
+                    localStorage.setItem('sp-user-gps', JSON.stringify(saved));
+                } catch (e) { /* ignore */ }
+            }
         });
     }, [reverseGeocode]); // eslint-disable-line react-hooks/exhaustive-deps
 
