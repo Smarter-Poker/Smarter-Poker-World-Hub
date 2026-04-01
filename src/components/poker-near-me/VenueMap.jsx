@@ -152,6 +152,48 @@ const LEAFLET_CUSTOM_CSS = `
 .marker-cluster div {
   background: transparent !important;
 }
+
+/* ═══ MAP LEGEND ═══ */
+.venue-map-legend {
+  position: absolute;
+  bottom: 32px;
+  left: 10px;
+  z-index: 1000;
+  background: rgba(10,10,21,0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(212,168,83,0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  transition: opacity 0.3s;
+}
+.venue-map-legend-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(212,168,83,0.7);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.venue-map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+.venue-map-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(255,255,255,0.5);
+}
+.venue-map-legend-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.7);
+  font-weight: 500;
+}
 `;
 
 // ─── Error Boundary ───
@@ -270,16 +312,25 @@ function buildPopupHtml(venue) {
   const games = (venue.games_offered || []).slice(0, 3).join(', ');
   const hours = venue.is_24_hours ? '24/7' : (venue.hours_of_operation || '');
 
-  return `<div style="min-width:220px;max-width:300px;padding:16px 18px 14px;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-      <div style="width:10px;height:10px;border-radius:50%;background:${colors.fill};box-shadow:0 0 8px ${colors.glow};flex-shrink:0;"></div>
-      <div style="font-size:15px;font-weight:700;color:#fff;line-height:1.2;">${venue.name || ''}</div>
+  // Build venue logo/initials badge
+  const logoUrl = venue.logo_url || venue.image_url || '';
+  const initials = (venue.name || '').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+  const logoBadge = logoUrl
+    ? `<img src="${logoUrl}" alt="" style="width:36px;height:36px;border-radius:8px;object-fit:cover;border:1.5px solid rgba(212,168,83,0.3);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`
+    : `<div style="display:flex;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`;
+
+  return `<div style="min-width:230px;max-width:320px;padding:16px 18px 14px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      ${logoBadge}
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#fff;line-height:1.2;">${venue.name || ''}</div>
+        <div style="font-size:11px;color:rgba(148,163,184,0.7);margin-top:2px;">${venue.city || ''}, ${venue.state || ''}</div>
+      </div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
       <span style="padding:3px 10px;border-radius:6px;background:rgba(${colors.fill === '#d4a853' ? '212,168,83' : colors.fill === '#00d4ff' ? '0,212,255' : colors.fill === '#22c55e' ? '34,197,94' : colors.fill === '#a855f7' ? '168,85,247' : '245,158,11'},0.15);color:${colors.fill};font-size:11px;font-weight:600;letter-spacing:0.3px;">${typeBadge}</span>
-      <span style="font-size:12px;color:rgba(148,163,184,0.8);">${venue.city || ''}, ${venue.state || ''}</span>
+      ${hours ? `<span style="font-size:11px;color:rgba(148,163,184,0.6);">· ${hours}</span>` : ''}
     </div>
-    ${hours ? `<div style="font-size:11px;color:rgba(148,163,184,0.6);margin-bottom:6px;">Hours: ${hours}</div>` : ''}
     ${games ? `<div style="font-size:11px;color:rgba(148,163,184,0.6);margin-bottom:8px;">Games: ${games}</div>` : ''}
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
       <div style="padding:4px 10px;border-radius:6px;background:${trust.bg};color:${trust.color};font-size:11px;font-weight:700;">Trust: ${trust.label}</div>
@@ -293,7 +344,8 @@ function buildPopupHtml(venue) {
 }
 
 // ─── Main Map Component ───
-export default function VenueMap({ venues, userLocation, fullHeight = false }) {
+export default function VenueMap({ venues, userLocation, fullHeight = false, onVenueClick }) {
+  const [legendCollapsed, setLegendCollapsed] = useState(false);
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const userMarkerRef = useRef(null);
@@ -579,6 +631,15 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
     }
   }, [userLocation, mapReady]);
 
+  // Legend items
+  const legendItems = [
+    { type: 'casino', label: 'Casino', color: '#d4a853' },
+    { type: 'card_room', label: 'Card Room', color: '#00d4ff' },
+    { type: 'poker_club', label: 'Poker Club', color: '#22c55e' },
+    { type: 'charity', label: 'Charity', color: '#a855f7' },
+    { type: 'home_game', label: 'Home Game', color: '#f59e0b' },
+  ];
+
   return (
     <div style={{ position: 'relative', width: '100%', height: fullHeight ? '100%' : 'auto' }}>
       {/* Premium loading skeleton */}
@@ -628,6 +689,19 @@ export default function VenueMap({ venues, userLocation, fullHeight = false }) {
           boxShadow: fullHeight ? 'none' : '0 4px 24px rgba(0,0,0,0.4)',
         }}
       />
+      {/* ═══ VENUE TYPE LEGEND ═══ */}
+      {mapReady && (
+        <div className="venue-map-legend" style={{ opacity: legendCollapsed ? 0.5 : 1, cursor: 'pointer' }}
+          onClick={(e) => { e.stopPropagation(); setLegendCollapsed(!legendCollapsed); }}>
+          <div className="venue-map-legend-title">{legendCollapsed ? '◆ Legend' : 'Venue Types'}</div>
+          {!legendCollapsed && legendItems.map(item => (
+            <div key={item.type} className="venue-map-legend-item">
+              <div className="venue-map-legend-dot" style={{ background: item.color, boxShadow: `0 0 6px ${item.color}55` }} />
+              <span className="venue-map-legend-label">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

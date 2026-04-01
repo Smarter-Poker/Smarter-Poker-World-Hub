@@ -42,7 +42,7 @@ import { cachedFetch, fetchWithRetry } from '../../src/components/poker-near-me/
 import { MapErrorBoundary } from '../../src/components/poker-near-me/VenueMap';
 
 // Page configuration constants
-const PAGE_SIZE = 4;
+const PAGE_SIZE = 12;
 const PAGE_SIZE_DAILY = 50;
 const PAGE_SIZE_LIVE = 30;
 const LIVE_REFRESH_MS = 120000; // 2 minutes
@@ -90,7 +90,7 @@ const POPULAR_CITIES = [
     { name: 'Charlotte', state: 'NC' }, { name: 'Sacramento', state: 'CA' },
 ];
 const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
-const TOTAL_VENUES = 525;
+// TOTAL_VENUES removed — now derived dynamically from allVenuesForMap.length
 
 
 const VENUE_TYPE_LABELS = {
@@ -571,6 +571,7 @@ export default function PokerNearMePage() {
         gpsAutoRequestedRef.current = true;
 
         // Restore saved GPS location from localStorage for instant venue display
+        // Check BOTH keys: sp-user-gps (main page) AND pnm_last_location (lobby page)
         let hasSavedLocation = false;
         try {
             const saved = localStorage.getItem('sp-user-gps');
@@ -582,6 +583,28 @@ export default function PokerNearMePage() {
                     setGpsLocationLabel(parsed.label || `${parsed.lat.toFixed(3)}, ${parsed.lng.toFixed(3)}`);
                     setHasSearched(true);
                     hasSavedLocation = true;
+                }
+            }
+            // Fallback: check lobby page's GPS key if main page key is missing/expired
+            if (!hasSavedLocation) {
+                const lobbyLoc = localStorage.getItem('pnm_last_location');
+                const lobbyEnabled = localStorage.getItem('pnm_location_enabled');
+                if (lobbyLoc && lobbyEnabled === '1') {
+                    const parsed = JSON.parse(lobbyLoc);
+                    if (parsed.lat && parsed.lng) {
+                        setUserLocation({ lat: parsed.lat, lng: parsed.lng });
+                        const city = localStorage.getItem('pnm_last_city') || '';
+                        const state = localStorage.getItem('pnm_last_state') || '';
+                        setGpsLocationLabel(city && state ? `${city}, ${state}` : `${parsed.lat.toFixed(3)}, ${parsed.lng.toFixed(3)}`);
+                        setHasSearched(true);
+                        hasSavedLocation = true;
+                        // Migrate to sp-user-gps for future consistency
+                        localStorage.setItem('sp-user-gps', JSON.stringify({
+                            lat: parsed.lat, lng: parsed.lng,
+                            time: Date.now(),
+                            label: city && state ? `${city}, ${state}` : null
+                        }));
+                    }
                 }
             }
         } catch (e) { /* ignore corrupt data */ }
@@ -839,7 +862,15 @@ export default function PokerNearMePage() {
     const getSortedVenues = (venueList) => {
         // When GPS is active and sort is 'default', auto-sort by distance
         const effectiveSort = (sortBy === 'default' && userLocation) ? 'distance' : sortBy;
-        if (effectiveSort === 'default') return venueList;
+        // Default sort: casinos first, then card rooms, then by trust score descending
+        if (effectiveSort === 'default') {
+            const VENUE_PRIORITY = { casino: 0, card_room: 1, poker_club: 2, home_game: 3, charity: 4 };
+            return [...venueList].sort((a, b) => {
+                const typeDiff = (VENUE_PRIORITY[a.venue_type] ?? 5) - (VENUE_PRIORITY[b.venue_type] ?? 5);
+                if (typeDiff !== 0) return typeDiff;
+                return (b.trust_score || 0) - (a.trust_score || 0);
+            });
+        }
         const sorted = [...venueList];
         const VENUE_TYPE_ORDER = { casino: 0, card_room: 1, poker_club: 2, charity: 3, home_game: 4 };
         switch (effectiveSort) {
@@ -906,8 +937,11 @@ export default function PokerNearMePage() {
         setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
         setGpsLoading(false);
         // Save GPS to localStorage for instant restore on next visit
+        // Write to BOTH keys: sp-user-gps (main page) + pnm_last_location (lobby page)
         try {
             localStorage.setItem('sp-user-gps', JSON.stringify({ lat: loc.lat, lng: loc.lng, time: Date.now() }));
+            localStorage.setItem('pnm_last_location', JSON.stringify(loc));
+            localStorage.setItem('pnm_location_enabled', '1');
         } catch (e) { /* storage full */ }
         // Re-fetch location-dependent data (daily tournaments); venues handled by userLocation useEffect
         setTimeout(() => { fetchAllData({ includeVenues: false }); }, 0);
@@ -915,11 +949,17 @@ export default function PokerNearMePage() {
         reverseGeocode(loc.lat, loc.lng).then(label => {
             if (label) {
                 setGpsLocationLabel(label);
-                // Update saved GPS with human-readable label
+                // Update saved GPS with human-readable label + lobby page keys
                 try {
                     const saved = JSON.parse(localStorage.getItem('sp-user-gps') || '{}');
                     saved.label = label;
                     localStorage.setItem('sp-user-gps', JSON.stringify(saved));
+                    // Also write lobby-compatible keys for cross-page sync
+                    const parts = label.split(', ');
+                    if (parts.length >= 2) {
+                        localStorage.setItem('pnm_last_city', parts[0]);
+                        localStorage.setItem('pnm_last_state', parts[parts.length - 1]);
+                    }
                 } catch (e) { /* ignore */ }
             }
         });
@@ -1893,13 +1933,12 @@ export default function PokerNearMePage() {
 
                 {/* ═══ CLICKABLE MAP CARD (same size as venue cards) ═══ */}
                 <div className="map-preview-card" onClick={() => setMapFullscreen(true)}>
-                    <div className="map-preview-overlay">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2">
-                            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                            <line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
+                    <div className="map-preview-expand-badge">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
+                            <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
                         </svg>
-                        <span className="map-preview-label">Open Map</span>
-                        <span className="map-preview-count">{sorted.length} venues</span>
+                        Expand Map · {sorted.length} Venues
                     </div>
                     <MapErrorBoundary>
                         <VenueMap
@@ -2542,7 +2581,7 @@ export default function PokerNearMePage() {
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">POKER NEAR ME</h1>
-                    <p className="pnm-subtitle">{dbStats.total || venues.length || '525'} Venues &bull; {dbStats.states || '41'} States &bull; Real-Time Data</p>
+                    <p className="pnm-subtitle">{dbStats.total || allVenuesForMap.length || venues.length || '500+'} Venues &bull; {dbStats.states || '42'} States &bull; Real-Time Data</p>
                 </div>
 
                 {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}
@@ -2619,7 +2658,7 @@ export default function PokerNearMePage() {
                                 <input
                                     type="text"
                                     className="sidebar-search-input"
-                                    placeholder="City, State, Venue..."
+                                    placeholder="Search Venues..."
                                     value={searchQuery}
                                     onChange={handleSearchInputChange}
                                     autoComplete="off"
@@ -3067,28 +3106,38 @@ export default function PokerNearMePage() {
                     .sidebar-gps-btn {
                         display: flex;
                         align-items: center;
-                        gap: 6px;
+                        gap: 8px;
                         width: 100%;
-                        padding: 8px 10px;
-                        background: rgba(59,130,246,0.08);
-                        border: 1.5px solid rgba(59,130,246,0.25);
-                        border-radius: 8px;
-                        color: #60a5fa;
-                        font-size: 12px;
+                        padding: 10px 12px;
+                        background: linear-gradient(135deg, rgba(212,168,83,0.12) 0%, rgba(184,134,11,0.08) 100%);
+                        border: 1.5px solid rgba(212,168,83,0.35);
+                        border-radius: 10px;
+                        color: #d4a853;
+                        font-size: 13px;
                         font-weight: 700;
                         cursor: pointer;
-                        transition: all 0.2s;
+                        transition: all 0.3s;
                         margin-bottom: 10px;
-                        letter-spacing: 0.3px;
+                        letter-spacing: 0.4px;
+                        animation: gpsGlow 2.5s ease-in-out infinite;
+                        box-shadow: 0 0 12px rgba(212,168,83,0.15);
+                    }
+                    @keyframes gpsGlow {
+                        0%, 100% { box-shadow: 0 0 8px rgba(212,168,83,0.12); border-color: rgba(212,168,83,0.25); }
+                        50% { box-shadow: 0 0 20px rgba(212,168,83,0.3), 0 0 40px rgba(212,168,83,0.1); border-color: rgba(212,168,83,0.5); }
                     }
                     .sidebar-gps-btn:hover {
-                        border-color: rgba(59,130,246,0.3);
-                        color: #60a5fa;
+                        background: linear-gradient(135deg, rgba(212,168,83,0.2) 0%, rgba(184,134,11,0.15) 100%);
+                        border-color: rgba(212,168,83,0.5);
+                        color: #f0d48a;
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 16px rgba(212,168,83,0.25);
                     }
                     .sidebar-gps-btn.active {
                         background: rgba(34,197,94,0.08);
                         border-color: rgba(34,197,94,0.25);
                         color: #4ade80;
+                        animation: none;
                     }
 
                     .sidebar-gps-label {
@@ -4271,34 +4320,32 @@ export default function PokerNearMePage() {
                         min-height: 100% !important;
                         pointer-events: none;
                     }
-                    .map-preview-overlay {
+                    .map-preview-expand-badge {
                         position: absolute;
-                        inset: 0;
+                        top: 12px;
+                        right: 12px;
                         z-index: 10;
                         display: flex;
-                        flex-direction: column;
                         align-items: center;
-                        justify-content: center;
-                        gap: 8px;
-                        background: rgba(3,7,18,0.55);
-                        backdrop-filter: blur(2px);
-                        transition: background 0.3s;
-                        pointer-events: none;
-                    }
-                    .map-preview-card:hover .map-preview-overlay {
-                        background: rgba(3,7,18,0.35);
-                    }
-                    .map-preview-label {
-                        font-size: 18px;
-                        font-weight: 800;
+                        gap: 6px;
+                        padding: 8px 14px;
+                        background: rgba(10,10,21,0.88);
+                        backdrop-filter: blur(8px);
+                        border: 1px solid rgba(212,168,83,0.4);
+                        border-radius: 8px;
                         color: #d4a853;
-                        letter-spacing: 1px;
-                        text-transform: uppercase;
+                        font-size: 12px;
+                        font-weight: 700;
+                        letter-spacing: 0.3px;
+                        pointer-events: none;
+                        transition: all 0.3s;
+                        box-shadow: 0 4px 16px rgba(0,0,0,0.4);
                     }
-                    .map-preview-count {
-                        font-size: 13px;
-                        color: rgba(148,163,184,0.6);
-                        font-weight: 600;
+                    .map-preview-card:hover .map-preview-expand-badge {
+                        background: rgba(212,168,83,0.15);
+                        border-color: rgba(212,168,83,0.6);
+                        color: #f0d48a;
+                        box-shadow: 0 4px 24px rgba(212,168,83,0.2);
                     }
                     .venues-cards-section {
                         margin-top: 4px;
