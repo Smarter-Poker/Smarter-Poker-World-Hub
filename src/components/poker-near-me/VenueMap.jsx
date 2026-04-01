@@ -445,18 +445,23 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
 
     const map = L.map(mapContainerRef.current, {
       zoomControl: true,
-      attributionControl: true,
-      maxBounds: usBounds.pad(0.05),  // Very slight padding — hard lock to US
-      maxBoundsViscosity: 1.0,         // No rubber-banding at all
+      attributionControl: false,  // Disable default Leaflet attribution
+      maxBounds: usBounds.pad(0.05),
+      maxBoundsViscosity: 1.0,
       minZoom: 4,
     });
+
+    // Custom attribution — only "Powered By Smarter.Poker"
+    L.control.attribution({ prefix: false })
+      .addAttribution('Powered By <a href="https://smarter.poker">Smarter.Poker</a>')
+      .addTo(map);
 
     // Fit to US bounds
     map.fitBounds(usBounds, { padding: [20, 20], maxZoom: 6 });
 
     // Dark tile layer — NO LABELS (removes 'UNITED STATES' text)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-      attribution: 'Powered By <a href="https://smarter.poker">Smarter.Poker</a>',
+      attribution: '',
       subdomains: 'abcd',
       maxZoom: 19,
     }).addTo(map);
