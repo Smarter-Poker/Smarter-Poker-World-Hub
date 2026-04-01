@@ -668,10 +668,12 @@ export default function PokerNearMePage() {
     }, [favorites]);
 
     // Listen for favorites changes from other tabs
+    const favoritesRef = useRef(favorites);
+    favoritesRef.current = favorites;
     useEffect(() => {
         const handleFavSync = (e) => {
             if (e.detail && typeof window !== 'undefined') {
-                const currentStr = JSON.stringify(favorites);
+                const currentStr = JSON.stringify(favoritesRef.current);
                 const newStr = JSON.stringify(e.detail);
                 if (currentStr !== newStr) {
                     setFavorites(e.detail);
@@ -711,7 +713,7 @@ export default function PokerNearMePage() {
             if (unsubFav) unsubFav();
             if (unsubUnfav) unsubUnfav();
         };
-    }, [favorites, bus]);
+    }, [bus]);
 
     // --- NEW: Fetch promotion venue IDs on mount ---
     useEffect(() => {
@@ -947,7 +949,7 @@ export default function PokerNearMePage() {
                 console.error('Failed to save preference:', error);
             }
         }
-    }, [preferences]);
+    }, [preferences, userId]);
 
     const menuConfig = getMenuConfig('poker-near-me', null, preferences, {
         setGeofenceAlerts: (val) => updatePreference('geofenceAlerts', val),
@@ -1359,7 +1361,7 @@ export default function PokerNearMePage() {
         }
         touchStartRef.current = null;
         touchEndRef.current = null;
-    }, [activeTab]);
+    }, [activeTab, activeEventTab]);
 
     // ═══ PULL-TO-REFRESH ═══
     const pullDistanceRef = useRef(0);
@@ -1405,8 +1407,6 @@ export default function PokerNearMePage() {
     // Users can pull-to-refresh or search to get fresh data instead.
 
     const requestPushPermission = useCallback(async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!('Notification' in window)) return;
         try {
             const result = await Notification.requestPermission();
@@ -1474,6 +1474,7 @@ export default function PokerNearMePage() {
         setShowCitySuggestions(false);
         setFetchError(null);
         setNearestDistance(null);
+        setSortBy('default');
         setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
         setFilters({
             radius: 50,
